@@ -23,6 +23,7 @@ const serverSchema = z.object({
    */
   APP_ENCRYPTION_KEY: z
     .string()
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/, "must be base64")
     .refine((v) => Buffer.from(v, "base64").length >= 32, "must decode to at least 32 bytes"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });

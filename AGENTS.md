@@ -50,9 +50,12 @@ Heed deprecation notices in those docs over training-data habits.
 - **Signup throttling**: `enforceSignupThrottle` in `src/lib/auth/rate-limit.ts` has no caller
   until Phase 2 adds the server-mediated auth entry point; until then the only signup limit is
   `[auth.rate_limit]` in `supabase/config.toml`.
-- **Pre-auth cleanup job**: run `expired_pre_auth_storage_keys()`, delete those Storage objects,
-  then `purge_expired_pre_auth_state()` (two-phase so objects are never orphaned). Schedule it
-  in Phase 2 with the upload flow.
+- **Pre-auth cleanup job**: pick one cutoff timestamp, run
+  `expired_pre_auth_storage_keys(cutoff)`, delete those Storage objects, then
+  `purge_expired_pre_auth_state(cutoff)` (same cutoff, so objects are never orphaned). Schedule
+  it in Phase 2 with the upload flow. A claim re-parents an asset from its draft to the event
+  (exactly one owner). The privacy action must write the encrypted access code before, or in
+  the same service-role transaction as, switching a published event to private.
 - **Event creation**: end users may insert `DRAFT` events directly (server-managed columns are
   rejected by trigger). Phase 2 creates the event server-side when a pre-auth draft is claimed
   (spec.md §7.2 step 5); revoke the end-user `insert` on `events` at that point.

@@ -37,8 +37,9 @@ export async function getEventRole(
 
 /**
  * Permission context from the persisted event (spec.md §25, §28): payment is
- * satisfied when `paid_at` is set; AI redesign and concept switching end at
- * PUBLISHED. Read through RLS so it is only available to members.
+ * satisfied when `paid_at` is set; AI redesign and concept switching end once
+ * `published_at` is set (robust to PASSED/ARCHIVED). Read through RLS so it is
+ * only available to members.
  */
 export async function getPermissionContext(
   supabase: SupabaseClient<Database>,
@@ -46,14 +47,14 @@ export async function getPermissionContext(
 ): Promise<Required<PermissionContext> | null> {
   const { data, error } = await supabase
     .from("events")
-    .select("paid_at, status")
+    .select("paid_at, published_at")
     .eq("id", eventId)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
   return {
     paymentSatisfied: data.paid_at !== null,
-    published: data.status === "PUBLISHED" || data.status === "PASSED",
+    published: data.published_at !== null,
   };
 }
 

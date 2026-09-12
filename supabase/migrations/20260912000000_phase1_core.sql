@@ -197,8 +197,7 @@ begin
     end if;
     return new;
   end if;
-  if true then
-    if new.owner_id is distinct from old.owner_id
+  if new.owner_id is distinct from old.owner_id
        or new.status is distinct from old.status
        or new.published_at is distinct from old.published_at
        or new.paid_at is distinct from old.paid_at
@@ -208,15 +207,16 @@ begin
        or new.slug is distinct from old.slug
        or new.prompt is distinct from old.prompt
        or new.design_overrides is distinct from old.design_overrides then
-      raise exception 'column is managed by server code'
-        using errcode = 'insufficient_privilege';
-    end if;
+    raise exception 'column is managed by server code'
+      using errcode = 'insufficient_privilege';
   end if;
   return new;
 end;
 $$;
 
-create trigger events_protect_server_columns
+-- Named to fire before events_validate_* (BEFORE triggers run in name order) so an
+-- end user setting a server-managed column always sees insufficient_privilege.
+create trigger events_a_protect_server_columns
   before insert or update on public.events
   for each row execute function public.protect_event_server_columns();
 
@@ -334,8 +334,10 @@ create table public.pre_auth_event_drafts (
   claimed_at timestamptz,
   expires_at timestamptz not null default now() + interval '24 hours',
   created_at timestamptz not null default now(),
+  -- An unclaimed draft has no claim targets; a claimed draft keeps claimed_at even if
+  -- the claiming profile or event is later deleted (FKs set null).
   constraint drafts_claim_consistent
-    check ((claimed_at is null) = (claimed_by is null))
+    check (claimed_at is not null or (claimed_by is null and claimed_event_id is null))
 );
 
 create index pre_auth_event_drafts_expires_at_idx on public.pre_auth_event_drafts (expires_at)
@@ -354,8 +356,9 @@ create table public.inspiration_assets (
   size_bytes integer not null check (size_bytes > 0),
   expires_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint inspiration_assets_has_owner
-    check (event_id is not null or pre_auth_draft_id is not null)
+  -- Exactly one owner: a claim re-parents the asset from the draft to the event.
+  constraint inspiration_assets_one_owner
+    check ((event_id is null) <> (pre_auth_draft_id is null))
 );
 
 create index inspiration_assets_event_id_idx on public.inspiration_assets (event_id);
@@ -647,12 +650,15 @@ end;
 $$;
 
 -- Housekeeping is two-phase because SQL cannot remove Storage objects:
---   1. the server job lists the storage keys of assets on expired, unclaimed drafts
---      and deletes those objects;
---   2. it then purges the rows (assets cascade with their draft) and stale counters.
--- A crash between the phases leaves rows pointing at missing objects, which the
--- next run retries; it never leaves objects without rows.
-create or replace function public.expired_pre_auth_storage_keys()
+--   1. the server job picks one cutoff timestamp, lists the storage keys of assets
+--      on drafts that expired before it and were never claimed, and deletes those
+--      objects;
+--   2. it then purges the same drafts (assets cascade) and stale counters with the
+--      same cutoff.
+-- The shared cutoff makes both phases select the same rows, so a crash between
+-- them leaves rows pointing at missing objects (retried next run) and never
+-- objects without rows.
+create or replace function public.expired_pre_auth_storage_keys(p_cutoff timestamptz)
 returns setof text
 language sql
 stable
@@ -662,10 +668,10 @@ as $$
   select a.storage_key
   from public.inspiration_assets a
   join public.pre_auth_event_drafts d on d.id = a.pre_auth_draft_id
-  where a.event_id is null and d.claimed_at is null and d.expires_at < now();
+  where d.claimed_at is null and d.expires_at < p_cutoff;
 $$;
 
-create or replace function public.purge_expired_pre_auth_state()
+create or replace function public.purge_expired_pre_auth_state(p_cutoff timestamptz)
 returns integer
 language plpgsql
 security definer
@@ -674,7 +680,10 @@ as $$
 declare
   v_drafts integer;
 begin
-  delete from public.pre_auth_event_drafts where claimed_at is null and expires_at < now();
+  if p_cutoff > now() then
+    raise exception 'cutoff must not be in the future';
+  end if;
+  delete from public.pre_auth_event_drafts where claimed_at is null and expires_at < p_cutoff;
   get diagnostics v_drafts = row_count;
   delete from public.rate_limits where window_start < now() - interval '2 days';
   return v_drafts;
@@ -751,8 +760,8 @@ revoke all on table public.rate_limits from anon, authenticated;
 
 -- Server-only functions.
 revoke execute on function public.consume_rate_limit(text, bytea, integer, integer) from public, anon, authenticated;
-revoke execute on function public.purge_expired_pre_auth_state() from public, anon, authenticated;
-revoke execute on function public.expired_pre_auth_storage_keys() from public, anon, authenticated;
+revoke execute on function public.purge_expired_pre_auth_state(timestamptz) from public, anon, authenticated;
+revoke execute on function public.expired_pre_auth_storage_keys(timestamptz) from public, anon, authenticated;
 -- Trigger functions (handle_new_auth_user, add_owner_membership) keep default execute
 -- so supabase_auth_admin and end-user inserts can fire them; PostgREST cannot call
 -- trigger-returning functions directly.

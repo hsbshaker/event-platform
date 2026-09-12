@@ -469,9 +469,22 @@ describe("server-only state", () => {
       `insert into public.inspiration_assets (pre_auth_draft_id, storage_key, mime_type, size_bytes)
        select id, 'drafts/' || prompt, 'image/png', 10 from public.pre_auth_event_drafts`,
     );
-    const keys = await db.query(`select public.expired_pre_auth_storage_keys() as key`);
+    // Service role (bypassrls, not superuser in the stub) must retain execute.
+    const keys = await asActor(db, { kind: "service" }, (q) =>
+      q(`select public.expired_pre_auth_storage_keys(now()) as key`),
+    );
     expect(keys.rows.map((r) => r.key)).toEqual(["drafts/stale"]);
-    const purged = await db.query(`select public.purge_expired_pre_auth_state() as n`);
+    expect(
+      await errorCode(
+        db.query(`select public.purge_expired_pre_auth_state(now() + interval '1 minute')`),
+      ),
+    ).toBe("P0001");
+    const purged = await asActor(
+      db,
+      { kind: "service" },
+      (q) => q(`select public.purge_expired_pre_auth_state(now()) as n`),
+      { commit: true },
+    );
     expect(purged.rows[0].n).toBe(1);
     const { rows } = await db.query(
       `select prompt from public.pre_auth_event_drafts order by prompt`,
@@ -482,17 +495,41 @@ describe("server-only state", () => {
     for (const fn of ["expired_pre_auth_storage_keys", "purge_expired_pre_auth_state"]) {
       expect(
         await errorCode(
-          asActor(db, { kind: "user", id: owner }, (q) => q(`select public.${fn}()`)),
+          asActor(db, { kind: "user", id: owner }, (q) => q(`select public.${fn}(now())`)),
         ),
         fn,
       ).toBe("42501");
     }
+    // An asset has exactly one owner; a claim re-parents it.
+    expect(
+      await errorCode(
+        db.query(
+          `insert into public.inspiration_assets (event_id, pre_auth_draft_id, storage_key, mime_type, size_bytes)
+           select $1, id, 'dual', 'image/png', 1 from public.pre_auth_event_drafts limit 1`,
+          [eventId],
+        ),
+      ),
+    ).toBe("23514");
+    // A claimed draft survives deletion of the profile that claimed it.
+    await db.query(`delete from public.events where id = $1`, [eventId]);
+    await db.query(`delete from auth.users where id = $1`, [owner]);
+    const claimed = await db.query(
+      `select claimed_by, claimed_event_id, claimed_at is not null as claimed
+       from public.pre_auth_event_drafts where prompt = 'claimed-stale'`,
+    );
+    expect(claimed.rows[0]).toEqual({ claimed_by: null, claimed_event_id: null, claimed: true });
   });
 
   it("counts fixed-window rate limits atomically and only for server code", async () => {
     const allow = async () =>
-      (await db.query(`select public.consume_rate_limit('signup:ip', '\\xabcd', 3600, 3) as ok`))
-        .rows[0].ok;
+      (
+        await asActor(
+          db,
+          { kind: "service" },
+          (q) => q(`select public.consume_rate_limit('signup:ip', '\\xabcd', 3600, 3) as ok`),
+          { commit: true },
+        )
+      ).rows[0].ok;
     expect([await allow(), await allow(), await allow(), await allow()]).toEqual([
       true,
       true,
