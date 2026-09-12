@@ -15,11 +15,12 @@ Use this source-of-truth order:
 2. **`docs/technology-decisions.md`** — locked MVP stack. Do not relitigate or substitute infrastructure by preference.
 3. **`docs/design-system.md`** — application UX, interaction patterns, visual tokens, responsive behavior, motion, accessibility, and strict component governance.
 4. **`docs/event-renderer-system.md`** — generated guest-site renderer architecture: `DesignIntent → versioned archetype bundle → deterministic compiler → ResolvedDesignSpec → renderer`.
-5. **`docs/e2e-workflow.md`** — canonical owner/co-host and guest journeys.
-6. **`docs/screen-spec.md`** — screen/surface-level behavior.
-7. **`docs/CHANGELOG-v5.md`** — what changed in the current revision and why.
-8. **`docs/prototypes/creation-flow.html`** — behavioral reference only; it does not override the docs above.
-9. **`docs/renderer-tests/`** — visual/test evidence and fixtures; not product requirements.
+5. **`docs/model-contracts.md`** — Event Identity and DesignIntent prompts, structured-output schemas, runtime narrowing, validation, and evals. Prompts live in `docs/model-prompts/`, schemas in `docs/model-schemas/`.
+6. **`docs/e2e-workflow.md`** — canonical owner/co-host and guest journeys.
+7. **`docs/screen-spec.md`** — screen/surface-level behavior.
+8. **`docs/CHANGELOG-v5.md`** — what changed in the current revision and why.
+9. **`docs/prototypes/creation-flow.html`** — behavioral reference only; it does not override the docs above.
+10. **`docs/renderer-tests/`** — visual/test evidence and fixtures; not product requirements.
 
 If two documents conflict, follow the higher source in this list unless that higher source explicitly delegates an implementation detail to a lower one.
 

@@ -8,11 +8,12 @@ This folder is the reconciled documentation set after the creation-UX and render
 2. **`technology-decisions.md`** — locked MVP stack; do not relitigate.
 3. **`design-system.md`** — application UX, interaction, visual tokens, responsive/motion/accessibility system.
 4. **`event-renderer-system.md`** — generated guest-site renderer architecture.
-5. **`e2e-workflow.md`** — canonical journey reference.
-6. **`screen-spec.md`** — screen/surface-level behavior.
-7. **`CHANGELOG-v5.md`** — summary of the decisions reconciled into this revision.
-8. **`prototypes/creation-flow.html`** — behavioral prototype; not architectural truth.
-9. **`renderer-tests/`** — renderer evidence/test artifacts; not product requirements.
+5. **`model-contracts.md`** — the two strong-model contracts: prompts in `model-prompts/`, canonical schemas in `model-schemas/`.
+6. **`e2e-workflow.md`** — canonical journey reference.
+7. **`screen-spec.md`** — screen/surface-level behavior.
+8. **`CHANGELOG-v5.md`** — summary of the decisions reconciled into this revision.
+9. **`prototypes/creation-flow.html`** — behavioral prototype; not architectural truth.
+10. **`renderer-tests/`** — renderer evidence/test artifacts; not product requirements.
 
 When documents conflict, use the highest source in the list unless a lower document is explicitly called out by the higher source as authoritative for implementation detail.
 

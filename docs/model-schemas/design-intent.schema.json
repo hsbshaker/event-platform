@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://event-platform.local/schemas/design-intent.schema.json",
+  "title": "DesignIntent",
+  "description": "Canonical superset schema for six-field model design intent. At runtime narrow hard-assignment/catalog enums before sending to the structured-output provider.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "heroArchetype",
+    "tonalDirection",
+    "palette",
+    "typographyPairing",
+    "density",
+    "motifs"
+  ],
+  "properties": {
+    "heroArchetype": {
+      "type": "string",
+      "enum": [
+        "editorial_split",
+        "centered_statement",
+        "full_bleed_visual",
+        "framed_invitation",
+        "typography_first",
+        "layered_editorial"
+      ],
+      "description": "Must exactly match the deterministic assignment. Runtime schema should narrow this enum to one value."
+    },
+    "tonalDirection": {
+      "type": "string",
+      "enum": [
+        "light",
+        "mid",
+        "dark"
+      ],
+      "description": "Must exactly match the deterministic assignment. Runtime schema should narrow this enum to one value."
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "colors",
+        "dominant"
+      ],
+      "properties": {
+        "colors": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^#[0-9A-F]{6}$"
+          },
+          "description": "Creative source palette only. 3-5 unique uppercase #RRGGBB colors."
+        },
+        "dominant": {
+          "type": "string",
+          "pattern": "^#[0-9A-F]{6}$",
+          "description": "Must exactly equal one member of colors. Enforce with post-schema semantic validation."
+        }
+      }
+    },
+    "typographyPairing": {
+      "type": "string",
+      "enum": [
+        "heritage_serif_clean_sans",
+        "high_contrast_editorial_sans",
+        "warm_oldstyle_humanist_sans",
+        "modern_grotesk_serif_accent",
+        "soft_serif_grotesk",
+        "refined_transitional_sans"
+      ],
+      "description": "Semantic pairing ID, not raw font names. Runtime schema must narrow this enum to pairings allowed for the assigned archetype + typography category."
+    },
+    "density": {
+      "type": "string",
+      "enum": [
+        "compact",
+        "balanced",
+        "spacious"
+      ]
+    },
+    "motifs": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "plaid_restrained",
+          "gingham",
+          "botanical_line",
+          "stripe_classic",
+          "deco_border",
+          "linen_texture",
+          "equestrian_line",
+          "scallop_subtle",
+          "star_celestial",
+          "ribbon_line"
+        ]
+      },
+      "description": "Motif requests only. Runtime schema should narrow to motifs compatible with the assigned archetype's available slot roles."
+    }
+  }
+}
