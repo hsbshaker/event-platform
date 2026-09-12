@@ -1,0 +1,296 @@
+{
+ "depth 9 of nested Stacks": {
+  "violations": 12,
+  "repairs": 6,
+  "kinds": {
+   "structural": 6
+  },
+  "remaining": 0
+ },
+ "Frame in Frame in Frame": {
+  "violations": 4,
+  "repairs": 2,
+  "kinds": {
+   "structural": 2
+  },
+  "remaining": 0
+ },
+ "Overlay in Overlay": {
+  "violations": 2,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Grid in Grid": {
+  "violations": 3,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Rail in Rail": {
+  "violations": 2,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Split nested three deep": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "RSVP inside a Cluster": {
+  "violations": 2,
+  "repairs": 2,
+  "kinds": {
+   "structural": 1,
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "RSVP inside a Rail's rail": {
+  "violations": 2,
+  "repairs": 2,
+  "kinds": {
+   "structural": 1,
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "Registry in a narrow cell of a 4-column grid": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "RSVP on the 38 side of a Split": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "six Overlays on the page": {
+  "violations": 5,
+  "repairs": 4,
+  "kinds": {
+   "structural": 4
+  },
+  "remaining": 0
+ },
+ "three Frames in one section": {
+  "violations": 2,
+  "repairs": 2,
+  "kinds": {
+   "structural": 2
+  },
+  "remaining": 0
+ },
+ "no EventTitle anywhere": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "two EventTitles": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "no rsvp section (rsvp enabled)": {
+  "violations": 2,
+  "repairs": 1,
+  "kinds": {
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "no registry section (registry enabled)": {
+  "violations": 2,
+  "repairs": 1,
+  "kinds": {
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "RegistryItem outside Registry": {
+  "violations": 2,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Registry layout is a Cluster": {
+  "violations": 3,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Overlay decoration carries text": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Overlay content is a MotifField": {
+  "violations": 4,
+  "repairs": 3,
+  "kinds": {
+   "structural": 1,
+   "coverage": 2
+  },
+  "remaining": 0
+ },
+ "Cluster holding a Split and a Frame": {
+  "violations": 2,
+  "repairs": 2,
+  "kinds": {
+   "structural": 2
+  },
+  "remaining": 0
+ },
+ "73 nodes in one section": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "five consecutive contrast sections": {
+  "violations": 3,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "hero not first": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "two hero sections": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "band section with a Stack root": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Split keep with the RSVP inside": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "responsive": 1
+  },
+  "remaining": 0
+ },
+ "Rail hide with a Stack rail": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "responsive": 1
+  },
+  "remaining": 0
+ },
+ "Surface contrast inside a contrast section": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "Date three times, same form, in the hero": {
+  "violations": 1,
+  "repairs": 2,
+  "kinds": {
+   "coverage": 2
+  },
+  "remaining": 0
+ },
+ "fill screen on the details section": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
+  },
+  "remaining": 0
+ },
+ "seven sections": {
+  "violations": 2,
+  "repairs": 2,
+  "kinds": {
+   "structural": 2
+  },
+  "remaining": 0
+ },
+ "capabilities: Hosts, Description, CashFund and registry used on an event with none of them": {
+  "violations": 11,
+  "repairs": 6,
+  "kinds": {
+   "capability": 5,
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "capabilities: no rsvp on this event but an rsvp section": {
+  "violations": 4,
+  "repairs": 3,
+  "kinds": {
+   "capability": 2,
+   "coverage": 1
+  },
+  "remaining": 0
+ },
+ "Grid children that are not Cells": {
+  "violations": 3,
+  "repairs": 3,
+  "kinds": {
+   "structural": 3
+  },
+  "remaining": 0
+ },
+ "component hoisting: RSVP nested in an Overlay decoration slot": {
+  "violations": 2,
+  "repairs": 2,
+  "kinds": {
+   "structural": 1,
+   "coverage": 1
+  },
+  "remaining": 0
+ }
+}

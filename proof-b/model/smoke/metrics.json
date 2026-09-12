@@ -1,0 +1,122 @@
+{
+  "run": "smoke",
+  "count": 2,
+  "model": "claude-sonnet-5",
+  "condition": "zero",
+  "schema": {
+    "firstCallValid": 2,
+    "afterRepromptValid": 2,
+    "fallbacks": 0,
+    "errorKinds": {}
+  },
+  "repair": {
+    "repairValid": 2,
+    "zeroViolations": 2,
+    "violationsBefore": {
+      "p50": 0,
+      "p90": 0,
+      "max": 0
+    },
+    "repairsByKind": {},
+    "treesWithNoRepairs": 2,
+    "rulesHit": {}
+  },
+  "geometry": null,
+  "invention": {
+    "novelHeroes": 2,
+    "novelRate": 1,
+    "nearestLibrary": {
+      "p50": 0.67,
+      "p90": 0.67,
+      "max": 0.67,
+      "min": 0.57
+    },
+    "exactLibraryMatches": 0,
+    "distinctHeroSkeletons": 2,
+    "distinctModelHeroSkeletons": 2,
+    "rarefaction": [],
+    "largestSkeletonClass": 1,
+    "heroPrimitiveUsage": {
+      "Split": 2,
+      "MotifField": 1,
+      "Stack": 3,
+      "Eyebrow": 2,
+      "EventTitle": 2,
+      "Date": 2,
+      "Hosts": 2,
+      "CTA": 2,
+      "Frame": 1,
+      "Time": 1
+    },
+    "heroPrimitiveEntropy": 3.24,
+    "libraryPrimitiveEntropy": 4.05,
+    "rootTypes": {
+      "Split": 1,
+      "Frame": 1
+    }
+  },
+  "directives": {
+    "complianceRate": {
+      "opening": 0.5,
+      "structure": 1,
+      "date": 1,
+      "weight": 0,
+      "motif": 1,
+      "surface": 1,
+      "details": 1,
+      "rsvpIntro": 1,
+      "registry": null
+    },
+    "distinctPerStructureDirective": {
+      "Split": 1,
+      "Frame": 1
+    },
+    "combos": 103680
+  },
+  "selector": {
+    "pairsTotal": 1,
+    "pairsAtOrAbove070": {
+      "desktop": 0,
+      "mobile": 0
+    },
+    "pairsAtOrAbove060": {
+      "desktop": 0,
+      "mobile": 0
+    },
+    "nearestNeighbour": {
+      "desktop": {
+        "p50": 0.13,
+        "p90": 0.13,
+        "max": 0.13
+      },
+      "mobile": {
+        "p50": 0.13,
+        "p90": 0.13,
+        "max": 0.13
+      }
+    },
+    "collisionsAtAccept": 0,
+    "resolvedByReprompt": 0,
+    "keptWithCollision": 0
+  },
+  "cost": {
+    "calls": 2,
+    "reprompts": 0,
+    "totalUsd": 0.27,
+    "meanMs": 99005,
+    "errors": 0
+  },
+  "size": {
+    "heroNodes": {
+      "p50": 10,
+      "max": 10
+    },
+    "sections": {
+      "4": 1,
+      "5": 1
+    },
+    "pageNodes": {
+      "p50": 40
+    }
+  }
+}

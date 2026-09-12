@@ -1,0 +1,4 @@
+01 schema:ok repair:ok violations:2 repairs:{"structural":2} 
+02 schema:ok repair:ok violations:0 repairs:{} 
+03 schema:ok repair:ok violations:0 repairs:{} 
+04 schema:ok repair:ok violations:0 repairs:{} 

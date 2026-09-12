@@ -1,0 +1,476 @@
+[
+ {
+  "id": "01",
+  "name": "depth 9 of nested Stacks",
+  "repairValid": true,
+  "violations": 12,
+  "repairs": {
+   "structural": 6,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "02",
+  "name": "Frame in Frame in Frame",
+  "repairValid": true,
+  "violations": 4,
+  "repairs": {
+   "structural": 2,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "03",
+  "name": "Overlay in Overlay",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "04",
+  "name": "Grid in Grid",
+  "repairValid": true,
+  "violations": 3,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "05",
+  "name": "Rail in Rail",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "06",
+  "name": "Split nested three deep",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 1
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 1
+ },
+ {
+  "id": "07",
+  "name": "RSVP inside a Cluster",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 1,
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "08",
+  "name": "RSVP inside a Rail's rail",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 1,
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "09",
+  "name": "Registry in a narrow cell of a 4-column grid",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "10",
+  "name": "RSVP on the 38 side of a Split",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "11",
+  "name": "six Overlays on the page",
+  "repairValid": true,
+  "violations": 5,
+  "repairs": {
+   "structural": 4,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "12",
+  "name": "three Frames in one section",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 2,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "13",
+  "name": "no EventTitle anywhere",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "14",
+  "name": "two EventTitles",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "15",
+  "name": "no rsvp section (rsvp enabled)",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "16",
+  "name": "no registry section (registry enabled)",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "17",
+  "name": "RegistryItem outside Registry",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "18",
+  "name": "Registry layout is a Cluster",
+  "repairValid": true,
+  "violations": 3,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "19",
+  "name": "Overlay decoration carries text",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "20",
+  "name": "Overlay content is a MotifField",
+  "repairValid": true,
+  "violations": 4,
+  "repairs": {
+   "structural": 1,
+   "coverage": 2,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "21",
+  "name": "Cluster holding a Split and a Frame",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 2,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "22",
+  "name": "73 nodes in one section",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "23",
+  "name": "five consecutive contrast sections",
+  "repairValid": true,
+  "violations": 3,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "24",
+  "name": "hero not first",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "25",
+  "name": "two hero sections",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "26",
+  "name": "band section with a Stack root",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "27",
+  "name": "Split keep with the RSVP inside",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "responsive": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "28",
+  "name": "Rail hide with a Stack rail",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "responsive": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "29",
+  "name": "Surface contrast inside a contrast section",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "30",
+  "name": "Date three times, same form, in the hero",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "coverage": 2,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "31",
+  "name": "fill screen on the details section",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "32",
+  "name": "seven sections",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 2,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "33",
+  "name": "capabilities: Hosts, Description, CashFund and registry used on an event with none of them",
+  "repairValid": true,
+  "violations": 11,
+  "repairs": {
+   "capability": 5,
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "34",
+  "name": "capabilities: no rsvp on this event but an rsvp section",
+  "repairValid": true,
+  "violations": 4,
+  "repairs": {
+   "capability": 2,
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "35",
+  "name": "Grid children that are not Cells",
+  "repairValid": true,
+  "violations": 3,
+  "repairs": {
+   "structural": 3,
+   "fit-verified": 1
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 1
+ },
+ {
+  "id": "36",
+  "name": "component hoisting: RSVP nested in an Overlay decoration slot",
+  "repairValid": true,
+  "violations": 2,
+  "repairs": {
+   "structural": 1,
+   "coverage": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ }
+]
