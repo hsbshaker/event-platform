@@ -1,0 +1,5 @@
+```json
+{"groups": [[1,5,13],[2,15],[3,35],[4,20,25],[6,12,17,18],[7],[8,28],[9,10,34],[11,30],[14,39],[16,33],[19,21],[22,26,29],[23],[24,31,38],[27],[32,36],[37],[40]],
+"ratings": {"1":3,"2":1,"3":2,"4":3,"5":4,"6":2,"7":4,"8":4,"9":3,"10":2,"11":3,"12":2,"13":4,"14":3,"15":2,"16":4,"17":3,"18":3,"19":3,"20":5,"21":3,"22":4,"23":2,"24":3,"25":5,"26":3,"27":2,"28":4,"29":3,"30":3,"31":3,"32":5,"33":3,"34":2,"35":2,"36":5,"37":2,"38":3,"39":4,"40":1},
+"notes": "Most screens share a small set of skeletons (numeral+title split banners, vertical-label+grid compositions, top-metadata+left-title, pill/table date blocks), and the strongest scores go to symmetric icon+centered-title layouts and bold single-dominant-title posters, while the weakest are near-empty watermark screens and layouts where the title text visibly collides with decorative grid lines or wraps into disconnected fragments."}
+```

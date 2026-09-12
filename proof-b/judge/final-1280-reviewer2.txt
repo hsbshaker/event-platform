@@ -1,0 +1,5 @@
+```json
+{"groups": [[1,6,8,20],[2,15,29],[3,7,35],[4,21],[5,25],[9,10,34],[11,17,18,28],[19,37],[13,14],[16,33],[12,27],[22,26],[24,31,38],[32,36],[23],[30],[39],[40]],
+"ratings": {"1":2,"2":1,"3":4,"4":4,"5":4,"6":2,"7":4,"8":4,"9":3,"10":3,"11":4,"12":2,"13":4,"14":3,"15":2,"16":3,"17":2,"18":4,"19":4,"20":4,"21":3,"22":3,"23":2,"24":3,"25":4,"26":4,"27":2,"28":3,"29":3,"30":2,"31":3,"32":4,"33":4,"34":3,"35":4,"36":4,"37":3,"38":3,"39":4,"40":2},
+"notes": "Grouped by shared skeletons (centered hero+footer bar, numeral+heading pairings, floating date card, grid/line swatch+footer, watermark letter, tabular info, rotated margin text, boxed/avatar centers), with lower scores where wrapping creates awkward gaps, elements feel disconnected, or content looks cropped/empty."}
+```

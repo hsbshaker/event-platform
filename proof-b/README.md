@@ -22,12 +22,16 @@ Five changes from the proposal, as agreed before implementation:
 | `directives.js`, `prompt.js` | Directive dimensions and compliance; the composition prompt (spec and rules generated from `composition.ts`). |
 | `compile.js`, `verify.js` | Deterministic pipeline to `ResolvedDesignSpec`; DOM-geometry content-fit verification. |
 | `run-model.js`, `render-set.js`, `evaluate.js` | The model runs, their rendering, and the metrics. |
-| `model/<run>/` | `results.json` (raw trees, repairs, calls), `results-verified.json`, `metrics.json`, `raw/` (verbatim model output), `prompt-sample.txt`. Runs: `zero` (60, zero-shot), `few` (60, three rotated library examples), `reduced` (12, event without registry, cash fund or description), `collapse` (20, one directive and one intent, seeds differ only in example rotation). |
+| `model/<run>/` | `results.json` (raw trees, repairs, calls), `results-verified.json`, `metrics.json`, `raw/` (verbatim model output), `prompt-sample.txt`. Runs: exploratory `zero`, `few`, `reduced`, `collapse`; confirmation `final` (60, 20 sibling batches) and `final-reduced` (12, 4 batches). |
 | `specs/<run>/`, `shots/<run>/` | Compiled specs and screenshots (390 gray, 390 color, 1280 gray). |
 | `library-heroes-*.png`, `compare-a1-vs-tree-1280.png` | Expressiveness evidence: the 27 silhouettes through the primitive renderer; the sixteen A.1 pages, recipe render beside tree render. |
 | `adversarial-heroes-1280-gray.png` | The 36 repaired adversarial trees rendered. |
 | `human-test-*-unlabeled.png`, `human-test-key.txt` | 20 model heroes and 20 library heroes shuffled; the key is not for reviewers. |
-| `RESULTS.md` | Numbers, pass criteria, visual read, verdict. |
+| `RESULTS.md` | Exploratory-run numbers, pass criteria, visual read, verdict. |
+| `FREEZE.md`, `FINAL.md` | The frozen file set and the confirmation run: schema, repairs, geometry, invention, tokens, collisions, review; recommendation. |
+| `planner.js` | Sibling planner: distinct intents, directives, attractive-token allotments. |
+| `judge.js`, `score-human.js`, `human-test-form.md`, `judge/` | Design-quality review protocol; AI-proxy reviewer runs and scores. |
+| `gen-schema.js`, `composition.schema.json` | The canonical JSON Schema generated from the validator table. |
 
 ## Regenerate
 

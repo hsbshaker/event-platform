@@ -1,0 +1,498 @@
+[
+ {
+  "reviewer": 1,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1
+    ],
+    [
+     2,
+     15
+    ],
+    [
+     3,
+     5,
+     9,
+     13,
+     16
+    ],
+    [
+     4,
+     7,
+     21,
+     37
+    ],
+    [
+     6,
+     25
+    ],
+    [
+     8,
+     28
+    ],
+    [
+     10,
+     22,
+     26
+    ],
+    [
+     11,
+     12,
+     14,
+     17,
+     24,
+     29,
+     30,
+     31,
+     38
+    ],
+    [
+     18
+    ],
+    [
+     19
+    ],
+    [
+     20,
+     40
+    ],
+    [
+     23
+    ],
+    [
+     27
+    ],
+    [
+     32,
+     39
+    ],
+    [
+     33,
+     36
+    ],
+    [
+     34
+    ],
+    [
+     35
+    ]
+   ],
+   "ratings": {
+    "1": 4,
+    "2": 4,
+    "3": 3,
+    "4": 3,
+    "5": 2,
+    "6": 4,
+    "7": 4,
+    "8": 3,
+    "9": 3,
+    "10": 3,
+    "11": 4,
+    "12": 4,
+    "13": 4,
+    "14": 3,
+    "15": 4,
+    "16": 3,
+    "17": 3,
+    "18": 3,
+    "19": 2,
+    "20": 2,
+    "21": 3,
+    "22": 4,
+    "23": 2,
+    "24": 3,
+    "25": 4,
+    "26": 3,
+    "27": 2,
+    "28": 3,
+    "29": 4,
+    "30": 4,
+    "31": 3,
+    "32": 4,
+    "33": 4,
+    "34": 2,
+    "35": 2,
+    "36": 3,
+    "37": 2,
+    "38": 4,
+    "39": 3,
+    "40": 2
+   },
+   "notes": "Most screens share a small set of skeletons (bordered detail box, big '19' hero, monogram 'B', crosshair-grid motif, and a plain stacked light layout with a guest-name RSVP footer), with lower scores going to layouts with awkward text wraps, overlapping/cramped boxes, or two competing focal elements."
+  },
+  "error": null
+ },
+ {
+  "reviewer": 2,
+  "ok": false,
+  "result": null,
+  "error": "Error: Command failed: claude -p You are reviewing 40 first screens of event websites, shown as a numbered grid in the i"
+ },
+ {
+  "reviewer": 3,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1,
+     6,
+     7,
+     9,
+     25
+    ],
+    [
+     3,
+     5,
+     13
+    ],
+    [
+     33,
+     36
+    ],
+    [
+     15,
+     22
+    ],
+    [
+     4,
+     19,
+     21,
+     37
+    ],
+    [
+     18,
+     20,
+     34,
+     40,
+     23
+    ],
+    [
+     10,
+     26,
+     14,
+     35
+    ],
+    [
+     2,
+     16
+    ],
+    [
+     11,
+     12,
+     27
+    ],
+    [
+     30,
+     39
+    ],
+    [
+     32
+    ],
+    [
+     17,
+     24,
+     31,
+     38
+    ],
+    [
+     8,
+     28,
+     29
+    ]
+   ],
+   "ratings": {
+    "1": 4,
+    "2": 2,
+    "3": 4,
+    "4": 4,
+    "5": 3,
+    "6": 3,
+    "7": 4,
+    "8": 5,
+    "9": 3,
+    "10": 5,
+    "11": 4,
+    "12": 3,
+    "13": 4,
+    "14": 3,
+    "15": 3,
+    "16": 4,
+    "17": 2,
+    "18": 3,
+    "19": 3,
+    "20": 2,
+    "21": 3,
+    "22": 3,
+    "23": 2,
+    "24": 3,
+    "25": 4,
+    "26": 5,
+    "27": 3,
+    "28": 3,
+    "29": 3,
+    "30": 4,
+    "31": 3,
+    "32": 4,
+    "33": 3,
+    "34": 3,
+    "35": 4,
+    "36": 3,
+    "37": 3,
+    "38": 3,
+    "39": 4,
+    "40": 2
+   },
+   "notes": "Grouped by shared structural skeleton (hero mark type, motif treatment, footer band, bordered boxes) regardless of dark/light theme; ratings favor clear single-focus hierarchy and penalize cramped or competing-element layouts."
+  },
+  "error": null
+ },
+ {
+  "reviewer": 4,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1,
+     5,
+     6,
+     7,
+     9,
+     25,
+     39
+    ],
+    [
+     2,
+     15,
+     22
+    ],
+    [
+     3,
+     10
+    ],
+    [
+     4
+    ],
+    [
+     21,
+     24,
+     37
+    ],
+    [
+     19
+    ],
+    [
+     11,
+     12,
+     17,
+     27,
+     28,
+     29,
+     31
+    ],
+    [
+     14
+    ],
+    [
+     16,
+     26
+    ],
+    [
+     18,
+     20,
+     34,
+     40
+    ],
+    [
+     13,
+     30,
+     32,
+     33,
+     36
+    ],
+    [
+     23
+    ],
+    [
+     35
+    ],
+    [
+     38
+    ],
+    [
+     8
+    ]
+   ],
+   "ratings": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 4,
+    "5": 3,
+    "6": 4,
+    "7": 3,
+    "8": 3,
+    "9": 5,
+    "10": 3,
+    "11": 4,
+    "12": 2,
+    "13": 3,
+    "14": 2,
+    "15": 4,
+    "16": 3,
+    "17": 2,
+    "18": 2,
+    "19": 3,
+    "20": 2,
+    "21": 2,
+    "22": 3,
+    "23": 1,
+    "24": 3,
+    "25": 4,
+    "26": 4,
+    "27": 3,
+    "28": 4,
+    "29": 4,
+    "30": 4,
+    "31": 3,
+    "32": 4,
+    "33": 4,
+    "34": 3,
+    "35": 2,
+    "36": 4,
+    "37": 3,
+    "38": 2,
+    "39": 5,
+    "40": 2
+   },
+   "notes": "Grouped mainly by footer treatment (tagline band vs guest-name RSVP form vs plain), monogram/frame motifs, and decorative grid-crosshair backgrounds; lowest scores went to layouts with overlapping/cramped elements or competing focal points (23, 35, 38) and highest to clean two-zone hero+footer cards with a single dominant headline (9, 39)."
+  },
+  "error": null
+ },
+ {
+  "reviewer": 5,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1,
+     7,
+     25
+    ],
+    [
+     6,
+     39
+    ],
+    [
+     13,
+     33
+    ],
+    [
+     9,
+     35,
+     36
+    ],
+    [
+     2,
+     15
+    ],
+    [
+     3,
+     10
+    ],
+    [
+     5,
+     16,
+     26
+    ],
+    [
+     23
+    ],
+    [
+     20,
+     40
+    ],
+    [
+     34,
+     18
+    ],
+    [
+     8,
+     28,
+     32
+    ],
+    [
+     22,
+     30
+    ],
+    [
+     12,
+     14,
+     24,
+     27,
+     29,
+     31,
+     38
+    ],
+    [
+     11,
+     17,
+     37
+    ],
+    [
+     19,
+     21
+    ],
+    [
+     4
+    ]
+   ],
+   "ratings": {
+    "1": 4,
+    "2": 3,
+    "3": 3,
+    "4": 2,
+    "5": 3,
+    "6": 4,
+    "7": 4,
+    "8": 2,
+    "9": 4,
+    "10": 4,
+    "11": 4,
+    "12": 3,
+    "13": 4,
+    "14": 2,
+    "15": 3,
+    "16": 4,
+    "17": 3,
+    "18": 3,
+    "19": 2,
+    "20": 2,
+    "21": 2,
+    "22": 4,
+    "23": 2,
+    "24": 2,
+    "25": 4,
+    "26": 3,
+    "27": 2,
+    "28": 4,
+    "29": 3,
+    "30": 4,
+    "31": 3,
+    "32": 4,
+    "33": 4,
+    "34": 3,
+    "35": 3,
+    "36": 4,
+    "37": 3,
+    "38": 2,
+    "39": 4,
+    "40": 2
+   },
+   "notes": "Most screens share a vertical eyebrow-title-hosted-date/venue skeleton, splitting mainly by footer treatment (RSVP button vs. guest-name form vs. dark 'join us' band) and by decorative overlays (grid/gingham motifs, bordered frames), with a handful of outliers (unique boxed/compartmentalized dark layout, oversized 'B' monogram frame) and a few screens losing points for awkward line breaks or placeholder-looking gray bars instead of real text."
+  },
+  "error": null
+ }
+]

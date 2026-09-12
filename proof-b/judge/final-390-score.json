@@ -1,0 +1,57 @@
+{
+ "per": [
+  {
+   "reviewer": 1,
+   "groups": 17,
+   "modelDesignedRate": 0.4,
+   "libraryDesignedRate": 0.35,
+   "modelMean": 3.2,
+   "libraryMean": 3.1,
+   "modelGroups": 13,
+   "mixedGroups": 5,
+   "largestModelGroup": 2
+  },
+  {
+   "reviewer": 3,
+   "groups": 13,
+   "modelDesignedRate": 0.4,
+   "libraryDesignedRate": 0.35,
+   "modelMean": 3.3,
+   "libraryMean": 3.35,
+   "modelGroups": 9,
+   "mixedGroups": 4,
+   "largestModelGroup": 5
+  },
+  {
+   "reviewer": 4,
+   "groups": 15,
+   "modelDesignedRate": 0.45,
+   "libraryDesignedRate": 0.3,
+   "modelMean": 3.3,
+   "libraryMean": 3,
+   "modelGroups": 9,
+   "mixedGroups": 4,
+   "largestModelGroup": 6
+  },
+  {
+   "reviewer": 5,
+   "groups": 16,
+   "modelDesignedRate": 0.55,
+   "libraryDesignedRate": 0.25,
+   "modelMean": 3.3,
+   "libraryMean": 2.95,
+   "modelGroups": 13,
+   "mixedGroups": 6,
+   "largestModelGroup": 3
+  }
+ ],
+ "summary": {
+  "reviewers": 4,
+  "medianModelDesignedRate": 0.45,
+  "medianLibraryDesignedRate": 0.35,
+  "medianGroups": 16,
+  "medianMixedGroups": 5,
+  "maxModelGroup": 6,
+  "pass": false
+ }
+}

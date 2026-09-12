@@ -1,0 +1,5 @@
+```json
+{"groups": [[1],[2],[3,7,35,37],[4],[5,14,16],[6,25],[8,20],[9,10],[11,18,30],[12,17,27],[13,28],[15],[19,21],[22,26,33],[23],[24,31,38],[29,32,36],[34],[39],[40]],
+"ratings": {"1":2,"2":1,"3":4,"4":3,"5":4,"6":2,"7":4,"8":4,"9":3,"10":4,"11":2,"12":4,"13":4,"14":4,"15":2,"16":4,"17":4,"18":4,"19":2,"20":4,"21":2,"22":4,"23":2,"24":3,"25":5,"26":4,"27":2,"28":3,"29":4,"30":2,"31":3,"32":4,"33":4,"34":2,"35":4,"36":4,"37":3,"38":2,"39":2,"40":2},
+"notes": "Recurring skeletons include number+title split bars (3/7/35/37), bordered centered boxes (5/14/16), grid/blank-box pairings (11/18/30), and vertical-rail titles (12/17/27); lowest scores went to screens with truncated/overflowing text, empty placeholder-looking boxes, or cluttered grid overlays."}
+```

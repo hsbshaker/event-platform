@@ -1,0 +1,632 @@
+[
+ {
+  "reviewer": 1,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1,
+     36
+    ],
+    [
+     4,
+     7,
+     20
+    ],
+    [
+     25
+    ],
+    [
+     5,
+     13,
+     14,
+     33
+    ],
+    [
+     6,
+     8,
+     18
+    ],
+    [
+     19,
+     21,
+     22,
+     26,
+     29,
+     31,
+     34,
+     38
+    ],
+    [
+     11,
+     12,
+     17,
+     24,
+     28
+    ],
+    [
+     9,
+     10
+    ],
+    [
+     23
+    ],
+    [
+     2,
+     15
+    ],
+    [
+     3,
+     16,
+     35
+    ],
+    [
+     27
+    ],
+    [
+     32
+    ],
+    [
+     40
+    ],
+    [
+     30
+    ],
+    [
+     37
+    ],
+    [
+     39
+    ]
+   ],
+   "ratings": {
+    "1": 3,
+    "2": 1,
+    "3": 2,
+    "4": 3,
+    "5": 4,
+    "6": 2,
+    "7": 4,
+    "8": 4,
+    "9": 4,
+    "10": 3,
+    "11": 2,
+    "12": 2,
+    "13": 4,
+    "14": 4,
+    "15": 2,
+    "16": 4,
+    "17": 2,
+    "18": 4,
+    "19": 2,
+    "20": 3,
+    "21": 2,
+    "22": 4,
+    "23": 3,
+    "24": 2,
+    "25": 5,
+    "26": 4,
+    "27": 1,
+    "28": 3,
+    "29": 4,
+    "30": 2,
+    "31": 2,
+    "32": 4,
+    "33": 4,
+    "34": 3,
+    "35": 2,
+    "36": 5,
+    "37": 3,
+    "38": 2,
+    "39": 3,
+    "40": 2
+   },
+   "notes": "Grouped by structural skeleton (dark full-bleed hero vs. inset card vs. tabular detail row vs. decorative-pattern sidebar) regardless of color/type; highest ratings went to screens with one dominant, well-balanced focal element (25, 36) and lowest to sparse/empty or misaligned compositions (2, 27)."
+  },
+  "error": null
+ },
+ {
+  "reviewer": 2,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1,
+     6,
+     8,
+     20
+    ],
+    [
+     2,
+     15,
+     29
+    ],
+    [
+     3,
+     7,
+     35
+    ],
+    [
+     4,
+     21
+    ],
+    [
+     5,
+     25
+    ],
+    [
+     9,
+     10,
+     34
+    ],
+    [
+     11,
+     17,
+     18,
+     28
+    ],
+    [
+     19,
+     37
+    ],
+    [
+     13,
+     14
+    ],
+    [
+     16,
+     33
+    ],
+    [
+     12,
+     27
+    ],
+    [
+     22,
+     26
+    ],
+    [
+     24,
+     31,
+     38
+    ],
+    [
+     32,
+     36
+    ],
+    [
+     23
+    ],
+    [
+     30
+    ],
+    [
+     39
+    ],
+    [
+     40
+    ]
+   ],
+   "ratings": {
+    "1": 2,
+    "2": 1,
+    "3": 4,
+    "4": 4,
+    "5": 4,
+    "6": 2,
+    "7": 4,
+    "8": 4,
+    "9": 3,
+    "10": 3,
+    "11": 4,
+    "12": 2,
+    "13": 4,
+    "14": 3,
+    "15": 2,
+    "16": 3,
+    "17": 2,
+    "18": 4,
+    "19": 4,
+    "20": 4,
+    "21": 3,
+    "22": 3,
+    "23": 2,
+    "24": 3,
+    "25": 4,
+    "26": 4,
+    "27": 2,
+    "28": 3,
+    "29": 3,
+    "30": 2,
+    "31": 3,
+    "32": 4,
+    "33": 4,
+    "34": 3,
+    "35": 4,
+    "36": 4,
+    "37": 3,
+    "38": 3,
+    "39": 4,
+    "40": 2
+   },
+   "notes": "Grouped by shared skeletons (centered hero+footer bar, numeral+heading pairings, floating date card, grid/line swatch+footer, watermark letter, tabular info, rotated margin text, boxed/avatar centers), with lower scores where wrapping creates awkward gaps, elements feel disconnected, or content looks cropped/empty."
+  },
+  "error": null
+ },
+ {
+  "reviewer": 3,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1,
+     5,
+     13,
+     14,
+     32,
+     33,
+     36
+    ],
+    [
+     3,
+     7,
+     19,
+     35,
+     37
+    ],
+    [
+     4,
+     16,
+     21
+    ],
+    [
+     11,
+     18
+    ],
+    [
+     12,
+     17,
+     27
+    ],
+    [
+     24,
+     26,
+     31,
+     38
+    ],
+    [
+     22,
+     29
+    ],
+    [
+     9,
+     10,
+     34
+    ],
+    [
+     2,
+     15,
+     30,
+     39
+    ],
+    [
+     6,
+     8,
+     20,
+     25,
+     28
+    ],
+    [
+     23,
+     40
+    ]
+   ],
+   "ratings": {
+    "1": 3,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 4,
+    "6": 3,
+    "7": 4,
+    "8": 4,
+    "9": 3,
+    "10": 3,
+    "11": 3,
+    "12": 2,
+    "13": 4,
+    "14": 4,
+    "15": 3,
+    "16": 4,
+    "17": 2,
+    "18": 4,
+    "19": 3,
+    "20": 4,
+    "21": 2,
+    "22": 4,
+    "23": 4,
+    "24": 3,
+    "25": 5,
+    "26": 4,
+    "27": 2,
+    "28": 4,
+    "29": 4,
+    "30": 2,
+    "31": 3,
+    "32": 4,
+    "33": 4,
+    "34": 3,
+    "35": 2,
+    "36": 4,
+    "37": 4,
+    "38": 3,
+    "39": 2,
+    "40": 2
+   },
+   "notes": "Most screens reduce to a handful of skeletons (centered symmetric hero, numeral+title split, numeral-over-title stack, graphic-box+title split, vertical-sidebar text, tabular meta+title, boxed date-pill, and heavy-negative-space/watermark layouts), with quality varying mainly by how cleanly each executes hierarchy and whitespace versus awkward text wraps or unstyled placeholder-looking decoration."
+  },
+  "error": null
+ },
+ {
+  "reviewer": 4,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1,
+     5,
+     13
+    ],
+    [
+     2,
+     15
+    ],
+    [
+     3,
+     35
+    ],
+    [
+     4,
+     20,
+     25
+    ],
+    [
+     6,
+     12,
+     17,
+     18
+    ],
+    [
+     7
+    ],
+    [
+     8,
+     28
+    ],
+    [
+     9,
+     10,
+     34
+    ],
+    [
+     11,
+     30
+    ],
+    [
+     14,
+     39
+    ],
+    [
+     16,
+     33
+    ],
+    [
+     19,
+     21
+    ],
+    [
+     22,
+     26,
+     29
+    ],
+    [
+     23
+    ],
+    [
+     24,
+     31,
+     38
+    ],
+    [
+     27
+    ],
+    [
+     32,
+     36
+    ],
+    [
+     37
+    ],
+    [
+     40
+    ]
+   ],
+   "ratings": {
+    "1": 3,
+    "2": 1,
+    "3": 2,
+    "4": 3,
+    "5": 4,
+    "6": 2,
+    "7": 4,
+    "8": 4,
+    "9": 3,
+    "10": 2,
+    "11": 3,
+    "12": 2,
+    "13": 4,
+    "14": 3,
+    "15": 2,
+    "16": 4,
+    "17": 3,
+    "18": 3,
+    "19": 3,
+    "20": 5,
+    "21": 3,
+    "22": 4,
+    "23": 2,
+    "24": 3,
+    "25": 5,
+    "26": 3,
+    "27": 2,
+    "28": 4,
+    "29": 3,
+    "30": 3,
+    "31": 3,
+    "32": 5,
+    "33": 3,
+    "34": 2,
+    "35": 2,
+    "36": 5,
+    "37": 2,
+    "38": 3,
+    "39": 4,
+    "40": 1
+   },
+   "notes": "Most screens share a small set of skeletons (numeral+title split banners, vertical-label+grid compositions, top-metadata+left-title, pill/table date blocks), and the strongest scores go to symmetric icon+centered-title layouts and bold single-dominant-title posters, while the weakest are near-empty watermark screens and layouts where the title text visibly collides with decorative grid lines or wraps into disconnected fragments."
+  },
+  "error": null
+ },
+ {
+  "reviewer": 5,
+  "ok": true,
+  "result": {
+   "groups": [
+    [
+     1
+    ],
+    [
+     2
+    ],
+    [
+     3,
+     7,
+     35,
+     37
+    ],
+    [
+     4
+    ],
+    [
+     5,
+     14,
+     16
+    ],
+    [
+     6,
+     25
+    ],
+    [
+     8,
+     20
+    ],
+    [
+     9,
+     10
+    ],
+    [
+     11,
+     18,
+     30
+    ],
+    [
+     12,
+     17,
+     27
+    ],
+    [
+     13,
+     28
+    ],
+    [
+     15
+    ],
+    [
+     19,
+     21
+    ],
+    [
+     22,
+     26,
+     33
+    ],
+    [
+     23
+    ],
+    [
+     24,
+     31,
+     38
+    ],
+    [
+     29,
+     32,
+     36
+    ],
+    [
+     34
+    ],
+    [
+     39
+    ],
+    [
+     40
+    ]
+   ],
+   "ratings": {
+    "1": 2,
+    "2": 1,
+    "3": 4,
+    "4": 3,
+    "5": 4,
+    "6": 2,
+    "7": 4,
+    "8": 4,
+    "9": 3,
+    "10": 4,
+    "11": 2,
+    "12": 4,
+    "13": 4,
+    "14": 4,
+    "15": 2,
+    "16": 4,
+    "17": 4,
+    "18": 4,
+    "19": 2,
+    "20": 4,
+    "21": 2,
+    "22": 4,
+    "23": 2,
+    "24": 3,
+    "25": 5,
+    "26": 4,
+    "27": 2,
+    "28": 3,
+    "29": 4,
+    "30": 2,
+    "31": 3,
+    "32": 4,
+    "33": 4,
+    "34": 2,
+    "35": 4,
+    "36": 4,
+    "37": 3,
+    "38": 2,
+    "39": 2,
+    "40": 2
+   },
+   "notes": "Recurring skeletons include number+title split bars (3/7/35/37), bordered centered boxes (5/14/16), grid/blank-box pairings (11/18/30), and vertical-rail titles (12/17/27); lowest scores went to screens with truncated/overflowing text, empty placeholder-looking boxes, or cluttered grid overlays."
+  },
+  "error": null
+ }
+]

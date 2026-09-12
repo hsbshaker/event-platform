@@ -1,0 +1,229 @@
+{
+  "run": "final",
+  "count": 60,
+  "model": "claude-sonnet-5",
+  "condition": "few",
+  "schema": {
+    "firstCallValid": 60,
+    "afterRepromptValid": 60,
+    "fallbacks": 0,
+    "infraFailures": 0,
+    "cleanCalls": 60,
+    "firstCallValidOfClean": 60,
+    "rerunAfterInfraFailure": 0,
+    "errorKinds": {}
+  },
+  "repair": {
+    "repairValid": 60,
+    "zeroViolations": 59,
+    "violationsBefore": {
+      "p50": 0,
+      "p90": 0,
+      "max": 1
+    },
+    "repairsByKind": {
+      "fit-verified": 23,
+      "structural": 1,
+      "fit-estimate": 4
+    },
+    "treesWithNoRepairs": 40,
+    "rulesHit": {
+      "fit.verified": 23,
+      "motif.kind": 1,
+      "fit.estimate": 4
+    }
+  },
+  "geometry": {
+    "verified": 60,
+    "overflowDesktop": 0,
+    "overflowMobile": 0,
+    "fitDemotionsTotal": 23,
+    "treesNeedingFit": 15,
+    "estimateVsVerified": {
+      "estimated": 4,
+      "verified": 23
+    },
+    "clean": 60
+  },
+  "invention": {
+    "novelHeroes": 47,
+    "novelRate": 0.78,
+    "nearestLibrary": {
+      "p50": 0.59,
+      "p90": 0.83,
+      "max": 1,
+      "min": 0.4
+    },
+    "exactLibraryMatches": 1,
+    "distinctHeroSkeletons": 58,
+    "distinctModelHeroSkeletons": 58,
+    "rarefaction": [
+      [
+        10,
+        10
+      ],
+      [
+        20,
+        18
+      ],
+      [
+        30,
+        28
+      ],
+      [
+        40,
+        38
+      ],
+      [
+        50,
+        48
+      ],
+      [
+        60,
+        58
+      ]
+    ],
+    "largestSkeletonClass": 2,
+    "heroPrimitiveUsage": {
+      "Rail": 10,
+      "Stack": 98,
+      "EventTitle": 60,
+      "Hosts": 57,
+      "Cluster": 50,
+      "Date": 65,
+      "Time": 56,
+      "Venue": 52,
+      "Location": 32,
+      "Description": 26,
+      "CTA": 60,
+      "MotifField": 26,
+      "Eyebrow": 53,
+      "Deadline": 12,
+      "Overlay": 15,
+      "Monogram": 18,
+      "Grid": 17,
+      "Frame": 28,
+      "Surface": 23,
+      "Split": 17,
+      "Rule": 21,
+      "Glyph": 2,
+      "MotifBand": 2
+    },
+    "heroPrimitiveEntropy": 4.17,
+    "libraryPrimitiveEntropy": 4.05,
+    "rootTypes": {
+      "Rail": 7,
+      "Stack": 9,
+      "Frame": 6,
+      "Surface": 21,
+      "Split": 5,
+      "Grid": 6,
+      "Overlay": 6
+    }
+  },
+  "attractiveTokens": {
+    "staggerTitle": {
+      "rawTrees": 18,
+      "finalTrees": 20
+    },
+    "heroNumeral": {
+      "rawTrees": 12,
+      "finalTrees": 12
+    },
+    "watermark": {
+      "rawTrees": 4,
+      "finalTrees": 3
+    }
+  },
+  "capViolations": {
+    "firstCall": 0,
+    "afterReprompt": 0,
+    "neutralized": 0
+  },
+  "boxDepth": {
+    "rawTreesOverTwoBoxes": 0,
+    "repairs": 0
+  },
+  "batches": {
+    "count": 20,
+    "size": 3,
+    "familiesDistinct": 20,
+    "tonesDistinct": 20,
+    "categoriesDistinct": 20,
+    "hierarchiesDistinct": 18,
+    "structuresDistinct": 20,
+    "openingsDistinct": 20,
+    "heroSkeletonsDistinct": 20,
+    "siblingPairs": 60,
+    "siblingPairsAtOrAbove070": 0,
+    "siblingMax": 0.4
+  },
+  "directives": {
+    "complianceRate": {
+      "opening": 0.88,
+      "structure": 0.92,
+      "date": 0.58,
+      "motif": 0.68,
+      "surface": 0.98,
+      "details": 1,
+      "rsvpIntro": 0.93,
+      "registry": 1
+    },
+    "distinctPerStructureDirective": {
+      "Rail": 5,
+      "Overlay": 13,
+      "Grid": 14,
+      "Split": 9,
+      "Stack": 8,
+      "Frame": 9
+    },
+    "combos": 34560
+  },
+  "selector": {
+    "pairsTotal": 1770,
+    "pairsAtOrAbove070": {
+      "desktop": 0,
+      "mobile": 0
+    },
+    "pairsAtOrAbove060": {
+      "desktop": 4,
+      "mobile": 12
+    },
+    "nearestNeighbour": {
+      "desktop": {
+        "p50": 0.43,
+        "p90": 0.62,
+        "max": 0.67
+      },
+      "mobile": {
+        "p50": 0.48,
+        "p90": 0.63,
+        "max": 0.65
+      }
+    },
+    "collisionsAtAccept": 2,
+    "resolvedByReprompt": 2,
+    "keptWithCollision": 0
+  },
+  "cost": {
+    "calls": 62,
+    "reprompts": 2,
+    "totalUsd": 8.2,
+    "meanMs": 83695,
+    "errors": 0
+  },
+  "size": {
+    "heroNodes": {
+      "p50": 14,
+      "max": 22
+    },
+    "sections": {
+      "3": 19,
+      "4": 35,
+      "5": 6
+    },
+    "pageNodes": {
+      "p50": 33
+    }
+  }
+}

@@ -21,7 +21,7 @@ function compile({ raw, caps = FULL_CAPS, designIntent, pageSystem, seed = 1, id
     id, source, schemaValid: true, repairValid: rep.remaining.length === 0, violationsBefore: violationsBefore.length, remaining: rep.remaining,
     spec: { version: "resolved_v2", designIntent, pageSystem, typography: designIntent.typographyObject, composition: canon.tree, compositionHash: canon.hash, layout, content: CONTENT, seed, capabilities: caps,
       compilerRepairs: repairs, repairSummary: repairs.reduce((o, r) => { o[r.kind] = (o[r.kind] || 0) + 1; return o; }, {}), verified: null,
-      versions: { primitiveSet: "composition_v1", compiler: "proof-b-0.2", compositionPrompt: "composition_v1_p2", compositionSchema: "composition_v1" } },
+      versions: { primitiveSet: "composition_v1", compiler: "proof-b-0.3", compositionPrompt: "composition_v1_p2", compositionSchema: "composition_v1" } },
   };
 }
 module.exports = { compile, CONTENT, FULL_CAPS, REDUCED_CAPS, FIT_METRICS };
