@@ -1,0 +1,201 @@
+// Phase A proof configuration. Every visible decision in the harness traces to one of:
+// family rule · named recipe · PageSystem value · composition value · quantized parameter · motif assignment.
+// No site may carry a bespoke layout override. The harness has no per-site branches.
+
+window.VOCAB = {
+  families: ["editorial", "invitation", "statement"],
+
+  heroRecipes: {
+    editorial_split:      { family: "editorial",  name: "Split",      slots: ["field", "accent"] },
+    editorial_masthead:   { family: "editorial",  name: "Masthead",   slots: ["band", "divider"] },
+    editorial_offset:     { family: "editorial",  name: "Offset",     slots: ["field", "accent"] },
+    framed_invitation:    { family: "invitation", name: "Framed",     slots: ["frame", "accent"] },
+    invitation_card:      { family: "invitation", name: "Card",       slots: ["field", "divider"] },
+    invitation_monogram:  { family: "invitation", name: "Monogram",   slots: ["accent", "divider"] },
+    typography_first:     { family: "statement",  name: "Poster",     slots: ["band"] },
+    statement_stack:      { family: "statement",  name: "Stack",      slots: ["accent"] },
+  },
+
+  detailsRecipes:  ["details_split_panel", "details_stacked", "details_grid", "details_sidebar_rows"],
+  rsvpRecipes:     ["rsvp_contrast_split", "rsvp_contained_card", "rsvp_edge_interruption", "rsvp_typographic_stack"],
+  registryRecipes: ["registry_featured", "registry_tiles", "registry_editorial_list", "registry_uneven_grid"],
+  stateRecipes:    ["state_quiet", "state_plate"],
+
+  // Surface plans: role per section slot. Roles: base | alt | contrast | framed | field. band = optional strip after hero.
+  surfacePlans: {
+    SP1_dark_opening:     { hero: "contrast", band: null,    details: "base",   rsvp: "contrast", registry: "base",     state: "base" },
+    SP2_continuous_light: { hero: "base",     band: null,    details: "base",   rsvp: "framed",   registry: "base",     state: "alt" },
+    SP3_interrupted:      { hero: "base",     band: "field", details: "base",   rsvp: "contrast", registry: "alt",      state: "base" },
+    SP4_alternating:      { hero: "contrast", band: null,    details: "alt",    rsvp: "base",     registry: "contrast", state: "alt" },
+    SP5_framed_body:      { hero: "framed",   band: null,    details: "framed", rsvp: "framed",   registry: "framed",   state: "framed" },
+    SP6_deepening:        { hero: "base",     band: null,    details: "alt",    rsvp: "alt",      registry: "contrast", state: "contrast" },
+  },
+
+  axes: ["left", "center", "alternating"],
+  borderLanguages: ["none", "hairline", "double", "accented"],
+  cardLanguages:   ["flat", "outlined", "tinted", "plate"],
+  buttonLanguages: ["solid_square", "solid_rounded", "outline_square", "underline"],
+
+  // Quantized parameters (step values). Continuous floats are not permitted.
+  parameters: {
+    heroSplit:       [0.38, 0.45, 0.50, 0.55, 0.62, 0.68],
+    heroHeight:      ["compact", "standard", "full"],
+    alignOffset:     [0, 1, 2, 3],
+    measure:         ["narrow", "standard", "wide"],
+    bandHeight:      ["thin", "medium", "tall"],
+    motifScale:      [0.75, 1, 1.5, 2.25],
+    motifOpacity:    [0.08, 0.14, 0.22, 0.35],
+    borderWeight:    [1, 2, 3],
+    displayTracking: [-0.05, -0.02, 0, 0.06, 0.14],
+  },
+
+  typography: {
+    heritage_caslon_karla:        { category: "heritage",                display: "Libre Caslon Text",  body: "Karla",         holdsAtMonumental: true },
+    heritage_baskerville_inter:   { category: "heritage",                display: "Libre Baskerville",  body: "Inter",         holdsAtMonumental: true },
+    hc_bodoni_inter:              { category: "high_contrast_editorial", display: "Bodoni Moda",        body: "Inter",         holdsAtMonumental: true },
+    hc_playfair_dmsans:           { category: "high_contrast_editorial", display: "Playfair Display",   body: "DM Sans",       holdsAtMonumental: true },
+    oldstyle_garamond_worksans:   { category: "oldstyle",                display: "EB Garamond",        body: "Work Sans",     holdsAtMonumental: false },
+    oldstyle_cormorant_figtree:   { category: "oldstyle",                display: "Cormorant Garamond", body: "Figtree",       holdsAtMonumental: false },
+    transitional_newsreader_tight:{ category: "transitional",            display: "Newsreader",         body: "Inter Tight",   holdsAtMonumental: true },
+    transitional_instrument_manrope:{ category: "transitional",          display: "Instrument Serif",   body: "Manrope",       holdsAtMonumental: true },
+    soft_fraunces_manrope:        { category: "soft_serif",              display: "Fraunces",           body: "Manrope",       holdsAtMonumental: true },
+    soft_dmserif_dmsans:          { category: "soft_serif",              display: "DM Serif Display",   body: "DM Sans",       holdsAtMonumental: true },
+    grotesk_archivo_inter:        { category: "grotesk_led",             display: "Archivo",            body: "Inter",         holdsAtMonumental: true },
+    grotesk_space_sourcesans:     { category: "grotesk_led",             display: "Space Grotesk",      body: "Source Sans 3", holdsAtMonumental: true },
+  },
+
+  motifs: {
+    plaid:      { kind: "pattern",     roles: ["field", "band", "frame"] },
+    stripe:     { kind: "pattern",     roles: ["band", "field", "divider"] },
+    gingham:    { kind: "pattern",     roles: ["field", "band"] },
+    linen:      { kind: "pattern",     roles: ["field", "frame"] },
+    equestrian: { kind: "arrangement", roles: ["accent", "divider", "frame"] },
+    botanical:  { kind: "arrangement", roles: ["accent", "divider", "frame"] },
+    celestial:  { kind: "arrangement", roles: ["accent", "divider"] },
+  },
+};
+
+// Shared event content for all twelve sites. Same content everywhere; only design varies.
+window.DATA = {
+  eyebrow: "A baby shower for our little boy",
+  title: "Baby Shaker is on the way",
+  hosts: "Hosted with love by Haseeb & Shezia",
+  date: "Saturday, December 19, 2026",
+  time: "1:00–5:00 PM",
+  venue: "The Lodge at Hanson Park",
+  location: "Aldie, Virginia",
+  description: "An afternoon of good food, warm company, and celebrating our little boy.",
+  deadline: "December 1",
+  contentProfile: { titleLength: "medium", hostCount: "two", subtitleLength: "short", venueComplexity: "simple", registryItems: "few", externalRegistries: 1, cashFund: true },
+};
+
+window.SITES = [
+  {
+    id: "01", name: "Deep Editorial", family: "editorial", tonalDirection: "dark",
+    heroRecipe: "editorial_split", detailsRecipe: "details_split_panel", rsvpRecipe: "rsvp_contrast_split", registryRecipe: "registry_featured", stateRecipe: "state_quiet",
+    pageSystem: { axis: "left", surfacePlan: "SP1_dark_opening", border: "hairline", card: "outlined", button: "solid_rounded" },
+    composition: { asymmetry: "strong", hierarchy: "editorial", rhythm: "alternating", sectionContrast: "high", ornament: "restrained" },
+    typography: "heritage_caslon_karla", density: "spacious",
+    parameters: { heroSplit: 0.55, heroHeight: "full", alignOffset: 0, measure: "standard", bandHeight: "medium", motifScale: 1.5, motifOpacity: 0.14, borderWeight: 1, displayTracking: -0.02 },
+    motifs: [{ id: "plaid", slot: "field" }, { id: "equestrian", slot: "accent" }],
+  },
+  {
+    id: "02", name: "Winter Invitation", family: "invitation", tonalDirection: "light",
+    heroRecipe: "framed_invitation", detailsRecipe: "details_stacked", rsvpRecipe: "rsvp_contained_card", registryRecipe: "registry_tiles", stateRecipe: "state_plate",
+    pageSystem: { axis: "center", surfacePlan: "SP5_framed_body", border: "double", card: "outlined", button: "outline_square" },
+    composition: { asymmetry: "symmetric", hierarchy: "restrained", rhythm: "continuous", sectionContrast: "low", ornament: "decorative" },
+    typography: "hc_bodoni_inter", density: "balanced",
+    parameters: { heroSplit: 0.50, heroHeight: "full", alignOffset: 0, measure: "narrow", bandHeight: "thin", motifScale: 1, motifOpacity: 0.22, borderWeight: 2, displayTracking: 0 },
+    motifs: [{ id: "equestrian", slot: "accent" }, { id: "linen", slot: "frame" }],
+  },
+  {
+    id: "03", name: "Modern Club", family: "statement", tonalDirection: "mid",
+    heroRecipe: "typography_first", detailsRecipe: "details_grid", rsvpRecipe: "rsvp_typographic_stack", registryRecipe: "registry_uneven_grid", stateRecipe: "state_quiet",
+    pageSystem: { axis: "left", surfacePlan: "SP3_interrupted", border: "accented", card: "tinted", button: "solid_square" },
+    composition: { asymmetry: "gentle", hierarchy: "monumental", rhythm: "punctuated", sectionContrast: "moderate", ornament: "none" },
+    typography: "grotesk_archivo_inter", density: "compact",
+    parameters: { heroSplit: 0.50, heroHeight: "standard", alignOffset: 0, measure: "wide", bandHeight: "medium", motifScale: 2.25, motifOpacity: 0.22, borderWeight: 3, displayTracking: -0.05 },
+    motifs: [{ id: "stripe", slot: "band" }],
+  },
+  {
+    id: "04", name: "Lodge Gazette", family: "editorial", tonalDirection: "light",
+    heroRecipe: "editorial_masthead", detailsRecipe: "details_sidebar_rows", rsvpRecipe: "rsvp_edge_interruption", registryRecipe: "registry_editorial_list", stateRecipe: "state_quiet",
+    pageSystem: { axis: "alternating", surfacePlan: "SP2_continuous_light", border: "hairline", card: "flat", button: "underline" },
+    composition: { asymmetry: "gentle", hierarchy: "editorial", rhythm: "continuous", sectionContrast: "low", ornament: "restrained" },
+    typography: "transitional_newsreader_tight", density: "balanced",
+    parameters: { heroSplit: 0.50, heroHeight: "compact", alignOffset: 1, measure: "wide", bandHeight: "thin", motifScale: 0.75, motifOpacity: 0.35, borderWeight: 1, displayTracking: -0.02 },
+    motifs: [{ id: "stripe", slot: "band" }, { id: "botanical", slot: "divider" }],
+  },
+  {
+    id: "05", name: "Night Paddock", family: "editorial", tonalDirection: "dark",
+    heroRecipe: "editorial_offset", detailsRecipe: "details_sidebar_rows", rsvpRecipe: "rsvp_contained_card", registryRecipe: "registry_uneven_grid", stateRecipe: "state_plate",
+    pageSystem: { axis: "left", surfacePlan: "SP4_alternating", border: "accented", card: "plate", button: "solid_square" },
+    composition: { asymmetry: "strong", hierarchy: "dramatic", rhythm: "alternating", sectionContrast: "high", ornament: "restrained" },
+    typography: "hc_playfair_dmsans", density: "balanced",
+    parameters: { heroSplit: 0.62, heroHeight: "full", alignOffset: 3, measure: "standard", bandHeight: "medium", motifScale: 1.5, motifOpacity: 0.14, borderWeight: 3, displayTracking: -0.02 },
+    motifs: [{ id: "gingham", slot: "field" }, { id: "equestrian", slot: "accent" }],
+  },
+  {
+    id: "06", name: "Evergreen Card", family: "invitation", tonalDirection: "mid",
+    heroRecipe: "invitation_card", detailsRecipe: "details_grid", rsvpRecipe: "rsvp_typographic_stack", registryRecipe: "registry_tiles", stateRecipe: "state_quiet",
+    pageSystem: { axis: "center", surfacePlan: "SP6_deepening", border: "hairline", card: "tinted", button: "outline_square" },
+    composition: { asymmetry: "symmetric", hierarchy: "restrained", rhythm: "continuous", sectionContrast: "moderate", ornament: "decorative" },
+    typography: "oldstyle_cormorant_figtree", density: "spacious",
+    parameters: { heroSplit: 0.50, heroHeight: "full", alignOffset: 0, measure: "narrow", bandHeight: "thin", motifScale: 1, motifOpacity: 0.14, borderWeight: 1, displayTracking: 0.06 },
+    motifs: [{ id: "linen", slot: "field" }, { id: "botanical", slot: "divider" }],
+  },
+  {
+    id: "07", name: "Letterhead", family: "invitation", tonalDirection: "light",
+    heroRecipe: "invitation_monogram", detailsRecipe: "details_stacked", rsvpRecipe: "rsvp_edge_interruption", registryRecipe: "registry_featured", stateRecipe: "state_plate",
+    pageSystem: { axis: "center", surfacePlan: "SP2_continuous_light", border: "double", card: "plate", button: "solid_square" },
+    composition: { asymmetry: "symmetric", hierarchy: "editorial", rhythm: "continuous", sectionContrast: "moderate", ornament: "decorative" },
+    typography: "heritage_baskerville_inter", density: "balanced",
+    parameters: { heroSplit: 0.50, heroHeight: "standard", alignOffset: 0, measure: "narrow", bandHeight: "thin", motifScale: 1, motifOpacity: 0.35, borderWeight: 2, displayTracking: 0.14 },
+    motifs: [{ id: "equestrian", slot: "accent" }, { id: "celestial", slot: "divider" }],
+  },
+  {
+    id: "08", name: "Big Sky Stack", family: "statement", tonalDirection: "dark",
+    heroRecipe: "statement_stack", detailsRecipe: "details_split_panel", rsvpRecipe: "rsvp_edge_interruption", registryRecipe: "registry_editorial_list", stateRecipe: "state_quiet",
+    pageSystem: { axis: "alternating", surfacePlan: "SP4_alternating", border: "none", card: "flat", button: "solid_square" },
+    composition: { asymmetry: "strong", hierarchy: "monumental", rhythm: "alternating", sectionContrast: "high", ornament: "restrained" },
+    typography: "grotesk_space_sourcesans", density: "compact",
+    parameters: { heroSplit: 0.50, heroHeight: "full", alignOffset: 2, measure: "wide", bandHeight: "medium", motifScale: 1, motifOpacity: 0.08, borderWeight: 1, displayTracking: -0.05 },
+    motifs: [{ id: "celestial", slot: "accent" }],
+  },
+  {
+    id: "09", name: "Cream Editorial", family: "editorial", tonalDirection: "light",
+    heroRecipe: "editorial_split", detailsRecipe: "details_grid", rsvpRecipe: "rsvp_typographic_stack", registryRecipe: "registry_tiles", stateRecipe: "state_quiet",
+    pageSystem: { axis: "alternating", surfacePlan: "SP6_deepening", border: "double", card: "tinted", button: "outline_square" },
+    composition: { asymmetry: "gentle", hierarchy: "dramatic", rhythm: "alternating", sectionContrast: "moderate", ornament: "restrained" },
+    typography: "soft_fraunces_manrope", density: "spacious",
+    parameters: { heroSplit: 0.38, heroHeight: "standard", alignOffset: 1, measure: "standard", bandHeight: "thin", motifScale: 0.75, motifOpacity: 0.22, borderWeight: 2, displayTracking: 0 },
+    motifs: [{ id: "linen", slot: "field" }, { id: "botanical", slot: "accent" }],
+  },
+  {
+    id: "10", name: "Midnight Frame", family: "invitation", tonalDirection: "dark",
+    heroRecipe: "framed_invitation", detailsRecipe: "details_grid", rsvpRecipe: "rsvp_typographic_stack", registryRecipe: "registry_uneven_grid", stateRecipe: "state_quiet",
+    pageSystem: { axis: "center", surfacePlan: "SP1_dark_opening", border: "hairline", card: "flat", button: "solid_rounded" },
+    composition: { asymmetry: "symmetric", hierarchy: "dramatic", rhythm: "alternating", sectionContrast: "high", ornament: "restrained" },
+    typography: "transitional_instrument_manrope", density: "compact",
+    parameters: { heroSplit: 0.50, heroHeight: "full", alignOffset: 0, measure: "standard", bandHeight: "tall", motifScale: 1.5, motifOpacity: 0.14, borderWeight: 1, displayTracking: 0 },
+    motifs: [{ id: "plaid", slot: "frame" }, { id: "celestial", slot: "accent" }],
+  },
+  {
+    id: "11", name: "Cream Poster", family: "statement", tonalDirection: "light",
+    heroRecipe: "typography_first", detailsRecipe: "details_stacked", rsvpRecipe: "rsvp_contained_card", registryRecipe: "registry_featured", stateRecipe: "state_plate",
+    pageSystem: { axis: "left", surfacePlan: "SP5_framed_body", border: "double", card: "outlined", button: "underline" },
+    composition: { asymmetry: "gentle", hierarchy: "monumental", rhythm: "continuous", sectionContrast: "low", ornament: "restrained" },
+    typography: "hc_bodoni_inter", density: "spacious",
+    parameters: { heroSplit: 0.50, heroHeight: "standard", alignOffset: 0, measure: "narrow", bandHeight: "thin", motifScale: 1, motifOpacity: 0.14, borderWeight: 2, displayTracking: 0.06 },
+    motifs: [{ id: "gingham", slot: "band" }],
+  },
+  {
+    id: "12", name: "Forest Masthead", family: "editorial", tonalDirection: "mid",
+    heroRecipe: "editorial_masthead", detailsRecipe: "details_split_panel", rsvpRecipe: "rsvp_contrast_split", registryRecipe: "registry_uneven_grid", stateRecipe: "state_quiet",
+    pageSystem: { axis: "left", surfacePlan: "SP3_interrupted", border: "hairline", card: "outlined", button: "solid_rounded" },
+    composition: { asymmetry: "gentle", hierarchy: "restrained", rhythm: "punctuated", sectionContrast: "moderate", ornament: "restrained" },
+    typography: "oldstyle_garamond_worksans", density: "compact",
+    parameters: { heroSplit: 0.50, heroHeight: "compact", alignOffset: 0, measure: "standard", bandHeight: "tall", motifScale: 1.5, motifOpacity: 0.14, borderWeight: 1, displayTracking: 0.06 },
+    motifs: [{ id: "plaid", slot: "band" }, { id: "equestrian", slot: "divider" }],
+  },
+];

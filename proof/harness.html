@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase A proof harness</title>
+<link rel="stylesheet" href="fonts.css">
+<script src="sites.js"></script>
+<style>
+/* ---------- lab chrome (not part of any site) ---------- */
+*{box-sizing:border-box}
+body{margin:0;background:#e9e7e1;font-family:Inter,system-ui,sans-serif;color:#1d211e}
+.lab{padding:16px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #d5d2ca;background:#f2f1ec;position:sticky;top:0;z-index:50}
+.lab b{font-weight:800}.lab a{font-size:12px;border:1px solid #cfccc4;background:#fff;border-radius:999px;padding:7px 11px;color:inherit;text-decoration:none}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:18px}
+.cell{background:#fff;border:1px solid #d5d2ca;border-radius:12px;overflow:hidden}
+.cell h3{margin:0;padding:10px 12px;font-size:13px;border-bottom:1px solid #e3e0d8}.cell h3 span{color:#7a807b;font-weight:400;font-size:11px;margin-left:6px}
+.shell{overflow:hidden;background:#d9d9d4}.scale{transform-origin:top left}
+.vp{background:#fff;overflow:hidden}.vp.gray{filter:grayscale(1)}
+.single{background:#fff}.single .vp{width:var(--w)}
+
+/* ---------- site base ---------- */
+.site{font-family:var(--body);color:var(--t-text);background:var(--t-base);line-height:1.5;-webkit-font-smoothing:antialiased}
+.site *{box-sizing:border-box}
+.site h1,.site h2,.site h3{font-family:var(--display);font-weight:var(--display-weight,600);margin:0;letter-spacing:var(--tracking);line-height:1.02}
+.site h1{font-size:var(--display-size)}.site h2{font-size:var(--h2-size);line-height:1.08}.site h3{font-size:var(--h3-size);line-height:1.15}
+.site p{margin:0;max-width:var(--measure)}
+.site .kicker{text-transform:uppercase;letter-spacing:.16em;font-size:.68rem;font-weight:700;opacity:.85}
+.site .muted{opacity:.74}
+.site .sec{background:var(--bg);color:var(--fg);padding:var(--pad-y) 0}
+.site .sec-inner{width:min(1120px,calc(100% - 48px));margin:0 auto}
+/* surfaces (from surface plan) */
+.surf-base{--bg:var(--t-base);--fg:var(--t-text);--acc:var(--t-acc-base);--acc-fg:var(--t-acc-base-fg)}
+.surf-alt{--bg:var(--t-alt);--fg:var(--t-text);--acc:var(--t-acc-base);--acc-fg:var(--t-acc-base-fg)}
+.surf-contrast{--bg:var(--t-contrast);--fg:var(--t-contrast-text);--acc:var(--t-acc-contrast);--acc-fg:var(--t-acc-contrast-fg)}
+.surf-framed{--bg:var(--t-base);--fg:var(--t-text);--acc:var(--t-acc-base);--acc-fg:var(--t-acc-base-fg)}
+.surf-field{--bg:var(--t-alt);--fg:var(--t-text);--acc:var(--t-acc-base);--acc-fg:var(--t-acc-base-fg)}
+.surf-framed .sec-inner{border:var(--rule);outline:var(--rule-outline);outline-offset:6px;padding:calc(var(--pad-y) * .6) clamp(20px,4vw,56px)}
+.surf-framed .rsvp-card .card,.surf-framed .state-plate .plate{border:0;outline:0;padding-left:0;padding-right:0}
+/* axis */
+.axis-left .sec-inner{margin-left:calc(24px + var(--offset-px));margin-right:auto}
+.axis-left .sec-inner,.axis-left h1,.axis-left h2{text-align:left}
+.axis-center .sec-inner{margin:0 auto;text-align:center}.axis-center p{margin-left:auto;margin-right:auto}
+.axis-alternating .sec:nth-of-type(even) .sec-inner{margin-left:auto;margin-right:calc(24px + var(--offset-px));width:min(880px,calc(100% - 48px - var(--offset-px)));text-align:right}
+.axis-alternating .sec:nth-of-type(even) p{margin-left:auto}
+.axis-alternating .sec:nth-of-type(odd) .sec-inner{margin-left:calc(24px + var(--offset-px));margin-right:auto;width:min(880px,calc(100% - 48px - var(--offset-px)))}
+/* rules & borders (from border language + borderWeight) */
+.site .rule{border-top:var(--rule)}
+.site .rule-b{border-bottom:var(--rule)}
+.border-accented .accent-edge{border-left:calc(var(--rule-w) * 2) solid var(--acc);padding-left:16px}
+.border-none .accent-edge{border-left:0}
+/* cards (from card language) */
+.site .card{padding:clamp(16px,2.2vw,26px);background:var(--card-bg);border:var(--card-border);outline:var(--card-outline);outline-offset:5px}
+/* buttons (from button language) */
+.site .btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 20px;font-weight:700;font-family:var(--body);text-decoration:none;cursor:pointer;background:var(--btn-bg);color:var(--btn-fg);border:var(--btn-border);border-radius:var(--btn-radius);letter-spacing:var(--btn-tracking);text-transform:var(--btn-transform);font-size:var(--btn-size)}
+.btn-underline .btn{min-height:auto;padding:0 0 4px;border-bottom:2px solid currentColor}
+/* fields (from border language) */
+.site .fld{display:block}.site .fld label{display:block;font-size:.76rem;font-weight:700;margin-bottom:7px}
+.site input,.site textarea{width:100%;font:inherit;color:inherit;padding:12px 13px;background:var(--field-bg);border:var(--field-border);border-bottom:var(--field-border-b);border-radius:var(--btn-radius)}
+.site textarea{min-height:84px;resize:none}
+.site .err input{border-color:var(--t-error)!important;border-bottom-color:var(--t-error)!important}
+.site .err-msg{font-size:.74rem;color:var(--t-error);margin-top:6px}
+.site .choice{display:flex;align-items:flex-start;gap:9px;padding:9px 0}.site .choice input{width:auto;margin-top:4px}
+.site .otp{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;max-width:360px}.site .otp span{aspect-ratio:1;display:grid;place-items:center;border:1px solid currentColor;font-weight:800}
+.site .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.site .stack>*+*{margin-top:var(--gap)}
+.site .divider{display:flex;align-items:center;gap:14px;margin:var(--gap) 0}.site .divider:before,.site .divider:after{content:"";flex:1;border-top:var(--rule)}
+.site .glyphs{display:inline-flex;gap:10px;align-items:center}
+.site .footer{padding:32px 24px;text-align:center;font-size:.74rem;opacity:.7}
+.site .thumb{aspect-ratio:1.1/1;display:grid;place-items:center;font-family:var(--display);background:var(--pattern-linen);border:var(--rule)}
+.site .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:.86rem}
+
+/* ---------- HERO RECIPES ---------- */
+/* E1 editorial_split */
+.hero-split{display:grid;grid-template-columns:calc(var(--split) * 100%) 1fr;min-height:var(--hero-h)}
+.hero-split.flip{grid-template-columns:1fr calc(var(--split) * 100%)}
+.hero-split .copy{padding:8vw 6vw;display:flex;flex-direction:column;justify-content:center;gap:var(--gap)}
+.hero-split .fieldpanel{background:var(--field)}
+/* E2 editorial_masthead */
+.hero-masthead{min-height:var(--hero-h);display:grid;grid-template-rows:auto 1fr auto;padding:0 clamp(20px,4vw,48px)}
+.hero-masthead .mast{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 0;border-top:var(--rule-strong);border-bottom:var(--rule)}
+.hero-masthead .body{display:grid;grid-template-columns:1fr var(--rail-w);gap:24px;align-items:center;padding:calc(var(--pad-y) * .6) 0}
+.hero-masthead .rail{align-self:stretch;background:var(--band)}
+.hero-masthead .divrow{padding:14px 0 22px;border-top:var(--rule)}
+/* E3 editorial_offset */
+.hero-offset{position:relative;min-height:var(--hero-h);padding:clamp(24px,5vw,72px) clamp(20px,4vw,48px) 0}
+.hero-offset .title{margin-left:calc((1 - var(--split)) * 100%);width:calc(var(--split) * 100%);position:relative;z-index:2}
+.hero-offset .plate{position:absolute;left:0;bottom:0;width:calc((1 - var(--split)) * 100% + 8%);height:46%;background:var(--field)}
+.hero-offset .meta-block{position:absolute;left:clamp(20px,4vw,48px);bottom:calc(46% + 24px);z-index:2;max-width:38%}
+.hero-offset .cta{position:absolute;right:clamp(20px,4vw,48px);bottom:10%;z-index:2}
+/* I1 framed_invitation */
+.hero-framed{padding:var(--frame-inset);background:var(--frame)}
+.hero-framed .frame{border:var(--rule);outline:var(--rule-outline);outline-offset:8px;min-height:calc(var(--hero-h) - 72px);display:grid;place-items:center;text-align:center;padding:8vw 10vw;position:relative}
+.hero-framed .corner{position:absolute;width:40px;height:40px}.hero-framed .tl{top:14px;left:14px}.hero-framed .br{bottom:14px;right:14px;transform:rotate(180deg)}
+/* I2 invitation_card */
+.hero-cardhero{background:var(--field);padding:calc(var(--pad-y) * 1.1) 24px;min-height:var(--hero-h);display:grid;place-items:center}
+.hero-cardhero .cardobj{width:min(760px,100%);background:var(--t-contrast);color:var(--t-contrast-text);--acc:var(--t-acc-contrast);--acc-fg:var(--t-acc-contrast-fg);padding:clamp(28px,5vw,64px) clamp(24px,5vw,72px);text-align:center;border:var(--card-border);outline:var(--card-outline);outline-offset:6px}
+/* I3 invitation_monogram */
+.hero-monogram{min-height:var(--hero-h);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--pad-y) 24px;gap:calc(var(--gap) * .8)}
+.hero-monogram .mono{width:calc(84px * var(--motif-scale));height:calc(84px * var(--motif-scale));border-radius:50%;border:var(--rule);display:grid;place-items:center;font-family:var(--display);font-size:calc(2.2rem * var(--motif-scale))}
+.hero-monogram h1{font-size:calc(var(--display-size) * .62);text-transform:uppercase;letter-spacing:.12em}
+.hero-monogram .whenwhere{display:grid;grid-template-columns:1fr 1px 1fr;gap:28px;width:min(720px,100%);margin-top:var(--gap)}
+.hero-monogram .whenwhere i{background:currentColor;opacity:.3}
+/* S1 typography_first */
+.hero-poster{min-height:var(--hero-h);padding:calc(var(--pad-y) * .8) clamp(20px,4vw,48px);display:flex;flex-direction:column;justify-content:center;gap:var(--gap)}
+.hero-poster h1{text-transform:uppercase;font-weight:var(--display-weight-heavy,900);max-width:14ch;line-height:.86}
+.hero-poster .band{height:var(--band-h);background:var(--band)}
+.hero-poster .meta{justify-content:space-between}
+/* S2 statement_stack */
+.hero-stack{min-height:var(--hero-h);position:relative;padding:calc(var(--pad-y) * .7) clamp(20px,4vw,48px) calc(var(--pad-y) * .7) clamp(56px,7vw,96px);display:flex;flex-direction:column;justify-content:center}
+.hero-stack .vlabel{position:absolute;left:clamp(14px,2vw,28px);top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;font-weight:700}
+.hero-stack .line{display:block;font-family:var(--display);font-size:calc(var(--display-size) * 1.05);line-height:.9;letter-spacing:var(--tracking);font-weight:var(--display-weight-heavy,900)}
+.hero-stack .line:nth-child(even){text-align:right}
+.hero-stack .line:nth-child(3){padding-left:calc(var(--offset-px) * 2)}
+.hero-stack .after{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-top:var(--gap);flex-wrap:wrap}
+
+/* ---------- DETAILS RECIPES ---------- */
+.det-split{display:grid;grid-template-columns:.8fr 1.2fr}
+.det-split .lead{background:var(--acc);color:var(--acc-fg);padding:clamp(28px,4vw,56px)}
+.det-split .rows{padding:clamp(28px,4vw,56px);background:var(--card-bg);border:var(--card-border)}
+.det-split .rows>div+div{border-top:var(--rule);margin-top:18px;padding-top:18px}
+.det-stacked{max-width:720px;margin:0 auto}
+.det-stacked .row{padding:22px 0;border-top:var(--rule)}.det-stacked .row:last-child{border-bottom:var(--rule)}
+.det-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:var(--rule-strong);border-bottom:var(--rule-strong);margin-top:var(--gap)}
+.det-grid>div{padding:26px 20px;border-right:var(--rule)}.det-grid>div:last-child{border-right:0}
+.det-sidebar{display:grid;grid-template-columns:minmax(120px,.28fr) 1fr}
+.det-sidebar>div{padding:18px 0;border-top:var(--rule)}.det-sidebar>div:nth-last-child(-n+2){border-bottom:var(--rule)}
+
+/* ---------- RSVP RECIPES (all wrap the same form DOM) ---------- */
+.rsvp-form{display:grid;gap:var(--gap)}
+.rsvp-form .blk{display:grid;gap:12px}
+.rsvp-split{display:grid;grid-template-columns:.75fr 1.25fr;gap:clamp(28px,5vw,64px);align-items:start}
+.rsvp-split .intro{position:sticky;top:24px}
+.rsvp-card{max-width:760px;margin:0 auto}
+.rsvp-card .card{display:grid;gap:var(--gap)}
+.rsvp-edge h2{font-size:calc(var(--display-size) * .8);margin:0 0 var(--gap)}
+.rsvp-edge .rsvp-form{grid-template-columns:1fr 1fr;column-gap:clamp(24px,4vw,56px)}
+.rsvp-edge .rsvp-form .span{grid-column:1 / -1}
+.rsvp-tstack .rsvp-form{max-width:680px}.rsvp-tstack .blk{padding-top:var(--gap);border-top:var(--rule)}
+.axis-center .rsvp-tstack .rsvp-form,.axis-center .rsvp-card{margin-left:auto;margin-right:auto}
+
+/* ---------- REGISTRY RECIPES ---------- */
+.reg-featured{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;margin-top:var(--gap)}
+.reg-featured .feature{display:grid;grid-template-columns:.85fr 1.15fr}
+.reg-featured .side{display:grid;gap:18px;align-content:start}
+.reg-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:var(--gap)}
+.reg-list{margin-top:var(--gap)}
+.reg-list .row{display:grid;grid-template-columns:96px 1fr auto;gap:22px;align-items:center;padding:20px 0;border-top:var(--rule)}.reg-list .row:last-child{border-bottom:var(--rule)}
+.reg-list .thumb{aspect-ratio:1}
+.reg-uneven{display:grid;grid-template-columns:1.4fr 1fr 1fr;grid-template-rows:auto auto;gap:16px;margin-top:var(--gap)}
+.reg-uneven .tall{grid-row:1 / span 2}
+.site .return{margin-top:var(--gap);display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+
+/* ---------- STATE RECIPES ---------- */
+.state-quiet .gate{padding:20px;border:var(--rule);display:grid;gap:12px;max-width:640px}
+.state-plate .plate{max-width:680px;margin:0 auto;padding:clamp(24px,4vw,48px);border:var(--rule);outline:var(--rule-outline);outline-offset:7px;text-align:center;display:grid;gap:14px}
+
+/* ---------- MOBILE TRANSFORMS (recipe-owned) ---------- */
+@media (max-width:700px){
+  .site .sec-inner{width:calc(100% - 32px)!important;margin-left:calc(16px + var(--offset-px) / 2)!important;margin-right:16px!important}
+  .axis-alternating .sec:nth-of-type(even) .sec-inner{margin-left:auto!important;margin-right:16px!important}
+  .site .two{grid-template-columns:1fr}
+  .surf-framed .sec-inner{padding:24px 18px}
+  .hero-split,.hero-split.flip{grid-template-columns:1fr;min-height:auto}
+  .hero-split .copy{padding:64px 22px 40px;min-height:var(--hero-h-m)}
+  .hero-split .fieldpanel{height:var(--field-h-m);order:2}
+  .hero-split.flip .fieldpanel{order:-1}
+  .hero-masthead{min-height:auto}.hero-masthead .body{grid-template-columns:1fr;padding:32px 0 20px}.hero-masthead .rail{height:var(--band-h);width:100%}
+  .hero-offset{min-height:var(--hero-h-m);padding-bottom:0}.hero-offset .title{width:auto;margin-left:calc(var(--offset-px) / 2 + 12%)}
+  .hero-offset .plate{width:100%;height:var(--field-h-m);position:relative;margin-top:28px}.hero-offset .meta-block{position:relative;left:0;bottom:0;max-width:none;margin-top:22px}.hero-offset .cta{position:relative;right:auto;bottom:auto;margin-top:16px}
+  .hero-framed{padding:calc(var(--frame-inset) * .75)}.hero-framed .frame{min-height:var(--hero-h-m);padding:56px 22px}
+  .hero-cardhero{padding:40px 16px;min-height:auto}.hero-cardhero .cardobj{padding:36px 22px}
+  .hero-monogram{min-height:var(--hero-h-m)}.hero-monogram .whenwhere{grid-template-columns:1fr;gap:16px}.hero-monogram .whenwhere i{height:1px;width:100%}
+  .hero-poster{min-height:var(--hero-h-m)}
+  .hero-stack{min-height:var(--hero-h-m);padding-left:22px}.hero-stack .vlabel{position:static;transform:none;writing-mode:horizontal-tb;margin-bottom:18px}
+  .det-split,.det-sidebar,.rsvp-split{grid-template-columns:1fr}
+  .det-grid{grid-template-columns:1fr}.det-grid>div{border-right:0;border-bottom:var(--rule)}.det-grid>div:last-child{border-bottom:0}
+  .det-sidebar>div:nth-last-child(-n+2){border-bottom:0}.det-sidebar>div:last-child{border-bottom:var(--rule)}.det-sidebar>div:nth-child(odd){border-top:var(--rule);padding-bottom:4px}.det-sidebar>div:nth-child(even){border-top:0;padding-top:0}
+  .rsvp-split .intro{position:static}
+  .rsvp-edge .rsvp-form{grid-template-columns:1fr}
+  .reg-featured,.reg-tiles,.reg-uneven{grid-template-columns:1fr}.reg-featured .feature{grid-template-columns:1fr}.reg-uneven .tall{grid-row:auto}
+  .reg-list .row{grid-template-columns:72px 1fr}.reg-list .row .btn{grid-column:2}
+}
+</style>
+</head>
+<body>
+<script>
+/* ============================================================
+   Tokens (stand-in for the semantic palette compiler; one fixed
+   token set per tonal direction, all derived from navy/cream/forest)
+   ============================================================ */
+const NAVY="#172A44", CREAM="#F4EDE1", FOREST="#314B3C";
+const TONES = {
+  light: { base:CREAM, alt:"#E9E0CC", contrast:NAVY, contrastText:CREAM, text:"#17211C", accBase:FOREST, accBaseFg:CREAM, accContrast:CREAM, accContrastFg:NAVY, error:"#8E3B33" },
+  dark:  { base:NAVY, alt:"#1F3654", contrast:CREAM, contrastText:"#17211C", text:CREAM, accBase:CREAM, accBaseFg:NAVY, accContrast:FOREST, accContrastFg:CREAM, error:"#E8A79F" },
+  mid:   { base:"#2E4638", alt:"#3A5646", contrast:CREAM, contrastText:"#17211C", text:CREAM, accBase:CREAM, accBaseFg:FOREST, accContrast:FOREST, accContrastFg:CREAM, error:"#E8A79F" },
+};
+/* Mapping tables used by this proof (subset of the eventual grammar mapping) */
+const HIER = { restrained:{d:"clamp(2rem,4.6vw,3.4rem)",h2:"clamp(1.5rem,2.4vw,2.1rem)",h3:"1.15rem"}, editorial:{d:"clamp(2.6rem,6.6vw,5.2rem)",h2:"clamp(1.8rem,3.2vw,2.8rem)",h3:"1.25rem"}, dramatic:{d:"clamp(3.2rem,8.6vw,7rem)",h2:"clamp(2rem,4vw,3.4rem)",h3:"1.3rem"}, monumental:{d:"clamp(3.8rem,11vw,9.5rem)",h2:"clamp(2.2rem,4.8vw,4.2rem)",h3:"1.35rem"} };
+const DENS = { compact:{m:44,d:64,gap:16}, balanced:{m:64,d:96,gap:22}, spacious:{m:88,d:128,gap:30} };
+const HERO_H = { compact:{d:.58,m:.52}, standard:{d:.76,m:.66}, full:{d:.92,m:.84} };   // fraction of viewport height
+const FIELD_H_M = { compact:120, standard:180, full:240 };
+const OFFSET_PX = [0, 48, 96, 144];
+const MEASURE = { narrow:"52ch", standard:"62ch", wide:"72ch" };
+const BAND_H = { thin:24, medium:48, tall:96 };
+const BORDER = {
+  none:     w=>({ rule:"0", strong:"0", outline:"0", fieldB:"1px solid color-mix(in srgb,currentColor 45%,transparent)", field:"0" }),
+  hairline: w=>({ rule:`${w}px solid color-mix(in srgb,currentColor 30%,transparent)`, strong:`${w+1}px solid currentColor`, outline:"0", field:`1px solid color-mix(in srgb,currentColor 40%,transparent)`, fieldB:null }),
+  double:   w=>({ rule:`${w}px solid color-mix(in srgb,currentColor 55%,transparent)`, strong:`3px double currentColor`, outline:`1px solid color-mix(in srgb,currentColor 35%,transparent)`, field:`1px solid color-mix(in srgb,currentColor 50%,transparent)`, fieldB:null }),
+  accented: w=>({ rule:`${w}px solid color-mix(in srgb,currentColor 30%,transparent)`, strong:`${w*2}px solid var(--acc)`, outline:"0", field:"0", fieldB:`2px solid currentColor` }),
+};
+const CARD = { flat:{bg:"color-mix(in srgb,currentColor 6%,transparent)",border:"0",outline:"0"}, outlined:{bg:"transparent",border:"var(--rule)",outline:"0"}, tinted:{bg:"color-mix(in srgb,var(--acc) 12%,transparent)",border:"0",outline:"0"}, plate:{bg:"transparent",border:"var(--rule)",outline:"1px solid color-mix(in srgb,currentColor 35%,transparent)"} };
+const BTN = { solid_square:{bg:"var(--acc)",fg:"var(--acc-fg)",border:"1px solid var(--acc)",radius:"0",tr:".08em",tf:"uppercase",size:".78rem"}, solid_rounded:{bg:"var(--acc)",fg:"var(--acc-fg)",border:"1px solid var(--acc)",radius:"8px",tr:"0",tf:"none",size:".95rem"}, outline_square:{bg:"transparent",fg:"inherit",border:"1.5px solid currentColor",radius:"0",tr:".06em",tf:"uppercase",size:".8rem"}, underline:{bg:"transparent",fg:"inherit",border:"0",radius:"0",tr:".12em",tf:"uppercase",size:".78rem"} };
+const ORNAMENT_CAP = { none:{max:1, arrangement:false, opacity:.22}, restrained:{max:2, arrangement:true, opacity:.22}, decorative:{max:3, arrangement:true, opacity:.35} };
+
+/* ============================================================ Motif generators */
+const cm = (o)=>`color-mix(in srgb,currentColor ${Math.round(o*100)}%,transparent)`;
+const PATTERN = {
+  plaid:(s,o)=>`repeating-linear-gradient(0deg,${cm(o*.55)} 0 1px,transparent 1px ${24*s}px),repeating-linear-gradient(90deg,${cm(o*.55)} 0 1px,transparent 1px ${24*s}px),repeating-linear-gradient(0deg,transparent 0 ${94*s}px,${cm(o)} ${94*s}px ${98*s}px,transparent ${98*s}px ${120*s}px),repeating-linear-gradient(90deg,transparent 0 ${94*s}px,${cm(o)} ${94*s}px ${98*s}px,transparent ${98*s}px ${120*s}px)`,
+  stripe:(s,o)=>`repeating-linear-gradient(0deg,${cm(o)} 0 ${5*s}px,transparent ${5*s}px ${14*s}px)`,
+  gingham:(s,o)=>`repeating-linear-gradient(0deg,${cm(o*.5)} 0 ${18*s}px,transparent ${18*s}px ${36*s}px),repeating-linear-gradient(90deg,${cm(o*.5)} 0 ${18*s}px,transparent ${18*s}px ${36*s}px)`,
+  linen:(s,o)=>`repeating-linear-gradient(0deg,${cm(o*.6)} 0 1px,transparent 1px ${3*s}px),repeating-linear-gradient(90deg,${cm(o*.35)} 0 1px,transparent 1px ${4*s}px)`,
+};
+const GLYPH = {
+  equestrian:[`<path d="M6 22a10 10 0 1 1 20 0v6h-4v-6a6 6 0 1 0-12 0v6H6z"/>`, `<circle cx="16" cy="16" r="10"/><path d="M2 16h28"/>`],
+  botanical:[`<path d="M16 30V4M16 12c-5 0-9-3-10-7 5 0 9 3 10 7zM16 20c5 0 9-3 10-7-5 0-9 3-10 7zM16 26c-5 0-9-3-10-7 5 0 9 3 10 7z"/>`],
+  celestial:[`<path d="M16 2l3 11 11 3-11 3-3 11-3-11-11-3 11-3z"/>`, `<circle cx="16" cy="16" r="3"/>`],
+};
+function glyph(id, size, i=0, rot=0){ const g=GLYPH[id][i%GLYPH[id].length]; return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" style="transform:rotate(${rot}deg)">${g}</svg>`; }
+function arrangement(id, role, scale, seed){
+  let r=seed; const rnd=()=>{ r=(r*1103515245+12345)&0x7fffffff; return r/0x7fffffff; };
+  const base=26*scale;
+  if(role==="accent") return `<span class="glyphs">${glyph(id,base,0,Math.round(rnd()*20-10))}${rnd()>.5?glyph(id,base*.7,1,Math.round(rnd()*30-15)):""}</span>`;
+  if(role==="divider"){ const n=3+Math.floor(rnd()*2); let s=""; for(let i=0;i<n;i++) s+=glyph(id,base*.75,i,Math.round(rnd()*40-20)); return `<div class="divider"><span class="glyphs">${s}</span></div>`; }
+  if(role==="frame") return `<span class="corner tl">${glyph(id,base,0)}</span><span class="corner br">${glyph(id,base,0)}</span>`;
+  return "";
+}
+function resolveMotifs(site, seed){
+  const cap=ORNAMENT_CAP[site.composition.ornament]; const out={field:null,band:null,frame:null,accent:"",divider:""}; const repairs=[];
+  const opacity=Math.min(site.parameters.motifOpacity, cap.opacity); if(opacity!==site.parameters.motifOpacity) repairs.push(`opacity clamped to ${opacity} by ornament=${site.composition.ornament}`);
+  const slots=VOCAB.heroRecipes[site.heroRecipe].slots; let used=0;
+  for(const m of site.motifs){
+    const def=VOCAB.motifs[m.id]; const role=m.slot;
+    if(used>=cap.max){repairs.push(`dropped ${m.id}: ornament budget`);continue;}
+    if(!def.roles.includes(role)){repairs.push(`dropped ${m.id}: role ${role} unsupported`);continue;}
+    if(!slots.includes(role) && !(role==="field"||role==="band")){repairs.push(`dropped ${m.id}: hero has no ${role} slot`);continue;}
+    if(def.kind==="pattern"){ const css=PATTERN[m.id](site.parameters.motifScale,opacity); if(role==="field") out.field=css; else if(role==="band") out.band=css; else if(role==="frame") out.frame=css; }
+    else { if(!cap.arrangement){repairs.push(`dropped ${m.id}: ornament=none`);continue;} out[role]=arrangement(m.id,role,site.parameters.motifScale,seed); }
+    used++;
+  }
+  // structural fallbacks: a field/band slot with nothing assigned gets the linen texture at low opacity (family rule: motif panels are never flat)
+  if(!out.field) out.field=PATTERN.linen(1,.12); if(!out.band) out.band=PATTERN.linen(1,.16); if(!out.frame) out.frame="transparent";
+  return {out,repairs};
+}
+
+/* ============================================================ Shared semantic components (identical DOM in every recipe) */
+function rsvpForm(){ return `
+<form class="rsvp-form" onsubmit="return false">
+  <div class="blk span err"><label class="fld"><span>Guest name</span><input value="Sam"></label><div class="err-msg">We found more than one invitation. Enter a last name too.</div><div class="muted" style="font-size:.85rem">Possible matches: Samir & Layla · Sami & Noor</div></div>
+  <div class="blk span"><div class="kicker">Text verification</div><div class="otp"><span>4</span><span>1</span><span>7</span><span>•</span><span>•</span><span>•</span></div></div>
+  <div class="blk"><div class="kicker">Your party · Marissa & Eren</div><label class="choice"><input type="checkbox" checked><span><b>Marissa</b><br><span class="muted">Attending</span></span></label><label class="choice"><input type="checkbox" checked><span><b>Eren</b><br><span class="muted">Attending</span></span></label></div>
+  <div class="blk"><div class="kicker">Meal preference</div><div class="two"><label class="choice"><input type="radio" checked><span>Chicken</span></label><label class="choice"><input type="radio"><span>Vegetarian</span></label></div><label class="fld"><span>Any dietary restrictions?</span><textarea placeholder="Optional"></textarea></label></div>
+  <div class="blk span err"><label class="fld"><span>What song should we add to the playlist?</span><input placeholder="Your answer"></label><div class="err-msg">Please answer this question before submitting.</div></div>
+  <div class="blk span"><a class="btn">Submit RSVP</a></div>
+</form>`; }
+const gift = ()=>`<div class="card"><div class="thumb">gift</div><div style="margin-top:14px"><div class="kicker">Native gift</div><h3>Natural oak activity gym</h3><p class="muted">$89 · 1 requested</p><a class="btn" style="margin-top:14px">Buy this gift</a></div></div>`;
+const ext = ()=>`<div class="card"><div class="kicker">External registry</div><h3>Amazon Baby Registry</h3><p class="muted">Shop the full registry on Amazon.</p><a class="btn" style="margin-top:14px">Shop registry</a></div>`;
+const fund = ()=>`<div class="card"><div class="kicker">Cash fund</div><h3>Nursery fund</h3><p class="muted">Venmo @haseeb · $25 · $50 · $100</p><a class="btn" style="margin-top:14px">Send a gift</a></div>`;
+const returnPrompt = ()=>`<div class="return"><b>Did you buy this gift?</b><a class="btn">Yes, mark purchased</a><a class="btn" style="background:transparent;color:inherit;border-color:currentColor">No</a></div>`;
+const gateBlock = ()=>`<div class="kicker">Private event</div><h3>Enter the event code</h3><p class="muted">The venue, RSVP and registry are private.</p><div class="two"><label class="fld"><span>Event code</span><input value="LODGE-26"></label><div style="display:flex;align-items:end"><a class="btn">Continue</a></div></div>`;
+const passedBlock = ()=>`<div class="kicker">After the event</div><h3>Thank you for celebrating with us.</h3><p class="muted">The registry remains available below.</p>`;
+
+/* ============================================================ Recipes */
+const HEROES = {
+  editorial_split:(s,m,p)=>`<section class="hero-split ${p.heroSplit<0.5?"flip":""}">${p.heroSplit<0.5?`<div class="fieldpanel" style="--field:${m.field}"></div>`:""}<div class="copy">${m.accent}<div class="kicker">${DATA.eyebrow}</div><h1>${DATA.title}</h1><p>${DATA.hosts}</p><div class="meta"><span>${DATA.date}</span><span>${DATA.time}</span><span>${DATA.venue}</span></div><div><a class="btn">RSVP</a></div></div>${p.heroSplit>=0.5?`<div class="fieldpanel" style="--field:${m.field}"></div>`:""}</section>`,
+  editorial_masthead:(s,m,p)=>`<section class="hero-masthead"><div class="mast kicker"><span>${DATA.date}</span><span>${DATA.venue} · ${DATA.location}</span><span>${DATA.time}</span></div><div class="body"><div><div class="kicker" style="margin-bottom:14px">${DATA.eyebrow}</div><h1>${DATA.title}</h1><p style="margin-top:18px">${DATA.hosts}</p></div><div class="rail" style="--band:${m.band}"></div></div><div class="divrow" style="display:flex;justify-content:space-between;align-items:center;gap:16px">${m.divider||`<span class="muted">Kindly respond by ${DATA.deadline}</span>`}<a class="btn">RSVP</a></div></section>`,
+  editorial_offset:(s,m,p)=>`<section class="hero-offset"><div class="title">${m.accent}<div class="kicker" style="margin-bottom:12px">${DATA.eyebrow}</div><h1>${DATA.title}</h1></div><div class="meta-block"><p><b>${DATA.date}</b><br>${DATA.time}<br>${DATA.venue}, ${DATA.location}</p><p class="muted" style="margin-top:10px">${DATA.hosts}</p></div><a class="btn cta">RSVP</a><div class="plate" style="--field:${m.field}"></div></section>`,
+  framed_invitation:(s,m,p)=>`<section class="hero-framed" style="--frame:${m.frame}"><div class="frame">${m.frame&&m.accent?m.accent.replace('class="glyphs"','class="glyphs corner tl"'):""}<div><div class="kicker" style="margin-bottom:16px">${DATA.eyebrow}</div><h1>${DATA.title}</h1><p style="margin:18px auto 0">${DATA.hosts}</p><div class="meta" style="justify-content:center;margin-top:22px"><span>${DATA.date}</span><span>${DATA.time}</span><span>${DATA.venue}</span></div><div style="margin-top:26px"><a class="btn">RSVP</a></div></div></div></section>`,
+  invitation_card:(s,m,p)=>`<section class="hero-cardhero surf-alt" style="--field:${m.field}"><div class="cardobj"><div class="kicker">${DATA.eyebrow}</div><h1 style="margin-top:14px">${DATA.title}</h1>${m.divider||'<div class="divider"></div>'}<p style="margin:0 auto"><b>${DATA.date}</b> · ${DATA.time}<br>${DATA.venue}, ${DATA.location}</p><p class="muted" style="margin:14px auto 0">${DATA.hosts}</p><div style="margin-top:24px"><a class="btn">RSVP</a></div></div></section>`,
+  invitation_monogram:(s,m,p)=>`<section class="hero-monogram"><div class="mono">B</div><div class="rule" style="width:72px"></div><div class="kicker">${DATA.eyebrow}</div><h1>${DATA.title}</h1><p class="muted">${DATA.hosts}</p>${m.divider||'<div class="divider" style="width:200px"></div>'}<div class="whenwhere"><div><div class="kicker">When</div><h3>${DATA.date}</h3><p style="margin:0 auto">${DATA.time}</p></div><i></i><div><div class="kicker">Where</div><h3>${DATA.venue}</h3><p style="margin:0 auto">${DATA.location}</p></div></div><a class="btn" style="margin-top:8px">RSVP</a></section>`,
+  typography_first:(s,m,p)=>`<section class="hero-poster"><div class="kicker">${DATA.eyebrow}</div><h1>${DATA.title}</h1><div class="band" style="--band:${m.band}"></div><div class="meta"><span>${DATA.date}</span><span>${DATA.time}</span><span>${DATA.venue}</span></div><div><a class="btn">RSVP</a></div></section>`,
+  statement_stack:(s,m,p)=>{ const w=DATA.title.split(" "); const lines=[w.slice(0,2).join(" "),w.slice(2,4).join(" "),w.slice(4).join(" ")]; return `<section class="hero-stack"><div class="vlabel">${DATA.date} · ${DATA.venue}</div><div>${lines.map(l=>`<span class="line">${l}</span>`).join("")}</div><div class="after"><div><div class="kicker">${DATA.eyebrow}</div><p class="muted">${DATA.hosts} · ${DATA.time}</p></div><div class="glyphs">${m.accent}<a class="btn">RSVP</a></div></div></section>`; },
+};
+const DETAILS = {
+  details_split_panel:(s)=>`<div class="det-split"><div class="lead"><div class="kicker">Event details</div><h2 style="margin-top:8px">Join us at the lodge.</h2><p style="margin-top:16px">${DATA.description}</p></div><div class="rows"><div><div class="kicker">When</div><h3>${DATA.date}</h3><p>${DATA.time}</p></div><div><div class="kicker">Where</div><h3>${DATA.venue}</h3><p>${DATA.location}</p></div></div></div>`,
+  details_stacked:(s)=>`<div class="det-stacked"><div class="kicker">Event details</div><h2 style="margin-top:8px">Join us at the lodge.</h2><p style="margin:14px auto 28px">${DATA.description}</p><div class="row"><div class="kicker">When</div><h3>${DATA.date}</h3><p style="margin:0 auto">${DATA.time}</p></div><div class="row"><div class="kicker">Where</div><h3>${DATA.venue}</h3><p style="margin:0 auto">${DATA.location}</p></div></div>`,
+  details_grid:(s)=>`<div class="kicker">Event details</div><h2 class="accent-edge" style="margin-top:8px">Join us at the lodge.</h2><p style="margin-top:12px">${DATA.description}</p><div class="det-grid"><div><div class="kicker">Date</div><h3>${DATA.date}</h3></div><div><div class="kicker">Time</div><h3>${DATA.time}</h3></div><div><div class="kicker">Place</div><h3>${DATA.venue}</h3><p>${DATA.location}</p></div></div>`,
+  details_sidebar_rows:(s)=>`<div class="det-sidebar"><div class="kicker">Event</div><div><h2>Join us at the lodge.</h2><p style="margin-top:10px">${DATA.description}</p></div><div class="kicker">When</div><div><h3>${DATA.date}</h3><p>${DATA.time}</p></div><div class="kicker">Where</div><div><h3>${DATA.venue}</h3><p>${DATA.location}</p></div><div class="kicker">Hosts</div><div><p>${DATA.hosts.replace("Hosted with love by ","")}</p></div></div>`,
+};
+const RSVPS = {
+  rsvp_contrast_split:(s)=>`<div class="rsvp-split"><div class="intro"><div class="kicker">RSVP</div><h2 style="margin-top:8px">Will you be there?</h2><p class="muted" style="margin-top:12px">Kindly respond by ${DATA.deadline}. Find your invitation by name; we'll text you a code.</p></div><div>${rsvpForm()}</div></div>`,
+  rsvp_contained_card:(s)=>`<div class="rsvp-card"><div class="card"><div><div class="kicker">RSVP</div><h2 style="margin-top:8px">Will you be there?</h2><p class="muted" style="margin-top:8px">Kindly respond by ${DATA.deadline}.</p></div>${rsvpForm()}</div></div>`,
+  rsvp_edge_interruption:(s)=>`<div class="rsvp-edge"><div class="kicker">RSVP · by ${DATA.deadline}</div><h2>Will you be there?</h2>${rsvpForm()}</div>`,
+  rsvp_typographic_stack:(s)=>`<div class="rsvp-tstack"><div class="kicker">RSVP</div><h2 style="margin-top:8px">Will you be there?</h2><p class="muted" style="margin-top:8px;margin-bottom:8px">Kindly respond by ${DATA.deadline}.</p>${rsvpForm()}</div>`,
+};
+const REGISTRIES = {
+  registry_featured:(s)=>`<div class="kicker">Registry</div><h2 style="margin-top:8px">A few things we love.</h2><div class="reg-featured"><div class="feature card"><div class="thumb">gift</div><div style="padding:0 0 0 22px"><div class="kicker">Native gift</div><h3>Natural oak activity gym</h3><p class="muted">$89 · 1 requested</p><a class="btn" style="margin-top:14px">Buy this gift</a></div></div><div class="side">${ext()}${fund()}</div></div>${returnPrompt()}`,
+  registry_tiles:(s)=>`<div class="kicker">Registry</div><h2 style="margin-top:8px">A few things we love.</h2><div class="reg-tiles">${gift()}${ext()}${fund()}</div>${returnPrompt()}`,
+  registry_editorial_list:(s)=>`<div class="kicker">Registry</div><h2 style="margin-top:8px">A few things we love.</h2><div class="reg-list"><div class="row"><div class="thumb">gift</div><div><div class="kicker">Native gift</div><h3>Natural oak activity gym</h3><p class="muted">$89 · 1 requested</p></div><a class="btn">Buy this gift</a></div><div class="row"><div class="thumb">A</div><div><div class="kicker">External registry</div><h3>Amazon Baby Registry</h3><p class="muted">Shop the full registry on Amazon.</p></div><a class="btn">Shop registry</a></div><div class="row"><div class="thumb">$</div><div><div class="kicker">Cash fund</div><h3>Nursery fund</h3><p class="muted">Venmo @haseeb</p></div><a class="btn">Send a gift</a></div></div>${returnPrompt()}`,
+  registry_uneven_grid:(s)=>`<div class="kicker">Registry</div><h2 style="margin-top:8px">A few things we love.</h2><div class="reg-uneven"><div class="tall">${gift()}</div>${ext()}${fund()}<div style="grid-column:2 / span 2">${returnPrompt()}</div></div>`,
+};
+const STATES = {
+  state_quiet:(s)=>`<div class="state-quiet stack"><div class="gate">${gateBlock()}</div><div>${passedBlock()}</div></div>`,
+  state_plate:(s)=>`<div class="state-plate"><div class="plate">${gateBlock()}<div class="divider"></div>${passedBlock()}</div></div>`,
+};
+
+/* ============================================================ Site assembly (config → CSS vars → recipes) */
+function siteVars(site, vh){
+  const t=TONES[site.tonalDirection], h=HIER[site.composition.hierarchy], d=DENS[site.density], p=site.parameters, ps=site.pageSystem;
+  const b=BORDER[ps.border](p.borderWeight), c=CARD[ps.card], bt=BTN[ps.button], ty=VOCAB.typography[site.typography];
+  const heavy = ty.category==="grotesk_led" ? 900 : 700;
+  return `
+    --t-base:${t.base};--t-alt:${t.alt};--t-contrast:${t.contrast};--t-contrast-text:${t.contrastText};--t-text:${t.text};--t-error:${t.error};
+    --t-acc-base:${t.accBase};--t-acc-base-fg:${t.accBaseFg};--t-acc-contrast:${t.accContrast};--t-acc-contrast-fg:${t.accContrastFg};
+    --display:'${ty.display}',Georgia,serif;--body:'${ty.body}',Arial,sans-serif;--display-weight:${ty.category==="grotesk_led"?800:600};--display-weight-heavy:${heavy};
+    --display-size:${h.d};--h2-size:${h.h2};--h3-size:${h.h3};--tracking:${p.displayTracking}em;
+    --pad-y:${vh.w<=700?d.m:d.d}px;--gap:${d.gap}px;--measure:${MEASURE[p.measure]};
+    --hero-h:${Math.round(HERO_H[p.heroHeight].d*vh.h)}px;--hero-h-m:${Math.round(HERO_H[p.heroHeight].m*vh.h)}px;--field-h-m:${FIELD_H_M[p.heroHeight]}px;
+    --split:${p.heroSplit};--offset-px:${OFFSET_PX[p.alignOffset]}px;--band-h:${BAND_H[p.bandHeight]}px;--frame-inset:${ {thin:14,medium:36,tall:64}[p.bandHeight] }px;--rail-w:${BAND_H[p.bandHeight]*2}px;--motif-scale:${p.motifScale};
+    --rule-w:${p.borderWeight}px;--rule:${b.rule};--rule-strong:${b.strong};--rule-outline:${b.outline};
+    --field-bg:transparent;--field-border:${b.field};--field-border-b:${b.fieldB||b.field};
+    --card-bg:${c.bg};--card-border:${c.border};--card-outline:${c.outline};
+    --btn-bg:${bt.bg};--btn-fg:${bt.fg};--btn-border:${bt.border};--btn-radius:${bt.radius};--btn-tracking:${bt.tr};--btn-transform:${bt.tf};--btn-size:${bt.size};
+    --pattern-linen:${PATTERN.linen(1,.16)};`;
+}
+function renderSite(site, w, h){
+  const plan=VOCAB.surfacePlans[site.pageSystem.surfacePlan]; const seed=parseInt(site.id,10)*7919;
+  const {out:m,repairs}=resolveMotifs(site,seed); site._repairs=repairs;
+  const cls=`site fam-${site.family} axis-${site.pageSystem.axis} border-${site.pageSystem.border} card-${site.pageSystem.card} btn-${site.pageSystem.button} hier-${site.composition.hierarchy} tone-${site.tonalDirection}`;
+  const sec=(role,inner,extra="")=>`<section class="sec surf-${role} ${extra}"><div class="sec-inner">${inner}</div></section>`;
+  const heroUsedBand = VOCAB.heroRecipes[site.heroRecipe].slots.includes("band");
+  const bandSec = plan.band ? `<section class="sec surf-${plan.band}" style="padding:0;height:calc(var(--band-h) * 2);background:${heroUsedBand ? m.field : m.band}"></section>` : "";
+  return `<div class="${cls}" style="${siteVars(site,{w,h})}">
+    <section class="sec surf-${plan.hero}" style="padding:0">${HEROES[site.heroRecipe](site,m,site.parameters)}</section>
+    ${bandSec}
+    ${sec(plan.details, DETAILS[site.detailsRecipe](site))}
+    ${sec(plan.rsvp, RSVPS[site.rsvpRecipe](site), plan.rsvp==="contrast"?"":"")}
+    ${sec(plan.registry, REGISTRIES[site.registryRecipe](site))}
+    ${sec(plan.state, STATES[site.stateRecipe](site))}
+    <footer class="footer sec surf-${plan.state}" style="padding:28px 24px">Made with Cordially</footer>
+  </div>`;
+}
+
+/* ============================================================ Modes */
+const q=new URLSearchParams(location.search); const gray=q.get("gray")==="1";
+if(q.get("site")){
+  const w=Number(q.get("w")||390), vh=Number(q.get("vh")||(w<=700?844:800));
+  const site=SITES.find(s=>s.id===q.get("site"));
+  document.body.className="single"; document.body.style.setProperty("--w",w+"px"); document.body.style.background="#fff";
+  document.body.innerHTML=`<div class="vp ${gray?"gray":""}" style="width:${w}px">${renderSite(site,w,vh)}</div>`;
+  if(site._repairs.length) console.warn("repairs", site.id, site._repairs);
+} else {
+  const w=Number(q.get("w")||390), vh=w<=700?844:800;
+  document.body.innerHTML=`<div class="lab"><b>Phase A proof harness</b><span>12 sites · one brief · config-driven</span><a href="?w=390">390</a><a href="?w=1280">1280</a><a href="?w=${w}&gray=1">grayscale</a></div><div class="grid" id="g"></div>`;
+  const g=document.getElementById("g");
+  for(const site of SITES){
+    const cell=document.createElement("div"); cell.className="cell";
+    cell.innerHTML=`<h3>${site.id} · ${site.name}<span>${site.family} · ${site.heroRecipe} · ${site.pageSystem.surfacePlan} · ${site.pageSystem.axis}</span></h3><div class="shell"><div class="scale"><div class="vp ${gray?"gray":""}" style="width:${w}px">${renderSite(site,w,vh)}</div></div></div>`;
+    g.appendChild(cell);
+  }
+  const fit=()=>{ for(const cell of document.querySelectorAll(".cell")){ const sh=cell.querySelector(".shell"), sc=cell.querySelector(".scale"), vp=cell.querySelector(".vp"); const s=Math.min(1,cell.clientWidth/w); sc.style.transform=`scale(${s})`; sc.style.width=w+"px"; sh.style.height=(vp.scrollHeight*s)+"px"; } };
+  fit(); window.addEventListener("resize",fit); document.fonts.ready.then(fit);
+}
+</script>
+</body>
+</html>
