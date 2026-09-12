@@ -1,0 +1,13 @@
+02 schema:ok repair:ok violations:0 repairs:{} 
+04 schema:ok repair:ok violations:0 repairs:{} 
+01 schema:ok repair:ok violations:0 repairs:{"fit-estimate":1} 
+03 schema:ok repair:ok violations:0 repairs:{} 
+05 schema:ok repair:ok violations:0 repairs:{} 
+06 schema:ok repair:ok violations:0 repairs:{} 
+08 schema:ok repair:ok violations:0 repairs:{} 
+07 schema:ok repair:ok violations:0 repairs:{} 
+09 schema:ok repair:ok violations:0 repairs:{} 
+10 schema:ok repair:ok violations:0 repairs:{} 
+11 schema:ok repair:ok violations:0 repairs:{} 
+12 schema:ok repair:ok violations:0 repairs:{} 
+done 12

@@ -1,2 +1,14 @@
-JSON Schema Draft 2020-12 validation: PASS
-Representative output validation: PASS (event-identity v1, design-intent v2 with presentation)
+Canonical model schemas: validation log
+Last run: 2026-09-12 (Revision 6.1, main)
+Validator: ajv 8 (dist/2020), strict:false, allErrors:true
+
+Schemas: event-identity (prompt event_identity_v2), design-intent (prompt design_intent_v3), composition (composition_schema_v1, prompt composition_v1_p2)
+
+event-identity.schema.json: https://json-schema.org/draft/2020-12/schema meta-validation PASS
+design-intent.schema.json: https://json-schema.org/draft/2020-12/schema meta-validation PASS
+composition.schema.json: https://json-schema.org/draft/2020-12/schema meta-validation PASS
+composition: 72/72 raw model trees from proof-b/model/{final,final-reduced} valid; agreement with the proof-b validator's schemaValid flag 72/72
+design-intent v3 representative output: PASS
+event-identity v2 representative output: PASS
+
+How to rerun: install ajv@8 and run a script that meta-validates the three schemas, validates every rawTree in proof-b/model/final/results.json and proof-b/model/final-reduced/results.json against composition.schema.json, and validates one representative object for each of the other two schemas. Rerun whenever a prompt, schema or the primitive table in proof-b/src/composition.ts changes (gen-schema.js regenerates composition.schema.json; the canonical copy must stay byte-identical).
