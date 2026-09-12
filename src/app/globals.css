@@ -1,0 +1,57 @@
+@import "tailwindcss";
+@import "../styles/app-tokens.css";
+
+/*
+ * Tailwind v4 theme mapping to design-system tokens (docs/design-system.md §23.3).
+ * Utilities like bg-app-surface, text-app-text, rounded-lg, p-4 resolve to the
+ * semantic tokens above. Do not use arbitrary values (text-[#…], mt-[13px]).
+ */
+@theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-surface-subtle: var(--app-surface-subtle);
+  --color-app-surface-muted: var(--app-surface-muted);
+  --color-app-text: var(--app-text);
+  --color-app-text-secondary: var(--app-text-secondary);
+  --color-app-text-tertiary: var(--app-text-tertiary);
+  --color-app-border: var(--app-border);
+  --color-app-border-strong: var(--app-border-strong);
+  --color-app-action: var(--app-action);
+  --color-app-action-hover: var(--app-action-hover);
+  --color-app-action-text: var(--app-action-text);
+  --color-app-focus: var(--app-focus);
+  --color-app-success: var(--app-success);
+  --color-app-warning: var(--app-warning);
+  --color-app-danger: var(--app-danger);
+  --color-app-overlay: var(--app-overlay);
+
+  --font-sans: var(--font-app);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-pill: var(--radius-pill);
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-float: var(--shadow-float);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --breakpoint-sm: 640px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1440px;
+}
+
+html {
+  color-scheme: light;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--font-app);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--app-focus);
+  outline-offset: 2px;
+}
