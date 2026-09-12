@@ -1,0 +1,186 @@
+{
+  "summary": {
+    "url": "https://event-platform-git-claude-phase-5ca18b-haseeb-shakers-projects.vercel.app/api/spike/geometry?repeats=3",
+    "runs": 1,
+    "succeeded": 1,
+    "failed": 0,
+    "deterministicAll": true,
+    "crossInvocationDeterministic": {
+      "390": true,
+      "1280": true
+    },
+    "fontsLoadedAll": true,
+    "cleanAll": true,
+    "coldStarts": 1,
+    "wallMs": {
+      "median": 6820,
+      "p95": 6820,
+      "cold": [
+        6820
+      ],
+      "warmMedian": null
+    },
+    "inflateMs": {
+      "cold": [
+        2196
+      ],
+      "warmMedian": null
+    },
+    "launchMs": {
+      "median": 63,
+      "p95": 63
+    },
+    "renderMs": {
+      "390": {
+        "median": 143,
+        "p95": 143
+      },
+      "1280": {
+        "median": 153,
+        "p95": 153
+      }
+    },
+    "nodeRssMb": {
+      "max": 222,
+      "note": "Node process only; excludes the Chromium child"
+    },
+    "env": {
+      "region": "iad1",
+      "vercelEnv": "preview",
+      "lambdaMemoryMb": null,
+      "node": "v22.23.2",
+      "chromium": "153.0.8010.0"
+    },
+    "errors": []
+  },
+  "results": [
+    {
+      "i": 0,
+      "status": 200,
+      "wallMs": 6820,
+      "ok": true,
+      "error": null,
+      "coldStart": true,
+      "invocation": 1,
+      "totalMs": 5706,
+      "timings": {
+        "importMs": 855,
+        "inflateMs": 2196,
+        "launchMs": 63,
+        "closeMs": 1575
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            201,
+            117,
+            143
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            166,
+            140,
+            153
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 201,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 166,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 117,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 140,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 143,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 153,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": "iad1",
+        "vercelEnv": "preview",
+        "lambdaMemoryMb": null,
+        "node": "v22.23.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 80,
+        "rssAfter": 222,
+        "heapUsedAfter": 54
+      }
+    }
+  ]
+}
