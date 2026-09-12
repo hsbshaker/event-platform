@@ -1,0 +1,40 @@
+
+== zero (60, zero, claude-sonnet-5)
+ schema: {"firstCallValid":58,"afterRepromptValid":60,"fallbacks":0,"infraFailures":0,"cleanCalls":60,"firstCallValidOfClean":58,"rerunAfterInfraFailure":12,"errorKinds":{"schema.key":1,"schema.children.count":1}}
+ repair: {"repairValid":60,"zeroViolations":28,"noRepairs":17,"byKind":{"fit-verified":39,"structural":40,"fit-estimate":6},"violations":{"p50":1,"p90":2,"max":2}}
+ geometry: {"verified":60,"overflowDesktop":1,"overflowMobile":1,"fitDemotionsTotal":39,"treesNeedingFit":26,"estimateVsVerified":{"estimated":6,"verified":39}}
+ invention: {"novel":54,"rate":0.9,"distinct":58,"largestClass":2,"exactLib":0,"nearestLib":{"p50":0.5,"p90":0.71,"max":0.8,"min":0.36},"rarefaction":[[10,10],[20,20],[30,30],[40,39],[50,49],[60,58]],"entropy":[4.16,4.05],"roots":{"Surface":18,"Grid":7,"Split":8,"Stack":7,"Rail":8,"Frame":9,"Overlay":3}}
+ directives: {"complianceRate":{"opening":0.78,"structure":0.98,"date":0.8,"weight":0.38,"motif":0.68,"surface":0.98,"details":1,"rsvpIntro":0.92,"registry":0.4},"distinctPerStructureDirective":{"Frame":11,"Grid":13,"Split":10,"Rail":9,"Stack":7,"Overlay":8},"combos":103680}
+ selector: {"pairsTotal":1770,"pairsAtOrAbove070":{"desktop":0,"mobile":0},"pairsAtOrAbove060":{"desktop":5,"mobile":9},"nearestNeighbour":{"desktop":{"p50":0.45,"p90":0.66,"max":0.68},"mobile":{"p50":0.54,"p90":0.65,"max":0.66}},"collisionsAtAccept":0,"resolvedByReprompt":0,"keptWithCollision":0}
+ cost: {"calls":62,"reprompts":2,"totalUsd":7.86,"meanMs":87529,"errors":0} size: {"heroNodes":{"p50":13,"max":19},"sections":{"3":17,"4":35,"5":8},"pageNodes":{"p50":33}}
+
+== few (60, few, claude-sonnet-5)
+ schema: {"firstCallValid":59,"afterRepromptValid":60,"fallbacks":0,"infraFailures":0,"cleanCalls":60,"firstCallValidOfClean":59,"rerunAfterInfraFailure":14,"errorKinds":{"schema.children.count":1}}
+ repair: {"repairValid":60,"zeroViolations":40,"noRepairs":27,"byKind":{"structural":23,"fit-verified":30,"fit-estimate":3},"violations":{"p50":0,"p90":1,"max":2}}
+ geometry: {"verified":60,"overflowDesktop":0,"overflowMobile":0,"fitDemotionsTotal":30,"treesNeedingFit":20,"estimateVsVerified":{"estimated":3,"verified":30}}
+ invention: {"novel":53,"rate":0.88,"distinct":58,"largestClass":2,"exactLib":0,"nearestLib":{"p50":0.5,"p90":0.7,"max":0.83,"min":0.36},"rarefaction":[[10,10],[20,20],[30,30],[40,40],[50,50],[60,58]],"entropy":[4.17,4.05],"roots":{"Rail":10,"Surface":13,"Frame":10,"Overlay":6,"Split":9,"Stack":6,"Grid":6}}
+ directives: {"complianceRate":{"opening":0.72,"structure":0.93,"date":0.85,"weight":0.53,"motif":0.63,"surface":0.93,"details":1,"rsvpIntro":0.98,"registry":0.52},"distinctPerStructureDirective":{"Rail":8,"Stack":9,"Overlay":9,"Frame":11,"Split":9,"Grid":12},"combos":103680}
+ selector: {"pairsTotal":1770,"pairsAtOrAbove070":{"desktop":3,"mobile":3},"pairsAtOrAbove060":{"desktop":5,"mobile":5},"nearestNeighbour":{"desktop":{"p50":0.45,"p90":0.71,"max":0.79},"mobile":{"p50":0.46,"p90":0.72,"max":0.83}},"collisionsAtAccept":0,"resolvedByReprompt":3,"keptWithCollision":0}
+ cost: {"calls":64,"reprompts":4,"totalUsd":8.36,"meanMs":83495,"errors":0} size: {"heroNodes":{"p50":13,"max":21},"sections":{"3":13,"4":38,"5":9},"pageNodes":{"p50":36}}
+
+== reduced (12, zero, claude-sonnet-5)
+ schema: {"firstCallValid":12,"afterRepromptValid":12,"fallbacks":0,"infraFailures":0,"cleanCalls":12,"firstCallValidOfClean":12,"rerunAfterInfraFailure":0,"errorKinds":{}}
+ repair: {"repairValid":12,"zeroViolations":4,"noRepairs":0,"byKind":{"structural":9,"fit-verified":8},"violations":{"p50":1,"p90":1,"max":2}}
+ geometry: {"verified":12,"overflowDesktop":0,"overflowMobile":0,"fitDemotionsTotal":8,"treesNeedingFit":7,"estimateVsVerified":{"estimated":0,"verified":8}}
+ invention: {"novel":10,"rate":0.83,"distinct":12,"largestClass":1,"exactLib":0,"nearestLib":{"p50":0.5,"p90":0.71,"max":0.8,"min":0.42},"rarefaction":[[10,10]],"entropy":[4.03,4.05],"roots":{"Surface":4,"Stack":4,"Split":1,"Frame":2,"Rail":1}}
+ directives: {"complianceRate":{"opening":1,"structure":0.92,"date":0.75,"weight":0.67,"motif":0.67,"surface":1,"details":1,"rsvpIntro":1,"registry":null},"distinctPerStructureDirective":{"Grid":1,"Stack":7,"Split":1,"Frame":1,"Rail":2},"combos":103680}
+ selector: {"pairsTotal":66,"pairsAtOrAbove070":{"desktop":0,"mobile":0},"pairsAtOrAbove060":{"desktop":0,"mobile":0},"nearestNeighbour":{"desktop":{"p50":0.45,"p90":0.55,"max":0.55},"mobile":{"p50":0.44,"p90":0.5,"max":0.5}},"collisionsAtAccept":0,"resolvedByReprompt":0,"keptWithCollision":0}
+ cost: {"calls":12,"reprompts":0,"totalUsd":1.38,"meanMs":82113,"errors":0} size: {"heroNodes":{"p50":13,"max":18},"sections":{"3":10,"4":2},"pageNodes":{"p50":22}}
+
+== collapse (20, few, claude-sonnet-5)
+ schema: {"firstCallValid":19,"afterRepromptValid":20,"fallbacks":0,"infraFailures":0,"cleanCalls":20,"firstCallValidOfClean":19,"rerunAfterInfraFailure":12,"errorKinds":{"schema.children.count":1}}
+ repair: {"repairValid":20,"zeroViolations":11,"noRepairs":9,"byKind":{"structural":9,"fit-verified":2},"violations":{"p50":0,"p90":1,"max":1}}
+ geometry: {"verified":20,"overflowDesktop":1,"overflowMobile":1,"fitDemotionsTotal":2,"treesNeedingFit":2,"estimateVsVerified":{"estimated":0,"verified":2}}
+ invention: {"novel":19,"rate":0.95,"distinct":17,"largestClass":2,"exactLib":0,"nearestLib":{"p50":0.43,"p90":0.6,"max":0.8,"min":0.36},"rarefaction":[[10,9],[20,17]],"entropy":[4.16,4.05],"roots":{"Rail":20}}
+ directives: {"complianceRate":{"opening":1,"structure":1,"date":0.2,"weight":0.95,"motif":0.3,"surface":1,"details":1,"rsvpIntro":1,"registry":0.5},"distinctPerStructureDirective":{"Rail":17},"combos":103680}
+ selector: {"pairsTotal":190,"pairsAtOrAbove070":{"desktop":19,"mobile":11},"pairsAtOrAbove060":{"desktop":48,"mobile":34},"nearestNeighbour":{"desktop":{"p50":0.7,"p90":0.92,"max":0.92},"mobile":{"p50":0.67,"p90":0.9,"max":0.9}},"collisionsAtAccept":8,"resolvedByReprompt":3,"keptWithCollision":5}
+ cost: {"calls":29,"reprompts":9,"totalUsd":3.51,"meanMs":83280,"errors":0} size: {"heroNodes":{"p50":17,"max":21},"sections":{"3":18,"4":2},"pageNodes":{"p50":31}}
+items 40 model 20 library 20
+human-test-1280-gray-unlabeled.png (2028, 2306)
+human-test-390-gray-unlabeled.png (1948, 1718)
+CHAIN3-DONE

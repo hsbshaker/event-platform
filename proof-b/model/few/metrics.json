@@ -1,0 +1,196 @@
+{
+  "run": "few",
+  "count": 60,
+  "model": "claude-sonnet-5",
+  "condition": "few",
+  "schema": {
+    "firstCallValid": 59,
+    "afterRepromptValid": 60,
+    "fallbacks": 0,
+    "infraFailures": 0,
+    "cleanCalls": 60,
+    "firstCallValidOfClean": 59,
+    "rerunAfterInfraFailure": 14,
+    "errorKinds": {
+      "schema.children.count": 1
+    }
+  },
+  "repair": {
+    "repairValid": 60,
+    "zeroViolations": 40,
+    "violationsBefore": {
+      "p50": 0,
+      "p90": 1,
+      "max": 2
+    },
+    "repairsByKind": {
+      "structural": 23,
+      "fit-verified": 30,
+      "fit-estimate": 3
+    },
+    "treesWithNoRepairs": 27,
+    "rulesHit": {
+      "nesting.registryLeaf": 2,
+      "fit.verified": 30,
+      "fit.estimate": 3,
+      "nesting.rail": 2,
+      "motif.kind": 19
+    }
+  },
+  "geometry": {
+    "verified": 60,
+    "overflowDesktop": 0,
+    "overflowMobile": 0,
+    "fitDemotionsTotal": 30,
+    "treesNeedingFit": 20,
+    "estimateVsVerified": {
+      "estimated": 3,
+      "verified": 30
+    }
+  },
+  "invention": {
+    "novelHeroes": 53,
+    "novelRate": 0.88,
+    "nearestLibrary": {
+      "p50": 0.5,
+      "p90": 0.7,
+      "max": 0.83,
+      "min": 0.36
+    },
+    "exactLibraryMatches": 0,
+    "distinctHeroSkeletons": 58,
+    "distinctModelHeroSkeletons": 58,
+    "rarefaction": [
+      [
+        10,
+        10
+      ],
+      [
+        20,
+        20
+      ],
+      [
+        30,
+        30
+      ],
+      [
+        40,
+        40
+      ],
+      [
+        50,
+        50
+      ],
+      [
+        60,
+        58
+      ]
+    ],
+    "largestSkeletonClass": 2,
+    "heroPrimitiveUsage": {
+      "Rail": 13,
+      "Stack": 84,
+      "Eyebrow": 50,
+      "EventTitle": 60,
+      "Hosts": 55,
+      "Description": 23,
+      "Cluster": 54,
+      "Date": 75,
+      "Time": 53,
+      "Venue": 48,
+      "Location": 28,
+      "Deadline": 14,
+      "CTA": 60,
+      "Surface": 19,
+      "Rule": 24,
+      "Grid": 16,
+      "MotifField": 28,
+      "Frame": 20,
+      "Overlay": 16,
+      "Monogram": 10,
+      "Split": 17,
+      "Glyph": 4,
+      "MotifBand": 1
+    },
+    "heroPrimitiveEntropy": 4.17,
+    "libraryPrimitiveEntropy": 4.05,
+    "rootTypes": {
+      "Rail": 10,
+      "Surface": 13,
+      "Frame": 10,
+      "Overlay": 6,
+      "Split": 9,
+      "Stack": 6,
+      "Grid": 6
+    }
+  },
+  "directives": {
+    "complianceRate": {
+      "opening": 0.72,
+      "structure": 0.93,
+      "date": 0.85,
+      "weight": 0.53,
+      "motif": 0.63,
+      "surface": 0.93,
+      "details": 1,
+      "rsvpIntro": 0.98,
+      "registry": 0.52
+    },
+    "distinctPerStructureDirective": {
+      "Rail": 8,
+      "Stack": 9,
+      "Overlay": 9,
+      "Frame": 11,
+      "Split": 9,
+      "Grid": 12
+    },
+    "combos": 103680
+  },
+  "selector": {
+    "pairsTotal": 1770,
+    "pairsAtOrAbove070": {
+      "desktop": 3,
+      "mobile": 3
+    },
+    "pairsAtOrAbove060": {
+      "desktop": 5,
+      "mobile": 5
+    },
+    "nearestNeighbour": {
+      "desktop": {
+        "p50": 0.45,
+        "p90": 0.71,
+        "max": 0.79
+      },
+      "mobile": {
+        "p50": 0.46,
+        "p90": 0.72,
+        "max": 0.83
+      }
+    },
+    "collisionsAtAccept": 0,
+    "resolvedByReprompt": 3,
+    "keptWithCollision": 0
+  },
+  "cost": {
+    "calls": 64,
+    "reprompts": 4,
+    "totalUsd": 8.36,
+    "meanMs": 83495,
+    "errors": 0
+  },
+  "size": {
+    "heroNodes": {
+      "p50": 13,
+      "max": 21
+    },
+    "sections": {
+      "3": 13,
+      "4": 38,
+      "5": 9
+    },
+    "pageNodes": {
+      "p50": 36
+    }
+  }
+}

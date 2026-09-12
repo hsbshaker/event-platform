@@ -8,6 +8,7 @@ const CAPS = process.argv.includes("--caps") && process.argv[process.argv.indexO
 const MODEL = process.argv.includes("--model") ? process.argv[process.argv.indexOf("--model") + 1] : "claude-sonnet-5";
 const FIXED_DIRECTIVE = process.argv.includes("--directive-seed") ? Number(process.argv[process.argv.indexOf("--directive-seed") + 1]) : null;   // mode-collapse test: one directive, many seeds
 const FIXED_INTENT = process.argv.includes("--intent-seed") ? Number(process.argv[process.argv.indexOf("--intent-seed") + 1]) : null;
+const ONLY = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1].split(",").map(Number) : null;   // re-run specific indices (1-based ids) after an infrastructure failure, same seeds
 const PAR = 4; fs.mkdirSync(path.join(outdir, "raw"), { recursive: true }); fs.mkdirSync(path.join(outdir, "specs"), { recursive: true });
 const hash = (...p) => { let h = 2166136261; for (const ch of p.join("|")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const pick = (r, a) => a[Math.floor(r() * a.length)];
@@ -53,8 +54,10 @@ async function one(i) {
   rec.prompt = prompt; return rec;
 }
 (async () => {
-  const results = []; let next = 0;
-  await Promise.all(Array.from({ length: PAR }, async () => { while (next < COUNT) { const i = next++; const r = await one(i); results[i] = r; console.log(`${r.id} schema:${r.schemaValid ? "ok" : "FAIL"}${r.schemaValidFirst ? "" : " (reprompted)"} repair:${r.repairValid ? "ok" : "FAIL"} violations:${r.violationsBefore} repairs:${JSON.stringify(r.spec.repairSummary)} ${r.fallback ? "FALLBACK" : ""}`); } }));
+  const prior = ONLY && fs.existsSync(path.join(outdir, "results.json")) ? JSON.parse(fs.readFileSync(path.join(outdir, "results.json"), "utf8")) : null;
+  const todo = ONLY ? ONLY.map(x => x - 1) : Array.from({ length: COUNT }, (_, i) => i);
+  const results = prior ? prior.map(p => ({ ...p })) : []; let next = 0;
+  await Promise.all(Array.from({ length: PAR }, async () => { while (next < todo.length) { const i = todo[next++]; const r = await one(i); if (prior) r.rerunAfterInfraFailure = true; results[i] = r; console.log(`${r.id} schema:${r.schemaValid ? "ok" : "FAIL"}${r.schemaValidFirst ? "" : " (reprompted)"} repair:${r.repairValid ? "ok" : "FAIL"} violations:${r.violationsBefore} repairs:${JSON.stringify(r.spec.repairSummary)} ${r.fallback ? "FALLBACK" : ""}`); } }));
   // selector: reject collisions against already-accepted candidates; one re-prompt per collision, then library fallback
   const accepted = [];
   for (const r of results) {
@@ -75,6 +78,6 @@ async function one(i) {
     accepted.push(r);
   }
   fs.writeFileSync(path.join(outdir, "results.json"), JSON.stringify(results.map(r => ({ ...r, prompt: undefined })), null, 1));
-  fs.writeFileSync(path.join(outdir, "prompt-sample.txt"), results[0].prompt.system + "\n\n=====\n\n" + results[0].prompt.user);
+  if (results[0].prompt) fs.writeFileSync(path.join(outdir, "prompt-sample.txt"), results[0].prompt.system + "\n\n=====\n\n" + results[0].prompt.user);
   console.log("done", results.length);
 })();

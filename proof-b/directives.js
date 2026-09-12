@@ -29,7 +29,7 @@
   const combos = Object.values(DIMENSIONS).reduce((n, v) => n * v.length, 1);
 
   // ---- compliance: each dimension measured independently from the (canonical) tree ----
-  function find(n, pred, out = []) { if (!n || typeof n !== "object") return out; if (Array.isArray(n)) { n.forEach(x => find(x, pred, out)); return out; } if (pred(n)) out.push(n); for (const k of ["children", "child", "rail", "content", "decoration", "layout"]) { const v = n[k]; if (Array.isArray(v)) v.forEach(c => find(c, pred, out)); else if (v && typeof v === "object") find(v, pred, out); } return out; }
+  function find(n, pred, out = []) { if (!n || typeof n !== "object") return out; if (Array.isArray(n)) { n.forEach(x => find(x, pred, out)); return out; } if (pred(n)) out.push(n); for (const k of ["root", "children", "child", "rail", "content", "decoration", "layout"]) { const v = n[k]; if (Array.isArray(v)) v.forEach(c => find(c, pred, out)); else if (v && typeof v === "object") find(v, pred, out); } return out; }
   function compliance(tree, d) {
     const hero = tree.sections.find(s => s.kind === "hero"); const h = hero.root; const c = {};
     const numeralDisplay = find(h, n => n.t === "Date" && n.form === "numeral" && (n.emphasis === "display" || n.emphasis === undefined)).length > 0;

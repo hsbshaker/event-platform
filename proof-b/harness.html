@@ -81,6 +81,9 @@ body{margin:0;background:#e9e7e1;font-family:Inter,system-ui,sans-serif;color:#1
 .p-rail .rail:has(> .p-field){border:0;padding:0}
 .p-rail.w-thin .rail .p-stack{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;font-weight:700;align-items:center}
 .p-rail.w-thin .rail .p-stack .p-text{white-space:nowrap}
+.p-rail.w-thin .rail .p-text.t-Date.form-numeral{font-size:calc(var(--rail-w) * .7);line-height:1}   /* a numeral in a thin rail is sized by the rail, not the type scale */
+.p-rail.w-medium .rail .p-text.t-Date.form-numeral.em-display,.p-rail.w-wide .rail .p-text.t-Date.form-numeral.em-display{font-size:calc(var(--rail-w) * .7);line-height:1}
+.p-rail .rail{overflow:hidden}
 .p-rail .main{min-width:0;display:flex;flex-direction:column;justify-content:center}
 .p-grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);min-width:0}
 .p-grid.ruled{gap:0;border-top:var(--rule-strong);border-left:var(--rule)}
@@ -95,6 +98,9 @@ body{margin:0;background:#e9e7e1;font-family:Inter,system-ui,sans-serif;color:#1
 .p-overlay .ov-content{position:relative;z-index:1}
 .p-overlay .ov-deco{position:absolute;z-index:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .p-overlay .ov-deco .p-field{width:100%;height:100%;min-height:0}
+.p-overlay .ov-deco .p-text,.p-overlay .ov-deco .p-glyph{opacity:.12;pointer-events:none}   /* a decoration is a watermark: it never competes with text */
+.p-overlay .ov-deco .p-text.t-Date.form-numeral{font-size:calc(var(--display-size) * 3.2);line-height:1;font-family:var(--display);font-weight:var(--display-weight-heavy)}
+.p-overlay.m-stack .ov-deco .p-text.t-Date.form-numeral{font-size:calc(var(--display-size) * 2)}
 .p-overlay.ext-full .ov-deco{inset:0}
 .p-overlay.ext-half .ov-deco{width:60%;height:50%}.p-overlay.ext-third .ov-deco{width:42%;height:36%}.p-overlay.ext-quarter .ov-deco{width:32%;height:26%}
 .p-overlay.anchor-top-start .ov-deco{top:0;left:0}.p-overlay.anchor-top-end .ov-deco{top:0;right:0}.p-overlay.anchor-bottom-start .ov-deco{bottom:0;left:0}.p-overlay.anchor-bottom-end .ov-deco{bottom:0;right:0}
@@ -121,7 +127,11 @@ body{margin:0;background:#e9e7e1;font-family:Inter,system-ui,sans-serif;color:#1
 .p-text.em-caption{text-transform:uppercase;letter-spacing:.16em;font-size:.68rem;font-weight:700;opacity:.85}
 .p-text.case-upper{text-transform:uppercase}
 h1.p-text.em-display.case-upper{font-weight:var(--display-weight-heavy);line-height:.9}
-h1.p-text.lay-stagger,h1.p-text.lay-cascade{display:flex;flex-direction:column;font-size:calc(var(--display-size) * 1.05);line-height:.9;font-weight:var(--display-weight-heavy)}
+h1.p-text.lay-stagger,h1.p-text.lay-cascade{display:flex;flex-direction:column;line-height:.9;font-weight:var(--display-weight-heavy)}
+h1.p-text.em-display.lay-stagger,h1.p-text.em-display.lay-cascade{font-size:calc(var(--display-size) * 1.05)}
+h1.p-text.em-primary.lay-stagger,h1.p-text.em-primary.lay-cascade{font-size:calc(var(--h2-size) * 1.15)}
+h1.p-text.em-secondary.lay-stagger,h1.p-text.em-secondary.lay-cascade{font-size:1.4rem;font-family:var(--display)}
+h1.p-text.lay-stagger .line,h1.p-text.lay-cascade .line{min-width:0;overflow-wrap:anywhere}
 h1.p-text.lay-stagger .line:nth-child(even){text-align:right}
 h1.p-text.lay-cascade .line:nth-child(2){padding-left:12%}h1.p-text.lay-cascade .line:nth-child(3){padding-left:24%}
 .p-text.t-Date.form-numeral.em-display{font-size:calc(var(--display-size) * 1.6);line-height:.85;font-weight:var(--display-weight-heavy)}
@@ -159,9 +169,12 @@ h1.p-text.lay-cascade .line:nth-child(2){padding-left:12%}h1.p-text.lay-cascade 
   .p-grid{grid-template-columns:repeat(var(--mcols),minmax(0,1fr))}
   .p-cell{grid-column:span min(var(--span),var(--mcols))}
   .p-grid.ruled .p-cell{padding:14px;min-height:90px}
-  .p-frame{padding:calc(var(--inset) * .6)}.p-frame .frame-box{padding:40px 20px}
+  .p-frame{padding:calc(var(--inset) * .6)}.p-frame .frame-box{padding:32px 18px}
+  .p-surface{padding:calc(var(--inset) * .6)}
+  .p-overlay:not(.ext-full) .ov-content{padding:0}
   .p-overlay.m-stack .ov-deco{position:static;width:100%;height:auto;transform:none;margin-top:16px}
   .p-overlay.m-stack .ov-deco .p-field{min-height:140px}
+  .p-overlay.m-stack .ov-deco .p-text{opacity:.12}
   .p-overlay.m-stack .ov-content{padding:0}
   .p-registry .item.featured{grid-template-columns:1fr}.p-registry .item.featured .body{margin-top:14px}
   .p-registry.list .item{grid-template-columns:72px 1fr}

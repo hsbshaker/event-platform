@@ -2,3 +2,60 @@
 03 schema:ok repair:ok violations:0 repairs:{} 
 01 schema:ok repair:ok violations:0 repairs:{} 
 04 schema:ok repair:ok violations:0 repairs:{} 
+05 schema:ok repair:ok violations:0 repairs:{} 
+07 schema:ok repair:ok violations:2 repairs:{"structural":2} 
+06 schema:ok repair:ok violations:0 repairs:{} 
+08 schema:ok repair:ok violations:0 repairs:{"fit-estimate":1} 
+09 schema:ok repair:ok violations:0 repairs:{} 
+11 schema:ok repair:ok violations:0 repairs:{} 
+12 schema:ok repair:ok violations:0 repairs:{} 
+10 schema:ok repair:ok violations:0 repairs:{} 
+15 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+16 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+17 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+18 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+19 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+20 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+21 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+22 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+13 schema:ok repair:ok violations:0 repairs:{"fit-estimate":1} 
+23 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+24 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+25 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+26 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+14 schema:ok repair:ok violations:0 repairs:{} 
+29 schema:ok repair:ok violations:0 repairs:{} 
+28 schema:ok repair:ok violations:0 repairs:{} 
+27 schema:ok repair:ok violations:0 repairs:{} 
+30 schema:ok (reprompted) repair:ok violations:0 repairs:{} 
+31 schema:ok repair:ok violations:0 repairs:{} 
+34 schema:ok repair:ok violations:0 repairs:{} 
+33 schema:ok repair:ok violations:0 repairs:{} 
+32 schema:ok repair:ok violations:0 repairs:{} 
+35 schema:ok repair:ok violations:0 repairs:{"fit-estimate":1} 
+37 schema:ok repair:ok violations:0 repairs:{} 
+36 schema:ok repair:ok violations:0 repairs:{} 
+38 schema:ok repair:ok violations:0 repairs:{} 
+39 schema:ok repair:ok violations:0 repairs:{} 
+41 schema:ok repair:ok violations:0 repairs:{} 
+40 schema:ok repair:ok violations:0 repairs:{} 
+43 schema:ok repair:ok violations:0 repairs:{} 
+42 schema:ok repair:ok violations:0 repairs:{} 
+44 schema:ok repair:ok violations:0 repairs:{} 
+45 schema:ok repair:ok violations:0 repairs:{} 
+48 schema:ok repair:ok violations:0 repairs:{} 
+46 schema:ok repair:ok violations:0 repairs:{"fit-estimate":1} 
+47 schema:ok repair:ok violations:0 repairs:{} 
+52 schema:ok repair:ok violations:0 repairs:{} 
+50 schema:ok repair:ok violations:0 repairs:{} 
+49 schema:ok repair:ok violations:0 repairs:{} 
+51 schema:ok repair:ok violations:0 repairs:{} 
+54 schema:ok repair:ok violations:0 repairs:{} 
+55 schema:ok repair:ok violations:1 repairs:{"structural":1} 
+53 schema:ok repair:ok violations:0 repairs:{"fit-estimate":2} 
+57 schema:ok repair:ok violations:0 repairs:{} 
+56 schema:ok (reprompted) repair:ok violations:0 repairs:{} 
+58 schema:ok repair:ok violations:0 repairs:{} 
+59 schema:ok repair:ok violations:0 repairs:{} 
+60 schema:ok repair:ok violations:0 repairs:{} 
+done 60

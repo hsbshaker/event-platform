@@ -12,8 +12,9 @@ function evaluate(run) {
   const R = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8")); const n = R.length;
   const modelTrees = R.filter(r => !r.fallback);
   // 1. schema validity (raw model output, before any repair)
-  const schema = { firstCallValid: R.filter(r => r.schemaValidFirst).length, afterRepromptValid: R.filter(r => r.schemaValid).length, fallbacks: R.filter(r => r.fallback).length, errorKinds: {} };
-  for (const r of R) for (const e of (r.schemaErrorsFirst || [])) schema.errorKinds[e.rule] = (schema.errorKinds[e.rule] || 0) + 1;
+  const infra = R.filter(r => r.calls.some(c => c.error)); const clean = R.filter(r => !r.calls.some(c => c.error));
+  const schema = { firstCallValid: R.filter(r => r.schemaValidFirst).length, afterRepromptValid: R.filter(r => r.schemaValid).length, fallbacks: R.filter(r => r.fallback).length, infraFailures: infra.length, cleanCalls: clean.length, firstCallValidOfClean: clean.filter(r => r.schemaValidFirst).length, rerunAfterInfraFailure: R.filter(r => r.rerunAfterInfraFailure).length, errorKinds: {} };
+  for (const r of clean) for (const e of (r.schemaErrorsFirst || [])) schema.errorKinds[e.rule] = (schema.errorKinds[e.rule] || 0) + 1;
   // 2. deterministic repair validity
   const repair = { repairValid: R.filter(r => r.repairValid).length, zeroViolations: R.filter(r => r.violationsBefore === 0).length, violationsBefore: { p50: pct(R.map(r => r.violationsBefore), .5), p90: pct(R.map(r => r.violationsBefore), .9), max: Math.max(...R.map(r => r.violationsBefore)) }, repairsByKind: {}, treesWithNoRepairs: 0, rulesHit: {} };
   for (const r of R) { const reps = r.spec.compilerRepairs || []; if (!reps.length) repair.treesWithNoRepairs++; for (const x of reps) { repair.repairsByKind[x.kind] = (repair.repairsByKind[x.kind] || 0) + 1; repair.rulesHit[x.rule] = (repair.rulesHit[x.rule] || 0) + 1; } }

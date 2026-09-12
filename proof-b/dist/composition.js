@@ -288,6 +288,13 @@ function validateStructure(tree, caps) {
         }
         if (node.t === "Rail" && node.mobile === "hide" && node.rail.t !== "MotifField")
             add("responsive.railHide", path, "hide only for a MotifField rail");
+        // motif kind must match its slot: patterns fill fields, bands and frames; arrangements are glyphs and dividers
+        if ((node.t === "MotifField" || node.t === "MotifBand" || node.t === "Frame") && node.motif && !PATTERN_MOTIFS.includes(node.motif.id))
+            add("motif.kind", path, `${node.motif.id} is an arrangement, not a pattern`);
+        if (node.t === "Glyph" && !ARRANGEMENT_MOTIFS.includes(node.motif))
+            add("motif.kind", path, `${node.motif} is a pattern, not an arrangement`);
+        if (node.t === "Rule" && node.glyphs && !ARRANGEMENT_MOTIFS.includes(node.glyphs))
+            add("motif.kind", path, `${node.glyphs} is a pattern, not an arrangement`);
         // capabilities
         if (node.t === "Hosts" && !caps.hosts)
             add("capability.node", path, "Hosts not available");
@@ -631,6 +638,22 @@ function repair(input, caps, seed = 1, macros = DEFAULT_MACROS) {
                         else
                             s.root = { t: "Stack", children: [s.root, n] };
                         log(r, p, "structural", n.t, `moved to ${k} section`);
+                        changed = true;
+                    }
+                    else if (r === "motif.kind") {
+                        const n = getAt(p);
+                        if (n.t === "Glyph") {
+                            log(r, p, "structural", n.motif, "celestial");
+                            n.motif = "celestial";
+                        }
+                        else if (n.t === "Rule") {
+                            log(r, p, "structural", n.glyphs, "celestial");
+                            n.glyphs = "celestial";
+                        }
+                        else {
+                            log(r, p, "structural", n.motif.id, "linen");
+                            n.motif = { id: "linen", role: n.motif.role };
+                        }
                         changed = true;
                     }
                     else if (r === "responsive.splitKeep") {
@@ -1050,6 +1073,7 @@ function rulesText(caps) {
         `Nesting: Cluster holds only text nodes, Date, CTA, Glyph, vertical Rule. Split has exactly two children. Rail's rail is a MotifField or a Stack of at most 4 small leaves. Grid children are Cells; a Cell may not hold a Grid or an Overlay. No Frame inside a Frame, no Overlay inside an Overlay, no Grid inside a Grid, no Rail inside a Rail, Split inside Split at most once. A Surface may not repeat the surface it sits on. Overlay content is a text-bearing Stack, Frame or Split; its decoration is a MotifField, Monogram, Glyph or Date numeral.`,
         `Components: RSVP, Registry and CashFund may only be children of a section root, Stack, Surface, Frame, Split (with at least half the width) or a wide Cell. RSVP lives in the rsvp section; Registry lives in the registry section. Registry.layout is a Grid, Stack or Split whose leaves are RegistryItem.`,
         `Limits: container depth at most ${LIMITS.depth}; at most ${LIMITS.nodesPerSection} nodes per section; per section at most 1 Overlay, 1 Rail, 1 Grid, 1 Frame, 2 MotifField; per page at most 2 Overlay, 2 Frame; at most two consecutive contrast sections.`,
+        `Motifs: pattern motifs (plaid, stripe, gingham, linen) go in MotifField, MotifBand and Frame.motif; arrangement motifs (equestrian, botanical, celestial) go in Glyph and Rule.glyphs.`,
         `Responsive: Split.mobile keep is only honoured when neither side holds a component or the Description (the compiler then fits the text to the narrower column). Rail.mobile hide is only honoured for a MotifField rail.`,
     ].join("\n");
 }

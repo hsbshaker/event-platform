@@ -1,3 +1,21 @@
 02 schema:ok repair:ok violations:0 repairs:{} 
 04 schema:ok repair:ok violations:0 repairs:{} 
 03 schema:ok (reprompted) repair:ok violations:1 repairs:{"structural":1} 
+01 schema:ok repair:ok violations:0 repairs:{} 
+07 schema:ok repair:ok violations:0 repairs:{} 
+05 schema:ok repair:ok violations:0 repairs:{} 
+06 schema:ok repair:ok violations:0 repairs:{} 
+08 schema:ok repair:ok violations:0 repairs:{} 
+11 schema:ok repair:ok violations:0 repairs:{} 
+13 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+14 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+10 schema:ok repair:ok violations:0 repairs:{} 
+12 schema:ok repair:ok violations:0 repairs:{} 
+15 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+16 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+17 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+18 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+19 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+20 schema:FAIL (reprompted) repair:ok violations:0 repairs:{} FALLBACK
+09 schema:ok repair:ok violations:0 repairs:{} 
+done 20

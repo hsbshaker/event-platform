@@ -1,0 +1,13 @@
+16 schema:ok repair:ok violations:0 repairs:{} 
+18 schema:ok repair:ok violations:1 repairs:{"structural":1} 
+15 schema:ok repair:ok violations:0 repairs:{} 
+17 schema:ok repair:ok violations:0 repairs:{} 
+19 schema:ok repair:ok violations:0 repairs:{} 
+20 schema:ok repair:ok violations:0 repairs:{} 
+21 schema:ok repair:ok violations:0 repairs:{} 
+23 schema:ok repair:ok violations:0 repairs:{} 
+22 schema:ok repair:ok violations:0 repairs:{} 
+24 schema:ok repair:ok violations:0 repairs:{} 
+25 schema:ok repair:ok violations:0 repairs:{} 
+26 schema:ok repair:ok violations:0 repairs:{} 
+done 60

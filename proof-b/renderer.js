@@ -30,7 +30,7 @@
     botanical: [`<path d="M16 30V4M16 12c-5 0-9-3-10-7 5 0 9 3 10 7zM16 20c5 0 9-3 10-7-5 0-9 3-10 7zM16 26c-5 0-9-3-10-7 5 0 9 3 10 7z"/>`],
     celestial: [`<path d="M16 2l3 11 11 3-11 3-3 11-3-11-11-3 11-3z"/>`, `<circle cx="16" cy="16" r="3"/>`],
   };
-  const glyph = (id, size, i = 0, rot = 0) => `<svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" style="transform:rotate(${rot}deg)">${GLYPH[id][i % GLYPH[id].length]}</svg>`;
+  const glyph = (id0, size, i = 0, rot = 0) => { const id = GLYPH[id0] ? id0 : "celestial"; return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" style="transform:rotate(${rot}deg)">${GLYPH[id][i % GLYPH[id].length]}</svg>`; };
   function arrangement(id, role, scale, seed) {
     let r = seed; const rnd = () => { r = (r * 1103515245 + 12345) & 0x7fffffff; return r / 0x7fffffff; }; const base = 26 * scale;
     if (role === "accent") return `<span class="glyphs">${glyph(id, base, 0, Math.round(rnd() * 20 - 10))}${rnd() > .5 ? glyph(id, base * .7, 1, Math.round(rnd() * 30 - 15)) : ""}</span>`;
@@ -107,11 +107,14 @@
     const vp = document.querySelector(".vp") || document.documentElement;
     const out = { mode, vpWidth, pageOverflow: vp.scrollWidth > vp.clientWidth + 1, texts: [], overflowing: [] };
     for (const el of document.querySelectorAll("[data-t=text]")) {
-      const cs = getComputedStyle(el); const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2; const r = el.getBoundingClientRect();
-      const lines = Math.max(1, Math.round(r.height / lh)); const overflow = el.scrollWidth > el.clientWidth + 2;
+      const cs = getComputedStyle(el); if (cs.writingMode.startsWith("vertical")) continue; /* rotated rail labels cannot be measured by width */ const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2; const r = el.getBoundingClientRect();
+      const lines = Math.max(1, Math.round(r.height / lh)); const pr = el.parentElement.getBoundingClientRect();
+      const overflow = el.scrollWidth > el.clientWidth + 2 || r.right > pr.right + 2 || r.left < pr.left - 2;   // wider than itself, or wider than its container
       out.texts.push({ id: el.dataset.id, cls: el.className, lines, overflow, fontPx: parseFloat(cs.fontSize) });
     }
-    for (const el of document.querySelectorAll(".site *")) { if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflowX !== "hidden" && !el.closest("[data-t=text]")) { out.overflowing.push(el.dataset.id || el.className); if (out.overflowing.length > 8) break; } }
+    for (const el of document.querySelectorAll(".site *")) { const cs = getComputedStyle(el); if (cs.writingMode.startsWith("vertical") || el.closest(".rail") && getComputedStyle(el.closest(".rail")).writingMode.startsWith("vertical")) continue; if (el.scrollWidth > el.clientWidth + 2 && cs.overflowX !== "hidden" && !el.closest("[data-t=text]") && !el.closest(".rail")) { out.overflowing.push(el.dataset.id || el.className); if (out.overflowing.length > 8) break; } }
+    // rails clip; report a rail child that would be clipped as an overflow of the rail
+    for (const rail of document.querySelectorAll(".p-rail .rail")) { const rr = rail.getBoundingClientRect(); for (const ch of rail.querySelectorAll("[data-t=text]")) { const cr = ch.getBoundingClientRect(); if (cr.right > rr.right + 2 || cr.left < rr.left - 2) { out.overflowing.push("rail-clip:" + ch.dataset.id); break; } } }
     const hero = document.querySelector(".kind-hero"); out.heroHeight = hero ? hero.getBoundingClientRect().height : 0;
     const hr = document.querySelector(".kind-hero .inner > *"); if (hr) { const cs = getComputedStyle(hr); out.heroRoot = { cls: hr.className, height: hr.getBoundingClientRect().height, minHeight: cs.minHeight, display: cs.display }; }
     return out;

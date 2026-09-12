@@ -1,0 +1,164 @@
+{
+  "run": "reduced",
+  "count": 12,
+  "model": "claude-sonnet-5",
+  "condition": "zero",
+  "schema": {
+    "firstCallValid": 12,
+    "afterRepromptValid": 12,
+    "fallbacks": 0,
+    "infraFailures": 0,
+    "cleanCalls": 12,
+    "firstCallValidOfClean": 12,
+    "rerunAfterInfraFailure": 0,
+    "errorKinds": {}
+  },
+  "repair": {
+    "repairValid": 12,
+    "zeroViolations": 4,
+    "violationsBefore": {
+      "p50": 1,
+      "p90": 1,
+      "max": 2
+    },
+    "repairsByKind": {
+      "structural": 9,
+      "fit-verified": 8
+    },
+    "treesWithNoRepairs": 0,
+    "rulesHit": {
+      "motif.kind": 8,
+      "fit.verified": 8,
+      "nesting.rail": 1
+    }
+  },
+  "geometry": {
+    "verified": 12,
+    "overflowDesktop": 0,
+    "overflowMobile": 0,
+    "fitDemotionsTotal": 8,
+    "treesNeedingFit": 7,
+    "estimateVsVerified": {
+      "estimated": 0,
+      "verified": 8
+    }
+  },
+  "invention": {
+    "novelHeroes": 10,
+    "novelRate": 0.83,
+    "nearestLibrary": {
+      "p50": 0.5,
+      "p90": 0.71,
+      "max": 0.8,
+      "min": 0.42
+    },
+    "exactLibraryMatches": 0,
+    "distinctHeroSkeletons": 12,
+    "distinctModelHeroSkeletons": 12,
+    "rarefaction": [
+      [
+        10,
+        10
+      ]
+    ],
+    "largestSkeletonClass": 1,
+    "heroPrimitiveUsage": {
+      "Surface": 5,
+      "Grid": 1,
+      "Stack": 17,
+      "Monogram": 2,
+      "Eyebrow": 9,
+      "EventTitle": 12,
+      "Date": 15,
+      "Cluster": 10,
+      "Hosts": 12,
+      "Venue": 9,
+      "Location": 7,
+      "Time": 10,
+      "Deadline": 7,
+      "CTA": 12,
+      "MotifField": 5,
+      "Frame": 5,
+      "Split": 1,
+      "Rule": 11,
+      "Rail": 4,
+      "Glyph": 1
+    },
+    "heroPrimitiveEntropy": 4.03,
+    "libraryPrimitiveEntropy": 4.05,
+    "rootTypes": {
+      "Surface": 4,
+      "Stack": 4,
+      "Split": 1,
+      "Frame": 2,
+      "Rail": 1
+    }
+  },
+  "directives": {
+    "complianceRate": {
+      "opening": 1,
+      "structure": 0.92,
+      "date": 0.75,
+      "weight": 0.67,
+      "motif": 0.67,
+      "surface": 1,
+      "details": 1,
+      "rsvpIntro": 1,
+      "registry": null
+    },
+    "distinctPerStructureDirective": {
+      "Grid": 1,
+      "Stack": 7,
+      "Split": 1,
+      "Frame": 1,
+      "Rail": 2
+    },
+    "combos": 103680
+  },
+  "selector": {
+    "pairsTotal": 66,
+    "pairsAtOrAbove070": {
+      "desktop": 0,
+      "mobile": 0
+    },
+    "pairsAtOrAbove060": {
+      "desktop": 0,
+      "mobile": 0
+    },
+    "nearestNeighbour": {
+      "desktop": {
+        "p50": 0.45,
+        "p90": 0.55,
+        "max": 0.55
+      },
+      "mobile": {
+        "p50": 0.44,
+        "p90": 0.5,
+        "max": 0.5
+      }
+    },
+    "collisionsAtAccept": 0,
+    "resolvedByReprompt": 0,
+    "keptWithCollision": 0
+  },
+  "cost": {
+    "calls": 12,
+    "reprompts": 0,
+    "totalUsd": 1.38,
+    "meanMs": 82113,
+    "errors": 0
+  },
+  "size": {
+    "heroNodes": {
+      "p50": 13,
+      "max": 18
+    },
+    "sections": {
+      "3": 10,
+      "4": 2
+    },
+    "pageNodes": {
+      "p50": 22
+    }
+  }
+}
