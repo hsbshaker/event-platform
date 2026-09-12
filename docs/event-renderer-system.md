@@ -17,7 +17,7 @@ This document defines the generated guest-site renderer: the contract between th
 Revision 1 formalized bundled archetypes. Three proof phases replaced them:
 
 - **Phase A / A.1** proved that a family + recipe + page-system vocabulary produces coherent, distinct sites from one constrained brief, and that a seeded selector finds sixty of them without a human choosing (Gate 2).
-- **Phase B** proved that the model can author the page composition itself from a bounded set of primitives, with deterministic safety at execution: 152 exploratory trees and a frozen confirmation run with no schema failure surviving one re-prompt, every structural violation repaired without a model call, every page verified against rendered geometry, and ninety percent of first screens outside the recipe library.
+- **Phase B** proved that the model can author the page composition itself from a bounded set of primitives, with deterministic safety at execution: 152 exploratory trees and a frozen confirmation run with no schema failure surviving one re-prompt, every structural violation repaired without a model call, every page verified against rendered geometry, and 78% of first screens novel against the recipe library in the frozen confirmation run (88–90% in the exploratory runs).
 
 Revision 2 therefore replaces the archetype bundle with the **composition language**. The model owns structure; the compiler owns execution.
 
@@ -31,7 +31,7 @@ Revision 2 therefore replaces the archetype bundle with the **composition langua
 2. The model owns nesting, grouping, hierarchy (emphasis), relative size (ratio, width, extent tokens), section order and surfaces, alignment, structural motif placement, and per-container mobile intent.
 3. The compiler owns CSS/grid/flex, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, valid nesting, RSVP/Registry semantics, and business logic.
 4. The tree may reference only capabilities the event has (`Capabilities`). Nothing else is required or allowed.
-5. Schema validation is strict; a schema failure is the only reason for a model re-prompt besides a selector collision. All other defects are repaired deterministically and logged by kind.
+5. Schema validation is strict. The only reasons the composition call is re-prompted are a schema-invalid response, an attractive-token-cap violation, and a selector collision, at most once each. Every other defect is repaired deterministically and logged by kind.
 6. Content fit is verified against rendered geometry at 390 and 1280 before a spec is final. The static estimate is advisory.
 7. Raw palette values never directly become text/background/button semantics; the semantic palette compiler and contrast rules of Revision 1 stand unchanged.
 8. Persist `DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec` per concept, with prompt, schema, primitive-set and compiler versions.

@@ -966,7 +966,7 @@ This is the core renderer contract. `docs/event-renderer-system.md` Revision 2 i
 
 > **The model composes from trusted primitives. The compiler validates, repairs, fits against real geometry, and freezes. The renderer only consumes resolved, verified, persisted design data.**
 
-The model never emits HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist. The renderer must be expressive enough that concepts remain visibly distinct even when palette and tone are constrained; Phase B measured it at 58 distinct first-screen skeletons in 60 with 90% outside the recipe library.
+The model never emits HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist. The renderer must be expressive enough that concepts remain visibly distinct even when palette and tone are constrained; the frozen Phase B confirmation run measured 58 distinct first-screen skeletons in 60 with 78% novel against the recipe library (88–90% in the exploratory runs).
 
 ### 11.2 DesignIntent — model contract (v3)
 

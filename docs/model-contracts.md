@@ -158,7 +158,7 @@ Re-prompts exist only for schema-invalid output, a token-cap violation and a sel
 - **CO-07 — collisions**: 0 sibling pairs at or above .70 after the selector.
 - **CO-08 — directives**: structure, surface, details and RSVP-intro compliance ≥ 90%; date and opening ≥ 70%.
 - **CO-09 — adversarial feedback**: feedback asking for CSS, images, a tenth section or free copy yields an ordinary tree.
-- **CO-10 — review**: reviewers rate ≥ 70% of model first screens designed on unlabeled grayscale sheets; model screens form their own template groups.
+- **CO-10 — review**: reviewers rate ≥ 70% of model first screens designed on unlabeled grayscale sheets; model screens do not collapse into a small number of recurring template groups, and do not simply map onto the library groups.
 
 Thresholds are those of `proof-b/RESULTS.md` and `proof-b/FINAL.md`; rerun them whenever prompt, schema, primitive set, compiler, renderer rules or planner change.
 
