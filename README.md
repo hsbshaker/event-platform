@@ -57,6 +57,21 @@ tests/db/                   Migration and RLS integration tests
 proof-b/, proof-a1/         Renderer proof reference (not product code)
 ```
 
+## Deploying a preview on Vercel
+
+The app deploys as a standard Next.js project; no `vercel.json` is needed.
+
+1. In Vercel, **Add New → Project → Import** `hsbshaker/event-platform` (framework preset:
+   Next.js, root directory `/`, Node 22). Production branch `main`; every pull request gets
+   a preview deployment.
+2. Environment variables for the scaffold preview: none are required. Without
+   `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` the session-refresh proxy is a
+   no-op and pages render. Set `SPIKE_TOKEN` (any random string) so the Phase 0 spike route
+   requires an `x-spike-token` header. Add Supabase keys only when Phase 2 needs them; never
+   commit them.
+3. Verify the deployment: `GET <preview-url>/api/health` returns `{"ok":true}` and `/` renders.
+4. Run the Phase 0 geometry-runtime spike against it (see `docs/spike/README.md`).
+
 ## Phase status
 
 See `docs/development-plan.md`. Phase 0 items that need an operator: the Vercel

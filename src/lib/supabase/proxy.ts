@@ -9,6 +9,10 @@ import { publicEnv } from "@/lib/env";
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+  // A scaffold preview without Supabase configured still serves pages; nothing to refresh.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return response;
+  }
   const env = publicEnv();
 
   const supabase = createServerClient(

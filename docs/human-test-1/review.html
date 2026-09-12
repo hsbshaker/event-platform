@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design-quality review · test 1</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; color: #1d211e; background: #f6f5f1; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 96px; }
+  h1 { font-size: 24px; margin: 0 0 8px; }
+  h2 { font-size: 18px; margin: 32px 0 8px; }
+  p { max-width: 72ch; }
+  .sheet { display: block; width: 100%; height: auto; border: 1px solid #e2e0d8; background: #fff; }
+  .sheet-wrap { overflow: auto; border-radius: 8px; }
+  label { display: block; font-weight: 600; margin: 12px 0 4px; }
+  input[type=text], textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border: 1px solid #cfccc2; border-radius: 8px; background: #fff; }
+  textarea { min-height: 96px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; border: 1px solid #e2e0d8; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid #e2e0d8; text-align: left; }
+  th { background: #efeee9; font-weight: 600; }
+  td.n { font-variant-numeric: tabular-nums; width: 3em; }
+  .ratings { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  .rating { background: #fff; border: 1px solid #e2e0d8; border-radius: 8px; padding: 6px 8px; display: flex; gap: 6px; align-items: center; }
+  .rating b { width: 2.2em; }
+  .rating label { display: inline; font-weight: 400; margin: 0; }
+  button { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 0; background: #263a31; color: #fff; cursor: pointer; }
+  button.secondary { background: #efeee9; color: #1d211e; }
+  .bar { position: sticky; bottom: 0; background: #f6f5f1; padding: 12px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px solid #e2e0d8; }
+  .status { color: #666d68; }
+  .err { color: #a0443c; }
+  pre { background: #fff; border: 1px solid #e2e0d8; padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Design-quality review</h1>
+  <p>You will see 40 event-site screens twice: first at desktop width, then at phone width. The screens are grayscale on purpose. Please ignore color, and ignore the choice of typeface unless it is the only difference between two screens. Work through both sheets before answering.</p>
+
+  <label for="reviewer">Your name or initials</label>
+  <input id="reviewer" type="text" autocomplete="off">
+
+  <h2>Sheet A · desktop (1280)</h2>
+  <div class="sheet-wrap"><img class="sheet" src="sheets/human-test-1280-gray-unlabeled.png" alt="Forty desktop screens numbered 01 to 40"></div>
+
+  <h2>Sheet B · phone (390)</h2>
+  <div class="sheet-wrap"><img class="sheet" src="sheets/human-test-390-gray-unlabeled.png" alt="The same forty screens at phone width, numbered 01 to 40"></div>
+
+  <h2>1 · Template grouping</h2>
+  <p>Group any screens that feel like the same underlying template or layout skeleton. One group per line, screen numbers separated by spaces or commas. A screen with a unique layout is its own group and can be left out; anything you leave out is treated as its own group.</p>
+  <textarea id="groups" placeholder="e.g.&#10;3 17 22&#10;8 31"></textarea>
+
+  <h2>2 · Design quality</h2>
+  <p>Rate each screen 1 to 5. 5 = a designer clearly composed this. 1 = an accident or a broken layout. Consider hierarchy, balance, whitespace, legibility, and whether there is one clear dominant object.</p>
+  <div class="ratings" id="ratings"></div>
+
+  <div class="bar">
+    <button id="download" type="button">Download my results (JSON)</button>
+    <button id="copy" type="button" class="secondary">Copy results to clipboard</button>
+    <span id="status" class="status"></span>
+  </div>
+  <pre id="preview" hidden></pre>
+</main>
+<script>
+  const N = 40;
+  const ratings = document.getElementById("ratings");
+  for (let i = 1; i <= N; i += 1) {
+    const id = String(i).padStart(2, "0");
+    const row = document.createElement("div");
+    row.className = "rating";
+    row.innerHTML = `<b>${id}</b>` + [1, 2, 3, 4, 5].map((v) => `<label><input type="radio" name="r${i}" value="${v}">${v}</label>`).join("");
+    ratings.appendChild(row);
+  }
+  function collect() {
+    const reviewer = document.getElementById("reviewer").value.trim();
+    if (!reviewer) throw new Error("Please enter your name or initials.");
+    const groups = document.getElementById("groups").value.split(/\n+/).map((l) => l.split(/[\s,;]+/).map(Number).filter((n) => n >= 1 && n <= N)).filter((g) => g.length > 1);
+    const seen = new Set();
+    for (const g of groups) for (const n of g) { if (seen.has(n)) throw new Error(`Screen ${n} appears in more than one group.`); seen.add(n); }
+    for (let i = 1; i <= N; i += 1) if (!seen.has(i)) groups.push([i]);
+    const rat = {};
+    const missing = [];
+    for (let i = 1; i <= N; i += 1) {
+      const v = document.querySelector(`input[name=r${i}]:checked`);
+      if (!v) missing.push(i); else rat[i] = Number(v.value);
+    }
+    if (missing.length) throw new Error(`Missing ratings for: ${missing.join(", ")}`);
+    return { reviewer, ok: true, protocol: "proof-b/human-test-form.md", result: { groups, ratings: rat } };
+  }
+  const status = document.getElementById("status");
+  function show(fn) {
+    try {
+      const r = collect();
+      const json = JSON.stringify(r, null, 1);
+      document.getElementById("preview").hidden = false;
+      document.getElementById("preview").textContent = json;
+      status.className = "status"; status.textContent = "";
+      fn(r, json);
+    } catch (e) { status.className = "err"; status.textContent = e.message; }
+  }
+  document.getElementById("download").onclick = () => show((r, json) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+    a.download = `review-${r.reviewer.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.json`;
+    a.click();
+    status.textContent = "Downloaded. Send the file back.";
+  });
+  document.getElementById("copy").onclick = () => show(async (r, json) => {
+    await navigator.clipboard.writeText(json);
+    status.textContent = "Copied. Paste it into your reply.";
+  });
+</script>
+</body>
+</html>
