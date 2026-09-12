@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/event-identity.schema.json",
   "title": "EventIdentity",
-  "description": "Canonical structured output for the event creative brief. Runtime may narrow archetype/category enums to currently enabled catalog values.",
+  "description": "Canonical structured output for the event creative brief. Runtime may narrow family/category enums to currently enabled catalog values.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,7 +13,7 @@
     "tonalIntent",
     "toneExplicitlyConstrained",
     "compatibleTonalDirections",
-    "compatibleHeroArchetypes",
+    "compatibleFamilies",
     "compatibleTypographyCategories",
     "visualMotifs",
     "textureDirection",
@@ -123,23 +123,20 @@
       },
       "description": "Ranked best-first compatible tonal directions. Do not pad with incompatible values."
     },
-    "compatibleHeroArchetypes": {
+    "compatibleFamilies": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 6,
+      "maxItems": 3,
       "uniqueItems": true,
       "items": {
         "type": "string",
         "enum": [
-          "editorial_split",
-          "centered_statement",
-          "full_bleed_visual",
-          "framed_invitation",
-          "typography_first",
-          "layered_editorial"
+          "editorial",
+          "invitation",
+          "statement"
         ]
       },
-      "description": "Ranked best-first compatible archetype IDs. Runtime schema should narrow to currently enabled archetypes."
+      "description": "Ranked best-first compatible design families. Runtime schema should narrow to currently enabled families."
     },
     "compatibleTypographyCategories": {
       "type": "array",
@@ -205,5 +202,6 @@
       "maxLength": 700,
       "description": "Compact summary of inspiration evidence; exactly 'No visual inspiration supplied.' when none exists."
     }
-  }
+  },
+  "$comment": "event_identity_schema_v2: compatibleHeroArchetypes replaced by compatibleFamilies (Revision 6, CompositionTree)."
 }

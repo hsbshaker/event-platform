@@ -20,7 +20,7 @@ Screen labels describe product surfaces, not necessarily URL routes.
 - Contextual actions use `Edit`, `Set up`, `Add`.
 - Setup/readiness UI distinguishes publish blockers from optional recommendations.
 - Guest preview uses the exact production renderer.
-- Never expose EventIdentity, DesignIntent, ResolvedDesignSpec, archetype/version, motif slots, compiler repairs, model names, token counts, or spend limits.
+- Never expose EventIdentity, DesignIntent, CompositionTree, ResolvedDesignSpec, primitives, directives, token allotments, the library, compiler repairs, model names, token counts, or spend limits.
 - Application chrome stays visually stable; event renderer carries theme.
 - Phone-first does not mean phone-framed desktop.
 
@@ -211,7 +211,7 @@ Controls:
 - `Try another direction ✦` before publish.
 
 No:
-- archetype;
+- primitives, directives or the library;
 - density;
 - motifs;
 - treatment;
@@ -367,7 +367,7 @@ Fixed semantic order:
 - notes;
 - submit.
 
-Visual composition comes from archetype.
+Visual composition comes from the concept's CompositionTree and page system.
 
 On mobile, composition may converge to stacked flow.
 

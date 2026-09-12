@@ -1,6 +1,6 @@
-# Event Platform Documentation — Revision 5
+# Event Platform Documentation — Revision 6
 
-This folder is the reconciled documentation set after the creation-UX and renderer-architecture pressure tests.
+This folder is the reconciled documentation set after the creation-UX pressure test and the three renderer proof phases (`../proof/`, `../proof-a1/`, `../proof-b/`).
 
 ## Source-of-truth order
 
@@ -8,12 +8,12 @@ This folder is the reconciled documentation set after the creation-UX and render
 2. **`technology-decisions.md`** — locked MVP stack; do not relitigate.
 3. **`design-system.md`** — application UX, interaction, visual tokens, responsive/motion/accessibility system.
 4. **`event-renderer-system.md`** — generated guest-site renderer architecture.
-5. **`model-contracts.md`** — the two strong-model contracts: prompts in `model-prompts/`, canonical schemas in `model-schemas/`.
+5. **`model-contracts.md`** — the three strong-model contracts (Event Identity, DesignIntent, Composition): prompts in `model-prompts/`, canonical schemas in `model-schemas/`.
 6. **`e2e-workflow.md`** — canonical journey reference.
 7. **`screen-spec.md`** — screen/surface-level behavior.
-8. **`CHANGELOG-v5.md`** — summary of the decisions reconciled into this revision.
+8. **`CHANGELOG-v6.md`** — what Revision 6 changed; `CHANGELOG-v5.md` for the prior revision.
 9. **`prototypes/creation-flow.html`** — behavioral prototype; not architectural truth.
-10. **`renderer-tests/`** — renderer evidence/test artifacts; not product requirements.
+10. **`../proof-b/`** — reference implementation and regression suite of the composition language; **`renderer-tests/`** — older renderer evidence; neither is product requirements.
 
 When documents conflict, use the highest source in the list unless a lower document is explicitly called out by the higher source as authoritative for implementation detail.
 
@@ -26,17 +26,12 @@ Do not patch old revisions to look current. Preserve them so decisions remain au
 ## Current renderer status
 
 Architecture is now:
-- six-field DesignIntent;
-- versioned bundled archetypes;
-- deterministic motif/typography/palette compiler;
-- immutable ResolvedDesignSpec;
+- six-field DesignIntent (`family`, tone, palette, typography, density, `composition`);
+- a model-authored `CompositionTree` of trusted primitives, scoped to the event's capabilities;
+- a deterministic compiler: strict schema, structural repair by kind, attractive-token caps, canonicalization, semantic palette, layout resolution, rendered-geometry verification;
+- immutable, verified `ResolvedDesignSpec`;
+- a sibling planner for concept diversity (distinct intents, directives, token allotments, skeleton-signature collisions);
+- the Phase A.1 recipes as a library (regression, examples, macros, calibration), not a template set;
 - event-level palette/typography overrides only.
 
-The first three archetypes passed the **old bundled visual-distinctness experiment**, but they have not yet passed the complete new compiler contract.
-
-Before implementing the remaining three archetypes:
-1. refactor the gallery/renderer to consume the new contract;
-2. run compiler unit tests;
-3. rerun constrained Brief 1;
-4. run five swap/repair tests;
-5. run light-only Brief 2.
+The proof harnesses in `../proof-b/` are the regression suite; thresholds are in `event-renderer-system.md §9`; the confirmation-run results and the two open conditions (renderer rule 0.3 frozen; human design-quality review pending) are in `CHANGELOG-v6.md` and `../proof-b/FINAL.md`. Production implementation ports `proof-b/src/composition.ts`, the planner and the renderer rules into the application package without changing their behaviour, then reruns the confirmation set.

@@ -14,13 +14,13 @@ Use this source-of-truth order:
 1. **`spec.md`** — product, business, data, architecture, permissions, lifecycle, acceptance criteria, and implementation guardrails.
 2. **`docs/technology-decisions.md`** — locked MVP stack. Do not relitigate or substitute infrastructure by preference.
 3. **`docs/design-system.md`** — application UX, interaction patterns, visual tokens, responsive behavior, motion, accessibility, and strict component governance.
-4. **`docs/event-renderer-system.md`** — generated guest-site renderer architecture: `DesignIntent → versioned archetype bundle → deterministic compiler → ResolvedDesignSpec → renderer`.
-5. **`docs/model-contracts.md`** — Event Identity and DesignIntent prompts, structured-output schemas, runtime narrowing, validation, and evals. Prompts live in `docs/model-prompts/`, schemas in `docs/model-schemas/`.
+4. **`docs/event-renderer-system.md`** — generated guest-site renderer architecture: `DesignIntent → CompositionTree (model-authored, trusted primitives) → deterministic compiler (validate, repair, caps, geometry verification) → ResolvedDesignSpec → renderer`.
+5. **`docs/model-contracts.md`** — Event Identity, DesignIntent and Composition prompts, structured-output schemas, runtime narrowing, validation, re-prompt policy, and evals. Prompts live in `docs/model-prompts/`, schemas in `docs/model-schemas/` (the composition schema is generated from the validator table).
 6. **`docs/e2e-workflow.md`** — canonical owner/co-host and guest journeys.
 7. **`docs/screen-spec.md`** — screen/surface-level behavior.
-8. **`docs/CHANGELOG-v5.md`** — what changed in the current revision and why.
+8. **`docs/CHANGELOG-v6.md`** (and `CHANGELOG-v5.md`) — what changed in the current revision and why.
 9. **`docs/prototypes/creation-flow.html`** — behavioral reference only; it does not override the docs above.
-10. **`docs/renderer-tests/`** — visual/test evidence and fixtures; not product requirements.
+10. **`proof/`, `proof-a1/`, `proof-b/`** — the proof phases that decided the renderer architecture; `proof-b/` is the reference implementation of the composition language, validator, compiler pipeline, planner and regression suite until the production package exists. **`docs/renderer-tests/`** — older visual evidence; not product requirements.
 
 If two documents conflict, follow the higher source in this list unless that higher source explicitly delegates an implementation detail to a lower one.
 
@@ -41,10 +41,12 @@ Before proposing or implementing a solution, check it against these rules:
 - Setup/readiness is not a wizard.
 - Guests and Registry are not publish blockers unless `spec.md §23.1` says otherwise.
 - `Try another direction` changes design only and never event content/data.
-- The strong model emits the six-field `DesignIntent` plus a non-design `presentation` object (concept name and description). The compiler reads only the six fields.
-- Versioned archetype bundles own composition and renderer defaults.
-- Compiler work is deterministic: typography repair, motif placement, semantic palette compilation, contrast, and `ResolvedDesignSpec` creation do not call a model.
-- Persist `DesignIntent + archetypeVersion + ResolvedDesignSpec` per generated concept.
+- The strong model emits a six-field `DesignIntent` (with `family` and `composition`, plus a non-design `presentation` object) and then a `CompositionTree` of trusted primitives with enum tokens. It never emits HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist.
+- The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent). The compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
+- Compiler work is deterministic: schema and structural validation, repair, attractive-token caps, canonicalization, palette compilation, layout resolution and rendered-geometry verification do not call a model. The model is re-prompted only for schema-invalid output, a token-cap violation or a selector collision, once each.
+- A spec is final only when rendered-geometry verification is clean at 390 and 1280. The static fit estimate is advisory.
+- Persist `DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec` with prompt, schema, primitive-set and compiler versions per generated concept.
+- The Phase A/A.1 recipes are a library: regression fixtures, few-shot examples, repair/fallback macros, calibration. Not a menu, not the creative ceiling, no renderer code per recipe.
 - Generated design data is immutable; renderer code may receive bug/accessibility/responsive fixes.
 - App chrome and event renderer styling are separate systems.
 - No decorative event-site imagery in MVP.
@@ -73,6 +75,8 @@ The MVP stack is already decided:
 - thin AI provider interface:
   - `generateEventIdentity(...)`
   - `generateDesignIntent(...)`
+  - `generateComposition(...)`
+- a headless Chromium pass for rendered-geometry verification (see `docs/technology-decisions.md`)
 
 Do not introduce competing auth, database, storage, hosting, SMS, payment, backend-framework, microservice, Kubernetes, or generalized AI-orchestration infrastructure unless the task explicitly revisits the technology decision.
 
@@ -93,12 +97,14 @@ The most commonly violated ones are:
 - do not add a template gallery;
 - do not send concept selection to a pre-publish dashboard;
 - do not create a setup wizard;
-- do not add model-emitted renderer overrides;
-- do not generate arbitrary HTML/layout/CSS/SVG from the model;
-- do not render from current archetype defaults instead of persisted resolved specs;
+- do not let the model emit HTML/CSS/JSX/JavaScript/pixels/free text/colors/fonts or any node outside the primitive allowlist;
+- do not add a primitive, token or prop to the composition language without a proof run (`spec.md §32 #15`);
+- do not re-prompt the model for structural, coverage, capability, responsive, box, motif-kind or fit defects; repair deterministically and log;
+- do not finalize or persist a spec that has not passed rendered-geometry verification;
+- do not render from anything but the persisted resolved spec;
 - do not silently drop motifs;
 - do not use raw creative palette colors directly as semantic text/background/button roles;
-- do not build the remaining archetypes before renderer proof gates pass;
+- do not turn directives, caps or the library into a template menu;
 - do not add site-photo/decorative imagery;
 - do not add retailer scraping/sync/proxies;
 - do not create guest accounts;
@@ -118,27 +124,23 @@ Before editing renderer architecture, read `docs/event-renderer-system.md` compl
 Current renderer contract:
 
 ```text
-DesignIntent
-→ exact versioned ArchetypeDefinition
-→ typography compatibility / deterministic repair
-→ motif role/slot assignment
-→ semantic palette + contrast compiler
-→ immutable ResolvedDesignSpec
-→ production renderer
+DesignIntent (family, tone, palette, typography, density, composition)
+→ sibling planner: three intents, three directives, attractive-token allotments
+→ CompositionTree from the model (trusted primitives, enum tokens, capabilities-scoped)
+→ strict schema (one re-prompt) → structural validation + deterministic repair → planner caps
+→ canonicalize → page system + semantic palette + typography → layout resolution
+→ rendered-geometry verification at 390 and 1280 (authoritative)
+→ immutable ResolvedDesignSpec (verified) → production renderer (one component per primitive)
 ```
 
 Do not:
-- add a model `overrides` field;
-- let archetypes consume raw palette roles as text/background/button values;
-- silently recompile historical concepts against newer archetype defaults;
-- implement `centered_statement`, `full_bleed_visual`, or `layered_editorial` before the current proof gates pass.
+- add a primitive, prop or token without a proof run and a version bump of the primitive set;
+- let the renderer derive CSS text from model output; classes and numeric custom properties only;
+- weaken the zero-overflow criterion or make the static fit estimate authoritative;
+- give the model a per-node color, font, size, pixel or free-text field;
+- silently recompile historical concepts against a newer compiler or primitive set.
 
-Current validation gate before the remaining archetypes:
-1. compiler-backed refactor of the first three;
-2. contrast/unit tests;
-3. constrained Brief 1 regression;
-4. five swap/repair tests;
-5. light-only Brief 2.
+Regression gate for any change to the language, validator, compiler, renderer rules or planner: `proof-b/test.js`, `proof-b/adv-run.js`, the library expressiveness render, and a sibling-batch confirmation run evaluated with `proof-b/evaluate.js` against the thresholds in `docs/event-renderer-system.md §9`.
 
 ---
 
@@ -176,15 +178,15 @@ Recommended format:
 ```md
 ## Spec / acceptance criteria
 
-- `spec.md §31 — DesignIntent and compiler`
-  - “Motifs match only compatible declared slot roles.”
-  - “Unplaceable motifs are dropped and logged.”
+- `spec.md §31 — DesignIntent, composition and compiler`
+  - “Every structural rule … is validated and repaired deterministically, with every repair logged by kind.”
+  - “Content fit is verified against rendered geometry at 390 and 1280 …”
 - `spec.md §32 guardrails #22–24`
 
 ## Verification
 
-- [x] unit test: motif role matching
-- [x] unit test: dropped motif telemetry
+- [x] unit test: repair rule with fixture
+- [x] adversarial set repairs and renders clean
 - [x] existing renderer regression suite passes
 ```
 
@@ -196,11 +198,11 @@ A PR touching one of these areas must cite **at least one exact bullet from ever
 | --- | --- |
 | Landing composer, pre-auth draft, OAuth/auth restoration, generation start, required details, timezone | **Prompt, auth, and generation** |
 | Event Identity, concept constraint assignment, diversity planning | **Event Identity and diversity** |
-| AI concept output, DesignIntent schema, archetype versioning, compiler, palette/contrast, typography repair, motifs, persistence | **DesignIntent and compiler** |
+| AI concept output, DesignIntent and composition schemas, primitive-set versioning, compiler, geometry verification, palette/contrast, typography repair, motifs, persistence | **DesignIntent, composition and compiler** |
 | Concept cards, initial `Try another direction`, concept selection, full-site reveal, `Make it yours` | **Concept experience** |
 | Inline/contextual editing, collaborator anchors, autosave, readiness checklist, guest workspace, Design panel | **Creation Mode** |
 | Redesign prompt/rounds/keep-current behavior/post-publish lockout | **Redesign** |
-| Renderer architecture, archetypes, guest theming, grayscale/control tests, compiler visual regressions, light-only brief | **Renderer proof** **and** **DesignIntent and compiler** |
+| Renderer architecture, composition language, planner, guest theming, regression gates, confirmation runs | **Renderer proof** **and** **DesignIntent, composition and compiler** |
 | Guest list, CSV, party lookup, OTP, guest session, RSVP/update | **RSVP** |
 | External registries, native gifts, thumbnails, Buy flow, purchase confirmation, cash fund | **Registry** |
 | SMS, STOP, email fallback, private event code/gate, QR privacy | **Messaging/privacy** |
@@ -214,7 +216,7 @@ If a PR crosses areas, cite all affected groups.
 Examples:
 
 - **Prompt → auth → generation PR:** cite `Prompt, auth, and generation`; if it also creates Event Identity persistence, cite `Event Identity and diversity` too.
-- **Renderer compiler PR:** cite `DesignIntent and compiler` + `Renderer proof` + `Responsive/accessibility` when rendering/UI output changes.
+- **Renderer compiler PR:** cite `DesignIntent, composition and compiler` + `Renderer proof` + `Responsive/accessibility` when rendering/UI output changes.
 - **RSVP themed-component PR:** cite `RSVP` + `Renderer proof` + `Responsive/accessibility`.
 - **Publish-readiness UI PR:** cite `Creation Mode` + `Roles/publishing`.
 - **Private RSVP gate PR:** cite `RSVP` + `Messaging/privacy` + `Responsive/accessibility`.
@@ -254,8 +256,7 @@ It must still cite any relevant `spec.md §32` guardrails or `docs/technology-de
 In addition to §31 acceptance criteria, cite `spec.md §32` guardrail numbers when the PR touches a guarded architectural boundary.
 
 Examples:
-- AI/renderer contract → #12–30 as applicable.
-- Remaining archetype implementation → #31.
+- AI/renderer contract → #12–31 as applicable.
 - Registry image/network handling → #32–34 and relevant registry requirements.
 - Guest identity → #35–37.
 - Gift state → #38.

@@ -1,796 +1,253 @@
 # Event Renderer System
-## Revision 1 — architecture baseline after visual pressure test
+## Revision 2 — CompositionTree: AI-authored composition over trusted primitives
 
 **Path:** `docs/event-renderer-system.md`  
-**Status:** Authoritative renderer architecture; visual library remains gated by the test plan below.  
-**PRD:** `spec.md` Revision 5  
-**Application design system:** `docs/design-system.md`
+**Status:** Authoritative renderer architecture.  
+**PRD:** `spec.md` Revision 6  
+**Application design system:** `docs/design-system.md`  
+**Model contracts:** `docs/model-contracts.md`  
+**Evidence:** `proof/` (Phase A), `proof-a1/` (Phase A.1, Gate 2), `proof-b/` (Phase B: `PROPOSAL.md`, `RESULTS.md`, `FREEZE.md`, `FINAL.md`)
 
 ---
 
 # 0. What this document is
 
-This document defines the generated guest-site renderer: the contract between AI creative intent, versioned archetype bundles, deterministic compilation, persisted resolved design, and production components.
+This document defines the generated guest-site renderer: the contract between the model's creative authority, the deterministic compiler, the persisted resolved design, and production components.
 
-It deliberately does **not** treat the first renderer gallery as proof of the final architecture.
+Revision 1 formalized bundled archetypes. Three proof phases replaced them:
 
-The first visual experiment proved:
-- three bundled compositions could look unmistakably different at 390 and 1280;
-- they remained different in grayscale;
-- a palette-only control was materially less different than an archetype change;
-- themed guest component skins carried visual identity.
+- **Phase A / A.1** proved that a family + recipe + page-system vocabulary produces coherent, distinct sites from one constrained brief, and that a seeded selector finds sixty of them without a human choosing (Gate 2).
+- **Phase B** proved that the model can author the page composition itself from a bounded set of primitives, with deterministic safety at execution: 152 exploratory trees and a frozen confirmation run with no schema failure surviving one re-prompt, every structural violation repaired without a model call, every page verified against rendered geometry, and 78% of first screens novel against the recipe library in the frozen confirmation run (88–90% in the exploratory runs).
 
-It did **not** prove the original orthogonal fourteen-dimension model, because most dimensions were hard-coded inside archetype CSS.
+Revision 2 therefore replaces the archetype bundle with the **composition language**. The model owns structure; the compiler owns execution.
 
-Revision 1 therefore formalizes the architecture the evidence actually supports: **bundled archetypes + six-field intent + deterministic compiler**.
-
-Do not implement the remaining three archetypes until the compiler refactor and Brief 2 tests pass.
+> **The model composes. The compiler builds. The renderer only consumes resolved, verified, persisted design data.**
 
 ---
 
 # 1. Renderer invariants
 
-1. Model output is creative intent, not executable layout.
-2. `DesignIntent` has exactly six creative fields.
-3. Model cannot emit renderer treatment overrides.
-4. Archetype is a versioned bundle of composition and component defaults.
-5. Motif placement is deterministic and role-based.
-6. Raw palette values never directly become text/background/button semantics.
-7. Accessibility contrast is created by compiler, not discovered in screenshots.
-8. Persist DesignIntent + archetype version + ResolvedDesignSpec.
-9. Render concept base from ResolvedDesignSpec only.
-10. Generated design data is immutable; renderer code may be fixed.
-11. Guest semantic flow remains stable even when visual composition changes.
-12. Mobile guest layout convergence is acceptable.
-13. Visual tests must be able to fail the system.
+1. Model output is a `CompositionTree`: trusted primitives with semantic leaves, enum tokens only. Never HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist.
+2. The model owns nesting, grouping, hierarchy (emphasis), relative size (ratio, width, extent tokens), section order and surfaces, alignment, structural motif placement, and per-container mobile intent.
+3. The compiler owns CSS/grid/flex, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, valid nesting, RSVP/Registry semantics, and business logic.
+4. The tree may reference only capabilities the event has (`Capabilities`). Nothing else is required or allowed.
+5. Schema validation is strict. The only reasons the composition call is re-prompted are a schema-invalid response, an attractive-token-cap violation, and a selector collision, at most once each. Every other defect is repaired deterministically and logged by kind.
+6. Content fit is verified against rendered geometry at 390 and 1280 before a spec is final. The static estimate is advisory.
+7. Raw palette values never directly become text/background/button semantics; the semantic palette compiler and contrast rules of Revision 1 stand unchanged.
+8. Persist `DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec` per concept, with prompt, schema, primitive-set and compiler versions.
+9. Render the concept base from `ResolvedDesignSpec` only. Generated design data is immutable; renderer code may be fixed.
+10. Guest semantic flow (gate → lookup → collision → OTP → party → questions → submit → confirmation) is fixed and lives inside the opaque `RSVP` component.
+11. Mobile convergence is accepted, and is now expressed by the tree's mobile intents rather than by archetype rules.
+12. The Phase A/A.1 recipes are a **library**: regression fixtures, rotated few-shot examples, repair and fallback macros, signature calibration. They are not the creative ceiling and the renderer has no code per recipe.
+13. Visual and geometric tests must be able to fail the system; the proof harnesses are the regression suite.
 
 ---
 
-# 2. DesignIntent
+# 2. The composition language
 
-Model contract:
+The exact TypeScript lives in `proof-b/src/composition.ts` and is the reference implementation until the production package exists; the JSON Schema is generated from the same table (`docs/model-schemas/composition.schema.json`).
+
+## 2.1 Tokens
+
+Every model-authored value is one of these enums. There are no numbers except `Grid.columns`, `Grid.mobile`, `Cell.span`, `Cell.rowSpan`, and no strings outside the enums.
 
 ```ts
-type HeroArchetype =
-  | "editorial_split"
-  | "centered_statement"
-  | "full_bleed_visual"
-  | "framed_invitation"
-  | "typography_first"
-  | "layered_editorial"
-
-type TonalDirection = "light" | "mid" | "dark"
-type Density = "compact" | "balanced" | "spacious"
-
-type DesignIntent = {
-  heroArchetype: HeroArchetype
-  tonalDirection: TonalDirection
-
-  palette: {
-    colors: string[]    // 3–5 valid #RRGGBB colors
-    dominant: string    // must exactly match one member of colors[]
-  }
-
-  typographyPairing: TypographyPairingId
-  density: Density
-  motifs: MotifId[]
-}
+Ratio       = "38" | "50" | "62"               // first child's share of a Split
+RailWidth   = "thin" | "medium" | "wide"       // 48 / 96 / 192 px at desktop
+BandHeight  = "thin" | "medium" | "tall"
+Inset       = "tight" | "normal" | "deep"
+Gap         = "tight" | "normal" | "loose"
+Align       = "start" | "center" | "end"
+Justify     = "start" | "center" | "end" | "between"
+Emphasis    = "display" | "primary" | "secondary" | "caption"
+SurfaceRole = "base" | "alt" | "contrast" | "accent"
+RuleWeight  = "hairline" | "strong" | "double"
+Anchor      = "top-start" | "top-end" | "bottom-start" | "bottom-end" | "center"
+Extent      = "quarter" | "third" | "half" | "full"
+MotifId     = "plaid" | "stripe" | "gingham" | "linen" | "equestrian" | "botanical" | "celestial"
+MotifRole   = "field" | "band" | "frame" | "divider" | "accent"
 ```
 
-No `overrides` field exists in MVP.
+## 2.2 Primitives (allowlist)
 
-Schema validation:
-- reject structurally invalid JSON;
-- validate enum IDs;
-- validate 3–5 unique colors;
-- validate hex format;
-- require dominant member of `colors`;
-- dedupe motif IDs while preserving order;
-- cap motif request count to a small renderer-defined maximum.
+Layout containers:
 
-Unknown/repairable enum values should use deterministic repair only where a safe default exists. Structurally unusable output may receive one model retry.
-
----
-
-# 3. ArchetypeDefinition
-
-An archetype is not a hero template. It is an internal design system bundle.
-
-```ts
-type ArchetypeDefinition = {
-  id: HeroArchetype
-  version: number
-
-  defaults: {
-    eventDetailsTreatment: EventDetailsTreatment
-    rsvpTreatment: RsvpTreatment
-    registryTreatment: RegistryTreatment
-    guestSurfaceComposition: GuestSurfaceComposition
-
-    visualTreatment: VisualTreatment
-    ornamentation: Ornamentation
-    borderTreatment: BorderTreatment
-    cardTreatment: CardTreatment
-    buttonTreatment: ButtonTreatment
-  }
-
-  compatibleTypographyPairings: TypographyPairingId[]
-
-  motifSlots: Array<{
-    id: string
-    role: MotifRole
-    maxUses: 1 | 2
-    priority: number
-  }>
-}
-```
-
-MVP deliberately does **not** add compatibility lists for every treatment because treatments are not user/model overrides.
-
-If a future feature allows treatment overrides, add only the compatibility data required by that feature.
-
----
-
-# 4. Archetype vocabulary and implementation gates
-
-Reserved IDs:
-
-| ID | Intent | Current gate |
+| Primitive | Props | Meaning |
 | --- | --- | --- |
-| `editorial_split` | Asymmetric editorial composition, split/panel rhythm | First validation set |
-| `framed_invitation` | Symmetrical physical-invitation framing | First validation set |
-| `typography_first` | Type/scale/alignment/whitespace dominate | First validation set |
-| `centered_statement` | Centered statement with ornamental field | Reserved; do not implement before gate |
-| `full_bleed_visual` | Full pattern/texture/gradient field | Reserved; do not implement before gate |
-| `layered_editorial` | Overlapping planes/cards, editorial depth | Reserved; do not implement before gate |
+| `Stack` | `gap?`, `align?`, `children[1..8]` | vertical column |
+| `Cluster` | `gap?`, `justify?`, `children[2..6]` (text, Date, CTA, Glyph, vertical Rule only) | inline row that wraps |
+| `Split` | `ratio`, `align?`, `divider?` (none/hairline/strong/dashed), `mobile` (stack/stack-reverse/keep), exactly two children | two columns |
+| `Rail` | `side`, `width`, `rail` (MotifField or Stack of ≤4 small leaves), `mobile` (top/bottom/hide), `child` | fixed-width column beside the main child |
+| `Grid` | `columns` 2–4, `ruled?`, `gap?`, `mobile` 1–2, `children[2..8]` of `Cell` | equal columns |
+| `Cell` | `span?`, `rowSpan?`, `child` | one grid cell |
+| `Frame` | `rule` (none/hairline/strong/double), `inset`, `motif?`, `child` | ruled box with an inset margin; rule none is a plain inset |
+| `Surface` | `role`, `inset?`, `child` | switches the surface role for its subtree (panel, plate, card) |
+| `Overlay` | `content` (text-bearing Stack/Frame/Split), `decoration` (MotifField, Monogram, Glyph, Date numeral), `anchor`, `extent`, `mobile` (stack/keep) | text over one decorative object |
 
-The first three earned further work because they passed the original visual-distinctness test.
+Decorative leaves: `MotifField` (`motif`, `extent?`), `MotifBand` (`motif?`, `height`, `fill?`), `Rule` (`weight`, `orientation?`, `glyphs?`), `Glyph` (`motif`, `scale?`), `Monogram` (`style` ring/plain/watermark).
 
-They have **not yet earned final approval under the new compiler**.
+Semantic leaves, bound to event content (the model chooses form and emphasis only): `Eyebrow`, `EventTitle` (plus `layout` block/stagger/cascade), `Hosts`, `Description`, `Deadline`, `Venue`, `Location`, `Time` (each `emphasis?`, `case?`); `Date` (`form` full/numeral/month-year/weekday, `emphasis?`); `CTA` (`target` rsvp/registry, `style?`); `SectionHeading` (`for` details/rsvp/registry; copy comes from a compiler table).
 
----
+Semantic components, opaque internals: `RSVP`; `Registry` (`layout`: a Grid, Stack or Split whose leaves are `RegistryItem`); `RegistryItem` (`kind` gift/external/cashfund, `emphasis?` featured/standard); `CashFund` (standalone).
 
-# 5. Renderer-owned treatment enums
-
-These are resolved values, not model fields.
+Page:
 
 ```ts
-type EventDetailsTreatment =
-  | "structured_cards"
-  | "stacked_editorial"
-  | "split_panel"
-
-type RsvpTreatment =
-  | "standalone_cta_panel"
-  | "embedded_card"
-  | "contrast_panel"
-
-type RegistryTreatment =
-  | "retailer_tiles"
-  | "card_grid"
-  | "featured_blocks"
-
-type GuestSurfaceComposition =
-  | "editorial_split_flow"
-  | "framed_centered_flow"
-  | "typographic_stack_flow"
-  | "centered_flow"
-  | "full_bleed_flow"
-  | "layered_flow"
-
-type VisualTreatment =
-  | "motif_panel"
-  | "border_frame"
-  | "texture_field"
-  | "pattern_band"
-  | "typographic_field"
-  | "layered_cards"
-
-type Ornamentation =
-  | "none"
-  | "restrained"
-  | "decorative"
-
-type BorderTreatment =
-  | "none"
-  | "hairline"
-  | "double_rule"
-  | "inset_frame"
-  | "accented_edge"
-
-type CardTreatment =
-  | "flat"
-  | "flat_bordered"
-  | "tinted"
-  | "elevated"
-  | "outline_only"
-
-type ButtonTreatment =
-  | "solid_square"
-  | "solid_rounded_sm"
-  | "solid_pill"
-  | "outline_square"
-  | "outline_rounded_sm"
-  | "text_link"
+Section         { kind: hero | details | rsvp | registry | band; surface: SurfaceRole; align?: Align; fill?: auto | screen (hero only); root: Node }
+CompositionTree { version: "composition_v1"; sections: Section[] }
 ```
 
-Not every enum value must be used by every archetype.
+Considered and rejected, permanently unless a new proof says otherwise: absolute or pixel positioning; free ratios; per-node color, font or size; z-index beyond one Overlay level; custom breakpoints; animation; free text; custom section kinds.
 
-Do not expose these in host UI.
+## 2.3 Capabilities
+
+```ts
+Capabilities { rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }
+```
+
+Derived from the event's enabled features and content. The prompt lists what is not available; the validator drops any reference to a disabled capability as a `capability` repair; the coverage rules (below) require only what is enabled.
+
+## 2.4 Nesting, depth, limits
+
+| Parent | Allowed children | Forbidden |
+| --- | --- | --- |
+| section root | any container, `Overlay`; `MotifBand` for a band section | bare leaves |
+| `Cluster` | inline leaves | containers, components |
+| `Split` | exactly two | — |
+| `Rail.rail` | `MotifField`, or a `Stack` of ≤4 leaves | components |
+| `Grid` | `Cell` only; a `Cell` may not hold `Grid` or `Overlay` | components in a span-1 cell of a 3–4 column grid |
+| `Frame` | any | a `Frame` anywhere below (no frame within a frame) |
+| `Surface` | any | a `Surface` of the same effective role |
+| `Overlay.content` | text-bearing `Stack`, `Frame`, `Split` | text-free content |
+| `Overlay.decoration` | `MotifField`, `Monogram`, `Glyph`, `Date` numeral | anything with body text |
+| `Registry.layout` | `Grid`, `Stack`, `Split` with `RegistryItem` leaves | any other leaf |
+
+Depth ≤ 5 containers; `Split` in `Split` at most once; `Rail` in `Rail`, `Grid` in `Grid`, `Overlay` in `Overlay` forbidden. **Boxes:** at most two nested `Frame`/`Surface` on any path (a third border is unwrapped). Per section: ≤ 40 nodes, ≤ 1 `Overlay`, 1 `Rail`, 1 `Grid`, 1 `Frame`, 2 `MotifField`. Per page: ≤ 160 nodes, ≤ 2 `Overlay`, ≤ 2 `Frame`; 3–6 sections, hero first, one each of hero/rsvp/registry (rsvp and registry only when enabled), at most one details and one band; no more than two consecutive contrast sections. Components may be children only of a section root, `Stack`, `Surface`, `Frame`, `Split` (with at least half the width), or a wide `Cell`; `RSVP` lives in the rsvp section and `Registry` in the registry section. Pattern motifs go in `MotifField`, `MotifBand` and `Frame.motif`; arrangement motifs go in `Glyph` and `Rule.glyphs`. Response body ≤ 12 KB.
+
+Coverage: `EventTitle` exactly once; `Venue` and `Date` at least once; `RSVP` and `Registry` exactly once when enabled; `Description` and `Monogram` at most once per page; within a section each text node at most once (Date at most twice with different forms) and one CTA.
+
+## 2.5 Responsive intent
+
+The model states one enum per container; the compiler owns breakpoints and every override. `Split.mobile keep` is honoured only when neither side holds a component or the Description; `Rail.mobile hide` only for a `MotifField` rail; `Grid.mobile` 1 or 2 columns; `Overlay.mobile stack` turns the decoration into a band. Overridden intent is logged as a `responsive` repair.
 
 ---
 
-# 6. Typography definitions
+# 3. Compilation
 
-A typography pairing is a curated production asset/config entry:
+```text
+model response (JSON)
+→ strict schema validation                      fail → one re-prompt with the error list → still failing → library fallback
+→ structural validation + deterministic repair   nesting, depth, limits, coverage, capabilities, boxes, motif kind, responsive
+→ planner caps (attractive tokens)               after the one re-prompt, deterministic neutralization
+→ content-fit estimate (advisory)
+→ canonicalize (defaults, ids, hash)
+→ page system + semantic palette + typography    unchanged from Revision 1
+→ layout resolution (tokens → values per breakpoint)
+→ rendered-geometry verification (authoritative) 390 and 1280: line limits, text overflow, container overflow; demote emphasis, then remove the innermost box; the CSS floor (a word can always break) guarantees zero horizontal overflow
+→ immutable ResolvedDesignSpec (verified: true)
+```
+
+Every repair is logged as `{ rule, path, kind, before, after }` with `kind ∈ structural | coverage | capability | responsive | planner | fit-estimate | fit-verified`. No repair calls a model. Telemetry keeps schema validity, repair counts by kind, geometry verification, and model re-prompts as separate measures.
+
+Library macros (a hero, an rsvp section, a registry section) are the only repair inputs that are not rules; they come from the A.1 library, chosen by seed.
+
+## 3.1 Geometry verification
+
+Runs in a headless browser against the production renderer (see `docs/technology-decisions.md`). Each text node's line count and bounds are measured at both breakpoints; nodes over their limit (display and primary: three lines at desktop, four at mobile) or overflowing their container are demoted one emphasis step and the page is re-rendered, up to three rounds; if any overflow remains, the innermost `Frame`/`Surface`/`Rail` around the node is relaxed (Frame → Stack, Surface inset → tight, Rail widened), logged as `fit.verified.structural`. The renderer's stylesheet also carries a floor (`overflow-wrap: anywhere`, wrapping glyph rows, clipped decorations, rail-sized numerals) so a page cannot overflow horizontally even before verification. A spec is final only with `verified.clean === true`.
+
+## 3.2 Page system
+
+Unchanged in role: borders, cards, buttons, type scale, spacing chosen by the compiler from family, composition and seed, applied to every section so a page reads as one system. Two fields changed: `axis` is a default alignment that a section or Stack may override; the surface plan is the model-authored section surface sequence, validated by the sequence rules.
+
+---
+
+# 4. DesignIntent and the composition call
+
+`DesignIntent` (model contract, `design_intent_v3`) keeps six fields and replaces `heroArchetype` with `family` and adds `composition`:
 
 ```ts
-type TypographyPairingDefinition = {
-  id: TypographyPairingId
-  category:
-    | "heritage"
-    | "high_contrast_editorial"
-    | "oldstyle"
-    | "grotesk_led"
-    | "soft_serif"
-    | "transitional"
-
-  displayFamily
-  bodyFamily
-  fallbacks[]
-  supportedWeights[]
-  supportedCharacterSets[]
-  displayTrackingRange
-  bodyTrackingRange
-  scaleAdjustments
+DesignIntent {
+  family: "editorial" | "invitation" | "statement"
+  tonalDirection: "light" | "mid" | "dark"
+  palette: { colors: string[]; dominant: string }
+  typographyPairing: string
+  density: "compact" | "balanced" | "spacious"
+  composition: { asymmetry; hierarchy; rhythm; sectionContrast; ornament }
+  motifs: string[]
 }
 ```
 
-Rules:
-- pairing IDs only; never raw model font-family strings;
-- licensing must be verified before production use;
-- bundle declares compatible pairings;
-- diversity planner prefers distinct categories across the three concepts when compatible;
-- incompatible pairing is repaired deterministically and logged.
-
-The first self-contained gallery used system-font approximations. Those are not the final licensed pairings.
+The composition call is a separate strong-model call conditioned on the DesignIntent, the capabilities, the content profile, the primitive spec and rules (generated from the same table as the validator), the sibling's structural directive and token allowances, and three rotated library examples. `presentation {name, description}` stays on the DesignIntent response and is never compiled.
 
 ---
 
-# 7. Motif system
+# 5. Diversity: planner, directives, signature, caps
 
-## 7.1 Roles
+**Sibling planner.** A batch of three candidates receives three different DesignIntents (distinct family, tone, typography category and hierarchy where the brief allows) and three different structural directives. Never the same intent with different seeds.
+
+**Directives** are nudges assembled from eight independent dimensions (opening object, primary structure, date treatment, motif use, hero surface, details folded or own, RSVP intro placement, registry layout in primitive terms); 34,560 combinations; one sentence per candidate. Compliance is measured per dimension. They are not a layout library: one directive value produced seven to thirteen distinct hero skeletons in the proof.
+
+**Signature.** The hero skeleton (primitive types with structural tokens only, plain text dropped), the surface sequence, the RSVP and registry skeletons, alignment, typography category and tone; hero similarity by normalized token-sequence edit distance with a floor on partial overlap; computed separately for desktop and the mobile-resolved skeleton; threshold .70, calibrated on the library. A collision with a batch sibling or the host's redesign history earns one re-prompt naming the colliding skeleton, then a library fallback.
+
+**Attractive-token caps.** Devices the model over-selects (staggered titles, hero numerals, watermark decorations) are allotted per batch: at most one sibling in three may use each. Allotments are prompt text; a violation earns the one re-prompt, then deterministic neutralization logged as a `planner` repair. Generic mechanism: `{ id, detect(tree), neutralize(tree) }` per token; the list is data.
+
+---
+
+# 6. ResolvedDesignSpec
 
 ```ts
-type MotifRole =
-  | "field"
-  | "frame"
-  | "band"
-  | "divider"
-  | "accent"
-```
-
-## 7.2 Definition
-
-```ts
-type MotifDefinition = {
-  id: MotifId
-
-  assetType: "svg" | "css_pattern"
-  supportedRoles: MotifRole[]
-
-  colorChannels: Array<{
-    channelId: string
-    semanticToken:
-      | "text"
-      | "textMuted"
-      | "accent"
-      | "border"
-      | "surfaceAlt"
-    minOpacity: number
-    maxOpacity: number
-  }>
-
-  maxPlacements: 1 | 2
+ResolvedDesignSpec {
+  version: "resolved_v2"
+  designIntent                                  // as returned, validated
+  presentation: { name, description }           // never compiled
+  composition: CanonicalCompositionTree         // after repair, caps, fit
+  compositionHash
+  capabilities
+  pageSystem: { border, card, button, typeScale, spacing, defaultAlign }
+  tokens: { palette (semantic, OKLCH), fonts, scale, spacing }
+  layout: Record<NodeId, ResolvedLayout>        // token values per breakpoint; no CSS text
+  motifs: Record<NodeId, ResolvedMotif>
+  compilerRepairs: Repair[]
+  intentDeviations: Deviation[]
+  signature
+  verified: { desktop, mobile, fitDemotions, clean: true, authoritative: "rendered-geometry" }
+  versions: { primitiveSet, compiler, compositionPrompt, compositionSchema, designIntentPrompt, designIntentSchema }
 }
 ```
 
-Initial IDs:
-- `plaid_restrained`
-- `gingham`
-- `botanical_line`
-- `stripe_classic`
-- `deco_border`
-- `linen_texture`
-- `equestrian_line`
-- `scallop_subtle`
-- `star_celestial`
-- `ribbon_line`
-
-## 7.3 Assignment
-
-Compiler algorithm:
-1. validate motif ID;
-2. iterate requested motifs in stable order;
-3. read motif supported roles;
-4. find highest-priority unfilled compatible slot in archetype;
-5. assign no more than motif/slot placement caps;
-6. resolve motif channel colors from semantic event tokens and clamp opacity;
-7. persist placement;
-8. if no slot fits, drop motif and record telemetry.
-
-No requested motif may disappear silently.
-
-Example telemetry:
-
-```json
-{
-  "motifsDropped": ["stripe_classic"],
-  "compilerRepairs": []
-}
-```
+The renderer has one fixed component per primitive and per semantic node and a static stylesheet keyed by classes and numeric custom properties from `layout`. No CSS text is ever derived from model output. The primitive set is versioned separately from the compiler because the renderer must support every set that has a live spec. Persist the raw model tree alongside the canonical one for evaluation and redesign history.
 
 ---
 
-# 8. Semantic palette compiler
+# 7. The library
 
-## 8.1 Problem
-
-Raw creative colors express aesthetic intent. They are not renderer semantics.
-
-An archetype must never assume:
-- `palette.dominant` = hero background;
-- first color = text;
-- second color = button foreground.
-
-That approach produced invalid navy-on-navy states in the first control panel.
-
-## 8.2 Inputs
-
-```text
-palette.colors
-palette.dominant
-tonalDirection
-```
-
-The compiler may derive tints/shades from supplied colors using a perceptual model such as OKLCH.
-
-It should not invent unrelated theme hues.
-
-## 8.3 Outputs
-
-```ts
-type SemanticEventTokens = {
-  eventBg
-  heroBg
-  surface
-  surfaceAlt
-
-  text
-  textMuted
-
-  accent
-  accentText
-
-  buttonBg
-  buttonText
-
-  border
-  focus
-
-  error
-  errorText
-}
-```
-
-## 8.4 Tonal strategy
-
-| Tonal direction | Background strategy | Text strategy | Accent strategy |
-| --- | --- | --- | --- |
-| `light` | Prefer lightest appropriate palette-derived neutral/tint for event and surfaces | Derive dark on-colors from palette family | Use stronger chromatic palette color for accent |
-| `mid` | Prefer middle-luminance palette-derived surface; ensure sections have usable contrast separation | Choose on-color per actual semantic surface | Accent may be lighter or darker depending on contrast |
-| `dark` | Prefer darkest appropriate palette-derived color/tone for event/hero; surfaces may use nearby darker/lighter derived values | Derive light on-colors from palette family | Accent must remain distinguishable and accessible |
-
-Archetypes choose **where semantic tokens are used**, not how raw colors map to those tokens.
-
-## 8.5 Contrast rules
-
-- normal text on every semantic surface where used: ≥ 4.5:1;
-- large text: ≥ 3:1 when WCAG large-text definition applies;
-- muted normal-size text: ≥ 4.5:1;
-- button text/background: ≥ 4.5:1;
-- focus/non-text interactive boundary: ≥ 3:1 where applicable;
-- error text/background: ≥ 4.5:1.
-
-Algorithm preference:
-1. preserve hue and chroma intent where practical;
-2. adjust lightness in OKLCH or equivalent;
-3. if same-hue output remains visually poor/incompatible, choose nearest accessible derived neutral/on-color from the same supplied palette family;
-4. validate every required pair after derivation;
-5. compilation fails only if safe fallback cannot be created, which should be extremely rare.
-
-## 8.6 Required unit tests
-
-At minimum:
-- all-light palette;
-- all-dark palette;
-- low-contrast adjacent colors;
-- constrained navy/cream/forest palette;
-- inverted control palette that previously created navy-on-navy;
-- dominant color not suitable as background for requested tone;
-- manual palette override through same compiler.
-
-Accessibility failure should be impossible by construction, not caught only by screenshot review.
+The 27 Phase A.1 hero silhouettes and 13 section recipes, rewritten as `CompositionTree` fixtures (`proof-b/library.js`). Jobs: expressiveness regression (every silhouette must validate and render through the primitive renderer), rotated few-shot examples, repair macros, the fallback generator (the Gate 2 seeded selector), and signature calibration (mirror pairs collide, distinct recipes do not). The library is not a menu and the renderer has no code per recipe.
 
 ---
 
-# 9. Density
+# 8. Typography, motifs, palette, density, guest components, imagery
 
-```text
-compact
-balanced
-spacious
-```
-
-Density maps centrally to bounded section/component spacing.
-
-It may influence:
-- section vertical spacing;
-- card internal spacing;
-- inter-control rhythm;
-- max text measure within allowed bounds.
-
-It does not let the model emit arbitrary pixel values.
-
-Density is a secondary diversity lever, not a substitute for composition.
+Sections 6–9, 14 and 19 of Revision 1 stand, with these deltas:
+- typography compatibility is by family and hierarchy (a pairing must hold at monumental scale), not by archetype;
+- motifs are placed by the tree (`MotifField`, `MotifBand`, `Frame.motif`, `Glyph`, `Rule.glyphs`) within the ornament budget from `composition.ornament`; roles, channels, opacity bounds and caps are unchanged; a motif of the wrong kind for its slot is swapped and logged (`motif.kind`), never dropped silently;
+- density maps to gap, inset and section spacing scales that the tokens resolve against;
+- guest components are the opaque `RSVP`, `Registry`, `RegistryItem`, `CashFund` and the compiler-owned gate, footer and confirmation surfaces; they take width from their container, surface from the nearest `Surface`, and card/button/border language from the page system.
 
 ---
 
-# 10. Compilation
+# 9. Proof and regression gates
 
-Conceptual API:
+The proof harnesses are the regression suite. A change to the language, validator, compiler, renderer rules or planner reruns:
 
-```ts
-type CompilationResult = {
-  resolvedSpec: ResolvedDesignSpec
-  compilerRepairs: CompilerRepair[]
-  motifsDropped: MotifId[]
-}
+1. **Unit tests** (`proof-b/test.js`): library validity and canonicalization, every repair rule with a fixture, schema-invalid rejection, attractive-token detectors, planner distinctness, signature calibration.
+2. **Adversarial set** (`proof-b/adv-run.js`): every structural fixture repairs to zero remaining violations and renders with zero overflow at both widths; every schema-invalid payload is rejected with a rule and path.
+3. **Expressiveness**: all 27 silhouettes and 13 section recipes validate and render (`library-heroes-*.png`).
+4. **Model confirmation run** (`proof-b/run-model.js --batches`, `render-set.js`, `evaluate.js`): sixty trees in sibling batches plus a reduced-capabilities batch, no curation, reported separately as schema validity, deterministic repairs, geometry, novelty and distinct skeletons, attractive-token distribution, collision rate, and design-quality review. Thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes; reviewers rate ≥ 70% of model screens designed.
 
-compileDesignIntent(
-  intent: DesignIntent,
-  archetypeDefinition: ArchetypeDefinition,
-  typographyDefinitions,
-  motifDefinitions
-): CompilationResult
-```
-
-Pipeline:
-
-```text
-validate intent
-→ load exact archetype version
-→ validate typography
-→ repair if needed
-→ assign motifs to slots
-→ compile semantic palette
-→ apply archetype defaults
-→ resolve typography + density
-→ create ResolvedDesignSpec
-→ validate resolved spec
-→ persist
-```
-
-No AI call occurs during compilation.
+Palette-compiler unit tests, contrast rules and the imagery boundaries of Revision 1 remain in force.
 
 ---
 
-# 11. ResolvedDesignSpec
+# 10. One-line renderer rule
 
-```ts
-type ResolvedDesignSpec = {
-  schemaVersion: number
-
-  archetypeId: HeroArchetype
-  archetypeVersion: number
-
-  tonalDirection: TonalDirection
-
-  typographyPairing: TypographyPairingId
-  typographyCategory: TypographyCategory
-  density: Density
-
-  eventDetailsTreatment: EventDetailsTreatment
-  rsvpTreatment: RsvpTreatment
-  registryTreatment: RegistryTreatment
-  guestSurfaceComposition: GuestSurfaceComposition
-
-  visualTreatment: VisualTreatment
-  ornamentation: Ornamentation
-  borderTreatment: BorderTreatment
-  cardTreatment: CardTreatment
-  buttonTreatment: ButtonTreatment
-
-  motifPlacements: Array<{
-    motifId: MotifId
-    slotId: string
-    role: MotifRole
-    resolvedChannels: Record<string, string | number>
-  }>
-
-  semanticTokens: SemanticEventTokens
-}
-```
-
-The base renderer reads this object.
-
-It does not query the latest archetype defaults during normal rendering.
-
----
-
-# 12. Persistence and immutability
-
-Persist per concept:
-
-```text
-DesignIntent
-archetypeVersion
-ResolvedDesignSpec
-```
-
-Why all three:
-- DesignIntent preserves what the model expressed and supports diversity/redesign analysis.
-- Archetype version proves which bundle generated the concept.
-- ResolvedDesignSpec makes rendering stable when defaults evolve.
-
-Immutability covers **generated design data**.
-
-It does not freeze:
-- renderer CSS/React implementation;
-- accessibility fixes;
-- browser fixes;
-- responsive bugs;
-- component implementation defects.
-
-A component bug fix may improve all events that consume compatible resolved data.
-
----
-
-# 13. Event-level manual design overrides
-
-MVP host controls remain separate from generated concept data:
-
-```ts
-Event.designOverrides {
-  palette?
-  typographyPairing?
-}
-```
-
-Rules:
-- never mutate the concept;
-- palette override uses the same semantic palette compiler;
-- typography override must be archetype-compatible;
-- reset removes the event override and returns to base resolved concept;
-- switching concepts clears design overrides unless a future explicit compatible-carry-forward feature exists.
-
-No host controls for:
-- density;
-- motif;
-- treatment;
-- composition;
-- border/card/button style.
-
----
-
-# 14. Guest component system
-
-Required primitives:
-
-```text
-EventButton
-EventField
-EventTextarea
-EventCard
-EventNotice
-EventSheet
-EventOTPInput
-EventChoiceGroup
-EventPartyCard
-EventRegistryCard
-EventGiftCard
-EventConfirmation
-EventAccessGate
-EventFooter
-EventSectionFrame
-```
-
-Every component:
-- consumes semantic event tokens;
-- consumes resolved treatment data;
-- supports focus/disabled/error/loading where applicable;
-- passes required contrast;
-- works at 390 and 1280;
-- never imports application chrome styling.
-
-The private gate, RSVP forms, validation error, OTP, confirmation, registry cards, purchase-return prompt, and passed state are renderer surfaces, not generic product UI inserted into a pretty site.
-
----
-
-# 15. Guest flow and composition
-
-Semantic flow is fixed for usability/security:
-
-```text
-private gate if required
-→ name lookup
-→ collision resolution if needed
-→ OTP if phone-backed
-→ party attendance
-→ questions
-→ submit
-→ confirmation
-```
-
-Archetype-owned guest composition controls:
-- framing;
-- column arrangement;
-- section surfaces;
-- heading placement;
-- card use;
-- motif slots;
-- component treatments.
-
-It must not reorder security/semantic steps.
-
-### Mobile convergence
-
-At ~390px, multiple desktop compositions may collapse into a stack.
-
-This is accepted.
-
-Do not invent awkward mobile information architectures merely to maximize visual difference.
-
-Mobile identity should survive through:
-- typography;
-- border/frame language;
-- motif presence;
-- section surface;
-- component treatment;
-- density;
-- hierarchy.
-
----
-
-# 16. Diversity planner integration
-
-For a concept batch:
-
-1. read Event Identity compatible archetypes/tones/typography categories;
-2. assign distinct compatible archetypes whenever possible;
-3. assign different compatible tones when allowed;
-4. assign/prefer different typography categories when possible;
-5. allow model to choose actual pairing within the assigned category and archetype compatibility;
-6. motifs/density/palette dominance provide further difference.
-
-For a tone-constrained brief:
-- all three may be light;
-- typography becomes the next strongest controlled lever after archetype;
-- density follows;
-- explicit color constraints remain honored.
-
-Track prior DesignIntents during redesign so unseen compatible combinations are preferred without creating a hard dead-end.
-
----
-
-# 17. Renderer proof plan
-
-## 17.1 Structural axes
-
-A pair of concepts is materially distinct when at least 3/5 differ meaningfully independent of palette:
-
-1. hero composition;
-2. typography hierarchy;
-3. section rhythm;
-4. motif behavior;
-5. component treatment.
-
-## 17.2 Brief 1 — constrained heritage
-
-Same prompt/data:
-- elevated heritage baby shower;
-- navy, cream, forest green required;
-- restrained equestrian;
-- subtle plaid permitted.
-
-Panels:
-- A: editorial split;
-- B: framed invitation;
-- C: typography first;
-- control: same base structure with tone/palette changed.
-
-Required:
-- 390;
-- 1280;
-- color;
-- grayscale;
-- full guest surface lab.
-
-## 17.3 Brief 2 — light constrained
-
-All three:
-```text
-tonalDirection = light
-```
-
-This proves composition/type/motif/density can carry distinctness without tonal variation.
-
-## 17.4 Five focused tests
-
-1. **Archetype swap**  
-   Same brief/constraints, different archetype → different site.
-
-2. **Typography swap**  
-   Same archetype, different compatible typography category/pairing → same site, different voice.
-
-3. **Motif swap**  
-   Same archetype, different motifs → same structure; slot usage and ornament expression change.
-
-4. **Tone/palette change**  
-   Same structure, changed tone/palette → compiler returns accessible semantic tokens. This is a compiler test more than a distinctness test.
-
-5. **Incompatible intent**  
-   Incompatible typography/motif → deterministic repair/drop + telemetry; never a model retry.
-
-## 17.5 Regression expectation
-
-After moving the first gallery to this architecture:
-- A/B/C should remain within approved visual-diff tolerance;
-- the original control should change because inaccessible contrast is intentionally corrected.
-
-Do not classify that control difference as a regression.
-
----
-
-# 18. Visual approval gate for remaining archetypes
-
-Do not implement:
-- `centered_statement`;
-- `full_bleed_visual`;
-- `layered_editorial`;
-
-until:
-1. first three reproduce successfully through the new compiler;
-2. contrast unit tests pass;
-3. five swap tests pass;
-4. Brief 2 passes;
-5. guest surfaces remain coherent.
-
-Then each new archetype must independently define:
-- bundle defaults;
-- typography compatibility;
-- motif slots;
-- desktop composition;
-- mobile composition;
-- guest composition;
-- visual regression cases.
-
----
-
-# 19. Imagery boundaries
-
-Private inspiration is model input only.
-
-Published decorative images remain out of MVP.
-
-Native registry thumbnails are the only public content-image exception:
-- safe fetch/normalization;
-- platform-owned asset;
-- themed placeholder fallback;
-- no retailer hotlink.
-
----
-
-# 20. One-line renderer rule
-
-> **The model chooses a small creative intent. The archetype and compiler do the design work. The renderer only consumes resolved, accessible, persisted design data.**
+> **The model composes from trusted primitives. The compiler validates, repairs, fits against real geometry, and freezes. The renderer only consumes resolved, verified, persisted design data.**
