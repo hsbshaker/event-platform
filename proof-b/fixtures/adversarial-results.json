@@ -8,7 +8,7 @@
   "remaining": 0
  },
  "Frame in Frame in Frame": {
-  "violations": 4,
+  "violations": 5,
   "repairs": 2,
   "kinds": {
    "structural": 2
@@ -273,6 +273,14 @@
   "kinds": {
    "capability": 2,
    "coverage": 1
+  },
+  "remaining": 0
+ },
+ "three nested boxes: Surface in Surface in framed hero": {
+  "violations": 1,
+  "repairs": 1,
+  "kinds": {
+   "structural": 1
   },
   "remaining": 0
  },

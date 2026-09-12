@@ -60,7 +60,7 @@ body{margin:0;background:#e9e7e1;font-family:Inter,system-ui,sans-serif;color:#1
 .site .card{padding:clamp(16px,2.2vw,26px);background:var(--card-bg);border:var(--card-border);outline:var(--card-outline);outline-offset:5px}
 .site .card,.site .card>*,.p-item,.p-registry .item.featured>*{min-width:0}
 .site .thumb{aspect-ratio:1.1/1;display:grid;place-items:center;font-family:var(--display);background:var(--pattern-linen);border:var(--rule)}
-.site .glyphs{display:inline-flex;gap:10px;align-items:center}
+.site .glyphs{display:inline-flex;flex-wrap:wrap;gap:10px;align-items:center;max-width:100%}.site .glyphs svg{flex-shrink:1;max-width:100%}
 
 /* ---------- primitives ---------- */
 .p-stack{display:flex;flex-direction:column;gap:var(--gap);align-items:stretch;min-width:0}
@@ -90,7 +90,8 @@ body{margin:0;background:#e9e7e1;font-family:Inter,system-ui,sans-serif;color:#1
 .p-grid.ruled .p-cell{border-right:var(--rule);border-bottom:var(--rule);padding:clamp(18px,2.4vw,30px);min-height:120px;display:flex;flex-direction:column;justify-content:flex-end}
 .p-cell{grid-column:span var(--span);grid-row:span var(--rspan);min-width:0}
 .p-frame{padding:var(--inset)}
-.p-frame .frame-box{padding:clamp(24px,4vw,56px) clamp(20px,4vw,48px);position:relative}
+.p-frame .frame-box{padding:clamp(24px,4vw,56px) clamp(20px,4vw,48px);position:relative;min-width:0}
+.p-frame,.p-surface,.p-overlay,.p-rail .main,.p-cell{min-width:0}
 .p-frame .rule-hairline{border:var(--rule)}.p-frame .rule-strong{border:var(--rule-strong)}.p-frame .rule-double{border:var(--rule);outline:var(--rule-outline);outline-offset:8px}.p-frame .rule-none{border:0}
 .p-surface{background:var(--bg);color:var(--fg);padding:var(--inset)}
 .p-surface.surf-accent{padding:calc(var(--inset) * .75) var(--inset)}
@@ -120,7 +121,7 @@ body{margin:0;background:#e9e7e1;font-family:Inter,system-ui,sans-serif;color:#1
 .p-mono.st-ring span{width:84px;height:84px;border-radius:50%;border:var(--rule);display:grid;place-items:center;font-size:2.2rem}
 .p-mono.st-plain span{font-size:3rem;line-height:1}
 .p-mono.st-watermark span{font-size:calc(var(--display-size) * 5);line-height:1;opacity:.10}
-.p-text{min-width:0}
+.p-text{min-width:0;overflow-wrap:anywhere}   /* floor: a word can always break; demotion runs first, so this is the last resort */
 .p-text.em-display{font-family:var(--display);font-size:var(--display-size);line-height:1.02;letter-spacing:var(--tracking);font-weight:var(--display-weight)}
 .p-text.em-primary{font-family:var(--display);font-size:var(--h2-size);line-height:1.08;letter-spacing:var(--tracking)}
 .p-text.em-secondary{font-size:1rem;max-width:var(--measure)}

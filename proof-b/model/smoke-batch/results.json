@@ -1,0 +1,2416 @@
+[
+ {
+  "id": "01",
+  "seed": 2514723726,
+  "condition": "few",
+  "model": "claude-sonnet-5",
+  "batch": {
+   "index": 0,
+   "sibling": 0,
+   "batchSeed": "e581384a",
+   "allowedTokens": [
+    "heroNumeral"
+   ],
+   "forbiddenTokens": [
+    "staggerTitle",
+    "watermark"
+   ]
+  },
+  "designIntent": {
+   "family": "invitation",
+   "tonalDirection": "dark",
+   "typography": "transitional_instrument_manrope",
+   "density": "spacious",
+   "composition": {
+    "asymmetry": "symmetric",
+    "hierarchy": "editorial",
+    "rhythm": "alternating",
+    "sectionContrast": "moderate",
+    "ornament": "restrained"
+   }
+  },
+  "directive": {
+   "opening": "title",
+   "structure": "Grid",
+   "date": "column",
+   "motif": "frame",
+   "surface": "contrast",
+   "details": "own",
+   "rsvpIntro": "band",
+   "registry": "featured"
+  },
+  "calls": [
+   {
+    "kind": "initial",
+    "ms": 67956,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 12892,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 6339,
+     "output_tokens_details": {
+      "thinking_tokens": 5272
+     },
+     "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+     },
+     "service_tier": "standard",
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 12892,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "inference_geo": "not_available",
+     "iterations": [
+      {
+       "input_tokens": 2,
+       "output_tokens": 6339,
+       "cache_read_input_tokens": 0,
+       "cache_creation_input_tokens": 12892,
+       "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 12892
+       },
+       "type": "message"
+      }
+     ],
+     "speed": "standard"
+    },
+    "cost": 0.11496200000000001,
+    "error": null
+   }
+  ],
+  "schemaValidFirst": true,
+  "schemaErrorsFirst": [],
+  "schemaValid": true,
+  "schemaErrors": [],
+  "tokenViolationsFirst": [],
+  "rawTree": {
+   "version": "composition_v1",
+   "sections": [
+    {
+     "kind": "hero",
+     "surface": "contrast",
+     "align": "start",
+     "fill": "screen",
+     "root": {
+      "t": "Frame",
+      "rule": "hairline",
+      "inset": "normal",
+      "motif": {
+       "id": "linen",
+       "role": "frame"
+      },
+      "child": {
+       "t": "Grid",
+       "columns": 3,
+       "ruled": true,
+       "mobile": 2,
+       "children": [
+        {
+         "t": "Cell",
+         "span": 2,
+         "child": {
+          "t": "Stack",
+          "gap": "tight",
+          "children": [
+           {
+            "t": "Eyebrow",
+            "emphasis": "secondary",
+            "case": "upper"
+           },
+           {
+            "t": "EventTitle",
+            "emphasis": "display",
+            "case": "none",
+            "layout": "block"
+           }
+          ]
+         }
+        },
+        {
+         "t": "Cell",
+         "span": 1,
+         "child": {
+          "t": "Date",
+          "form": "numeral",
+          "emphasis": "display"
+         }
+        },
+        {
+         "t": "Cell",
+         "span": 2,
+         "child": {
+          "t": "Cluster",
+          "gap": "normal",
+          "justify": "start",
+          "children": [
+           {
+            "t": "Hosts",
+            "emphasis": "secondary"
+           },
+           {
+            "t": "Glyph",
+            "motif": "equestrian",
+            "scale": "s"
+           }
+          ]
+         }
+        },
+        {
+         "t": "Cell",
+         "span": 1,
+         "child": {
+          "t": "Stack",
+          "gap": "tight",
+          "children": [
+           {
+            "t": "Time",
+            "emphasis": "secondary"
+           },
+           {
+            "t": "Venue",
+            "emphasis": "secondary"
+           },
+           {
+            "t": "Location",
+            "emphasis": "caption"
+           },
+           {
+            "t": "CTA",
+            "target": "rsvp",
+            "style": "button"
+           }
+          ]
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "kind": "details",
+     "surface": "base",
+     "align": "start",
+     "root": {
+      "t": "Stack",
+      "gap": "loose",
+      "children": [
+       {
+        "t": "SectionHeading",
+        "for": "details",
+        "emphasis": "primary"
+       },
+       {
+        "t": "Description",
+        "emphasis": "primary"
+       },
+       {
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "t": "Cluster",
+        "gap": "loose",
+        "justify": "between",
+        "children": [
+         {
+          "t": "Date",
+          "form": "full",
+          "emphasis": "secondary"
+         },
+         {
+          "t": "Time",
+          "emphasis": "secondary"
+         },
+         {
+          "t": "Venue",
+          "emphasis": "secondary"
+         },
+         {
+          "t": "Location",
+          "emphasis": "secondary"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "kind": "rsvp",
+     "surface": "base",
+     "align": "start",
+     "root": {
+      "t": "Stack",
+      "gap": "loose",
+      "children": [
+       {
+        "t": "Surface",
+        "role": "accent",
+        "inset": "normal",
+        "child": {
+         "t": "Stack",
+         "gap": "tight",
+         "align": "center",
+         "children": [
+          {
+           "t": "SectionHeading",
+           "for": "rsvp",
+           "emphasis": "display"
+          },
+          {
+           "t": "Deadline",
+           "emphasis": "secondary"
+          }
+         ]
+        }
+       },
+       {
+        "t": "RSVP"
+       }
+      ]
+     }
+    },
+    {
+     "kind": "registry",
+     "surface": "alt",
+     "align": "start",
+     "root": {
+      "t": "Stack",
+      "gap": "normal",
+      "children": [
+       {
+        "t": "SectionHeading",
+        "for": "registry",
+        "emphasis": "primary"
+       },
+       {
+        "t": "Registry",
+        "layout": {
+         "t": "Split",
+         "ratio": "62",
+         "mobile": "stack",
+         "divider": "hairline",
+         "children": [
+          {
+           "t": "RegistryItem",
+           "kind": "gift",
+           "emphasis": "featured"
+          },
+          {
+           "t": "Stack",
+           "gap": "normal",
+           "children": [
+            {
+             "t": "RegistryItem",
+             "kind": "external"
+            },
+            {
+             "t": "RegistryItem",
+             "kind": "cashfund"
+            }
+           ]
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "repairValid": true,
+  "violationsBefore": 0,
+  "remaining": [],
+  "spec": {
+   "version": "resolved_v2",
+   "designIntent": {
+    "family": "invitation",
+    "tonalDirection": "dark",
+    "typography": "transitional_instrument_manrope",
+    "typographyCategory": "transitional",
+    "typographyObject": {
+     "category": "transitional",
+     "display": "Instrument Serif",
+     "body": "Manrope",
+     "holdsAtMonumental": true
+    },
+    "density": "spacious",
+    "composition": {
+     "asymmetry": "symmetric",
+     "hierarchy": "editorial",
+     "rhythm": "alternating",
+     "sectionContrast": "moderate",
+     "ornament": "restrained"
+    },
+    "pageSystem": {
+     "border": "double",
+     "card": "tinted",
+     "button": "solid_square",
+     "borderWeight": 1,
+     "displayTracking": 0
+    }
+   },
+   "pageSystem": {
+    "border": "double",
+    "card": "tinted",
+    "button": "solid_square",
+    "borderWeight": 1,
+    "displayTracking": 0
+   },
+   "typography": {
+    "category": "transitional",
+    "display": "Instrument Serif",
+    "body": "Manrope",
+    "holdsAtMonumental": true
+   },
+   "composition": {
+    "version": "composition_v1",
+    "sections": [
+     {
+      "kind": "hero",
+      "surface": "contrast",
+      "align": "start",
+      "fill": "screen",
+      "root": {
+       "t": "Frame",
+       "rule": "hairline",
+       "inset": "normal",
+       "motif": {
+        "id": "linen",
+        "role": "frame"
+       },
+       "child": {
+        "t": "Grid",
+        "columns": 3,
+        "ruled": true,
+        "mobile": 2,
+        "children": [
+         {
+          "t": "Cell",
+          "span": 2,
+          "child": {
+           "t": "Stack",
+           "gap": "tight",
+           "children": [
+            {
+             "t": "Eyebrow",
+             "emphasis": "secondary",
+             "case": "upper",
+             "id": "s0.c.0.c.0"
+            },
+            {
+             "t": "EventTitle",
+             "emphasis": "display",
+             "case": "none",
+             "layout": "block",
+             "id": "s0.c.0.c.1"
+            }
+           ],
+           "id": "s0.c.0.c"
+          },
+          "rowSpan": 1,
+          "id": "s0.c.0"
+         },
+         {
+          "t": "Cell",
+          "span": 1,
+          "child": {
+           "t": "Date",
+           "form": "numeral",
+           "emphasis": "display",
+           "id": "s0.c.1.c"
+          },
+          "rowSpan": 1,
+          "id": "s0.c.1"
+         },
+         {
+          "t": "Cell",
+          "span": 2,
+          "child": {
+           "t": "Cluster",
+           "gap": "normal",
+           "justify": "start",
+           "children": [
+            {
+             "t": "Hosts",
+             "emphasis": "secondary",
+             "id": "s0.c.2.c.0"
+            },
+            {
+             "t": "Glyph",
+             "motif": "equestrian",
+             "scale": "s",
+             "id": "s0.c.2.c.1"
+            }
+           ],
+           "id": "s0.c.2.c"
+          },
+          "rowSpan": 1,
+          "id": "s0.c.2"
+         },
+         {
+          "t": "Cell",
+          "span": 1,
+          "child": {
+           "t": "Stack",
+           "gap": "tight",
+           "children": [
+            {
+             "t": "Time",
+             "emphasis": "secondary",
+             "id": "s0.c.3.c.0"
+            },
+            {
+             "t": "Venue",
+             "emphasis": "secondary",
+             "id": "s0.c.3.c.1"
+            },
+            {
+             "t": "Location",
+             "emphasis": "caption",
+             "id": "s0.c.3.c.2"
+            },
+            {
+             "t": "CTA",
+             "target": "rsvp",
+             "style": "button",
+             "id": "s0.c.3.c.3"
+            }
+           ],
+           "id": "s0.c.3.c"
+          },
+          "rowSpan": 1,
+          "id": "s0.c.3"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.c"
+       },
+       "id": "s0"
+      },
+      "id": "s0"
+     },
+     {
+      "kind": "details",
+      "surface": "base",
+      "align": "start",
+      "root": {
+       "t": "Stack",
+       "gap": "loose",
+       "children": [
+        {
+         "t": "SectionHeading",
+         "for": "details",
+         "emphasis": "primary",
+         "id": "s1.0"
+        },
+        {
+         "t": "Description",
+         "emphasis": "primary",
+         "id": "s1.1"
+        },
+        {
+         "t": "Rule",
+         "weight": "hairline",
+         "orientation": "h",
+         "id": "s1.2"
+        },
+        {
+         "t": "Cluster",
+         "gap": "loose",
+         "justify": "between",
+         "children": [
+          {
+           "t": "Date",
+           "form": "full",
+           "emphasis": "secondary",
+           "id": "s1.3.0"
+          },
+          {
+           "t": "Time",
+           "emphasis": "secondary",
+           "id": "s1.3.1"
+          },
+          {
+           "t": "Venue",
+           "emphasis": "secondary",
+           "id": "s1.3.2"
+          },
+          {
+           "t": "Location",
+           "emphasis": "secondary",
+           "id": "s1.3.3"
+          }
+         ],
+         "id": "s1.3"
+        }
+       ],
+       "id": "s1"
+      },
+      "fill": "auto",
+      "id": "s1"
+     },
+     {
+      "kind": "rsvp",
+      "surface": "base",
+      "align": "start",
+      "root": {
+       "t": "Stack",
+       "gap": "loose",
+       "children": [
+        {
+         "t": "Surface",
+         "role": "accent",
+         "inset": "normal",
+         "child": {
+          "t": "Stack",
+          "gap": "tight",
+          "align": "center",
+          "children": [
+           {
+            "t": "SectionHeading",
+            "for": "rsvp",
+            "emphasis": "display",
+            "id": "s2.0.c.0"
+           },
+           {
+            "t": "Deadline",
+            "emphasis": "secondary",
+            "id": "s2.0.c.1"
+           }
+          ],
+          "id": "s2.0.c"
+         },
+         "id": "s2.0"
+        },
+        {
+         "t": "RSVP",
+         "id": "s2.1"
+        }
+       ],
+       "id": "s2"
+      },
+      "fill": "auto",
+      "id": "s2"
+     },
+     {
+      "kind": "registry",
+      "surface": "alt",
+      "align": "start",
+      "root": {
+       "t": "Stack",
+       "gap": "normal",
+       "children": [
+        {
+         "t": "SectionHeading",
+         "for": "registry",
+         "emphasis": "primary",
+         "id": "s3.0"
+        },
+        {
+         "t": "Registry",
+         "layout": {
+          "t": "Split",
+          "ratio": "62",
+          "mobile": "stack",
+          "divider": "hairline",
+          "children": [
+           {
+            "t": "RegistryItem",
+            "kind": "gift",
+            "emphasis": "featured",
+            "id": "s3.1.l.0"
+           },
+           {
+            "t": "Stack",
+            "gap": "normal",
+            "children": [
+             {
+              "t": "RegistryItem",
+              "kind": "external",
+              "emphasis": "standard",
+              "id": "s3.1.l.1.0"
+             },
+             {
+              "t": "RegistryItem",
+              "kind": "cashfund",
+              "emphasis": "standard",
+              "id": "s3.1.l.1.1"
+             }
+            ],
+            "id": "s3.1.l.1"
+           }
+          ],
+          "align": "stretch",
+          "id": "s3.1.l"
+         },
+         "id": "s3.1"
+        }
+       ],
+       "id": "s3"
+      },
+      "fill": "auto",
+      "id": "s3"
+     }
+    ]
+   },
+   "compositionHash": "6c4cc277",
+   "layout": {
+    "s0": {
+     "rule": "hairline",
+     "insetPx": 36,
+     "motif": {
+      "id": "linen",
+      "role": "frame"
+     }
+    },
+    "s0.c": {
+     "columns": 3,
+     "mobileColumns": 2,
+     "ruled": true,
+     "gapPx": 30
+    },
+    "s0.c.0": {
+     "span": 2,
+     "rowSpan": 1
+    },
+    "s0.c.0.c": {
+     "gapPx": 14,
+     "align": null
+    },
+    "s0.c.0.c.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.0.c.1": {
+     "emphasis": "display"
+    },
+    "s0.c.1": {
+     "span": 1,
+     "rowSpan": 1
+    },
+    "s0.c.1.c": {
+     "emphasis": "display"
+    },
+    "s0.c.2": {
+     "span": 2,
+     "rowSpan": 1
+    },
+    "s0.c.2.c": {
+     "gapPx": 30,
+     "justify": "start"
+    },
+    "s0.c.2.c.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.2.c.1": {
+     "emphasis": null
+    },
+    "s0.c.3": {
+     "span": 1,
+     "rowSpan": 1
+    },
+    "s0.c.3.c": {
+     "gapPx": 14,
+     "align": null
+    },
+    "s0.c.3.c.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.3.c.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.3.c.2": {
+     "emphasis": "caption"
+    },
+    "s0.c.3.c.3": {
+     "emphasis": null
+    },
+    "s1": {
+     "gapPx": 44,
+     "align": null
+    },
+    "s1.0": {
+     "emphasis": "primary"
+    },
+    "s1.1": {
+     "emphasis": "primary"
+    },
+    "s1.2": {
+     "emphasis": null
+    },
+    "s1.3": {
+     "gapPx": 44,
+     "justify": "between"
+    },
+    "s1.3.0": {
+     "emphasis": "secondary"
+    },
+    "s1.3.1": {
+     "emphasis": "secondary"
+    },
+    "s1.3.2": {
+     "emphasis": "secondary"
+    },
+    "s1.3.3": {
+     "emphasis": "secondary"
+    },
+    "s2": {
+     "gapPx": 44,
+     "align": null
+    },
+    "s2.0": {
+     "role": "accent",
+     "insetPx": 36
+    },
+    "s2.0.c": {
+     "gapPx": 14,
+     "align": "center"
+    },
+    "s2.0.c.0": {
+     "emphasis": "display"
+    },
+    "s2.0.c.1": {
+     "emphasis": "secondary"
+    },
+    "s2.1": {
+     "emphasis": null
+    },
+    "s3": {
+     "gapPx": 30,
+     "align": null
+    },
+    "s3.0": {
+     "emphasis": "primary"
+    },
+    "s3.1": {
+     "emphasis": null
+    },
+    "s3.1.l": {
+     "first": 62,
+     "mobile": "stack",
+     "align": "stretch"
+    },
+    "s3.1.l.0": {
+     "emphasis": "featured"
+    },
+    "s3.1.l.1": {
+     "gapPx": 30,
+     "align": null
+    },
+    "s3.1.l.1.0": {
+     "emphasis": "standard"
+    },
+    "s3.1.l.1.1": {
+     "emphasis": "standard"
+    }
+   },
+   "content": {
+    "eyebrow": "A baby shower for our little boy",
+    "title": "Baby Shaker is on the way",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "monthShort": "Dec",
+    "year": "2026",
+    "weekday": "Saturday",
+    "time": "1:00–5:00 PM",
+    "venue": "The Lodge at Hanson Park",
+    "location": "Aldie, Virginia",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "deadline": "Kindly respond by December 1",
+    "initial": "B"
+   },
+   "seed": 2514723726,
+   "capabilities": {
+    "rsvp": true,
+    "registry": true,
+    "gifts": true,
+    "externalRegistry": true,
+    "cashFund": true,
+    "hosts": true,
+    "description": true,
+    "time": true,
+    "location": true,
+    "deadline": true
+   },
+   "compilerRepairs": [],
+   "repairSummary": {},
+   "verified": null,
+   "versions": {
+    "primitiveSet": "composition_v1",
+    "compiler": "proof-b-0.2",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1"
+   }
+  },
+  "title": "01 · invitation · dark · few",
+  "nearestAtAccept": 0,
+  "collision": false
+ },
+ {
+  "id": "02",
+  "seed": 2531501345,
+  "condition": "few",
+  "model": "claude-sonnet-5",
+  "batch": {
+   "index": 0,
+   "sibling": 1,
+   "batchSeed": "e581384a",
+   "allowedTokens": [
+    "watermark"
+   ],
+   "forbiddenTokens": [
+    "staggerTitle",
+    "heroNumeral"
+   ]
+  },
+  "designIntent": {
+   "family": "editorial",
+   "tonalDirection": "mid",
+   "typography": "soft_fraunces_manrope",
+   "density": "compact",
+   "composition": {
+    "asymmetry": "gentle",
+    "hierarchy": "monumental",
+    "rhythm": "continuous",
+    "sectionContrast": "low",
+    "ornament": "restrained"
+   }
+  },
+  "directive": {
+   "opening": "field",
+   "structure": "Overlay",
+   "date": "cell",
+   "motif": "divider",
+   "surface": "base",
+   "details": "own",
+   "rsvpIntro": "band",
+   "registry": "split"
+  },
+  "calls": [
+   {
+    "kind": "initial",
+    "ms": 81374,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 12800,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 7973,
+     "output_tokens_details": {
+      "thinking_tokens": 7073
+     },
+     "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+     },
+     "service_tier": "standard",
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 12800,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "inference_geo": "not_available",
+     "iterations": [
+      {
+       "input_tokens": 2,
+       "output_tokens": 7973,
+       "cache_read_input_tokens": 0,
+       "cache_creation_input_tokens": 12800,
+       "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 12800
+       },
+       "type": "message"
+      }
+     ],
+     "speed": "standard"
+    },
+    "cost": 0.130934,
+    "error": null
+   }
+  ],
+  "schemaValidFirst": true,
+  "schemaErrorsFirst": [],
+  "schemaValid": true,
+  "schemaErrors": [],
+  "tokenViolationsFirst": [],
+  "rawTree": {
+   "version": "composition_v1",
+   "sections": [
+    {
+     "kind": "hero",
+     "surface": "base",
+     "align": "start",
+     "fill": "screen",
+     "root": {
+      "t": "Overlay",
+      "anchor": "bottom-start",
+      "extent": "full",
+      "mobile": "stack",
+      "content": {
+       "t": "Stack",
+       "gap": "normal",
+       "align": "start",
+       "children": [
+        {
+         "t": "Eyebrow",
+         "emphasis": "secondary",
+         "case": "upper"
+        },
+        {
+         "t": "EventTitle",
+         "emphasis": "display",
+         "case": "none",
+         "layout": "block"
+        },
+        {
+         "t": "Hosts",
+         "emphasis": "secondary"
+        },
+        {
+         "t": "Rule",
+         "weight": "hairline",
+         "glyphs": "botanical"
+        },
+        {
+         "t": "Cluster",
+         "gap": "normal",
+         "justify": "start",
+         "children": [
+          {
+           "t": "Date",
+           "form": "full"
+          },
+          {
+           "t": "Time"
+          },
+          {
+           "t": "Venue"
+          }
+         ]
+        },
+        {
+         "t": "CTA",
+         "target": "rsvp",
+         "style": "button"
+        }
+       ]
+      },
+      "decoration": {
+       "t": "MotifField",
+       "motif": {
+        "id": "plaid",
+        "role": "field"
+       },
+       "extent": "full"
+      }
+     }
+    },
+    {
+     "kind": "details",
+     "surface": "base",
+     "align": "start",
+     "root": {
+      "t": "Stack",
+      "gap": "normal",
+      "align": "start",
+      "children": [
+       {
+        "t": "SectionHeading",
+        "for": "details",
+        "emphasis": "primary"
+       },
+       {
+        "t": "Description"
+       },
+       {
+        "t": "Grid",
+        "columns": 3,
+        "ruled": true,
+        "mobile": 1,
+        "gap": "normal",
+        "children": [
+         {
+          "t": "Cell",
+          "child": {
+           "t": "Date",
+           "form": "numeral",
+           "emphasis": "primary"
+          }
+         },
+         {
+          "t": "Cell",
+          "child": {
+           "t": "Time",
+           "emphasis": "primary"
+          }
+         },
+         {
+          "t": "Cell",
+          "child": {
+           "t": "Stack",
+           "children": [
+            {
+             "t": "Venue",
+             "emphasis": "primary"
+            },
+            {
+             "t": "Location"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "kind": "rsvp",
+     "surface": "accent",
+     "align": "center",
+     "root": {
+      "t": "Stack",
+      "gap": "normal",
+      "align": "center",
+      "children": [
+       {
+        "t": "SectionHeading",
+        "for": "rsvp",
+        "emphasis": "display"
+       },
+       {
+        "t": "Deadline",
+        "emphasis": "secondary"
+       },
+       {
+        "t": "RSVP"
+       }
+      ]
+     }
+    },
+    {
+     "kind": "registry",
+     "surface": "base",
+     "align": "center",
+     "root": {
+      "t": "Stack",
+      "gap": "normal",
+      "align": "center",
+      "children": [
+       {
+        "t": "SectionHeading",
+        "for": "registry",
+        "emphasis": "primary"
+       },
+       {
+        "t": "Registry",
+        "layout": {
+         "t": "Split",
+         "ratio": "50",
+         "mobile": "stack",
+         "divider": "hairline",
+         "children": [
+          {
+           "t": "RegistryItem",
+           "kind": "gift",
+           "emphasis": "standard"
+          },
+          {
+           "t": "RegistryItem",
+           "kind": "external",
+           "emphasis": "standard"
+          }
+         ]
+        }
+       },
+       {
+        "t": "CashFund"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "repairValid": true,
+  "violationsBefore": 0,
+  "remaining": [],
+  "spec": {
+   "version": "resolved_v2",
+   "designIntent": {
+    "family": "editorial",
+    "tonalDirection": "mid",
+    "typography": "soft_fraunces_manrope",
+    "typographyCategory": "soft_serif",
+    "typographyObject": {
+     "category": "soft_serif",
+     "display": "Fraunces",
+     "body": "Manrope",
+     "holdsAtMonumental": true
+    },
+    "density": "compact",
+    "composition": {
+     "asymmetry": "gentle",
+     "hierarchy": "monumental",
+     "rhythm": "continuous",
+     "sectionContrast": "low",
+     "ornament": "restrained"
+    },
+    "pageSystem": {
+     "border": "double",
+     "card": "flat",
+     "button": "solid_rounded",
+     "borderWeight": 3,
+     "displayTracking": -0.02
+    }
+   },
+   "pageSystem": {
+    "border": "double",
+    "card": "flat",
+    "button": "solid_rounded",
+    "borderWeight": 3,
+    "displayTracking": -0.02
+   },
+   "typography": {
+    "category": "soft_serif",
+    "display": "Fraunces",
+    "body": "Manrope",
+    "holdsAtMonumental": true
+   },
+   "composition": {
+    "version": "composition_v1",
+    "sections": [
+     {
+      "kind": "hero",
+      "surface": "base",
+      "align": "start",
+      "fill": "screen",
+      "root": {
+       "t": "Overlay",
+       "anchor": "bottom-start",
+       "extent": "full",
+       "mobile": "stack",
+       "content": {
+        "t": "Stack",
+        "gap": "normal",
+        "align": "start",
+        "children": [
+         {
+          "t": "Eyebrow",
+          "emphasis": "secondary",
+          "case": "upper",
+          "id": "s0.c.0"
+         },
+         {
+          "t": "EventTitle",
+          "emphasis": "display",
+          "case": "none",
+          "layout": "block",
+          "id": "s0.c.1"
+         },
+         {
+          "t": "Hosts",
+          "emphasis": "secondary",
+          "id": "s0.c.2"
+         },
+         {
+          "t": "Rule",
+          "weight": "hairline",
+          "glyphs": "botanical",
+          "orientation": "h",
+          "id": "s0.c.3"
+         },
+         {
+          "t": "Cluster",
+          "gap": "normal",
+          "justify": "start",
+          "children": [
+           {
+            "t": "Date",
+            "form": "full",
+            "emphasis": "secondary",
+            "id": "s0.c.4.0"
+           },
+           {
+            "t": "Time",
+            "emphasis": "secondary",
+            "id": "s0.c.4.1"
+           },
+           {
+            "t": "Venue",
+            "emphasis": "secondary",
+            "id": "s0.c.4.2"
+           }
+          ],
+          "id": "s0.c.4"
+         },
+         {
+          "t": "CTA",
+          "target": "rsvp",
+          "style": "button",
+          "id": "s0.c.5"
+         }
+        ],
+        "id": "s0.c"
+       },
+       "decoration": {
+        "t": "MotifField",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "extent": "full",
+        "id": "s0.d"
+       },
+       "id": "s0"
+      },
+      "id": "s0"
+     },
+     {
+      "kind": "details",
+      "surface": "base",
+      "align": "start",
+      "root": {
+       "t": "Stack",
+       "gap": "normal",
+       "align": "start",
+       "children": [
+        {
+         "t": "SectionHeading",
+         "for": "details",
+         "emphasis": "primary",
+         "id": "s1.0"
+        },
+        {
+         "t": "Description",
+         "emphasis": "secondary",
+         "id": "s1.1"
+        },
+        {
+         "t": "Grid",
+         "columns": 3,
+         "ruled": true,
+         "mobile": 1,
+         "gap": "normal",
+         "children": [
+          {
+           "t": "Cell",
+           "child": {
+            "t": "Date",
+            "form": "numeral",
+            "emphasis": "primary",
+            "id": "s1.2.0.c"
+           },
+           "span": 1,
+           "rowSpan": 1,
+           "id": "s1.2.0"
+          },
+          {
+           "t": "Cell",
+           "child": {
+            "t": "Time",
+            "emphasis": "primary",
+            "id": "s1.2.1.c"
+           },
+           "span": 1,
+           "rowSpan": 1,
+           "id": "s1.2.1"
+          },
+          {
+           "t": "Cell",
+           "child": {
+            "t": "Stack",
+            "children": [
+             {
+              "t": "Venue",
+              "emphasis": "primary",
+              "id": "s1.2.2.c.0"
+             },
+             {
+              "t": "Location",
+              "emphasis": "secondary",
+              "id": "s1.2.2.c.1"
+             }
+            ],
+            "gap": "normal",
+            "id": "s1.2.2.c"
+           },
+           "span": 1,
+           "rowSpan": 1,
+           "id": "s1.2.2"
+          }
+         ],
+         "id": "s1.2"
+        }
+       ],
+       "id": "s1"
+      },
+      "fill": "auto",
+      "id": "s1"
+     },
+     {
+      "kind": "rsvp",
+      "surface": "accent",
+      "align": "center",
+      "root": {
+       "t": "Stack",
+       "gap": "normal",
+       "align": "center",
+       "children": [
+        {
+         "t": "SectionHeading",
+         "for": "rsvp",
+         "emphasis": "display",
+         "id": "s2.0"
+        },
+        {
+         "t": "Deadline",
+         "emphasis": "secondary",
+         "id": "s2.1"
+        },
+        {
+         "t": "RSVP",
+         "id": "s2.2"
+        }
+       ],
+       "id": "s2"
+      },
+      "fill": "auto",
+      "id": "s2"
+     },
+     {
+      "kind": "registry",
+      "surface": "base",
+      "align": "center",
+      "root": {
+       "t": "Stack",
+       "gap": "normal",
+       "align": "center",
+       "children": [
+        {
+         "t": "SectionHeading",
+         "for": "registry",
+         "emphasis": "primary",
+         "id": "s3.0"
+        },
+        {
+         "t": "Registry",
+         "layout": {
+          "t": "Split",
+          "ratio": "50",
+          "mobile": "stack",
+          "divider": "hairline",
+          "children": [
+           {
+            "t": "RegistryItem",
+            "kind": "gift",
+            "emphasis": "standard",
+            "id": "s3.1.l.0"
+           },
+           {
+            "t": "RegistryItem",
+            "kind": "external",
+            "emphasis": "standard",
+            "id": "s3.1.l.1"
+           }
+          ],
+          "align": "stretch",
+          "id": "s3.1.l"
+         },
+         "id": "s3.1"
+        },
+        {
+         "t": "CashFund",
+         "id": "s3.2"
+        }
+       ],
+       "id": "s3"
+      },
+      "fill": "auto",
+      "id": "s3"
+     }
+    ]
+   },
+   "compositionHash": "f510c565",
+   "layout": {
+    "s0": {
+     "anchor": "bottom-start",
+     "extentPct": 100,
+     "mobile": "stack"
+    },
+    "s0.c": {
+     "gapPx": 16,
+     "align": "start"
+    },
+    "s0.c.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.1": {
+     "emphasis": "display"
+    },
+    "s0.c.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.3": {
+     "emphasis": null
+    },
+    "s0.c.4": {
+     "gapPx": 16,
+     "justify": "start"
+    },
+    "s0.c.4.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.4.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.4.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.5": {
+     "emphasis": null
+    },
+    "s0.d": {
+     "motif": {
+      "id": "plaid",
+      "role": "field"
+     },
+     "extentPct": 100
+    },
+    "s1": {
+     "gapPx": 16,
+     "align": "start"
+    },
+    "s1.0": {
+     "emphasis": "primary"
+    },
+    "s1.1": {
+     "emphasis": "secondary"
+    },
+    "s1.2": {
+     "columns": 3,
+     "mobileColumns": 1,
+     "ruled": true,
+     "gapPx": 16
+    },
+    "s1.2.0": {
+     "span": 1,
+     "rowSpan": 1
+    },
+    "s1.2.0.c": {
+     "emphasis": "primary"
+    },
+    "s1.2.1": {
+     "span": 1,
+     "rowSpan": 1
+    },
+    "s1.2.1.c": {
+     "emphasis": "primary"
+    },
+    "s1.2.2": {
+     "span": 1,
+     "rowSpan": 1
+    },
+    "s1.2.2.c": {
+     "gapPx": 16,
+     "align": null
+    },
+    "s1.2.2.c.0": {
+     "emphasis": "primary"
+    },
+    "s1.2.2.c.1": {
+     "emphasis": "secondary"
+    },
+    "s2": {
+     "gapPx": 16,
+     "align": "center"
+    },
+    "s2.0": {
+     "emphasis": "display"
+    },
+    "s2.1": {
+     "emphasis": "secondary"
+    },
+    "s2.2": {
+     "emphasis": null
+    },
+    "s3": {
+     "gapPx": 16,
+     "align": "center"
+    },
+    "s3.0": {
+     "emphasis": "primary"
+    },
+    "s3.1": {
+     "emphasis": null
+    },
+    "s3.1.l": {
+     "first": 50,
+     "mobile": "stack",
+     "align": "stretch"
+    },
+    "s3.1.l.0": {
+     "emphasis": "standard"
+    },
+    "s3.1.l.1": {
+     "emphasis": "standard"
+    },
+    "s3.2": {
+     "emphasis": null
+    }
+   },
+   "content": {
+    "eyebrow": "A baby shower for our little boy",
+    "title": "Baby Shaker is on the way",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "monthShort": "Dec",
+    "year": "2026",
+    "weekday": "Saturday",
+    "time": "1:00–5:00 PM",
+    "venue": "The Lodge at Hanson Park",
+    "location": "Aldie, Virginia",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "deadline": "Kindly respond by December 1",
+    "initial": "B"
+   },
+   "seed": 2531501345,
+   "capabilities": {
+    "rsvp": true,
+    "registry": true,
+    "gifts": true,
+    "externalRegistry": true,
+    "cashFund": true,
+    "hosts": true,
+    "description": true,
+    "time": true,
+    "location": true,
+    "deadline": true
+   },
+   "compilerRepairs": [],
+   "repairSummary": {},
+   "verified": null,
+   "versions": {
+    "primitiveSet": "composition_v1",
+    "compiler": "proof-b-0.2",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1"
+   }
+  },
+  "title": "02 · editorial · mid · few",
+  "nearestAtAccept": 0.21,
+  "collision": false
+ },
+ {
+  "id": "03",
+  "seed": 2481168488,
+  "condition": "few",
+  "model": "claude-sonnet-5",
+  "batch": {
+   "index": 0,
+   "sibling": 2,
+   "batchSeed": "e581384a",
+   "allowedTokens": [
+    "staggerTitle"
+   ],
+   "forbiddenTokens": [
+    "heroNumeral",
+    "watermark"
+   ]
+  },
+  "designIntent": {
+   "family": "statement",
+   "tonalDirection": "light",
+   "typography": "hc_bodoni_inter",
+   "density": "spacious",
+   "composition": {
+    "asymmetry": "gentle",
+    "hierarchy": "dramatic",
+    "rhythm": "continuous",
+    "sectionContrast": "low",
+    "ornament": "restrained"
+   }
+  },
+  "directive": {
+   "opening": "monogram",
+   "structure": "Split",
+   "date": "inline",
+   "motif": "field",
+   "surface": "object",
+   "details": "own",
+   "rsvpIntro": "beside",
+   "registry": "list"
+  },
+  "calls": [
+   {
+    "kind": "initial",
+    "ms": 79345,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 12932,
+     "cache_read_input_tokens": 0,
+     "output_tokens": 7349,
+     "output_tokens_details": {
+      "thinking_tokens": 6396
+     },
+     "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+     },
+     "service_tier": "standard",
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 12932,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "inference_geo": "not_available",
+     "iterations": [
+      {
+       "input_tokens": 2,
+       "output_tokens": 7349,
+       "cache_read_input_tokens": 0,
+       "cache_creation_input_tokens": 12932,
+       "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 12932
+       },
+       "type": "message"
+      }
+     ],
+     "speed": "standard"
+    },
+    "cost": 0.125222,
+    "error": null
+   }
+  ],
+  "schemaValidFirst": true,
+  "schemaErrorsFirst": [],
+  "schemaValid": true,
+  "schemaErrors": [],
+  "tokenViolationsFirst": [],
+  "rawTree": {
+   "version": "composition_v1",
+   "sections": [
+    {
+     "kind": "hero",
+     "surface": "base",
+     "align": "start",
+     "fill": "screen",
+     "root": {
+      "t": "Surface",
+      "role": "contrast",
+      "inset": "normal",
+      "child": {
+       "t": "Split",
+       "ratio": "38",
+       "align": "stretch",
+       "mobile": "stack",
+       "divider": "none",
+       "children": [
+        {
+         "t": "MotifField",
+         "motif": {
+          "id": "plaid",
+          "role": "field"
+         },
+         "extent": "full"
+        },
+        {
+         "t": "Stack",
+         "gap": "normal",
+         "align": "start",
+         "children": [
+          {
+           "t": "Monogram",
+           "style": "ring"
+          },
+          {
+           "t": "EventTitle",
+           "emphasis": "display",
+           "layout": "stagger"
+          },
+          {
+           "t": "Cluster",
+           "justify": "start",
+           "children": [
+            {
+             "t": "Date",
+             "form": "full"
+            },
+            {
+             "t": "Rule",
+             "weight": "hairline",
+             "orientation": "v"
+            },
+            {
+             "t": "Time"
+            },
+            {
+             "t": "Rule",
+             "weight": "hairline",
+             "orientation": "v"
+            },
+            {
+             "t": "Venue"
+            }
+           ]
+          },
+          {
+           "t": "Hosts"
+          },
+          {
+           "t": "CTA",
+           "target": "rsvp",
+           "style": "button"
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    {
+     "kind": "details",
+     "surface": "alt",
+     "align": "start",
+     "root": {
+      "t": "Split",
+      "ratio": "50",
+      "align": "start",
+      "mobile": "stack",
+      "divider": "hairline",
+      "children": [
+       {
+        "t": "Stack",
+        "gap": "normal",
+        "children": [
+         {
+          "t": "SectionHeading",
+          "for": "details",
+          "emphasis": "primary"
+         },
+         {
+          "t": "Description"
+         }
+        ]
+       },
+       {
+        "t": "Frame",
+        "rule": "hairline",
+        "inset": "normal",
+        "child": {
+         "t": "Grid",
+         "columns": 2,
+         "ruled": true,
+         "gap": "normal",
+         "mobile": 1,
+         "children": [
+          {
+           "t": "Cell",
+           "child": {
+            "t": "Date",
+            "form": "numeral",
+            "emphasis": "display"
+           }
+          },
+          {
+           "t": "Cell",
+           "child": {
+            "t": "Stack",
+            "gap": "tight",
+            "children": [
+             {
+              "t": "Time",
+              "emphasis": "primary"
+             },
+             {
+              "t": "Location"
+             }
+            ]
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "kind": "rsvp",
+     "surface": "base",
+     "align": "start",
+     "root": {
+      "t": "Split",
+      "ratio": "50",
+      "align": "start",
+      "mobile": "stack",
+      "divider": "hairline",
+      "children": [
+       {
+        "t": "Stack",
+        "gap": "normal",
+        "children": [
+         {
+          "t": "SectionHeading",
+          "for": "rsvp",
+          "emphasis": "display"
+         },
+         {
+          "t": "Deadline"
+         }
+        ]
+       },
+       {
+        "t": "RSVP"
+       }
+      ]
+     }
+    },
+    {
+     "kind": "registry",
+     "surface": "contrast",
+     "align": "start",
+     "root": {
+      "t": "Stack",
+      "gap": "normal",
+      "children": [
+       {
+        "t": "SectionHeading",
+        "for": "registry",
+        "emphasis": "primary"
+       },
+       {
+        "t": "Registry",
+        "layout": {
+         "t": "Stack",
+         "gap": "normal",
+         "children": [
+          {
+           "t": "RegistryItem",
+           "kind": "gift"
+          },
+          {
+           "t": "RegistryItem",
+           "kind": "external"
+          },
+          {
+           "t": "RegistryItem",
+           "kind": "cashfund"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "repairValid": true,
+  "violationsBefore": 0,
+  "remaining": [],
+  "spec": {
+   "version": "resolved_v2",
+   "designIntent": {
+    "family": "statement",
+    "tonalDirection": "light",
+    "typography": "hc_bodoni_inter",
+    "typographyCategory": "high_contrast_editorial",
+    "typographyObject": {
+     "category": "high_contrast_editorial",
+     "display": "Bodoni Moda",
+     "body": "Inter",
+     "holdsAtMonumental": true
+    },
+    "density": "spacious",
+    "composition": {
+     "asymmetry": "gentle",
+     "hierarchy": "dramatic",
+     "rhythm": "continuous",
+     "sectionContrast": "low",
+     "ornament": "restrained"
+    },
+    "pageSystem": {
+     "border": "none",
+     "card": "flat",
+     "button": "underline",
+     "borderWeight": 1,
+     "displayTracking": 0
+    }
+   },
+   "pageSystem": {
+    "border": "none",
+    "card": "flat",
+    "button": "underline",
+    "borderWeight": 1,
+    "displayTracking": 0
+   },
+   "typography": {
+    "category": "high_contrast_editorial",
+    "display": "Bodoni Moda",
+    "body": "Inter",
+    "holdsAtMonumental": true
+   },
+   "composition": {
+    "version": "composition_v1",
+    "sections": [
+     {
+      "kind": "hero",
+      "surface": "base",
+      "align": "start",
+      "fill": "screen",
+      "root": {
+       "t": "Surface",
+       "role": "contrast",
+       "inset": "normal",
+       "child": {
+        "t": "Split",
+        "ratio": "38",
+        "align": "stretch",
+        "mobile": "stack",
+        "divider": "none",
+        "children": [
+         {
+          "t": "MotifField",
+          "motif": {
+           "id": "plaid",
+           "role": "field"
+          },
+          "extent": "full",
+          "id": "s0.c.0"
+         },
+         {
+          "t": "Stack",
+          "gap": "normal",
+          "align": "start",
+          "children": [
+           {
+            "t": "Monogram",
+            "style": "ring",
+            "id": "s0.c.1.0"
+           },
+           {
+            "t": "EventTitle",
+            "emphasis": "display",
+            "layout": "stagger",
+            "case": "none",
+            "id": "s0.c.1.1"
+           },
+           {
+            "t": "Cluster",
+            "justify": "start",
+            "children": [
+             {
+              "t": "Date",
+              "form": "full",
+              "emphasis": "secondary",
+              "id": "s0.c.1.2.0"
+             },
+             {
+              "t": "Rule",
+              "weight": "hairline",
+              "orientation": "v",
+              "id": "s0.c.1.2.1"
+             },
+             {
+              "t": "Time",
+              "emphasis": "secondary",
+              "id": "s0.c.1.2.2"
+             },
+             {
+              "t": "Rule",
+              "weight": "hairline",
+              "orientation": "v",
+              "id": "s0.c.1.2.3"
+             },
+             {
+              "t": "Venue",
+              "emphasis": "secondary",
+              "id": "s0.c.1.2.4"
+             }
+            ],
+            "gap": "normal",
+            "id": "s0.c.1.2"
+           },
+           {
+            "t": "Hosts",
+            "emphasis": "secondary",
+            "id": "s0.c.1.3"
+           },
+           {
+            "t": "CTA",
+            "target": "rsvp",
+            "style": "button",
+            "id": "s0.c.1.4"
+           }
+          ],
+          "id": "s0.c.1"
+         }
+        ],
+        "id": "s0.c"
+       },
+       "id": "s0"
+      },
+      "id": "s0"
+     },
+     {
+      "kind": "details",
+      "surface": "alt",
+      "align": "start",
+      "root": {
+       "t": "Split",
+       "ratio": "50",
+       "align": "start",
+       "mobile": "stack",
+       "divider": "hairline",
+       "children": [
+        {
+         "t": "Stack",
+         "gap": "normal",
+         "children": [
+          {
+           "t": "SectionHeading",
+           "for": "details",
+           "emphasis": "primary",
+           "id": "s1.0.0"
+          },
+          {
+           "t": "Description",
+           "emphasis": "secondary",
+           "id": "s1.0.1"
+          }
+         ],
+         "id": "s1.0"
+        },
+        {
+         "t": "Frame",
+         "rule": "hairline",
+         "inset": "normal",
+         "child": {
+          "t": "Grid",
+          "columns": 2,
+          "ruled": true,
+          "gap": "normal",
+          "mobile": 1,
+          "children": [
+           {
+            "t": "Cell",
+            "child": {
+             "t": "Date",
+             "form": "numeral",
+             "emphasis": "display",
+             "id": "s1.1.c.0.c"
+            },
+            "span": 1,
+            "rowSpan": 1,
+            "id": "s1.1.c.0"
+           },
+           {
+            "t": "Cell",
+            "child": {
+             "t": "Stack",
+             "gap": "tight",
+             "children": [
+              {
+               "t": "Time",
+               "emphasis": "primary",
+               "id": "s1.1.c.1.c.0"
+              },
+              {
+               "t": "Location",
+               "emphasis": "secondary",
+               "id": "s1.1.c.1.c.1"
+              }
+             ],
+             "id": "s1.1.c.1.c"
+            },
+            "span": 1,
+            "rowSpan": 1,
+            "id": "s1.1.c.1"
+           }
+          ],
+          "id": "s1.1.c"
+         },
+         "id": "s1.1"
+        }
+       ],
+       "id": "s1"
+      },
+      "fill": "auto",
+      "id": "s1"
+     },
+     {
+      "kind": "rsvp",
+      "surface": "base",
+      "align": "start",
+      "root": {
+       "t": "Split",
+       "ratio": "50",
+       "align": "start",
+       "mobile": "stack",
+       "divider": "hairline",
+       "children": [
+        {
+         "t": "Stack",
+         "gap": "normal",
+         "children": [
+          {
+           "t": "SectionHeading",
+           "for": "rsvp",
+           "emphasis": "display",
+           "id": "s2.0.0"
+          },
+          {
+           "t": "Deadline",
+           "emphasis": "caption",
+           "id": "s2.0.1"
+          }
+         ],
+         "id": "s2.0"
+        },
+        {
+         "t": "RSVP",
+         "id": "s2.1"
+        }
+       ],
+       "id": "s2"
+      },
+      "fill": "auto",
+      "id": "s2"
+     },
+     {
+      "kind": "registry",
+      "surface": "contrast",
+      "align": "start",
+      "root": {
+       "t": "Stack",
+       "gap": "normal",
+       "children": [
+        {
+         "t": "SectionHeading",
+         "for": "registry",
+         "emphasis": "primary",
+         "id": "s3.0"
+        },
+        {
+         "t": "Registry",
+         "layout": {
+          "t": "Stack",
+          "gap": "normal",
+          "children": [
+           {
+            "t": "RegistryItem",
+            "kind": "gift",
+            "emphasis": "standard",
+            "id": "s3.1.l.0"
+           },
+           {
+            "t": "RegistryItem",
+            "kind": "external",
+            "emphasis": "standard",
+            "id": "s3.1.l.1"
+           },
+           {
+            "t": "RegistryItem",
+            "kind": "cashfund",
+            "emphasis": "standard",
+            "id": "s3.1.l.2"
+           }
+          ],
+          "id": "s3.1.l"
+         },
+         "id": "s3.1"
+        }
+       ],
+       "id": "s3"
+      },
+      "fill": "auto",
+      "id": "s3"
+     }
+    ]
+   },
+   "compositionHash": "549a9b91",
+   "layout": {
+    "s0": {
+     "role": "contrast",
+     "insetPx": 36
+    },
+    "s0.c": {
+     "first": 38,
+     "mobile": "stack",
+     "align": "stretch"
+    },
+    "s0.c.0": {
+     "motif": {
+      "id": "plaid",
+      "role": "field"
+     },
+     "extentPct": 100
+    },
+    "s0.c.1": {
+     "gapPx": 30,
+     "align": "start"
+    },
+    "s0.c.1.0": {
+     "emphasis": null
+    },
+    "s0.c.1.1": {
+     "emphasis": "display"
+    },
+    "s0.c.1.2": {
+     "gapPx": 30,
+     "justify": "start"
+    },
+    "s0.c.1.2.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.1.2.1": {
+     "emphasis": null
+    },
+    "s0.c.1.2.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.1.2.3": {
+     "emphasis": null
+    },
+    "s0.c.1.2.4": {
+     "emphasis": "secondary"
+    },
+    "s0.c.1.3": {
+     "emphasis": "secondary"
+    },
+    "s0.c.1.4": {
+     "emphasis": null
+    },
+    "s1": {
+     "first": 50,
+     "mobile": "stack",
+     "align": "start"
+    },
+    "s1.0": {
+     "gapPx": 30,
+     "align": null
+    },
+    "s1.0.0": {
+     "emphasis": "primary"
+    },
+    "s1.0.1": {
+     "emphasis": "secondary"
+    },
+    "s1.1": {
+     "rule": "hairline",
+     "insetPx": 36,
+     "motif": null
+    },
+    "s1.1.c": {
+     "columns": 2,
+     "mobileColumns": 1,
+     "ruled": true,
+     "gapPx": 30
+    },
+    "s1.1.c.0": {
+     "span": 1,
+     "rowSpan": 1
+    },
+    "s1.1.c.0.c": {
+     "emphasis": "display"
+    },
+    "s1.1.c.1": {
+     "span": 1,
+     "rowSpan": 1
+    },
+    "s1.1.c.1.c": {
+     "gapPx": 14,
+     "align": null
+    },
+    "s1.1.c.1.c.0": {
+     "emphasis": "primary"
+    },
+    "s1.1.c.1.c.1": {
+     "emphasis": "secondary"
+    },
+    "s2": {
+     "first": 50,
+     "mobile": "stack",
+     "align": "start"
+    },
+    "s2.0": {
+     "gapPx": 30,
+     "align": null
+    },
+    "s2.0.0": {
+     "emphasis": "display"
+    },
+    "s2.0.1": {
+     "emphasis": "caption"
+    },
+    "s2.1": {
+     "emphasis": null
+    },
+    "s3": {
+     "gapPx": 30,
+     "align": null
+    },
+    "s3.0": {
+     "emphasis": "primary"
+    },
+    "s3.1": {
+     "emphasis": null
+    },
+    "s3.1.l": {
+     "gapPx": 30,
+     "align": null
+    },
+    "s3.1.l.0": {
+     "emphasis": "standard"
+    },
+    "s3.1.l.1": {
+     "emphasis": "standard"
+    },
+    "s3.1.l.2": {
+     "emphasis": "standard"
+    }
+   },
+   "content": {
+    "eyebrow": "A baby shower for our little boy",
+    "title": "Baby Shaker is on the way",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "monthShort": "Dec",
+    "year": "2026",
+    "weekday": "Saturday",
+    "time": "1:00–5:00 PM",
+    "venue": "The Lodge at Hanson Park",
+    "location": "Aldie, Virginia",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "deadline": "Kindly respond by December 1",
+    "initial": "B"
+   },
+   "seed": 2481168488,
+   "capabilities": {
+    "rsvp": true,
+    "registry": true,
+    "gifts": true,
+    "externalRegistry": true,
+    "cashFund": true,
+    "hosts": true,
+    "description": true,
+    "time": true,
+    "location": true,
+    "deadline": true
+   },
+   "compilerRepairs": [],
+   "repairSummary": {},
+   "verified": null,
+   "versions": {
+    "primitiveSet": "composition_v1",
+    "compiler": "proof-b-0.2",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1"
+   }
+  },
+  "title": "03 · statement · light · few",
+  "nearestAtAccept": 0.19,
+  "collision": false
+ }
+]

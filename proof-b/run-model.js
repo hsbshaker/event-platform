@@ -3,11 +3,14 @@
 const { execFile } = require("child_process"), fs = require("fs"), path = require("path");
 const C = require("./dist/composition.js"), L = require("./library.js"), D = require("./directives.js"), P = require("./prompt.js"), { compile, FULL_CAPS, REDUCED_CAPS } = require("./compile.js");
 global.window = global; require("../proof-a1/sites.js"); const { VOCAB } = require("../proof-a1/vocab.js");
-const [outdir, countArg, seedArg, condArg] = process.argv.slice(2); const COUNT = Number(countArg || 60), MASTER = Number(seedArg || 20260912), COND = condArg || "zero";
+const [outdir, countArg, seedArg, condArg] = process.argv.slice(2); const MASTER = Number(seedArg || 20260912), COND = condArg || "zero";
+const COUNT = process.argv.includes("--batches") ? 3 * Number(process.argv[process.argv.indexOf("--batches") + 1]) : Number(countArg || 60);
 const CAPS = process.argv.includes("--caps") && process.argv[process.argv.indexOf("--caps") + 1] === "reduced" ? REDUCED_CAPS : FULL_CAPS;
 const MODEL = process.argv.includes("--model") ? process.argv[process.argv.indexOf("--model") + 1] : "claude-sonnet-5";
 const FIXED_DIRECTIVE = process.argv.includes("--directive-seed") ? Number(process.argv[process.argv.indexOf("--directive-seed") + 1]) : null;   // mode-collapse test: one directive, many seeds
 const FIXED_INTENT = process.argv.includes("--intent-seed") ? Number(process.argv[process.argv.indexOf("--intent-seed") + 1]) : null;
+const BATCHES = process.argv.includes("--batches") ? Number(process.argv[process.argv.indexOf("--batches") + 1]) : null;   // planner mode: sibling batches of three
+const PL = require("./planner.js");
 const ONLY = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1].split(",").map(Number) : null;   // re-run specific indices (1-based ids) after an infrastructure failure, same seeds
 const PAR = 4; fs.mkdirSync(path.join(outdir, "raw"), { recursive: true }); fs.mkdirSync(path.join(outdir, "specs"), { recursive: true });
 const hash = (...p) => { let h = 2166136261; for (const ch of p.join("|")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -35,9 +38,12 @@ function callModel(system, user) {
 function parseJson(text) { const s = text.indexOf("{"), e = text.lastIndexOf("}"); if (s < 0 || e < 0) return null; try { return JSON.parse(text.slice(s, e + 1)); } catch (e) { return null; } }
 
 async function one(i) {
-  const id = String(i + 1).padStart(2, "0"); const seed = hash(MASTER, COND, i); const di = intentFor(FIXED_INTENT !== null ? FIXED_INTENT : seed); const directive = D.sample(FIXED_DIRECTIVE !== null ? FIXED_DIRECTIVE : seed + 1);
-  const rec = { id, seed, condition: COND, model: MODEL, designIntent: { family: di.family, tonalDirection: di.tonalDirection, typography: di.typography, density: di.density, composition: di.composition }, directive, calls: [] };
-  const prompt = P.build({ caps: CAPS, designIntent: di, directive, condition: COND, seed });
+  const id = String(i + 1).padStart(2, "0");
+  let seed, di, directive, batch = null, forbiddenTokens = [];
+  if (BATCHES !== null) { const b = Math.floor(i / 3), k = i % 3; const plan = PL.planBatch(MASTER, b); const sib = plan.siblings[k]; seed = sib.seed; di = sib.designIntent; directive = sib.directive; forbiddenTokens = sib.forbiddenTokens; batch = { index: b, sibling: k, batchSeed: plan.batchSeed, allowedTokens: sib.allowedTokens, forbiddenTokens }; }
+  else { seed = hash(MASTER, COND, i); di = intentFor(FIXED_INTENT !== null ? FIXED_INTENT : seed); directive = D.sample(FIXED_DIRECTIVE !== null ? FIXED_DIRECTIVE : seed + 1); }
+  const rec = { id, seed, condition: COND, model: MODEL, batch, designIntent: { family: di.family, tonalDirection: di.tonalDirection, typography: di.typography, density: di.density, composition: di.composition }, directive, calls: [] };
+  const prompt = P.build({ caps: CAPS, designIntent: di, directive, condition: COND, seed, forbiddenTokens });
   let res = await callModel(prompt.system, prompt.user); rec.calls.push({ kind: "initial", ms: res.ms, usage: res.usage, cost: res.cost, error: res.error });
   fs.writeFileSync(path.join(outdir, "raw", `${id}-1.txt`), res.text);
   let raw = parseJson(res.text); let schema = raw ? C.validateSchema(raw) : { ok: false, errors: [{ rule: "schema.parse", path: "", detail: "not JSON" }] };
@@ -48,12 +54,17 @@ async function one(i) {
   }
   rec.schemaValid = schema.ok; rec.schemaErrors = schema.ok ? [] : schema.errors.slice(0, 10);
   if (!schema.ok) { rec.fallback = "library"; const row = L.A1_SITES[seed % L.A1_SITES.length]; raw = L.page(row[1], row[2], row[3], row[4], row[5], row[6]); }
+  if (batch && schema.ok) { const viol = PL.tokenViolations(raw, forbiddenTokens); rec.tokenViolationsFirst = viol;
+    if (viol.length) { const res2 = await callModel(prompt.system, prompt.user + `\n\nYour previous response used ${viol.join(", ")}, which this candidate may not use. Return the corrected CompositionTree JSON only.`); rec.calls.push({ kind: "reprompt-token", ms: res2.ms, usage: res2.usage, cost: res2.cost, error: res2.error });
+      fs.writeFileSync(path.join(outdir, "raw", `${id}-token.txt`), res2.text); const raw2 = parseJson(res2.text); const s2 = raw2 ? C.validateSchema(raw2) : { ok: false };
+      if (s2.ok) { raw = raw2; rec.tokenViolationsAfterReprompt = PL.tokenViolations(raw, forbiddenTokens); } else rec.tokenViolationsAfterReprompt = viol; } }
   rec.rawTree = raw;
-  const c = compile({ raw, caps: CAPS, designIntent: di, pageSystem: di.pageSystem, seed, id, source: rec.fallback || "model" });
+  const c = compile({ raw, caps: CAPS, designIntent: di, pageSystem: di.pageSystem, seed, id, source: rec.fallback || "model", forbiddenTokens });
   rec.repairValid = c.repairValid; rec.violationsBefore = c.violationsBefore; rec.remaining = c.remaining; rec.spec = c.spec; rec.title = `${id} · ${di.family} · ${di.tonalDirection} · ${COND}`;
   rec.prompt = prompt; return rec;
 }
 (async () => {
+  if (BATCHES !== null && !ONLY) { /* COUNT follows from batches */ }
   const prior = ONLY && fs.existsSync(path.join(outdir, "results.json")) ? JSON.parse(fs.readFileSync(path.join(outdir, "results.json"), "utf8")) : null;
   const todo = ONLY ? ONLY.map(x => x - 1) : Array.from({ length: COUNT }, (_, i) => i);
   const results = prior ? prior.map(p => ({ ...p })) : []; let next = 0;

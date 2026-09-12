@@ -288,6 +288,12 @@ function validateStructure(tree, caps) {
         }
         if (node.t === "Rail" && node.mobile === "hide" && node.rail.t !== "MotifField")
             add("responsive.railHide", path, "hide only for a MotifField rail");
+        // box depth: a Frame or Surface inside a Frame or Surface inside a Frame or Surface is three borders
+        if (node.t === "Frame" || node.t === "Surface") {
+            const boxes = ancestors.filter(a => a.t === "Frame" || a.t === "Surface").length;
+            if (boxes >= 2)
+                add("boxes.depth", path, `${node.t} nested inside ${boxes} boxes`);
+        }
         // motif kind must match its slot: patterns fill fields, bands and frames; arrangements are glyphs and dividers
         if ((node.t === "MotifField" || node.t === "MotifBand" || node.t === "Frame") && node.motif && !PATTERN_MOTIFS.includes(node.motif.id))
             add("motif.kind", path, `${node.motif.id} is an arrangement, not a pattern`);
@@ -638,6 +644,13 @@ function repair(input, caps, seed = 1, macros = DEFAULT_MACROS) {
                         else
                             s.root = { t: "Stack", children: [s.root, n] };
                         log(r, p, "structural", n.t, `moved to ${k} section`);
+                        changed = true;
+                    }
+                    else if (r === "boxes.depth") {
+                        const n = getAt(p);
+                        const rep = n.t === "Frame" ? { t: "Stack", children: [n.child] } : n.child;
+                        setAt(p, rep);
+                        log(r, p, "structural", n.t, rep.t === "Stack" ? "Stack (box removed)" : "unwrapped");
                         changed = true;
                     }
                     else if (r === "motif.kind") {
@@ -1073,10 +1086,51 @@ function rulesText(caps) {
         `Nesting: Cluster holds only text nodes, Date, CTA, Glyph, vertical Rule. Split has exactly two children. Rail's rail is a MotifField or a Stack of at most 4 small leaves. Grid children are Cells; a Cell may not hold a Grid or an Overlay. No Frame inside a Frame, no Overlay inside an Overlay, no Grid inside a Grid, no Rail inside a Rail, Split inside Split at most once. A Surface may not repeat the surface it sits on. Overlay content is a text-bearing Stack, Frame or Split; its decoration is a MotifField, Monogram, Glyph or Date numeral.`,
         `Components: RSVP, Registry and CashFund may only be children of a section root, Stack, Surface, Frame, Split (with at least half the width) or a wide Cell. RSVP lives in the rsvp section; Registry lives in the registry section. Registry.layout is a Grid, Stack or Split whose leaves are RegistryItem.`,
         `Limits: container depth at most ${LIMITS.depth}; at most ${LIMITS.nodesPerSection} nodes per section; per section at most 1 Overlay, 1 Rail, 1 Grid, 1 Frame, 2 MotifField; per page at most 2 Overlay, 2 Frame; at most two consecutive contrast sections.`,
+        `Boxes: at most two nested boxes (Frame or Surface) on any path; a Frame inside a Surface inside a framed hero is three borders and will be unwrapped.`,
         `Motifs: pattern motifs (plaid, stripe, gingham, linen) go in MotifField, MotifBand and Frame.motif; arrangement motifs (equestrian, botanical, celestial) go in Glyph and Rule.glyphs.`,
         `Responsive: Split.mobile keep is only honoured when neither side holds a component or the Description (the compiler then fits the text to the narrower column). Rail.mobile hide is only honoured for a MotifField rail.`,
     ].join("\n");
 }
-const Composition = { ENUM, NODE_SPEC, LIMITS, FIT_LIMITS, SCALES, SIG_WEIGHTS, DEFAULT_MACROS, validateSchema, validateStructure, repair, estimateFit, canonicalize, skeleton, skeletonTokens, similarity, heroSimilarity, seqSim, resolveLayout, specText, rulesText, walk, childrenOf, countNodes, widthShares, textFor, fnv };
+// Attractive tokens: devices the model over-selects. Diversity controls, scoped to a sibling batch by the planner. Generic: id, detector, neutralizer.
+const ATTRACTIVE_TOKENS = [
+    { id: "staggerTitle", doc: "EventTitle.layout stagger or cascade", detect: t => { let f = false; walk(t, ({ node }) => { if (node.t === "EventTitle" && node.layout && node.layout !== "block")
+            f = true; }); return f; },
+        neutralize: t => { const out = []; walk(t, ({ node, path }) => { if (node.t === "EventTitle" && node.layout && node.layout !== "block") {
+            out.push({ rule: "planner.attractiveToken", path, kind: "planner", before: node.layout, after: "block" });
+            node.layout = "block";
+        } }); return out; } },
+    { id: "heroNumeral", doc: "a Date numeral in the hero", detect: t => { let f = false; walk({ version: t.version, sections: [t.sections[0]] }, ({ node }) => { if (node.t === "Date" && node.form === "numeral")
+            f = true; }); return f; },
+        neutralize: t => {
+            const out = [];
+            const seen = new Set();
+            walk({ version: t.version, sections: [t.sections[0]] }, ({ node }) => { if (node.t === "Date")
+                seen.add(node.form); });
+            walk({ version: t.version, sections: [t.sections[0]] }, ({ node, path }) => { if (node.t === "Date" && node.form === "numeral") {
+                const next = ["month-year", "weekday", "full"].find(f => !seen.has(f));
+                if (!next) {
+                    out.push({ rule: "planner.attractiveToken", path, kind: "planner", before: "numeral", after: "dropped" });
+                    node.t = "Rule";
+                    node.weight = "hairline";
+                    delete node.form;
+                    delete node.emphasis;
+                    return;
+                }
+                seen.add(next);
+                out.push({ rule: "planner.attractiveToken", path, kind: "planner", before: "numeral", after: next });
+                node.form = next;
+                if (node.emphasis === "display")
+                    node.emphasis = "primary";
+            } });
+            return out;
+        } },
+    { id: "watermark", doc: "a watermark Monogram or a decorative Date behind the title", detect: t => { let f = false; walk(t, ({ node, parentKey }) => { if (parentKey === "decoration" && (node.t === "Monogram" || node.t === "Date"))
+            f = true; }); return f; },
+        neutralize: t => { const out = []; walk(t, ({ node, path, parentKey, parent }) => { if (parentKey === "decoration" && (node.t === "Monogram" || node.t === "Date")) {
+            out.push({ rule: "planner.attractiveToken", path, kind: "planner", before: node.t, after: "MotifField linen" });
+            parent.decoration = { t: "MotifField", motif: { id: "linen", role: "field" } };
+        } }); return out; } },
+];
+const Composition = { ATTRACTIVE_TOKENS, ENUM, NODE_SPEC, LIMITS, FIT_LIMITS, SCALES, SIG_WEIGHTS, DEFAULT_MACROS, validateSchema, validateStructure, repair, estimateFit, canonicalize, skeleton, skeletonTokens, similarity, heroSimilarity, seqSim, resolveLayout, specText, rulesText, walk, childrenOf, countNodes, widthShares, textFor, fnv };
 if (typeof module !== "undefined")
     module.exports = Composition;

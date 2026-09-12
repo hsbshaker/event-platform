@@ -50,6 +50,7 @@
       tree: { version: "composition_v1", sections: [{ kind: "hero", surface: "base", root: stack([title(), T("Hosts"), T("Description"), T("Venue"), T("Date", { form: "full" }), T("CashFund"), T("CTA", { target: "registry" })]) }, rsvpOk(), regOk()] } },
     { name: "capabilities: no rsvp on this event but an rsvp section", caps: { rsvp: false, registry: true, gifts: true, externalRegistry: true, cashFund: true, hosts: true, description: true, time: true, location: true, deadline: true },
       tree: { version: "composition_v1", sections: [{ kind: "hero", surface: "base", root: heroOk() }, rsvpOk(), regOk()] } },
+    { name: "three nested boxes: Surface in Surface in framed hero", tree: page(frame(T("Surface", { role: "alt", child: T("Surface", { role: "contrast", inset: "deep", child: heroOk() }) }))) },
     { name: "Grid children that are not Cells", tree: page(T("Grid", { columns: 3, mobile: 1, children: [title(), T("Venue"), T("Date", { form: "full" })] })) },
     { name: "component hoisting: RSVP nested in an Overlay decoration slot", tree: { version: "composition_v1", sections: [{ kind: "hero", surface: "base", root: heroOk() }, { kind: "rsvp", surface: "base", root: overlay(stack([T("SectionHeading", { for: "rsvp" })]), T("RSVP")) }, regOk()] } },
   ];

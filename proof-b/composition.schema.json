@@ -1,0 +1,1081 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://event-platform.local/schemas/composition.schema.json",
+  "title": "CompositionTree",
+  "description": "Canonical schema for the composition model response (composition_v1). Structural rules (nesting, depth, coverage, capabilities, limits) are validated by the application after schema validation; see docs/event-renderer-system.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "sections"
+  ],
+  "properties": {
+    "version": {
+      "const": "composition_v1"
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Section"
+      },
+      "description": "Section count, order and kinds are structural rules (repaired), not schema rules."
+    }
+  },
+  "$defs": {
+    "MotifRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "plaid",
+            "stripe",
+            "gingham",
+            "linen",
+            "equestrian",
+            "botanical",
+            "celestial"
+          ]
+        },
+        "role": {
+          "enum": [
+            "field",
+            "band",
+            "frame",
+            "divider",
+            "accent"
+          ]
+        }
+      }
+    },
+    "Stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "children"
+      ],
+      "properties": {
+        "t": {
+          "const": "Stack"
+        },
+        "gap": {
+          "enum": [
+            "tight",
+            "normal",
+            "loose"
+          ]
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        }
+      },
+      "description": "vertical column of children"
+    },
+    "Cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "children"
+      ],
+      "properties": {
+        "t": {
+          "const": "Cluster"
+        },
+        "gap": {
+          "enum": [
+            "tight",
+            "normal",
+            "loose"
+          ]
+        },
+        "justify": {
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "between"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        }
+      },
+      "description": "inline row that wraps; small items only (text, Date, CTA, Glyph, vertical Rule)"
+    },
+    "Split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "ratio",
+        "mobile",
+        "children"
+      ],
+      "properties": {
+        "t": {
+          "const": "Split"
+        },
+        "ratio": {
+          "enum": [
+            "38",
+            "50",
+            "62"
+          ]
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "stretch"
+          ]
+        },
+        "divider": {
+          "enum": [
+            "none",
+            "hairline",
+            "strong",
+            "dashed"
+          ]
+        },
+        "mobile": {
+          "enum": [
+            "stack",
+            "stack-reverse",
+            "keep"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        }
+      },
+      "description": "two columns; ratio is the first child's share; divider draws a rule between the columns"
+    },
+    "Rail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "side",
+        "width",
+        "rail",
+        "mobile",
+        "child"
+      ],
+      "properties": {
+        "t": {
+          "const": "Rail"
+        },
+        "side": {
+          "enum": [
+            "start",
+            "end"
+          ]
+        },
+        "width": {
+          "enum": [
+            "thin",
+            "medium",
+            "wide"
+          ]
+        },
+        "rail": {
+          "$ref": "#/$defs/Node"
+        },
+        "mobile": {
+          "enum": [
+            "top",
+            "bottom",
+            "hide"
+          ]
+        },
+        "child": {
+          "$ref": "#/$defs/Node"
+        }
+      },
+      "description": "a fixed-width column (rail) beside the main child; rail holds a MotifField or a Stack of at most 4 small leaves"
+    },
+    "Grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "columns",
+        "mobile",
+        "children"
+      ],
+      "properties": {
+        "t": {
+          "const": "Grid"
+        },
+        "columns": {
+          "enum": [
+            2,
+            3,
+            4
+          ]
+        },
+        "ruled": {
+          "enum": [
+            true,
+            false
+          ]
+        },
+        "gap": {
+          "enum": [
+            "tight",
+            "normal",
+            "loose"
+          ]
+        },
+        "mobile": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "children": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        }
+      },
+      "description": "equal columns of Cells; ruled draws hairlines between cells"
+    },
+    "Cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "child"
+      ],
+      "properties": {
+        "t": {
+          "const": "Cell"
+        },
+        "span": {
+          "enum": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "rowSpan": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "child": {
+          "$ref": "#/$defs/Node"
+        }
+      },
+      "description": "one grid cell"
+    },
+    "Frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "rule",
+        "inset",
+        "child"
+      ],
+      "properties": {
+        "t": {
+          "const": "Frame"
+        },
+        "rule": {
+          "enum": [
+            "hairline",
+            "strong",
+            "double",
+            "none"
+          ]
+        },
+        "inset": {
+          "enum": [
+            "tight",
+            "normal",
+            "deep"
+          ]
+        },
+        "motif": {
+          "$ref": "#/$defs/MotifRef"
+        },
+        "child": {
+          "$ref": "#/$defs/Node"
+        }
+      },
+      "description": "a ruled box with an inset margin; rule none makes it a plain inset; motif fills the margin"
+    },
+    "Surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "role",
+        "child"
+      ],
+      "properties": {
+        "t": {
+          "const": "Surface"
+        },
+        "role": {
+          "enum": [
+            "base",
+            "alt",
+            "contrast",
+            "accent"
+          ]
+        },
+        "inset": {
+          "enum": [
+            "tight",
+            "normal",
+            "deep"
+          ]
+        },
+        "child": {
+          "$ref": "#/$defs/Node"
+        }
+      },
+      "description": "switches the surface role for its subtree (a panel, plate or card)"
+    },
+    "Overlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "content",
+        "decoration",
+        "anchor",
+        "extent",
+        "mobile"
+      ],
+      "properties": {
+        "t": {
+          "const": "Overlay"
+        },
+        "content": {
+          "$ref": "#/$defs/Node"
+        },
+        "decoration": {
+          "$ref": "#/$defs/Node"
+        },
+        "anchor": {
+          "enum": [
+            "top-start",
+            "top-end",
+            "bottom-start",
+            "bottom-end",
+            "center"
+          ]
+        },
+        "extent": {
+          "enum": [
+            "quarter",
+            "third",
+            "half",
+            "full"
+          ]
+        },
+        "mobile": {
+          "enum": [
+            "stack",
+            "keep"
+          ]
+        }
+      },
+      "description": "text-bearing content with one decorative object placed behind or beside it at an anchor; decoration may be MotifField, Monogram, Glyph, or Date numeral"
+    },
+    "MotifField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "motif"
+      ],
+      "properties": {
+        "t": {
+          "const": "MotifField"
+        },
+        "motif": {
+          "$ref": "#/$defs/MotifRef"
+        },
+        "extent": {
+          "enum": [
+            "quarter",
+            "third",
+            "half",
+            "full"
+          ]
+        }
+      },
+      "description": "a patterned panel"
+    },
+    "MotifBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "height"
+      ],
+      "properties": {
+        "t": {
+          "const": "MotifBand"
+        },
+        "motif": {
+          "$ref": "#/$defs/MotifRef"
+        },
+        "height": {
+          "enum": [
+            "thin",
+            "medium",
+            "tall"
+          ]
+        },
+        "fill": {
+          "enum": [
+            "pattern",
+            "accent"
+          ]
+        }
+      },
+      "description": "a full-width strip, patterned or accent-filled"
+    },
+    "Rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "weight"
+      ],
+      "properties": {
+        "t": {
+          "const": "Rule"
+        },
+        "weight": {
+          "enum": [
+            "hairline",
+            "strong",
+            "double"
+          ]
+        },
+        "orientation": {
+          "enum": [
+            "h",
+            "v"
+          ]
+        },
+        "glyphs": {
+          "enum": [
+            "plaid",
+            "stripe",
+            "gingham",
+            "linen",
+            "equestrian",
+            "botanical",
+            "celestial"
+          ]
+        }
+      },
+      "description": "a rule, optionally with a glyph divider"
+    },
+    "Glyph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "motif"
+      ],
+      "properties": {
+        "t": {
+          "const": "Glyph"
+        },
+        "motif": {
+          "enum": [
+            "plaid",
+            "stripe",
+            "gingham",
+            "linen",
+            "equestrian",
+            "botanical",
+            "celestial"
+          ]
+        },
+        "scale": {
+          "enum": [
+            "s",
+            "m",
+            "l"
+          ]
+        }
+      },
+      "description": "an arranged ornament from the motif library"
+    },
+    "Monogram": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "style"
+      ],
+      "properties": {
+        "t": {
+          "const": "Monogram"
+        },
+        "style": {
+          "enum": [
+            "ring",
+            "plain",
+            "watermark"
+          ]
+        }
+      },
+      "description": "the initial"
+    },
+    "Eyebrow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "Eyebrow"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        }
+      },
+      "description": "short line above the title"
+    },
+    "EventTitle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "EventTitle"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        },
+        "layout": {
+          "enum": [
+            "block",
+            "stagger",
+            "cascade"
+          ]
+        }
+      },
+      "description": "the event title (required exactly once); layout stagger/cascade breaks it into staggered lines"
+    },
+    "Hosts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "Hosts"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        }
+      },
+      "description": "host names"
+    },
+    "Description": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "Description"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        }
+      },
+      "description": "one-paragraph description"
+    },
+    "Deadline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "Deadline"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        }
+      },
+      "description": "RSVP deadline"
+    },
+    "Venue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "Venue"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        }
+      },
+      "description": "venue name"
+    },
+    "Location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "Location"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        }
+      },
+      "description": "city, state"
+    },
+    "Time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "Time"
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        },
+        "case": {
+          "enum": [
+            "upper",
+            "none"
+          ]
+        }
+      },
+      "description": "time range"
+    },
+    "Date": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "form"
+      ],
+      "properties": {
+        "t": {
+          "const": "Date"
+        },
+        "form": {
+          "enum": [
+            "full",
+            "numeral",
+            "month-year",
+            "weekday"
+          ]
+        },
+        "emphasis": {
+          "enum": [
+            "display",
+            "primary",
+            "secondary",
+            "caption"
+          ]
+        }
+      },
+      "description": "the date in one of four forms"
+    },
+    "CTA": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "target"
+      ],
+      "properties": {
+        "t": {
+          "const": "CTA"
+        },
+        "target": {
+          "enum": [
+            "rsvp",
+            "registry"
+          ]
+        },
+        "style": {
+          "enum": [
+            "button",
+            "link"
+          ]
+        }
+      },
+      "description": "call to action"
+    },
+    "SectionHeading": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "for"
+      ],
+      "properties": {
+        "t": {
+          "const": "SectionHeading"
+        },
+        "for": {
+          "enum": [
+            "details",
+            "rsvp",
+            "registry"
+          ]
+        },
+        "emphasis": {
+          "enum": [
+            "primary",
+            "display"
+          ]
+        }
+      },
+      "description": "the section's heading (copy is fixed)"
+    },
+    "RSVP": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "RSVP"
+        }
+      },
+      "description": "the RSVP form (opaque)"
+    },
+    "Registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "layout"
+      ],
+      "properties": {
+        "t": {
+          "const": "Registry"
+        },
+        "layout": {
+          "$ref": "#/$defs/Node"
+        }
+      },
+      "description": "arranges the registry items; layout is a Grid, Stack or Split whose leaves are RegistryItem"
+    },
+    "RegistryItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "kind"
+      ],
+      "properties": {
+        "t": {
+          "const": "RegistryItem"
+        },
+        "kind": {
+          "enum": [
+            "gift",
+            "external",
+            "cashfund"
+          ]
+        },
+        "emphasis": {
+          "enum": [
+            "featured",
+            "standard"
+          ]
+        }
+      },
+      "description": "one registry object (opaque card)"
+    },
+    "CashFund": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t"
+      ],
+      "properties": {
+        "t": {
+          "const": "CashFund"
+        }
+      },
+      "description": "standalone cash fund block"
+    },
+    "Node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Stack"
+        },
+        {
+          "$ref": "#/$defs/Cluster"
+        },
+        {
+          "$ref": "#/$defs/Split"
+        },
+        {
+          "$ref": "#/$defs/Rail"
+        },
+        {
+          "$ref": "#/$defs/Grid"
+        },
+        {
+          "$ref": "#/$defs/Cell"
+        },
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "$ref": "#/$defs/Surface"
+        },
+        {
+          "$ref": "#/$defs/Overlay"
+        },
+        {
+          "$ref": "#/$defs/MotifField"
+        },
+        {
+          "$ref": "#/$defs/MotifBand"
+        },
+        {
+          "$ref": "#/$defs/Rule"
+        },
+        {
+          "$ref": "#/$defs/Glyph"
+        },
+        {
+          "$ref": "#/$defs/Monogram"
+        },
+        {
+          "$ref": "#/$defs/Eyebrow"
+        },
+        {
+          "$ref": "#/$defs/EventTitle"
+        },
+        {
+          "$ref": "#/$defs/Hosts"
+        },
+        {
+          "$ref": "#/$defs/Description"
+        },
+        {
+          "$ref": "#/$defs/Deadline"
+        },
+        {
+          "$ref": "#/$defs/Venue"
+        },
+        {
+          "$ref": "#/$defs/Location"
+        },
+        {
+          "$ref": "#/$defs/Time"
+        },
+        {
+          "$ref": "#/$defs/Date"
+        },
+        {
+          "$ref": "#/$defs/CTA"
+        },
+        {
+          "$ref": "#/$defs/SectionHeading"
+        },
+        {
+          "$ref": "#/$defs/RSVP"
+        },
+        {
+          "$ref": "#/$defs/Registry"
+        },
+        {
+          "$ref": "#/$defs/RegistryItem"
+        },
+        {
+          "$ref": "#/$defs/CashFund"
+        }
+      ]
+    },
+    "Section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "root"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "hero",
+            "details",
+            "rsvp",
+            "registry",
+            "band"
+          ]
+        },
+        "surface": {
+          "enum": [
+            "base",
+            "alt",
+            "contrast",
+            "accent"
+          ]
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        "fill": {
+          "enum": [
+            "auto",
+            "screen"
+          ]
+        },
+        "root": {
+          "$ref": "#/$defs/Node"
+        }
+      }
+    }
+  }
+}

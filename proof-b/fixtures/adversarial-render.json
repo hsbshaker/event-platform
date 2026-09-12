@@ -16,7 +16,7 @@
   "id": "02",
   "name": "Frame in Frame in Frame",
   "repairValid": true,
-  "violations": 4,
+  "violations": 5,
   "repairs": {
    "structural": 2,
    "fit-verified": 0
@@ -448,6 +448,19 @@
  },
  {
   "id": "35",
+  "name": "three nested boxes: Surface in Surface in framed hero",
+  "repairValid": true,
+  "violations": 1,
+  "repairs": {
+   "structural": 1,
+   "fit-verified": 0
+  },
+  "overflowDesktop": false,
+  "overflowMobile": false,
+  "fitDemotions": 0
+ },
+ {
+  "id": "36",
   "name": "Grid children that are not Cells",
   "repairValid": true,
   "violations": 3,
@@ -460,7 +473,7 @@
   "fitDemotions": 1
  },
  {
-  "id": "36",
+  "id": "37",
   "name": "component hoisting: RSVP nested in an Overlay decoration slot",
   "repairValid": true,
   "violations": 2,

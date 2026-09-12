@@ -9,7 +9,7 @@ function capsText(caps) {
 function intentText(di) {
   return `DesignIntent (already chosen, honour it): family ${di.family}; tone ${di.tonalDirection}; typography ${di.typography} (${di.typographyCategory}); density ${di.density}; composition: asymmetry ${di.composition.asymmetry}, hierarchy ${di.composition.hierarchy}, rhythm ${di.composition.rhythm}, sectionContrast ${di.composition.sectionContrast}, ornament ${di.composition.ornament}.`;
 }
-function build({ caps, designIntent, directive, condition, seed, avoid }) {
+function build({ caps, designIntent, directive, condition, seed, avoid, forbiddenTokens }) {
   const system = `You are the composition author for an event website generator. You design the page's structure as a CompositionTree: a JSON tree of trusted layout primitives with semantic leaves bound to the event's content. You do not write HTML, CSS, JavaScript, copy, colors, sizes in pixels, or fonts; the compiler owns all of that. You own nesting, grouping, hierarchy (emphasis), relative size (ratio, width, extent tokens), section order and surfaces, alignment, structural motif placement, and mobile intent.
 Respond with the JSON object only. No prose, no markdown fences, no comments.`;
   const parts = [BRIEF, capsText(caps), intentText(designIntent),
@@ -17,6 +17,8 @@ Respond with the JSON object only. No prose, no markdown fences, no comments.`;
     `Rules (violations are repaired by the compiler, but a tree that needs no repair is better):\n${C.rulesText(caps)}`,
     `Design direction for this candidate (a nudge, not a template; realize it in your own structure): ${D.describe(directive)}`,
     `Aim for a composition a good designer would be proud of: one clear dominant object on the first screen, deliberate hierarchy, no clutter (a hero rarely needs more than 12 nodes), sections that read as one system.`];
+  if (forbiddenTokens && forbiddenTokens.length) { const doc = { staggerTitle: "EventTitle.layout stagger or cascade (use layout block)", heroNumeral: "a Date with form numeral anywhere in the hero section", watermark: "a Monogram or Date as an Overlay decoration" }; parts.push(`Not available to this candidate (a sibling candidate has it; the compiler will remove it): ${forbiddenTokens.map(t => doc[t]).join("; ")}.`); }
+  parts.push(`Boxes: never nest more than two boxes (Frame or Surface) on one path. A Frame inside a Surface inside a framed hero is three borders and reads as clutter.`);
   if (avoid && avoid.length) parts.push(`Do NOT reproduce these hero skeletons (already used by sibling candidates): ${avoid.map(a => `"${a}"`).join("; ")}. Make the hero structurally different.`);
   if (condition === "few") {
     const r = D.mulberry(seed + 99); const pick = [...L.A1_SITES].sort(() => r() - 0.5).slice(0, 3);

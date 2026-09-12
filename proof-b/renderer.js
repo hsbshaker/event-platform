@@ -107,12 +107,13 @@
     const vp = document.querySelector(".vp") || document.documentElement;
     const out = { mode, vpWidth, pageOverflow: vp.scrollWidth > vp.clientWidth + 1, texts: [], overflowing: [] };
     for (const el of document.querySelectorAll("[data-t=text]")) {
-      const cs = getComputedStyle(el); if (cs.writingMode.startsWith("vertical")) continue; /* rotated rail labels cannot be measured by width */ const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2; const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el); if (cs.writingMode.startsWith("vertical") || el.closest(".ov-deco")) continue; /* rotated rail labels cannot be measured by width; decorations are clipped watermarks by rule */ const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2; const r = el.getBoundingClientRect();
       const lines = Math.max(1, Math.round(r.height / lh)); const pr = el.parentElement.getBoundingClientRect();
       const overflow = el.scrollWidth > el.clientWidth + 2 || r.right > pr.right + 2 || r.left < pr.left - 2;   // wider than itself, or wider than its container
       out.texts.push({ id: el.dataset.id, cls: el.className, lines, overflow, fontPx: parseFloat(cs.fontSize) });
     }
-    for (const el of document.querySelectorAll(".site *")) { const cs = getComputedStyle(el); if (cs.writingMode.startsWith("vertical") || el.closest(".rail") && getComputedStyle(el.closest(".rail")).writingMode.startsWith("vertical")) continue; if (el.scrollWidth > el.clientWidth + 2 && cs.overflowX !== "hidden" && !el.closest("[data-t=text]") && !el.closest(".rail")) { out.overflowing.push(el.dataset.id || el.className); if (out.overflowing.length > 8) break; } }
+    for (const el of document.querySelectorAll(".site *")) { const cs = getComputedStyle(el); if (cs.writingMode.startsWith("vertical") || el.closest(".rail") && getComputedStyle(el.closest(".rail")).writingMode.startsWith("vertical")) continue; if (el.classList.contains("glyphs") || el.closest(".glyphs")) { if (el.classList.contains("glyphs")) { const gr = el.getBoundingClientRect(), pr = el.parentElement.getBoundingClientRect(); if (gr.right > pr.right + 2 || gr.left < pr.left - 2) out.overflowing.push("glyphs:" + (el.closest("[data-id]") || {}).dataset?.id); } continue; }
+      if (el.scrollWidth > el.clientWidth + 2 && cs.overflowX !== "hidden" && !el.closest("[data-t=text]") && !el.closest(".rail") && !el.closest(".ov-deco")) { out.overflowing.push(el.dataset.id || el.className); if (out.overflowing.length > 8) break; } }
     // rails clip; report a rail child that would be clipped as an overflow of the rail
     for (const rail of document.querySelectorAll(".p-rail .rail")) { const rr = rail.getBoundingClientRect(); for (const ch of rail.querySelectorAll("[data-t=text]")) { const cr = ch.getBoundingClientRect(); if (cr.right > rr.right + 2 || cr.left < rr.left - 2) { out.overflowing.push("rail-clip:" + ch.dataset.id); break; } } }
     const hero = document.querySelector(".kind-hero"); out.heroHeight = hero ? hero.getBoundingClientRect().height : 0;
