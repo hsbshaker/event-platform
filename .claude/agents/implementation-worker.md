@@ -1,6 +1,6 @@
 ---
 name: implementation-worker
-description: Default implementer for well-defined work whose design is settled. Use for ordinary features, UI components and pages, route handlers, routine data changes, localized refactors, ordinary tests, and bug fixes whose cause is understood. Examples - "Add the optional end-time field to the event details form per the task packet", "Write unit tests for the RSVP deadline rule as specified in spec.md §7.7", "Rename FeatureState to FeaturePresentationState across the listed files", "Implement the registry item list page from screen-spec.md". Escalates on ambiguity instead of inventing; not for root-cause debugging, security, migrations/RLS, or compiler/renderer internals.
+description: Default implementer for well-defined work whose design is settled. Use for ordinary features, UI components and pages, route handlers, routine data changes, straightforward non-security-sensitive migrations whose schema is already settled, localized refactors, ordinary tests, and bug fixes whose cause is understood. Examples - "Add the optional end-time field to the event details form per the task packet", "Write unit tests for the RSVP deadline rule as specified in spec.md §7.7", "Rename FeatureState to FeaturePresentationState across the listed files", "Implement the registry item list page from screen-spec.md". Escalates on ambiguity instead of inventing; not for root-cause debugging, security/RLS, complex or destructive/data migrations, or compiler/renderer internals.
 model: sonnet
 effort: medium
 isolation: worktree
