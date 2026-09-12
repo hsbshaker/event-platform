@@ -17,9 +17,10 @@ stack (Phase 10).
 
 1. Open `docs/human-test-1/review.html` in a browser (double-click the file, or serve the
    folder). It shows the desktop sheet, then the phone sheet, then the two questions.
-2. Send that page and its `sheets/` folder to each of five reviewers (zip the
-   `docs/human-test-1` folder without `responses/`, or host the folder anywhere static).
-   Each reviewer works alone, without seeing others' answers.
+2. Send **only** `review.html` and the `sheets/` folder to each of five reviewers (zip those
+   two, or host them anywhere static). Do not send this README, `responses/` or anything from
+   `proof-b/`: reviewers must not be told how the sheet is composed. Each reviewer works alone,
+   without seeing others' answers.
 3. Each reviewer clicks **Download my results (JSON)** (or **Copy**) and sends you the file.
    Save the files as `docs/human-test-1/responses/<name>.json`.
 4. Score:
@@ -33,5 +34,10 @@ stack (Phase 10).
    `docs/human-test-1/score.json` (`summary.pass`, per-reviewer rates, grouping stats).
 5. Return `score.json`. Record the outcome in `docs/development-plan.md` (Phase 0 row) and
    the calibration notes in `docs/CHANGELOG-v6.md`; do not change the ≥ 70% bar.
+
+Note for scoring: `proof-b/human-test-form.md` states three pass clauses; the frozen
+`score-human.js` enforces the median ≥ 70% rate and the ≤ 3 model-group size, and reports
+mixed groups (`mixedGroups`) without applying them. Decide which reading is the bar before
+scoring so the calibration record is unambiguous; the scorer itself is not modified here.
 
 Status: **prepared, not run** until reviewer files exist in `responses/`.

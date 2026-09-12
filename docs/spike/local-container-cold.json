@@ -13,35 +13,36 @@
     "cleanAll": true,
     "coldStarts": 1,
     "wallMs": {
-      "median": 1384,
-      "p95": 1384,
+      "median": 673,
+      "p95": 673,
       "cold": [
-        3501
+        4046
       ],
-      "warmMedian": 1384
+      "warmMedian": 673
     },
     "inflateMs": {
       "cold": [
-        2242
+        2179
       ],
       "warmMedian": 0
     },
     "launchMs": {
-      "median": 40,
-      "p95": 40
+      "median": 54,
+      "p95": 54
     },
     "renderMs": {
       "390": {
-        "median": 76,
+        "median": 77,
         "p95": 134
       },
       "1280": {
-        "median": 75,
-        "p95": 85
+        "median": 74,
+        "p95": 79
       }
     },
-    "rssMb": {
-      "max": 242
+    "nodeRssMb": {
+      "max": 247,
+      "note": "Node process only; excludes the Chromium child"
     },
     "env": {
       "region": null,
@@ -56,17 +57,17 @@
     {
       "i": 0,
       "status": 200,
-      "wallMs": 3501,
+      "wallMs": 4046,
       "ok": true,
       "error": null,
       "coldStart": true,
       "invocation": 1,
-      "totalMs": 3389,
+      "totalMs": 3938,
       "timings": {
-        "importMs": 478,
-        "inflateMs": 2242,
-        "launchMs": 69,
-        "closeMs": 23
+        "importMs": 502,
+        "inflateMs": 2179,
+        "launchMs": 54,
+        "closeMs": 621
       },
       "byWidth": {
         "390": {
@@ -76,252 +77,8 @@
           "clean": true,
           "heroHeight": 609.15625,
           "renderMs": [
-            140,
+            137,
             73,
-            76
-          ]
-        },
-        "1280": {
-          "runs": 3,
-          "deterministic": true,
-          "fontsLoaded": true,
-          "clean": true,
-          "heroHeight": 712.03125,
-          "renderMs": [
-            85,
-            75,
-            75
-          ]
-        }
-      },
-      "runs": [
-        {
-          "width": 390,
-          "repeat": 0,
-          "renderMs": 140,
-          "fontsLoaded": true,
-          "heroHeight": 609.15625,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 4497
-        },
-        {
-          "width": 1280,
-          "repeat": 0,
-          "renderMs": 85,
-          "fontsLoaded": true,
-          "heroHeight": 712.03125,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 3911
-        },
-        {
-          "width": 390,
-          "repeat": 1,
-          "renderMs": 73,
-          "fontsLoaded": true,
-          "heroHeight": 609.15625,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 4497
-        },
-        {
-          "width": 1280,
-          "repeat": 1,
-          "renderMs": 75,
-          "fontsLoaded": true,
-          "heroHeight": 712.03125,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 3911
-        },
-        {
-          "width": 390,
-          "repeat": 2,
-          "renderMs": 76,
-          "fontsLoaded": true,
-          "heroHeight": 609.15625,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 4497
-        },
-        {
-          "width": 1280,
-          "repeat": 2,
-          "renderMs": 75,
-          "fontsLoaded": true,
-          "heroHeight": 712.03125,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 3911
-        }
-      ],
-      "env": {
-        "region": null,
-        "vercelEnv": null,
-        "lambdaMemoryMb": null,
-        "node": "v22.22.2",
-        "chromium": "153.0.8010.0"
-      },
-      "memoryMb": {
-        "rssBefore": 128,
-        "rssAfter": 241,
-        "heapUsedAfter": 68
-      }
-    },
-    {
-      "i": 1,
-      "status": 200,
-      "wallMs": 1171,
-      "ok": true,
-      "error": null,
-      "coldStart": false,
-      "invocation": 2,
-      "totalMs": 1159,
-      "timings": {
-        "importMs": 0,
-        "inflateMs": 0,
-        "launchMs": 38,
-        "closeMs": 575
-      },
-      "byWidth": {
-        "390": {
-          "runs": 3,
-          "deterministic": true,
-          "fontsLoaded": true,
-          "clean": true,
-          "heroHeight": 609.15625,
-          "renderMs": [
-            126,
-            72,
-            73
-          ]
-        },
-        "1280": {
-          "runs": 3,
-          "deterministic": true,
-          "fontsLoaded": true,
-          "clean": true,
-          "heroHeight": 712.03125,
-          "renderMs": [
-            69,
-            86,
-            73
-          ]
-        }
-      },
-      "runs": [
-        {
-          "width": 390,
-          "repeat": 0,
-          "renderMs": 126,
-          "fontsLoaded": true,
-          "heroHeight": 609.15625,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 4497
-        },
-        {
-          "width": 1280,
-          "repeat": 0,
-          "renderMs": 69,
-          "fontsLoaded": true,
-          "heroHeight": 712.03125,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 3911
-        },
-        {
-          "width": 390,
-          "repeat": 1,
-          "renderMs": 72,
-          "fontsLoaded": true,
-          "heroHeight": 609.15625,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 4497
-        },
-        {
-          "width": 1280,
-          "repeat": 1,
-          "renderMs": 86,
-          "fontsLoaded": true,
-          "heroHeight": 712.03125,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 3911
-        },
-        {
-          "width": 390,
-          "repeat": 2,
-          "renderMs": 73,
-          "fontsLoaded": true,
-          "heroHeight": 609.15625,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 4497
-        },
-        {
-          "width": 1280,
-          "repeat": 2,
-          "renderMs": 73,
-          "fontsLoaded": true,
-          "heroHeight": 712.03125,
-          "texts": 15,
-          "overflowing": 0,
-          "pageOverflow": false,
-          "docHeight": 3911
-        }
-      ],
-      "env": {
-        "region": null,
-        "vercelEnv": null,
-        "lambdaMemoryMb": null,
-        "node": "v22.22.2",
-        "chromium": "153.0.8010.0"
-      },
-      "memoryMb": {
-        "rssBefore": 240,
-        "rssAfter": 241,
-        "heapUsedAfter": 68
-      }
-    },
-    {
-      "i": 2,
-      "status": 200,
-      "wallMs": 1384,
-      "ok": true,
-      "error": null,
-      "coldStart": false,
-      "invocation": 3,
-      "totalMs": 1373,
-      "timings": {
-        "importMs": 0,
-        "inflateMs": 0,
-        "launchMs": 40,
-        "closeMs": 746
-      },
-      "byWidth": {
-        "390": {
-          "runs": 3,
-          "deterministic": true,
-          "fontsLoaded": true,
-          "clean": true,
-          "heroHeight": 609.15625,
-          "renderMs": [
-            134,
-            74,
             81
           ]
         },
@@ -332,8 +89,8 @@
           "clean": true,
           "heroHeight": 712.03125,
           "renderMs": [
-            82,
-            72,
+            84,
+            74,
             79
           ]
         }
@@ -342,7 +99,7 @@
         {
           "width": 390,
           "repeat": 0,
-          "renderMs": 134,
+          "renderMs": 137,
           "fontsLoaded": true,
           "heroHeight": 609.15625,
           "texts": 15,
@@ -353,7 +110,7 @@
         {
           "width": 1280,
           "repeat": 0,
-          "renderMs": 82,
+          "renderMs": 84,
           "fontsLoaded": true,
           "heroHeight": 712.03125,
           "texts": 15,
@@ -364,7 +121,7 @@
         {
           "width": 390,
           "repeat": 1,
-          "renderMs": 74,
+          "renderMs": 73,
           "fontsLoaded": true,
           "heroHeight": 609.15625,
           "texts": 15,
@@ -375,7 +132,7 @@
         {
           "width": 1280,
           "repeat": 1,
-          "renderMs": 72,
+          "renderMs": 74,
           "fontsLoaded": true,
           "heroHeight": 712.03125,
           "texts": 15,
@@ -414,9 +171,253 @@
         "chromium": "153.0.8010.0"
       },
       "memoryMb": {
-        "rssBefore": 241,
-        "rssAfter": 242,
-        "heapUsedAfter": 70
+        "rssBefore": 129,
+        "rssAfter": 246,
+        "heapUsedAfter": 66
+      }
+    },
+    {
+      "i": 1,
+      "status": 200,
+      "wallMs": 633,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 2,
+      "totalMs": 621,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 41,
+        "closeMs": 36
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            134,
+            73,
+            70
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            70,
+            74,
+            71
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 134,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 73,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 74,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 71,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 246,
+        "rssAfter": 247,
+        "heapUsedAfter": 68
+      }
+    },
+    {
+      "i": 2,
+      "status": 200,
+      "wallMs": 673,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 3,
+      "totalMs": 662,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 62,
+        "closeMs": 41
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            125,
+            70,
+            77
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            75,
+            71,
+            73
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 125,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 75,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 71,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 77,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 73,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 248,
+        "rssAfter": 217,
+        "heapUsedAfter": 72
       }
     }
   ]

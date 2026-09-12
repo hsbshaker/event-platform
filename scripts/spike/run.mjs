@@ -65,13 +65,34 @@ const summary = {
   runs,
   succeeded: ok.length,
   failed: results.length - ok.length,
-  deterministicAll: ok.every((r) => r.byWidth[390].deterministic && r.byWidth[1280].deterministic),
+  deterministicAll:
+    ok.length > 0 && ok.every((r) => r.byWidth[390].deterministic && r.byWidth[1280].deterministic),
+  // hero height and document height, every repeat, identical across all successful invocations
   crossInvocationDeterministic: {
-    390: new Set(ok.map((r) => r.runs.find((x) => x.width === 390)?.heroHeight)).size <= 1,
-    1280: new Set(ok.map((r) => r.runs.find((x) => x.width === 1280)?.heroHeight)).size <= 1,
+    390:
+      ok.length > 0 &&
+      new Set(
+        ok.map((r) =>
+          r.runs
+            .filter((x) => x.width === 390)
+            .map((x) => `${x.heroHeight}/${x.docHeight}`)
+            .join(","),
+        ),
+      ).size === 1,
+    1280:
+      ok.length > 0 &&
+      new Set(
+        ok.map((r) =>
+          r.runs
+            .filter((x) => x.width === 1280)
+            .map((x) => `${x.heroHeight}/${x.docHeight}`)
+            .join(","),
+        ),
+      ).size === 1,
   },
-  fontsLoadedAll: ok.every((r) => r.byWidth[390].fontsLoaded && r.byWidth[1280].fontsLoaded),
-  cleanAll: ok.every((r) => r.byWidth[390].clean && r.byWidth[1280].clean),
+  fontsLoadedAll:
+    ok.length > 0 && ok.every((r) => r.byWidth[390].fontsLoaded && r.byWidth[1280].fontsLoaded),
+  cleanAll: ok.length > 0 && ok.every((r) => r.byWidth[390].clean && r.byWidth[1280].clean),
   coldStarts: cold.length,
   wallMs: {
     median: med(ok.map((r) => r.wallMs)),
@@ -97,7 +118,10 @@ const summary = {
       p95: p95(ok.flatMap((r) => r.byWidth[1280].renderMs)),
     },
   },
-  rssMb: { max: Math.max(...ok.map((r) => r.memoryMb.rssAfter)) },
+  nodeRssMb: {
+    max: ok.length ? Math.max(...ok.map((r) => r.memoryMb.rssAfter)) : null,
+    note: "Node process only; excludes the Chromium child",
+  },
   env: ok[0]?.env ?? null,
   errors: results.filter((r) => !r.ok).map((r) => ({ i: r.i, status: r.status, error: r.error })),
 };

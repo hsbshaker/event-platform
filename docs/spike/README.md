@@ -18,7 +18,8 @@ never part of compilation.
 - `src/app/api/spike/geometry/route.ts`: a Node-runtime route (`maxDuration 60`) that launches
   `@sparticuz/chromium` through `playwright-core`, renders the fixture at 390 and 1280 `repeats`
   times in one browser, and returns timings, memory, environment, font-load checks and a
-  determinism check (identical geometry across repeats). `SPIKE_TOKEN` protects it.
+  determinism check (identical geometry across repeats). It is 404 unless `SPIKE_TOKEN` is set
+  and presented as `x-spike-token`, and always 404 in the production environment.
 - `scripts/spike/run.mjs <baseUrl> --runs N --gap S --repeats R`: repeated invocations with
   optional idle gaps to observe cold starts; writes `docs/spike/results-<timestamp>.json` with a
   summary (success rate, determinism across invocations, cold/warm wall time, launch and render
@@ -31,8 +32,8 @@ route and fixture are removed when the production verifier lands.
 
 ```bash
 # local production server (this container / your machine)
-npm run build && npx next start -p 3100 &
-node scripts/spike/run.mjs http://localhost:3100 --runs 8 --repeats 3 --out docs/spike/local-container-results.json
+npm run build && SPIKE_TOKEN=local npx next start -p 3100 &
+SPIKE_TOKEN=local node scripts/spike/run.mjs http://localhost:3100 --runs 8 --repeats 3 --out docs/spike/local-container-results.json
 
 # deployed preview (after Vercel import; SPIKE_TOKEN as set in the project)
 SPIKE_TOKEN=... node scripts/spike/run.mjs https://<preview>.vercel.app --runs 10 --repeats 3 --gap 0
@@ -54,16 +55,20 @@ into the function via `outputFileTracingIncludes` in `next.config.ts`.
 | --- | --- | --- |
 | Invocations succeeded | 1/1 | 12/12 |
 | Geometry deterministic across the 3 repeats, both widths | yes | yes |
-| Geometry identical across invocations (hero height 609.16 @390, 712.03 @1280) | yes | yes |
+| Geometry identical across invocations (hero and document height every repeat; hero 609.16 @390, 712.03 @1280) | yes | yes |
 | Both font families loaded (`document.fonts.check`) | yes | yes |
 | Overflow at 390 / 1280 | none | none |
+| Module import (`@sparticuz/chromium`, `playwright-core`) | 0.5 s | 0 |
 | Browser archive inflate | 2.2 s | 0 (cached in `/tmp`) |
-| Browser launch | 69 ms | 40 ms median, 43 ms p95 |
-| Render + measure, 390 | 140 ms first, ~75 ms after | 75 ms median, 141 ms p95 |
-| Render + measure, 1280 | 85 ms first, ~75 ms after | 73 ms median, 79 ms p95 |
-| Wall time per invocation (6 renders) | 3.5 s | 0.65 s median, 1.2 s p95 |
-| Process RSS after run | 241 MB | 263 MB max |
-| Traced function size (route + externals) | 80 MB compressed archives; ~200 MB inflated in `/tmp` | |
+| Browser launch | 54 ms | 38 ms median, 62 ms max |
+| Render + measure, 390 | 137 ms first, ~75 ms after | 75 ms median, 136 ms p95 |
+| Render + measure, 1280 | 84 ms first, ~75 ms after | 73 ms median, 81 ms p95 |
+| Wall time per invocation (6 renders) | 4.0 s | 0.63 s median, 1.2 s p95 |
+| Node process RSS after run (excludes the Chromium child process) | 246 MB | 247 MB max |
+| Traced function size (route + externals; sum of the files listed in `.next/server/app/api/spike/geometry/route.js.nft.json`) | 80 MB, of which 67 MB are the compressed browser archives; ~200 MB inflated in `/tmp` | |
+
+Browser memory is not measured locally; the deployed run's "Max Memory Used" in the Vercel
+function log is the memory evidence.
 
 Operational note: the package inflates `chromium`, `fonts/` and the swiftshader libraries into
 `/tmp` once per instance and skips extraction when the first file of each set already exists.
@@ -80,8 +85,12 @@ commit the two result files here; then record the verdict.
 ## Verdict
 
 Pending the deployed runs. The local evidence supports **GO — Vercel serverless Chromium**
-on every measure that does not depend on the platform (launch, fonts, determinism, geometry,
-memory); the platform-dependent measures (cold start on Lambda, package acceptance under the
-250 MB limit, `/tmp` capacity, execution time budget, cost per run) are what the deployed runs
-confirm. The verdict is recorded in `docs/technology-decisions.md` and the Phase 0 row of
+on every measure that does not depend on the platform (launch, fonts, determinism, geometry);
+the platform-dependent measures (cold start on Lambda including bundle load and the extra
+`al2023` library archive the package inflates on Amazon Linux 2023, package acceptance under
+the 250 MB limit, `/tmp` capacity, function memory, execution time budget, cost per run) are
+what the deployed runs confirm. Two things to carry into the Phase 3 verifier whatever the
+verdict: serialize the first-request browser extraction per instance (the package's
+`existsSync` gate is not atomic under concurrent cold requests), and treat the route's
+`coldStart` flag as per-instance, not per-request. The verdict is recorded in `docs/technology-decisions.md` and the Phase 0 row of
 `docs/development-plan.md` only after those runs.

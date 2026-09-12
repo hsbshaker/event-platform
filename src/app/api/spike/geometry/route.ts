@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
@@ -9,8 +10,8 @@ import { NextResponse, type NextRequest } from "next/server";
  * 390 and 1280, and return deterministic DOM geometry reliably?
  *
  * Not product code and not the Phase 3 engine. Removed when the production verifier lands.
- * Protected by SPIKE_TOKEN when that variable is set, so it cannot be used as a free
- * Chromium endpoint on a public preview.
+ * Fail-closed: the route is 404 unless SPIKE_TOKEN is configured and presented, and never
+ * runs in the production environment, so it can never be a free Chromium endpoint.
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,13 +52,19 @@ function geometryKey(m: SpikeMeasure): string {
 
 export async function GET(request: NextRequest) {
   const token = process.env.SPIKE_TOKEN;
-  if (token && request.headers.get("x-spike-token") !== token) {
+  if (!token || process.env.VERCEL_ENV === "production") {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+  const presented = Buffer.from(request.headers.get("x-spike-token") ?? "");
+  const expected = Buffer.from(token);
+  if (presented.length !== expected.length || !timingSafeEqual(presented, expected)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  const repeats = Math.min(
-    5,
-    Math.max(1, Number(request.nextUrl.searchParams.get("repeats") ?? 2)),
-  );
+  const requested = Number(request.nextUrl.searchParams.get("repeats") ?? 2);
+  if (!Number.isFinite(requested)) {
+    return NextResponse.json({ error: "repeats must be a number" }, { status: 400 });
+  }
+  const repeats = Math.min(5, Math.max(1, Math.round(requested)));
   const wasCold = coldStart;
   coldStart = false;
   invocations += 1;
