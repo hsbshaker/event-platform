@@ -1,0 +1,263 @@
+{
+  "count": 60,
+  "masterSeed": 20260912,
+  "rejection": false,
+  "threshold": 0.7,
+  "silhouettes": 26,
+  "variantCap": 4,
+  "silhouetteUsage": {
+    "max": 6,
+    "distinct": 24
+  },
+  "pairsTotal": 1770,
+  "pairsAtOrAboveThreshold": {
+    "desktop": 17,
+    "mobile": 21
+  },
+  "pairsAtOrAbove060": {
+    "desktop": 49,
+    "mobile": 54
+  },
+  "nearestNeighbour": {
+    "desktop": {
+      "p50": 0.65,
+      "p90": 0.85,
+      "max": 0.95
+    },
+    "mobile": {
+      "p50": 0.65,
+      "p90": 0.9,
+      "max": 0.95
+    }
+  },
+  "rerolls": {
+    "total": 0,
+    "max": 0,
+    "sitesNeedingReroll": 0,
+    "forcedAccepts": 0
+  },
+  "heroUsage": {
+    "editorial_rulegrid": 2,
+    "typography_first": 9,
+    "invitation_ticket": 8,
+    "editorial_masthead": 2,
+    "invitation_monogram": 5,
+    "invitation_card": 5,
+    "statement_numeral": 9,
+    "statement_stack": 4,
+    "editorial_daterail": 7,
+    "framed_invitation": 3,
+    "editorial_split": 2,
+    "editorial_offset": 4
+  },
+  "variantUsage": {
+    "editorial_rulegrid:cells": 1,
+    "typography_first:band_below": 3,
+    "invitation_ticket:stub_right": 5,
+    "editorial_masthead:rail_left": 1,
+    "invitation_monogram:crest": 4,
+    "invitation_card:floating": 2,
+    "invitation_ticket:stub_left": 3,
+    "invitation_card:sheet": 3,
+    "statement_numeral:numeral_left": 5,
+    "statement_stack:cascade": 1,
+    "editorial_masthead:band_top": 1,
+    "statement_numeral:numeral_top": 4,
+    "editorial_daterail:rail_left": 6,
+    "framed_invitation:thin_frame": 2,
+    "typography_first:band_rail": 4,
+    "editorial_split:field_right": 2,
+    "typography_first:band_above": 2,
+    "editorial_rulegrid:columns": 1,
+    "statement_stack:alternate": 3,
+    "editorial_offset:plate_right": 3,
+    "editorial_daterail:rail_right": 1,
+    "editorial_offset:plate_left": 1,
+    "invitation_monogram:watermark": 1,
+    "framed_invitation:deep_margin": 1
+  },
+  "familyUsage": {
+    "editorial": 17,
+    "statement": 22,
+    "invitation": 21
+  },
+  "planUsage": {
+    "SP3_interrupted": 24,
+    "SP4_alternating": 6,
+    "SP5_framed_body": 11,
+    "SP6_deepening": 6,
+    "SP2_continuous_light": 8,
+    "SP1_dark_opening": 5
+  },
+  "axisUsage": {
+    "left": 23,
+    "center": 23,
+    "alternating": 14
+  },
+  "categoryUsage": {
+    "heritage": 13,
+    "soft_serif": 11,
+    "high_contrast_editorial": 17,
+    "oldstyle": 5,
+    "transitional": 11,
+    "grotesk_led": 3
+  },
+  "skeletonClasses": {
+    "distinct": 57,
+    "largest": 2,
+    "sizes": [
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "compilerRepairs": [
+    {
+      "id": "01",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "02",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "03",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "04",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "05",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "09",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "11",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "18",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "19",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "23",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "24",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "25",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "26",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "27",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "28",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "29",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "30",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "31",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "34",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "35",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "36",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "38",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "39",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "41",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "42",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "43",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "45",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "49",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "51",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "54",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "56",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "57",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "58",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "59",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "60",
+      "r": "plan: contrast relaxed"
+    }
+  ]
+}

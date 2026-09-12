@@ -1,0 +1,265 @@
+{
+  "count": 60,
+  "masterSeed": 20260912,
+  "rejection": true,
+  "threshold": 0.7,
+  "silhouettes": 26,
+  "variantCap": 4,
+  "silhouetteUsage": {
+    "max": 4,
+    "distinct": 26
+  },
+  "pairsTotal": 1770,
+  "pairsAtOrAboveThreshold": {
+    "desktop": 0,
+    "mobile": 0
+  },
+  "pairsAtOrAbove060": {
+    "desktop": 24,
+    "mobile": 27
+  },
+  "nearestNeighbour": {
+    "desktop": {
+      "p50": 0.6,
+      "p90": 0.65,
+      "max": 0.65
+    },
+    "mobile": {
+      "p50": 0.6,
+      "p90": 0.65,
+      "max": 0.65
+    }
+  },
+  "rerolls": {
+    "total": 42,
+    "max": 8,
+    "sitesNeedingReroll": 20,
+    "forcedAccepts": 0
+  },
+  "heroUsage": {
+    "editorial_rulegrid": 4,
+    "typography_first": 5,
+    "invitation_ticket": 6,
+    "framed_invitation": 5,
+    "editorial_masthead": 3,
+    "invitation_monogram": 5,
+    "invitation_card": 4,
+    "statement_numeral": 7,
+    "statement_stack": 7,
+    "editorial_daterail": 5,
+    "editorial_offset": 5,
+    "editorial_split": 4
+  },
+  "variantUsage": {
+    "editorial_rulegrid:cells": 1,
+    "typography_first:band_below": 2,
+    "invitation_ticket:stub_right": 4,
+    "framed_invitation:deep_margin": 2,
+    "editorial_masthead:rail_left": 1,
+    "invitation_monogram:crest": 4,
+    "invitation_card:floating": 2,
+    "invitation_ticket:stub_left": 2,
+    "invitation_card:sheet": 2,
+    "statement_numeral:numeral_left": 3,
+    "statement_stack:cascade": 3,
+    "editorial_masthead:band_top": 1,
+    "editorial_daterail:rail_right": 1,
+    "editorial_daterail:rail_left": 4,
+    "editorial_offset:plate_left": 1,
+    "statement_numeral:numeral_top": 4,
+    "typography_first:band_rail": 2,
+    "editorial_split:field_right": 2,
+    "typography_first:band_above": 1,
+    "editorial_rulegrid:columns": 3,
+    "framed_invitation:thin_frame": 3,
+    "editorial_split:field_left": 2,
+    "statement_stack:alternate": 4,
+    "editorial_offset:plate_right": 4,
+    "invitation_monogram:watermark": 1,
+    "editorial_masthead:rail_right": 1
+  },
+  "familyUsage": {
+    "editorial": 21,
+    "statement": 19,
+    "invitation": 20
+  },
+  "planUsage": {
+    "SP3_interrupted": 19,
+    "SP4_alternating": 6,
+    "SP5_framed_body": 9,
+    "SP6_deepening": 10,
+    "SP2_continuous_light": 9,
+    "SP1_dark_opening": 7
+  },
+  "axisUsage": {
+    "left": 21,
+    "center": 21,
+    "alternating": 18
+  },
+  "categoryUsage": {
+    "heritage": 13,
+    "soft_serif": 10,
+    "transitional": 14,
+    "high_contrast_editorial": 10,
+    "oldstyle": 7,
+    "grotesk_led": 6
+  },
+  "skeletonClasses": {
+    "distinct": 60,
+    "largest": 1,
+    "sizes": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "compilerRepairs": [
+    {
+      "id": "01",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "02",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "03",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "04",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "05",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "09",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "11",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "18",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "19",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "20",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "22",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "23",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "24",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "26",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "27",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "28",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "29",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "30",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "31",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "35",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "36",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "38",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "39",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "40",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "41",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "42",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "43",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "45",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "49",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "50",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "56",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "57",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "58",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "59",
+      "r": "plan: contrast relaxed"
+    },
+    {
+      "id": "60",
+      "r": "plan: contrast relaxed"
+    }
+  ]
+}
