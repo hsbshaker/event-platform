@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Event AI — Inline Setup Prototype</title>
+<style>
+:root{
+  --ink:#17211c;--muted:#6e7772;--paper:#f7f1e7;--line:#d9d2c5;
+  --navy:#182a43;--cream:#f5eee2;--forest:#314a3b;--brass:#a18455;
+  --shadow:0 22px 70px rgba(20,28,24,.17)
+}
+*{box-sizing:border-box}html,body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:#ebe7df}
+a{text-decoration:none;color:inherit}button,input,textarea{font:inherit}
+.shell{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.rail{position:sticky;top:0;height:100vh;padding:22px 14px;background:rgba(255,255,255,.73);border-right:1px solid rgba(0,0,0,.07)}
+.brand{font-weight:900;margin:0 6px 18px}.brand span{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:10px;color:#fff;margin-right:8px;background:linear-gradient(145deg,#ed8c79,#7c69d7 55%,#55a0b7)}
+.rail small{display:block;color:#8a918d;margin:7px;font-size:10px;line-height:1.45}
+.rail a{display:block;padding:8px 9px;border-radius:10px;font-size:11px;color:#59635e;margin:2px 0}
+.rail a:hover{background:#edf1ed;color:#274536;font-weight:800}
+.stage{padding:28px;display:flex;justify-content:center;align-items:flex-start}
+.phone{width:390px;max-width:100%;height:820px;background:#fff;border-radius:38px;overflow:auto;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.11);scroll-behavior:smooth}
+.screen{min-height:820px;display:none;background:#fff}
+.screen:target{display:block}
+#landing{display:block}
+body:has(.screen:target) #landing:not(:target){display:none}
+.status{display:flex;justify-content:space-between;padding:12px 18px 4px;font-size:10px;font-weight:800}
+.nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;height:52px;padding:7px 16px;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,0,0,.06)}
+.icon{width:36px;height:36px;border-radius:50%;border:1px solid #dedfd9;background:#fff;display:grid;place-items:center}
+.content{padding:22px 20px 32px}.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.17em;color:#9b7e4e;font-weight:900;margin-bottom:8px}
+h1,h2,h3,p{margin-top:0}h1,h2,h3{font-family:Georgia,serif;letter-spacing:-.035em}.sub{font-size:13px;line-height:1.5;color:var(--muted)}
+.cta{display:block;width:100%;border-radius:14px;padding:14px 16px;background:#294638;color:#fff;font-weight:850;text-align:center;margin-top:12px}
+.cta.light{background:#eef1ed;color:#294638}.cta.outline{background:#fff;color:#294638;border:1px solid #d8ddd9}
+.landing{min-height:820px;display:flex;flex-direction:column;padding:18px;background:
+ radial-gradient(circle at 50% 44%,rgba(164,190,255,.68),transparent 30%),
+ radial-gradient(circle at 12% 76%,rgba(255,190,220,.58),transparent 32%),
+ radial-gradient(circle at 88% 80%,rgba(194,208,255,.55),transparent 30%),
+ linear-gradient(#fff,#faf8f2)}
+.landing-nav{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:900}.sign{font-size:10px;border:1px solid #ddd;border-radius:10px;padding:8px 11px;background:rgba(255,255,255,.8)}
+.landing-main{margin:auto 0;text-align:center}.landing-main h1{font-family:Inter,system-ui,sans-serif;font-size:34px;line-height:1.02;letter-spacing:-.055em;margin-bottom:8px}
+.composer{margin-top:22px;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:23px;box-shadow:0 18px 50px rgba(35,45,54,.13);overflow:hidden;text-align:left}
+.composer textarea{border:0;outline:0;resize:none;width:100%;height:130px;padding:17px;font-size:14px;line-height:1.45}
+.composer-foot{display:flex;justify-content:space-between;align-items:center;padding:10px}.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:999px;padding:8px 11px;font-size:10px;background:#fafafa}
+.go{display:inline-flex;padding:10px 13px;background:#171b19;color:#fff;border-radius:11px;font-weight:900;font-size:10px}
+.fine{font-size:9px;color:#8d9490;margin-top:13px}
+.intent,.card{border:1px solid #e1ddd4;border-radius:16px;background:#f8f5ef;padding:13px;margin:12px 0}.intent strong{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#957c57}.intent p{font-size:11px;line-height:1.45;color:#626d67;margin:5px 0 0}
+.auth{display:block;width:100%;padding:13px;margin:8px 0;border:1px solid #ddd;border-radius:14px;background:#fff;text-align:center;font-weight:800}
+.field{margin:12px 0}.field label{display:block;font-size:10px;font-weight:800;margin-bottom:6px;color:#53605a}.field input,.field textarea{width:100%;border:1px solid #d7d9d4;border-radius:13px;padding:12px;background:#fff}.field textarea{height:85px;resize:none}
+.ai{margin:15px 0;padding:18px;border-radius:22px;color:#fff;background:linear-gradient(145deg,#22392f,#243f52)}.swatches{display:flex;gap:7px;margin-top:13px}.swatches i{width:27px;height:27px;border-radius:50%;border:2px solid rgba(255,255,255,.55)}
+.concept{border:1px solid var(--line);border-radius:20px;overflow:hidden;margin:14px 0}.concept-preview{height:270px;padding:12px;background:#f5f2eb}.mini{height:100%;border-radius:15px;padding:16px;position:relative;overflow:hidden}.mini.dark{background:#172b45;color:#f8f0e0}.mini.light{background:#f1eadf;color:#2b392f}.mini.mid{background:#fbf8f1;color:#17263c}
+.motif{position:absolute;right:13px;top:15px;width:92px;height:105px;border-radius:15px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.11) 0 7px,transparent 7px 14px),rgba(82,109,90,.4);border:1px solid rgba(255,255,255,.18)}
+.mini.light .motif{background:radial-gradient(circle at 25% 25%,#baa987 0 2px,transparent 2px 13px),#ded4c1;border-color:#c3b69d}.mini.mid .motif{background:linear-gradient(145deg,#304b3c 0 52%,#d7c5a0 52%)}
+.mini h3{font-size:25px;line-height:1;margin:24px 0 8px}.mini p{font:10px/1.45 Inter,system-ui,sans-serif;width:55%}.mini-card{height:48px;border:1px solid currentColor;opacity:.28;border-radius:10px;margin-top:10px}
+.concept-meta{padding:14px}.concept-meta h3{font-size:18px;margin-bottom:5px}.concept-meta p{font:11px/1.45 Inter,system-ui,sans-serif;color:var(--muted)}
+.reveal-note{position:sticky;top:0;z-index:20;padding:14px;background:rgba(248,245,239,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,0,0,.07)}.reveal-note b{font-family:Georgia,serif;font-size:18px}.reveal-note span{display:block;font-size:10px;color:#6d7872;margin-top:2px}
+.event{background:#f7f0e4;min-height:820px;padding-bottom:105px}.event-hero{position:relative;padding:76px 24px 66px;background:#172b45;color:#f7eedf;overflow:hidden}.event-hero:after{content:"";position:absolute;right:-45px;bottom:-55px;width:200px;height:200px;border-radius:38%;background:repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 8px,transparent 8px 16px);transform:rotate(14deg)}.event-hero h1{font-size:42px;line-height:.98;position:relative;z-index:2}.event-hero p,.event-date{position:relative;z-index:2}.event-date{font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#d9c59e;margin-bottom:14px}.event-hero p{font-size:11px;color:#e4ddcf}
+.owner-bar{position:sticky;top:0;z-index:30;display:flex;justify-content:space-between;align-items:center;padding:8px 11px;background:rgba(247,240,228,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,0,0,.06)}.owner-actions{display:flex;gap:6px}.owner-actions a{font-size:10px;border:1px solid #d2ccbf;border-radius:999px;padding:8px 10px;background:#fff}
+.event-section{position:relative;padding:27px 22px;border-bottom:1px solid #ddd4c5}.event-section h3{font-size:24px;margin-bottom:12px}.event-section p{font-size:11px;line-height:1.55;color:#5f6863}
+.edit{position:absolute;right:18px;top:20px;border:1px solid #d4cbbb;border-radius:999px;padding:7px 10px;background:#fff;font-size:9px;font-weight:800}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.detail{padding:11px;border:1px solid #ddd3c3;border-radius:13px;background:rgba(255,255,255,.45)}.detail b{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#92784e}.detail span{display:block;font-size:11px;margin-top:4px}
+.mock-box{border:1px dashed #cfc3af;border-radius:15px;padding:14px;background:rgba(255,255,255,.35)}.mock-box b{font-size:11px}.mock-box p{margin:4px 0 0;font-size:10px}
+.registry{display:grid;grid-template-columns:1fr 1fr;gap:8px}.registry .detail{min-height:72px}.footer{text-align:center;font-size:9px;color:#868a86;padding:26px}
+.setup-fab{position:sticky;bottom:16px;z-index:25;margin:0 auto;display:block;width:max-content;max-width:90%;padding:13px 17px;border-radius:999px;background:#17211c;color:#fff;font-size:11px;font-weight:900;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+details.editor{margin:12px 14px;border:1px solid #d7d0c2;border-radius:17px;background:#fff;overflow:hidden}details.editor>summary{list-style:none;cursor:pointer;padding:14px 16px;font-size:11px;font-weight:900;display:flex;justify-content:space-between}details.editor>summary::-webkit-details-marker{display:none}.editor-body{padding:0 15px 16px;border-top:1px solid #eee7dd}.saved{text-align:center;color:#818984;font-size:9px;margin-top:9px}
+.check{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #eee}.check:last-child{border-bottom:0}.check strong{font-size:11px}.check small{display:block;color:#818983;margin-top:2px}.ok{color:#2d6b4f}.todo{color:#a58654}
+.guest-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #eee}.guest-row b{font-size:11px}.guest-row small{display:block;color:#7e8781;margin-top:3px}.badge{font-size:9px;padding:6px 8px;border-radius:999px;background:#edf2ed;color:#315b46}.badge.warn{background:#fbf0dd;color:#8b682d}
+.price{font-family:Georgia,serif;font-size:42px;margin:12px 0}.price small{font:11px Inter,system-ui,sans-serif;color:#747c77}
+@media(max-width:800px){.shell{display:block}.rail{display:none}.stage{padding:0}.phone{width:100%;height:100vh;border-radius:0;border:0;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="rail">
+  <div class="brand"><span>✦</span>Event AI</div>
+  <small>Clickable prototype. The production experience has no wizard or “Next” buttons after concept selection.</small>
+  <a href="#landing">01 Prompt</a>
+  <a href="#auth">02 Save</a>
+  <a href="#generate">03 Create</a>
+  <a href="#concepts">04 Concepts</a>
+  <a href="#reveal">05 Site reveal</a>
+  <a href="#setup">06 Inline setup</a>
+  <a href="#guests">07 Guests</a>
+  <a href="#redesignPrompt">08 Redesign brief</a>
+  <a href="#redesignConcepts">09 New directions</a>
+  <a href="#preview">10 Guest preview</a>
+  <a href="#publish">11 Publish</a>
+</aside>
+<main class="stage">
+<div class="phone">
+
+<section class="screen" id="landing">
+  <div class="landing">
+    <div class="landing-nav"><div class="logo">✦ Event AI</div><a class="sign" href="#auth">Sign in</a></div>
+    <div class="landing-main">
+      <h1>Bring your shower to life.</h1>
+      <p class="sub">Describe the vision. We’ll create the site, RSVP and registry around it.</p>
+      <div class="composer">
+        <textarea>I'm throwing a baby shower for our baby boy. I want it to feel elevated, warm, and preppy — navy, cream, forest green, subtle equestrian details...</textarea>
+        <div class="composer-foot">
+          <span class="chip">＋ Add inspiration</span>
+          <a class="go" href="#auth">Create my event ✦</a>
+        </div>
+      </div>
+      <div class="fine">Free to create · No templates · Publish when ready</div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="auth">
+  <div class="status"><span>9:41</span><span>●●● ◉</span></div>
+  <div class="nav"><a class="icon" href="#landing">←</a><b>Save your event</b><span></span></div>
+  <div class="content" style="padding-top:52px">
+    <div class="eyebrow">Your idea is ready</div>
+    <h2>Save it and we’ll start creating.</h2>
+    <p class="sub">No setup wizard. We’ll continue exactly where you left off.</p>
+    <div class="intent"><strong>Your vision</strong><p>Elevated winter baby shower · heritage lodge · navy, cream, forest green · subtle equestrian influence</p></div>
+    <a class="auth" href="#generate">G&nbsp;&nbsp; Continue with Google</a>
+    <a class="auth" href="#generate">&nbsp;&nbsp; Continue with Apple</a>
+    <a class="auth" href="#generate">Continue with email</a>
+  </div>
+</section>
+
+<section class="screen" id="generate">
+  <div class="status"><span>9:41</span><span>●●● ◉</span></div>
+  <div class="nav"><span></span><b>Creating your event</b><span></span></div>
+  <div class="content">
+    <div class="eyebrow">Creating in the background</div>
+    <h2>A few details while we work.</h2>
+    <p class="sub">Only the things we couldn’t infer from your description.</p>
+    <div class="field"><label>When is the shower?</label><input value="Saturday, December 19, 2026 · 1:00 PM"></div>
+    <div class="field"><label>Where?</label><input value="The Lodge at Hanson Park · Aldie, VA"></div>
+    <div class="field"><label>Who is hosting?</label><input value="Haseeb & Shezia"></div>
+    <div class="ai"><div class="eyebrow" style="color:#dac7a1">Your event identity</div><h3>Heritage winter lodge</h3><p style="font:10px/1.5 Inter,system-ui,sans-serif;opacity:.8">Refined · warm · preppy · understated · not overly baby-ish</p><div class="swatches"><i style="background:#172a44"></i><i style="background:#f5eee1"></i><i style="background:#314b3c"></i><i style="background:#a18454"></i></div></div>
+    <a class="cta" href="#concepts">See my directions →</a>
+  </div>
+</section>
+
+<section class="screen" id="concepts">
+  <div class="status"><span>9:41</span><span>●●● ◉</span></div>
+  <div class="nav"><a class="icon" href="#generate">←</a><b>Choose a direction</b><span></span></div>
+  <div class="content">
+    <div class="eyebrow">Three interpretations</div><h2>Which feels like you?</h2><p class="sub">Choose a direction, not a template.</p>
+    <div class="concept"><div class="concept-preview"><div class="mini dark"><span style="font-size:8px;text-transform:uppercase;letter-spacing:.15em">December 19 · Baby Shower</span><h3>Baby Shaker<br>is on the way</h3><p>An afternoon at the lodge celebrating our little boy.</p><div class="motif"></div><div class="mini-card"></div><div class="mini-card"></div></div></div><div class="concept-meta"><h3>Heritage Editorial</h3><p>Dark, tailored, equestrian and structured.</p><a class="cta" href="#reveal">Choose this direction</a></div></div>
+    <div class="concept"><div class="concept-preview"><div class="mini light"><span style="font-size:8px;text-transform:uppercase;letter-spacing:.15em">December 19 · Baby Shower</span><h3>Baby Shaker<br>is on the way</h3><p>Warm estate styling with softer details.</p><div class="motif"></div><div class="mini-card"></div><div class="mini-card"></div></div></div><div class="concept-meta"><h3>Winter Estate</h3><p>Cream-forward, warm, elegant and softer.</p><a class="cta" href="#reveal">Choose this direction</a></div></div>
+    <div class="concept"><div class="concept-preview"><div class="mini mid"><span style="font-size:8px;text-transform:uppercase;letter-spacing:.15em">December 19 · Baby Shower</span><h3>Baby Shaker<br>is on the way</h3><p>Clean editorial type and restrained heritage cues.</p><div class="motif"></div><div class="mini-card"></div><div class="mini-card"></div></div></div><div class="concept-meta"><h3>Modern Club</h3><p>Clean, editorial and contemporary.</p><a class="cta" href="#reveal">Choose this direction</a></div></div>
+
+    <div class="card" style="text-align:center;margin-top:18px">
+      <b style="font-size:11px">None of these feel right?</b>
+      <p class="sub" style="font-size:10px;margin:6px 0 10px">Tell us what to change and we’ll create three fresh directions.</p>
+      <a class="cta outline" href="#redesignPrompt">✦ Try another direction</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="reveal">
+  <div class="reveal-note"><b>Your event looks great.</b><span>Let’s make it real.</span></div>
+  <div class="event">
+    <div class="event-hero"><div class="event-date">Saturday · December 19, 2026</div><h1>Baby Shaker<br>is on the way</h1><p>Hosted with love by Haseeb & Shezia</p></div>
+    <div class="event-section"><div class="eyebrow">The celebration</div><h3>Join us at the lodge.</h3><div class="detail-grid"><div class="detail"><b>When</b><span>1:00–5:00 PM</span></div><div class="detail"><b>Where</b><span>Hanson Park</span></div></div><p style="margin-top:12px">An afternoon of good food, warm company, and celebrating our little boy.</p></div>
+    <div class="event-section"><div class="eyebrow">RSVP</div><h3>Will you be there?</h3><div class="mock-box"><b>Kindly respond by December 1.</b><p>Guests find their invitation by name and verify by text.</p></div></div>
+    <div class="event-section"><div class="eyebrow">Registry</div><h3>A few things we love.</h3><div class="registry"><div class="detail"><b>Amazon</b><span>Baby Registry ↗</span></div><div class="detail"><b>Babylist</b><span>Shop gifts ↗</span></div></div></div>
+    <div class="footer">Made with Event AI</div>
+    <div style="padding:0 16px 24px">
+      <a class="cta" href="#setup">Make it yours →</a>
+      <a class="cta outline" href="#redesignPrompt">✦ Try another direction</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="setup">
+  <div class="owner-bar"><span class="chip">Editing</span><div class="owner-actions"><a href="#design">Design</a><a href="#preview">Preview</a></div></div>
+  <div class="event">
+    <div class="event-hero"><div class="event-date">Saturday · December 19, 2026</div><h1>Baby Shaker<br>is on the way</h1><p>Hosted with love by Haseeb & Shezia</p><a class="edit" href="#details">Edit</a></div>
+    <div class="event-section"><a class="edit" href="#details">Edit</a><div class="eyebrow">The celebration</div><h3>Join us at the lodge.</h3><div class="detail-grid"><div class="detail"><b>When</b><span>1:00–5:00 PM</span></div><div class="detail"><b>Where</b><span>Hanson Park</span></div></div><p style="margin-top:12px">An afternoon of good food, warm company, and celebrating our little boy.</p></div>
+    <div class="event-section"><a class="edit" href="#rsvp">Set up</a><div class="eyebrow">RSVP</div><h3>Will you be there?</h3><div class="mock-box"><b>Set up RSVP</b><p>Deadline, plus-ones, meal questions, and guest preferences.</p></div></div>
+    <div class="event-section"><a class="edit" href="#registry">Add</a><div class="eyebrow">Registry</div><h3>A few things we love.</h3><div class="mock-box"><b>Add your registry</b><p>Link full registries, individual gifts, or a cash fund.</p></div></div>
+    <div class="footer">Made with Event AI</div>
+    <a class="setup-fab" href="#checklist">Finish setup · 1/4</a>
+  </div>
+</section>
+
+<section class="screen" id="checklist">
+  <div class="nav"><a class="icon" href="#setup">×</a><b>Finish your event</b><span></span></div>
+  <div class="content"><p class="sub">No required order. Everything saves automatically.</p>
+    <div class="card">
+      <a class="check" href="#details"><div><strong class="ok">✓ Event details</strong><small>Date, time, venue and description</small></div><b>›</b></a>
+      <a class="check" href="#guests"><div><strong class="todo">○ Guest list</strong><small>Add manually or import CSV</small></div><b>›</b></a>
+      <a class="check" href="#rsvp"><div><strong class="todo">○ RSVP</strong><small>Deadline and guest questions</small></div><b>›</b></a>
+      <a class="check" href="#registry"><div><strong class="todo">○ Registry</strong><small>Registries, gifts and cash fund</small></div><b>›</b></a>
+    </div>
+    <a class="cta" href="#publish">Publish · $49</a>
+    <a class="cta outline" href="#preview">Preview guest site</a>
+  </div>
+</section>
+
+<section class="screen" id="details">
+  <div class="nav"><a class="icon" href="#setup">×</a><b>Event details</b><span></span></div>
+  <div class="content"><h2>Make the details real.</h2>
+    <div class="field"><label>Event title</label><input value="Baby Shaker is on the way"></div>
+    <div class="field"><label>Date & time</label><input value="December 19, 2026 · 1:00–5:00 PM"></div>
+    <div class="field"><label>Venue</label><input value="The Lodge at Hanson Park · Aldie, VA"></div>
+    <div class="field"><label>Description</label><textarea>An afternoon of good food, warm company, and celebrating our little boy.</textarea></div>
+    <div class="saved">✓ Saved automatically</div><a class="cta" href="#setup">Done</a>
+  </div>
+</section>
+
+<section class="screen" id="rsvp">
+  <div class="nav"><a class="icon" href="#setup">×</a><b>RSVP</b><span></span></div>
+  <div class="content"><h2>Keep RSVP simple.</h2>
+    <div class="field"><label>RSVP deadline</label><input value="December 1, 2026"></div>
+    <div class="card"><b style="font-size:11px">Plus-ones</b><p class="sub" style="font-size:10px">Use each party's invitation allowance.</p><span class="chip">On</span></div>
+    <div class="card"><b style="font-size:11px">Guest questions</b><p><span class="chip">Meal choice</span> <span class="chip">Dietary restrictions</span> <span class="chip">+ Custom</span></p></div>
+    <div class="saved">Guests can update later by magic link.</div><a class="cta" href="#setup">Done</a>
+  </div>
+</section>
+
+<section class="screen" id="registry">
+  <div class="nav"><a class="icon" href="#setup">×</a><b>Registry</b><span></span></div>
+  <div class="content"><h2>Add gifts your way.</h2>
+    <div class="card"><b>External registry</b><p class="sub" style="font-size:10px">Amazon, Babylist, Target and more.</p><span class="chip">＋ Add registry link</span></div>
+    <div class="card"><b>Individual gift</b><p class="sub" style="font-size:10px">Add an item from any retailer by URL.</p><span class="chip">＋ Add gift</span></div>
+    <div class="card"><b>Cash fund</b><p class="sub" style="font-size:10px">Display Venmo/Zelle handles. No payment processing.</p><span class="chip">＋ Add fund</span></div>
+    <a class="cta" href="#setup">Done</a>
+  </div>
+</section>
+
+<section class="screen" id="design">
+  <div class="nav"><a class="icon" href="#setup">×</a><b>Design</b><span></span></div>
+  <div class="content"><h2>AI already made the hard choices.</h2>
+    <div class="card"><b>Palette</b><p><span class="chip">Navy · Cream · Forest</span> <span class="chip">Cream dominant</span></p></div>
+    <div class="card"><b>Typography</b><p><span class="chip">Heritage Serif</span> <span class="chip">Editorial Classic</span></p></div>
+    <a class="cta light" href="#redesignPrompt">✦ Try another direction</a>
+    <div class="saved">AI redesign is available only before publishing.</div>
+  </div>
+</section>
+
+
+<section class="screen" id="redesignPrompt">
+  <div class="status"><span>9:41</span><span>●●● ◉</span></div>
+  <div class="nav"><a class="icon" href="#design">←</a><b>Try another direction</b><a class="chip" href="#setup">Keep current</a></div>
+  <div class="content">
+    <div class="eyebrow">Optional</div>
+    <h2>What should we change?</h2>
+    <p class="sub">Add to your original vision, change it completely, or leave it alone and we’ll explore three fresh directions.</p>
+
+    <div class="field">
+      <label>Your creative brief</label>
+      <textarea style="height:150px">I'm throwing a baby shower for our baby boy. I want it to feel elevated, warm, and preppy — navy, cream, forest green, subtle equestrian details. Make the next directions a little less country club and more cozy winter estate, while still feeling refined and not overly baby-ish.</textarea>
+    </div>
+
+    <div class="card">
+      <b style="font-size:11px">Add more inspiration</b>
+      <p class="sub" style="font-size:10px;margin-top:5px">Optional screenshots or references help us understand what you mean. They influence the design brief but never appear on the public site.</p>
+      <span class="chip">＋ Add inspiration</span>
+    </div>
+
+    <div class="intent">
+      <strong>What stays untouched</strong>
+      <p>Your date, venue, event copy, guests, RSVP setup and registry. This only reimagines the design.</p>
+    </div>
+
+    <a class="cta" href="#redesignConcepts">Show me 3 new directions ✦</a>
+    <a class="cta outline" href="#redesignConcepts">Skip feedback — surprise me</a>
+  </div>
+</section>
+
+<section class="screen" id="redesignConcepts">
+  <div class="status"><span>9:41</span><span>●●● ◉</span></div>
+  <div class="nav"><a class="icon" href="#redesignPrompt">←</a><b>Which feels like you?</b><a class="chip" href="#setup">Keep current</a></div>
+  <div class="content">
+    <div class="eyebrow">Three fresh directions</div>
+    <h2>Which feels like you?</h2>
+    <p class="sub">These use your updated creative brief. Your event content stays exactly as it is.</p>
+
+    <div class="concept">
+      <div class="concept-preview">
+        <div class="mini light">
+          <span style="font-size:8px;text-transform:uppercase;letter-spacing:.15em">December 19 · Baby Shower</span>
+          <h3>Baby Shaker<br>is on the way</h3>
+          <p>Warm estate styling, winter texture, and softer heritage details.</p>
+          <div class="motif"></div><div class="mini-card"></div><div class="mini-card"></div>
+        </div>
+      </div>
+      <div class="concept-meta">
+        <h3>Cozy Winter Estate</h3>
+        <p>Ivory-forward, evergreen, textured, warm and quietly formal.</p>
+        <a class="cta" href="#setup">Choose this direction</a>
+      </div>
+    </div>
+
+    <div class="concept">
+      <div class="concept-preview">
+        <div class="mini mid">
+          <span style="font-size:8px;text-transform:uppercase;letter-spacing:.15em">December 19 · Baby Shower</span>
+          <h3>Baby Shaker<br>is on the way</h3>
+          <p>Refined lodge styling with restrained plaid and editorial type.</p>
+          <div class="motif"></div><div class="mini-card"></div><div class="mini-card"></div>
+        </div>
+      </div>
+      <div class="concept-meta">
+        <h3>Alpine Heritage</h3>
+        <p>Deeper greens, warmer neutrals, structured typography and lodge texture.</p>
+        <a class="cta" href="#setup">Choose this direction</a>
+      </div>
+    </div>
+
+    <div class="concept">
+      <div class="concept-preview">
+        <div class="mini dark">
+          <span style="font-size:8px;text-transform:uppercase;letter-spacing:.15em">December 19 · Baby Shower</span>
+          <h3>Baby Shaker<br>is on the way</h3>
+          <p>A moodier editorial interpretation with classic winter restraint.</p>
+          <div class="motif"></div><div class="mini-card"></div><div class="mini-card"></div>
+        </div>
+      </div>
+      <div class="concept-meta">
+        <h3>Midnight Lodge</h3>
+        <p>Navy-dominant, intimate, polished and more atmospheric.</p>
+        <a class="cta" href="#setup">Choose this direction</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <b style="font-size:11px">None of these?</b>
+      <p class="sub" style="font-size:10px;margin:5px 0 10px">Change the brief again and we’ll explore another set of directions.</p>
+      <a class="chip" href="#redesignPrompt">← Refine the prompt again</a>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="guests">
+  <div class="nav"><a class="icon" href="#checklist">×</a><b>Guest list</b><a class="chip" href="#setup">Done</a></div>
+  <div class="content"><div class="eyebrow">Guests</div><h2>Who’s invited?</h2><p class="sub">One primary mobile number per party. Import or add manually.</p>
+    <p><span class="chip">＋ Add guest</span> <span class="chip">Import CSV</span></p>
+    <div class="guest-row"><div><b>Hamad Shaker</b><small>2 adults · phone on file</small></div><span class="badge">Ready</span></div>
+    <div class="guest-row"><div><b>Marissa & Eren</b><small>2 adults · phone on file</small></div><span class="badge">Ready</span></div>
+    <div class="guest-row"><div><b>Ahmed Family</b><small>2 adults · 2 children</small></div><span class="badge">Ready</span></div>
+    <div class="guest-row"><div><b>Grandma</b><small>No mobile number</small></div><span class="badge warn">Needs review</span></div>
+  </div>
+</section>
+
+<section class="screen" id="preview">
+  <div class="nav"><a class="icon" href="#setup">×</a><b>Guest preview</b><span></span></div>
+  <div class="event">
+    <div class="event-hero"><div class="event-date">Saturday · December 19, 2026</div><h1>Baby Shaker<br>is on the way</h1><p>Hosted with love by Haseeb & Shezia</p></div>
+    <div class="event-section"><div class="eyebrow">The celebration</div><h3>Join us at the lodge.</h3><div class="detail-grid"><div class="detail"><b>When</b><span>1:00–5:00 PM</span></div><div class="detail"><b>Where</b><span>Hanson Park</span></div></div></div>
+    <div class="event-section"><div class="eyebrow">RSVP</div><h3>Will you be there?</h3><div class="mock-box"><b>Find your invitation</b><p>RSVP by December 1.</p></div></div>
+    <div class="event-section"><div class="eyebrow">Registry</div><h3>A few things we love.</h3><div class="registry"><div class="detail"><b>Amazon</b><span>Baby Registry ↗</span></div><div class="detail"><b>Babylist</b><span>Shop gifts ↗</span></div></div></div>
+    <div class="footer">Made with Event AI</div>
+  </div>
+</section>
+
+<section class="screen" id="publish">
+  <div class="nav"><a class="icon" href="#checklist">×</a><b>Publish</b><span></span></div>
+  <div class="content"><div class="eyebrow">Ready when you are</div><h2>Make your event live.</h2><p class="sub">One payment. No subscription.</p>
+    <div class="price">$49 <small>one time</small></div>
+    <div class="card"><p>✓ Themed event website</p><p>✓ RSVP + guest management</p><p>✓ Registry and gift tools</p><p>✓ SMS reminders and announcements</p></div>
+    <a class="cta" href="#setup">Publish my event</a>
+  </div>
+</section>
+
+</div>
+</main>
+</div>
+</body>
+</html>

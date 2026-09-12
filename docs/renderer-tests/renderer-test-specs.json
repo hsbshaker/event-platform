@@ -1,0 +1,121 @@
+{
+  "brief": "constrained_heritage",
+  "specs": [
+    {
+      "id": "concept-a",
+      "kind": "concept",
+      "name": "Heritage Editorial",
+      "description": "Asymmetric, tailored, motif-led editorial composition.",
+      "heroArchetype": "editorial_split",
+      "eventDetailsTreatment": "split_panel",
+      "rsvpTreatment": "contrast_panel",
+      "registryTreatment": "featured_blocks",
+      "tonalDirection": "dark",
+      "palette": {
+        "primary": "#172A44",
+        "secondary": "#F4EDE1",
+        "accent": "#314B3C",
+        "surface": "#F7F2E9",
+        "text": "#17211C"
+      },
+      "typographyPairing": "heritage_serif_clean_sans",
+      "density": "spacious",
+      "visualTreatment": "motif_panel",
+      "motifs": [
+        "plaid_restrained",
+        "equestrian_line"
+      ],
+      "ornamentation": "restrained",
+      "borderTreatment": "hairline",
+      "cardTreatment": "flat_bordered",
+      "buttonTreatment": "solid_rounded_sm"
+    },
+    {
+      "id": "concept-b",
+      "kind": "concept",
+      "name": "Winter Invitation",
+      "description": "Cream-dominant framed composition with formal symmetry and tactile invitation cues.",
+      "heroArchetype": "framed_invitation",
+      "eventDetailsTreatment": "stacked_editorial",
+      "rsvpTreatment": "embedded_card",
+      "registryTreatment": "retailer_tiles",
+      "tonalDirection": "light",
+      "palette": {
+        "primary": "#F4EDE1",
+        "secondary": "#172A44",
+        "accent": "#314B3C",
+        "surface": "#FBF8F1",
+        "text": "#1D2A23"
+      },
+      "typographyPairing": "high_contrast_editorial_sans",
+      "density": "balanced",
+      "visualTreatment": "border_frame",
+      "motifs": [
+        "deco_border",
+        "equestrian_line"
+      ],
+      "ornamentation": "decorative",
+      "borderTreatment": "double_rule",
+      "cardTreatment": "outline_only",
+      "buttonTreatment": "outline_square"
+    },
+    {
+      "id": "concept-c",
+      "kind": "concept",
+      "name": "Modern Equestrian",
+      "description": "Type-led, restrained and contemporary with forest emphasis and sparse linear motifs.",
+      "heroArchetype": "typography_first",
+      "eventDetailsTreatment": "structured_cards",
+      "rsvpTreatment": "standalone_cta_panel",
+      "registryTreatment": "card_grid",
+      "tonalDirection": "mid",
+      "palette": {
+        "primary": "#314B3C",
+        "secondary": "#F4EDE1",
+        "accent": "#172A44",
+        "surface": "#F8F4EC",
+        "text": "#16231D"
+      },
+      "typographyPairing": "modern_grotesk_serif_accent",
+      "density": "compact",
+      "visualTreatment": "typographic_field",
+      "motifs": [
+        "stripe_classic",
+        "equestrian_line"
+      ],
+      "ornamentation": "none",
+      "borderTreatment": "accented_edge",
+      "cardTreatment": "tinted",
+      "buttonTreatment": "solid_square"
+    },
+    {
+      "id": "control",
+      "kind": "control",
+      "name": "CONTROL \u2014 A with B palette",
+      "description": "Null hypothesis: same structure/type/motifs as A; only Concept B's palette is substituted.",
+      "heroArchetype": "editorial_split",
+      "eventDetailsTreatment": "split_panel",
+      "rsvpTreatment": "contrast_panel",
+      "registryTreatment": "featured_blocks",
+      "tonalDirection": "dark",
+      "palette": {
+        "primary": "#F4EDE1",
+        "secondary": "#172A44",
+        "accent": "#314B3C",
+        "surface": "#FBF8F1",
+        "text": "#1D2A23"
+      },
+      "typographyPairing": "heritage_serif_clean_sans",
+      "density": "spacious",
+      "visualTreatment": "motif_panel",
+      "motifs": [
+        "plaid_restrained",
+        "equestrian_line"
+      ],
+      "ornamentation": "restrained",
+      "borderTreatment": "hairline",
+      "cardTreatment": "flat_bordered",
+      "buttonTreatment": "solid_rounded_sm"
+    }
+  ]
+}
