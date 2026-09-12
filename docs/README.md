@@ -34,4 +34,4 @@ Architecture is now:
 - the Phase A.1 recipes as a library (regression, examples, macros, calibration), not a template set;
 - event-level palette/typography overrides only.
 
-The proof harnesses in `../proof-b/` are the regression suite; thresholds are in `event-renderer-system.md §9`. Production implementation ports `proof-b/src/composition.ts`, the planner and the renderer rules into the application package without changing their behaviour, then reruns the confirmation set.
+The proof harnesses in `../proof-b/` are the regression suite; thresholds are in `event-renderer-system.md §9`; the confirmation-run results and the two open conditions (renderer rule 0.3 frozen; human design-quality review pending) are in `CHANGELOG-v6.md` and `../proof-b/FINAL.md`. Production implementation ports `proof-b/src/composition.ts`, the planner and the renderer rules into the application package without changing their behaviour, then reruns the confirmation set.
