@@ -303,7 +303,28 @@ If you discover a real adjacent problem, document it separately unless it blocks
 
 ---
 
-# 11. Source-of-truth changes
+# 11. Agent orchestration and model routing
+
+Four project agents live in `.claude/agents/`. Use the least expensive agent that can reliably complete the task without materially increasing rework, integration risk, or review burden. Route on reasoning complexity, ambiguity, architectural impact, security or data-integrity risk, blast radius, debugging difficulty, and the cost of being wrong. Never route upward merely because a task is long or touches many files.
+
+| Tier | Agent | Use for |
+| --- | --- | --- |
+| Haiku | `repo-explorer` (read-only) | locating files, symbols, call sites and tests; targeted search; summarizing logs; exact mechanical transformations already specified. Never architecture or product decisions. |
+| Sonnet | `implementation-worker` | the default for well-defined work: ordinary features, UI, route handlers, routine data changes, localized refactors, ordinary tests, understood bug fixes. Stops and escalates on ambiguity instead of inventing. |
+| Opus | `senior-implementer` | hard engineering with settled architecture: root-cause debugging, complex migrations and RLS, auth and security code, concurrency and idempotency, compiler/renderer internals, AI-pipeline integration, performance, cross-cutting changes, anything Sonnet could not resolve cleanly. The preferred senior implementation model. |
+| Fable | lead session and `senior-reviewer` (read-only) | decomposition, ambiguous requirements, architecture and product interpretation, canonical-contract changes, decisions with several materially different valid implementations, high-risk design/security/data decisions, and the final review of meaningful integrated changes. Not the default pair of hands. |
+
+**Delegation.** Do the work directly when it is trivial and sequential; delegation has its own context cost. Delegate when a subtask is independently scoped, parallelizable, context-heavy, or benefits from specialization. Give a worker a small task packet, never the whole project context: objective; the exact `spec.md §31` bullets and `§32` guardrails; files or subsystem; explicit non-goals; expected output; verification required. Workers return concise summaries, not source dumps. The lead owns integration and final correctness.
+
+**Escalation.** A worker stops and reports (decision needed, why it blocks, options found, existing canonical text, recommendation if obvious) when: several reasonable interpretations exist; a product or architecture decision is required; there is meaningful security or data-integrity risk; root cause is not found after a reasonable attempt; the change crosses an important architectural boundary; the fix would change canonical behavior; or the requested implementation would violate the locked stack. Ambiguity is never silently turned into a product decision.
+
+**Review.** Meaningful product or code changes get one independent senior review after integration and after deterministic tests pass, against the cited §31 criteria, §32 guardrails, source-of-truth compliance, architecture drift, correctness and edge cases, security/data/access, tests and failure states, and scope expansion. Workers do not self-approve meaningful work. Prefer one integrated review over inspecting every worker edit; re-review only when the first review found material blockers or the fixes materially changed the solution.
+
+**Economics.** Spend senior-model tokens at decision points and quality gates, not on every keystroke: lead decomposes → Haiku discovers, Sonnet implements, Opus takes the hard parts → integrated change → deterministic tests → Fable review. Avoid both failure modes: Fable implementing and reviewing its own work, and Haiku attempting a high-risk problem that Opus then salvages and Fable finally redesigns. Route correctly up front.
+
+---
+
+# 12. Source-of-truth changes
 
 Changing `spec.md`, `docs/design-system.md`, `docs/event-renderer-system.md`, or `docs/technology-decisions.md` is an architectural/product change, not ordinary cleanup.
 
@@ -315,7 +336,7 @@ When such a change is explicitly approved:
 
 ---
 
-# 12. Final decision rule
+# 13. Final decision rule
 
 Before shipping, ask:
 
