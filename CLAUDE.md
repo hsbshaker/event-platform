@@ -309,7 +309,7 @@ Four project agents live in `.claude/agents/`. Use the least expensive agent tha
 
 | Tier | Agent | Use for |
 | --- | --- | --- |
-| Haiku | `repo-explorer` (read-only) | locating files, symbols, call sites and tests; targeted search; summarizing logs; exact mechanical transformations already specified. Never architecture or product decisions. |
+| Haiku | `repo-explorer` (read-only) | locating files, symbols, call sites and tests; targeted search; summarizing logs. Never edits, architecture, or product decisions. |
 | Sonnet | `implementation-worker` | the default for well-defined work: ordinary features, UI, route handlers, routine data changes, localized refactors, ordinary tests, understood bug fixes. Stops and escalates on ambiguity instead of inventing. |
 | Opus | `senior-implementer` | hard engineering with settled architecture: root-cause debugging, complex migrations and RLS, auth and security code, concurrency and idempotency, compiler/renderer internals, AI-pipeline integration, performance, cross-cutting changes, anything Sonnet could not resolve cleanly. The preferred senior implementation model. |
 | Fable | lead session and `senior-reviewer` (read-only) | decomposition, ambiguous requirements, architecture and product interpretation, canonical-contract changes, decisions with several materially different valid implementations, high-risk design/security/data decisions, and the final review of meaningful integrated changes. Not the default pair of hands. |
