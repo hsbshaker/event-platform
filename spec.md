@@ -8,6 +8,10 @@
 
 ---
 
+## 0b. Revision 6.1 — content lifecycle and generation sequencing
+
+Clarifications only; nothing about CompositionTree reopens. (1) Three separate layers: `Capabilities` (enabled features), `ContentProfile` (present content), `FeaturePresentationState` (guest visibility/readiness, never sent to the model) — §11.4. (2) DesignIntent and CompositionTree are immutable; a content edit that affects fit appends a new immutable `ResolvedDesignSpec` revision for the same concept with no model call — §4.10, §7.9, §24. (3) Required details are publish requirements collected during generation, never a prerequisite for concepts; composition uses real content where present and bounded provisional content elsewhere, re-fit when real values arrive — §7.3, §7.10. (4) End time stays optional; the RSVP deadline default has an exact rule — §7.3. (5) Human design review runs twice: now for calibration, and on the frozen production stack as the launch gate — `docs/CHANGELOG-v6.md`.
+
 ## 0a. What changed in Revision 6
 
 Revision 6 changes one thing, comprehensively: **the renderer architecture moves from versioned archetype bundles to the composition language.** The model now authors the page composition itself as a `CompositionTree` of trusted primitives; a deterministic compiler validates, repairs, fits against rendered geometry and freezes the result. Everything about product flow, roles, RSVP, registry, messaging, publishing and limits is unchanged from Revision 5.
@@ -262,7 +266,9 @@ Manual design controls remain limited to curated palette and typography choices.
 Once a concept is generated:
 - its `DesignIntent` is immutable;
 - its `CompositionTree` (raw model output and canonical form) is immutable;
-- its `ResolvedDesignSpec`, including the verification record and the version set (prompt, schema, primitive set, compiler), is immutable.
+- every `ResolvedDesignSpec` revision, including its verification record and version set (prompt, schema, primitive set, compiler), is immutable.
+
+A concept may carry more than one resolved-spec revision. A content edit that affects fit (a longer venue, an added description) deterministically produces a **new immutable revision for the same concept**: same DesignIntent, same CompositionTree, same `compositionHash`, no model call, no recomposition; only emphasis demotions and box relaxations from rendered-geometry verification differ. `DesignConcept.activeResolvedSpecId` points at the current revision; each revision records `contentVersion`, `supersedesSpecId`, `verified.clean` and `compilerVersion`. Superseded revisions are kept. Nothing inside a persisted revision is ever mutated.
 
 Do not silently recompile an old concept against a newer compiler or primitive set. The renderer must support every primitive-set version that has a live spec.
 
@@ -512,6 +518,14 @@ Potential missing details:
 
 Skip values already supplied.
 
+Required details are **publish requirements (§23.1), not generation blockers**. Event Identity starts immediately; DesignIntents start when identity is ready; the composition calls use whatever real details have arrived and a deterministic provisional content snapshot for the rest (§7.9). As a real value arrives, deterministic re-fit produces the next resolved-spec revision (§4.10); no field ever waits for the host to finish the form before concepts appear.
+
+Provisional values are bounded and event-type specific so geometry is realistic: a title from the event type (`Baby shower for <family name>` when a name is known, else `A baby shower`), a date twelve weeks out on a Saturday, a start time of 1:00 PM, `Venue to be announced`, hosts omitted, deadline derived by the rule below. A provisional value is never published and never shown to guests; Creation Mode marks it as needing confirmation.
+
+**RSVP deadline default.** If the host does not set one: the deadline is the event date minus 14 days, at 11:59 PM in the event timezone. If that instant is already past when the default is computed, use the day before the event at 11:59 PM; if the event is today or tomorrow, use the event start time. The default is recomputed only while the host has not edited the deadline; an edited deadline is never overwritten.
+
+End time remains optional.
+
 Do not normally ask timezone; infer it per §7.4.
 
 ### 7.4 Venue normalization and timezone inference
@@ -630,17 +644,19 @@ For each concept:
 8. Resolve every token to layout values per breakpoint.
 9. Verify content fit against rendered geometry at 390 and 1280; demote emphasis, then relax boxes, until clean.
 10. Check the skeleton signature against siblings and redesign history; on a collision re-prompt once, then fall back.
-11. Produce the immutable `ResolvedDesignSpec` with `verified.clean = true`.
-12. Persist `DesignIntent`, `CompositionTree` (raw and canonical), and `ResolvedDesignSpec` with the version set.
+11. Produce the immutable `ResolvedDesignSpec` revision with `verified.clean = true`.
+12. Persist `DesignIntent`, `CompositionTree` (raw and canonical), and the `ResolvedDesignSpec` revision with the version set; set `activeResolvedSpecId`.
 
-No model call is used for compiler validation or repair.
+Steps 7–9 and 11–12 also run, alone, whenever a content edit changes the content profile (**re-fit**): same tree, new revision, no model call. The content profile used for a compilation is recorded on the revision (`contentVersion`), including which fields were provisional.
+
+No model call is used for compiler validation, repair or re-fit.
 
 ### 7.10 The wait
 
 Generation must feel like progress:
-1. required details run while identity is being created;
+1. required details run while identity is being created and never block a concept from appearing;
 2. user-facing portions of Event Identity may stream;
-3. three DesignIntent calls, then three composition calls, run in parallel after the planner assigns siblings;
+3. three DesignIntent calls, then three composition calls, run in parallel after the planner assigns siblings, using real details where present and provisional content elsewhere;
 4. compilation is deterministic/local;
 5. each concept renders as soon as its resolved spec exists.
 
@@ -895,7 +911,7 @@ Persist:
 - Event Identity;
 - every generated DesignIntent;
 - every generated CompositionTree, raw and canonical, with its prompt, schema, primitive-set and compiler versions;
-- every immutable ResolvedDesignSpec;
+- every immutable ResolvedDesignSpec revision, with `contentVersion` and `supersedesSpecId`, and the concept's `activeResolvedSpecId`;
 - event-level manual design overrides separately.
 
 Do not re-send original raw inspiration for routine redesign after its summary is available.
@@ -1000,7 +1016,17 @@ Rules the compiler enforces and repairs: the nesting matrix; depth ≤ 5; box de
 
 ### 11.4 Capabilities
 
-`Capabilities { rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }` is derived from the event. The prompt names what is unavailable; the validator removes any reference to it as a `capability` repair; nothing unavailable is ever required. An event without a registry has no registry section.
+Three layers, deliberately separate:
+
+1. **`Capabilities`** — what the event is allowed to contain: `{ rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }`, derived from the event's enabled features, never from whether content has been entered. For a baby shower at first generation this is the full set, so every first composition has a designed place for RSVP and registry. The prompt names what is unavailable; the validator removes any reference to it as a `capability` repair; nothing unavailable is ever required. Features cannot be disabled before generation; disabling one later is render-time suppression (layer 3), never a recompile.
+2. **`ContentProfile`** — what content currently exists and how large it is (title word count, presence and length of hosts, description, time, location, deadline, registry counts), plus which fields are provisional (§7.3). Sent to the composition call for fit; changes to it trigger deterministic re-fit revisions (§4.10), never recomposition.
+3. **`FeaturePresentationState`** — deterministic guest-visibility/readiness per section and optional leaf, derived from operational data and **never sent to the model**:
+   - `registry`: Creation Mode always shows the designed section in its setup state; guest-visible when at least one external registry, native gift or cash fund exists;
+   - `rsvp`: Creation Mode always shows the designed section in its setup state; guest-visible when RSVP is configured to function and **at least one party has been invited**;
+   - optional text leaves (`Hosts`, `Description`, `Time`, `Location`, `Deadline`): collapsed and hidden from guests when empty; the collaborator affordance (`Add description`) stays anchored to the designed location;
+   - a provisional value is treated as empty for guests and as needing confirmation in Creation Mode.
+
+Content and operational state change **visibility**, never composition. Suppressing a section is a render-time flag on the persisted revision's section id; the tree and the revision are untouched.
 
 ### 11.5 Compilation and repair
 
@@ -1029,6 +1055,7 @@ ResolvedDesignSpec {
   pageSystem; tokens; layout /* per node, per breakpoint, numeric */; motifs
   compilerRepairs[]; intentDeviations[]; signature
   verified { desktop, mobile, fitDemotions, clean: true, authoritative: "rendered-geometry" }
+  contentVersion; supersedesSpecId?   // re-fit revisions: same compositionHash, new content profile
   versions { primitiveSet, compiler, compositionPrompt, compositionSchema, designIntentPrompt, designIntentSchema }
 }
 ```
@@ -1658,7 +1685,7 @@ ARCHIVED (internal, optional)
 ```
 
 - **DRAFT:** private event draft; identity/concepts/redesign allowed.
-- **DESIGN_SELECTED:** `activeConceptId` points to a concept with immutable DesignIntent + CompositionTree + ResolvedDesignSpec.
+- **DESIGN_SELECTED:** `activeConceptId` points to a concept with immutable DesignIntent + CompositionTree + an active ResolvedDesignSpec revision.
 - **READY_TO_PUBLISH:** deterministic requirements below are valid; payment may remain unsatisfied.
 - **PUBLISHED:** live; operations/content/allowed direct design overrides continue; AI redesign/concept switching disabled.
 - **PASSED:** event time has passed in stored IANA timezone; show thank-you state; registry remains accessible.
@@ -1814,7 +1841,8 @@ DesignConcept {
   designIntent,          // immutable
   compositionRaw,        // immutable: the model's tree as returned
   composition,           // immutable: canonical tree
-  resolvedDesignSpec,    // immutable, verified
+  resolvedDesignSpecs[], // immutable revisions r1, r2, …; same composition; re-fit on content change
+  activeResolvedSpecId,  // the revision rendered
   directive, tokenAllotment, fallback?   // planner record
 
   selectedAt?,
@@ -1920,13 +1948,13 @@ The primitive set, `MotifDefinition`, typography definitions, the library, direc
 For a DesignConcept:
 - `designIntent` is immutable;
 - `compositionRaw` and `composition` are immutable;
-- `resolvedDesignSpec` and its version set are immutable.
+- every `resolvedDesignSpecs[]` revision and its version set are immutable; a content edit appends a revision (`contentVersion`, `supersedesSpecId`) and moves `activeResolvedSpecId`.
 
 Renderer source code may still receive bug, accessibility, and responsive fixes.
 
 ### Effective render state
 
-Base guest design comes from the selected concept's `resolvedDesignSpec`.
+Base guest design comes from the selected concept's active resolved-spec revision, filtered by `FeaturePresentationState` (§11.4).
 
 Allowed `Event.designOverrides` are applied deterministically on top for palette/typography. They must use the same compatibility and semantic color compiler as generated concepts.
 
@@ -2185,7 +2213,7 @@ The host should feel:
 - [ ] Strong-model generation does not begin before auth succeeds.
 - [ ] Prompt and successful inspiration uploads restore exactly after OAuth/email auth.
 - [ ] Abandoned pre-auth draft/assets expire and remain private.
-- [ ] Required details are collected only when missing and while generation runs.
+- [ ] Required details are collected only when missing and while generation runs, and never block concepts from appearing.
 - [ ] Venue-text timezone inference + validation + browser fallback works.
 
 ### Event Identity and diversity
@@ -2207,7 +2235,10 @@ The host should feel:
 - [ ] No structural, coverage, capability, responsive, box, motif-kind or fit repair calls a model.
 - [ ] Incompatible typography repairs deterministically and logs a compiler repair.
 - [ ] Motifs are placed only in slots of the matching kind; a wrong-kind motif is swapped and logged; nothing is dropped silently.
-- [ ] Content fit is verified against rendered geometry at 390 and 1280; a spec is final only with `verified.clean = true`; residual horizontal or text overflow is zero.
+- [ ] Content fit is verified against rendered geometry at 390 and 1280; a spec revision is final only with `verified.clean = true`; residual horizontal or text overflow is zero.
+- [ ] A content edit that affects fit produces a new immutable resolved-spec revision for the same concept (same composition hash, no model call) and moves `activeResolvedSpecId`; no persisted revision is mutated.
+- [ ] Capabilities derive from enabled features, the content profile from present content, and guest visibility from `FeaturePresentationState`; none of the three causes recomposition.
+- [ ] Concepts appear without waiting for the required-details form; provisional content is bounded, never published, and re-fit when real values arrive.
 - [ ] The static fit estimate never finalizes a spec on its own.
 - [ ] Raw palette is never directly consumed as renderer background/text/button semantics.
 - [ ] Semantic palette compiler produces all required event tokens.
@@ -2320,11 +2351,11 @@ The host should feel:
 13. Do not add a model `overrides` block or any per-node color, font, size, pixel or free-text field.
 14. The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent); the compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
 15. Do not add a primitive, prop or token to the composition language without a proof run and a primitive-set version bump; never generate arbitrary HTML/layout/CSS/SVG.
-16. Scope every tree to the event's capabilities; never require or allow a reference to a disabled capability.
+16. Scope every tree to the event's capabilities (enabled features, never content presence); never require or allow a reference to a disabled capability; guest visibility of sections and empty leaves is `FeaturePresentationState`, a render-time flag, never a recomposition.
 17. Validate the composition against the strict schema and the structural rules on every response, whatever the provider claims to enforce.
-18. Persist DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec with prompt, schema, primitive-set and compiler versions.
+18. Persist DesignIntent + CompositionTree (raw and canonical) + every ResolvedDesignSpec revision with prompt, schema, primitive-set and compiler versions; content edits append revisions, never mutate one.
 19. Render generated concept base from the resolved spec, one fixed component per primitive; derive no CSS text from model output.
-20. Generated design data is immutable; renderer code bug/accessibility/responsive fixes are allowed.
+20. Generated design data is immutable; a content edit re-fits into a new revision of the same concept without a model call; renderer code bug/accessibility/responsive fixes are allowed.
 21. Repair structural, coverage, capability, responsive, box-depth, motif-kind and fit defects deterministically and log them by kind; re-prompt the model only for schema-invalid output, a token-cap violation or a selector collision, once each.
 22. Motifs must declare roles/channels/opacity bounds/max placements; the tree places them within the ornament budget.
 23. A motif of the wrong kind for its slot is swapped and logged; never dropped silently.

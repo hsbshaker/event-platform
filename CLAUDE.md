@@ -45,7 +45,8 @@ Before proposing or implementing a solution, check it against these rules:
 - The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent). The compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
 - Compiler work is deterministic: schema and structural validation, repair, attractive-token caps, canonicalization, palette compilation, layout resolution and rendered-geometry verification do not call a model. The model is re-prompted only for schema-invalid output, a token-cap violation or a selector collision, once each.
 - A spec is final only when rendered-geometry verification is clean at 390 and 1280. The static fit estimate is advisory.
-- Persist `DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec` with prompt, schema, primitive-set and compiler versions per generated concept.
+- Persist `DesignIntent + CompositionTree (raw and canonical) + every ResolvedDesignSpec revision` with prompt, schema, primitive-set and compiler versions per generated concept. A content edit re-fits into a new revision of the same concept without a model call; nothing persisted is mutated.
+- Capabilities are enabled features, the content profile is present content, and guest visibility is `FeaturePresentationState`; none of them recomposes a page. Required details never block concepts from appearing; provisional content is bounded and re-fit when real values arrive.
 - The Phase A/A.1 recipes are a library: regression fixtures, few-shot examples, repair/fallback macros, calibration. Not a menu, not the creative ceiling, no renderer code per recipe.
 - Generated design data is immutable; renderer code may receive bug/accessibility/responsive fixes.
 - App chrome and event renderer styling are separate systems.

@@ -34,7 +34,7 @@ Revision 2 therefore replaces the archetype bundle with the **composition langua
 5. Schema validation is strict. The only reasons the composition call is re-prompted are a schema-invalid response, an attractive-token-cap violation, and a selector collision, at most once each. Every other defect is repaired deterministically and logged by kind.
 6. Content fit is verified against rendered geometry at 390 and 1280 before a spec is final. The static estimate is advisory.
 7. Raw palette values never directly become text/background/button semantics; the semantic palette compiler and contrast rules of Revision 1 stand unchanged.
-8. Persist `DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec` per concept, with prompt, schema, primitive-set and compiler versions.
+8. Persist `DesignIntent + CompositionTree (raw and canonical) + every ResolvedDesignSpec revision` per concept, with prompt, schema, primitive-set and compiler versions. A content edit that affects fit appends a new immutable revision (same tree, same `compositionHash`, no model call) and moves `activeResolvedSpecId`; no persisted revision is mutated.
 9. Render the concept base from `ResolvedDesignSpec` only. Generated design data is immutable; renderer code may be fixed.
 10. Guest semantic flow (gate → lookup → collision → OTP → party → questions → submit → confirmation) is fixed and lives inside the opaque `RSVP` component.
 11. Mobile convergence is accepted, and is now expressed by the tree's mobile intents rather than by archetype rules.
@@ -99,13 +99,15 @@ CompositionTree { version: "composition_v1"; sections: Section[] }
 
 Considered and rejected, permanently unless a new proof says otherwise: absolute or pixel positioning; free ratios; per-node color, font or size; z-index beyond one Overlay level; custom breakpoints; animation; free text; custom section kinds.
 
-## 2.3 Capabilities
+## 2.3 Capabilities, content profile, presentation state
 
 ```ts
-Capabilities { rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }
+Capabilities            { rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }   // enabled features; sent to the model
+ContentProfile          { titleWords, titleChars, hostsChars, venueChars, descriptionChars, registryCounts, provisionalFields[] }  // present content; sent to the model for fit
+FeaturePresentationState{ sections: { rsvp, registry }: "setup" | "visible"; leaves: { hosts, description, time, location, deadline }: "empty" | "present" }   // guest visibility; never sent to the model
 ```
 
-Derived from the event's enabled features and content. The prompt lists what is not available; the validator drops any reference to a disabled capability as a `capability` repair; the coverage rules (below) require only what is enabled.
+`Capabilities` derive from enabled features, never from whether content exists; for a baby shower at first generation they are the full set, so every first composition has a designed place for RSVP and registry. The prompt lists what is not available; the validator drops any reference to a disabled capability as a `capability` repair; the coverage rules require only what is enabled. `ContentProfile` may contain bounded provisional values for fields the host has not entered yet (`spec.md §7.3`); when a real value arrives the compiler re-fits into a new resolved-spec revision. `FeaturePresentationState` decides what guests see: registry is visible once it has an external registry, native gift or cash fund; RSVP once it is configured and at least one party is invited; empty optional leaves collapse for guests while their collaborator affordance stays anchored. Content and operational state change visibility, never composition.
 
 ## 2.4 Nesting, depth, limits
 
@@ -144,8 +146,10 @@ model response (JSON)
 → page system + semantic palette + typography    unchanged from Revision 1
 → layout resolution (tokens → values per breakpoint)
 → rendered-geometry verification (authoritative) 390 and 1280: line limits, text overflow, container overflow; demote emphasis, then remove the innermost box; the CSS floor (a word can always break) guarantees zero horizontal overflow
-→ immutable ResolvedDesignSpec (verified: true)
+→ immutable ResolvedDesignSpec revision (verified: true); activeResolvedSpecId
 ```
+
+**Re-fit.** When a content edit changes the content profile, steps from page-system resolution through geometry verification run again on the same canonical tree and produce a new immutable revision (`contentVersion`, `supersedesSpecId`, same `compositionHash`). No validation, repair, planner, selector or model step runs. Re-fit is the only path by which a concept gains a new revision.
 
 Every repair is logged as `{ rule, path, kind, before, after }` with `kind ∈ structural | coverage | capability | responsive | planner | fit-estimate | fit-verified`. No repair calls a model. Telemetry keeps schema validity, repair counts by kind, geometry verification, and model re-prompts as separate measures.
 
@@ -211,6 +215,7 @@ ResolvedDesignSpec {
   intentDeviations: Deviation[]
   signature
   verified: { desktop, mobile, fitDemotions, clean: true, authoritative: "rendered-geometry" }
+  contentVersion; supersedesSpecId?         // re-fit revisions of the same concept
   versions: { primitiveSet, compiler, compositionPrompt, compositionSchema, designIntentPrompt, designIntentSchema }
 }
 ```

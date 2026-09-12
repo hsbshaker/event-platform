@@ -118,8 +118,8 @@ DI-01…DI-11 stand with `family` substituted; add:
 ```ts
 type GenerateCompositionInput = {
   eventIdentity: EventIdentity                       // design brief, constraints, motif/texture direction
-  contentProfile: { titleWords; titleChars; hostsChars; venueChars; descriptionChars }
-  capabilities: Capabilities                         // rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline
+  contentProfile: { titleWords; titleChars; hostsChars; venueChars; descriptionChars; registryCounts; provisionalFields[] }   // real content where present, bounded provisional content elsewhere (spec.md §7.3)
+  capabilities: Capabilities                         // enabled features, never content presence: rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline
   designIntent: DesignIntent                         // this concept's, already validated
   directive: Directive                               // eight dimensions, assembled sentence (planner)
   forbiddenTokens: AttractiveTokenId[]               // allotment for this sibling (planner)
@@ -151,7 +151,8 @@ Re-prompts exist only for schema-invalid output, a token-cap violation and a sel
 
 - **CO-01 — schema on first call**: ≥ 90% of responses parse strictly; 100% after one re-prompt.
 - **CO-02 — zero violations**: ≥ 45% of raw trees break no structural rule; 100% repair to zero remaining.
-- **CO-03 — capabilities**: an event without registry, cash fund or description yields no reference to them in 100% of trees.
+- **CO-03 — capabilities**: an event whose registry, cash fund or description feature is disabled yields no reference to them in 100% of trees; an event with the features enabled but no content yet still receives designed sections for them.
+- **CO-11 — re-fit**: replacing a short venue with a long one on a compiled concept produces a new resolved-spec revision with the same composition hash, no model call, and `verified.clean` true.
 - **CO-04 — geometry**: 100% of specs verify clean at 390 and 1280.
 - **CO-05 — invention**: ≥ 30 distinct hero skeletons and ≥ 40% novel against the library in 60.
 - **CO-06 — caps**: each attractive token in ≤ 1/3 of heroes in a batch run; ≤ 5% of trees need neutralization.
