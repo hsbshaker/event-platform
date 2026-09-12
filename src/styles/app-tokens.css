@@ -1,0 +1,106 @@
+/*
+ * Application chrome tokens — docs/design-system.md §6 (Revision-1 defaults).
+ * Feature UI references these semantic tokens, never raw values (§23.2).
+ * The application chrome is light-only for MVP (§5.3). Do not add dark-mode variants here.
+ * Event-renderer theming lives in event-tokens.css and never leaks into app chrome (§23.7).
+ */
+:root {
+  /* 6.1 Color */
+  --app-bg: #f6f5f1;
+  --app-surface: #ffffff;
+  --app-surface-subtle: #fbfaf7;
+  --app-surface-muted: #efeee9;
+
+  --app-text: #1d211e;
+  --app-text-secondary: #666d68;
+  --app-text-tertiary: #6b726d;
+
+  --app-border: #e2e0d8;
+  --app-border-strong: #cfccc2;
+
+  --app-action: #263a31;
+  --app-action-hover: #1e3028;
+  --app-action-text: #ffffff;
+
+  --app-focus: #557765;
+
+  --app-success: #35664e;
+  --app-warning: #8a672c;
+  --app-danger: #a0443c;
+
+  --app-overlay: rgba(18, 22, 20, 0.36);
+
+  /* 6.2 Typography */
+  --font-app:
+    var(--font-inter, Inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  /* type scale: size / line-height / weight / tracking */
+  --type-display-lg: 700 48px/52px var(--font-app);
+  --type-display-md: 700 40px/44px var(--font-app);
+  --type-heading-xl: 700 32px/38px var(--font-app);
+  --type-heading-lg: 700 24px/30px var(--font-app);
+  --type-heading-md: 650 20px/26px var(--font-app);
+  --type-body-lg: 400 17px/26px var(--font-app);
+  --type-body-md: 400 15px/23px var(--font-app);
+  --type-body-sm: 400 13px/19px var(--font-app);
+  --type-label-md: 600 13px/17px var(--font-app);
+  --type-label-sm: 650 11px/15px var(--font-app);
+  --type-micro: 650 10px/14px var(--font-app);
+
+  --tracking-display-lg: -0.04em;
+  --tracking-display-md: -0.035em;
+  --tracking-heading-xl: -0.03em;
+  --tracking-heading-lg: -0.025em;
+  --tracking-heading-md: -0.02em;
+
+  /* 6.3 Spacing */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* 6.4 Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-pill: 999px;
+
+  /* 6.5 Shadows */
+  --shadow-none: none;
+  --shadow-soft: 0 8px 24px rgba(20, 28, 24, 0.06);
+  --shadow-float: 0 10px 32px rgba(20, 28, 24, 0.14);
+  --shadow-overlay: 0 24px 70px rgba(20, 28, 24, 0.18);
+
+  /* 6.6 Z-index */
+  --z-base: 0;
+  --z-sticky: 20;
+  --z-toolbar: 30;
+  --z-popover: 40;
+  --z-sheet: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+
+  /* 7.5 Content widths */
+  --width-narrow: 560px;
+  --width-standard: 720px;
+  --width-wide: 1120px;
+  --width-full: 1280px;
+
+  /* 8.1 Motion */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 240ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}

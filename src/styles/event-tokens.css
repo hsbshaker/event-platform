@@ -1,0 +1,12 @@
+/*
+ * Event-renderer tokens — docs/event-renderer-system.md, docs/design-system.md §15.
+ *
+ * This file is owned by the renderer (Phase 3). It is populated when the production
+ * CompositionTree engine is ported from proof-b. Values are emitted by the semantic
+ * palette compiler per ResolvedDesignSpec as numeric custom properties and classes;
+ * nothing here is authored per concept and nothing here may be imported by app chrome
+ * (design-system.md §23.7; enforced by the ESLint boundary rule in eslint.config.mjs).
+ */
+.event-renderer-root {
+  /* populated by the renderer port; intentionally empty in Phase 0/1 */
+}

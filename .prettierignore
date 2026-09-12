@@ -1,0 +1,9 @@
+node_modules
+.next
+proof-b
+proof-a1
+docs
+spec.md
+CLAUDE.md
+package-lock.json
+.claude
