@@ -1,0 +1,4 @@
+{
+  "compilerOptions": { "target": "es2020", "module": "none", "lib": ["es2020", "dom"], "strict": true, "outDir": "dist", "noEmitOnError": true, "types": [], "rootDir": "src", "ignoreDeprecations": "6.0" },
+  "files": ["src/composition.ts"]
+}
