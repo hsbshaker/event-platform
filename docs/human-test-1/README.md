@@ -37,7 +37,9 @@ stack (Phase 10).
 
 Note for scoring: `proof-b/human-test-form.md` states three pass clauses; the frozen
 `score-human.js` enforces the median ≥ 70% rate and the ≤ 3 model-group size, and reports
-mixed groups (`mixedGroups`) without applying them. Decide which reading is the bar before
-scoring so the calibration record is unambiguous; the scorer itself is not modified here.
+mixed groups without applying them. The wrapper applies the third clause too (per reviewer, at
+least one group made only of model screens; median over reviewers) and records the combined
+result as `verdict.pass`, with the scorer's own value kept as `verdict.scorerPass`. The scorer
+itself is not modified. The wrapper refuses any reviewer count other than five.
 
 Status: **prepared, not run** until reviewer files exist in `responses/`.

@@ -57,14 +57,14 @@ into the function via `outputFileTracingIncludes` in `next.config.ts`.
 | Geometry deterministic across the 3 repeats, both widths | yes | yes |
 | Geometry identical across invocations (hero and document height every repeat; hero 609.16 @390, 712.03 @1280) | yes | yes |
 | Both font families loaded (`document.fonts.check`) | yes | yes |
-| Overflow at 390 / 1280 | none | none |
+| Overflow at 390 / 1280 (page, element and text-node overflow from `Renderer.measure`) | none | none |
 | Module import (`@sparticuz/chromium`, `playwright-core`) | 0.5 s | 0 |
-| Browser archive inflate | 2.2 s | 0 (cached in `/tmp`) |
-| Browser launch | 54 ms | 38 ms median, 62 ms max |
-| Render + measure, 390 | 137 ms first, ~75 ms after | 75 ms median, 136 ms p95 |
-| Render + measure, 1280 | 84 ms first, ~75 ms after | 73 ms median, 81 ms p95 |
-| Wall time per invocation (6 renders) | 4.0 s | 0.63 s median, 1.2 s p95 |
-| Node process RSS after run (excludes the Chromium child process) | 246 MB | 247 MB max |
+| Browser archive inflate | 2.5 s | 0 (cached in `/tmp`) |
+| Browser launch | 71 ms | 41 ms median, 58 ms max |
+| Render + measure, 390 | 144 ms first, ~70 ms after | 71 ms median, 129 ms p95 |
+| Render + measure, 1280 | 76 ms first, ~70 ms after | 68 ms median, 77 ms p95 |
+| Wall time per invocation (6 renders) | 3.8 s | 0.63 s median, 1.1 s p95 |
+| Node process RSS after run (excludes the Chromium child process) | 286 MB | 288 MB max |
 | Traced function size (route + externals; sum of the files listed in `.next/server/app/api/spike/geometry/route.js.nft.json`) | 80 MB, of which 67 MB are the compressed browser archives; ~200 MB inflated in `/tmp` | |
 
 Browser memory is not measured locally; the deployed run's "Max Memory Used" in the Vercel

@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
+import { spikeToken } from "@/lib/env";
 
 /**
  * Phase 0 geometry-runtime spike (docs/development-plan.md, Phase 0; technology-decisions.md
@@ -51,7 +52,7 @@ function geometryKey(m: SpikeMeasure): string {
 }
 
 export async function GET(request: NextRequest) {
-  const token = process.env.SPIKE_TOKEN;
+  const token = spikeToken();
   if (!token || process.env.VERCEL_ENV === "production") {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
@@ -79,6 +80,7 @@ export async function GET(request: NextRequest) {
     fontsLoaded: boolean;
     heroHeight: number;
     texts: number;
+    textOverflow: number;
     overflowing: number;
     pageOverflow: boolean;
     docHeight: number;
@@ -141,6 +143,7 @@ export async function GET(request: NextRequest) {
             fontsLoaded: result.fonts.every((f) => f.loaded),
             heroHeight: result.measure.heroHeight,
             texts: result.measure.texts.length,
+            textOverflow: result.measure.texts.filter((t) => t.overflow).length,
             overflowing: result.measure.overflowing.length,
             pageOverflow: result.measure.pageOverflow,
             docHeight: result.docHeight,
@@ -167,7 +170,7 @@ export async function GET(request: NextRequest) {
           runs: rs.length,
           deterministic: new Set(rs.map((r) => r.key)).size <= 1,
           fontsLoaded: rs.every((r) => r.fontsLoaded),
-          clean: rs.every((r) => !r.pageOverflow && r.overflowing === 0),
+          clean: rs.every((r) => !r.pageOverflow && r.overflowing === 0 && r.textOverflow === 0),
           heroHeight: rs[0]?.heroHeight ?? null,
           renderMs: rs.map((r) => r.renderMs),
         },
