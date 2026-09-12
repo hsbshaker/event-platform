@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core"],
   outputFileTracingIncludes: {
     "/api/spike/geometry": [
-      "./node_modules/@sparticuz/chromium/bin/**",
+      // Both packages read files by path at runtime (browser archives, browsers.json,
+      // bundled scripts) that static tracing does not see; include them whole.
+      "./node_modules/@sparticuz/chromium/**",
+      "./node_modules/playwright-core/**",
       "./src/spike/fixture.generated.html",
     ],
   },

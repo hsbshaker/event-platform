@@ -27,7 +27,11 @@ const gap = Number(opt("gap", 0));
 const repeats = Number(opt("repeats", 2));
 const out = opt("out", `docs/spike/results-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
 const url = `${baseUrl.replace(/\/$/, "")}/api/spike/geometry?repeats=${repeats}`;
-const headers = process.env.SPIKE_TOKEN ? { "x-spike-token": process.env.SPIKE_TOKEN } : {};
+const headers = {
+  ...(process.env.SPIKE_TOKEN ? { "x-spike-token": process.env.SPIKE_TOKEN } : {}),
+  // Vercel "Protection Bypass for Automation" secret, when the preview keeps its login wall.
+  ...(process.env.VERCEL_BYPASS ? { "x-vercel-protection-bypass": process.env.VERCEL_BYPASS } : {}),
+};
 
 const results = [];
 for (let i = 0; i < runs; i += 1) {
