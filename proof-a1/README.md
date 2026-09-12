@@ -1,6 +1,6 @@
 # Phase A.1 proof and Gate 2
 
-> **On `main`:** only `sites.js`, `vocab.js`, `fonts.css`, `fonts/`, `vocabulary.md` and this file are kept, because `../proof-b/` depends on them. The harness, generator, Gate 2 outputs and screenshots are at the tag `proof-a1-frozen`.
+> **On `main`:** only `sites.js`, `vocab.js`, `fonts.css`, `fonts/`, `vocabulary.md` and this file are kept, because `../proof-b/` depends on them. The harness, generator, Gate 2 outputs and screenshots are on the frozen branch `proof/phase-a1` at `01f65bc`.
 
 Expanded proof built from the frozen Phase A (`proof/`, commit `cda5fa6`), then the sixty-site seeded test. Nothing here is canonical; `spec.md`, the renderer docs, the model contracts and `CLAUDE.md` are untouched.
 

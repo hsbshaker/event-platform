@@ -1,6 +1,6 @@
 # Event Platform Documentation — Revision 6
 
-This folder is the reconciled documentation set after the creation-UX pressure test and the three renderer proof phases. The proofs' source, fixtures, tests and confirmation-run data live on `main` under `../proof-b/` and `../proof-a1/` (reference subset); the complete evidence, including screenshots, compiled specs, exploratory runs and judge output, is at the tags `proof-b-frozen`, `proof-a1-frozen` and the branch `proof/phase-a`.
+This folder is the reconciled documentation set after the creation-UX pressure test and the three renderer proof phases. The proofs' source, fixtures, tests and confirmation-run data live on `main` under `../proof-b/` and `../proof-a1/` (reference subset); the complete evidence, including screenshots, compiled specs, exploratory runs and judge output, is on the frozen proof branches `proof/phase-b` (`b74ccab`), `proof/phase-a1` (`01f65bc`) and `proof/phase-a` (`cda5fa6`).
 
 ## Source-of-truth order
 
@@ -13,7 +13,7 @@ This folder is the reconciled documentation set after the creation-UX pressure t
 7. **`screen-spec.md`** — screen/surface-level behavior.
 8. **`CHANGELOG-v6.md`** — what Revision 6 changed; `CHANGELOG-v5.md` for the prior revision.
 9. **`prototypes/creation-flow.html`** — behavioral prototype; not architectural truth.
-10. **`../proof-b/`** — reference implementation and regression suite of the composition language (source subset on `main`; full evidence at tag `proof-b-frozen`); **`../proof-a1/`** — the recipe library it depends on (`sites.js`, `vocab.js`, fonts); **`renderer-tests/`** — older renderer evidence; none is product requirements.
+10. **`../proof-b/`** — reference implementation and regression suite of the composition language (source subset on `main`; full evidence on branch `proof/phase-b` at `b74ccab`); **`../proof-a1/`** — the recipe library it depends on (`sites.js`, `vocab.js`, fonts); **`renderer-tests/`** — older renderer evidence; none is product requirements.
 
 When documents conflict, use the highest source in the list unless a lower document is explicitly called out by the higher source as authoritative for implementation detail.
 
