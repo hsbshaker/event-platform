@@ -41,7 +41,7 @@ Before proposing or implementing a solution, check it against these rules:
 - Setup/readiness is not a wizard.
 - Guests and Registry are not publish blockers unless `spec.md §23.1` says otherwise.
 - `Try another direction` changes design only and never event content/data.
-- The strong model emits only six-field `DesignIntent`.
+- The strong model emits the six-field `DesignIntent` plus a non-design `presentation` object (concept name and description). The compiler reads only the six fields.
 - Versioned archetype bundles own composition and renderer defaults.
 - Compiler work is deterministic: typography repair, motif placement, semantic palette compilation, contrast, and `ResolvedDesignSpec` creation do not call a model.
 - Persist `DesignIntent + archetypeVersion + ResolvedDesignSpec` per generated concept.

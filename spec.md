@@ -22,7 +22,7 @@ The core product scope remains baby-shower-first and the commercial hypothesis r
 | Setup progress | General checklist | Checklist separates **Needed to publish** from **Recommended before sharing**. Optional Guests/Registry never make publish readiness look incomplete. |
 | Redesign entry | Design/gallery flow | `Try another direction` appears on initial concepts, site reveal, and Design controls. It preserves all event content/data. |
 | Preview | Mobile-first preview | Preview uses the production renderer; on larger screens it offers **Mobile / Desktop** width controls. |
-| Model design output | Model returns a mostly orthogonal `DesignSpec` | Model returns a **six-field `DesignIntent` only**. It does not emit treatment/card/button/border overrides. |
+| Model design output | Model returns a mostly orthogonal `DesignSpec` | Model returns a **six-field `DesignIntent`** plus a non-design `presentation` object (concept name and one-line description) that the compiler never reads. It does not emit treatment/card/button/border overrides. |
 | Archetypes | Hero primitive among many independent dimensions | **Versioned archetype bundle owns composition and component defaults**: section treatments, guest-surface composition, cards, borders, buttons, ornamentation, and visual treatment. |
 | Compilation | Model output rendered after schema validation | Deterministic compiler resolves archetype defaults, typography compatibility, motif placement, tone/palette semantics, contrast, and repairs into immutable `ResolvedDesignSpec`. |
 | Persistence | Persist immutable `DesignSpec` | Persist **DesignIntent + archetype version + ResolvedDesignSpec** for every concept. Render concept base only from the resolved spec. |
@@ -590,6 +590,8 @@ DesignIntent {
 ```
 
 **No model-emitted overrides exist in MVP.**
+
+The same response also carries a `presentation` object (`name`, `description`) for the concept card. It is host-facing metadata, validated separately, persisted on `DesignConcept`, and never read by the compiler. If it is missing, invalid, or duplicates another concept's name, a deterministic fallback name is derived (see `docs/model-contracts.md` §21).
 
 The model cannot emit:
 - section treatment;
@@ -2104,7 +2106,7 @@ DesignConcept {
   round,
   conceptIndex,
 
-  name, description,
+  name, description,     // from the model's presentation object, or deterministic fallback
 
   designIntent,          // immutable
   archetypeVersion,      // immutable
@@ -2191,6 +2193,9 @@ GenerationRun {
   costEstimateUsd?,
   latencyMs,
   success,
+
+  promptVersion,         // e.g. event_identity_v1 | design_intent_v2
+  schemaVersion,         // e.g. event_identity_schema_v1 | design_intent_schema_v2
 
   diversityAssignment?,
   archetypeVersion?,
@@ -2437,7 +2442,7 @@ A non-technical owner/co-host can:
 20. Render a coherent themed guest experience across access, forms, errors, confirmation, registry, and passed state.
 
 Renderer architecture succeeds when:
-21. The model emits only six-field DesignIntent.
+21. The model emits only the six-field DesignIntent plus non-design presentation metadata; the compiler consumes the six fields only.
 22. Compilation deterministically produces accessible immutable ResolvedDesignSpec.
 23. Incompatible typography/motif inputs are repaired/dropped and logged without a model retry.
 24. The same constrained palette can still produce three unmistakably different sites.
@@ -2468,7 +2473,8 @@ The host should feel:
 - [ ] Density/motif/palette dominance may provide additional diversity without violating explicit intent.
 
 ### DesignIntent and compiler
-- [ ] Strong model returns only `heroArchetype`, `tonalDirection`, `palette`, `typographyPairing`, `density`, `motifs`.
+- [ ] Strong model returns only `heroArchetype`, `tonalDirection`, `palette`, `typographyPairing`, `density`, `motifs`, plus a `presentation` object (`name`, `description`) that the compiler never reads.
+- [ ] Duplicate or invalid concept names fall back deterministically and are logged as compiler repairs.
 - [ ] Model cannot emit section/card/button/border/ornament/treatment overrides.
 - [ ] DesignIntent validates against schema.
 - [ ] Archetype bundle is loaded by explicit version.
@@ -2586,7 +2592,7 @@ The host should feel:
 9. Do not turn readiness into a wizard.
 10. Do not count optional Guests/Registry as publish blockers.
 11. Do not build token/chat-level AI editing.
-12. Strong model returns six-field DesignIntent only.
+12. Strong model returns six-field DesignIntent plus non-design presentation metadata only; the compiler reads the six fields only.
 13. Do not add a model `overrides` block.
 14. Do not let the model choose section/card/button/border/ornamentation treatments.
 15. Do not generate arbitrary HTML/layout/CSS/SVG.

@@ -2,8 +2,8 @@
 ## Event Identity + DesignIntent prompts and structured-output schemas
 
 **Status:** Revision 1 — implementation baseline  
-**Prompt versions:** `event_identity_v1`, `design_intent_v1`  
-**Schema versions:** `event_identity_schema_v1`, `design_intent_schema_v1`  
+**Prompt versions:** `event_identity_v1`, `design_intent_v2`  
+**Schema versions:** `event_identity_schema_v1`, `design_intent_schema_v2`  
 **PRD:** `../spec.md`  
 **Renderer:** `event-renderer-system.md`
 
@@ -53,8 +53,8 @@ Recommended constants:
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v1"
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v1"
 
-export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v1"
-export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v1"
+export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v2"
+export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v2"
 ```
 
 Record prompt/schema versions with generation telemetry so a quality change can be correlated with exact model instructions.
@@ -75,6 +75,8 @@ Provider adapters may need to translate them into provider-specific structured-o
 
 Do not weaken validation merely because one provider has a different API.
 
+Provider structured-output modes enforce JSON Schema unevenly (`pattern`, `uniqueItems`, `minItems`, `minLength` are commonly ignored or rejected). Treat provider-side enforcement as best effort only: the application **always** runs the canonical schema validator plus the semantic checks in §7 and §12 on every response, regardless of what the provider claims to enforce.
+
 Where possible, build a **runtime-narrowed schema** for each request so hard constraints are impossible to violate.
 
 ---
@@ -87,7 +89,7 @@ Recommended server-side input:
 type GenerateEventIdentityInput = {
   eventPrompt: string
 
-  revisionFeedback?: string | null
+  redesignFeedback?: string | null
 
   knownEventFacts?: {
     eventType: "baby_shower"
@@ -333,6 +335,11 @@ type GenerateDesignIntentInput = {
       motifs: MotifId[]
       paletteDominant: string
     }>
+
+    // Names already shown for this event (all rounds). Used only so the
+    // model avoids repeating a concept name; sibling calls in the same
+    // batch cannot see each other, so duplicates are resolved in code (§21).
+    priorConceptNames: string[]
   }
 }
 ```
@@ -424,9 +431,12 @@ Validate before compilation:
 4. All motifs are in the supplied allowed motif list.
 5. `palette.colors` contains 3–5 unique uppercase valid hex values.
 6. `palette.dominant` is literally one of `palette.colors`.
-7. No additional fields exist.
+7. `presentation.name` and `presentation.description` are present, within length, and the name is not an enum ID, archetype ID, typography pairing ID, or motif ID.
+8. No additional fields exist.
 
-A schema can enforce most of these; dominant-membership still needs ordinary application validation.
+A schema can enforce most of these; dominant-membership and the presentation-name checks still need ordinary application validation.
+
+After validation the application **splits** the response: the six design fields become the persisted `DesignIntent` that the compiler consumes; `presentation` becomes the concept's `name`/`description` (§21). The compiler never receives `presentation`.
 
 ### One-retry rule
 
@@ -501,7 +511,11 @@ Representative output:
   "motifs": [
     "plaid_restrained",
     "equestrian_line"
-  ]
+  ],
+  "presentation": {
+    "name": "Heritage Editorial",
+    "description": "Tailored and deep, with a quiet plaid field and confident serif type that feels like a winter lodge, not a nursery."
+  }
 }
 ```
 
@@ -605,7 +619,7 @@ When the host asks for fresh exploration without meaningful new direction:
 ## Redesign with meaningful new creative direction/inspiration
 
 When feedback or new inspiration materially changes the creative brief:
-1. rerun/merge Event Identity using `revisionFeedback` and new inspiration;
+1. regenerate Event Identity from the original prompt, all inspiration summaries, and `redesignFeedback` (replace, not merge);
 2. persist updated Event Identity;
 3. plan new assignments;
 4. generate three new DesignIntents.
@@ -748,6 +762,14 @@ Expect:
 - creative palette only;
 - model does not add arbitrary black/white just for accessibility.
 
+### DI-11 — presentation quality
+Assignment: framed_invitation + light; `priorConceptNames` contains "Winter Estate".
+
+Expect:
+- `presentation.name` is two or three Title Case words, not an ID or brand, not a tone+layout formula, and not "Winter Estate";
+- `presentation.description` is one host-facing sentence with no renderer terms;
+- the six design fields are unaffected by the presentation content.
+
 ---
 
 # 19. Quality metrics
@@ -802,34 +824,36 @@ Provider failures and schema failures are different from normal compiler repairs
 
 ---
 
-# 21. Concept display names/descriptions — deterministic presentation metadata
+# 21. Concept display names/descriptions — model-authored presentation, deterministic fallback
 
-The current DesignIntent model contract contains **six fields only**.
+Concept cards show a name and a one-line description. These come from the `presentation` object in the DesignIntent response.
 
-Therefore concept display names and one-line descriptions are **not** part of model output.
+`presentation` is **not** one of the six design fields:
+- the compiler never reads it;
+- nothing in it changes `ResolvedDesignSpec`;
+- it is validated by its own sub-schema and by the semantic checks in §12;
+- it is persisted on `DesignConcept.name` / `DesignConcept.description`, not inside `DesignIntent`.
 
-Do not quietly add `name` or `description` to DesignIntent.
+This keeps the six-field design contract intact while preserving the one free-text creative moment the host sees at the reveal.
 
-For MVP, derive and persist presentation metadata deterministically after compilation:
+## 21.1 Uniqueness within a batch
 
-```ts
-deriveConceptPresentationMetadata({
-  eventIdentity,
-  designIntent,
-  resolvedDesignSpec
-}) => {
-  name,
-  description
-}
-```
+The three DesignIntent calls in a batch run in parallel and cannot see each other. After all three return:
 
-Recommended naming rule:
+1. normalize names (trim, collapse whitespace, case-fold);
+2. if two or more concepts in the batch share a name, keep the first and re-derive the others deterministically per §21.2;
+3. if a name duplicates an entry in `priorConceptNames`, re-derive it deterministically;
+4. record every replacement in `compilerRepairs[]` with `reason: "duplicate_concept_name"`.
+
+## 21.2 Deterministic fallback
+
+Used when `presentation` is missing, fails validation, or is a duplicate:
 
 ```text
 <tone modifier> + <public archetype label>
 ```
 
-Public labels are intentionally not the internal enum strings:
+Public labels (not the internal enum strings):
 
 ```text
 editorial_split     → Editorial
@@ -840,7 +864,7 @@ full_bleed_visual   → Atmosphere
 layered_editorial   → Layered
 ```
 
-Default tone modifiers:
+Tone modifiers:
 
 ```text
 light → Airy
@@ -848,25 +872,20 @@ mid   → Warm
 dark  → Deep
 ```
 
-Examples:
-- `Deep Editorial`
-- `Airy Invitation`
-- `Warm Modern`
+If the fallback also collides (for example a light-only batch), append the typography category label, then a numeric suffix as the last resort.
 
-A product designer may later replace these fixed public labels centrally without changing DesignIntent or renderer behavior.
-
-The one-line description should be assembled from controlled renderer metadata, for example:
+The fallback description is assembled from controlled renderer metadata:
 
 ```text
 <public archetype summary> with <typography category> typography,
 <density> pacing, and <motif summary | minimal ornament>.
 ```
 
-Do not expose raw enum IDs to users.
+Do not expose raw enum IDs to users in either path.
 
-If model-authored concept names are later desired, define a separate non-design metadata contract or explicitly revise the PRD. Do not smuggle them into the six-field intent schema.
+## 21.3 Boundary
 
-This is an intentional boundary, not an omission.
+Do not let `presentation` grow into a second creative contract. It is a name and one sentence. Anything else the host sees on a concept card comes from the compiler or from controlled copy.
 
 ---
 

@@ -59,3 +59,10 @@ The remaining renderer work is explicitly gated:
 3. run swap/repair tests;
 4. run light-only Brief 2;
 5. only then implement the remaining three archetypes.
+
+## Amendments after Revision 5 (model contracts review)
+
+- **Concept names are model-authored again, outside the design contract.** The DesignIntent response carries a separate `presentation` object (`name`, `description`) validated on its own and never read by the compiler. The deterministic tone-plus-archetype naming is retained as the fallback for missing, invalid, or duplicate names. Prompt bumped to `design_intent_v2`, schema to `design_intent_schema_v2`.
+- **One name for redesign feedback.** `revisionFeedback` is renamed to `redesignFeedback` in the Event Identity input and prompt so both calls use the same field.
+- **Application-side validation is mandatory.** Provider structured-output enforcement is treated as best effort; the canonical schema validator and semantic checks run on every response.
+- **Telemetry records prompt and schema versions.** `GenerationRun` gains `promptVersion` and `schemaVersion`.

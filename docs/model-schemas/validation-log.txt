@@ -1,2 +1,2 @@
 JSON Schema Draft 2020-12 validation: PASS
-Representative output validation: PASS
+Representative output validation: PASS (event-identity v1, design-intent v2 with presentation)
