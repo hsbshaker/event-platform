@@ -8,6 +8,23 @@
 
 ---
 
+## 0a. What changed in Revision 6
+
+Revision 6 changes one thing, comprehensively: **the renderer architecture moves from versioned archetype bundles to the composition language.** The model now authors the page composition itself as a `CompositionTree` of trusted primitives; a deterministic compiler validates, repairs, fits against rendered geometry and freezes the result. Everything about product flow, roles, RSVP, registry, messaging, publishing and limits is unchanged from Revision 5.
+
+| Area | Revision 5 | Revision 6 |
+| --- | --- | --- |
+| Model creative authority | Six-field `DesignIntent` selecting an archetype bundle | `DesignIntent` v3 (`family`, `composition` replace `heroArchetype`) plus a `CompositionTree`: nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent |
+| Composition | Archetype bundle owns hero, sections, guest composition and treatments | The model composes from nine containers, five decorative leaves and thirteen semantic nodes, enum tokens only; capability-scoped |
+| Compiler | Typography repair, motif slots, palette, treatments | Strict schema, structural repair by kind, attractive-token caps, canonicalization, palette, layout resolution, **rendered-geometry verification** |
+| Re-prompts | One retry for structurally invalid intent | Only for schema-invalid output, a token-cap violation, or a selector collision; once each; all other defects repaired without a model call |
+| Diversity | Distinct archetypes, tones, categories | Sibling planner: distinct intents and structural directives, token allotments, skeleton-signature collisions at .70 |
+| Recipes/archetypes | The design vocabulary | A library: regression fixtures, few-shot examples, repair/fallback macros, calibration; not the creative ceiling |
+| Persistence | `DesignIntent + archetypeVersion + ResolvedDesignSpec` | `DesignIntent + CompositionTree (raw, canonical) + ResolvedDesignSpec` with prompt, schema, primitive-set and compiler versions |
+| Proof | Three archetypes, five swap tests | Unit, adversarial, expressiveness and confirmation-run gates with numeric thresholds (§11.9) |
+
+Evidence: `proof/`, `proof-a1/`, `proof-b/` (`RESULTS.md`, `FINAL.md`). Companion docs: `docs/event-renderer-system.md` Revision 2, `docs/model-contracts.md` Revision 2, `docs/CHANGELOG-v6.md`.
+
 ## 0. What changed in Revision 5
 
 Revision 5 reconciles the product with the approved creation UX and the first renderer architecture pressure test. Implementing agents must treat this document as authoritative; where it conflicts with Revision 4, older prototypes, or repository history, **Revision 5 wins**.
@@ -165,38 +182,29 @@ The host describes intent; the system translates intent into a cohesive event.
 
 The strong model creates:
 - an `EventIdentity`;
-- a compact six-field `DesignIntent` for each concept.
+- a compact six-field `DesignIntent` for each concept;
+- a `CompositionTree` for each concept: the page's structure as a tree of trusted primitives with semantic leaves, every value an enum token.
 
-It does **not** generate arbitrary HTML, CSS, SVG, page layouts, section treatment overrides, card variants, border variants, or button variants.
+It does **not** generate HTML, CSS, JSX, JavaScript, SVG, pixel positions, free text, colors, fonts, or any component outside the primitive allowlist. The model's authority is structural: nesting, grouping, hierarchy, relative emphasis, section composition and order, surface transitions, alignment, structural motif placement, and allowable responsive intent.
 
 A deterministic renderer compiler:
-1. loads the selected versioned archetype bundle;
-2. validates/repairs typography compatibility;
-3. assigns requested motifs to compatible archetype slots;
-4. compiles raw palette + tonal direction into accessible semantic event tokens;
-5. applies archetype-owned section/component defaults;
-6. produces and persists an immutable `ResolvedDesignSpec`.
+1. validates the tree against the strict schema (one re-prompt on failure, then a library fallback);
+2. validates structure and repairs deterministically: nesting, depth, limits, box depth, coverage conditional on the event's capabilities, capability references, component placement, motif kind, responsive intent;
+3. applies the sibling planner's attractive-token caps;
+4. canonicalizes; applies the page system; compiles raw palette + tonal direction into accessible semantic event tokens; resolves typography and density;
+5. resolves every token to layout values per breakpoint;
+6. verifies content fit against rendered geometry at 390 and 1280 and repairs until clean;
+7. produces and persists an immutable, verified `ResolvedDesignSpec`.
 
-The production renderer renders from the resolved spec.
+The production renderer renders from the resolved spec, one fixed component per primitive.
 
-### 4.3 Archetypes are internal design systems, not customer-facing templates
+### 4.3 The composition language is the creative surface; there are no templates
 
-An archetype is a **versioned bundle** that owns:
-- hero composition;
-- desktop/mobile composition rules;
-- Event Details treatment;
-- RSVP treatment;
-- Registry treatment;
-- guest-surface composition;
-- visual treatment;
-- ornamentation;
-- border treatment;
-- card treatment;
-- button treatment;
-- motif slots;
-- compatible typography pairings.
+There is no archetype bundle and no recipe menu. The model composes each page from a bounded, versioned primitive set (`docs/event-renderer-system.md §2`). The compiler owns everything about execution: CSS/grid/flex, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, and business logic.
 
-The host never sees “Template 4,” “Archetype,” or these implementation fields. There is no template gallery.
+The Phase A/A.1 recipes survive as a **library** with four jobs: regression fixtures, rotated few-shot examples, repair and fallback macros, and signature calibration. They are not the creative ceiling and the renderer carries no code per recipe.
+
+The host never sees primitives, directives, tokens, caps, or the library. There is no template gallery.
 
 ### 4.4 Prompt first, auth second, generation third
 
@@ -253,10 +261,10 @@ Manual design controls remain limited to curated palette and typography choices.
 
 Once a concept is generated:
 - its `DesignIntent` is immutable;
-- its selected `archetypeVersion` is immutable;
-- its `ResolvedDesignSpec` is immutable.
+- its `CompositionTree` (raw model output and canonical form) is immutable;
+- its `ResolvedDesignSpec`, including the verification record and the version set (prompt, schema, primitive set, compiler), is immutable.
 
-Do not silently recompile an old concept against newer archetype defaults.
+Do not silently recompile an old concept against a newer compiler or primitive set. The renderer must support every primitive-set version that has a live spec.
 
 However, renderer implementation code is normal product code. Accessibility fixes, browser fixes, responsive fixes, and visual bug fixes may improve every event that renders a compatible resolved spec. “Concept immutability” must never block ordinary renderer maintenance.
 
@@ -363,7 +371,7 @@ Implementing agents must **not** add these unless explicitly requested later:
 - drag-and-drop page builder, pixel editor, arbitrary CSS, free-form canvas;
 - customer-facing template gallery;
 - model-emitted section/card/button/border/treatment overrides;
-- host controls for card treatment, border treatment, button treatment, spacing, density, motif placement, or archetype internals;
+- host controls for card treatment, border treatment, button treatment, spacing, density, motif placement, primitives, directives, or the library;
 - seating charts, timeline/planning modules, vendors, venue marketplace;
 - photo galleries, printed stationery, thank-you-note manager, invitation sending;
 - host decorative site-photo uploads, hero-photo uploads, crop/position controls;
@@ -535,7 +543,7 @@ EventIdentity {
   toneExplicitlyConstrained: boolean
   compatibleTonalDirections[]       // ranked subset: light | mid | dark
 
-  compatibleHeroArchetypes[]        // ranked archetype IDs
+  compatibleFamilies[]              // ranked family IDs: editorial | invitation | statement
   compatibleTypographyCategories[]  // ranked broad categories, not raw fonts
 
   visualMotifs[]
@@ -557,78 +565,82 @@ Never copy protected logos/graphics or reproduce a specific proprietary design.
 
 ### 7.7 Diversity planning before concept model calls
 
-Once Event Identity is valid, deterministic code plans three concept assignments.
+Once Event Identity is valid, the deterministic **sibling planner** plans three concept assignments. Each sibling receives:
 
-Priority:
-1. distinct compatible **hero archetypes** whenever possible;
-2. distinct compatible **tonal directions** when the brief allows;
-3. distinct compatible **typography categories** across the three when possible;
-4. density differentiation as a later lever when useful.
+1. a distinct compatible **family** whenever possible, then distinct **tonal direction** when the brief allows, then distinct **typography category** and **hierarchy**;
+2. a distinct **structural directive**: one value per independent dimension (opening object, primary structure, date treatment, motif use, hero surface, details folded or own, RSVP intro placement, registry layout), assembled into one sentence; siblings differ at least on structure and opening;
+3. an **allotment of attractive tokens** (staggered titles, hero numerals, watermark decorations): each token to at most one sibling in three.
 
-If tone is explicitly constrained (e.g. light/airy), do not force dark/mid. Diversity then relies more heavily on archetype, typography, motifs, density, and palette dominance.
+Never the same intent with different seeds: Phase B showed that identical intents produce skeleton collisions the selector cannot resolve. If tone is explicitly constrained, do not force dark/mid; diversity then relies on family, directive, typography and hierarchy.
 
-The assigned archetype/tone/typography-category constraints are passed to each concept model call.
+The assignment is passed to the DesignIntent call; the directive, allotment and DesignIntent are passed to the composition call.
 
-### 7.8 DesignIntent generation
+### 7.8 DesignIntent and composition generation
 
-The strong model returns exactly the creative intent surface below.
+The strong model returns the creative intent surface below, then, in a second call per concept, the composition.
 
 ```ts
 DesignIntent {
-  heroArchetype
-  tonalDirection
+  family                    // editorial | invitation | statement (assigned)
+  tonalDirection            // assigned
 
   palette: {
     colors: string[]        // 3–5 validated hex colors
     dominant: string        // one member of colors[]
   }
 
-  typographyPairing         // curated ID
+  typographyPairing         // curated ID, in the assigned category
   density                   // compact | balanced | spacious
+  composition: { asymmetry, hierarchy, rhythm, sectionContrast, ornament }
   motifs[]                  // curated motif IDs
 }
 ```
 
-**No model-emitted overrides exist in MVP.**
+```ts
+CompositionTree { version: "composition_v1"; sections: Section[] }   // docs/event-renderer-system.md §2
+```
+
+The composition call is conditioned on the DesignIntent, the event's capabilities and content profile, the generated primitive spec and rules, the sibling's directive and token allotment, and three rotated library examples. It is re-prompted only for schema-invalid output, a token-cap violation, or a selector collision, once each.
+
+**No model-emitted style overrides exist in MVP.** A tree carries no colors, fonts, sizes, pixels or free text.
 
 The same response also carries a `presentation` object (`name`, `description`) for the concept card. It is host-facing metadata, validated separately, persisted on `DesignConcept`, and never read by the compiler. If it is missing, invalid, or duplicates another concept's name, a deterministic fallback name is derived (see `docs/model-contracts.md` §21).
 
 The model cannot emit:
-- section treatment;
-- guest composition;
-- visual treatment;
-- ornamentation;
-- border treatment;
-- card treatment;
-- button treatment;
-- motif placement;
-- semantic background/text/button colors.
+- HTML, CSS, JSX, JavaScript, SVG;
+- pixel or absolute positioning; free ratios; custom breakpoints; animation;
+- colors, fonts, sizes; semantic background/text/button colors;
+- free text or copy;
+- any node, prop or value outside the primitive allowlist;
+- RSVP or Registry internals; business logic.
 
-Those belong to the compiler/archetype bundle.
+Those belong to the compiler. What the model does own is listed in §4.2.
 
 ### 7.9 Renderer compilation
 
-For each valid DesignIntent:
+For each concept:
 
-1. Load `ArchetypeDefinition` by ID and current selected version.
-2. Validate typography pairing against that archetype's compatible pairings.
-3. Deterministically repair incompatible pairing to an approved default/nearest allowed choice; record repair.
-4. Match requested motif IDs to compatible archetype motif slots by declared role.
-5. Enforce motif max placements (normally one or two).
-6. Drop motifs with no compatible available slot; record `motifsDropped`.
+1. Validate the composition response against the strict schema; on failure re-prompt once with the error list; on a second failure fall back to a library page and record it.
+2. Validate structure and repair deterministically, logging every repair by kind (`structural`, `coverage`, `capability`, `responsive`, `planner`, `fit-estimate`, `fit-verified`).
+3. Apply the sibling's attractive-token caps (one re-prompt, then deterministic neutralization).
+4. Canonicalize (defaults, ids, hash).
+5. Validate typography against family and hierarchy; repair deterministically and record.
+6. Resolve motif placements from the tree within the ornament budget; swap a motif of the wrong kind for its slot and record it; never drop silently.
 7. Compile raw palette + tonal direction into semantic accessible event tokens.
-8. Apply archetype-owned treatments/composition defaults.
-9. Produce immutable `ResolvedDesignSpec`.
-10. Persist `DesignIntent`, `archetypeVersion`, and `ResolvedDesignSpec`.
+8. Resolve every token to layout values per breakpoint.
+9. Verify content fit against rendered geometry at 390 and 1280; demote emphasis, then relax boxes, until clean.
+10. Check the skeleton signature against siblings and redesign history; on a collision re-prompt once, then fall back.
+11. Produce the immutable `ResolvedDesignSpec` with `verified.clean = true`.
+12. Persist `DesignIntent`, `CompositionTree` (raw and canonical), and `ResolvedDesignSpec` with the version set.
 
-No model call is used for compiler validation/repair.
+No model call is used for compiler validation or repair.
 
 ### 7.10 The wait
 
 Generation must feel like progress:
 1. required details run while identity is being created;
 2. user-facing portions of Event Identity may stream;
-3. three DesignIntent calls run in parallel after diversity assignments;
+3. three DesignIntent calls, then three composition calls, run in parallel after the planner assigns siblings;
 4. compilation is deterministic/local;
 5. each concept renders as soon as its resolved spec exists.
 
@@ -721,11 +733,11 @@ Closing returns to Creation Mode.
 
 `Design` exposes only curated:
 - palette choices/variants;
-- typography pairings compatible with the selected archetype;
+- typography pairings compatible with the concept's family and hierarchy;
 - reset to concept design;
 - `Try another direction ✦` before publish.
 
-Do not expose archetype internals, density, motifs, treatment, borders, cards, buttons, spacing, or CSS.
+Do not expose primitives, directives, tokens, density, motifs, treatment, borders, cards, buttons, spacing, or CSS.
 
 Host-side deterministic direct design overrides remain on `Event.designOverrides`; they do not mutate the immutable generated concept.
 
@@ -824,16 +836,18 @@ Use the strongest appropriate multimodal/reasoning model for:
 
 1. `generateEventIdentity(...)`
 2. `generateDesignIntent(...)` for each concept
+3. `generateComposition(...)` for each concept
 
 These are the only frontier creative operations in MVP.
 
-The model does **not** generate the final renderer schema. Application code compiles DesignIntent to ResolvedDesignSpec.
+The model does **not** generate the final renderer schema. Application code compiles the DesignIntent and CompositionTree to a verified ResolvedDesignSpec.
 
 A thin provider capability layer is sufficient:
 
 ```ts
 generateEventIdentity(...)
 generateDesignIntent(...)
+generateComposition(...)
 ```
 
 Do not build a large abstraction framework prematurely.
@@ -848,7 +862,7 @@ Use smaller/cheaper models only where ordinary code is insufficient and quality 
 
 Validate timezone in code.
 
-Do not add models for renderer validation, motif placement, contrast, repair, or design compilation.
+Do not add models for renderer validation, structural repair, motif placement, contrast, content fit, or design compilation.
 
 ### 9.3 No-model operations
 
@@ -859,15 +873,17 @@ Never call a model for:
 - applying host palette/typography overrides;
 - editing text;
 - guests/registry/cash-fund operations;
-- validating Event Identity/DesignIntent structure;
+- validating Event Identity/DesignIntent/CompositionTree structure;
 - validating enum IDs;
-- assigning concept diversity constraints;
-- loading archetype defaults;
+- planning sibling assignments, directives and token allotments;
+- structural repair, coverage repair, capability repair, responsive overrides, box-depth and motif-kind repair;
+- attractive-token neutralization;
 - typography compatibility repair;
-- assigning motifs to slots;
-- dropping/logging incompatible motifs;
+- resolving motif placements from the tree;
 - semantic palette compilation;
 - contrast derivation;
+- layout resolution and rendered-geometry verification;
+- skeleton signatures and collision detection;
 - producing ResolvedDesignSpec;
 - enforcing generation limits;
 - gift state transitions;
@@ -878,13 +894,13 @@ Never call a model for:
 Persist:
 - Event Identity;
 - every generated DesignIntent;
-- selected archetype version for every concept;
+- every generated CompositionTree, raw and canonical, with its prompt, schema, primitive-set and compiler versions;
 - every immutable ResolvedDesignSpec;
 - event-level manual design overrides separately.
 
 Do not re-send original raw inspiration for routine redesign after its summary is available.
 
-Do not recompile historical concepts merely because an archetype bundle changes.
+Do not recompile historical concepts merely because the compiler or the primitive set changes.
 
 Renderer code may evolve/fix bugs while continuing to consume the old resolved schema/version.
 
@@ -893,17 +909,15 @@ Renderer code may evolve/fix bugs while continuing to consume the old resolved s
 Each concept compilation may emit deterministic telemetry:
 
 ```ts
-compilerRepairs[]   // field/requested/resolved/reason
-motifsDropped[]     // motif IDs that could not be placed
+schemaValidFirstCall          // raw model output parsed strictly
+reprompts[]                   // kind: schema | token-cap | collision (at most one each)
+compilerRepairs[]             // { rule, path, kind, before, after }; kind: structural | coverage | capability | responsive | planner | fit-estimate | fit-verified
+verified                      // { desktop, mobile, fitDemotions, clean, authoritative: "rendered-geometry" }
+signature, nearestSibling     // skeleton signature and the worst sibling similarity at accept
+fallback?                     // "library" when the model's tree was replaced
 ```
 
-Typical repair reason:
-- `incompatible_with_archetype`
-- `unknown_enum`
-- `invalid_palette_member`
-- `slot_unavailable`
-
-Compiler repair must not trigger a model retry unless the DesignIntent is structurally invalid/unusable and cannot be repaired safely.
+Schema validity, deterministic repairs, geometry verification and model re-prompts are separate measures; never fold one into another. Compiler repair must not trigger a model retry; only schema-invalid output, a token-cap violation and a selector collision may.
 
 ### 9.6 Model usage and cost metering
 
@@ -946,398 +960,94 @@ The guiding experience:
 
 ## 11. Design System and Rendering Architecture
 
-This is the core renderer contract. `docs/event-renderer-system.md` is the implementation-level companion and wins on renderer-detail questions that do not conflict with this PRD.
+This is the core renderer contract. `docs/event-renderer-system.md` Revision 2 is the implementation-level companion and wins on renderer-detail questions that do not conflict with this PRD.
 
 ### 11.1 The rule
 
-> **AI expresses creative intent. Versioned archetype bundles + deterministic compiler build the event.**
+> **The model composes from trusted primitives. The compiler validates, repairs, fits against real geometry, and freezes. The renderer only consumes resolved, verified, persisted design data.**
 
-The model never emits arbitrary HTML/layout/CSS or treatment overrides.
+The model never emits HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist. The renderer must be expressive enough that concepts remain visibly distinct even when palette and tone are constrained; Phase B measured it at 58 distinct first-screen skeletons in 60 with 90% outside the recipe library.
 
-The renderer must be expressive enough that concepts remain visibly distinct even when palette and tone are constrained.
+### 11.2 DesignIntent — model contract (v3)
 
-### 11.2 DesignIntent — model contract
-
-Exactly six creative dimensions:
+Six creative fields, plus motifs and the non-design `presentation` object:
 
 ```ts
 DesignIntent {
-  heroArchetype:
-    | "editorial_split"
-    | "centered_statement"
-    | "full_bleed_visual"
-    | "framed_invitation"
-    | "typography_first"
-    | "layered_editorial"
-
-  tonalDirection:
-    | "light"
-    | "mid"
-    | "dark"
-
-  palette: {
-    colors: string[]   // 3–5 valid hex colors
-    dominant: string   // must be a member of colors[]
-  }
-
-  typographyPairing: string   // curated ID
+  family: "editorial" | "invitation" | "statement"
+  tonalDirection: "light" | "mid" | "dark"
+  palette: { colors: string[]; dominant: string }     // 3–5 valid hex colors; dominant ∈ colors
+  typographyPairing: string                            // curated ID
   density: "compact" | "balanced" | "spacious"
-  motifs: string[]            // curated IDs
+  composition: {
+    asymmetry: "symmetric" | "gentle" | "strong"
+    hierarchy: "restrained" | "editorial" | "dramatic" | "monumental"
+    rhythm: "continuous" | "alternating" | "punctuated"
+    sectionContrast: "low" | "moderate" | "high"
+    ornament: "none" | "restrained" | "decorative"
+  }
+  motifs: string[]
 }
 ```
 
-There is **no model `overrides` block in MVP**.
+`family` and `composition` select nothing. They condition the composition call and are measured afterwards. There is **no model `overrides` block**.
 
-### 11.3 ArchetypeDefinition — versioned bundle
+### 11.3 CompositionTree — model contract (composition_v1)
 
-Conceptual code/config shape:
+The model's second output per concept. Layout containers `Stack`, `Cluster`, `Split`, `Rail`, `Grid`/`Cell`, `Frame`, `Surface`, `Overlay`; decorative leaves `MotifField`, `MotifBand`, `Rule`, `Glyph`, `Monogram`; semantic leaves `Eyebrow`, `EventTitle`, `Hosts`, `Description`, `Deadline`, `Venue`, `Location`, `Time`, `Date`, `CTA`, `SectionHeading`; opaque components `RSVP`, `Registry`/`RegistryItem`, `CashFund`. Sections `hero | details | rsvp | registry | band` with a surface role and a root node. Every value is an enum token (ratio 38/50/62; widths, heights, insets, gaps in three steps; extents in four; emphasis in four).
 
-```ts
-ArchetypeDefinition {
-  id
-  version
+Rules the compiler enforces and repairs: the nesting matrix; depth ≤ 5; box depth ≤ 2; per-section and per-page node and primitive caps; 3–6 sections with hero first; coverage conditional on the event's capabilities; component placement (never in a Cluster, a rail, a decoration, or a narrow cell; at least half of a Split); motif kind per slot; responsive-intent overrides. The full table is `docs/event-renderer-system.md §2.4`. Additions to the language require a proof run and a primitive-set version bump.
 
-  defaults {
-    eventDetailsTreatment
-    rsvpTreatment
-    registryTreatment
-    guestSurfaceComposition
+### 11.4 Capabilities
 
-    visualTreatment
-    ornamentation
-    borderTreatment
-    cardTreatment
-    buttonTreatment
-  }
+`Capabilities { rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }` is derived from the event. The prompt names what is unavailable; the validator removes any reference to it as a `capability` repair; nothing unavailable is ever required. An event without a registry has no registry section.
 
-  compatibleTypographyPairings[]
+### 11.5 Compilation and repair
 
-  motifSlots[] {
-    id
-    role        // field | frame | band | divider | accent
-    maxUses
-    priority
-  }
-}
-```
+Pipeline: strict schema → structural validation and deterministic repair → attractive-token caps → content-fit estimate (advisory) → canonicalize → page system + semantic palette + typography → layout resolution → rendered-geometry verification (authoritative) → immutable `ResolvedDesignSpec`.
 
-Treatment compatibility matrices are deliberately **not** required in MVP because the model/host cannot override those treatment defaults.
+Every repair is logged `{ rule, path, kind, before, after }`. Repair kinds: `structural`, `coverage`, `capability`, `responsive`, `planner`, `fit-estimate`, `fit-verified`. No repair calls a model. Library macros (a hero, an rsvp section, a registry section) are the only non-rule repair inputs.
 
-### 11.4 Archetypes
+Model re-prompts happen for exactly three reasons, at most once each per candidate: schema-invalid output, an attractive-token violation, a selector collision. A second failure falls back to a library page and is recorded as such.
 
-MVP vocabulary reserves six:
+### 11.6 Rendered-geometry verification
 
-| ID | Core composition intent |
-| --- | --- |
-| `editorial_split` | Asymmetric editorial hero and split/panel rhythm. |
-| `centered_statement` | Formal centered statement composition. |
-| `full_bleed_visual` | Full-surface pattern/texture/gradient field. |
-| `framed_invitation` | Refined physical-invitation framing and symmetry. |
-| `typography_first` | Scale/alignment/whitespace/type carry the design. |
-| `layered_editorial` | Overlapping planes/cards and editorial depth. |
+A spec is final only when it has been rendered at 390 and 1280 and every text node is within its line limit and its container, and no element overflows horizontally. The verifier demotes emphasis, then relaxes the innermost box around a persistent overflow, and re-renders; the renderer stylesheet carries a floor (words can always break, glyph rows wrap, decorations clip, numerals in rails are rail-sized) so horizontal overflow is impossible by construction. The static estimate is a hint only. Zero residual overflow is a hard criterion of every confirmation run.
 
-**Implementation gate:** do not build archetypes 4–6 merely because the enum exists. The first three (`editorial_split`, `framed_invitation`, `typography_first`) must pass the renderer tests in §11.11 under the new compiler contract before the remaining three earn implementation.
+### 11.7 Semantic palette compiler, typography, motifs, density
 
-### 11.5 MotifDefinition and role-based placement
+Unchanged from Revision 5 §11.5–§11.7 in substance: raw palette never becomes text/background/button semantics; the OKLCH semantic compiler produces all required tokens with contrast by construction and the palette-control regression stays a unit test. Typography pairings are curated IDs with categories; compatibility is by family and hierarchy (a pairing must hold at monumental). Motifs declare roles, channels, opacity bounds and caps; the tree places them; a motif of the wrong kind for its slot is swapped and logged, never dropped silently. Density maps to gap, inset and section-spacing scales.
 
-Each motif asset declares:
-
-```ts
-MotifDefinition {
-  id
-
-  supportedRoles[]  // field | frame | band | divider | accent
-
-  colorChannels[] {
-    semanticToken
-    minOpacity
-    maxOpacity
-  }
-
-  maxPlacements     // normally 1 or 2
-}
-```
-
-Initial vocabulary may include:
-- `plaid_restrained`
-- `gingham`
-- `botanical_line`
-- `stripe_classic`
-- `deco_border`
-- `linen_texture`
-- `equestrian_line`
-- `scallop_subtle`
-- `star_celestial`
-- `ribbon_line`
-
-The compiler:
-1. iterates requested motifs deterministically;
-2. matches supported roles to available archetype slots;
-3. respects slot and motif placement caps;
-4. persists resolved placements;
-5. drops any unplaceable motif;
-6. records dropped IDs in compilation telemetry.
-
-No motif silently disappears.
-
-### 11.6 Typography
-
-Typography pairings are curated IDs with:
-- display family;
-- body family;
-- fallback;
-- weights;
-- category;
-- character support;
-- tracking/scale bounds.
-
-Each archetype declares compatible pairings.
-
-The diversity planner should prefer distinct typography **categories** across a concept batch when compatible, especially when tone is constrained.
-
-If a generated pairing is incompatible with the assigned archetype, repair deterministically to the archetype's approved default/nearest same-category choice and record the repair.
-
-Never allow the model to output raw font-family strings.
-
-### 11.7 Semantic palette compiler
-
-Archetypes never consume raw DesignIntent palette roles such as `dominant` directly as backgrounds/text/buttons.
-
-Inputs:
-- DesignIntent palette colors;
-- dominant color;
-- tonal direction.
-
-Output semantic tokens such as:
-
-```text
-eventBg
-heroBg
-surface
-surfaceAlt
-
-text
-textMuted
-
-accent
-accentText
-
-buttonBg
-buttonText
-
-border
-focus
-
-error
-errorText
-```
-
-Compiler requirements:
-- tonal direction owns the background strategy;
-- use perceptual color operations (e.g. OKLCH or equivalent) rather than naive RGB lightening;
-- preserve supplied hue/chroma intent where practical;
-- derive tints/shades from supplied palette rather than inventing unrelated theme colors;
-- every normal text/background pair used by the renderer clears WCAG AA 4.5:1;
-- large text may use the appropriate 3:1 threshold;
-- non-text interactive/focus boundaries meet 3:1 where applicable;
-- button text/background clears 4.5:1;
-- muted normal-size text still clears 4.5:1;
-- when a same-hue adjustment cannot yield a visually acceptable accessible result, compiler may choose the nearest derived neutral/on-color from the supplied palette family;
-- validate all required pairs after compilation.
-
-The palette-control regression from the first renderer experiment must become a unit test: navy-on-navy text/button states are impossible by construction.
-
-### 11.8 ResolvedDesignSpec — renderer base input
-
-The compiler persists a complete immutable resolved object. Conceptual shape:
+### 11.8 ResolvedDesignSpec — renderer base input (resolved_v2)
 
 ```ts
 ResolvedDesignSpec {
-  schemaVersion
-
-  archetypeId
-  archetypeVersion
-
-  tonalDirection
-  typographyPairing
-  typographyCategory
-  density
-
-  eventDetailsTreatment
-  rsvpTreatment
-  registryTreatment
-  guestSurfaceComposition
-
-  visualTreatment
-  ornamentation
-  borderTreatment
-  cardTreatment
-  buttonTreatment
-
-  motifPlacements[] {
-    motifId
-    slotId
-    role
-    resolvedChannels
-  }
-
-  semanticTokens {
-    eventBg
-    heroBg
-    surface
-    surfaceAlt
-    text
-    textMuted
-    accent
-    accentText
-    buttonBg
-    buttonText
-    border
-    focus
-    error
-    errorText
-  }
+  version
+  designIntent; presentation
+  composition            // canonical tree after repair, caps and fit
+  compositionHash; capabilities
+  pageSystem; tokens; layout /* per node, per breakpoint, numeric */; motifs
+  compilerRepairs[]; intentDeviations[]; signature
+  verified { desktop, mobile, fitDemotions, clean: true, authoritative: "rendered-geometry" }
+  versions { primitiveSet, compiler, compositionPrompt, compositionSchema, designIntentPrompt, designIntentSchema }
 }
 ```
 
-The generated concept renderer reads the `ResolvedDesignSpec`, not current archetype defaults and not DesignIntent.
+The renderer reads only this object: one fixed component per primitive and semantic node, a static stylesheet keyed by classes and numeric custom properties. No CSS text is derived from model output. Event-level host overrides (curated palette, curated typography) are a separate deterministic layer applied after selection and never mutate the concept record.
 
-Event-level host manual overrides are applied as a separate deterministic layer after selection:
-- curated palette override;
-- curated typography pairing override.
+### 11.9 Concept diversity and proof gates
 
-Those overrides never mutate the concept record.
+The sibling planner (§7.7) provides distinct intents, directives and token allotments; the skeleton signature (structural tokens of the hero, surface sequence, RSVP and registry skeletons, alignment, typography category, tone; per breakpoint; threshold .70) rejects collisions with siblings and redesign history.
 
-### 11.9 Guest-surface component system
+The proof harnesses in `proof-b/` are the regression suite. Any change to the language, validator, compiler, renderer rules or planner reruns: unit tests; the adversarial set (every fixture repairs to zero violations and renders with zero overflow; every schema-invalid payload is rejected); expressiveness (every library silhouette validates and renders); and a sibling-batch confirmation run with these thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes; reviewers rate ≥ 70% of model first screens designed. Mobile convergence is expressed by the tree's mobile intents and is not a failure.
 
-Themed guest components include at minimum:
+### 11.10 Guest-surface component system
 
-```text
-EventButton
-EventField
-EventTextarea
-EventCard
-EventNotice
-EventSheet
-EventOTPInput
-EventChoiceGroup
-EventPartyCard
-EventRegistryCard
-EventGiftCard
-EventConfirmation
-EventAccessGate
-EventFooter
-EventSectionFrame
-```
+Unchanged from Revision 5 §11.9: the themed guest components, the fixed semantic RSVP flow, and mobile convergence. The composition around them is now the tree's; `RSVP`, `Registry`, `RegistryItem` and `CashFund` are opaque nodes that take width from their container, surface from the nearest `Surface`, and card/button/border language from the page system.
 
-They consume event semantic tokens and resolved treatments, never application UI tokens.
+### 11.11 Imagery boundaries and visual regression
 
-The semantic guest flow remains predictable:
-
-```text
-access gate when private
-→ name lookup
-→ optional collision resolution
-→ SMS OTP when phone-backed
-→ party attendance
-→ questions
-→ submit
-→ confirmation
-```
-
-Archetype-owned `guestSurfaceComposition` determines desktop composition/framing around that fixed semantic flow.
-
-**Mobile convergence is accepted.** At ~390px, many multi-column guest surfaces collapse into a semantic stack. Mobile distinction should come from typography, framing, component skin, motifs, section surfaces, density, and hierarchy—not forced alternative information architectures.
-
-### 11.10 Concept diversity
-
-For each batch:
-
-1. honor Event Identity compatibility first;
-2. assign distinct eligible archetypes whenever possible;
-3. assign distinct compatible tonal directions when the brief permits;
-4. when compatible, assign/prefer distinct typography categories;
-5. use motifs and density as additional levers;
-6. vary palette dominance only within the user's color constraints.
-
-Principle:
-
-> **AI defines what fits. Code guarantees meaningful separation. Explicit user intent beats diversity for diversity’s sake.**
-
-Redesign should prefer unseen compatible intent combinations but never dead-end when combinations are exhausted.
-
-### 11.11 Renderer proof gates
-
-The renderer must be able to fail.
-
-**Brief 1: constrained heritage**
-- same navy/cream/forest-green constrained brief for all concepts;
-- first three archetypes;
-- same event content;
-- full guest surfaces at 390 and 1280;
-- grayscale toggle;
-- palette/tone control.
-
-Pass only if:
-- A/B/C are clearly different at both widths;
-- they remain recognizably different in grayscale;
-- B is more different from A than palette/tone-only control is;
-- guest surfaces feel themed rather than generic;
-- at least 3 of 5 structural axes differ pairwise where expected:
-  1. hero composition;
-  2. typography hierarchy;
-  3. section rhythm;
-  4. motif behavior;
-  5. component treatment.
-
-**Brief 2: tone constrained**
-- light/airy brief;
-- all three `tonalDirection = light`;
-- prove archetype + typography + motif + density can still separate concepts.
-
-**Five focused swap/compiler tests**
-1. same creative brief, archetype swapped → different site;
-2. same archetype, typography swapped → same site, different voice;
-3. same archetype, motifs swapped → same structure, different ornamental expression/slot usage;
-4. same structure, tone/palette changed → accessible semantic compiler output; no invalid contrast;
-5. incompatible intent → deterministic repair + log, no model retry.
-
-Regression expectation after compiler refactor:
-- A/B/C should remain within approved visual-diff tolerance;
-- the original palette-control panel is expected to change because broken contrast must be fixed.
-
-### 11.12 Imagery boundaries
-
-**Private inspiration**
-- AI input only;
-- private storage;
-- short-lived raw assets after successful processing/retry window;
-- never auto-published.
-
-**Published decorative imagery**
-- not supported in MVP;
-- no hero/event photos;
-- no stock;
-- no AI-generated decorative imagery.
-
-**Native registry thumbnails**
-- content exception;
-- safely fetched/normalized/stored when possible;
-- never retailer-hotlinked;
-- themed placeholder when unavailable.
-
-### 11.13 Visual regression
-
-Once an archetype is implementation-approved:
-- mobile ~390px;
-- desktop ~1280px;
-- supported tones;
-- supported density values;
-- representative motif placements;
-- guest access/RSVP/error/confirmation/registry states;
-- palette compiler regression cases.
-
-Do not create a combinatorial screenshot matrix for impossible model combinations. Test the **actual bundled architecture** and allowed manual overrides.
+Unchanged from Revision 5 §11.12–§11.13, with the screenshot matrix replaced by the confirmation-run renders at 390 and 1280 (gray and color) and the library expressiveness sheets.
 
 ## 12. Guest List and RSVP
 
@@ -1744,7 +1454,7 @@ It contains:
 - native item cards with `Buy this gift` and Available/Purchased state;
 - cash fund card.
 
-Registry components use the same event semantic tokens and archetype-owned component treatment as RSVP/access surfaces. They must not fall back to generic application cards/forms.
+Registry components use the same event semantic tokens and page-system component treatment as RSVP/access surfaces. They must not fall back to generic application cards/forms.
 
 Native product thumbnails remain content imagery and use normalized platform assets or a themed placeholder.
 
@@ -1822,7 +1532,7 @@ Keep this operational rather than analytical. No vanity analytics.
 
 Owner/co-host may directly adjust only:
 - curated palette variants;
-- curated typography pairings compatible with the selected archetype;
+- curated typography pairings compatible with the concept's family and hierarchy;
 - reset to generated concept design.
 
 Content operations remain separate:
@@ -1843,11 +1553,11 @@ designOverrides? {
 }
 ```
 
-These deterministic overrides do not mutate `DesignIntent`, archetype version, or `ResolvedDesignSpec`.
+These deterministic overrides do not mutate `DesignIntent`, `CompositionTree`, or `ResolvedDesignSpec`.
 
 Applying a palette override runs the same semantic palette compiler/contrast validation.
 
-Applying typography validates against the selected archetype's compatible typography list.
+Applying typography validates against the concept's family and hierarchy compatibility.
 
 ### 20.3 Selecting another concept
 
@@ -1870,7 +1580,7 @@ Do not expose:
 - cards;
 - buttons;
 - spacing;
-- archetype.
+- primitives, directives or the library.
 
 These are renderer-owned.
 
@@ -1936,7 +1646,7 @@ Design from approximately **390px outward**, but desktop is a first-class respon
 - Preview offers Mobile/Desktop width toggle and defaults to Mobile.
 
 **Guest surface convergence**
-At phone width, semantic RSVP order may converge across archetypes. Do not force artificial layout differences that hurt usability. Visual differentiation must survive through type, framing, motifs, surfaces, component treatment, hierarchy, and density.
+At phone width, semantic RSVP order may converge across compositions. Do not force artificial layout differences that hurt usability. Visual differentiation must survive through type, framing, motifs, surfaces, component treatment, hierarchy, and density.
 
 No critical product capability is desktop-only.
 
@@ -1948,7 +1658,7 @@ ARCHIVED (internal, optional)
 ```
 
 - **DRAFT:** private event draft; identity/concepts/redesign allowed.
-- **DESIGN_SELECTED:** `activeConceptId` points to a concept with immutable DesignIntent + archetypeVersion + ResolvedDesignSpec.
+- **DESIGN_SELECTED:** `activeConceptId` points to a concept with immutable DesignIntent + CompositionTree + ResolvedDesignSpec.
 - **READY_TO_PUBLISH:** deterministic requirements below are valid; payment may remain unsatisfied.
 - **PUBLISHED:** live; operations/content/allowed direct design overrides continue; AI redesign/concept switching disabled.
 - **PASSED:** event time has passed in stored IANA timezone; show thank-you state; registry remains accessible.
@@ -2047,7 +1757,7 @@ EventIdentity {
   tonalIntent,
   toneExplicitlyConstrained,
   compatibleTonalDirections[],
-  compatibleHeroArchetypes[],
+  compatibleFamilies[],
   compatibleTypographyCategories[],
   visualMotifs[],
   textureDirection,
@@ -2068,37 +1778,30 @@ InspirationAsset {
 }
 
 DesignIntent {
-  heroArchetype,
+  family,
   tonalDirection,
   palette /* { colors[], dominant } */,
   typographyPairing,
   density,
+  composition /* { asymmetry, hierarchy, rhythm, sectionContrast, ornament } */,
   motifs[]
 }
 
+CompositionTree {
+  version,               // primitive-set version, e.g. composition_v1
+  sections[]             // { kind, surface, align?, fill?, root: Node } — trusted primitives, enum tokens
+}
+
 ResolvedDesignSpec {
-  schemaVersion,
-  archetypeId,
-  archetypeVersion,
-
-  tonalDirection,
-  typographyPairing,
-  typographyCategory,
-  density,
-
-  eventDetailsTreatment,
-  rsvpTreatment,
-  registryTreatment,
-  guestSurfaceComposition,
-
-  visualTreatment,
-  ornamentation,
-  borderTreatment,
-  cardTreatment,
-  buttonTreatment,
-
-  motifPlacements[],
-  semanticTokens
+  version,
+  designIntent, presentation,
+  composition,           // canonical tree after repair, caps and verified fit
+  compositionHash, capabilities,
+  pageSystem, tokens /* semantic palette, fonts, scale, spacing */,
+  layout /* per node, per breakpoint, numeric */, motifs,
+  compilerRepairs[], intentDeviations[], signature,
+  verified /* { desktop, mobile, fitDemotions, clean, authoritative } */,
+  versions /* primitiveSet, compiler, compositionPrompt, compositionSchema, designIntentPrompt, designIntentSchema */
 }
 
 DesignConcept {
@@ -2109,8 +1812,10 @@ DesignConcept {
   name, description,     // from the model's presentation object, or deterministic fallback
 
   designIntent,          // immutable
-  archetypeVersion,      // immutable
-  resolvedDesignSpec,    // immutable
+  compositionRaw,        // immutable: the model's tree as returned
+  composition,           // immutable: canonical tree
+  resolvedDesignSpec,    // immutable, verified
+  directive, tokenAllotment, fallback?   // planner record
 
   selectedAt?,
   createdAt
@@ -2195,25 +1900,27 @@ GenerationRun {
   success,
 
   promptVersion,         // e.g. event_identity_v1 | design_intent_v2
-  schemaVersion,         // e.g. event_identity_schema_v1 | design_intent_schema_v2
+  schemaVersion,         // e.g. event_identity_schema_v1 | design_intent_schema_v3 | composition_schema_v1
+  primitiveSetVersion?, compilerVersion?,
 
-  diversityAssignment?,
-  archetypeVersion?,
-  compilerRepairs?,
-  motifsDropped?,
+  diversityAssignment?,  // family, tone, category, hierarchy, directive, token allotment
+  schemaValidFirstCall?, reprompts?,   // kind: schema | token-cap | collision
+  compilerRepairs?,      // by kind
+  verified?,             // geometry record
+  signature?, nearestSibling?, fallback?,
 
   createdAt
 }
 ```
 
-`ArchetypeDefinition`, `MotifDefinition`, typography definitions, and compiler rules are versioned application code/config rather than required database tables in MVP.
+The primitive set, `MotifDefinition`, typography definitions, the library, directive dimensions, attractive-token list and compiler rules are versioned application code/config rather than required database tables in MVP.
 
 ### Generated-data immutability
 
 For a DesignConcept:
 - `designIntent` is immutable;
-- `archetypeVersion` is immutable;
-- `resolvedDesignSpec` is immutable.
+- `compositionRaw` and `composition` are immutable;
+- `resolvedDesignSpec` and its version set are immutable.
 
 Renderer source code may still receive bug, accessibility, and responsive fixes.
 
@@ -2223,7 +1930,7 @@ Base guest design comes from the selected concept's `resolvedDesignSpec`.
 
 Allowed `Event.designOverrides` are applied deterministically on top for palette/typography. They must use the same compatibility and semantic color compiler as generated concepts.
 
-Do not recompile the concept against current archetype defaults during normal rendering.
+Do not recompile the concept against a newer compiler or primitive set during normal rendering.
 
 ## 25. Permissions Matrix
 
@@ -2259,7 +1966,7 @@ Owner/co-host design generation consumes the same event-level generation pool/li
 - Landing page is the prompt.
 - Prompt/auth state must survive OAuth exactly.
 - Do not begin strong-model generation before authentication.
-- **Never expose implementation complexity:** Event Identity, DesignIntent, ResolvedDesignSpec, archetype IDs/versions, compiler repairs, motif slots, provider/model tiers, backend limits.
+- **Never expose implementation complexity:** Event Identity, DesignIntent, CompositionTree, ResolvedDesignSpec, primitives, directives, allotments, the library, compiler repairs, provider/model tiers, backend limits.
 - AI should remove decisions, not create more decisions.
 - Show concepts, then show the full site, then make that same site editable.
 - Do not send a newly activated host to a generic setup dashboard.
@@ -2336,27 +2043,43 @@ identity_generated
 concept_direction_assigned {
   round,
   index,
-  heroArchetype,
+  family,
   tonalDirection,
   typographyCategory,
+  hierarchy,
+  directive,
+  tokenAllotment,
   toneConstrained
 }
 
 design_intent_generated {
   round,
   index,
-  heroArchetype,
+  family,
   tonalDirection,
   typographyPairing,
-  density
+  density,
+  composition
 }
 
-design_intent_compiled {
+composition_generated {
   round,
   index,
-  archetypeVersion,
-  repairCount,
-  motifsDroppedCount
+  schemaValidFirstCall,
+  reprompts,             // schema | token-cap | collision
+  violationsBefore,
+  fallback?
+}
+
+composition_compiled {
+  round,
+  index,
+  primitiveSetVersion,
+  compilerVersion,
+  repairsByKind,
+  verifiedClean,
+  fitDemotions,
+  nearestSibling
 }
 
 concept_rendered
@@ -2446,9 +2169,9 @@ Renderer architecture succeeds when:
 22. Compilation deterministically produces accessible immutable ResolvedDesignSpec.
 23. Incompatible typography/motif inputs are repaired/dropped and logged without a model retry.
 24. The same constrained palette can still produce three unmistakably different sites.
-25. The same tonal direction can still produce three meaningfully different sites through archetype/type/motif/density.
+25. The same tonal direction can still produce three meaningfully different sites through family, directive, composition, type, motif and density.
 26. Palette/tone changes cannot produce invalid text/button contrast.
-27. Historical concepts do not change merely because archetype defaults later evolve.
+27. Historical concepts do not change merely because the compiler or primitive set later evolves.
 
 The host should feel:
 
@@ -2466,31 +2189,35 @@ The host should feel:
 - [ ] Venue-text timezone inference + validation + browser fallback works.
 
 ### Event Identity and diversity
-- [ ] Event Identity persists tone/color constraints and compatible archetype/tone/typography-category guidance.
-- [ ] Diversity planner assigns three distinct compatible archetypes whenever possible.
+- [ ] Event Identity persists tone/color constraints and compatible family/tone/typography-category guidance.
+- [ ] The sibling planner assigns three distinct compatible families whenever possible, then distinct tones, typography categories and hierarchies when the brief allows.
+- [ ] Siblings receive distinct structural directives (at least structure and opening differ) and attractive-token allotments (each token to at most one sibling in three).
+- [ ] Siblings never share an identical DesignIntent.
 - [ ] Tone diversity is used only when compatible with the brief.
-- [ ] Distinct typography categories are preferred across concepts when compatible, especially when tone is constrained.
-- [ ] Density/motif/palette dominance may provide additional diversity without violating explicit intent.
+- [ ] Skeleton-signature collisions with siblings or redesign history at or above .70 are re-prompted once, then fall back to the library, and are recorded.
 
-### DesignIntent and compiler
-- [ ] Strong model returns only `heroArchetype`, `tonalDirection`, `palette`, `typographyPairing`, `density`, `motifs`, plus a `presentation` object (`name`, `description`) that the compiler never reads.
+### DesignIntent, composition and compiler
+- [ ] Strong model returns `family`, `tonalDirection`, `palette`, `typographyPairing`, `density`, `composition`, `motifs`, plus a `presentation` object (`name`, `description`) that the compiler never reads.
 - [ ] Duplicate or invalid concept names fall back deterministically and are logged as compiler repairs.
-- [ ] Model cannot emit section/card/button/border/ornament/treatment overrides.
-- [ ] DesignIntent validates against schema.
-- [ ] Archetype bundle is loaded by explicit version.
+- [ ] The composition response validates against the strict schema; unknown keys, non-enum values, free text and unknown node types are rejected.
+- [ ] A schema-invalid composition is re-prompted exactly once with the validator's errors; a second failure falls back to a library page and is recorded.
+- [ ] The tree references only capabilities the event has; references to disabled capabilities are removed and logged as `capability` repairs; no disabled capability is required.
+- [ ] Every structural rule (nesting matrix, depth, box depth, limits, coverage, component placement, surface sequence, motif kind, responsive intent) is validated and repaired deterministically, with every repair logged by kind.
+- [ ] Attractive-token allotments are enforced: one re-prompt, then deterministic neutralization logged as a `planner` repair.
+- [ ] No structural, coverage, capability, responsive, box, motif-kind or fit repair calls a model.
 - [ ] Incompatible typography repairs deterministically and logs a compiler repair.
-- [ ] Motifs match only compatible declared slot roles.
-- [ ] Motif placement caps are enforced.
-- [ ] Unplaceable motifs are dropped and logged.
-- [ ] No compiler repair requires a model call.
+- [ ] Motifs are placed only in slots of the matching kind; a wrong-kind motif is swapped and logged; nothing is dropped silently.
+- [ ] Content fit is verified against rendered geometry at 390 and 1280; a spec is final only with `verified.clean = true`; residual horizontal or text overflow is zero.
+- [ ] The static fit estimate never finalizes a spec on its own.
 - [ ] Raw palette is never directly consumed as renderer background/text/button semantics.
 - [ ] Semantic palette compiler produces all required event tokens.
 - [ ] Required normal text/button contrast clears 4.5:1.
 - [ ] Required non-text/focus contrast clears applicable 3:1 thresholds.
 - [ ] Palette-control unit test proves navy-on-navy states are impossible.
-- [ ] Compiler persists immutable ResolvedDesignSpec.
-- [ ] DesignIntent + archetypeVersion + ResolvedDesignSpec all persist per concept.
-- [ ] Routine rendering never recompiles old concepts from current archetype defaults.
+- [ ] Compiler persists immutable, verified ResolvedDesignSpec.
+- [ ] DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec persist per concept with prompt, schema, primitive-set and compiler versions.
+- [ ] Routine rendering never recompiles old concepts against a newer compiler or primitive set.
+- [ ] The renderer has one fixed component per primitive and derives no CSS text from model output.
 
 ### Concept experience
 - [ ] Three concepts use live production renderer.
@@ -2520,15 +2247,12 @@ The host should feel:
 - [ ] Post-publish AI redesign/concept switching disabled.
 
 ### Renderer proof
-- [ ] First three archetypes pass constrained heritage test at 390 and 1280.
-- [ ] First three remain distinguishable in grayscale.
-- [ ] Archetype swap is clearly more visually significant than palette/tone-only control.
-- [ ] Guest surfaces are themed and coherent beyond hero.
-- [ ] Same-archetype typography swap reads as same site/different voice.
-- [ ] Motif swap changes slot usage/expression without changing structure.
-- [ ] Tone/palette control remains accessible after compiler.
-- [ ] Incompatible intent repairs deterministically and logs.
-- [ ] Light-only brief passes before remaining three archetypes are implemented.
+- [ ] Unit tests cover the library's validity and canonicalization, every repair rule with a fixture, schema-invalid rejection, attractive-token detectors, planner distinctness and signature calibration.
+- [ ] Every adversarial fixture repairs to zero remaining violations and renders with zero overflow at 390 and 1280; every schema-invalid payload is rejected with a rule and path.
+- [ ] Every library silhouette and section recipe validates and renders through the primitive renderer.
+- [ ] A sibling-batch confirmation run meets the thresholds of §11.9 and is reported as separate schema, repair, geometry, invention, token-distribution, collision and review metrics.
+- [ ] Guest surfaces are themed and coherent beyond the hero.
+- [ ] Tone/palette control remains accessible after the compiler.
 - [ ] Mobile guest flow may converge structurally without being considered a failure.
 
 ### RSVP
@@ -2581,7 +2305,7 @@ The host should feel:
 
 ## 32. Implementation Guardrails for Coding Agents
 
-1. Revision 5 and its companion docs are authoritative over older prototypes/specs.
+1. Revision 6 and its companion docs are authoritative over older prototypes/specs.
 2. Do not add features because they are conventional for event apps.
 3. Landing page is the prompt; do not reinsert signup before the user can describe the event.
 4. Do not begin strong-model generation for anonymous users.
@@ -2592,26 +2316,26 @@ The host should feel:
 9. Do not turn readiness into a wizard.
 10. Do not count optional Guests/Registry as publish blockers.
 11. Do not build token/chat-level AI editing.
-12. Strong model returns six-field DesignIntent plus non-design presentation metadata only; the compiler reads the six fields only.
-13. Do not add a model `overrides` block.
-14. Do not let the model choose section/card/button/border/ornamentation treatments.
-15. Do not generate arbitrary HTML/layout/CSS/SVG.
-16. Archetype bundle owns composition and renderer defaults.
-17. Archetype definitions are versioned.
-18. Persist DesignIntent + archetypeVersion + ResolvedDesignSpec.
-19. Render generated concept base from resolved spec, not current archetype defaults.
+12. Strong model returns a six-field DesignIntent (`family`, `composition`, no `heroArchetype`) plus non-design presentation metadata, and a `CompositionTree` of trusted primitives; nothing else.
+13. Do not add a model `overrides` block or any per-node color, font, size, pixel or free-text field.
+14. The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent); the compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
+15. Do not add a primitive, prop or token to the composition language without a proof run and a primitive-set version bump; never generate arbitrary HTML/layout/CSS/SVG.
+16. Scope every tree to the event's capabilities; never require or allow a reference to a disabled capability.
+17. Validate the composition against the strict schema and the structural rules on every response, whatever the provider claims to enforce.
+18. Persist DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec with prompt, schema, primitive-set and compiler versions.
+19. Render generated concept base from the resolved spec, one fixed component per primitive; derive no CSS text from model output.
 20. Generated design data is immutable; renderer code bug/accessibility/responsive fixes are allowed.
-21. Use deterministic compiler repair, not model retries, for compatible repair cases.
-22. Motifs must declare roles/channels/opacity bounds/max placements.
-23. Archetypes expose motif slots.
-24. Dropped motifs must be logged; never silently ignore them.
-25. Archetypes must not consume raw palette roles as backgrounds/text/buttons.
+21. Repair structural, coverage, capability, responsive, box-depth, motif-kind and fit defects deterministically and log them by kind; re-prompt the model only for schema-invalid output, a token-cap violation or a selector collision, once each.
+22. Motifs must declare roles/channels/opacity bounds/max placements; the tree places them within the ornament budget.
+23. A motif of the wrong kind for its slot is swapped and logged; never dropped silently.
+24. Rendered-geometry verification at 390 and 1280 is authoritative; the static fit estimate never finalizes a spec; residual overflow must be zero.
+25. Raw palette roles are never consumed as backgrounds/text/buttons.
 26. Use semantic palette compiler + contrast validation.
 27. Palette/manual palette overrides run through the same compiler.
-28. Typography must use curated pairing IDs and archetype compatibility.
-29. Prefer distinct typography categories in concept diversity when compatible.
+28. Typography must use curated pairing IDs; compatibility is by family and hierarchy.
+29. The sibling planner gives each batch distinct intents, distinct directives and attractive-token allotments; never the same intent with different seeds.
 30. Accept mobile guest-surface structural convergence; do not damage usability to force layout novelty.
-31. Do not implement remaining archetypes until renderer proof gates pass.
+31. The Phase A/A.1 recipes are a library (regression, examples, macros, calibration); do not turn them, directives or caps into a template menu.
 32. Do not add decorative/event site images in MVP.
 33. Native product thumbnail is content exception; never hotlink retailer image.
 34. Do not add retailer scraping/sync/proxies/anti-bot workarounds.
@@ -2673,10 +2397,10 @@ Intentionally deferred; may become roadmap items:
 - No refunds/cancellation/ownership transfer.
 
 Renderer-specific accepted constraints:
-- Mobile guest information architecture may converge across archetypes.
-- The model has intentionally limited creative control; archetype bundles carry substantial design authorship.
-- Direct host design controls do not expose motifs/density/treatments.
-- Only the first three archetypes should be considered implementation-approved until the compiler refactor + constrained/light-tone tests pass.
+- Mobile guest information architecture may converge across compositions.
+- The model's creative control is structural and bounded by the primitive language; the compiler owns execution.
+- Direct host design controls do not expose motifs/density/treatments/primitives.
+- Any change to the composition language, validator, compiler, renderer rules or planner must pass the regression gates of §11.9 before it ships.
 - Renderer bug fixes may alter pixels on historical events while preserving their immutable design data/intent.
 
 ## 35. Canonical MVP Flow
@@ -2700,24 +2424,27 @@ Strong-model generation begins
     ↓
 Timezone inferred/validated
     ↓
-Diversity planner assigns:
-  archetype
-  tone
-  typography category
+Sibling planner assigns:
+  family, tone, typography category, hierarchy
+  structural directive
+  attractive-token allotment
     ↓
 3 DesignIntent calls in parallel
     ↓
+3 composition calls in parallel
+    ↓
 Deterministic compiler per concept:
-  versioned archetype defaults
-  typography compatibility
-  motif slot assignment
-  semantic palette + contrast
-  compiler repairs/logging
+  strict schema (one re-prompt at most)
+  structural repair by kind, capability scoping, token caps
+  typography compatibility, motif placement
+  semantic palette + contrast, layout resolution
+  rendered-geometry verification at 390 and 1280
+  signature check against siblings
     ↓
 Persist:
   DesignIntent
-  archetypeVersion
-  ResolvedDesignSpec
+  CompositionTree (raw, canonical)
+  ResolvedDesignSpec (verified) + versions
     ↓
 3 live production-rendered concepts
     ├── choose one

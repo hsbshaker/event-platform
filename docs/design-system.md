@@ -23,9 +23,8 @@ Application behavior remains:
 - light-only app chrome MVP.
 
 Renderer architecture changes:
-- strong model emits six-field `DesignIntent`, not a fully orthogonal design schema;
-- versioned archetype bundles own composition and component/treatment defaults;
-- deterministic compiler creates immutable `ResolvedDesignSpec`;
+- strong model emits a six-field `DesignIntent` and a `CompositionTree` of trusted primitives, never HTML/CSS or a fully orthogonal design schema;
+- the deterministic compiler validates, repairs, verifies rendered geometry and creates an immutable `ResolvedDesignSpec`; the page system owns component/treatment defaults;
 - motifs are role/slot based and dropped motifs are logged;
 - raw palettes compile into semantic accessible tokens before rendering;
 - generated design data is immutable while renderer code remains maintainable;
@@ -152,7 +151,7 @@ Whenever possible:
 > **AI should remove decisions, not create more decisions.**
 
 Do not expose:
-- archetype IDs;
+- family, primitive, directive or library IDs;
 - raw design tokens;
 - arbitrary font pickers;
 - hex-code editing;
@@ -1572,7 +1571,7 @@ EventSection
   └── collaboratorActionAnchor
 ```
 
-`CreationCanvas` attaches `Edit`, `Set up`, or `Add` controls to this anchor without requiring archetype-specific positioning logic.
+`CreationCanvas` attaches `Edit`, `Set up`, or `Add` controls to this anchor without requiring composition-specific positioning logic.
 
 Requirements:
 - every section treatment implements the same semantic anchor;
@@ -1580,9 +1579,9 @@ Requirements:
 - its placement may adapt with layout, but the application-facing contract does not change;
 - collaborator controls remain app-styled and do not inherit event-theme typography or colors;
 - guest rendering omits the anchor output entirely;
-- the application must not inspect `heroArchetype` or section-treatment IDs to decide where to place edit controls.
+- the application must not inspect the CompositionTree, `family` or section-treatment values to decide where to place edit controls.
 
-This preserves the app/event boundary and prevents six archetypes from creating six editor implementations.
+This preserves the app/event boundary and prevents every distinct composition from needing its own editor implementation.
 
 ---
 
@@ -1772,46 +1771,35 @@ The strong model emits only:
 
 ```text
 DesignIntent
-  heroArchetype
+  family
   tonalDirection
   palette
   typographyPairing
   density
+  composition { asymmetry, hierarchy, rhythm, sectionContrast, ornament }
   motifs
+
+CompositionTree
+  sections[] { kind, surface, align?, fill?, root: Node }   // trusted primitives, enum tokens only
 ```
 
 The model does **not** emit:
-- section treatments;
-- guest-surface composition;
-- visual treatment;
-- ornamentation;
-- borders;
-- cards;
-- buttons;
-- motif placement;
-- semantic text/background/button colors.
+- HTML, CSS, JSX, JavaScript, SVG;
+- pixel or absolute positions, free ratios, custom breakpoints, animation;
+- colors, fonts, sizes; semantic text/background/button colors;
+- free text or copy;
+- any node, prop or value outside the primitive allowlist;
+- RSVP/Registry internals or business logic.
 
-A versioned archetype bundle + deterministic compiler resolves those details into immutable `ResolvedDesignSpec`.
+The deterministic compiler validates the tree, repairs it by rule, verifies content fit against rendered geometry, and resolves everything into an immutable `ResolvedDesignSpec`. The page system (borders, cards, buttons, type scale, spacing) is compiler-owned and applied to every section so a page reads as one system.
 
-The event renderer consumes the resolved spec, not current archetype defaults.
+The event renderer consumes the resolved spec only: one fixed component per primitive, a static stylesheet keyed by classes and numeric custom properties.
 
 Allowed event-level direct design overrides (palette/typography) apply deterministically on top and use the same compiler/compatibility rules.
 
-## 15.3 Archetype bundle
+## 15.3 Composition language and library
 
-Every archetype definition owns:
-- hero/mobile/desktop composition;
-- Event Details treatment;
-- RSVP treatment;
-- Registry treatment;
-- guest-surface composition;
-- visual treatment;
-- ornamentation;
-- border/card/button treatment;
-- compatible typography pairings;
-- motif slots.
-
-The archetype is therefore a small internal design system, not merely a hero template.
+The primitive set, nesting rules, capabilities, repair kinds and verification are specified in `event-renderer-system.md §2–§3`. The Phase A/A.1 recipes are a library (regression fixtures, few-shot examples, repair and fallback macros, calibration), not a template set; the renderer has no code per recipe and the application never branches on a recipe or family.
 
 ## 15.4 Guest component system
 
@@ -1849,7 +1837,7 @@ lookup
 → confirmation
 ```
 
-Archetypes may differ more substantially on desktop composition.
+Compositions may differ more substantially on desktop; mobile intents in the tree decide how they converge.
 
 On mobile, visual distinction may come primarily from:
 - typography;
@@ -1880,7 +1868,7 @@ Required contrast must be valid by construction.
 
 Motifs declare supported roles and color/opacity behavior.
 
-Archetypes expose semantic slots such as:
+Every composition exposes the same semantic section anchors:
 - field;
 - frame;
 - band;
@@ -1893,7 +1881,7 @@ Code assigns motif→slot deterministically. Unplaceable motifs are logged, not 
 
 Persist per concept:
 - DesignIntent;
-- archetype version;
+- primitive-set and compiler versions;
 - ResolvedDesignSpec.
 
 Do not silently recompile a historical concept against newer defaults.
@@ -1936,7 +1924,7 @@ Do not:
 - rank 1–3.
 
 The backend diversity order is:
-1. archetype/composition;
+1. composition (hero skeleton, section surfaces);
 2. tone when the brief permits;
 3. typography category;
 4. motif behavior;
@@ -2303,7 +2291,7 @@ Application:
 - publish.
 
 Renderer:
-- all hero archetypes × supported tones;
+- the library silhouettes and the confirmation-run set × supported tones;
 - every section treatment;
 - representative motif combinations;
 - density variants;
@@ -2511,7 +2499,7 @@ Update when the team deliberately changes:
 - token scale;
 - component variant;
 - responsive rule;
-- renderer archetype/treatment;
+- renderer composition/treatment;
 - motion rule;
 - accessibility rule.
 

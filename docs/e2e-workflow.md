@@ -88,19 +88,20 @@ Timezone inferred from venue text; browser fallback.
 
 ## H04 — Diversity plan + concepts
 
-Backend assigns compatible concept constraints:
-- archetype;
-- tone when allowed;
-- typography category.
+The sibling planner assigns three concept constraints:
+- family, tone when allowed, typography category and hierarchy (distinct across siblings);
+- a structural directive per sibling;
+- attractive-token allotments.
 
-Strong model generates three six-field DesignIntents.
+Strong model generates three six-field DesignIntents, then three CompositionTrees.
 
-Deterministic compiler creates ResolvedDesignSpecs:
-- versioned archetype defaults;
-- typography repair;
-- motif slots;
-- semantic palette/contrast;
-- repair/drop telemetry.
+Deterministic compiler creates verified ResolvedDesignSpecs:
+- strict schema (one re-prompt at most);
+- structural repair by kind, capability scoping, token caps;
+- typography repair; motif placement from the tree;
+- semantic palette/contrast; layout resolution;
+- rendered-geometry verification at 390 and 1280;
+- repair/re-prompt telemetry kept separate.
 
 Concepts stream into live production renderer.
 
@@ -246,7 +247,7 @@ Curated only:
 - reset;
 - `Try another direction ✦`.
 
-No motif/density/archetype/treatment/card/button controls.
+No motif/density/primitive/directive/treatment/card/button controls.
 
 ## H14 — Redesign
 
@@ -258,7 +259,7 @@ Explicit reassurance:
 System:
 - updates Event Identity if needed;
 - plans three fresh directions;
-- generates DesignIntent;
+- generates DesignIntent and CompositionTree;
 - compiles;
 - shows three fresh concepts.
 
@@ -388,7 +389,7 @@ Fixed semantic flow:
 - custom questions;
 - notes.
 
-Archetype controls composition/visual treatment, not security order.
+The tree controls composition and the page system controls visual treatment; neither touches the security order.
 
 At phone width, layouts may converge to a stack.
 
@@ -439,15 +440,9 @@ Registry remains accessible.
 
 # 5. Renderer validation journey
 
-Before building the remaining three archetypes:
+Regression gate for any change to the composition language, validator, compiler, renderer rules or planner (`docs/event-renderer-system.md §9`):
 
-1. Refactor first three concepts to six-field DesignIntent → compiler → ResolvedDesignSpec.
-2. Re-run constrained heritage Brief 1 at 390/1280, color/grayscale.
-3. Verify A/B/C regression tolerance.
-4. Expect original control to change because contrast is fixed.
-5. Run same-archetype typography swap.
-6. Run motif swap and verify actual slot placement.
-7. Run tone/palette compiler test.
-8. Run incompatible-intent deterministic repair test.
-9. Run light-only Brief 2.
-10. Only then implement the remaining three archetypes.
+1. `proof-b/test.js` (unit: library validity, every repair rule, schema rejection, token detectors, planner distinctness, signature calibration);
+2. `proof-b/adv-run.js` (every adversarial fixture repairs and renders with zero overflow);
+3. library expressiveness render (all 27 silhouettes, 13 section recipes);
+4. a sibling-batch confirmation run evaluated against the numeric thresholds, reported as separate schema, repair, geometry, invention, token, collision and review metrics.

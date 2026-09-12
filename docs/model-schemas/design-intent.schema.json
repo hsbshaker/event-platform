@@ -2,30 +2,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/design-intent.schema.json",
   "title": "DesignIntentResponse",
-  "description": "Canonical superset schema for the DesignIntent model response: the six design fields plus a non-design `presentation` object. The application splits the response into DesignIntent (six fields, consumed by the compiler) and ConceptPresentation (name/description, never read by the compiler). At runtime narrow hard-assignment/catalog enums before sending to the structured-output provider.",
+  "description": "Canonical superset schema for the DesignIntent model response: the six design fields (family, tonalDirection, palette, typographyPairing, density, composition) plus motifs plus a non-design `presentation` object. The application splits the response into DesignIntent (six fields, consumed by the compiler) and ConceptPresentation (name/description, never read by the compiler). At runtime narrow hard-assignment/catalog enums before sending to the structured-output provider.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "heroArchetype",
+    "family",
     "tonalDirection",
     "palette",
     "typographyPairing",
     "density",
+    "composition",
     "motifs",
     "presentation"
   ],
   "properties": {
-    "heroArchetype": {
+    "family": {
       "type": "string",
       "enum": [
-        "editorial_split",
-        "centered_statement",
-        "full_bleed_visual",
-        "framed_invitation",
-        "typography_first",
-        "layered_editorial"
+        "editorial",
+        "invitation",
+        "statement"
       ],
-      "description": "Must exactly match the deterministic assignment. Runtime schema should narrow this enum to one value."
+      "description": "Design grammar. Must exactly match the deterministic assignment; runtime schema narrows this to one value. Not a layout: the composition call authors structure."
     },
     "tonalDirection": {
       "type": "string",
@@ -127,6 +125,58 @@
           "description": "One sentence describing how the concept feels, in host-facing language. No renderer or implementation terms."
         }
       }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asymmetry",
+        "hierarchy",
+        "rhythm",
+        "sectionContrast",
+        "ornament"
+      ],
+      "properties": {
+        "asymmetry": {
+          "enum": [
+            "symmetric",
+            "gentle",
+            "strong"
+          ]
+        },
+        "hierarchy": {
+          "enum": [
+            "restrained",
+            "editorial",
+            "dramatic",
+            "monumental"
+          ],
+          "description": "Runtime schema narrows by family: invitation excludes monumental; statement allows only dramatic and monumental."
+        },
+        "rhythm": {
+          "enum": [
+            "continuous",
+            "alternating",
+            "punctuated"
+          ]
+        },
+        "sectionContrast": {
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ]
+        },
+        "ornament": {
+          "enum": [
+            "none",
+            "restrained",
+            "decorative"
+          ]
+        }
+      },
+      "description": "Composition intent. Directives to the composition call and measurements taken from the tree afterwards; selects nothing."
     }
-  }
+  },
+  "$comment": "design_intent_schema_v3: heroArchetype replaced by family; composition object added. Revision 2 of the renderer architecture (CompositionTree)."
 }

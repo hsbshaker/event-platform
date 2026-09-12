@@ -32,7 +32,7 @@ Do not replace, abstract away, or introduce competing infrastructure unless a co
 | SMS / OTP / event messaging | **Twilio** |
 | Payments | **Stripe**, initially **stubbed behind the MVP mock publish gate** |
 | AI/model provider | Provider kept behind a **thin capability interface** |
-| Primary AI capabilities | `generateEventIdentity(...)` and `generateDesignIntent(...)` |
+| Primary AI capabilities | `generateEventIdentity(...)`, `generateDesignIntent(...)` and `generateComposition(...)` |
 
 ---
 
@@ -153,6 +153,7 @@ Keep the creative-model boundary deliberately thin:
 ```ts
 generateEventIdentity(...)
 generateDesignIntent(...)
+generateComposition(...)
 ```
 
 Provider-specific:
@@ -169,14 +170,15 @@ Do not build a large generalized AI-provider framework.
 The renderer/compiler is **not** part of the model-provider layer. It remains deterministic application code:
 
 ```text
-DesignIntent
-→ archetype bundle
-→ typography validation
-→ motif slot assignment
-→ semantic palette compiler
-→ ResolvedDesignSpec
-→ renderer
+DesignIntent + CompositionTree
+→ strict schema + structural validation + deterministic repair
+→ attractive-token caps (sibling planner)
+→ canonicalize → page system → semantic palette compiler → layout resolution
+→ rendered-geometry verification (headless Chromium, 390 and 1280)
+→ ResolvedDesignSpec (verified)
 ```
+
+**Geometry verification runtime.** Content fit is verified against rendered DOM geometry before a spec is persisted. This requires a headless Chromium pass per concept at both widths (about one second per concept in the proof). Run it in a Node runtime function with a serverless Chromium build (for example `@sparticuz/chromium` with Playwright core) on Vercel, or in a small render worker; it renders the production renderer's own stylesheet against the spec and returns measurements. This is an addition to the locked stack, not a substitution; it introduces no new hosting, database, auth, or messaging dependency.
 
 No model provider should own those steps.
 
