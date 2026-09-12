@@ -41,3 +41,18 @@ Heed deprecation notices in those docs over training-data habits.
   when a migration or policy changed.
 - **Model calls**: only through `src/lib/ai/provider.ts`. The compiler/renderer never
   calls a model.
+
+## Phase 1 placeholders to close in later phases
+
+- **Co-host invitations**: RLS currently lets the owner insert a `cohost` membership for any
+  profile id. When the invitation flow lands (spec.md §6.2, §27 "explicit, invitation-based"),
+  move that write server-side and revoke the end-user `insert` on `event_members`.
+- **Signup throttling**: `enforceSignupThrottle` in `src/lib/auth/rate-limit.ts` has no caller
+  until Phase 2 adds the server-mediated auth entry point; until then the only signup limit is
+  `[auth.rate_limit]` in `supabase/config.toml`.
+- **Pre-auth cleanup job**: run `expired_pre_auth_storage_keys()`, delete those Storage objects,
+  then `purge_expired_pre_auth_state()` (two-phase so objects are never orphaned). Schedule it
+  in Phase 2 with the upload flow.
+- **Event creation**: end users may insert `DRAFT` events directly (server-managed columns are
+  rejected by trigger). Phase 2 creates the event server-side when a pre-auth draft is claimed
+  (spec.md §7.2 step 5); revoke the end-user `insert` on `events` at that point.

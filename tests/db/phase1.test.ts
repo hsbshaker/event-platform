@@ -89,6 +89,17 @@ describe("account linkage", () => {
         asActor(db, { kind: "user", id: owner }, (q) => q(`delete from public.profiles`)),
       ),
     ).toBe("42501");
+    const renamed = await asActor(db, { kind: "user", id: owner }, (q) =>
+      q(`update public.profiles set name = 'Me' where id = $1 returning name`, [owner]),
+    );
+    expect(renamed.rows[0].name).toBe("Me");
+    expect(
+      await errorCode(
+        asActor(db, { kind: "user", id: owner }, (q) =>
+          q(`update public.profiles set email = 'other@example.com' where id = $1`, [owner]),
+        ),
+      ),
+    ).toBe("42501");
   });
 });
 
@@ -139,6 +150,50 @@ describe("events and membership", () => {
     ).toBe("42501");
   });
 
+  it("end users cannot create an event with server-managed columns set", async () => {
+    for (const cols of [
+      ["status", "'PUBLISHED'"],
+      ["paid_at", "now()"],
+      ["published_at", "now()"],
+      ["slug", "'squatted'"],
+      ["access_code_encrypted", "'\\x00'"],
+      ["design_overrides", "'{}'"],
+      ["message_sends_used", "3"],
+    ]) {
+      expect(
+        await errorCode(
+          asActor(db, { kind: "user", id: stranger }, (q) =>
+            q(
+              `insert into public.events (owner_id, prompt, ${cols[0]}) values ($1, 'x', ${cols[1]})`,
+              [stranger],
+            ),
+          ),
+        ),
+        cols[0],
+      ).toBe("42501");
+    }
+    const conceptId = await insertConcept();
+    expect(
+      await errorCode(
+        asActor(db, { kind: "user", id: stranger }, (q) =>
+          q(
+            `insert into public.events (owner_id, prompt, active_concept_id) values ($1, 'x', $2)`,
+            [stranger, conceptId],
+          ),
+        ),
+      ),
+    ).toBe("42501");
+    // Server code inserting a concept from another event is still rejected.
+    expect(
+      await errorCode(
+        db.query(
+          `insert into public.events (owner_id, prompt, active_concept_id) values ($1, 'x', $2)`,
+          [owner, conceptId],
+        ),
+      ),
+    ).toBe("23514");
+  });
+
   it("hides events and rosters from non-members and anon", async () => {
     const seen = await asActor(db, { kind: "user", id: stranger }, (q) =>
       q(`select id from public.events`),
@@ -170,6 +225,7 @@ describe("events and membership", () => {
       "message_sends_used = 5",
       "prompt = 'rewritten'",
       "slug = 'taken'",
+      `design_overrides = '{"palette":"x"}'`,
     ]) {
       expect(
         await errorCode(
@@ -241,7 +297,16 @@ describe("events and membership", () => {
     );
     expect(byCohost.rowCount).toBe(0);
     const conceptId = await insertConcept();
-    await insertSpec(conceptId);
+    const r1 = await insertSpec(conceptId, 1);
+    const r2 = await insertSpec(conceptId, 2, r1);
+    await db.query(`update public.design_concepts set active_resolved_spec_id = $1 where id = $2`, [
+      r2,
+      conceptId,
+    ]);
+    await db.query(`update public.events set active_concept_id = $1 where id = $2`, [
+      conceptId,
+      eventId,
+    ]);
     const byOwner = await asActor(
       db,
       { kind: "user", id: owner },
@@ -389,7 +454,7 @@ describe("server-only state", () => {
     expect(viaService.rows[0].prompt).toBe("Secret idea");
   });
 
-  it("purges only expired, unclaimed drafts", async () => {
+  it("lists storage keys of expired unclaimed draft assets, then purges drafts and assets", async () => {
     await db.query(
       `insert into public.pre_auth_event_drafts (draft_token_hash, prompt, expires_at) values
          ('\\x01', 'fresh', now() + interval '1 hour'),
@@ -400,11 +465,28 @@ describe("server-only state", () => {
       `update public.pre_auth_event_drafts set claimed_by = $1, claimed_at = now(), claimed_event_id = $2 where draft_token_hash = '\\x03'`,
       [owner, eventId],
     );
-    await db.query(`select public.purge_expired_pre_auth_state()`);
+    await db.query(
+      `insert into public.inspiration_assets (pre_auth_draft_id, storage_key, mime_type, size_bytes)
+       select id, 'drafts/' || prompt, 'image/png', 10 from public.pre_auth_event_drafts`,
+    );
+    const keys = await db.query(`select public.expired_pre_auth_storage_keys() as key`);
+    expect(keys.rows.map((r) => r.key)).toEqual(["drafts/stale"]);
+    const purged = await db.query(`select public.purge_expired_pre_auth_state() as n`);
+    expect(purged.rows[0].n).toBe(1);
     const { rows } = await db.query(
       `select prompt from public.pre_auth_event_drafts order by prompt`,
     );
     expect(rows.map((r) => r.prompt)).toEqual(["claimed-stale", "fresh"]);
+    const assets = await db.query(`select storage_key from public.inspiration_assets order by 1`);
+    expect(assets.rows.map((r) => r.storage_key)).toEqual(["drafts/claimed-stale", "drafts/fresh"]);
+    for (const fn of ["expired_pre_auth_storage_keys", "purge_expired_pre_auth_state"]) {
+      expect(
+        await errorCode(
+          asActor(db, { kind: "user", id: owner }, (q) => q(`select public.${fn}()`)),
+        ),
+        fn,
+      ).toBe("42501");
+    }
   });
 
   it("counts fixed-window rate limits atomically and only for server code", async () => {

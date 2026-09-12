@@ -9,7 +9,6 @@ import nextTs from "eslint-config-next/typescript";
 const boundaryRules = [
   {
     files: ["src/components/app/**", "src/app/**"],
-    ignores: ["src/app/**/event-site/**"],
     rules: {
       "no-restricted-imports": [
         "error",

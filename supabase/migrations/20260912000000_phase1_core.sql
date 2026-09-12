@@ -61,6 +61,25 @@ create trigger profiles_set_updated_at
   before update on public.profiles
   for each row execute function public.set_updated_at();
 
+-- email mirrors auth.users and is maintained by server code; end users edit name only.
+create or replace function public.protect_profile_columns()
+returns trigger
+language plpgsql
+as $$
+begin
+  if public.is_end_user_request()
+     and (new.email is distinct from old.email or new.created_at is distinct from old.created_at) then
+    raise exception 'column is managed by server code'
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger profiles_protect_columns
+  before update on public.profiles
+  for each row execute function public.protect_profile_columns();
+
 create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -159,7 +178,26 @@ returns trigger
 language plpgsql
 as $$
 begin
-  if public.is_end_user_request() then
+  if not public.is_end_user_request() then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    -- End users create DRAFT events only; lifecycle, payment, slug, access code,
+    -- concept selection, quotas and design overrides are set by server code.
+    if new.status <> 'DRAFT'
+       or new.published_at is not null
+       or new.paid_at is not null
+       or new.slug is not null
+       or new.active_concept_id is not null
+       or new.access_code_encrypted is not null
+       or new.design_overrides is not null
+       or new.message_sends_used <> 0 then
+      raise exception 'column is managed by server code'
+        using errcode = 'insufficient_privilege';
+    end if;
+    return new;
+  end if;
+  if true then
     if new.owner_id is distinct from old.owner_id
        or new.status is distinct from old.status
        or new.published_at is distinct from old.published_at
@@ -168,7 +206,8 @@ begin
        or new.active_concept_id is distinct from old.active_concept_id
        or new.access_code_encrypted is distinct from old.access_code_encrypted
        or new.slug is distinct from old.slug
-       or new.prompt is distinct from old.prompt then
+       or new.prompt is distinct from old.prompt
+       or new.design_overrides is distinct from old.design_overrides then
       raise exception 'column is managed by server code'
         using errcode = 'insufficient_privilege';
     end if;
@@ -178,7 +217,7 @@ end;
 $$;
 
 create trigger events_protect_server_columns
-  before update on public.events
+  before insert or update on public.events
   for each row execute function public.protect_event_server_columns();
 
 -- ---------------------------------------------------------------------------
@@ -309,7 +348,7 @@ create index pre_auth_event_drafts_expires_at_idx on public.pre_auth_event_draft
 create table public.inspiration_assets (
   id uuid primary key default gen_random_uuid(),
   event_id uuid references public.events (id) on delete cascade,
-  pre_auth_draft_id uuid references public.pre_auth_event_drafts (id) on delete set null,
+  pre_auth_draft_id uuid references public.pre_auth_event_drafts (id) on delete cascade,
   storage_key text not null unique,
   mime_type text not null,
   size_bytes integer not null check (size_bytes > 0),
@@ -513,7 +552,7 @@ end;
 $$;
 
 create trigger events_validate_active_concept
-  before update of active_concept_id on public.events
+  before insert or update of active_concept_id on public.events
   for each row execute function public.validate_active_concept();
 
 -- ---------------------------------------------------------------------------
@@ -607,16 +646,39 @@ begin
 end;
 $$;
 
--- Housekeeping: drop expired drafts, orphaned draft assets and stale counters.
-create or replace function public.purge_expired_pre_auth_state()
-returns void
+-- Housekeeping is two-phase because SQL cannot remove Storage objects:
+--   1. the server job lists the storage keys of assets on expired, unclaimed drafts
+--      and deletes those objects;
+--   2. it then purges the rows (assets cascade with their draft) and stale counters.
+-- A crash between the phases leaves rows pointing at missing objects, which the
+-- next run retries; it never leaves objects without rows.
+create or replace function public.expired_pre_auth_storage_keys()
+returns setof text
 language sql
+stable
 security definer
 set search_path = ''
 as $$
+  select a.storage_key
+  from public.inspiration_assets a
+  join public.pre_auth_event_drafts d on d.id = a.pre_auth_draft_id
+  where a.event_id is null and d.claimed_at is null and d.expires_at < now();
+$$;
+
+create or replace function public.purge_expired_pre_auth_state()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_drafts integer;
+begin
   delete from public.pre_auth_event_drafts where claimed_at is null and expires_at < now();
-  delete from public.inspiration_assets where event_id is null and pre_auth_draft_id is null;
+  get diagnostics v_drafts = row_count;
   delete from public.rate_limits where window_start < now() - interval '2 days';
+  return v_drafts;
+end;
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -690,6 +752,7 @@ revoke all on table public.rate_limits from anon, authenticated;
 -- Server-only functions.
 revoke execute on function public.consume_rate_limit(text, bytea, integer, integer) from public, anon, authenticated;
 revoke execute on function public.purge_expired_pre_auth_state() from public, anon, authenticated;
+revoke execute on function public.expired_pre_auth_storage_keys() from public, anon, authenticated;
 -- Trigger functions (handle_new_auth_user, add_owner_membership) keep default execute
 -- so supabase_auth_admin and end-user inserts can fire them; PostgREST cannot call
 -- trigger-returning functions directly.

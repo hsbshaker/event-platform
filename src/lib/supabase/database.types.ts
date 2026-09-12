@@ -299,7 +299,8 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_window_seconds: number; p_max: number };
         Returns: boolean;
       };
-      purge_expired_pre_auth_state: { Args: Record<string, never>; Returns: undefined };
+      expired_pre_auth_storage_keys: { Args: Record<string, never>; Returns: string[] };
+      purge_expired_pre_auth_state: { Args: Record<string, never>; Returns: number };
     };
     Enums: {
       event_status: EventStatus;

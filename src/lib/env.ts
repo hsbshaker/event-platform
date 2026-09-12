@@ -16,8 +16,14 @@ const publicSchema = z.object({
 
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  /** 32-byte key, base64, for encrypting private event codes and hashing draft tokens. */
-  APP_ENCRYPTION_KEY: z.string().min(32),
+  /**
+   * Base64 secret of at least 32 bytes. It is the HMAC key for draft tokens and
+   * rate-limit keys (domain-separated by prefix); per-purpose subkeys are derived
+   * from it (HKDF) when access-code encryption lands. Never used raw as a cipher key.
+   */
+  APP_ENCRYPTION_KEY: z
+    .string()
+    .refine((v) => Buffer.from(v, "base64").length >= 32, "must decode to at least 32 bytes"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 

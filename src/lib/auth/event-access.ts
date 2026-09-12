@@ -11,6 +11,8 @@ export interface EventAccess {
   user: User;
   role: EventRole;
   eventId: string;
+  /** Derived from the persisted event row, never from the caller. */
+  context: Required<PermissionContext>;
 }
 
 /**
@@ -34,17 +36,42 @@ export async function getEventRole(
 }
 
 /**
- * Requires a signed-in collaborator on `eventId` who may perform `capability`.
- * Non-members receive `ForbiddenError` regardless of whether the event exists.
+ * Permission context from the persisted event (spec.md §25, §28): payment is
+ * satisfied when `paid_at` is set; AI redesign and concept switching end at
+ * PUBLISHED. Read through RLS so it is only available to members.
+ */
+export async function getPermissionContext(
+  supabase: SupabaseClient<Database>,
+  eventId: string,
+): Promise<Required<PermissionContext> | null> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("paid_at, status")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    paymentSatisfied: data.paid_at !== null,
+    published: data.status === "PUBLISHED" || data.status === "PASSED",
+  };
+}
+
+/**
+ * Requires a signed-in collaborator on `eventId` who may perform `capability`
+ * given the event's persisted state. Non-members receive `ForbiddenError`
+ * regardless of whether the event exists.
  */
 export async function requireEventAccess(
   eventId: string,
   capability: Capability,
-  ctx: PermissionContext = {},
 ): Promise<EventAccess> {
   const user = await requireUser();
   const supabase = await createClient();
-  const role = await getEventRole(supabase, eventId, user.id);
-  if (!role || !can(role, capability, ctx)) throw new ForbiddenError();
-  return { user, role, eventId };
+  const [role, context] = await Promise.all([
+    getEventRole(supabase, eventId, user.id),
+    getPermissionContext(supabase, eventId),
+  ]);
+  if (!role || !context || !can(role, capability, context)) throw new ForbiddenError();
+  return { user, role, eventId, context };
 }
