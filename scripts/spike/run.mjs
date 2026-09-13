@@ -53,7 +53,7 @@ for (let i = 0; i < runs; i += 1) {
       `cold=${body.coldStart ? "Y" : "n"} inflate ${body.timings?.inflateMs ?? "-"} launch ${body.timings?.launchMs ?? "-"} ` +
       `390:${w[390]?.renderMs?.join("/") ?? "-"} 1280:${w[1280]?.renderMs?.join("/") ?? "-"} ` +
       `det=${w[390]?.deterministic && w[1280]?.deterministic ? "Y" : "n"} fonts=${w[390]?.fontsLoaded && w[1280]?.fontsLoaded ? "Y" : "n"} ` +
-      `rss ${body.memoryMb?.rssAfter ?? "-"}MB region ${body.env?.region ?? "-"}${body.error ? " " + body.error : ""}`,
+      `rss ${body.memoryMb?.rssAfter ?? "-"}MB browser ${body.memoryMb?.browserRss ?? "-"}MB region ${body.env?.region ?? "-"}${body.error ? " " + body.error : ""}`,
   );
   if (gap && i < runs - 1) await new Promise((r) => setTimeout(r, gap * 1000));
 }

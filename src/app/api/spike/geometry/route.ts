@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 import { spikeToken } from "@/lib/env";
@@ -38,6 +38,33 @@ interface SpikeMeasure {
     texts: { id: string; lines: number; overflow: boolean; fontPx: number }[];
     overflowing: string[];
   };
+}
+
+/**
+ * Resident memory of the browser processes (the Chromium child is not part of
+ * process.memoryUsage()). Reads /proc, which Vercel's Node runtime exposes; returns
+ * null where /proc is unavailable.
+ */
+function browserRssMb(): number | null {
+  try {
+    let total = 0;
+    for (const pid of readdirSync("/proc")) {
+      if (!/^\d+$/.test(pid)) continue;
+      let cmdline = "";
+      try {
+        cmdline = readFileSync(`/proc/${pid}/cmdline`, "latin1");
+      } catch {
+        continue;
+      }
+      if (!cmdline.includes("/tmp/chromium")) continue;
+      const status = readFileSync(`/proc/${pid}/status`, "latin1");
+      const m = /VmRSS:\s+(\d+) kB/.exec(status);
+      if (m) total += Number(m[1]) / 1024;
+    }
+    return Math.round(total);
+  } catch {
+    return null;
+  }
 }
 
 function geometryKey(m: SpikeMeasure): string {
@@ -87,6 +114,7 @@ export async function GET(request: NextRequest) {
     key: string;
   }[] = [];
   let error: string | null = null;
+  let browserRss: number | null = null;
 
   try {
     const [{ default: chromium }, { chromium: pw }] = await Promise.all([
@@ -152,6 +180,7 @@ export async function GET(request: NextRequest) {
         }
       }
     } finally {
+      browserRss = browserRssMb();
       const tc = performance.now();
       await browser.close();
       timings.closeMs = Math.round(performance.now() - tc);
@@ -198,6 +227,8 @@ export async function GET(request: NextRequest) {
       rssBefore: Math.round(memBefore.rss / 1048576),
       rssAfter: Math.round(memAfter.rss / 1048576),
       heapUsedAfter: Math.round(memAfter.heapUsed / 1048576),
+      /** Chromium processes' resident memory just before close, from /proc; null if unavailable. */
+      browserRss,
     },
   });
 }
