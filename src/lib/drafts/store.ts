@@ -178,6 +178,22 @@ export async function ensureDraft(input: EnsureDraftInput): Promise<PreAuthDraft
   };
 }
 
+/**
+ * Records the address a sign-in link was requested for, so the callback can restore this
+ * draft when the link is opened somewhere else (spec.md §7.2). No-ops when this browser holds
+ * no draft. Never reveals whether one existed.
+ */
+export async function bindDraftToEmail(email: string): Promise<void> {
+  const token = await readDraftToken();
+  if (!token) return;
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("bind_draft_claim_email", {
+    p_token_hash: tokenHashHex(token),
+    p_email: email,
+  });
+  if (error) throw error;
+}
+
 export interface ClaimResult {
   outcome: ClaimOutcome;
   eventId: string | null;
@@ -215,4 +231,27 @@ export async function claimDraftForUser(userId: string): Promise<ClaimResult> {
   // The token has done its job (or can never do it): never leave it to be replayed.
   await clearDraftToken();
   return { outcome, eventId, hadToken: true };
+}
+
+/**
+ * Attaches a draft to the owner using the address their session proves control of, for the
+ * case this browser has no cookie at all: an email link opened in a mail-app webview, another
+ * browser profile or another device (spec.md §7.2, §31 "restore exactly after OAuth/email
+ * auth"). Nothing secret travels in the link; the association was recorded server-side when
+ * the link was requested, and proving control of the address is the whole authority needed.
+ */
+export async function claimDraftForEmail(userId: string, email: string): Promise<ClaimResult> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("claim_pre_auth_draft_by_email", {
+    p_email: email,
+    p_user_id: userId,
+  });
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] : undefined;
+  return {
+    outcome: (row?.outcome ?? "not_found") as ClaimOutcome,
+    eventId: row?.event_id ?? null,
+    hadToken: false,
+  };
 }

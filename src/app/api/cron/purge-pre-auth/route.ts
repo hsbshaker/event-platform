@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
+import { cronSecret } from "@/lib/env";
 import { INSPIRATION_BUCKET } from "@/lib/drafts/inspiration";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
+  const secret = cronSecret();
   if (!secret) return false;
   const presented = request.headers.get("authorization") ?? "";
   const expected = `Bearer ${secret}`;

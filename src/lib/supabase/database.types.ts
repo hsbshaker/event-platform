@@ -309,6 +309,11 @@ export type Database = {
         Args: { p_token_hash: string; p_user_id: string };
         Returns: { event_id: string | null; outcome: ClaimOutcome }[];
       };
+      claim_pre_auth_draft_by_email: {
+        Args: { p_email: string; p_user_id: string };
+        Returns: { event_id: string | null; outcome: ClaimOutcome }[];
+      };
+      bind_draft_claim_email: { Args: { p_token_hash: string; p_email: string }; Returns: void };
       consume_rate_limit: {
         Args: { p_bucket: string; p_key_hash: string; p_window_seconds: number; p_max: number };
         Returns: boolean;

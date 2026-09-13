@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { enforceSignupThrottle } from "@/lib/auth/rate-limit";
 import { RateLimitedError } from "@/lib/auth/errors";
+import { bindDraftToEmail } from "@/lib/drafts/store";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -78,6 +79,11 @@ export async function signInWithEmail(email: string): Promise<EmailSignInResult>
     }
     throw error;
   }
+
+  // Record the address on this browser's draft BEFORE the link goes out, so a link opened in
+  // a mail-app webview, another browser profile or another device can still restore what they
+  // wrote (spec.md §7.2). Nothing secret is put in the link itself.
+  await bindDraftToEmail(address);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({

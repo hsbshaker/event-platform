@@ -126,6 +126,35 @@ describe("the RSVP deadline rule in a details patch (spec.md §7.3)", () => {
   });
 });
 
+describe("the deadline waits for a settled timezone (spec.md §7.4)", () => {
+  it("derives nothing while the event has no zone, rather than guessing UTC", () => {
+    // Two autosaves can race: a date save that reads the row before the mount-time timezone
+    // save lands would otherwise persist a deadline computed in the wrong zone.
+    const patch = computeEventPatch(ROW, { eventDate: "2027-03-06", startTime: "13:00" }, NOW);
+    expect(patch.event_date).toBe("2027-03-06");
+    expect(patch.rsvp_deadline).toBeUndefined();
+  });
+
+  it("derives it on the save that settles the zone", () => {
+    const patch = computeEventPatch(
+      { ...ROW, event_date: "2027-03-06", start_time: "13:00" },
+      { browserTimezone: "America/New_York" },
+      NOW,
+    );
+    expect(patch.timezone).toBe("America/New_York");
+    expect(typeof patch.rsvp_deadline).toBe("string");
+  });
+
+  it("derives it on a later save once the zone is stored", () => {
+    const patch = computeEventPatch(
+      { ...ROW, timezone: "America/New_York" },
+      { eventDate: "2027-03-06", startTime: "13:00" },
+      NOW,
+    );
+    expect(typeof patch.rsvp_deadline).toBe("string");
+  });
+});
+
 describe("field copying", () => {
   it("treats an empty string as clearing the field", () => {
     const patch = computeEventPatch(DATED, { babyName: "", hosts: "Haseeb & Shezia" }, NOW);

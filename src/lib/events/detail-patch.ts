@@ -100,6 +100,13 @@ export function computeEventPatch(
     // An explicit choice by the host: store it and stop recomputing for good (§7.3).
     update.rsvp_deadline = input.rsvpDeadline;
     update.rsvp_deadline_edited = input.rsvpDeadline !== null;
+  } else if (effectiveZone === null) {
+    // No zone settled yet. `computeRsvpDeadline` treats a null zone as UTC, which is a guess,
+    // and two autosaves racing (a date save reading the row before the mount-time timezone
+    // save lands) would persist a deadline computed in the wrong zone with nothing obliged to
+    // recompute it afterwards. §7.4 makes the stored zone authoritative for every lifecycle
+    // calculation, so derive nothing until there is one; the next save that carries a zone
+    // derives it correctly.
   } else {
     const deadline = nextRsvpDeadline({
       current: row.rsvp_deadline ? new Date(row.rsvp_deadline) : null,

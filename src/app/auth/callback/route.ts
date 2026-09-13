@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { claimDraftForUser } from "@/lib/drafts/store";
+import { claimDraftForEmail, claimDraftForUser } from "@/lib/drafts/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -69,7 +69,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(target);
   }
 
-  const claim = await claimDraftForUser(data.user.id);
+  let claim = await claimDraftForUser(data.user.id);
+
+  // No draft on this browser. The link may have been opened in a mail-app webview, another
+  // browser profile or another device, where the cookie cannot follow. If a draft was bound
+  // to this address when the link was requested, the session just proved control of that
+  // address, which is exactly the authority needed to receive it (spec.md §7.2).
+  if (claim.outcome === "not_found" && data.user.email) {
+    const byEmail = await claimDraftForEmail(data.user.id, data.user.email);
+    if (byEmail.outcome !== "not_found") claim = { ...byEmail, hadToken: claim.hadToken };
+  }
 
   if (claim.eventId) {
     return NextResponse.redirect(next ?? new URL(`/events/${claim.eventId}/create`, origin));

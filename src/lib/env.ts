@@ -77,6 +77,24 @@ export function spikeToken(): string | undefined {
   return parsed.data;
 }
 
+/**
+ * Cleanup-job credential (optional, server-only). It is the sole credential protecting a
+ * service-role endpoint, so it is validated here like every other secret rather than read
+ * raw from `process.env`: a one-character value would otherwise be accepted. Optional because
+ * the route is fail-closed without it — an unset secret disables the endpoint, it does not
+ * open it (docs/technology-decisions.md §3: server-only access to secrets).
+ */
+const cronSchema = z.string().min(32).optional();
+
+export function cronSecret(): string | undefined {
+  if (typeof window !== "undefined") {
+    throw new Error("cronSecret() must not be called from client code.");
+  }
+  const parsed = cronSchema.safeParse(process.env.CRON_SECRET || undefined);
+  if (!parsed.success) fail("CRON_SECRET", parsed.error);
+  return parsed.data;
+}
+
 /** Test seam: clear cached values after mutating process.env. */
 export function resetEnvCache(): void {
   cachedPublic = undefined;

@@ -39,6 +39,18 @@ async function claim(tokenHash: string, userId: string) {
   return rows[0] as { event_id: string | null; outcome: string };
 }
 
+async function bindEmail(tokenHash: string, email: string): Promise<void> {
+  await db.query(`select public.bind_draft_claim_email($1, $2)`, [tokenHash, email]);
+}
+
+async function claimByEmail(email: string, userId: string) {
+  const { rows } = await db.query(
+    `select event_id, outcome from public.claim_pre_auth_draft_by_email($1, $2)`,
+    [email, userId],
+  );
+  return rows[0] as { event_id: string | null; outcome: string };
+}
+
 beforeAll(async () => {
   db = await connect();
   await resetDatabase(db);
@@ -269,5 +281,142 @@ describe("claim_pre_auth_draft", () => {
       ]),
     );
     expect(asOwner.rows.map((r) => r.storage_key)).toEqual(["drafts/private.png"]);
+  });
+});
+
+describe("claiming by the address the session proves (spec.md §7.2, §31 email auth)", () => {
+  it("restores a draft to the browser that has no cookie at all", async () => {
+    // The magic link opened in a mail-app webview or on a phone: no ep_draft cookie follows.
+    const draftId = await insertDraft(TOKEN, "A calm walled-garden shower");
+    await bindEmail(TOKEN, "owner@example.com");
+    const claimed = await claimByEmail("owner@example.com", owner);
+    expect(claimed.outcome).toBe("claimed");
+    expect(claimed.event_id).not.toBeNull();
+    const { rows } = await db.query(
+      `select e.prompt from public.events e
+       join public.pre_auth_event_drafts d on d.claimed_event_id = e.id
+       where d.id = $1`,
+      [draftId],
+    );
+    expect(rows[0].prompt).toBe("A calm walled-garden shower");
+  });
+
+  it("moves the draft's inspiration onto the event, exactly as the cookie path does", async () => {
+    const draftId = await insertDraft(TOKEN);
+    await db.query(
+      `insert into public.inspiration_assets (pre_auth_draft_id, storage_key, mime_type, size_bytes)
+       values ($1, 'drafts/a.png', 'image/png', 10)`,
+      [draftId],
+    );
+    await bindEmail(TOKEN, "owner@example.com");
+    const claimed = await claimByEmail("owner@example.com", owner);
+    const { rows } = await db.query(
+      `select event_id, pre_auth_draft_id from public.inspiration_assets`,
+    );
+    expect(rows[0].event_id).toBe(claimed.event_id);
+    expect(rows[0].pre_auth_draft_id).toBeNull();
+  });
+
+  it("gives nothing to an address no draft was bound to", async () => {
+    await insertDraft(TOKEN);
+    expect(await claimByEmail("other@example.com", other)).toEqual({
+      event_id: null,
+      outcome: "not_found",
+    });
+    const { rows } = await db.query(`select count(*)::int as n from public.events`);
+    expect(rows[0].n).toBe(1); // only the beforeEach fixture
+  });
+
+  it("matches the address case-insensitively and ignores surrounding space", async () => {
+    await insertDraft(TOKEN);
+    await bindEmail(TOKEN, "  Owner@Example.COM ");
+    expect((await claimByEmail("owner@example.com", owner)).outcome).toBe("claimed");
+  });
+
+  it("will not resurrect an expired or already claimed draft", async () => {
+    await insertDraft(TOKEN, "Stale idea", "now() - interval '1 minute'");
+    await bindEmail(TOKEN, "owner@example.com");
+    expect(await claimByEmail("owner@example.com", owner)).toEqual({
+      event_id: null,
+      outcome: "not_found",
+    });
+
+    await insertDraft(OTHER_TOKEN, "Fresh idea");
+    await bindEmail(OTHER_TOKEN, "owner@example.com");
+    const first = await claimByEmail("owner@example.com", owner);
+    expect(first.outcome).toBe("claimed");
+    // A second link for the same address must not mint a second event.
+    expect(await claimByEmail("owner@example.com", owner)).toEqual({
+      event_id: null,
+      outcome: "not_found",
+    });
+  });
+
+  it("takes the most recent draft when an address has several", async () => {
+    await insertDraft(TOKEN, "Older idea");
+    await db.query(
+      `update public.pre_auth_event_drafts set created_at = now() - interval '2 hours'`,
+    );
+    await bindEmail(TOKEN, "owner@example.com");
+    await insertDraft(OTHER_TOKEN, "What they wrote just now");
+    await bindEmail(OTHER_TOKEN, "owner@example.com");
+    const claimed = await claimByEmail("owner@example.com", owner);
+    const { rows } = await db.query(`select prompt from public.events where id = $1`, [
+      claimed.event_id,
+    ]);
+    expect(rows[0].prompt).toBe("What they wrote just now");
+  });
+
+  it("never binds an address to a draft that is already claimed", async () => {
+    await insertDraft(TOKEN);
+    await claim(TOKEN, owner);
+    await bindEmail(TOKEN, "other@example.com");
+    expect(await claimByEmail("other@example.com", other)).toEqual({
+      event_id: null,
+      outcome: "not_found",
+    });
+  });
+
+  it("serializes a cookie claim and an address claim onto one event", async () => {
+    // Both paths can fire for the same person: the cookie survived AND the link carried the
+    // address. They must converge, exactly as two cookie claims do.
+    await insertDraft(TOKEN);
+    await bindEmail(TOKEN, "owner@example.com");
+    const a = new Client({ connectionString: databaseUrl() });
+    const b = new Client({ connectionString: databaseUrl() });
+    await a.connect();
+    await b.connect();
+    try {
+      const [ra, rb] = await Promise.all([
+        a.query(`select event_id, outcome from public.claim_pre_auth_draft($1, $2)`, [
+          TOKEN,
+          owner,
+        ]),
+        b.query(`select event_id, outcome from public.claim_pre_auth_draft_by_email($1, $2)`, [
+          "owner@example.com",
+          owner,
+        ]),
+      ]);
+      // Which outcome each side reports depends on the interleaving: the address lookup may
+      // resolve the draft before the cookie claim commits and then find it already claimed by
+      // this same user, or it may run after and find nothing left to claim. Both are correct.
+      // The invariant that matters is that exactly one event exists and nobody is handed a
+      // different one.
+      const results = [ra.rows[0], rb.rows[0]] as { event_id: string | null; outcome: string }[];
+      expect(results.some((r) => r.outcome === "claimed")).toBe(true);
+      for (const r of results) {
+        expect(["claimed", "already_claimed_by_user", "not_found"]).toContain(r.outcome);
+      }
+      const eventIds = new Set(results.map((r) => r.event_id).filter(Boolean));
+      expect(eventIds.size).toBe(1);
+      const { rows } = await db.query(
+        `select count(*)::int as n from public.events where owner_id = $1`,
+        [owner],
+      );
+      expect(rows[0].n).toBe(2); // the beforeEach fixture plus exactly one claimed event
+    } finally {
+      await a.end();
+      await b.end();
+    }
   });
 });
