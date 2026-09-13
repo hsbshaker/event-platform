@@ -30,6 +30,10 @@ import type { NextConfig } from "next";
 const GEOMETRY_BROWSER_PACKAGES = [
   "./node_modules/@sparticuz/chromium/**",
   "./node_modules/playwright-core/**",
+  // `verify/html.ts` loads `react-dom/server.node` through `createRequire` at runtime, because
+  // inside the App Router graph the `react-server` export condition resolves it to a build with no
+  // `renderToStaticMarkup`. A runtime require is invisible to static tracing, so trace it here.
+  "./node_modules/react-dom/**",
 ];
 
 const EVENT_RENDERER_ASSETS = ["./src/styles/event-tokens.css", "./public/fonts/event/**"];
@@ -40,6 +44,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core"],
   outputFileTracingIncludes: {
     "/api/spike/geometry": [...GEOMETRY_BROWSER_PACKAGES, "./src/spike/fixture.generated.html"],
+    // The deployed proof that the finished verifier runs on this runtime. Needs the browser
+    // packages for the same reason the spike does.
+    "/api/internal/verify-geometry": [...GEOMETRY_BROWSER_PACKAGES],
     "/**": EVENT_RENDERER_ASSETS,
   },
 };

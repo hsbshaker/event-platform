@@ -33,15 +33,50 @@
  */
 
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import type { PreVerificationDesignSpec } from "../compile/spec";
 import type { VerificationOverrides } from "../compile/verification";
 import { EventPage } from "@/components/event-renderer/page";
 import type { EventContent } from "@/components/event-renderer/contract";
 import { GeometryInfrastructureError } from "./result";
+
+/**
+ * `react-dom/server`, resolved at runtime rather than imported.
+ *
+ * Inside the App Router graph Next resolves every `react-dom/server*` specifier through the
+ * `react-server` export condition, which maps to a build that has no `renderToStaticMarkup` — the
+ * framework's way of saying "render through me, not around me". That is the right default for
+ * product code and the wrong one here: this module's whole job is to produce a standalone document
+ * for a headless browser to measure, so it needs the real server build.
+ *
+ * Resolving from the project root at runtime keeps the specifier out of the bundler's graph while
+ * still loading the same `react-dom` the renderer itself uses. `next.config.ts` traces the package
+ * for the routes that reach this code; a missing one surfaces as an infrastructure failure rather
+ * than a silent fallback, like every other asset here.
+ */
+let cachedRenderToStaticMarkup: ((element: unknown) => string) | null = null;
+
+function renderToStaticMarkup(element: unknown): string {
+  if (!cachedRenderToStaticMarkup) {
+    try {
+      const require = createRequire(path.join(process.cwd(), "package.json"));
+      const server = require("react-dom/server.node") as {
+        renderToStaticMarkup: (element: unknown) => string;
+      };
+      cachedRenderToStaticMarkup = server.renderToStaticMarkup;
+    } catch (error) {
+      throw new GeometryInfrastructureError(
+        `react-dom/server is not loadable from ${process.cwd()}: ${
+          error instanceof Error ? error.message : String(error)
+        }. The verifier cannot render the page it is meant to measure.`,
+      );
+    }
+  }
+  return cachedRenderToStaticMarkup(element);
+}
 
 /**
  * Where the assets live, relative to the process working directory.
