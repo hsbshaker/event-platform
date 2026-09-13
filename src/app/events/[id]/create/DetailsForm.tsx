@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { shouldApplyServerEvent } from "@/lib/events/apply-patch";
 import {
   updateEventDetails,
   type EventDetailsPatch,
@@ -81,6 +82,8 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
   // (spec.md §7.4; src/lib/events/detail-patch.ts falls back to this when venue text alone
   // is not recognizable).
   const browserTimezoneRef = useRef<string | null>(null);
+  /** Newest row version already reflected on screen; see applyServerEvent. */
+  const appliedVersionRef = useRef<number>(event.rowVersion);
 
   useEffect(() => {
     const timers = debounceTimers.current;
@@ -109,7 +112,14 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Saves are independent requests, so their responses can arrive out of order. Applying an
+  // overtaken one would roll the displayed timezone back, and the deadline field converts the
+  // host's wall-clock choice with exactly that timezone and stores it as host-edited, which
+  // nothing ever recomputes (spec.md §7.3). So a response older than one already applied is
+  // dropped rather than displayed.
   function applyServerEvent(next: EventDraftView) {
+    if (!shouldApplyServerEvent(appliedVersionRef.current, next.rowVersion)) return;
+    appliedVersionRef.current = next.rowVersion;
     setRsvpDeadlineIso(next.rsvpDeadline);
     setRsvpDeadlineEdited(next.rsvpDeadlineEdited);
     if (next.timezone) setTimezone(next.timezone);
