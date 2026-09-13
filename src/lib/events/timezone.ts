@@ -13,6 +13,17 @@
  * several codes are also English words, so "DINNER IN LA" would otherwise resolve to
  * Indiana at high confidence and be written straight to the event's stored timezone.
  *
+ * Two known limits, both settled deliberately and both failing safe. A conversational
+ * all-caps ending such as "SEE YOU THERE, OK" is syntactically identical to "NORMAN, OK",
+ * so it still resolves to Oklahoma; separating them needs a signal this table does not
+ * carry. And a city named with its country rather than its state ("Phoenix, USA") reports
+ * the country, which is ambiguous, so it falls back to the browser zone rather than the
+ * city's: containment is deliberately not extended across the country/state boundary,
+ * because doing so would make "Portland, United States" pick one of two real Portlands.
+ *
+ * Only `high` confidence overrides the browser zone (see `resolveEventTimezone`), so a
+ * `low` answer costs nothing a caller would have had anyway.
+ *
  * Pure, dependency-free: no I/O, no network calls.
  */
 
