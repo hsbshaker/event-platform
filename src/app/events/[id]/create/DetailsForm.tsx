@@ -76,6 +76,11 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [fieldStatus, setFieldStatus] = useState<Record<string, SaveState>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Resolved once and attached to every save (not only the mount commit), so a later venue
+  // change that leaves the inference confident about nothing still has a fallback available
+  // (spec.md §7.4; src/lib/events/detail-patch.ts falls back to this when venue text alone
+  // is not recognizable).
+  const browserTimezoneRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timers = debounceTimers.current;
@@ -95,11 +100,12 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
     }
   }, []);
 
-  // §7.4: the browser timezone is sent once, only as a fallback for when venue text alone
-  // is not enough — it never overrides a confidently inferred timezone.
+  // §7.4: the browser timezone is only ever a fallback for when venue text alone is not
+  // enough — it never overrides a confidently inferred timezone — but it must be available on
+  // every save, not only this mount commit, since a later venue change re-runs inference.
   useEffect(() => {
-    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    void commit({ browserTimezone }, []);
+    browserTimezoneRef.current = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    void commit({ browserTimezone: browserTimezoneRef.current }, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -115,7 +121,12 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
       keys.forEach((key) => (next[key] = "saving"));
       return next;
     });
-    const result = await updateEventDetails(event.id, patch);
+    // Every save carries the fallback timezone, not only the mount commit — see the ref above.
+    const withTimezone: EventDetailsPatch =
+      patch.browserTimezone !== undefined
+        ? patch
+        : { ...patch, browserTimezone: browserTimezoneRef.current };
+    const result = await updateEventDetails(event.id, withTimezone);
     if (result.ok) {
       applyServerEvent(result.event);
       setFieldErrors((prev) => {
