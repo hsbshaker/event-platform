@@ -139,8 +139,12 @@ describe("one survey session counts once", () => {
   });
 
   it("upserts a resubmission onto the same row, keeping its identity and first-seen time", async () => {
-    // This is the statement PostgREST issues for `.upsert({...}, { onConflict: "submission_key" })`
-    // in src/lib/human-test/store.ts. A reviewer who reloads and fixes a misrating arrives under
+    // Equivalent to the statement PostgREST issues for `.upsert({...}, { onConflict:
+    // "submission_key" })` in src/lib/human-test/store.ts: it lists every payload column in the
+    // SET list, as PostgREST does, so the model stays faithful if a column is ever added. The
+    // request the client actually builds is pinned in src/lib/human-test/store.test.ts; what is
+    // proven here is what Postgres then does with it.
+    // A reviewer who reloads and fixes a misrating arrives under
     // the same session key: the row must be updated rather than duplicated *or* silently kept,
     // because the page tells them their feedback was recorded either way.
     const first = await insert("human_test_1_responses", "AB", "key-retry-same-row-0001");
@@ -156,7 +160,8 @@ describe("one survey session counts once", () => {
        values ($1, $2, $3)
        on conflict (submission_key) do update
          set reviewer = excluded.reviewer,
-             response_payload = excluded.response_payload`,
+             response_payload = excluded.response_payload,
+             submission_key = excluded.submission_key`,
       ["AB", JSON.stringify(corrected), "key-retry-same-row-0001"],
     );
 

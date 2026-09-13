@@ -56,10 +56,21 @@ produces exactly the same response — save the file as
 `docs/human-test-1/responses/<name>.json` and score with `scripts/human-test/score.mjs`
 directly.
 
-**Verifying the deployed flow.** Set `HUMAN_TEST_1_TEST_SECRET` and send the
-`x-human-test-mode` header with a submission; it is stored in
-`human_test_1_test_responses`, a separate table `score-stored.mjs` never reads. Nothing a public
-client can put in a request body selects that table.
+**Verifying the deployed flow.** Set `HUMAN_TEST_1_TEST_SECRET` in the deployment and send the
+`x-human-test-mode` header with a submission; it is stored in `human_test_1_test_responses`, a
+separate table `score-stored.mjs` never reads. Nothing a public client can put in a request body
+selects that table, so a synthetic submission cannot reach the real five.
+
+Two requests are worth making, both against the synthetic table:
+
+1. one complete submission — expect `{ ok: true, submissionId }` and one row;
+2. the same `submissionKey` again with one rating changed — expect the same `submissionId`, still
+   one row, the new rating, and the original `id` and `created_at`.
+
+The second is the one that matters. It is the only place the whole correction path runs against a
+real PostgREST: `src/lib/human-test/store.test.ts` pins the request the client builds and
+`tests/db/human-test-1.test.ts` proves what Postgres does with it, but nothing in the repository
+joins the two.
 
 Note for scoring: `proof-b/human-test-form.md` states three pass clauses; the frozen
 `score-human.js` enforces the median ≥ 70% rate and the ≤ 3 model-group size, and reports

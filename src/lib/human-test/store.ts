@@ -51,7 +51,11 @@ export async function recordSubmission(
         response_payload: response,
         submission_key: submissionKey,
       },
-      { onConflict: "submission_key" },
+      // `ignoreDuplicates: false` is the client's default, but it is spelled out because the
+      // whole correction path turns on it: `ignore` would emit `DO NOTHING`, `.single()` would
+      // then find no row, and every resubmission would 500 while the first one still worked.
+      // `src/lib/human-test/store.test.ts` pins the request this actually produces.
+      { onConflict: "submission_key", ignoreDuplicates: false },
     )
     .select("id")
     .single();

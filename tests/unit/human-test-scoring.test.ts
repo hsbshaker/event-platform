@@ -53,6 +53,9 @@ const scratch = mkdtempSync(path.join(tmpdir(), "human-test-scoring-"));
 
 afterAll(() => {
   rmSync(scratch, { recursive: true, force: true });
+  // When the scoring block stood down, nothing here wrote to docs/human-test-1 — so restoring
+  // would mean rewriting a real result with byte-identical content for no reason. Leave it alone.
+  if (savedResults !== null || savedScore !== null) return;
   for (const [file, saved] of [
     [RESULTS, savedResults],
     [SCORE, savedScore],

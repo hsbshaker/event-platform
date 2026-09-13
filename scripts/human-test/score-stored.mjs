@@ -142,6 +142,11 @@ for (const row of rows) {
   byReviewer.get(name).push(row);
 }
 
+if (!write) {
+  console.log(`\nRe-run with --write to select the five and score them.`);
+  process.exit(0);
+}
+
 let selected;
 if (chosenIds.length) {
   // A repeated --id would pass five files to score.mjs while scoring four reviewers, one of them
@@ -175,11 +180,6 @@ if (chosenIds.length) {
     process.exit(1);
   }
   selected = [...byReviewer.values()].map(([row]) => row);
-}
-
-if (!write) {
-  console.log(`\nwould score ${selected.length} response(s). Re-run with --write to score.`);
-  process.exit(0);
 }
 
 if (selected.length !== REQUIRED_REVIEWERS) {
