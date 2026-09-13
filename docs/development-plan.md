@@ -31,6 +31,10 @@
 | **9. Publish, payment boundary, live site, Management Mode** | $49 Stripe-shaped mock payment boundary, READY_TO_PUBLISH enforcement, publish, subdomain/live routing, public/private guest site, sharing, Passed state; management home: RSVP summary → Guests → Messages → Registry → Share → Edit site. No billing architecture beyond the stub. Payment state tables arrive here. | Live event reachable and manageable. |
 | **10. Messaging, hardening, launch** | SMS reminders and announcements, STOP handling, rate limits, observability, accessibility, security review, E2E coverage, responsive and visual regression, performance, failure-state QA. **Human design test #2** on the frozen production generation stack: the launch gate. Messaging tables arrive here. | Launch checklist and human test #2 pass. |
 
+## Recorded deviations
+
+- **`spec.md §31 — Prompt, auth, and generation`: "Required details are collected only when missing and while generation runs, and never block concepts from appearing."** Phase 2 satisfies every part of this except "while generation runs", which it cannot: generation is Phase 4 and the AI provider is deliberately unimplemented until then. Phase 2 collects the details anyway, exactly as the criterion intends, and the generation surface states plainly that no design has been generated yet rather than narrating work that is not happening. The bullet is checkable once Phase 4 lands; until then it is knowingly partial, not met. Recorded here so no later reader mistakes the Phase 2 screen's honesty for a regression, and so nobody papers over it with copy that implies generation is running.
+
 ## Decisions that must not be reopened by this plan
 
 - The Phase 3/4 order (engine before AI) and the Phase 0 spike as a go/no-go.
