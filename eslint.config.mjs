@@ -59,6 +59,7 @@ const eslintConfig = defineConfig([
     "proof-b/**",
     "proof-a1/**",
     "docs/**",
+    ".claude/worktrees/**",
   ]),
 ]);
 

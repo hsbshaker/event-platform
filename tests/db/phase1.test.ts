@@ -131,25 +131,35 @@ describe("events and membership", () => {
     ).toBe("23505"); // primary key / one-owner index
   });
 
-  it("an authenticated user can create an event only as its owner", async () => {
-    const created = await asActor(db, { kind: "user", id: stranger }, (q) =>
+  it("no end user can insert an event; server code creates them from a claimed draft", async () => {
+    // Phase 2 moved creation behind claim_pre_auth_draft (spec.md §7.2 step 5), so the
+    // end-user INSERT grant is gone. Both an honest insert and a spoofed owner are refused.
+    for (const [label, ownerId] of [
+      ["own", stranger],
+      ["spoofed", owner],
+    ] as const) {
+      expect(
+        await errorCode(
+          asActor(db, { kind: "user", id: stranger }, (q) =>
+            q(`insert into public.events (owner_id, prompt) values ($1, 'direct') returning id`, [
+              ownerId,
+            ]),
+          ),
+        ),
+        label,
+      ).toBe("42501");
+    }
+    const viaServer = await asActor(db, { kind: "service" }, (q) =>
       q(
-        `insert into public.events (owner_id, prompt) values ($1, 'My own event') returning id, status`,
+        `insert into public.events (owner_id, prompt) values ($1, 'server made') returning status`,
         [stranger],
       ),
     );
-    expect(created.rows[0].status).toBe("DRAFT");
-    expect(
-      await errorCode(
-        asActor(db, { kind: "user", id: stranger }, (q) =>
-          q(`insert into public.events (owner_id, prompt) values ($1, 'Spoofed') returning id`, [
-            owner,
-          ]),
-        ),
-      ),
-    ).toBe("42501");
+    expect(viaServer.rows[0].status).toBe("DRAFT");
   });
 
+  // Kept as defence in depth: the INSERT grant is revoked in Phase 2, so these now fail on the
+  // missing privilege rather than the trigger, which is the stronger of the two outcomes.
   it("end users cannot create an event with server-managed columns set", async () => {
     for (const cols of [
       ["status", "'PUBLISHED'"],

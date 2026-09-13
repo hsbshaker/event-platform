@@ -55,3 +55,47 @@ html {
   outline: 2px solid var(--app-focus);
   outline-offset: 2px;
 }
+
+/*
+ * Application type-scale utilities (docs/design-system.md §6.2). Tailwind's own font-size
+ * scale is not the design-system scale, so these map the canonical `--type-*`/`--tracking-*`
+ * tokens to classes instead of ever hand-writing a size. No raw values here or at call sites.
+ */
+.text-display-lg {
+  font: var(--type-display-lg);
+  letter-spacing: var(--tracking-display-lg);
+}
+.text-display-md {
+  font: var(--type-display-md);
+  letter-spacing: var(--tracking-display-md);
+}
+.text-heading-xl {
+  font: var(--type-heading-xl);
+  letter-spacing: var(--tracking-heading-xl);
+}
+.text-heading-lg {
+  font: var(--type-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+}
+.text-heading-md {
+  font: var(--type-heading-md);
+  letter-spacing: var(--tracking-heading-md);
+}
+.text-body-lg {
+  font: var(--type-body-lg);
+}
+.text-body-md {
+  font: var(--type-body-md);
+}
+.text-body-sm {
+  font: var(--type-body-sm);
+}
+.text-label-md {
+  font: var(--type-label-md);
+}
+.text-label-sm {
+  font: var(--type-label-sm);
+}
+.text-micro {
+  font: var(--type-micro);
+}

@@ -13,6 +13,13 @@ export type EventStatus =
   "DRAFT" | "DESIGN_SELECTED" | "READY_TO_PUBLISH" | "PUBLISHED" | "PASSED" | "ARCHIVED";
 export type EventVisibility = "public" | "private";
 export type EventMemberRole = "owner" | "cohost";
+/** Outcomes of public.claim_pre_auth_draft (supabase/migrations/20260913010000_phase2_prompt_auth.sql). */
+export type ClaimOutcome =
+  "claimed" | "already_claimed_by_user" | "claimed_by_other" | "expired" | "not_found";
+
+/** Outcomes of public.attach_inspiration_asset (supabase/migrations/20260913020000_phase2_asset_consistency.sql). */
+export type AttachInspirationOutcome = "attached" | "limit_reached" | "gone";
+
 export type ModelOperation =
   "event_identity" | "design_intent" | "composition" | "structured_extraction";
 
@@ -37,6 +44,9 @@ type EventRow = {
   timezone: string | null;
   venue_name: string | null;
   address: string | null;
+  hosts: string | null;
+  baby_name: string | null;
+  generation_requested_at: string | null;
   visibility: EventVisibility | null;
   access_code_encrypted: string | null;
   rsvp_deadline: string | null;
@@ -202,6 +212,9 @@ export type Database = {
           | "timezone"
           | "venue_name"
           | "address"
+          | "hosts"
+          | "baby_name"
+          | "generation_requested_at"
           | "visibility"
           | "access_code_encrypted"
           | "rsvp_deadline"
@@ -295,12 +308,45 @@ export type Database = {
       event_role: { Args: { p_event_id: string }; Returns: EventMemberRole | null };
       is_event_member: { Args: { p_event_id: string }; Returns: boolean };
       is_event_owner: { Args: { p_event_id: string }; Returns: boolean };
+      claim_pre_auth_draft: {
+        Args: { p_token_hash: string; p_user_id: string };
+        Returns: { event_id: string | null; outcome: ClaimOutcome }[];
+      };
+      claim_pre_auth_draft_by_email: {
+        Args: { p_email: string; p_user_id: string };
+        Returns: { event_id: string | null; outcome: ClaimOutcome }[];
+      };
+      bind_draft_claim_email: { Args: { p_token_hash: string; p_email: string }; Returns: void };
       consume_rate_limit: {
         Args: { p_bucket: string; p_key_hash: string; p_window_seconds: number; p_max: number };
         Returns: boolean;
       };
       expired_pre_auth_storage_keys: { Args: { p_cutoff: string }; Returns: string[] };
       purge_expired_pre_auth_state: { Args: { p_cutoff: string }; Returns: number };
+      attach_inspiration_asset: {
+        Args: {
+          p_draft_id: string;
+          p_storage_key: string;
+          p_mime_type: string;
+          p_size_bytes: number;
+          p_max_files: number;
+        };
+        Returns: {
+          outcome: AttachInspirationOutcome;
+          asset_id: string | null;
+          attached_event_id: string | null;
+          asset_created_at: string | null;
+        }[];
+      };
+      expired_pre_auth_draft_batch: {
+        Args: { p_cutoff: string; p_limit: number };
+        Returns: { draft_id: string; storage_keys: string[] }[];
+      };
+      purge_pre_auth_drafts: {
+        Args: { p_cutoff: string; p_draft_ids: string[] };
+        Returns: number;
+      };
+      purge_stale_rate_limits: { Args: Record<string, never>; Returns: number };
     };
     Enums: {
       event_status: EventStatus;
