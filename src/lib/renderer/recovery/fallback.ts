@@ -53,16 +53,26 @@ export type TerminalFallbackRequest =
     };
 
 /**
- * Why the guard said no. These describe the caller's state, not the generation outcome — they are
- * not fallback reasons and must never be recorded as one.
+ * Why the guard said no.
+ *
+ * These describe the caller's *state* — a history that does not show a legitimate, exhausted
+ * retry. They are not fallback reasons, are never recorded as one, and adding one here does not
+ * add a terminal reason (§3, §5 define exactly two of those).
  */
 export type FallbackRefusal =
-  /** The allowed retry was never made: fewer than two attempts. */
+  /** Fewer attempts than the contract's initial call plus one retry. */
   | "retry-not-attempted"
+  /** More attempts than §3 and §5 allow — the caller ran a path the contract does not have. */
+  | "retry-budget-exceeded"
+  /** The first attempt did not fail, so no retry was ever authorized for this reason. */
+  | "retry-not-authorized"
   /** The retry was made and succeeded, so there is nothing to fall back from. */
   | "retry-not-spent"
-  /** More attempts than §3 and §5 allow — the caller ran a path the contract does not have. */
-  | "retry-budget-exceeded";
+  /**
+   * A collision history contains a schema-invalid attempt. A schema-invalid response belongs to
+   * the schema-validation path; it cannot also be evidence for a collision fallback.
+   */
+  | "attempt-off-path";
 
 /**
  * The record Phase 4 writes to the `GenerationRun`. Phase 3 defines the shape and fills it;
@@ -89,20 +99,44 @@ export type TerminalFallbackResult =
 /** The initial call plus the one retry §3 and §5 allow. */
 const ALLOWED_ATTEMPTS = 2;
 
-/** Did the last attempt fail in the way this reason claims? */
-function retryFailed(request: TerminalFallbackRequest): boolean {
-  const last = request.attempts[request.attempts.length - 1];
-  return request.reason === "schema-invalid-after-retry"
-    ? !last.schemaValid
-    : !(last as CollisionAttempt).resolved;
+/**
+ * Does the history show a legitimate, exhausted retry for this reason?
+ *
+ * Both attempts are checked, not just the last. Two attempt objects prove nothing on their own:
+ * the fallback has to see the state transition the contract describes — a first failure that
+ * *authorized* the one retry, and a retry that also failed. Anything else is a history the
+ * contract cannot produce, and is refused rather than served.
+ */
+function evidenceRefusal(request: TerminalFallbackRequest): FallbackRefusal | null {
+  if (request.attempts.length < ALLOWED_ATTEMPTS) return "retry-not-attempted";
+  if (request.attempts.length > ALLOWED_ATTEMPTS) return "retry-budget-exceeded";
+
+  if (request.reason === "schema-invalid-after-retry") {
+    const [first, retry] = request.attempts;
+    // The schema retry is authorized by a schema-invalid first response, and by nothing else.
+    if (first.schemaValid) return "retry-not-authorized";
+    if (retry.schemaValid) return "retry-not-spent";
+    return null;
+  }
+
+  const [first, retry] = request.attempts;
+  // The selector only ever sees schema-valid trees; a schema-invalid attempt here means the
+  // caller mixed the two paths.
+  if (!first.schemaValid || !retry.schemaValid) return "attempt-off-path";
+  // The collision retry is authorized by an unresolved first attempt, and by nothing else.
+  if (first.resolved) return "retry-not-authorized";
+  if (retry.resolved) return "retry-not-spent";
+  return null;
 }
 
 /**
  * A composition tree for a concept whose model call could not produce one.
  *
- * Returns a refusal rather than a tree unless the evidence proves the allowed retry was spent, so
- * a caller cannot reach the library on a first failure even by mistake. Deterministic in `seed`:
- * the same failed concept always falls back to the same page.
+ * Returns a refusal rather than a tree unless the request's full attempt history shows the state
+ * transition §3 and §5 describe: a first failure that authorized the one retry, and a retry that
+ * also failed. A caller cannot reach the library on a first failure, and cannot manufacture
+ * access by supplying two attempt objects that no real run could have produced. Deterministic in
+ * `seed`: the same failed concept always falls back to the same page.
  *
  * @throws TypeError if `seed` is not a non-negative safe integer. That is a programming error in
  * the caller, not a contract state, so it is not one of the refusals.
@@ -113,11 +147,8 @@ export function terminalFallback(request: TerminalFallbackRequest): TerminalFall
       `terminalFallback: seed must be a non-negative safe integer, got ${request.seed}`,
     );
   }
-  if (request.attempts.length < ALLOWED_ATTEMPTS)
-    return { ok: false, refusal: "retry-not-attempted" };
-  if (request.attempts.length > ALLOWED_ATTEMPTS)
-    return { ok: false, refusal: "retry-budget-exceeded" };
-  if (!retryFailed(request)) return { ok: false, refusal: "retry-not-spent" };
+  const refusal = evidenceRefusal(request);
+  if (refusal) return { ok: false, refusal };
 
   const site = A1_SITES[request.seed % A1_SITES.length];
   return {

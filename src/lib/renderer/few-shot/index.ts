@@ -33,12 +33,16 @@ export const FEW_SHOT_EXAMPLE_COUNT = 3;
  * The rotation offset and shuffle are the reference's (`proof-b/prompt.js`), preserved exactly so
  * a seed picks what it has always picked.
  *
- * Note for anyone changing this: `sort` with a random comparator is not a shuffle in the formal
- * sense — the permutation it produces depends on the engine's sort algorithm, not only on the
- * comparator. It is stable in practice because V8 uses binary insertion sort below 64 elements
- * and `A1_SITES` has 16, and `few-shot.test.ts` pins the result against the reference expression
- * so a change is caught rather than discovered in a generation run. Do not "fix" it to a
- * Fisher-Yates shuffle without re-running the confirmation set: it would re-roll every seed.
+ * KNOWN DEFECT, deliberately kept for Phase 3 — `docs/phase-3-invariant-obligations.md` row 11.
+ * `sort` with a random comparator is not a shuffle: the permutation depends on the engine's sort
+ * algorithm as well as the comparator. It is stable in practice (V8 uses binary insertion sort
+ * below 64 elements and `A1_SITES` has 16) and `few-shot.test.ts` pins it against the reference
+ * expression, but that pins V8's behaviour, not an algorithm.
+ *
+ * Replacing it is a Phase 4 obligation, due **before the first production model call**, and it
+ * travels with a prompt-version bump, a test that pins the algorithm instead of `proof-b`, and a
+ * fresh confirmation run — the frozen Phase B evidence does not survive a change to the examples
+ * a seed receives. Row 11 has the full list. Do not do it piecemeal, and do not do it here.
  */
 const ROTATION_OFFSET = 99;
 

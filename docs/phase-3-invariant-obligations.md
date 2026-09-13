@@ -15,10 +15,11 @@ Delete this file when Phase 3 closes and every row reads "enforced".
 | 4 | Exactly two adapters are exempt, one per role, and `recovery/**` cannot absorb few-shot retrieval | `tests/unit/library-boundary.test.ts` asserts the exemption list structurally: `src/lib/renderer/recovery/**`, `src/lib/renderer/few-shot/**`, and test files | **enforced** |
 | 5 | The few-shot adapter exposes no recipe, silhouette or template identifier that could become a candidate-choice variable | `src/lib/renderer/few-shot/few-shot.test.ts`: the module exports only `compositionExamples` and its count, the returned trees carry none of the 61 library fixture identifiers (hero, details, rsvp, registry, plan and A.1 site) anywhere in their serialized shape, and the only parameter is a seed | **enforced** |
 | 6 | Normal generation consumes example trees without learning where they came from | test that the composition-call input carries trees and no fixture identifier | open — needs the generation path (Phase 4) |
-| 7 | The terminal fallback is unreachable until the documented retry is exhausted | `src/lib/renderer/recovery/fallback.ts` refuses unless the request carries both attempts and the retry failed; `recovery.test.ts` covers first-failure, no-attempt, retry-succeeded and over-budget refusals for both reasons | **enforced** |
+| 7 | The terminal fallback is unreachable until the documented retry was legitimately authorized *and* exhausted | `src/lib/renderer/recovery/fallback.ts` checks the whole attempt history, not just the last attempt: the first failure must be the one that authorized this reason's retry, and the retry must also have failed. `recovery.test.ts` enumerates every history of length 0–3 for both reasons and asserts exactly one is served (`[invalid, invalid]`; `[collided, collided]`), each refusal naming the right caller state. Mutation-checked: removing any one branch of the guard fails a test | **enforced** |
 | 8 | Fallback use and reason are observable in generation telemetry | `FallbackTelemetry` — reason, source, seed, fixtureId, attemptsSpent — is returned with every served fallback and asserted in `recovery.test.ts` | **Phase 3 side done**; open — Phase 4 records it on the `GenerationRun` |
 | 9 | Neither the `DesignIntent` nor the `CompositionTree` schema carries a recipe, silhouette or template identifier | test scanning both schemas for such a field | open — needs the ported schemas |
 | 10 | The renderer stays recipe-agnostic: one fixed component per primitive, no branch per recipe | test asserting the component map's keys are exactly the primitive allowlist | open — needs the renderer components |
+| 11 | Seeded few-shot rotation is deterministic by specification, not by the engine's sort algorithm | replace the random-comparator sort with a specified shuffle; see **Phase 4 obligation** below | open — **Phase 4, before the first production model call** |
 
 ## Notes
 
@@ -29,14 +30,36 @@ and it is not reachable from production source outside the two adapters. `librar
 it byte-identical to `proof-b/library.js` and proves the production module still reproduces the
 captured golden oracle through the production composition core.
 
-**On the few-shot rotation.** `compositionExamples(seed)` preserves the reference's rotation
-exactly — `mulberry32(seed + 99)`, then `Array.sort` with that comparator, then three — because
-changing it would re-roll every seed in the frozen confirmation set. Worth knowing: `sort` with a
-random comparator is not a shuffle in the formal sense; the permutation depends on the engine's
-sort algorithm as well as the comparator. It is stable in practice (V8 uses binary insertion sort
-below 64 elements and `A1_SITES` has 16) and `few-shot.test.ts` pins the result against the
-reference expression for eleven seeds, so drift fails a test rather than surfacing in a
-generation run. Do not "fix" it without re-running the confirmation set.
+**On the few-shot rotation, and the Phase 4 obligation it carries (row 11).**
+`compositionExamples(seed)` preserves the reference's rotation exactly — `mulberry32(seed + 99)`,
+then `Array.sort` with that comparator, then three — and Phase 3 keeps it that way, because
+changing it would re-roll the prompt examples of every seed in the frozen confirmation set and
+break the reference port's honesty.
+
+It is not a sound long-term mechanism. `sort` with a random comparator is not a shuffle: the
+permutation depends on the engine's sort algorithm as well as the comparator. It is stable in
+practice today (V8 uses binary insertion sort below 64 elements and `A1_SITES` has 16), and
+`few-shot.test.ts` pins the result against the reference expression for eleven seeds, so drift
+fails a test rather than surfacing in a generation run. That pins V8's behaviour, not an
+algorithm.
+
+**This is not fixed in Phase 3.** Before the first production model call in Phase 4, all four of
+these must happen together:
+
+1. replace the random-comparator sort with a specified deterministic shuffle — seeded
+   Fisher-Yates over `mulberry32`, or another algorithm written down in
+   `docs/model-contracts.md`;
+2. bump the composition-prompt version identifier (`compositionPrompt`, currently
+   `composition_v1_p2`, carried in `ResolvedDesignSpec.versions`), because the examples a seed
+   receives change;
+3. change `few-shot.test.ts` to pin the algorithm itself — its output for known seeds computed
+   from the specification — instead of comparing against `proof-b/prompt.js`;
+4. run a fresh production generation and confirmation evaluation against the
+   `docs/event-renderer-system.md §9` thresholds. The frozen Phase B run does not carry over,
+   because its prompts are not the prompts the new rotation produces.
+
+Doing 1 without 2 and 4 would silently invalidate the confirmation evidence. Doing it after the
+first production model call would mean two prompt regimes under one version identifier.
 
 **On `fixtureId` in fallback telemetry.** It records which fixture a failed run fell back to, so
 fallback rate can be measured per fixture. It is an output of a failure, never an input to a

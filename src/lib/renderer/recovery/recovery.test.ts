@@ -31,6 +31,12 @@ const { FULL_CAPS } = requireProof("./compile.js") as any;
 const CAPS = FULL_CAPS as Capabilities;
 const SEEDS = [0, 1, 2, 5, 13, 16, 17, 64, 999];
 
+/** Every ordered history of `length` drawn from `states`. */
+function histories<T>(states: readonly T[], length: number): T[][] {
+  if (length === 0) return [[]];
+  return histories(states, length - 1).flatMap((rest) => states.map((s) => [...rest, s]));
+}
+
 const spent = {
   schema: (seed: number): TerminalFallbackRequest => ({
     reason: "schema-invalid-after-retry",
@@ -82,65 +88,98 @@ describe("library repair macros", () => {
 });
 
 describe("terminal fallback: fails closed (invariant obligation row 7)", () => {
-  it("refuses on a first failure, before the allowed retry is made", () => {
-    for (const reason of [
-      "schema-invalid-after-retry",
-      "selector-collision-after-retry",
-    ] as const) {
-      const request = {
-        reason,
-        seed: 3,
-        attempts: [
-          reason === "schema-invalid-after-retry"
-            ? { schemaValid: false }
-            : { schemaValid: true, resolved: false },
-        ],
-      } as TerminalFallbackRequest;
-      expect(terminalFallback(request)).toEqual({ ok: false, refusal: "retry-not-attempted" });
+  /**
+   * The guard is exhaustive over every history of length 0 to 3, not just the ones the contract
+   * can produce. Two attempt objects prove nothing on their own: the fallback has to see the
+   * state transition §3 and §5 describe — a first failure that *authorized* the retry, and a
+   * retry that also failed.
+   */
+  const SCHEMA_STATES = [true, false];
+
+  it("serves exactly one schema history: [invalid, invalid]", () => {
+    const served: string[] = [];
+    const refused = new Map<string, string>();
+    for (const length of [0, 1, 2, 3]) {
+      for (const combo of histories(SCHEMA_STATES, length)) {
+        const attempts = combo.map((schemaValid) => ({ schemaValid }));
+        const label = `[${combo.map((v) => (v ? "valid" : "invalid")).join(", ")}]`;
+        const out = terminalFallback({ reason: "schema-invalid-after-retry", seed: 4, attempts });
+        if (out.ok) served.push(label);
+        else refused.set(label, out.refusal);
+      }
     }
+    expect(served).toEqual(["[invalid, invalid]"]);
+    // And each refusal names the right caller state.
+    expect(refused.get("[]")).toBe("retry-not-attempted");
+    expect(refused.get("[invalid]")).toBe("retry-not-attempted");
+    expect(refused.get("[valid]")).toBe("retry-not-attempted");
+    expect(refused.get("[valid, invalid]")).toBe("retry-not-authorized");
+    expect(refused.get("[valid, valid]")).toBe("retry-not-authorized");
+    expect(refused.get("[invalid, valid]")).toBe("retry-not-spent");
+    expect(refused.get("[invalid, invalid, invalid]")).toBe("retry-budget-exceeded");
   });
 
-  it("refuses when no attempt was made at all", () => {
-    expect(
-      terminalFallback({ reason: "schema-invalid-after-retry", seed: 3, attempts: [] }),
-    ).toEqual({ ok: false, refusal: "retry-not-attempted" });
+  it("serves exactly one collision history: [valid+collided, valid+collided]", () => {
+    const states = [
+      { schemaValid: true, resolved: true, label: "resolved" },
+      { schemaValid: true, resolved: false, label: "collided" },
+      { schemaValid: false, resolved: false, label: "schema-invalid" },
+      { schemaValid: false, resolved: true, label: "impossible" },
+    ];
+    const served: string[] = [];
+    const refused = new Map<string, string>();
+    for (const length of [0, 1, 2, 3]) {
+      for (const combo of histories(states, length)) {
+        const label = `[${combo.map((c) => c.label).join(", ")}]`;
+        const attempts = combo.map(({ schemaValid, resolved }) => ({ schemaValid, resolved }));
+        const out = terminalFallback({
+          reason: "selector-collision-after-retry",
+          seed: 4,
+          attempts,
+        });
+        if (out.ok) served.push(label);
+        else refused.set(label, out.refusal);
+      }
+    }
+    expect(served).toEqual(["[collided, collided]"]);
+    expect(refused.get("[]")).toBe("retry-not-attempted");
+    expect(refused.get("[collided]")).toBe("retry-not-attempted");
+    expect(refused.get("[resolved, collided]")).toBe("retry-not-authorized");
+    expect(refused.get("[collided, resolved]")).toBe("retry-not-spent");
+    expect(refused.get("[resolved, resolved]")).toBe("retry-not-authorized");
+    // A schema-invalid response belongs to the schema path; it is never collision evidence.
+    expect(refused.get("[schema-invalid, collided]")).toBe("attempt-off-path");
+    expect(refused.get("[collided, schema-invalid]")).toBe("attempt-off-path");
+    expect(refused.get("[schema-invalid, schema-invalid]")).toBe("attempt-off-path");
+    // Nor is a state no real run can reach.
+    expect(refused.get("[impossible, collided]")).toBe("attempt-off-path");
+    expect(refused.get("[collided, collided, collided]")).toBe("retry-budget-exceeded");
   });
 
-  it("refuses when the allowed retry succeeded", () => {
-    expect(
-      terminalFallback({
-        reason: "schema-invalid-after-retry",
-        seed: 3,
-        attempts: [{ schemaValid: false }, { schemaValid: true }],
-      }),
-    ).toEqual({ ok: false, refusal: "retry-not-spent" });
-
+  it("cannot be reached by swapping a schema history onto the collision path", () => {
+    // The two reasons do not share evidence: what serves one must refuse the other.
     expect(
       terminalFallback({
         reason: "selector-collision-after-retry",
-        seed: 3,
+        seed: 4,
         attempts: [
-          { schemaValid: true, resolved: false },
-          { schemaValid: true, resolved: true },
+          { schemaValid: false, resolved: false },
+          { schemaValid: false, resolved: false },
         ],
       }),
-    ).toEqual({ ok: false, refusal: "retry-not-spent" });
-  });
-
-  it("refuses more attempts than §3 and §5 allow", () => {
-    expect(
-      terminalFallback({
-        reason: "schema-invalid-after-retry",
-        seed: 3,
-        attempts: [{ schemaValid: false }, { schemaValid: false }, { schemaValid: false }],
-      }),
-    ).toEqual({ ok: false, refusal: "retry-budget-exceeded" });
+    ).toEqual({ ok: false, refusal: "attempt-off-path" });
   });
 
   it("throws on a seed that is not a non-negative safe integer", () => {
     for (const seed of [-1, 1.5, NaN, Number.MAX_SAFE_INTEGER + 2]) {
       expect(() => terminalFallback({ ...spent.schema(0), seed })).toThrow(TypeError);
     }
+  });
+
+  it("validates the seed before anything else, so a bad seed is never masked by a refusal", () => {
+    expect(() =>
+      terminalFallback({ reason: "schema-invalid-after-retry", seed: -1, attempts: [] }),
+    ).toThrow(TypeError);
   });
 });
 
