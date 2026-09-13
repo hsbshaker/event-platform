@@ -1,16 +1,38 @@
+import Link from "next/link";
+import { loadComposerState } from "@/app/actions/draft";
+import { LandingComposer } from "@/components/app/LandingComposer";
+
 /**
- * Route shell for the landing composer (spec.md §7.1, screen-spec `landing-composer`).
+ * Landing composer (spec.md §7.1, docs/screen-spec.md `landing-composer`, e2e H01).
  *
- * Phase 2 replaces this with the prompt composer. Nothing here may become a signup
- * step, template gallery or feature matrix (spec.md §32 #3, #6).
+ * The composer is the visual and interaction focal point; nothing here becomes a signup
+ * step, template gallery or feature matrix (spec.md §32 #3, #6). This Server Component only
+ * loads the saved draft state; all interaction lives in `LandingComposer`.
  */
-export default function LandingPage() {
+
+function restoreNoticeFrom(value: string | undefined): "expired" | "taken" | null {
+  return value === "expired" || value === "taken" ? value : null;
+}
+
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ restore?: string }>;
+}) {
+  const [state, params] = await Promise.all([loadComposerState(), searchParams]);
+
   return (
-    <main className="mx-auto flex w-full max-w-(--width-standard) flex-1 flex-col justify-center gap-6 px-4 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Describe the event you imagine.</h1>
-      <p className="text-app-text-secondary">
-        The event composer arrives in Phase 2. Free to create · No templates · Publish when ready.
-      </p>
-    </main>
+    <div className="flex min-h-full flex-1 flex-col">
+      <header className="mx-auto flex w-full max-w-(--width-wide) items-center justify-between px-4 py-4">
+        <span className="text-label-md text-app-text-secondary">Event Platform</span>
+        <Link
+          href="/signin"
+          className="text-body-sm text-app-text-secondary underline-offset-2 hover:underline"
+        >
+          Sign in
+        </Link>
+      </header>
+      <LandingComposer initialState={state} restoreNotice={restoreNoticeFrom(params.restore)} />
+    </div>
   );
 }
