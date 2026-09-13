@@ -59,8 +59,12 @@ export async function GET(request: NextRequest) {
     return await purge();
   } catch (error) {
     // Nothing reaches here but a misconfigured environment or a client that could not be
-    // built; either way a scheduled job needs to be told, not handed a bare 500.
-    return failed("setup", error);
+    // built; either way a scheduled job needs to be told, not handed a bare 500. The env
+    // module's message names the offending variables and never their values, and the caller
+    // already holds CRON_SECRET, so naming them is what makes this actionable.
+    const detail = error instanceof Error ? error.message : null;
+    console.error("purge-pre-auth failed at setup", error);
+    return NextResponse.json({ ok: false, stage: "setup", detail }, { status: 500 });
   }
 }
 
