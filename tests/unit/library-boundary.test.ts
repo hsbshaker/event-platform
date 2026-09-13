@@ -17,8 +17,33 @@
  * (no template gallery; no addition to the composition language without a proof run).
  */
 
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { createRequire } from "node:module";
+
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
+
+import { canonicalize } from "@/lib/renderer/composition/canonicalize";
+import { resolveLayout } from "@/lib/renderer/composition/layout";
+import type { Capabilities } from "@/lib/renderer/composition/nodes";
+import { repair, type Macros } from "@/lib/renderer/composition/repair";
+import { validateSchema } from "@/lib/renderer/composition/validate-schema";
+import { validateStructure } from "@/lib/renderer/composition/validate-structure";
+import { novelTree } from "../fixtures/novel-composition";
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- the reference side is untyped CommonJS. */
+const L: any = createRequire(new URL("../../proof-b/", import.meta.url))("./library.js");
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** Every fixture identifier the library knows, in every spelling a leak could take. */
+const LIBRARY_FIXTURE_IDS: string[] = [
+  ...L.heroKeys,
+  ...Object.keys(L.DETAILS),
+  ...Object.keys(L.RSVPS),
+  ...Object.keys(L.REGISTRIES),
+  ...Object.keys(L.PLANS),
+];
 
 const eslint = new ESLint({ cwd: new URL("../../", import.meta.url).pathname });
 
@@ -128,5 +153,83 @@ describe("Library Boundary Invariant", () => {
       'import "@/styles/event-tokens.css";\nexport const x = 1;\n',
     );
     expect(inApp.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The runtime half of the invariant: handling a valid, novel, model-authored CompositionTree —
+ * one with no counterpart in the library — never reaches either adapter.
+ *
+ * Lint proves the normal path *cannot* import the library. This proves it does not *want* to:
+ * the repair macros are the one hook by which the library can enter a compile, and a clean tree
+ * never pulls it.
+ */
+describe("the normal path invokes neither adapter", () => {
+  const FULL_CAPS: Capabilities = {
+    rsvp: true,
+    registry: true,
+    gifts: true,
+    externalRegistry: true,
+    cashFund: true,
+    hosts: true,
+    description: true,
+    time: true,
+    location: true,
+    deadline: true,
+  };
+
+  /** Macros that make any library entry an immediate, loud failure. */
+  const forbiddenMacros: Macros = {
+    hero: () => {
+      throw new Error("the hero repair macro was invoked for a clean novel tree");
+    },
+    rsvpSection: () => {
+      throw new Error("the rsvp repair macro was invoked for a clean novel tree");
+    },
+    registrySection: () => {
+      throw new Error("the registry repair macro was invoked for a clean novel tree");
+    },
+  };
+
+  it("validates, repairs, canonicalizes and resolves a novel tree without a macro call", () => {
+    const tree = novelTree();
+    expect(validateSchema(tree).ok).toBe(true);
+    expect(validateStructure(tree, FULL_CAPS)).toEqual([]);
+
+    const repaired = repair(tree, FULL_CAPS, 7, forbiddenMacros);
+    expect(repaired.repairs).toEqual([]);
+    expect(repaired.remaining).toEqual([]);
+
+    const canon = canonicalize(repaired.tree);
+    expect(Object.keys(resolveLayout(canon.tree, "balanced")).length).toBeGreaterThan(0);
+  });
+
+  it("carries no fixture identifier through the pipeline", () => {
+    const canon = canonicalize(repair(novelTree(), FULL_CAPS, 7, forbiddenMacros).tree);
+    const serialized = JSON.stringify(canon.tree);
+    for (const id of [...LIBRARY_FIXTURE_IDS]) expect(serialized.includes(id)).toBe(false);
+  });
+
+  it("the composition core's own source never names an adapter or the library", () => {
+    // The core is the normal path. Lint covers imports; this covers a lazy `await import` or a
+    // string path that would slip past it.
+    const dir = new URL("../../src/lib/renderer/composition/", import.meta.url).pathname;
+    for (const file of readdirSync(dir).filter(
+      (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
+    )) {
+      // Strip comments: the core's header prose legitimately explains what it must not depend on.
+      const source = readFileSync(path.join(dir, file), "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/(^|[^:])\/\/.*$/gm, "$1");
+      for (const forbidden of [
+        "renderer/library",
+        "../library",
+        "./library",
+        "few-shot",
+        "recovery/",
+      ]) {
+        expect(source.includes(forbidden), `${file} names "${forbidden}"`).toBe(false);
+      }
+    }
   });
 });

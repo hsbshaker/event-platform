@@ -1,7 +1,8 @@
 /**
  * INTRINSIC TESTS. Nothing in this file calls `proof-b/`, so the suite still means something
  * once the reference implementation is deleted. Every fixture is hand-authored here, except the
- * 26 library hero skeletons, which are read from the committed oracle
+ * novel-composition fixture shared with the boundary test and the 26 library hero skeletons,
+ * which are read from the committed oracle
  * (`tests/fixtures/renderer-golden/library-heroes.json`) rather than recomputed from `proof-b/`.
  *
  * The byte-for-byte comparisons against the reference live in `parity.test.ts`.
@@ -22,6 +23,7 @@ import { heroSimilarity, seqSim, skeleton } from "./signature";
 import { validateSchema } from "./validate-schema";
 import { validateStructure } from "./validate-structure";
 import { clone, countNodes, walk } from "./walk";
+import { novelTree } from "../../../../tests/fixtures/novel-composition";
 
 const FULL_CAPS: Capabilities = {
   rsvp: true,
@@ -47,142 +49,7 @@ const LIBRARY_HERO_SKELETONS = JSON.parse(readFileSync(GOLDEN_HEROES, "utf8")) a
   { skeletonDesktop: { hero: string[] }; skeletonMobile: { hero: string[] } }
 >;
 
-/**
- * A deliberately novel composition: a Rail whose rail is a MotifField, wrapping a Split whose
- * halves hold an Overlay and a ruled Grid, over a surface sequence (accent → contrast → alt →
- * base → contrast) that no library recipe uses.
- */
-function novelTree(): CompositionTree {
-  return {
-    version: "composition_v1",
-    sections: [
-      {
-        kind: "hero",
-        surface: "accent",
-        align: "center",
-        fill: "screen",
-        root: {
-          t: "Rail",
-          side: "end",
-          width: "medium",
-          mobile: "bottom",
-          rail: { t: "MotifField", motif: { id: "gingham", role: "field" }, extent: "full" },
-          child: {
-            t: "Split",
-            ratio: "62",
-            align: "center",
-            divider: "hairline",
-            mobile: "stack-reverse",
-            children: [
-              {
-                t: "Overlay",
-                anchor: "bottom-end",
-                extent: "third",
-                mobile: "stack",
-                content: {
-                  t: "Stack",
-                  gap: "tight",
-                  align: "start",
-                  children: [
-                    { t: "Eyebrow" },
-                    { t: "EventTitle", emphasis: "display", layout: "cascade" },
-                    { t: "Hosts" },
-                  ],
-                },
-                decoration: {
-                  t: "MotifField",
-                  motif: { id: "plaid", role: "field" },
-                  extent: "third",
-                },
-              },
-              {
-                t: "Grid",
-                columns: 2,
-                mobile: 2,
-                ruled: true,
-                gap: "loose",
-                children: [
-                  { t: "Cell", child: { t: "Date", form: "numeral", emphasis: "display" } },
-                  {
-                    t: "Cell",
-                    child: { t: "Stack", children: [{ t: "Venue" }, { t: "Location" }] },
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      },
-      {
-        kind: "details",
-        surface: "contrast",
-        root: {
-          t: "Frame",
-          rule: "double",
-          inset: "deep",
-          motif: { id: "stripe", role: "frame" },
-          child: {
-            t: "Stack",
-            children: [
-              { t: "SectionHeading", for: "details" },
-              { t: "Description" },
-              {
-                t: "Cluster",
-                children: [{ t: "Date", form: "full" }, { t: "Time" }, { t: "Venue" }],
-              },
-            ],
-          },
-        },
-      },
-      {
-        kind: "rsvp",
-        surface: "alt",
-        root: {
-          t: "Stack",
-          children: [{ t: "SectionHeading", for: "rsvp" }, { t: "Deadline" }, { t: "RSVP" }],
-        },
-      },
-      {
-        kind: "registry",
-        surface: "base",
-        root: {
-          t: "Surface",
-          role: "alt",
-          inset: "normal",
-          child: {
-            t: "Stack",
-            children: [
-              { t: "SectionHeading", for: "registry" },
-              {
-                t: "Registry",
-                layout: {
-                  t: "Grid",
-                  columns: 3,
-                  mobile: 1,
-                  children: [
-                    { t: "Cell", child: { t: "RegistryItem", kind: "gift" } },
-                    { t: "Cell", child: { t: "RegistryItem", kind: "external" } },
-                    { t: "Cell", child: { t: "RegistryItem", kind: "cashfund" } },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      },
-      {
-        kind: "band",
-        surface: "contrast",
-        root: {
-          t: "MotifBand",
-          motif: { id: "linen", role: "band" },
-          height: "tall",
-          fill: "pattern",
-        },
-      },
-    ],
-  };
-}
+/** The novel tree lives in `tests/fixtures/` so the boundary test asserts against the same one. */
 
 /** A minimal legal page, used where a test only needs a valid tree to mutate. */
 function simplePage(heroRoot: CompositionTree["sections"][number]["root"]): CompositionTree {
