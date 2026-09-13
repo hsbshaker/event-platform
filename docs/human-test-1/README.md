@@ -61,6 +61,10 @@ directly.
 separate table `score-stored.mjs` never reads. Nothing a public client can put in a request body
 selects that table, so a synthetic submission cannot reach the real five.
 
+If the very first submission returns 500 while everything else looks healthy, PostgREST is
+serving a schema cache that predates the tables. The migration now issues
+`notify pgrst, 'reload schema'` itself; if you apply the SQL some other way, run that notify.
+
 Two requests are worth making, both against the synthetic table:
 
 1. one complete submission — expect `{ ok: true, submissionId }` and one row;

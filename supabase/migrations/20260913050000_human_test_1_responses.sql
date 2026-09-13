@@ -63,3 +63,16 @@ alter table public.human_test_1_test_responses enable row level security;
 -- Server-only tables: no policies for end-user roles, and no grants either.
 revoke all on table public.human_test_1_responses from anon, authenticated;
 revoke all on table public.human_test_1_test_responses from anon, authenticated;
+
+-- Tell PostgREST about the two new tables.
+--
+-- Not decoration: deployed verification hit exactly this. The tables existed, RLS and grants
+-- were right, and a plain SQL insert worked — but a submission through the API returned 500,
+-- because PostgREST was still serving a schema cache that predated them. Supabase's DDL event
+-- trigger normally issues this notify, and it did not fire (or was raced) when the migration was
+-- applied through the Management API's query endpoint. The visible symptom was the *reviewer*
+-- path failing while everything else looked healthy, which is the worst way to find out.
+--
+-- Issuing it here makes the migration self-sufficient however it is applied. On a plain Postgres
+-- with no listener — the `tests/db` harness — it is a successful no-op.
+notify pgrst, 'reload schema';
