@@ -42,15 +42,17 @@ export function isAllowedMimeType(value: string): value is AllowedMimeType {
  * never stored. Checks the container signature only; it does not decode the image.
  */
 export function sniffImageType(bytes: Uint8Array): AllowedMimeType | null {
-  const startsWith = (...sig: number[]) => sig.every((b, i) => bytes[i] === b);
-  if (startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return "image/png";
-  if (startsWith(0xff, 0xd8, 0xff)) return "image/jpeg";
-  if (startsWith(0x52, 0x49, 0x46, 0x46) && startsWith(0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50)) {
-    return "image/webp";
-  }
-  // ISO base media file format: "ftyp" at offset 4, then a HEIF/HEIC brand.
-  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
-    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+  const at = (offset: number, ...sig: number[]) => sig.every((b, i) => bytes[offset + i] === b);
+  const ascii = (offset: number, length: number) =>
+    String.fromCharCode(...Array.from(bytes.subarray(offset, offset + length)));
+
+  if (at(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return "image/png";
+  if (at(0, 0xff, 0xd8, 0xff)) return "image/jpeg";
+  // RIFF container whose form type, at offset 8, is WEBP.
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return "image/webp";
+  // ISO base media file format: "ftyp" at offset 4, then a HEIF/HEIC brand at offset 8.
+  if (at(4, 0x66, 0x74, 0x79, 0x70)) {
+    const brand = ascii(8, 4);
     if (["heic", "heix", "hevc", "heim", "heis", "hevm"].includes(brand)) return "image/heic";
     if (["mif1", "msf1"].includes(brand)) return "image/heif";
   }
@@ -148,17 +150,13 @@ export interface InspirationPreview extends DraftInspiration {
 }
 
 /** Signs the given assets for display. Never returns a raw public object URL (§27). */
-export async function signInspiration(
-  assets: DraftInspiration[],
-): Promise<InspirationPreview[]> {
+export async function signInspiration(assets: DraftInspiration[]): Promise<InspirationPreview[]> {
   if (assets.length === 0) return [];
   const admin = createAdminClient();
-  const { data, error } = await admin.storage
-    .from(INSPIRATION_BUCKET)
-    .createSignedUrls(
-      assets.map((a) => a.storageKey),
-      SIGNED_URL_TTL_SECONDS,
-    );
+  const { data, error } = await admin.storage.from(INSPIRATION_BUCKET).createSignedUrls(
+    assets.map((a) => a.storageKey),
+    SIGNED_URL_TTL_SECONDS,
+  );
   if (error) return assets.map((a) => ({ ...a, url: null }));
   const byKey = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
   return assets.map((a) => ({ ...a, url: byKey.get(a.storageKey) ?? null }));

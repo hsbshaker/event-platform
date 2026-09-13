@@ -150,9 +150,10 @@ describe("events and membership", () => {
       ).toBe("42501");
     }
     const viaServer = await asActor(db, { kind: "service" }, (q) =>
-      q(`insert into public.events (owner_id, prompt) values ($1, 'server made') returning status`, [
-        stranger,
-      ]),
+      q(
+        `insert into public.events (owner_id, prompt) values ($1, 'server made') returning status`,
+        [stranger],
+      ),
     );
     expect(viaServer.rows[0].status).toBe("DRAFT");
   });

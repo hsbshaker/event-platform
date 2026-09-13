@@ -15,11 +15,7 @@ export type EventVisibility = "public" | "private";
 export type EventMemberRole = "owner" | "cohost";
 /** Outcomes of public.claim_pre_auth_draft (supabase/migrations/20260913010000_phase2_prompt_auth.sql). */
 export type ClaimOutcome =
-  | "claimed"
-  | "already_claimed_by_user"
-  | "claimed_by_other"
-  | "expired"
-  | "not_found";
+  "claimed" | "already_claimed_by_user" | "claimed_by_other" | "expired" | "not_found";
 
 export type ModelOperation =
   "event_identity" | "design_intent" | "composition" | "structured_extraction";

@@ -2,7 +2,7 @@ import "server-only";
 
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ClaimOutcome } from "@/lib/supabase/database.types";
+import type { ClaimOutcome, Json } from "@/lib/supabase/database.types";
 import { enforceRateLimit, type RateLimitRule } from "@/lib/auth/rate-limit";
 import { clearDraftToken, readDraftToken, writeDraftToken } from "./cookie";
 import { generateDraftToken, hashDraftToken } from "./token";
@@ -36,7 +36,7 @@ export interface DraftInspiration {
 export interface PreAuthDraft {
   id: string;
   prompt: string;
-  composerState: Record<string, unknown> | null;
+  composerState: Json | null;
   expiresAt: string;
   inspiration: DraftInspiration[];
 }
@@ -73,7 +73,7 @@ export async function getDraft(): Promise<PreAuthDraft | null> {
   return {
     id: data.id,
     prompt: data.prompt,
-    composerState: (data.composer_state as Record<string, unknown> | null) ?? null,
+    composerState: (data.composer_state as Json | null) ?? null,
     expiresAt: data.expires_at,
     inspiration: (assets ?? []).map((a) => ({
       id: a.id,
@@ -87,7 +87,7 @@ export async function getDraft(): Promise<PreAuthDraft | null> {
 
 export interface EnsureDraftInput {
   prompt: string;
-  composerState?: Record<string, unknown> | null;
+  composerState?: Json | null;
   /** Requester IP for throttling; pass null only where no address is available. */
   ip: string | null;
 }

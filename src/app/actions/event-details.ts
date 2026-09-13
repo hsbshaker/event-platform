@@ -97,8 +97,14 @@ function toFields(row: EventRow): EventDetailFields {
   };
 }
 
+/** The shape the pure content modules take: one venue display value, not two columns. */
+function toContentSource(fields: EventDetailFields) {
+  return { ...fields, venue: fields.venueName ?? fields.address };
+}
+
 function toView(row: EventRow, now: Date): EventDraftView {
   const fields = toFields(row);
+  const source = toContentSource(fields);
   return {
     ...fields,
     id: row.id,
@@ -106,8 +112,8 @@ function toView(row: EventRow, now: Date): EventDraftView {
     rsvpDeadlineEdited: row.rsvp_deadline_edited,
     generationRequestedAt: row.generation_requested_at,
     missing: missingRequiredDetails(fields),
-    provisional: provisionalContent(fields, now),
-    contentProfile: contentProfile(fields, now),
+    provisional: provisionalContent(source, now),
+    contentProfile: contentProfile(source, now),
   };
 }
 
@@ -115,7 +121,11 @@ function toView(row: EventRow, now: Date): EventDraftView {
 export async function loadEventDraft(eventId: string): Promise<EventDraftView | null> {
   await requireEventAccess(eventId, "edit_event_content");
   const supabase = await createClient();
-  const { data, error } = await supabase.from("events").select(COLUMNS).eq("id", eventId).maybeSingle();
+  const { data, error } = await supabase
+    .from("events")
+    .select(COLUMNS)
+    .eq("id", eventId)
+    .maybeSingle();
   if (error) throw error;
   return data ? toView(data as EventRow, new Date()) : null;
 }
@@ -161,9 +171,25 @@ export async function updateEventDetails(
   if (!current) return { ok: false, error: "That event no longer exists." };
   const row = current as EventRow;
 
-  const update: Record<string, unknown> = {};
-  const pick = <K extends keyof typeof input>(key: K, column: string) => {
-    if (input[key] !== undefined) update[column] = input[key] === "" ? null : input[key];
+  type EventUpdate = Partial<{
+    title: string | null;
+    event_date: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    timezone: string | null;
+    venue_name: string | null;
+    address: string | null;
+    hosts: string | null;
+    baby_name: string | null;
+    visibility: "public" | "private" | null;
+    rsvp_deadline: string | null;
+    rsvp_deadline_edited: boolean;
+  }>;
+  const update: EventUpdate = {};
+  const pick = <K extends keyof typeof input, C extends keyof EventUpdate>(key: K, column: C) => {
+    if (input[key] === undefined) return;
+    const value = input[key] === "" ? null : input[key];
+    (update as Record<string, unknown>)[column] = value;
   };
   pick("title", "title");
   pick("eventDate", "event_date");
@@ -176,15 +202,12 @@ export async function updateEventDetails(
   pick("visibility", "visibility");
 
   // Timezone: inferred from venue text, browser as fallback, never a geocoder (§7.4).
-  const venueText = [
-    (update.venue_name as string | null) ?? row.venue_name,
-    (update.address as string | null) ?? row.address,
-  ]
+  const venueText = [update.venue_name ?? row.venue_name, update.address ?? row.address]
     .filter(Boolean)
     .join(", ");
   const venueChanged =
-    ("venue_name" in update && update.venue_name !== row.venue_name) ||
-    ("address" in update && update.address !== row.address);
+    (update.venue_name !== undefined && update.venue_name !== row.venue_name) ||
+    (update.address !== undefined && update.address !== row.address);
   if (!row.timezone || venueChanged) {
     const resolved = resolveEventTimezone({
       venueText,
@@ -193,9 +216,9 @@ export async function updateEventDetails(
     if (resolved && validateTimezone(resolved)) update.timezone = resolved;
   }
 
-  const effectiveDate = ("event_date" in update ? update.event_date : row.event_date) as string | null;
-  const effectiveStart = ("start_time" in update ? update.start_time : row.start_time) as string | null;
-  const effectiveZone = ("timezone" in update ? update.timezone : row.timezone) as string | null;
+  const effectiveDate = update.event_date !== undefined ? update.event_date : row.event_date;
+  const effectiveStart = update.start_time !== undefined ? update.start_time : row.start_time;
+  const effectiveZone = update.timezone !== undefined ? update.timezone : row.timezone;
 
   if (input.rsvpDeadline !== undefined) {
     // An explicit choice by the host: store it and stop recomputing for good (§7.3).

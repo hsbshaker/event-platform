@@ -12,9 +12,10 @@
     "format:check": "prettier --check .",
     "test": "vitest run --project unit",
     "test:db": "vitest run --project db",
-    "test:all": "vitest run",
+    "test:all": "vitest run --project unit --project db",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
-    "proof:test": "cd proof-b && npx --yes -p typescript@6 tsc -p tsconfig.json && node test.js"
+    "proof:test": "cd proof-b && npx --yes -p typescript@6 tsc -p tsconfig.json && node test.js",
+    "test:e2e": "vitest run --project e2e"
   },
   "dependencies": {
     "@sparticuz/chromium": "^153.0.0",

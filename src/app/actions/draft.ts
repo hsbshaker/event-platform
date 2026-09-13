@@ -39,9 +39,7 @@ export async function loadComposerState(): Promise<ComposerState> {
   };
 }
 
-export type SaveDraftResult =
-  | { ok: true; hasInspiration: boolean }
-  | { ok: false; error: string };
+export type SaveDraftResult = { ok: true; hasInspiration: boolean } | { ok: false; error: string };
 
 /** Persists the prompt as the user writes, so nothing depends on the submit click landing. */
 export async function saveDraft(prompt: string): Promise<SaveDraftResult> {

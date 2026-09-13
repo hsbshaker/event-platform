@@ -83,9 +83,10 @@ describe("event creation is server-side only", () => {
       ),
     ).toBe("42501");
     const viaServer = await asActor(db, { kind: "service" }, (q) =>
-      q(`update public.events set generation_requested_at = now() where id = $1 returning generation_requested_at`, [
-        eventId,
-      ]),
+      q(
+        `update public.events set generation_requested_at = now() where id = $1 returning generation_requested_at`,
+        [eventId],
+      ),
     );
     expect(viaServer.rows[0].generation_requested_at).not.toBeNull();
   });
@@ -186,9 +187,10 @@ describe("claim_pre_auth_draft", () => {
     const mine = await claim(TOKEN, owner);
     const theirs = await claim(TOKEN, other);
     expect(theirs).toEqual({ event_id: null, outcome: "claimed_by_other" });
-    const { rows } = await db.query(`select count(*)::int as n from public.events where owner_id = $1`, [
-      other,
-    ]);
+    const { rows } = await db.query(
+      `select count(*)::int as n from public.events where owner_id = $1`,
+      [other],
+    );
     expect(rows[0].n).toBe(0);
     expect(mine.event_id).not.toBeNull();
   });
@@ -209,8 +211,14 @@ describe("claim_pre_auth_draft", () => {
     await b.connect();
     try {
       const [ra, rb] = await Promise.all([
-        a.query(`select event_id, outcome from public.claim_pre_auth_draft($1, $2)`, [TOKEN, owner]),
-        b.query(`select event_id, outcome from public.claim_pre_auth_draft($1, $2)`, [TOKEN, owner]),
+        a.query(`select event_id, outcome from public.claim_pre_auth_draft($1, $2)`, [
+          TOKEN,
+          owner,
+        ]),
+        b.query(`select event_id, outcome from public.claim_pre_auth_draft($1, $2)`, [
+          TOKEN,
+          owner,
+        ]),
       ]);
       const outcomes = [ra.rows[0].outcome, rb.rows[0].outcome].sort();
       expect(outcomes).toEqual(["already_claimed_by_user", "claimed"]);
@@ -219,7 +227,9 @@ describe("claim_pre_auth_draft", () => {
       await a.end();
       await b.end();
     }
-    const { rows } = await db.query(`select count(*)::int as n from public.events where prompt like 'A spring%'`);
+    const { rows } = await db.query(
+      `select count(*)::int as n from public.events where prompt like 'A spring%'`,
+    );
     expect(rows[0].n).toBe(1);
   });
 
@@ -228,7 +238,9 @@ describe("claim_pre_auth_draft", () => {
     for (const actor of [{ kind: "user" as const, id: owner }, { kind: "anon" as const }]) {
       expect(
         await errorCode(
-          asActor(db, actor, (q) => q(`select public.claim_pre_auth_draft($1, $2)`, [TOKEN, owner])),
+          asActor(db, actor, (q) =>
+            q(`select public.claim_pre_auth_draft($1, $2)`, [TOKEN, owner]),
+          ),
         ),
         actor.kind,
       ).toBe("42501");
@@ -252,7 +264,9 @@ describe("claim_pre_auth_draft", () => {
     );
     expect(asOther.rowCount).toBe(0);
     const asOwner = await asActor(db, { kind: "user", id: owner }, (q) =>
-      q(`select storage_key from public.inspiration_assets where event_id = $1`, [claimed.event_id]),
+      q(`select storage_key from public.inspiration_assets where event_id = $1`, [
+        claimed.event_id,
+      ]),
     );
     expect(asOwner.rows.map((r) => r.storage_key)).toEqual(["drafts/private.png"]);
   });
