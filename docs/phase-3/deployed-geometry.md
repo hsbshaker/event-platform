@@ -10,14 +10,14 @@ production). Raw result: `deployed-geometry.json`.
 
 ## Run
 
-Deployment `event-platform-f57typdu0` (branch `claude/phase-3-composition-engine`), region `iad1`,
-`repeats=3`.
+Deployment `event-platform-dhtfnkpml` (branch `claude/phase-3-composition-engine`, after the
+senior-review fixes), region `iad1`, `repeats=3`.
 
 | case | what it exercises | result |
 | --- | --- | --- |
 | `novel` | a tree with no library counterpart, the normal creative path | clean, 0 demotions, hash preserved |
-| `library` | an A.1 regression composition, the expressiveness floor | clean, 0 demotions |
-| `demotion` | `monumental` + long content, so the fit loop actually runs | clean after **1 demotion** |
+| `regression` | a structurally different composition — a centred framed hero on a contrast ground — so the run is not one page measured twice | clean, 0 demotions |
+| `demotion` | `monumental` + long content, so the fit loop actually runs | clean after **2 demotions** |
 | `refit` | short content verified, then long content re-fitted on the same tree | `hashPreserved: true`, `treePreserved: true`, `contentVersion: 2`, `supersedesSpecId` set, clean |
 | `determinism` | the novel case measured three times in one function | **1 distinct geometry** across 3 runs |
 
@@ -27,15 +27,20 @@ Both widths (390 and 1280) in every case; `desktopOverflow` and `mobileOverflow`
 
 | | total | novel case |
 | --- | --- | --- |
-| cold (invocation 1) | 8,458 ms | 3,894 ms |
-| warm (invocation 2) | 4,570 ms | 503 ms |
+| cold (invocation 1) | 9,273 ms | 3,504 ms |
+| warm (earlier deployment) | 4,570 ms | 503 ms |
 
 The cold delta is Chromium inflate + launch, consistent with the Phase 0 numbers. Warm renders are
 ~0.5 s per page across both breakpoints.
 
 ## Fonts
 
-Every case reported its required families as loaded. The `demotion` case deliberately uses
+Every case reported its required families as loaded. No case draws on the legacy fixture library: this module is production source, and
+`docs/event-renderer-system.md §7.1` lets only the two named adapters reach it. Expressiveness
+against the real fixtures is a local gate — `tests/unit/phase3-exit.test.ts` renders all 26
+silhouettes, all 13 recipes and all 16 A.1 pages. What this route proves is the runtime.
+
+The `demotion` case deliberately uses
 `grotesk_space_sourcesans` — the pairing whose unquoted `Source Sans 3` family name silently broke
 `font-family` before this phase — and both `Space Grotesk` and `Source Sans 3` load. Geometry is
 never declared clean on fallback typography: a missing font is an infrastructure failure.
