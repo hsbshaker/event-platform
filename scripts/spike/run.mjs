@@ -123,14 +123,14 @@ const summary = {
     },
   },
   nodeRssMb: {
-    browserRssMb: {
-      max: ok.some((r) => r.memoryMb.browserRss != null)
-        ? Math.max(...ok.map((r) => r.memoryMb.browserRss ?? 0))
-        : null,
-      note: "Chromium processes from /proc just before close",
-    },
     max: ok.length ? Math.max(...ok.map((r) => r.memoryMb.rssAfter)) : null,
     note: "Node process only; excludes the Chromium child",
+  },
+  browserRssMb: {
+    max: ok.some((r) => r.memoryMb.browserRss != null)
+      ? Math.max(...ok.map((r) => r.memoryMb.browserRss ?? 0))
+      : null,
+    note: "Chromium processes from /proc just before close",
   },
   env: ok[0]?.env ?? null,
   errors: results.filter((r) => !r.ok).map((r) => ({ i: r.i, status: r.status, error: r.error })),
