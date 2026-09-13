@@ -81,7 +81,7 @@ const KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 const wellFormed = (response: unknown = validResponse()) => ({ submissionKey: KEY, response });
 
 beforeEach(() => {
-  recordSubmission.mockReset().mockResolvedValue({ submissionId: "row-1", created: true });
+  recordSubmission.mockReset().mockResolvedValue({ submissionId: "row-1" });
   enforceRateLimit.mockReset().mockResolvedValue(undefined);
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -109,10 +109,25 @@ describe("accepts a complete review", () => {
 
   it("answers a retry of the same key identically, so one session is one reviewer", async () => {
     const first = await POST(submission(wellFormed()));
-    recordSubmission.mockResolvedValue({ submissionId: "row-1", created: false });
     const retry = await POST(submission(wellFormed()));
     expect(await retry.json()).toEqual(await first.json());
     expect(retry.status).toBe(first.status);
+  });
+
+  it("passes a correction under the same key straight through to the store", async () => {
+    // The page keeps its session key across a reload, so a reviewer who fixes a misrating
+    // resubmits with the same key. The route must not deduplicate that away; the store upserts,
+    // so the corrected answers replace the first ones on the one row that session owns.
+    await POST(submission(wellFormed()));
+    const corrected = validResponse({
+      result: {
+        ...validResponse().result,
+        ratings: { ...validResponse().result.ratings, "7": 1 },
+      },
+    });
+    await POST(submission({ submissionKey: KEY, response: corrected }));
+    expect(recordSubmission).toHaveBeenCalledTimes(2);
+    expect(recordSubmission).toHaveBeenLastCalledWith(REAL_TABLE, KEY, corrected);
   });
 });
 
@@ -332,11 +347,65 @@ describe("no response reveals the hidden classification", () => {
     expect(await res.text()).not.toMatch(FORBIDDEN);
   });
 
-  it("says nothing about the answer when the store fails", async () => {
-    recordSubmission.mockRejectedValueOnce(new Error("relation human_test_1_responses violated"));
+  /**
+   * The word list above is not enough on its own.
+   *
+   * `parseSubmission` produces detail strings built from the request — "screen 17 appears in
+   * more than one group", "missing 3, 4, 7" — and a thrown database error carries a message. None
+   * of those trips `FORBIDDEN`, so if someone returned `detail` or `error.message` to the caller
+   * instead of logging it, every other test here would still pass while the endpoint started
+   * narrating its internals to anyone who probes it. The refusal body is therefore pinned
+   * exactly, which is the assertion that actually holds `rejected()`'s promise of one generic
+   * shape for every refusal.
+   */
+  const GENERIC = { ok: false, error: "This submission could not be saved." };
+
+  it.each([
+    ["a schema failure", 400, () => submission({ ...wellFormed(), nope: 1 })],
+    [
+      "a grouping failure",
+      400,
+      () =>
+        submission(
+          wellFormed(
+            validResponse({ result: { ...validResponse().result, groups: [[3, 17], [17]] } }),
+          ),
+        ),
+    ],
+    [
+      "a cross-origin refusal",
+      403,
+      () => submission(wellFormed(), { origin: "https://evil.example" }),
+    ],
+    ["a wrong content type", 415, () => submission(wellFormed(), { "content-type": "text/plain" })],
+    ["a malformed body", 400, () => submission("{{{")],
+  ])("returns exactly the generic refusal on %s", async (_label, status, build) => {
+    const res = await POST(build());
+    expect(res.status).toBe(status);
+    expect(await res.json()).toEqual(GENERIC);
+  });
+
+  it("returns exactly the generic refusal when the store fails, echoing nothing", async () => {
+    recordSubmission.mockRejectedValueOnce(
+      new Error("relation human_test_1_responses violated at screen 12"),
+    );
     const res = await POST(submission(wellFormed()));
     expect(res.status).toBe(500);
-    expect(await res.text()).not.toMatch(FORBIDDEN);
+    expect(await res.json()).toEqual(GENERIC);
+  });
+
+  it("returns a rate-limit refusal that names no internals either", async () => {
+    enforceRateLimit.mockRejectedValueOnce(new RateLimitedError("human_test_1:ip"));
+    const res = await POST(submission(wellFormed()));
+    expect(await res.json()).toEqual({
+      ok: false,
+      error: "Too many submissions from here. Try again in a few minutes.",
+    });
+  });
+
+  it("answers a success with the submission id and nothing more", async () => {
+    const res = await POST(submission(wellFormed()));
+    expect(Object.keys(await res.json()).sort()).toEqual(["ok", "submissionId"]);
   });
 });
 

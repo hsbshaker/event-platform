@@ -28,7 +28,10 @@ nothing is downloaded, emailed or pasted.
    `proof-b/`: reviewers must not be told how the sheet is composed, and nothing at the public
    URL tells them.
 2. Each response is stored in `human_test_1_responses`. Submission is idempotent on an opaque
-   per-session key, so a double tap or a retry does not create a second reviewer.
+   per-session key, so a double tap or a retry does not create a second reviewer; a reviewer who
+   reloads and corrects an answer replaces their own row rather than adding one. Two rows for one
+   name therefore mean two separate sessions, and `score-stored.mjs` refuses to choose between
+   them for you.
 3. Check what has arrived, then score:
 
    ```bash

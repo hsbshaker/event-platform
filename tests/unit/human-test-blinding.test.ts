@@ -82,6 +82,9 @@ const FORBIDDEN: readonly (readonly [RegExp, string])[] = [
   [/human-test-items/i, "names the per-screen item manifest"],
   [/proof-b(?!\/human-test-form\.md)/i, "references the proof directory, which holds the key"],
   [/proof-a1/i, "references a proof directory"],
+  [/\bproof\//i, "references the proof branch the sheets were frozen from"],
+  [/\bgenerated\b/i, "hints the screens were generated"],
+  [/\bmachine[- ]/i, "hints the screens were machine-made"],
   [/model-authored/i, "names the model-authored classification"],
   [/hand-authored/i, "names the hand-authored classification"],
   [/\bsilhouette/i, "names a library silhouette"],
@@ -151,15 +154,24 @@ describe("nothing at the public URL reveals the hidden classification", () => {
     expect(html).toContain('const ENDPOINT = "/api/human-test-1/submit";');
   });
 
-  it("never reads a key or a manifest from the server module that answers it", () => {
-    // The route is the only server code a reviewer's browser can reach. If it never imports
-    // the evidence, no response it can produce — success, validation failure or 500 — can
-    // carry it.
-    const route = readFileSync(path.join(ROOT, "src/app/api/human-test-1/submit/route.ts"), "utf8");
-    const imports = [...route.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]!);
+  /**
+   * The whole request path, not just the route.
+   *
+   * `route.ts` is what a browser reaches, but it delegates to the validator and the store, and
+   * either of those importing the key would put it one log line or one error message away from a
+   * response. If no module on the path loads the evidence, and none of them reads a file, then
+   * nothing the endpoint can return — success, refusal or crash — is able to carry it.
+   */
+  it.each([
+    "src/app/api/human-test-1/submit/route.ts",
+    "src/lib/human-test/submission.ts",
+    "src/lib/human-test/store.ts",
+  ])("%s never loads the key, the manifest, or any file", (file) => {
+    const source = readFileSync(path.join(ROOT, file), "utf8");
+    const imports = [...source.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]!);
     expect(
-      imports.some((specifier) => /proof-b|human-test-key|human-test-items/i.test(specifier)),
-    ).toBe(false);
-    expect(route).not.toMatch(/readFileSync|readFile\(/);
+      imports.filter((s) => /proof-b|proof-a1|human-test-key|human-test-items/i.test(s)),
+    ).toEqual([]);
+    expect(source).not.toMatch(/readFileSync|readFile\(|import\(/);
   });
 });

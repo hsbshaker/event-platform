@@ -138,18 +138,44 @@ describe("one survey session counts once", () => {
     expect(Number(rows[0].count)).toBe(1);
   });
 
-  it("is what the endpoint's retry path relies on: the loser reads back the winner's row", async () => {
-    // The store catches 23505 and selects by key rather than reading first, so a double tap
-    // cannot slip between a check and an insert. Both callers must land on the same id.
+  it("upserts a resubmission onto the same row, keeping its identity and first-seen time", async () => {
+    // This is the statement PostgREST issues for `.upsert({...}, { onConflict: "submission_key" })`
+    // in src/lib/human-test/store.ts. A reviewer who reloads and fixes a misrating arrives under
+    // the same session key: the row must be updated rather than duplicated *or* silently kept,
+    // because the page tells them their feedback was recorded either way.
     const first = await insert("human_test_1_responses", "AB", "key-retry-same-row-0001");
-    expect(await errorCode(insert("human_test_1_responses", "AB", "key-retry-same-row-0001"))).toBe(
-      "23505",
+    const { rows: before } = await db.query(
+      `select created_at, response_payload->'result'->'ratings'->>'7' as seven
+       from public.human_test_1_responses where submission_key = 'key-retry-same-row-0001'`,
     );
+
+    const corrected = payload("AB");
+    corrected.result.ratings["7"] = 1;
+    await db.query(
+      `insert into public.human_test_1_responses (reviewer, response_payload, submission_key)
+       values ($1, $2, $3)
+       on conflict (submission_key) do update
+         set reviewer = excluded.reviewer,
+             response_payload = excluded.response_payload`,
+      ["AB", JSON.stringify(corrected), "key-retry-same-row-0001"],
+    );
+
     const { rows } = await db.query(
-      `select id from public.human_test_1_responses where submission_key = 'key-retry-same-row-0001'`,
+      `select id, created_at, response_payload->'result'->'ratings'->>'7' as seven
+       from public.human_test_1_responses where submission_key = 'key-retry-same-row-0001'`,
     );
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe(first);
+    expect(rows[0].created_at).toEqual(before[0].created_at);
+    expect(before[0].seven).toBe("3");
+    expect(rows[0].seven).toBe("1");
+  });
+
+  it("still refuses a plain second insert, which is what makes the upsert one row", async () => {
+    await insert("human_test_1_responses", "AB", "key-duplicate-insert-0001");
+    expect(
+      await errorCode(insert("human_test_1_responses", "AB", "key-duplicate-insert-0001")),
+    ).toBe("23505");
   });
 
   it("still lets a genuinely different reviewer submit", async () => {

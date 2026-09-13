@@ -8,8 +8,8 @@
  * `docs/human-test-1/review.html` stays the source of truth. This copies it and the two frozen
  * sheets verbatim — byte for byte, no rewriting, no minification, no templating — so there is
  * exactly one questionnaire in the repository and the published one cannot quietly become a
- * second, divergent copy of the experiment. `--check` is what CI runs
- * (`tests/unit/human-test-publish.test.ts`); it fails if anyone edits either side alone.
+ * second, divergent copy of the experiment. `--check` is the same comparison
+ * `tests/unit/human-test-blinding.test.ts` runs in CI; it fails if anyone edits either side alone.
  *
  * # What is deliberately not published
  *

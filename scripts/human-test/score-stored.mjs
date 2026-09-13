@@ -133,22 +133,49 @@ for (const row of rows) {
   );
 }
 
-// Default selection: the earliest submission from each distinct reviewer name.
+// Default selection: one submission per distinct reviewer name, refusing to choose
+// between two when a name has more than one.
 const byReviewer = new Map();
 for (const row of rows) {
   const name = row.reviewer.trim().toLowerCase();
-  if (!byReviewer.has(name)) byReviewer.set(name, row);
+  if (!byReviewer.has(name)) byReviewer.set(name, []);
+  byReviewer.get(name).push(row);
 }
-const selected = chosenIds.length
-  ? chosenIds.map((id) => {
-      const row = rows.find((r) => r.id === id);
-      if (!row) {
-        console.error(`\nno stored response with id ${id}`);
-        process.exit(1);
-      }
-      return row;
-    })
-  : [...byReviewer.values()];
+
+let selected;
+if (chosenIds.length) {
+  // A repeated --id would pass five files to score.mjs while scoring four reviewers, one of them
+  // twice, and the median would be computed over that. Refused rather than deduplicated: the
+  // operator asked for a specific five and should be told their list is not five.
+  if (new Set(chosenIds).size !== chosenIds.length) {
+    console.error("\n--id was given the same response more than once; list five distinct ids.");
+    process.exit(1);
+  }
+  selected = chosenIds.map((id) => {
+    const row = rows.find((r) => r.id === id);
+    if (!row) {
+      console.error(`\nno stored response with id ${id}`);
+      process.exit(1);
+    }
+    return row;
+  });
+} else {
+  // Silently keeping the earliest of a reviewer's two submissions would score the one they
+  // meant to replace, with the count still five and nothing said. The endpoint upserts within a
+  // session, so two rows for one name means two *sessions* — a deliberate resubmission, or two
+  // people sharing initials. Either way it is the operator's call, not this script's.
+  const repeated = [...byReviewer.entries()].filter(([, group]) => group.length > 1);
+  if (repeated.length > 0) {
+    console.error("\nthese reviewers submitted more than once, from separate sessions:");
+    for (const [name, group] of repeated) {
+      console.error(`  ${JSON.stringify(name)}:`);
+      for (const row of group) console.error(`    ${row.id}  ${row.created_at}`);
+    }
+    console.error("\nChoose explicitly with --id <id> (five times).");
+    process.exit(1);
+  }
+  selected = [...byReviewer.values()].map(([row]) => row);
+}
 
 if (!write) {
   console.log(`\nwould score ${selected.length} response(s). Re-run with --write to score.`);
