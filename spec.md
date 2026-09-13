@@ -48,7 +48,7 @@ The core product scope remains baby-shower-first and the commercial hypothesis r
 | Compilation | Model output rendered after schema validation | Deterministic compiler resolves archetype defaults, typography compatibility, motif placement, tone/palette semantics, contrast, and repairs into immutable `ResolvedDesignSpec`. |
 | Persistence | Persist immutable `DesignSpec` | Persist **DesignIntent + archetype version + ResolvedDesignSpec** for every concept. Render concept base only from the resolved spec. |
 | Immutability | Generated concepts immutable | **Generated design data is immutable; renderer code is not.** Bug/accessibility/responsive fixes may improve all events without recompiling historical concepts. |
-| Motifs | Model chooses motif IDs; placement implicit | Motifs declare supported roles (`field`, `frame`, `band`, `divider`, `accent`), semantic color channels, opacity bounds, and max placements. Archetypes expose matching slots. Dropped motifs are logged. |
+| Motifs | Model chooses motif IDs; placement implicit | Motifs declare a kind (pattern or arrangement), supported roles (`field`, `frame`, `band`, `divider`, `accent`), and bounded opacity and scale steps. The tree places them in one of five structural slots; the ornament direction caps how many render. Suppressed motifs are logged, never silently omitted. |
 | Palette | Palette roles could be consumed directly by archetypes | Raw creative palette + tonal direction go through a **semantic palette compiler**. Archetypes never interpret raw palette roles. Required contrast is valid by construction. |
 | Diversity | Archetype/tone plus many treatment dimensions | Primary levers are **archetype/composition → tone when permitted → typography category → motifs → density → palette dominance**. |
 | Guest design | Themed components implied | Renderer explicitly owns themed guest components and archetype-specific guest composition. **Mobile information architecture may converge**; differentiation at phone width comes mainly from framing, typography, motif, density, and component skin. |
@@ -1042,7 +1042,7 @@ A spec is final only when it has been rendered at 390 and 1280 and every text no
 
 ### 11.7 Semantic palette compiler, typography, motifs, density
 
-Unchanged from Revision 5 §11.5–§11.7 in substance: raw palette never becomes text/background/button semantics; the OKLCH semantic compiler produces all required tokens with contrast by construction and the palette-control regression stays a unit test. Typography pairings are curated IDs with categories; compatibility is by family and hierarchy (a pairing must hold at monumental). Motifs declare roles, channels, opacity bounds and caps; the tree places them; a motif of the wrong kind for its slot is swapped and logged, never dropped silently. Density maps to gap, inset and section-spacing scales.
+Unchanged from Revision 5 §11.5–§11.7 in substance: raw palette never becomes text/background/button semantics; the OKLCH semantic compiler produces all required tokens with contrast by construction and the palette-control regression stays a unit test. Typography pairings are curated IDs with categories; compatibility is by family and hierarchy (a pairing must hold at monumental). Motifs declare a kind, the roles they support, and bounded opacity and scale steps; the tree places them in one of five structural slots; the ornament direction is a hard cap on how many render, with every suppression logged as a `motif.budget` deviation and kept in the resolved spec as evidence; a motif of the wrong kind for its slot is swapped and logged, never dropped silently. Density maps to gap, inset and section-spacing scales.
 
 ### 11.8 ResolvedDesignSpec — renderer base input (resolved_v2)
 
@@ -2357,7 +2357,7 @@ The host should feel:
 19. Render generated concept base from the resolved spec, one fixed component per primitive; derive no CSS text from model output.
 20. Generated design data is immutable; a content edit re-fits into a new revision of the same concept without a model call; renderer code bug/accessibility/responsive fixes are allowed.
 21. Repair structural, coverage, capability, responsive, box-depth, motif-kind and fit defects deterministically and log them by kind; re-prompt the model only for schema-invalid output, a token-cap violation or a selector collision, once each.
-22. Motifs must declare roles/channels/opacity bounds/max placements; the tree places them within the ornament budget.
+22. Motifs must declare kind, roles and bounded opacity/scale steps; the tree places them in one of five structural slots, and the ornament direction is a hard cap on how many render. Suppression is explicit, logged and kept in the resolved spec.
 23. A motif of the wrong kind for its slot is swapped and logged; never dropped silently.
 24. Rendered-geometry verification at 390 and 1280 is authoritative; the static fit estimate never finalizes a spec; residual overflow must be zero.
 25. Raw palette roles are never consumed as backgrounds/text/buttons.

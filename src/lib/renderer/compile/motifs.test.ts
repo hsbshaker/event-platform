@@ -162,7 +162,29 @@ describe("motif resolution", () => {
     }
   });
 
-  it("holds motifs past the budget at the lowest step and logs each one", () => {
+  it("renders no more motifs than the ornament budget allows, at any budget", () => {
+    const many = treeWith(
+      [
+        { id: "plaid", role: "field" },
+        { id: "linen", role: "field" },
+        { id: "gingham", role: "field" },
+        { id: "stripe", role: "field" },
+        { id: "plaid", role: "band" },
+      ],
+      ["equestrian", "botanical", "celestial"],
+    );
+    for (const ornament of ["none", "restrained", "decorative"] as const) {
+      for (const seed of [0, 1, 5, 13]) {
+        const { motifs } = resolveMotifs(many, intent(ornament), seed);
+        const rendered = Object.values(motifs).filter((m) => m.render);
+        expect(rendered.length, `${ornament} seed ${seed}`).toBeLessThanOrEqual(
+          ORNAMENT_BUDGET[ornament].max,
+        );
+      }
+    }
+  });
+
+  it("suppresses motifs past the budget and logs every one", () => {
     const tree = treeWith([
       { id: "plaid", role: "field" },
       { id: "linen", role: "field" },
@@ -170,26 +192,90 @@ describe("motif resolution", () => {
       { id: "stripe", role: "field" },
     ]);
     const { motifs, deviations } = resolveMotifs(tree, intent("restrained"), 1);
-    const within = Object.values(motifs).filter((m) => m.withinBudget);
-    const held = Object.values(motifs).filter((m) => !m.withinBudget);
+    const rendered = Object.values(motifs).filter((m) => m.render);
+    const suppressed = Object.values(motifs).filter((m) => !m.render);
 
-    expect(within).toHaveLength(ORNAMENT_BUDGET.restrained.max);
-    expect(held).toHaveLength(4 - ORNAMENT_BUDGET.restrained.max);
-    for (const m of held) expect(m.opacity).toBe(MOTIF_OPACITY_STEPS[0]);
-    // Every held-back motif is recorded. Nothing is silent.
-    expect(deviations.filter((d) => d.rule === "motif.budget")).toHaveLength(held.length);
+    expect(rendered).toHaveLength(ORNAMENT_BUDGET.restrained.max);
+    expect(suppressed).toHaveLength(4 - ORNAMENT_BUDGET.restrained.max);
+    for (const m of suppressed) expect(m.suppressedBy).toBe("ornament-budget");
+    // The evidence stays in the spec; only the pixels go.
+    expect(Object.keys(motifs)).toHaveLength(4);
+    expect(deviations.filter((d) => d.rule === "motif.budget")).toHaveLength(suppressed.length);
   });
 
-  it("holds arrangement motifs back entirely when ornament is none, without dropping them", () => {
+  it("renders no arrangement motif when the ornament direction disables arrangements", () => {
     const tree = treeWith([], ["equestrian", "botanical"]);
     const { motifs, deviations } = resolveMotifs(tree, intent("none"), 1);
     expect(Object.keys(motifs)).toHaveLength(2);
     for (const m of Object.values(motifs)) {
-      expect(m.withinBudget).toBe(false);
-      expect(m.opacity).toBe(MOTIF_OPACITY_STEPS[0]);
+      expect(m.render).toBe(false);
+      expect(m.suppressedBy).toBe("arrangement-disabled");
     }
     expect(deviations.every((d) => d.rule === "motif.budget")).toBe(true);
     expect(deviations).toHaveLength(2);
+  });
+
+  it("lets the permitted pattern still spend the max-1 budget when ornament is none", () => {
+    const tree = treeWith([{ id: "linen", role: "field" }], ["equestrian"]);
+    const { motifs } = resolveMotifs(tree, intent("none"), 1);
+    const rendered = Object.values(motifs).filter((m) => m.render);
+    expect(rendered).toHaveLength(1);
+    expect(rendered[0].kind).toBe("pattern");
+  });
+
+  it("suppresses in deterministic document order — the first motifs the tree placed win", () => {
+    const tree = treeWith([
+      { id: "plaid", role: "field" },
+      { id: "linen", role: "field" },
+      { id: "gingham", role: "field" },
+    ]);
+    const { motifs } = resolveMotifs(tree, intent("none"), 1);
+    const order = Object.entries(motifs);
+    expect(order[0][1].render).toBe(true);
+    for (const [, m] of order.slice(1)) expect(m.render).toBe(false);
+  });
+
+  it("never loses a motif from the evidence without a deviation to explain it", () => {
+    const tree = treeWith(
+      [
+        { id: "plaid", role: "field" },
+        { id: "linen", role: "field" },
+        { id: "gingham", role: "frame" },
+        { id: "stripe", role: "band" },
+      ],
+      ["equestrian", "celestial"],
+    );
+    let placed = 0;
+    walk(tree, ({ node }) => {
+      if (["MotifField", "MotifBand", "Glyph"].includes(node.t)) placed++;
+    });
+    for (const ornament of ["none", "restrained", "decorative"] as const) {
+      const { motifs, deviations } = resolveMotifs(tree, intent(ornament), 2);
+      expect(Object.keys(motifs), ornament).toHaveLength(placed);
+      const suppressed = Object.values(motifs).filter((m) => !m.render);
+      expect(
+        deviations.filter((d) => d.rule === "motif.budget"),
+        ornament,
+      ).toHaveLength(suppressed.length);
+    }
+  });
+
+  it("gives the same rendered and suppressed sets for the same tree, intent and seed", () => {
+    const tree = treeWith(
+      [
+        { id: "plaid", role: "field" },
+        { id: "linen", role: "field" },
+        { id: "gingham", role: "field" },
+      ],
+      ["botanical"],
+    );
+    for (const ornament of ["none", "restrained", "decorative"] as const) {
+      for (const seed of [0, 3, 9]) {
+        const a = resolveMotifs(tree, intent(ornament), seed);
+        const b = resolveMotifs(tree, intent(ornament), seed);
+        expect(a).toEqual(b);
+      }
+    }
   });
 
   it("swaps a motif that cannot serve its slot's role, and logs the swap", () => {

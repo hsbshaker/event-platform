@@ -57,8 +57,8 @@ export const VERSIONS: SpecVersions = {
   compiler: "phase3-0.1",
   compositionPrompt: "composition_v1_p2",
   compositionSchema: "composition_schema_v1",
-  designIntentPrompt: "design_intent_v3",
-  designIntentSchema: "design_intent_schema_v3",
+  designIntentPrompt: "design_intent_v4",
+  designIntentSchema: "design_intent_schema_v4",
 };
 
 /** The renderer's token set: semantic palette plus the resolved type and spacing scales. */

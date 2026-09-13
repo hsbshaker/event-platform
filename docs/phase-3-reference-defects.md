@@ -185,17 +185,20 @@ harness, not resolved from a DesignIntent, so **do not treat the frozen values a
 for `resolvePageSystem`**. Reproducing them would mean replaying `intentFor()`'s random draws,
 which is precisely the harness/compiler entanglement the production split exists to undo.
 
-## C. Two canonical gaps found while building the resolvers, recorded rather than filled
+## C. Two canonical gaps found while building the resolvers — both now closed
 
-1. **Motif "channels" have no surviving definition.** `docs/event-renderer-system.md §8` and the
-   Revision 6 changelog both say "roles, channels, opacity bounds and caps are unchanged", and no
-   current document says what a channel is. `compile/motifs.ts` resolves everything that *is*
-   specified — kind, role, opacity bounds, ornament budget, scale — and invents no channel system.
-2. **The disposition of a motif beyond the ornament budget is unwritten.** `spec.md §32` #25
-   forbids dropping motifs silently, and §8 gives a wrong *kind* a swap rather than a drop. The
-   resolver therefore bounds treatment rather than count: every placed motif resolves, the ones
-   past the budget are held to the lowest approved opacity step, each logged as a `motif.budget`
-   deviation. Changing that to a drop is a product decision.
+1. **Motif "channels" had no surviving definition.** `docs/event-renderer-system.md §8` and the
+   Revision 6 changelog both said "roles, channels, opacity bounds and caps are unchanged", and no
+   current document said what a channel was. **Resolved by documentation reconciliation:** the
+   phrase is retired across `spec.md`, `event-renderer-system.md` and `design-system.md` in favour
+   of the vocabulary that actually exists — kind, role, structural slot, bounded opacity and scale,
+   ornament caps. No primitive, schema or language change; no channel system was invented.
+2. **The disposition of a motif beyond the ornament budget was unwritten.** **Resolved: the budget
+   is a hard rendering cap.** Motifs resolve in document order and consume the budget until `max`;
+   everything past it resolves with `render: false` and a `motif.budget` deviation. The tree is
+   never mutated, the evidence never leaves the spec, and the renderer must not draw a suppressed
+   motif. `spec.md §32` #25 requires the suppression to be explicit and logged, not that every
+   placed motif be visible.
 
 ## D. A `typographyPairing` enum that predates Revision 6
 
@@ -207,19 +210,22 @@ values are the six typography *categories*, and whose description says "the assi
 expressible with six values that *are* the categories. Production uses the twelve concrete
 pairings.
 
-The schema file is **not** edited. It is a versioned model-facing asset
-(`docs/model-contracts.md §2`), so reconciling it carries a schema-version bump and belongs to a
-deliberate decision, not to this port. Nothing in the compiler depends on the outcome: the
-renderer needs concrete fonts either way, and only the twelve carry them.
+**Resolved as `design_intent_v4`.** The drift was wider than typography: the motif enum was a
+retired ten-item catalog (`plaid_restrained`, `botanical_line`, `deco_border`, …) and both schema
+and prompt still said `archetype`. All three were corrected together under a new prompt and schema
+version rather than edited under v3, and v3 is preserved verbatim under
+`docs/model-schemas/history/` and `docs/model-prompts/history/`. `tests/unit/model-contract.test.ts`
+now fails if the schema and the production vocabulary ever drift again.
 
-## E. A focus-ring constraint that follows from the contrast rules
+## E. A focus-ring constraint that follows from the contrast rules — now canonical
 
 Requiring `focus` to clear 3:1 against **both** the page surface and the button fill is
 algebraically unsatisfiable in the dark tonal direction: against the base it needs relative
 luminance ≥ 0.178, against a mid-lightness button ≤ 0.077. The semantic palette therefore scopes
 `focus` and `border` to the surfaces they sit on, which means **the renderer must draw the focus
-ring outset on the page surface, not inside the button fill**. That is a real constraint on the
-renderer slice and is written down nowhere else.
+ring outset on the page surface, not inside the button fill**. Written down as
+`docs/design-system.md §15.6a`, binding on the renderer stylesheet and every themed guest
+component.
 
 ---
 

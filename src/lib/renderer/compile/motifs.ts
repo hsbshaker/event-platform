@@ -23,12 +23,15 @@
  *    changelog, both as carry-forward from Revision 1, and no current document says what a motif
  *    channel is. Nothing here invents one. When the renderer slice needs it, it needs a spec
  *    first.
- * 2. **The disposition of a motif beyond the ornament budget is not written down.** `max` bounds
- *    the budget and `spec.md §32` #25 forbids silently dropping motifs, so this module bounds the
- *    *treatment* rather than the count: every motif the tree placed is resolved, the ones beyond
- *    the budget are attenuated to the lowest approved opacity step, and each is recorded as a
- *    `motif.budget` deviation. Nothing is dropped and nothing is silent. Changing this to a drop
- *    is a product decision, not a refactor.
+ * 2. **The ornament budget is a hard rendering cap.** `composition.ornament` limits how many
+ *    motifs actually render. `spec.md §32` #25 — "do not silently drop motifs" — requires the
+ *    suppression to be explicit and logged; it does not require every motif the tree placed to be
+ *    visible.
+ *
+ *    So: the composition tree is never mutated, motifs are resolved in document order, eligible
+ *    ones consume the budget until `max`, and everything past it resolves with `render: false`
+ *    and a `motif.budget` deviation. The evidence stays in the spec; the pixels do not. The
+ *    renderer reads `render` and must not draw a suppressed motif.
  */
 
 import type {
@@ -82,8 +85,14 @@ export interface ResolvedMotif {
   readonly opacity: number;
   /** A member of `MOTIF_SCALE_STEPS`. */
   readonly scale: number;
-  /** False when the ornament budget was already spent: resolved, but held back. */
-  readonly withinBudget: boolean;
+  /**
+   * Whether this motif is drawn. `false` means the ornament budget was already spent, or the
+   * ornament direction admits no arrangement motifs. The entry stays in the spec as evidence and
+   * carries a matching `motif.budget` deviation; the renderer must not draw it.
+   */
+  readonly render: boolean;
+  /** Why it is not drawn. Absent when `render` is true. */
+  readonly suppressedBy?: "ornament-budget" | "arrangement-disabled";
 }
 
 /** The largest approved opacity step at or below `ceiling`. */
@@ -175,19 +184,26 @@ export function resolveMotifs(
       }
     }
 
-    // Ornament "none" admits no arrangement motifs. The core has already guaranteed the kind
-    // matches the slot, so this is a budget question, not a kind question: hold it back rather
-    // than remove a mark the composition is built around.
+    // Ornament "none" admits no arrangement motifs at all. Everything else competes for `max`,
+    // in document order, which is why the tree's own ordering is the tiebreak: it is the only
+    // ordering the model authored.
     const arrangementBlocked = entry.kind === "arrangement" && !budget.arrangement;
-    const withinBudget = spent < budget.max && !arrangementBlocked;
+    const render = !arrangementBlocked && spent < budget.max;
+    const suppressedBy = arrangementBlocked
+      ? ("arrangement-disabled" as const)
+      : render
+        ? undefined
+        : ("ornament-budget" as const);
 
-    if (withinBudget) spent++;
+    if (render) spent++;
     else
       deviations.push({
         rule: "motif.budget",
+        kind: "budget",
+        path,
         detail: arrangementBlocked
-          ? `ornament none admits no arrangement motifs; ${motifId} at ${path} is held to the lowest step`
-          : `ornament ${intent.composition.ornament} allows ${budget.max} motifs; ${motifId} at ${path} is held to the lowest step`,
+          ? `ornament none admits no arrangement motifs; ${motifId} at ${path} does not render`
+          : `ornament ${intent.composition.ornament} renders ${budget.max} motifs; ${motifId} at ${path} does not render`,
         before: motifId,
       });
 
@@ -195,9 +211,10 @@ export function resolveMotifs(
       id: motifId,
       kind: entry.kind,
       role: slot.role,
-      opacity: withinBudget ? opacityAtOrBelow(budget.opacity) : MOTIF_OPACITY_STEPS[0],
+      opacity: opacityAtOrBelow(budget.opacity),
       scale: MOTIF_SCALE_STEPS[(seed + index) % MOTIF_SCALE_STEPS.length],
-      withinBudget,
+      render,
+      ...(suppressedBy ? { suppressedBy } : {}),
     };
     index++;
   });
