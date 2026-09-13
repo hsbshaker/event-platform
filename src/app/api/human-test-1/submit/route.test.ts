@@ -387,6 +387,17 @@ describe("synthetic submissions are isolated from the five real reviewers", () =
     }
   });
 
+  it("is throttled before the secret is checked, so it is not a free guessing oracle", async () => {
+    // A wrong value is a 403 and a right one a 200. If the limiter ran after the check, an
+    // attacker would have an unbounded, uncounted yes/no oracle on the secret — and a free
+    // log-amplification path, since every attempt writes a warning.
+    process.env.HUMAN_TEST_1_TEST_SECRET = TEST_SECRET;
+    enforceRateLimit.mockRejectedValueOnce(new RateLimitedError("human_test_1:ip"));
+    const res = await POST(submission(wellFormed(), { "x-human-test-mode": "guess" }));
+    expect(res.status).toBe(429);
+    expect(recordSubmission).not.toHaveBeenCalled();
+  });
+
   it("cannot be selected from the request body, whatever it says", async () => {
     process.env.HUMAN_TEST_1_TEST_SECRET = TEST_SECRET;
     for (const body of [

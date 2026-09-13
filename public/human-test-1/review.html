@@ -113,24 +113,57 @@
    * reviewer's fresh tab does not — so a double tap, a retry or a reload all land on one row,
    * and two reviewers never share one.
    *
+   * The expiry is stored with it and checked here, which matters more than it looks. A reviewer
+   * who opens the link, studies two sheets, is interrupted, and comes back the next day in the
+   * same tab — routine on a phone, where tabs are never closed — would otherwise present a stale
+   * capability, be refused, and get the same refusal on every reload, because the stale value
+   * would still be sitting in sessionStorage. That is one of five responses lost to a dead end
+   * the reviewer cannot see or escape. A capability near its expiry is treated as absent and a
+   * fresh one is minted; nothing was ever written under the stale one, so re-minting cannot
+   * duplicate a row.
+   *
    * Nothing about this is visible to a reviewer: no account, no sign-in, no extra step.
    */
-  async function capability() {
-    const NAME = "human-test-1-capability";
+  const CAPABILITY_NAME = "human-test-1-capability";
+  /** Comfortably more than a submission takes, so one cannot expire mid-request. */
+  const EXPIRY_MARGIN_MS = 60000;
+  let pending = null;
+
+  function heldCapability() {
     try {
-      const held = sessionStorage.getItem(NAME);
-      if (held) return held;
-    } catch (e) {}
-    const res = await fetch(SESSION_ENDPOINT, { method: "POST" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body.ok || !body.capability) {
-      throw new Error(body.error || "Could not start this survey session. Reload the page and try again.");
+      const raw = sessionStorage.getItem(CAPABILITY_NAME);
+      if (!raw) return null;
+      const held = JSON.parse(raw);
+      if (!held || typeof held.capability !== "string") return null;
+      if (!(held.expiresAt > Date.now() + EXPIRY_MARGIN_MS)) return null;
+      return held.capability;
+    } catch (e) {
+      return null;
     }
-    try { sessionStorage.setItem(NAME, body.capability); } catch (e) {}
-    return body.capability;
   }
-  // Fetched up front so it is ready when the reviewer finishes, and so a problem surfaces before
-  // they have spent time on forty ratings. Failure here is not fatal: submit asks again.
+
+  function capability() {
+    const held = heldCapability();
+    if (held) return Promise.resolve(held);
+    // Memoised, so a submit that races the load-time fetch spends one capability rather than
+    // minting a second and writing to a row the first one did not create.
+    if (pending) return pending;
+    pending = (async () => {
+      const res = await fetch(SESSION_ENDPOINT, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok || !body.capability) {
+        throw new Error(body.error || "Could not start this survey session. Reload the page and try again.");
+      }
+      try {
+        sessionStorage.setItem(CAPABILITY_NAME, JSON.stringify({ capability: body.capability, expiresAt: body.expiresAt }));
+      } catch (e) {}
+      return body.capability;
+    })().finally(() => { pending = null; });
+    return pending;
+  }
+  // Fetched up front so it is ready when the reviewer finishes. A failure here is not fatal and
+  // is deliberately not shown: submit asks again, and a message about a session they never asked
+  // for would only worry someone doing us a favour.
   capability().catch(() => {});
 
   const status = document.getElementById("status");
@@ -152,17 +185,28 @@
     document.getElementById("preview").textContent = json;
     fn(r, json);
   }
+  async function send(r) {
+    return fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ capability: await capability(), response: r }),
+    });
+  }
   submit.onclick = async () => {
     const r = validated();
     if (!r) return;
     submit.disabled = true;
     status.textContent = "Sending…";
     try {
-      const res = await fetch(ENDPOINT, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ capability: await capability(), response: r }),
-      });
+      let res = await send(r);
+      if (res.status === 403) {
+        // The only 403 this page can provoke is a capability the server will not accept — stale,
+        // or minted against a key this deployment no longer has. Nothing was written under it, so
+        // discard it and mint a fresh one, once. Without this a reviewer could be stuck behind a
+        // refusal that survives every reload.
+        try { sessionStorage.removeItem(CAPABILITY_NAME); } catch (e) {}
+        res = await send(r);
+      }
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) throw new Error(body.error || "Something went wrong. Please try again.");
       submit.textContent = "Submitted";

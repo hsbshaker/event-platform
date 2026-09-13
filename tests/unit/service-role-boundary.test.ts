@@ -21,17 +21,23 @@ import { SERVICE_ROLE_CALLERS } from "../../eslint.config.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 
-/** Every non-test module under `src/` that imports the service-role client. */
+/**
+ * Every non-test module under `src/` that imports the service-role client.
+ *
+ * Matched on `supabase/admin` rather than `lib/supabase/admin`, so the relative spellings the
+ * lint rule lists (`./admin`, `../supabase/admin`, …) are caught here too — otherwise this test
+ * would measure something narrower than the invariant its docstring claims.
+ */
 function actualCallers(): string[] {
   const out = execFileSync(
     "grep",
-    ["-rl", "--include=*.ts", "--include=*.tsx", "lib/supabase/admin", "src"],
+    ["-rl", "--include=*.ts", "--include=*.tsx", "supabase/admin", "src"],
     { cwd: ROOT, encoding: "utf8" },
   );
   return out
     .split("\n")
     .filter(Boolean)
-    .filter((file) => !file.endsWith(".test.ts") && file !== "src/lib/supabase/admin.ts")
+    .filter((file) => !/\.test\.tsx?$/.test(file) && file !== "src/lib/supabase/admin.ts")
     .sort();
 }
 

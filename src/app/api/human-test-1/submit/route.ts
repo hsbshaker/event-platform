@@ -170,18 +170,23 @@ export async function POST(request: NextRequest) {
   const parsed = parseSubmission(body);
   if (!parsed.ok) return rejected(400, parsed.detail);
 
-  // A claimed-but-unauthorized synthetic request stops here, before anything is written. It is
-  // never downgraded to a real review: see `syntheticClaim`.
-  const claim = syntheticClaim(request);
-  if (claim === "refused") {
-    return rejected(403, "synthetic-test authorization could not be established");
-  }
-
   try {
     // Throttled after validation so a malformed flood is refused without burning a reviewer's
-    // budget, and before the write so the budget still bounds what reaches the table.
+    // budget, and before *every* remaining decision — including the synthetic-secret check
+    // below. Checking that first would have made this endpoint an unbounded, uncounted oracle
+    // for guessing `HUMAN_TEST_1_TEST_SECRET`: a wrong value is a 403 and a right one a 200, and
+    // neither would have touched the limiter. The secret is far too long to guess, but "too long
+    // to guess" is not a reason to leave the attempt rate unbounded, and each try also writes a
+    // log line.
     await enforceRateLimit(SUBMIT_PER_IP, requesterIp(request));
     await enforceRateLimit(SUBMIT_PER_IP_DAILY, requesterIp(request));
+
+    // A claimed-but-unauthorized synthetic request stops here, before anything is written. It is
+    // never downgraded to a real review: see `syntheticClaim`.
+    const claim = syntheticClaim(request);
+    if (claim === "refused") {
+      return rejected(403, "synthetic-test authorization could not be established");
+    }
 
     // The authorization boundary in front of the service role (AGENTS.md, "Supabase clients").
     // Resolved here, after the rate limit and before `recordSubmission`, so an unforgeable

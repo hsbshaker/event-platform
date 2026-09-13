@@ -105,7 +105,15 @@ export function cronSecret(): string | undefined {
  * checked here like every other secret so a one-character value can never become the thing
  * standing between synthetic and real data.
  */
-const humanTestSecretSchema = z.string().min(32).optional();
+const humanTestSecretSchema = z
+  .string()
+  .min(32)
+  // Printable ASCII only. A non-ASCII value would pass a length check and then never match:
+  // header values arrive latin1-decoded while the environment value is UTF-8, so the two produce
+  // different bytes. Fail-closed either way, but an operator would see an unexplained refusal
+  // rather than a configuration error, so make it unconfigurable instead.
+  .regex(/^[\x21-\x7e]+$/, "must be printable ASCII with no spaces")
+  .optional();
 
 export function humanTest1TestSecret(): string | undefined {
   if (typeof window !== "undefined") {

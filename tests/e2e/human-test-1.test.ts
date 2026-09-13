@@ -291,9 +291,36 @@ describe.each([
       expect(posted.length).toBeGreaterThanOrEqual(2);
       const keys = new Set((posted as { capability: string }[]).map((p) => p.capability));
       expect(keys.size).toBe(1);
-      expect(await page.evaluate(() => sessionStorage.getItem("human-test-1-capability"))).toBe(
-        [...keys][0],
+      expect(
+        await page.evaluate(
+          () => JSON.parse(sessionStorage.getItem("human-test-1-capability")!).capability,
+        ),
+      ).toBe([...keys][0]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("mints a fresh capability rather than dead-ending on a stale one", async () => {
+    const { page, close } = await newPage(browser, viewport);
+    try {
+      const posted = await interceptSubmit(page);
+      await page.goto(`${requireApp().baseUrl}/human-test-1`, { waitUntil: "load" });
+      // A reviewer who opened the link, was interrupted, and came back the next day in the same
+      // tab. The stale capability must not be presented, and must not survive as a refusal the
+      // reviewer cannot escape by reloading.
+      await page.evaluate(() =>
+        sessionStorage.setItem(
+          "human-test-1-capability",
+          JSON.stringify({ capability: "v1.stale.1.stale", expiresAt: Date.now() - 1000 }),
+        ),
       );
+      await completeSurvey(page);
+      await page.click("#submit");
+      await page.locator("#done").waitFor({ state: "visible" });
+
+      expect(posted).toHaveLength(1);
+      expect((posted[0] as { capability: string }).capability).toBe(STUB_CAPABILITY);
     } finally {
       await close();
     }

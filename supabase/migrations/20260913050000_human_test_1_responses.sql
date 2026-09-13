@@ -27,10 +27,12 @@ create table public.human_test_1_responses (
   id uuid primary key default gen_random_uuid(),
   reviewer text not null check (length(btrim(reviewer)) between 1 and 120),
   response_payload jsonb not null,
-  -- Opaque, browser-generated, one per survey session. Unique, so a double tap, a mobile
-  -- retry, a network retry and a resubmitted form all collapse onto the row the first request
-  -- created instead of adding a sixth reviewer. It identifies a submission attempt, not a
-  -- person: a genuinely new reviewer carries a new key and gets their own row.
+  -- Opaque, one per survey session, and issued by the server rather than chosen by the browser
+  -- (`src/lib/human-test/capability.ts`): it names the row an upsert replaces, so a caller who
+  -- could choose it could overwrite another reviewer's answers. Unique, so a double tap, a
+  -- mobile retry, a network retry and a resubmitted form all collapse onto the row the first
+  -- request created instead of adding a sixth reviewer. It identifies a submission attempt, not
+  -- a person: a genuinely new reviewer carries a new capability and gets their own row.
   submission_key text not null check (length(submission_key) between 16 and 200),
   created_at timestamptz not null default now(),
   constraint human_test_1_responses_submission_key_key unique (submission_key)
@@ -41,7 +43,7 @@ comment on table public.human_test_1_responses is
 comment on column public.human_test_1_responses.response_payload is
   'The normalized reviewer response, byte-for-byte the contract scripts/human-test/score.mjs already reads: { reviewer, ok, protocol, result: { groups, ratings } }.';
 comment on column public.human_test_1_responses.submission_key is
-  'Opaque per-session key from the browser. Unique: makes submission idempotent under double taps and retries.';
+  'Opaque per-session key issued by the server (the nonce inside a reviewer capability), never chosen by the browser. Unique: makes submission idempotent under double taps and retries.';
 
 -- The synthetic table. Same shape, so the submit path is one code path, and deliberately not
 -- a partition or a view of the one above: nothing that joins them back together exists.
