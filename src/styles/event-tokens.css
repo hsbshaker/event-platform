@@ -431,6 +431,17 @@
   min-width: 0;
 }
 
+/*
+ * The last line of the zero-overflow floor (`event-renderer-system.md §3.1`): whatever escapes
+ * every other guard is clipped rather than shown as a horizontal scrollbar on a guest's phone.
+ *
+ * Note for anyone reading a verification summary: this is why `pageOverflow` is a belt-and-braces
+ * signal rather than the load-bearing one. Clipped content does not contribute to
+ * `documentElement.scrollWidth`, so the page-level check cannot fail while this rule stands. The
+ * guarantee is carried by the element- and text-level checks, which compare each element against
+ * its own container and are unaffected by clipping here. Do not remove this rule to "make the
+ * page check meaningful" — that trades a real guard for a reported number.
+ */
 .ev-site {
   overflow-x: clip;
 }
@@ -459,17 +470,23 @@
  * `focus` is derived against `surfaceBase`/`surfaceAlt` and guaranteed 3:1 only there
  * (design-system.md §15.6a). On the two inverted surfaces the ring is the surface's own ink,
  * which clears 4.5:1 against it by construction — comfortably past the 3:1 a ring needs.
+ *
+ * Named explicitly rather than written `currentColor`. `outline` is applied to the *focused
+ * element*, so `currentColor` resolves to that element's own `color` — and a filled control sets
+ * one (`.ev-button { color: var(--ev-btn-fg) }`). `buttonText` is derived against `button`, never
+ * against a surface, and on an accent ground it lands at 1.2:1 to 1.9:1 depending on tone. The
+ * ring would have been all but invisible on exactly the control most likely to receive focus.
  */
 .ev-surf-contrast {
   --ev-bg: var(--ev-surface-contrast);
   --ev-fg: var(--ev-text-on-contrast);
-  --ev-focus-ring: currentColor;
+  --ev-focus-ring: var(--ev-text-on-contrast);
 }
 
 .ev-surf-accent {
   --ev-bg: var(--ev-surface-accent);
   --ev-fg: var(--ev-text-on-accent);
-  --ev-focus-ring: currentColor;
+  --ev-focus-ring: var(--ev-text-on-accent);
 }
 
 /* ============================================================================================

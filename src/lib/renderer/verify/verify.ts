@@ -207,11 +207,30 @@ export function summarise(m: PageMeasurement): BreakpointSummary {
  * a rendering defect, and once a node has been demoted to `secondary` it has no limit to exceed.
  * Overflow is the defect, and it is the one the zero threshold applies to.
  */
+/**
+ * Clean means *measured and fitting*, not merely "no violations reported".
+ *
+ * Three absence checks alone would stamp `clean: true` on a page that rendered nothing — an empty
+ * `sections` array, or a render that produced no text nodes — because zero elements trivially
+ * satisfies "zero overflowing elements". That is a false positive of the worst kind: it claims
+ * rendered-geometry authority over a page nobody looked at. So a positive signal is required too:
+ * every breakpoint must have measured at least one text node.
+ *
+ * A page with no measurable text is an infrastructure problem, not a fit result; `verifyGeometry`
+ * reports it as one rather than as `unresolved`.
+ */
 export function isClean(summaries: BreakpointSummaries): boolean {
   return BREAKPOINTS.every((bp) => {
     const s = summaries[bp];
-    return !s.pageOverflow && s.overflowingElements === 0 && s.textOverflow === 0;
+    return (
+      s.measuredTexts > 0 && !s.pageOverflow && s.overflowingElements === 0 && s.textOverflow === 0
+    );
   });
+}
+
+/** Did the run measure anything at all? Distinguishes a fitting page from an empty one. */
+export function measuredAnything(summaries: BreakpointSummaries): boolean {
+  return BREAKPOINTS.every((bp) => summaries[bp].measuredTexts > 0);
 }
 
 /* --------------------------------------------------------------------------------- demotions */
@@ -505,7 +524,17 @@ export async function runFitLoop(
       });
     }
     assertFontsLoaded(measurements);
-    return { measurements, summaries: summariseAll(measurements) };
+    const summaries = summariseAll(measurements);
+    // A render that produced no measurable text is not a fitting page; it is a page that did not
+    // render. Fail as infrastructure before the fit loop can mistake the absence for a clean pass.
+    if (!measuredAnything(summaries)) {
+      const counts = BREAKPOINTS.map((bp) => `${bp}=${summaries[bp].measuredTexts}`).join(", ");
+      throw new GeometryInfrastructureError(
+        `the page rendered no measurable text (${counts}). Geometry cannot be verified against ` +
+          "an empty render, and an absence of violations is not a fit.",
+      );
+    }
+    return { measurements, summaries };
   };
 
   try {

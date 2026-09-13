@@ -88,6 +88,16 @@ function frozen(file: string): [string, FrozenRecord][] {
 }
 
 const chromium = await chromiumAvailability();
+/**
+ * `REQUIRE_GEOMETRY_BROWSER=1` turns an unavailable runtime into a failure rather than a skip. The
+ * 72-tree replay is the Phase 3 exit gate; a CI job that is supposed to have a browser must not be
+ * able to report it green having measured nothing.
+ */
+const requireBrowser = process.env.REQUIRE_GEOMETRY_BROWSER === "1";
+if (!chromium.available && requireBrowser)
+  throw new Error(
+    `[frozen replay] REQUIRE_GEOMETRY_BROWSER=1 but Chromium is unavailable: ${chromium.reason}`,
+  );
 const inBrowser = chromium.available ? it : it.skip;
 if (!chromium.available)
   console.warn(

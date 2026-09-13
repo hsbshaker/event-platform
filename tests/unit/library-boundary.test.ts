@@ -53,6 +53,13 @@ const IMPORTS = [
   'import { heroKeys } from "@/lib/renderer/library/heroes";',
   'import { HEROES } from "../../renderer/library";',
   'import { RSVPS } from "../renderer/library/sections";',
+  // The sibling-relative spellings. A module inside `src/lib/renderer/**` writes these, and for a
+  // while the rule did not restrict them — a real production module slipped through. The rule
+  // matches literal specifiers, so every spelling has to be named.
+  'import { HEROES } from "../library";',
+  'import { page } from "../library/pages";',
+  'import { HEROES } from "./library";',
+  'import { HEROES } from "../../library";',
   'export * from "@/lib/renderer/library";',
   'export { HEROES } from "@/lib/renderer/library";',
 ];

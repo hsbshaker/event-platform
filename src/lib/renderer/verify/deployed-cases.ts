@@ -4,7 +4,8 @@
  * Each exercises a different part of the contract at both breakpoints:
  *
  * 1. **novel** — a tree with no library counterpart, the normal creative path;
- * 2. **library** — an A.1 regression composition, the expressiveness floor;
+ * 2. **regression** — a second, structurally different composition, so the run is not one page
+ *    measured twice;
  * 3. **demotion** — a `monumental` hierarchy with long content, so the fit loop actually runs;
  * 4. **refit** — short content verified, then long content re-fitted on the same tree, proving the
  *    hash survives a content edit on the deployed runtime and not only locally;
@@ -15,7 +16,6 @@
 import { assemblePreVerificationSpec } from "../compile/spec";
 import type { Capabilities } from "../composition/nodes";
 import type { DesignIntent } from "../design-intent";
-import { HEROES, RSVPS, REGISTRIES, DETAILS, page } from "../library";
 import { canonicalize } from "../composition/canonicalize";
 import type { EventContent } from "@/components/event-renderer/contract";
 import { refitContent } from "./refit";
@@ -79,6 +79,15 @@ const intent = (
   motifs: ["plaid", "equestrian"],
 });
 
+/**
+ * The compositions below are built from primitives here rather than drawn from the legacy fixture
+ * library. That is deliberate: this module is production source under `src/**`, and
+ * `docs/event-renderer-system.md §7.1` lets only the two named adapters reach the library.
+ * Expressiveness against the real fixtures is a local gate (`tests/unit/phase3-exit.test.ts`
+ * renders all 26 silhouettes, all 13 recipes and all 16 A.1 pages); what this route proves is the
+ * *runtime*, which needs representative pages, not the fixtures themselves.
+ */
+
 /** A composition with no library counterpart: a Rail wrapping a Split of an Overlay and a Grid. */
 function novelComposition() {
   return canonicalize({
@@ -140,8 +149,41 @@ function novelComposition() {
           },
         },
       },
-      { kind: "rsvp", surface: "contrast", root: RSVPS.rsvp_contrast_split() },
-      { kind: "registry", surface: "alt", root: REGISTRIES.registry_tiles() },
+      {
+        kind: "rsvp",
+        surface: "contrast",
+        root: {
+          t: "Split",
+          ratio: "38",
+          mobile: "stack",
+          children: [
+            { t: "Stack", children: [{ t: "SectionHeading", for: "rsvp" }, { t: "Deadline" }] },
+            { t: "RSVP" },
+          ],
+        },
+      },
+      {
+        kind: "registry",
+        surface: "alt",
+        root: {
+          t: "Stack",
+          children: [
+            { t: "SectionHeading", for: "registry" },
+            {
+              t: "Registry",
+              layout: {
+                t: "Grid",
+                columns: 3,
+                mobile: 1,
+                children: (["gift", "external", "cashfund"] as const).map((kind) => ({
+                  t: "Cell",
+                  child: { t: "RegistryItem", kind },
+                })),
+              },
+            },
+          ],
+        },
+      },
     ],
   } as never).tree;
 }
@@ -193,30 +235,97 @@ export async function runDeployedCases({ repeats }: { repeats: number }): Promis
       : { kind: novel.kind, detail: novel.detail },
   });
 
-  // 2. library regression composition
-  const librarySpec = assemblePreVerificationSpec({
-    composition: canonicalize(
-      page(
-        "editorial_split:field_right",
-        "details_split_panel",
-        "rsvp_contrast_split",
-        "registry_featured",
-        "SP1_dark_opening",
-        "start",
-      ),
-    ).tree,
-    designIntent: intent(),
+  // 2. a structurally different regression composition: a centred framed hero on a contrast
+  // ground, sharing nothing with the novel case's Rail/Split/Overlay shape.
+  const regressionSpec = assemblePreVerificationSpec({
+    composition: canonicalize({
+      version: "composition_v1",
+      sections: [
+        {
+          kind: "hero",
+          surface: "contrast",
+          align: "center",
+          fill: "screen",
+          root: {
+            t: "Frame",
+            rule: "hairline",
+            inset: "deep",
+            motif: { id: "linen", role: "frame" },
+            child: {
+              t: "Stack",
+              align: "center",
+              children: [
+                { t: "Glyph", motif: "equestrian" },
+                { t: "Eyebrow" },
+                { t: "EventTitle", emphasis: "display" },
+                { t: "Hosts" },
+                {
+                  t: "Cluster",
+                  justify: "center",
+                  children: [{ t: "Date", form: "full" }, { t: "Time" }, { t: "Venue" }],
+                },
+                { t: "CTA", target: "rsvp" },
+              ],
+            },
+          },
+        },
+        {
+          kind: "details",
+          surface: "base",
+          root: {
+            t: "Stack",
+            children: [
+              { t: "SectionHeading", for: "details" },
+              { t: "Description" },
+              { t: "Rule", weight: "hairline", glyphs: "botanical" },
+              { t: "Location" },
+            ],
+          },
+        },
+        {
+          kind: "rsvp",
+          surface: "alt",
+          root: {
+            t: "Stack",
+            children: [{ t: "SectionHeading", for: "rsvp" }, { t: "Deadline" }, { t: "RSVP" }],
+          },
+        },
+        {
+          kind: "registry",
+          surface: "base",
+          root: {
+            t: "Stack",
+            children: [
+              { t: "SectionHeading", for: "registry" },
+              {
+                t: "Registry",
+                layout: {
+                  t: "Stack",
+                  children: (["gift", "external", "cashfund"] as const).map((kind) => ({
+                    t: "RegistryItem",
+                    kind,
+                  })),
+                },
+              },
+            ],
+          },
+        },
+      ],
+    } as never).tree,
+    designIntent: intent({ asymmetry: "symmetric" }),
     capabilities: CAPS,
     seed: 1,
   });
-  const [library, libraryMs] = await timed(() =>
-    verifyGeometry({ spec: librarySpec, content: BASE_CONTENT }),
+  const [regression, regressionMs] = await timed(() =>
+    verifyGeometry({ spec: regressionSpec, content: BASE_CONTENT }),
   );
   out.push({
-    name: "library",
-    ok: library.ok && library.spec.verified.clean === true,
-    ms: libraryMs,
-    detail: library.ok ? summarise(library.spec) : { kind: library.kind, detail: library.detail },
+    name: "regression",
+    ok: regression.ok && regression.spec.verified.clean === true,
+    ms: regressionMs,
+    detail: regression.ok
+      ? summarise(regression.spec)
+      : { kind: regression.kind, detail: regression.detail },
   });
 
   // 3. a page that needs a demotion
@@ -228,11 +337,76 @@ export async function runDeployedCases({ repeats }: { repeats: number }): Promis
           kind: "hero",
           surface: "base",
           fill: "screen",
-          root: HEROES["statement_numeral:numeral_left"](),
+          root: {
+            t: "Split",
+            ratio: "38",
+            mobile: "keep",
+            children: [
+              {
+                t: "Stack",
+                children: [
+                  { t: "Date", form: "month-year" },
+                  { t: "Date", form: "numeral", emphasis: "display" },
+                  { t: "MotifBand", motif: { id: "stripe", role: "band" }, height: "tall" },
+                ],
+              },
+              {
+                t: "Stack",
+                children: [
+                  { t: "Eyebrow" },
+                  { t: "EventTitle", emphasis: "display" },
+                  { t: "Hosts" },
+                  { t: "Cluster", children: [{ t: "Time" }, { t: "Venue" }, { t: "Location" }] },
+                  { t: "CTA", target: "rsvp" },
+                ],
+              },
+            ],
+          },
         },
-        { kind: "details", surface: "alt", root: DETAILS.details_stacked() },
-        { kind: "rsvp", surface: "base", root: RSVPS.rsvp_typographic_stack() },
-        { kind: "registry", surface: "alt", root: REGISTRIES.registry_tiles() },
+        {
+          kind: "details",
+          surface: "alt",
+          root: {
+            t: "Stack",
+            align: "center",
+            children: [
+              { t: "SectionHeading", for: "details" },
+              { t: "Description" },
+              { t: "Rule", weight: "hairline" },
+              { t: "Venue", emphasis: "primary" },
+            ],
+          },
+        },
+        {
+          kind: "rsvp",
+          surface: "base",
+          root: {
+            t: "Stack",
+            children: [{ t: "SectionHeading", for: "rsvp" }, { t: "Deadline" }, { t: "RSVP" }],
+          },
+        },
+        {
+          kind: "registry",
+          surface: "alt",
+          root: {
+            t: "Stack",
+            children: [
+              { t: "SectionHeading", for: "registry" },
+              {
+                t: "Registry",
+                layout: {
+                  t: "Grid",
+                  columns: 3,
+                  mobile: 1,
+                  children: (["gift", "external", "cashfund"] as const).map((kind) => ({
+                    t: "Cell",
+                    child: { t: "RegistryItem", kind },
+                  })),
+                },
+              },
+            ],
+          },
+        },
       ],
     } as never).tree,
     designIntent: intent({ hierarchy: "monumental" }, "grotesk_space_sourcesans"),

@@ -11,7 +11,7 @@ Delete this file when Phase 3 closes and every row reads "enforced".
 | --- | --- | --- | --- |
 | 1 | A valid novel `CompositionTree` with no corresponding fixture validates, canonicalizes and resolves layout, and collides with no library hero skeleton at either breakpoint | `composition.test.ts`, "novelty" | **enforced** |
 | 2 | The same novel tree compiles, renders and geometry-verifies clean, with no library selection invoked | `verify/novelty-end-to-end.test.ts`: the novel fixture validates, repairs, canonicalizes, compiles, renders and verifies clean at 390 and 1280, with **both library adapters mocked to throw** and repair macros that throw — entering one is a loud failure, not an omission. A second case proves the fixture is still genuinely novel against all 26 library hero skeletons at both breakpoints | **enforced** |
-| 3 | No production module can import the legacy library | `eslint.config.mjs`, forbidden across `src/**`; `tests/unit/library-boundary.test.ts` runs the real config over the real composition, compiler, planner, selector, directives and vocabulary modules plus representative *future* generation and orchestration paths | **enforced**, mutation-checked against both a narrowed rule and a widened exemption |
+| 3 | No production module can import the legacy library | `eslint.config.mjs`, forbidden across `src/**`; `tests/unit/library-boundary.test.ts` runs the real config over the real composition, compiler, planner, selector, directives, vocabulary and verify modules plus representative *future* generation and orchestration paths, across **ten import spellings** — absolute, `**/renderer/library`-shaped, sibling-relative (`../library`, `./library`, `../../library`) and re-exports | **enforced**, mutation-checked against a narrowed rule, a widened exemption, and the sibling-relative hole review found |
 | 4 | Exactly two adapters are exempt, one per role, and `recovery/**` cannot absorb few-shot retrieval | `tests/unit/library-boundary.test.ts` asserts the exemption list structurally: `src/lib/renderer/recovery/**`, `src/lib/renderer/few-shot/**`, and test files | **enforced** |
 | 5 | The few-shot adapter exposes no recipe, silhouette or template identifier that could become a candidate-choice variable | `src/lib/renderer/few-shot/few-shot.test.ts`: the module exports only `compositionExamples` and its count, the returned trees carry none of the 61 library fixture identifiers (hero, details, rsvp, registry, plan and A.1 site) anywhere in their serialized shape, and the only parameter is a seed | **enforced** |
 | 6 | Normal generation consumes example trees without learning where they came from | test that the composition-call input carries trees and no fixture identifier | open — needs the generation path (Phase 4) |
@@ -72,6 +72,18 @@ and assembles them into a `PreVerificationDesignSpec`. That type's `verified` is
 `state` is `"pre-verification"`: rendered geometry is authoritative (`§3.1`), it has not run, and
 the type makes claiming otherwise unrepresentable. Nothing here closes a row that depends on the
 renderer or the verifier.
+
+
+**A hole the first version of this rule had, and how it was found.** `no-restricted-imports`
+matches the literal specifier string, not a resolved path. The original globs named the absolute
+(`@/lib/renderer/library`) and `**/renderer/library`-shaped spellings but not the sibling-relative
+`../library` — which is precisely what a module inside `src/lib/renderer/**` writes, and precisely
+the tree a "just grab a hero" shortcut would live in. A real production module
+(`verify/deployed-cases.ts`) imported the library that way and lint was silent, while the boundary
+test's mutation check passed because it enumerated only the spellings it had thought to write.
+Independent review caught it. The module no longer touches the library, the rule now names every
+spelling, and the test exercises them. Recorded because the failure mode — a guard tested by a test
+that shares its blind spot — is the one this file exists to prevent.
 
 
 **The planner is on the right side of the boundary by construction.** `src/lib/renderer/planner`

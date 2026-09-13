@@ -181,5 +181,5 @@
       "description": "Composition intent. Directives to the composition call and measurements taken from the tree afterwards; selects nothing."
     }
   },
-  "$comment": "design_intent_schema_v4: the twelve concrete typography pairing IDs replace six category-shaped IDs, the seven curated motif IDs replace a retired ten-item catalog, and family wording replaces the last of Revision 1 bundle language from's. v3 is preserved under history/."
+  "$comment": "design_intent_schema_v4: the twelve concrete typography pairing IDs replace six category-shaped IDs, the seven curated motif IDs replace a retired ten-item catalog, and family wording replaces the last of Revision 1's bundle language. v3 is preserved under history/."
 }

@@ -80,7 +80,7 @@ export async function refitContent(input: RefitInput): Promise<VerificationResul
     );
   }
 
-  const result = await verifyGeometry({ spec: pre, content, ...input.options });
+  const result = await verifyGeometry({ spec: pre, content }, input.options);
   if (!result.ok) return result;
 
   return {

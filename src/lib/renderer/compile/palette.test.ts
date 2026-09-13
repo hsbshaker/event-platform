@@ -843,3 +843,68 @@ describe("corpus summary", () => {
     expect(CORPUS.length).toBeGreaterThanOrEqual(40);
   });
 });
+
+/**
+ * The focus indicator, on every surface it can be drawn on.
+ *
+ * `docs/design-system.md §15.6a` is binding on the stylesheet: "the indicator clears 3:1 against
+ * the adjacent surface it is drawn on", "verified at light, mid and dark event surfaces". The
+ * stylesheet picks the ring token per surface — `focus` on the two grounds, the surface's own ink
+ * on the two inverted ones — and this fixes those four pairings in the compiler, where the numbers
+ * actually come from.
+ *
+ * Added after review found the inverted surfaces drawing the ring in `currentColor`, which on a
+ * focused button resolves to `buttonText` — 1.2:1 against `surfaceAccent` in the light tone.
+ */
+describe("focus ring contrast, per surface (design-system.md §15.6a)", () => {
+  const RING_PAIRS: ReadonlyArray<{ surface: SemanticRole; ring: SemanticRole }> = [
+    { surface: "surfaceBase", ring: "focus" },
+    { surface: "surfaceAlt", ring: "focus" },
+    { surface: "surfaceContrast", ring: "textOnContrast" },
+    { surface: "surfaceAccent", ring: "textOnAccent" },
+  ];
+
+  it("clears 3:1 on every surface, at every tone, across the corpus", () => {
+    let checked = 0;
+    const worst: { pair: string; ratio: number } = { pair: "", ratio: Infinity };
+    for (const entry of CORPUS) {
+      for (const tone of TONES) {
+        const { palette } = compileSemanticPalette(intentFor(entry, tone));
+        for (const { surface, ring } of RING_PAIRS) {
+          const ratio = contrastRatio(palette[ring], palette[surface]);
+          expect(
+            ratio,
+            `${entry.name} @ ${tone}: ${ring} on ${surface} is ${ratio.toFixed(2)}:1`,
+          ).toBeGreaterThanOrEqual(CONTRAST_NON_TEXT);
+          if (ratio < worst.ratio) {
+            worst.ratio = ratio;
+            worst.pair = `${entry.name}/${tone} ${ring} on ${surface}`;
+          }
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBe(CORPUS.length * TONES.length * RING_PAIRS.length);
+  });
+
+  it("would fail if the ring fell back to a filled control's own ink", () => {
+    // The regression this test exists for: `currentColor` on a focused button is `buttonText`,
+    // which is derived against `button` and never against a surface.
+    const { palette } = compileSemanticPalette(
+      intentFor(
+        {
+          name: "navy/cream/forest",
+          colors: ["#22364F", "#F3ECDD", "#2E4638"],
+          dominant: "#22364F",
+        },
+        "light",
+      ),
+    );
+    expect(contrastRatio(palette.buttonText, palette.surfaceAccent)).toBeLessThan(
+      CONTRAST_NON_TEXT,
+    );
+    expect(contrastRatio(palette.textOnAccent, palette.surfaceAccent)).toBeGreaterThanOrEqual(
+      CONTRAST_NON_TEXT,
+    );
+  });
+});

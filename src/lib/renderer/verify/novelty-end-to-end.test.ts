@@ -101,9 +101,19 @@ const forbiddenMacros: Macros = {
 };
 
 const chromium = await chromiumAvailability();
+/**
+ * `REQUIRE_GEOMETRY_BROWSER=1` turns an unavailable runtime into a failure rather than a skip.
+ * Without it these cases skip loudly where Chromium cannot launch; with it, a CI job that is
+ * supposed to have a browser cannot report this file green having measured nothing.
+ */
+const requireBrowser = process.env.REQUIRE_GEOMETRY_BROWSER === "1";
+if (!chromium.available && requireBrowser)
+  throw new Error(
+    `[row 2] REQUIRE_GEOMETRY_BROWSER=1 but Chromium is unavailable: ${chromium.reason}`,
+  );
 const inBrowser = chromium.available ? it : it.skip;
 if (!chromium.available)
-  console.warn(`[row 2] Chromium unavailable — the geometry case is SKIPPED: ${chromium.reason}`);
+  console.warn(`[row 2] Chromium unavailable — browser cases SKIPPED: ${chromium.reason}`);
 
 describe("row 2: a novel tree is first-class, end to end", () => {
   inBrowser(

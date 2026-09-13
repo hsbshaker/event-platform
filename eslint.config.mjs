@@ -53,7 +53,19 @@ const LEGACY_LIBRARY = {
     "@/lib/renderer/library",
     "@/lib/renderer/library/*",
     "**/renderer/library",
-    "**/renderer/library/*",
+    "**/renderer/library/**",
+    // `no-restricted-imports` matches the literal specifier, not a resolved path, so the
+    // absolute and `**/renderer/library`-shaped spellings above miss the one a module *inside*
+    // `src/lib/renderer/**` would naturally write. That is exactly the tree a "just grab a hero"
+    // shortcut would live in, so the sibling-relative spellings are named explicitly.
+    "./library",
+    "./library/**",
+    "../library",
+    "../library/**",
+    "../../library",
+    "../../library/**",
+    "../../../library",
+    "../../../library/**",
     "**/proof-b/library*",
     "**/proof-a1/*",
   ],

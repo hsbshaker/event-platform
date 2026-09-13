@@ -75,9 +75,19 @@ const LONG = {
 };
 
 const chromium = await chromiumAvailability();
+/**
+ * `REQUIRE_GEOMETRY_BROWSER=1` turns an unavailable runtime into a failure rather than a skip.
+ * Without it these cases skip loudly where Chromium cannot launch; with it, a CI job that is
+ * supposed to have a browser cannot report this file green having measured nothing.
+ */
+const requireBrowser = process.env.REQUIRE_GEOMETRY_BROWSER === "1";
+if (!chromium.available && requireBrowser)
+  throw new Error(
+    `[refit] REQUIRE_GEOMETRY_BROWSER=1 but Chromium is unavailable: ${chromium.reason}`,
+  );
 const inBrowser = chromium.available ? it : it.skip;
 if (!chromium.available)
-  console.warn(`[refit] Chromium unavailable — CO-11 cases SKIPPED: ${chromium.reason}`);
+  console.warn(`[refit] Chromium unavailable — browser cases SKIPPED: ${chromium.reason}`);
 
 describe("CO-11: a content edit re-fits into a new revision of the same concept", () => {
   inBrowser(

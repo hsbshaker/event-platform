@@ -12,27 +12,17 @@
  * system (borders, cards, buttons, type scale, spacing) is compiler-owned". The model never
  * proposes a border language, and the planner never assigns one.
  *
- * # Which typography pairing set is canonical
+ * # Typography pairings
  *
- * `docs/model-schemas/design-intent.schema.json` carries a six-value `typographyPairing` enum
- * (`heritage_serif_clean_sans`, `high_contrast_editorial_sans`, …). `proof-a1/vocab.js`, ported to
- * `./vocabulary`, carries twelve concrete pairings across six categories. This type uses the
- * twelve, because the six cannot express the behaviour the current canonical documents require:
+ * `typographyPairing` is one of the twelve concrete curated pairings in `./vocabulary`, not one of
+ * the six typography *categories*. `docs/model-contracts.md §5.1` keeps them distinct — a pairing
+ * is "from the allowed list, in the assigned category" — and `docs/event-renderer-system.md §8`
+ * needs a per-pairing `holdsAtMonumental`, which only the twelve carry.
  *
- * - `docs/model-contracts.md §5.1` treats pairing and category as different things —
- *   "typographyPairing … from the allowed list, **in the assigned category**". The six values *are*
- *   the six categories, so there is nothing for them to be "in";
- * - `docs/event-renderer-system.md §8` requires a pairing to be known to hold at monumental scale.
- *   `holdsAtMonumental` is a per-pairing fact and only the twelve carry it;
- * - the schema file's own description says "the assigned **archetype**", which Revision 6 removed
- *   and replaced with `family`. It was not updated for this revision.
- *
- * The six map one-to-one onto the six categories, which is what you would expect if later work
- * split each category into two concrete pairings. The schema file is **not** edited here: it is a
- * versioned model-facing asset (`docs/model-contracts.md §2`), so reconciling it is a decision
- * with a schema-version bump attached, and it is recorded for that decision rather than made
- * quietly. Nothing in the compiler depends on the outcome — the renderer needs concrete fonts
- * either way, and only the twelve have them.
+ * `docs/model-schemas/design-intent.schema.json` was reconciled to the twelve as
+ * `design_intent_schema_v4`; v3's six category-shaped ids are preserved under
+ * `docs/model-schemas/history/`. `tests/unit/model-contract.test.ts` now fails if the schema and
+ * this vocabulary drift again.
  *
  * `proof-b/planner.js`'s `intentFor()` returned a `pageSystem` inside a fake DesignIntent, and
  * `proof-b/compile.js` passed it straight through to the spec. That is a harness stand-in: the

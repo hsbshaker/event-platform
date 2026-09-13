@@ -10,5 +10,10 @@ export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v4";
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";
 export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
 export const PRIMITIVE_SET_VERSION = "composition_v1";
-/** Set by the Phase 3 engine port; placeholder until the compiler exists. */
-export const COMPILER_VERSION = "compiler_v0_unported";
+/**
+ * The deterministic compiler. Bumped whenever its own output shape or behaviour changes —
+ * including a compiler-internal addition like the verified-fit override layer — but never for a
+ * change to the composition language, which carries `PRIMITIVE_SET_VERSION` separately
+ * (`docs/event-renderer-system.md §6`).
+ */
+export const COMPILER_VERSION = "compiler_phase3_0_1";

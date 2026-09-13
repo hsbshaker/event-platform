@@ -37,7 +37,7 @@
  *
  * `../design-intent.ts` already resolves this in its module doc: the twelve concrete pairings in
  * `../vocabulary`, not the six-category enum in `docs/model-schemas/design-intent.schema.json`
- * (a stale artifact predating the family/composition revision). `DesignIntent.typographyPairing`
+ * (reconciled to the same twelve in `design_intent_schema_v4`). `DesignIntent.typographyPairing`
  * is typed to the twelve, so that is what this module narrows.
  */
 

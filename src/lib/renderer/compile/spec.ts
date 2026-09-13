@@ -32,6 +32,15 @@
  * language core's half of the compiler, and this module does not redo it.
  */
 
+import {
+  COMPILER_VERSION,
+  COMPOSITION_PROMPT_VERSION,
+  COMPOSITION_SCHEMA_VERSION,
+  DESIGN_INTENT_PROMPT_VERSION,
+  DESIGN_INTENT_SCHEMA_VERSION,
+  PRIMITIVE_SET_VERSION,
+} from "@/lib/ai/versions";
+
 import { canonicalize } from "../composition/canonicalize";
 import type { Capabilities, CompositionTree, Repair } from "../composition/nodes";
 import { resolveLayout } from "../composition/layout";
@@ -52,13 +61,19 @@ export interface SpecVersions {
   readonly designIntentSchema: string;
 }
 
+/**
+ * Imported rather than restated. These strings are stamped onto every persisted
+ * `ResolvedDesignSpec` (`spec.md §31`), and a second copy here would let a prompt or schema bump
+ * in `@/lib/ai/versions` leave the compiler writing a stale version onto every concept with
+ * nothing failing.
+ */
 export const VERSIONS: SpecVersions = {
-  primitiveSet: "composition_v1",
-  compiler: "phase3-0.1",
-  compositionPrompt: "composition_v1_p2",
-  compositionSchema: "composition_schema_v1",
-  designIntentPrompt: "design_intent_v4",
-  designIntentSchema: "design_intent_schema_v4",
+  primitiveSet: PRIMITIVE_SET_VERSION,
+  compiler: COMPILER_VERSION,
+  compositionPrompt: COMPOSITION_PROMPT_VERSION,
+  compositionSchema: COMPOSITION_SCHEMA_VERSION,
+  designIntentPrompt: DESIGN_INTENT_PROMPT_VERSION,
+  designIntentSchema: DESIGN_INTENT_SCHEMA_VERSION,
 };
 
 /** The renderer's token set: semantic palette plus the resolved type and spacing scales. */
