@@ -73,19 +73,76 @@ const LEGACY_LIBRARY = {
     "The legacy fixture library is not reachable from production source (event-renderer-system.md §7.1). Its two documented roles have their own adapters: repair macros and the terminal fallback in src/lib/renderer/recovery/**, rotated few-shot examples in src/lib/renderer/few-shot/**. Consume what an adapter returns; never import, enumerate, rank, match, schedule or select from the library itself.",
 };
 
+/**
+ * Service-role boundary — `AGENTS.md`, "Supabase clients".
+ *
+ * `admin.ts` bypasses RLS, so the rule is that it is reached "only after the caller has been
+ * authorized ... and only for server-managed tables". That is a property of a handful of
+ * modules, each of which establishes its own boundary first: an authenticated session, a
+ * `CRON_SECRET`, the pre-auth draft cookie resolved to its stored hash, or — for the public
+ * survey — a server-issued reviewer capability resolved before the write.
+ *
+ * Lint rather than review, because the failure is quiet and one import wide: a new public route
+ * that reaches for the service role reads exactly like the ones that are allowed to, and nothing
+ * else in the build would notice. Adding a module to `SERVICE_ROLE_CALLERS` is the deliberate
+ * act; `tests/unit/service-role-boundary.test.ts` fails if the allowlist and reality drift apart,
+ * so the exemption cannot be granted quietly either.
+ */
+const SERVICE_ROLE = {
+  group: [
+    "@/lib/supabase/admin",
+    "**/supabase/admin",
+    "./admin",
+    "../admin",
+    "../supabase/admin",
+    "../../supabase/admin",
+    "../../../supabase/admin",
+  ],
+  message:
+    "The service-role client bypasses RLS and is reachable only after the caller has been authorized (AGENTS.md, 'Supabase clients'). If a new module genuinely needs it, establish its authorization boundary first and add it to SERVICE_ROLE_CALLERS in eslint.config.mjs and to tests/unit/service-role-boundary.test.ts.",
+};
+
+/**
+ * The modules allowed to reach the service role, each with the boundary that earns it:
+ *
+ * - `src/lib/auth/rate-limit.ts` — the counters table is server-only and has no user-facing
+ *   read; the limiter is itself part of what authorizes everything else.
+ * - `src/lib/drafts/**` — an anonymous visitor's pre-auth draft, scoped by the opaque `ep_draft`
+ *   cookie resolved to its stored hash before any query.
+ * - `src/lib/human-test/store.ts` — the Human Test #1 survey, scoped by a server-issued reviewer
+ *   capability the route resolves before calling it.
+ * - `src/app/auth/callback/route.ts` — runs after the session is established.
+ * - `src/app/api/cron/purge-pre-auth/route.ts` — gated on `CRON_SECRET`, 404 without it.
+ */
+const SERVICE_ROLE_CALLERS = [
+  "src/lib/auth/rate-limit.ts",
+  "src/lib/drafts/**",
+  "src/lib/human-test/store.ts",
+  "src/app/auth/callback/route.ts",
+  "src/app/api/cron/purge-pre-auth/route.ts",
+];
+
 const restricted = (...patterns) => ({
   "no-restricted-imports": ["error", { patterns }],
 });
 
 const boundaryRules = [
-  // The library is off-limits everywhere under src/ ...
-  { files: ["src/**"], rules: restricted(LEGACY_LIBRARY) },
+  // The library and the service role are off-limits everywhere under src/ ...
+  { files: ["src/**"], rules: restricted(LEGACY_LIBRARY, SERVICE_ROLE) },
   {
     files: ["src/components/app/**", "src/app/**"],
+    rules: restricted(LEGACY_LIBRARY, SERVICE_ROLE, EVENT_TOKENS),
+  },
+  {
+    files: ["src/components/event-renderer/**"],
+    rules: restricted(LEGACY_LIBRARY, SERVICE_ROLE, APP_CHROME),
+  },
+  // ... except that the modules above have earned the service role, and keep every other rule.
+  {
+    files: SERVICE_ROLE_CALLERS,
     rules: restricted(LEGACY_LIBRARY, EVENT_TOKENS),
   },
-  { files: ["src/components/event-renderer/**"], rules: restricted(LEGACY_LIBRARY, APP_CHROME) },
-  // ... except in the two adapters, and in the tests that are a permitted role under §7.1.
+  // ... and except in the two adapters, and in the tests that are a permitted role under §7.1.
   {
     files: ["src/lib/renderer/recovery/**", "src/lib/renderer/few-shot/**", "src/**/*.test.ts"],
     rules: { "no-restricted-imports": "off" },
@@ -109,3 +166,4 @@ const eslintConfig = defineConfig([
 ]);
 
 export default eslintConfig;
+export { SERVICE_ROLE_CALLERS };

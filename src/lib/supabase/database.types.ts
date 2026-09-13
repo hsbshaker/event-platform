@@ -187,6 +187,20 @@ type RateLimitRow = {
   count: number;
 };
 
+/**
+ * A Human Test #1 reviewer response
+ * (supabase/migrations/20260913050000_human_test_1_responses.sql). Both the real and the
+ * synthetic table share this shape on purpose, so the submit path is one code path; which
+ * table a submission lands in is decided server-side from a secret, never from the request.
+ */
+type HumanTest1ResponseRow = {
+  id: string;
+  reviewer: string;
+  response_payload: Json;
+  submission_key: string;
+  created_at: string;
+};
+
 /** Columns with defaults or generated values are optional on insert. */
 type Insert<Row, Optional extends keyof Row> = Omit<Row, Optional> & Partial<Pick<Row, Optional>>;
 
@@ -309,6 +323,14 @@ export type Database = {
         >
       >;
       rate_limits: Table<RateLimitRow, Insert<RateLimitRow, "count">>;
+      human_test_1_responses: Table<
+        HumanTest1ResponseRow,
+        Insert<HumanTest1ResponseRow, "id" | "created_at">
+      >;
+      human_test_1_test_responses: Table<
+        HumanTest1ResponseRow,
+        Insert<HumanTest1ResponseRow, "id" | "created_at">
+      >;
     };
     Views: Record<string, never>;
     Functions: {

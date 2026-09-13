@@ -13,3 +13,7 @@ src/spike/fixture.generated.html
 # scripts/renderer/capture-golden.mjs and must not be reformatted in place.
 tests/fixtures/renderer-golden
 docs/phase-3/deployed-geometry.json
+
+# Published verbatim from docs/human-test-1 by scripts/human-test/publish-review.mjs. Formatting
+# it here would make it differ from its source, which the drift check treats as a defect.
+public/human-test-1
