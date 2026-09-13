@@ -55,7 +55,16 @@ export async function GET(request: NextRequest) {
   if (!authorized(request)) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
+  try {
+    return await purge();
+  } catch (error) {
+    // Nothing reaches here but a misconfigured environment or a client that could not be
+    // built; either way a scheduled job needs to be told, not handed a bare 500.
+    return failed("setup", error);
+  }
+}
 
+async function purge(): Promise<NextResponse> {
   const cutoff = new Date(Date.now() - CLOCK_SKEW_MARGIN_MS).toISOString();
   const admin = createAdminClient();
 
