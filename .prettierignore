@@ -7,3 +7,4 @@ spec.md
 CLAUDE.md
 package-lock.json
 .claude
+src/spike/fixture.generated.html

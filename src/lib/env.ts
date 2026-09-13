@@ -62,6 +62,21 @@ export function serverEnv(): ServerEnv {
   return cachedServer;
 }
 
+/**
+ * Phase 0 spike token (optional, server-only). Validated here so the spike route never
+ * reads process.env directly; removed with the spike.
+ */
+const spikeSchema = z.string().min(16).optional();
+
+export function spikeToken(): string | undefined {
+  if (typeof window !== "undefined") {
+    throw new Error("spikeToken() must not be called from client code.");
+  }
+  const parsed = spikeSchema.safeParse(process.env.SPIKE_TOKEN || undefined);
+  if (!parsed.success) fail("SPIKE_TOKEN", parsed.error);
+  return parsed.data;
+}
+
 /** Test seam: clear cached values after mutating process.env. */
 export function resetEnvCache(): void {
   cachedPublic = undefined;

@@ -1,0 +1,1334 @@
+{
+  "summary": {
+    "url": "http://localhost:3100/api/spike/geometry?repeats=3",
+    "runs": 10,
+    "succeeded": 10,
+    "failed": 0,
+    "deterministicAll": true,
+    "crossInvocationDeterministic": {
+      "390": true,
+      "1280": true
+    },
+    "fontsLoadedAll": true,
+    "cleanAll": true,
+    "coldStarts": 0,
+    "wallMs": {
+      "median": 627,
+      "p95": 1145,
+      "cold": [],
+      "warmMedian": 627
+    },
+    "inflateMs": {
+      "cold": [],
+      "warmMedian": 0
+    },
+    "launchMs": {
+      "median": 39,
+      "p95": 43
+    },
+    "renderMs": {
+      "390": {
+        "median": 71,
+        "p95": 129
+      },
+      "1280": {
+        "median": 67,
+        "p95": 77
+      }
+    },
+    "nodeRssMb": {
+      "max": 287,
+      "note": "Node process only; excludes the Chromium child"
+    },
+    "env": {
+      "region": null,
+      "vercelEnv": null,
+      "lambdaMemoryMb": null,
+      "node": "v22.22.2",
+      "chromium": "153.0.8010.0"
+    },
+    "errors": []
+  },
+  "results": [
+    {
+      "i": 0,
+      "status": 200,
+      "wallMs": 712,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 4,
+      "totalMs": 605,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 47,
+        "closeMs": 38
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            129,
+            66,
+            68
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            76,
+            70,
+            61
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 129,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 76,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 66,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 68,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 61,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 288,
+        "rssAfter": 287,
+        "heapUsedAfter": 69
+      }
+    },
+    {
+      "i": 1,
+      "status": 200,
+      "wallMs": 1145,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 5,
+      "totalMs": 1134,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 39,
+        "closeMs": 563
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            129,
+            71,
+            82
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            66,
+            69,
+            70
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 129,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 66,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 71,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 69,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 82,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 287,
+        "rssAfter": 219,
+        "heapUsedAfter": 76
+      }
+    },
+    {
+      "i": 2,
+      "status": 200,
+      "wallMs": 612,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 6,
+      "totalMs": 605,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 37,
+        "closeMs": 39
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            124,
+            66,
+            71
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            70,
+            65,
+            87
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 124,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 66,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 65,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 71,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 87,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 219,
+        "rssAfter": 218,
+        "heapUsedAfter": 71
+      }
+    },
+    {
+      "i": 3,
+      "status": 200,
+      "wallMs": 1280,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 7,
+      "totalMs": 1269,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 41,
+        "closeMs": 720
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            128,
+            76,
+            64
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            67,
+            58,
+            68
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 128,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 67,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 76,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 58,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 64,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 68,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 218,
+        "rssAfter": 222,
+        "heapUsedAfter": 79
+      }
+    },
+    {
+      "i": 4,
+      "status": 200,
+      "wallMs": 602,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 8,
+      "totalMs": 591,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 37,
+        "closeMs": 39
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            135,
+            67,
+            65
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            67,
+            61,
+            74
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 135,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 67,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 67,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 61,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 65,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 74,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 222,
+        "rssAfter": 220,
+        "heapUsedAfter": 75
+      }
+    },
+    {
+      "i": 5,
+      "status": 200,
+      "wallMs": 627,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 9,
+      "totalMs": 618,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 43,
+        "closeMs": 33
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            141,
+            71,
+            75
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            78,
+            62,
+            72
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 141,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 78,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 71,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 62,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 75,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 72,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 221,
+        "rssAfter": 224,
+        "heapUsedAfter": 82
+      }
+    },
+    {
+      "i": 6,
+      "status": 200,
+      "wallMs": 1134,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 10,
+      "totalMs": 1128,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 39,
+        "closeMs": 574
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            124,
+            70,
+            71
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            72,
+            56,
+            69
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 124,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 72,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 56,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 71,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 69,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 224,
+        "rssAfter": 222,
+        "heapUsedAfter": 78
+      }
+    },
+    {
+      "i": 7,
+      "status": 200,
+      "wallMs": 612,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 11,
+      "totalMs": 606,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 41,
+        "closeMs": 38
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            127,
+            69,
+            74
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            65,
+            77,
+            67
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 127,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 65,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 69,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 77,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 74,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 67,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 222,
+        "rssAfter": 226,
+        "heapUsedAfter": 85
+      }
+    },
+    {
+      "i": 8,
+      "status": 200,
+      "wallMs": 578,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 12,
+      "totalMs": 571,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 37,
+        "closeMs": 24
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            120,
+            70,
+            68
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            65,
+            64,
+            73
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 120,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 65,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 70,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 64,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 68,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 73,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 226,
+        "rssAfter": 224,
+        "heapUsedAfter": 81
+      }
+    },
+    {
+      "i": 9,
+      "status": 200,
+      "wallMs": 568,
+      "ok": true,
+      "error": null,
+      "coldStart": false,
+      "invocation": 13,
+      "totalMs": 563,
+      "timings": {
+        "importMs": 0,
+        "inflateMs": 0,
+        "launchMs": 39,
+        "closeMs": 22
+      },
+      "byWidth": {
+        "390": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 609.15625,
+          "renderMs": [
+            122,
+            63,
+            68
+          ]
+        },
+        "1280": {
+          "runs": 3,
+          "deterministic": true,
+          "fontsLoaded": true,
+          "clean": true,
+          "heroHeight": 712.03125,
+          "renderMs": [
+            67,
+            60,
+            66
+          ]
+        }
+      },
+      "runs": [
+        {
+          "width": 390,
+          "repeat": 0,
+          "renderMs": 122,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 0,
+          "renderMs": 67,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 1,
+          "renderMs": 63,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 1,
+          "renderMs": 60,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        },
+        {
+          "width": 390,
+          "repeat": 2,
+          "renderMs": 68,
+          "fontsLoaded": true,
+          "heroHeight": 609.15625,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 4497
+        },
+        {
+          "width": 1280,
+          "repeat": 2,
+          "renderMs": 66,
+          "fontsLoaded": true,
+          "heroHeight": 712.03125,
+          "texts": 15,
+          "textOverflow": 0,
+          "overflowing": 0,
+          "pageOverflow": false,
+          "docHeight": 3911
+        }
+      ],
+      "env": {
+        "region": null,
+        "vercelEnv": null,
+        "lambdaMemoryMb": null,
+        "node": "v22.22.2",
+        "chromium": "153.0.8010.0"
+      },
+      "memoryMb": {
+        "rssBefore": 224,
+        "rssAfter": 228,
+        "heapUsedAfter": 88
+      }
+    }
+  ]
+}

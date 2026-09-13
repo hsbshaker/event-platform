@@ -9,6 +9,11 @@ import { publicEnv } from "@/lib/env";
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+  // A scaffold preview with no Supabase configured at all still serves pages; nothing to
+  // refresh. A half-configured environment is a mistake and fails loudly in publicEnv().
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return response;
+  }
   const env = publicEnv();
 
   const supabase = createServerClient(
