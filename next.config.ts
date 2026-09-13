@@ -38,6 +38,21 @@ const GEOMETRY_BROWSER_PACKAGES = [
 
 const EVENT_RENDERER_ASSETS = ["./src/styles/event-tokens.css", "./public/fonts/event/**"];
 
+/**
+ * The Human Test #1 reviewer survey is a static page under `public/human-test-1/`, published
+ * from `docs/human-test-1/` by `scripts/human-test/publish-review.mjs`. This makes it reachable
+ * as one clean link a reviewer can be sent — `/human-test-1` — without a second copy of the
+ * questionnaire living in the app. Deliberately a redirect rather than a rewrite: the page loads
+ * its sheets with relative `src="sheets/..."`, so the browser must end up on the real path for
+ * them to resolve. Temporary (307) rather than permanent, because nothing should cache this into
+ * a reviewer's browser past the test.
+ */
+const HUMAN_TEST_1_SURVEY = {
+  source: "/human-test-1",
+  destination: "/human-test-1/review.html",
+  permanent: false,
+};
+
 const nextConfig: NextConfig = {
   // Serverless Chromium ships native binaries; keep both packages out of the bundler
   // and make sure the compressed browser archives are traced into the function.
@@ -49,6 +64,7 @@ const nextConfig: NextConfig = {
     "/api/internal/verify-geometry": [...GEOMETRY_BROWSER_PACKAGES],
     "/**": EVENT_RENDERER_ASSETS,
   },
+  redirects: async () => [HUMAN_TEST_1_SURVEY],
 };
 
 export default nextConfig;

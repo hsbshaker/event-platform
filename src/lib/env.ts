@@ -95,6 +95,27 @@ export function cronSecret(): string | undefined {
   return parsed.data;
 }
 
+/**
+ * Human Test #1 synthetic-submission secret (optional, server-only).
+ *
+ * Presenting it on `POST /api/human-test-1/submit` routes that submission to
+ * `human_test_1_test_responses`, the table the scorer never reads, so the deployed flow can be
+ * exercised without contaminating the five real reviewer responses. Optional, and fail-closed
+ * when unset: without it every submission is a real one, exactly as a reviewer's is. Length-
+ * checked here like every other secret so a one-character value can never become the thing
+ * standing between synthetic and real data.
+ */
+const humanTestSecretSchema = z.string().min(32).optional();
+
+export function humanTest1TestSecret(): string | undefined {
+  if (typeof window !== "undefined") {
+    throw new Error("humanTest1TestSecret() must not be called from client code.");
+  }
+  const parsed = humanTestSecretSchema.safeParse(process.env.HUMAN_TEST_1_TEST_SECRET || undefined);
+  if (!parsed.success) fail("HUMAN_TEST_1_TEST_SECRET", parsed.error);
+  return parsed.data;
+}
+
 /** Test seam: clear cached values after mutating process.env. */
 export function resetEnvCache(): void {
   cachedPublic = undefined;
