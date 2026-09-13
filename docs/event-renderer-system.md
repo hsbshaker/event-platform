@@ -249,7 +249,7 @@ A clarification of the architecture above, not a change to it. Revision 2 replac
 **Mechanical guarantees.** The invariant is enforced by tests and lint, not by convention:
 
 - a valid novel tree with no corresponding fixture validates, compiles, renders and geometry-verifies without any library selection being invoked;
-- normal composition and compiler modules do not import or invoke library selection except across the explicitly approved repair and recovery boundary;
+- no production module imports or invokes library selection except across an explicitly approved adapter: the repair-macro and terminal-fallback adapter, and the few-shot example adapter, each confined to its own module and to the single role above that it serves;
 - the terminal fallback is unreachable until the documented retry is exhausted;
 - fallback use and its reason are observable in generation telemetry (wired with generation in Phase 4);
 - neither the `DesignIntent` nor the `CompositionTree` schema carries a recipe, silhouette or template identifier;
