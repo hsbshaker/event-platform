@@ -228,6 +228,33 @@ The renderer has one fixed component per primitive and per semantic node and a s
 
 The 26 Phase A.1 hero silhouettes and 13 section recipes, rewritten as `CompositionTree` fixtures (`proof-b/library.js`). Jobs: expressiveness regression (every silhouette must validate and render through the primitive renderer), rotated few-shot examples, repair macros, the fallback generator (the Gate 2 seeded selector), and signature calibration (mirror pairs collide, distinct recipes do not). The library is not a menu and the renderer has no code per recipe.
 
+## 7.1 Library Boundary Invariant
+
+A clarification of the architecture above, not a change to it. Revision 2 replaced bundled archetypes with the composition language; this states the boundary that replacement depends on, so it cannot erode through ordinary maintenance.
+
+**The normal creative path.** Production generation accepts and compiles any valid model-authored `CompositionTree`. It never selects, matches, ranks, schedules or maps a composition onto a legacy silhouette or recipe. A tree is legal because the rules in §2 admit it, never because it resembles a fixture. A novel composition with no counterpart in the library is first-class and must validate, compile, render and geometry-verify on exactly the same path as any other.
+
+**Permitted uses of the legacy library**, and only these:
+
+1. regression and expressiveness fixtures (§9);
+2. rotated few-shot examples in the composition call (§4);
+3. deterministic repair macros, where §3 specifies them;
+4. the terminal fallback, after the retry §3 and §5 allow has been exhausted;
+5. signature calibration (§5).
+
+**Forbidden uses.** Template or catalogue selection; normal candidate generation; a recipe or silhouette identifier as a creative decision variable; nearest-library mapping of a model composition; structural scheduling driven by the library; renderer code that branches by recipe.
+
+**Why both lists exist.** Uses 3 and 4 are failure recovery reached only after the model has been given its documented second chance, and a fallback page is recorded as a fallback and never presented as a model composition (`model-contracts.md`). They do not make the library a creative ceiling. The forbidden list names the paths by which it would become one.
+
+**Mechanical guarantees.** The invariant is enforced by tests and lint, not by convention:
+
+- a valid novel tree with no corresponding fixture validates, compiles, renders and geometry-verifies without any library selection being invoked;
+- normal composition and compiler modules do not import or invoke library selection except across the explicitly approved repair and recovery boundary;
+- the terminal fallback is unreachable until the documented retry is exhausted;
+- fallback use and its reason are observable in generation telemetry (wired with generation in Phase 4);
+- neither the `DesignIntent` nor the `CompositionTree` schema carries a recipe, silhouette or template identifier;
+- the renderer stays recipe-agnostic: one fixed component per primitive, no branch per recipe.
+
 ---
 
 # 8. Typography, motifs, palette, density, guest components, imagery
