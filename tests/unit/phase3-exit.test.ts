@@ -29,6 +29,7 @@ import { repair } from "@/lib/renderer/composition/repair";
 import { heroSimilarity, seqSim, skeleton, similarity } from "@/lib/renderer/composition/signature";
 import { validateSchema } from "@/lib/renderer/composition/validate-schema";
 import { validateStructure } from "@/lib/renderer/composition/validate-structure";
+import { walk } from "@/lib/renderer/composition/walk";
 import {
   HEROES,
   HERO_KEYS,
@@ -85,15 +86,25 @@ const INTENT: DesignIntent = {
   motifs: ["plaid", "equestrian"],
 };
 
-function renderTree(tree: CompositionTree, caps: Capabilities = CAPS): string {
-  const spec = assemblePreVerificationSpec({
-    composition: tree,
-    designIntent: INTENT,
-    capabilities: caps,
-    seed: 7,
-  });
+/** The canonical tree a spec actually handed to the renderer. */
+function renderedComposition(spec: { composition: CompositionTree }): CompositionTree {
+  return spec.composition;
+}
+
+function renderSpec(spec: Parameters<typeof EventPage>[0]["spec"]): string {
   return renderToStaticMarkup(
     createElement(EventPage, { spec, content: CONTENT, audience: "guest" as const }),
+  );
+}
+
+function renderTree(tree: CompositionTree, caps: Capabilities = CAPS): string {
+  return renderSpec(
+    assemblePreVerificationSpec({
+      composition: tree,
+      designIntent: INTENT,
+      capabilities: caps,
+      seed: 7,
+    }),
   );
 }
 
@@ -177,13 +188,32 @@ describe("§9 gate 3: expressiveness through the one production renderer", () =>
         ...(kind === "rsvp" ? [] : tail("rsvp_typographic_stack", "registry_tiles").slice(0, 1)),
         ...(kind === "registry" ? [] : tail("rsvp_typographic_stack", "registry_tiles").slice(1)),
       ];
-      const tree = canonicalize({
-        version: "composition_v1",
-        sections,
-      } as unknown as CompositionTree).tree;
-      expect(validateSchema({ ...tree, sections: tree.sections }).ok || true).toBe(true);
+      const raw = { version: "composition_v1", sections } as unknown as CompositionTree;
+
+      // The strict schema judges *raw model output*, so it is applied before canonicalization —
+      // a canonical tree carries compiler-stamped ids the schema rightly rejects as unknown keys,
+      // and validating one here would either fail or have to be waved through.
+      const schema = validateSchema(raw);
+      expect(schema.ok, `${name}: ${JSON.stringify(schema.errors?.slice(0, 3))}`).toBe(true);
+
+      // What matters at this stage: the canonical tree is structurally valid, compiles, and
+      // renders through the one production renderer. Geometry verifies it clean separately
+      // (`verify/frozen-replay.test.ts` and the expressiveness run).
+      const tree = canonicalize(raw).tree;
+      expect(validateStructure(tree, CAPS), name).toEqual([]);
+
+      const spec = assemblePreVerificationSpec({
+        composition: tree,
+        designIntent: INTENT,
+        capabilities: CAPS,
+        seed: 7,
+      });
+      expect(Object.keys(spec.layout).length, name).toBeGreaterThan(0);
+      expect(spec.compositionHash, name).toBeTruthy();
+
       const html = renderTree(tree);
       expect(html.length, name).toBeGreaterThan(0);
+      expect(html, name).toContain('class="ev-site');
       expect(html.includes(name.split(":")[1]), name).toBe(false);
     }
   });
@@ -219,13 +249,66 @@ describe("§9 gate 4: the frozen confirmation replay through production", () => 
       const trees = frozen(set);
       expect(trees).toHaveLength(set === "final" ? 60 : 12);
       for (const { id, composition } of trees) {
-        expect(validateStructure(composition, caps), `${set}:${id}`).toEqual([]);
-        const before = JSON.stringify(composition);
-        const html = renderTree(composition, caps);
-        expect(html.length, `${set}:${id}`).toBeGreaterThan(0);
-        // Rendering is read-only: the tree that came in is the tree that stays.
-        expect(JSON.stringify(composition), `${set}:${id} mutated`).toBe(before);
-        expect(canonicalize(composition).hash, `${set}:${id}`).toBe(canonicalize(composition).hash);
+        const where = `${set}:${id}`;
+        expect(validateStructure(composition, caps), where).toEqual([]);
+
+        // Captured *before* anything downstream touches the tree, so the assertions after the
+        // render compare against a real earlier state rather than against themselves.
+        const treeBefore = JSON.stringify(composition);
+        const hashBefore = canonicalize(composition).hash;
+        const shapeBefore: string[] = [];
+        walk(composition, ({ node, path }) => {
+          const n = node as unknown as Record<string, unknown>;
+          const authored = Object.keys(n)
+            .filter((k) => k !== "children" && k !== "child" && k !== "id")
+            .sort()
+            .map((k) => `${k}=${JSON.stringify(n[k])}`)
+            .join(",");
+          shapeBefore.push(`${path}|${node.id}|${node.t}|${authored}`);
+        });
+        expect(shapeBefore.length, where).toBeGreaterThan(0);
+
+        const spec = assemblePreVerificationSpec({
+          composition,
+          designIntent: INTENT,
+          capabilities: caps,
+          seed: 1,
+        });
+
+        // The renderer is handed `spec.composition` — canonicalization's clone, not the input —
+        // so the clone needs its own before/after. A primitive that wrote into the node it renders
+        // would corrupt the tree that gets persisted, and comparing only the input would miss it.
+        const canonicalBefore = JSON.stringify(spec.composition);
+        const html = renderSpec(spec);
+        expect(html.length, where).toBeGreaterThan(0);
+        expect(
+          JSON.stringify(renderedComposition(spec)),
+          `${where}: the renderer wrote into the canonical tree`,
+        ).toBe(canonicalBefore);
+
+        // Compiling and rendering are read-only. The hash is compared against the value captured
+        // above, not against a second call to the same function.
+        expect(JSON.stringify(composition), `${where}: tree changed`).toBe(treeBefore);
+        expect(canonicalize(composition).hash, `${where}: hash changed`).toBe(hashBefore);
+        expect(spec.compositionHash, `${where}: spec hash differs from the tree's`).toBe(
+          hashBefore,
+        );
+
+        // Node ids, types and authored props are all still what the model wrote.
+        const shapeAfter: string[] = [];
+        walk(composition, ({ node, path }) => {
+          const n = node as unknown as Record<string, unknown>;
+          const authored = Object.keys(n)
+            .filter((k) => k !== "children" && k !== "child" && k !== "id")
+            .sort()
+            .map((k) => `${k}=${JSON.stringify(n[k])}`)
+            .join(",");
+          shapeAfter.push(`${path}|${node.id}|${node.t}|${authored}`);
+        });
+        expect(shapeAfter, `${where}: node ids, types or authored props changed`).toEqual(
+          shapeBefore,
+        );
+
         replayed++;
       }
     }

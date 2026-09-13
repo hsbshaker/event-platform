@@ -33,7 +33,7 @@ export const FEW_SHOT_EXAMPLE_COUNT = 3;
  * The rotation offset and shuffle are the reference's (`proof-b/prompt.js`), preserved exactly so
  * a seed picks what it has always picked.
  *
- * KNOWN DEFECT, deliberately kept for Phase 3 — `docs/phase-3-invariant-obligations.md` row 11.
+ * KNOWN DEFECT, deliberately kept for Phase 3 — `docs/renderer-invariant-obligations.md` row 11.
  * `sort` with a random comparator is not a shuffle: the permutation depends on the engine's sort
  * algorithm as well as the comparator. It is stable in practice (V8 uses binary insertion sort
  * below 64 elements and `A1_SITES` has 16) and `few-shot.test.ts` pins it against the reference

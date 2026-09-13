@@ -3,7 +3,7 @@
  *
  * The keys must equal `PRIMITIVE_KINDS` exactly, which is itself generated from the language's own
  * `NODE_SPEC` (`contract.ts`). That equality is the renderer's half of the Library Boundary
- * Invariant (`docs/event-renderer-system.md §7.1`, `docs/phase-3-invariant-obligations.md` row 10):
+ * Invariant (`docs/event-renderer-system.md §7.1`, `docs/renderer-invariant-obligations.md` row 10):
  * a renderer that had grown a branch per recipe would need a key here that is not a primitive, and
  * a primitive that had quietly lost its component would leave one missing. Both directions fail the
  * test.

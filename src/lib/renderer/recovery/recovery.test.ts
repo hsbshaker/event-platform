@@ -1,7 +1,7 @@
 /**
  * The recovery adapter: repair macros, and a terminal fallback that fails closed.
  *
- * Closes `docs/phase-3-invariant-obligations.md` row 7 and defines the Phase 3 side of row 8.
+ * Closes `docs/renderer-invariant-obligations.md` row 7 and defines the Phase 3 side of row 8.
  * `docs/event-renderer-system.md §3` and §5 allow the composition call exactly one re-prompt for
  * a schema-invalid response and exactly one for a selector collision; §7.1 permits the library as
  * the terminal fallback only "after the retry §3 and §5 allow has been exhausted".

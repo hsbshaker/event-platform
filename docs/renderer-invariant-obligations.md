@@ -1,11 +1,29 @@
-# Phase 3 — Library Boundary Invariant: mechanical obligations
+# Renderer and generation invariant obligations
 
-Working checklist for the Phase 3 port. The invariant itself is canonical in
+A ledger of the mechanical guarantees that keep the Library Boundary Invariant and the renderer
+contract from eroding, and of which layer enforces each one. The invariant itself is canonical in
 `docs/event-renderer-system.md §7.1`, with the agent-facing statement in `CLAUDE.md §5.1` and
-`AGENTS.md`. This file tracks only which mechanical guarantee is enforced where, so that a
-guarantee whose layer does not exist yet is an open obligation rather than a silent gap.
+`AGENTS.md`; this file tracks only *where* each guarantee is mechanically enforced, so a guarantee
+whose layer does not exist yet is a visible open obligation rather than a silent gap.
 
-Delete this file when Phase 3 closes and every row reads "enforced".
+**This file outlives Phase 3.** It was written during the Phase 3 port and originally said to
+delete it once every row read "enforced". That was wrong: three rows are owned by Phase 4 by
+design, and deleting the ledger when Phase 3 closed would have retired obligations that are still
+binding. Phase 3's rows are done; the Phase 4 rows below stay open and stay visible until they are
+mechanically enforced.
+
+**Still binding on Phase 4:**
+
+- **row 6** — normal generation consumes the few-shot adapter's example trees without learning
+  which fixtures they came from;
+- **row 8** — fallback telemetry is actually persisted to the `GenerationRun`, not merely
+  returned;
+- **row 11** — the deterministic few-shot shuffle replaces the engine-dependent one, with a
+  composition-prompt version bump and a fresh confirmation run, **before the first production
+  model call**.
+
+Row 2's language, compiler and render halves are enforced; only its geometry half moved with the
+verifier, and it is now closed. Rows 1, 3, 4, 5, 7, 9 and 10 are Phase 3-owned and enforced.
 
 | # | Guarantee | Enforced by | State |
 | --- | --- | --- | --- |

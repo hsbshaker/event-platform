@@ -2,7 +2,7 @@
  * The few-shot adapter: deterministic rotation, and a public surface that cannot become a
  * selection menu.
  *
- * Closes `docs/phase-3-invariant-obligations.md` row 5. The second block is the one that matters
+ * Closes `docs/renderer-invariant-obligations.md` row 5. The second block is the one that matters
  * for the Library Boundary Invariant: it asserts no recipe, silhouette or template identifier
  * crosses the adapter's boundary, because an identifier that reaches a decision is a
  * candidate-choice variable, which `docs/event-renderer-system.md §7.1` forbids by name.

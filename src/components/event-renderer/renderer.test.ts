@@ -369,7 +369,7 @@ const NODE_FIXTURES: Record<string, { minimal: CNode; maximal: CNode }> = {
 describe("the primitive map", () => {
   it("has exactly the keys of PRIMITIVE_KINDS", () => {
     // Both directions: an extra key would be a renderer branch that is not a primitive, a missing
-    // one a primitive the renderer cannot draw (`phase-3-invariant-obligations.md` row 10).
+    // one a primitive the renderer cannot draw (`renderer-invariant-obligations.md` row 10).
     expect(Object.keys(PRIMITIVES).sort()).toEqual([...PRIMITIVE_KINDS].sort());
   });
 

@@ -47,7 +47,9 @@ function cleanTransient() {
 const before = git("status", "--porcelain", "--", "proof-b");
 if (before) {
   console.error("proof-b/ is dirty before the gate runs:\n" + before);
-  console.error("Commit, stash or clean it first — this gate cannot tell your changes from its own.");
+  console.error(
+    "Commit, stash or clean it first — this gate cannot tell your changes from its own.",
+  );
   process.exit(1);
 }
 

@@ -76,7 +76,7 @@ export type FallbackRefusal =
 
 /**
  * The record Phase 4 writes to the `GenerationRun`. Phase 3 defines the shape and fills it;
- * Phase 4 does the recording (`docs/phase-3-invariant-obligations.md` rows 7 and 8).
+ * Phase 4 does the recording (`docs/renderer-invariant-obligations.md` rows 7 and 8).
  *
  * `fixtureId` is diagnostic only — it says which fixture a run fell back to so fallback rate can
  * be measured per fixture. It is an output of a failure, never an input to a decision, and must

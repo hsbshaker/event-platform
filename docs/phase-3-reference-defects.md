@@ -245,6 +245,28 @@ is the kind of default that quietly becomes permanent if nobody looks at it.
 
 ---
 
+# Process note: the Phase 3 independent review
+
+`CLAUDE.md §11` routes the final independent senior review to Fable. For Phase 3 that budget was
+exhausted, so the review ran on Opus instead — a one-time, explicit substitution, recorded here so
+the deviation is visible rather than inferred from a commit trail.
+
+It was a real review, not a formality. It returned two blockers, both correct:
+
+1. the library-boundary lint rule matched literal specifiers and never named the sibling-relative
+   `../library`, so a production module was importing the fixture library with lint silent — and
+   the boundary test's own mutation check passed, because it enumerated only the spellings its
+   author had thought of;
+2. the focus ring on inverted surfaces resolved to a filled control's own ink, measured at 1.2–1.9:1
+   against `surfaceAccent` where `docs/design-system.md §15.6a` requires 3:1.
+
+Both are fixed, along with six should-fixes. The finding worth carrying forward is the first one's
+shape: a guard verified only by a test that shares its blind spot is not verified. Independent
+review, mutation checks against the real rule, and source-of-truth reconciliation are what caught
+it — not the agent's own assertion that it was enforced.
+
+---
+
 ## Recommended disposition
 
 Defects 1 and 6 are settled. Keep 2 to 5 as ported until Phase 3 meets its exit gate; they are one-line

@@ -8,7 +8,7 @@
  * sound: `PRIMITIVES` is keyed by node type and the dispatcher looks a node up by `node.t`, so the
  * component registered under `"Stack"` is only ever called with a `Stack`.
  *
- * The map-keys/`PRIMITIVE_KINDS` equality test (`docs/phase-3-invariant-obligations.md` row 10) is
+ * The map-keys/`PRIMITIVE_KINDS` equality test (`docs/renderer-invariant-obligations.md` row 10) is
  * what keeps that invariant true, which is why this cast is safe here and would not be if it were
  * scattered across 29 files.
  */

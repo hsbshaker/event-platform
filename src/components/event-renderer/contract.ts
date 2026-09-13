@@ -9,7 +9,7 @@
  *
  * 1. **One component per primitive, no branch per recipe.** `PRIMITIVE_KINDS` is the allowlist,
  *    generated from the language's own `NODE_SPEC`, and the component map's keys must equal it
- *    exactly (`docs/phase-3-invariant-obligations.md` row 10). A renderer that grew a
+ *    exactly (`docs/renderer-invariant-obligations.md` row 10). A renderer that grew a
  *    recipe-shaped branch would have to add a key that is not a primitive.
  * 2. **A component reads resolved values, never creative ones.** `RenderContext` carries the
  *    resolved layout, the resolved motifs and the semantic tokens. It deliberately does not carry
