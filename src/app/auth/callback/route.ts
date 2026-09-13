@@ -16,10 +16,24 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Only same-origin relative paths, so `next` can never become an open redirect. */
-function safeNext(value: string | null): string | null {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
-  return value;
+/**
+ * Only same-origin paths, so `next` can never become an open redirect.
+ *
+ * Prefix checks are not enough here: WHATWG URL parsing treats a backslash as a slash for
+ * special schemes, so `/\evil.test` starts with a single `/` yet resolves to
+ * `https://evil.test/`. The only reliable test is to resolve the value against our own origin
+ * and compare, then rebuild the path from the parsed result so nothing unparsed survives.
+ */
+function safeNext(value: string | null, origin: string): string | null {
+  if (!value || !value.startsWith("/")) return null;
+  let resolved: URL;
+  try {
+    resolved = new URL(value, origin);
+  } catch {
+    return null;
+  }
+  if (resolved.origin !== origin) return null;
+  return `${resolved.pathname}${resolved.search}${resolved.hash}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -27,7 +41,7 @@ export async function GET(request: NextRequest) {
   const origin = url.origin;
   const code = url.searchParams.get("code");
   const authError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
-  const next = safeNext(url.searchParams.get("next"));
+  const next = safeNext(url.searchParams.get("next"), origin);
 
   // The provider refused or the user cancelled. Keep the draft cookie: their prompt and
   // inspiration are still on the server and a second attempt must be able to claim them.

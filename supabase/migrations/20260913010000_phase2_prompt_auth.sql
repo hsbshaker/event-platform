@@ -151,6 +151,13 @@ $$;
 
 revoke execute on function public.claim_pre_auth_draft(bytea, uuid) from public, anon, authenticated;
 
+-- Granted explicitly rather than relying on the platform's default privileges, so the
+-- server-only functions keep working under any harness or role configuration that does not
+-- supply those defaults. These three are the whole server-only surface; nothing else is added.
+grant execute on function public.claim_pre_auth_draft(bytea, uuid) to service_role;
+grant execute on function public.purge_expired_pre_auth_state(timestamptz) to service_role;
+grant execute on function public.expired_pre_auth_storage_keys(timestamptz) to service_role;
+
 -- ---------------------------------------------------------------------------
 -- Private storage bucket for pre-auth inspiration (§7.2, §27)
 -- ---------------------------------------------------------------------------
@@ -165,7 +172,7 @@ begin
       'inspiration',
       'inspiration',
       false,
-      10485760,
+      4194304, -- 4 MB; see MAX_FILE_BYTES in src/lib/drafts/inspiration.ts
       array['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif']
     )
     on conflict (id) do update

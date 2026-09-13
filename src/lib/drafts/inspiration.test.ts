@@ -55,7 +55,10 @@ describe("inspiration limits", () => {
   });
 
   it("keeps the documented size and count bounds", () => {
-    expect(MAX_FILE_BYTES).toBe(10 * 1024 * 1024);
+    // Must stay under the 4.5 MB serverless request-body limit: the route buffers the
+    // whole body, so a larger documented ceiling would be rejected before our code runs.
+    expect(MAX_FILE_BYTES).toBe(4 * 1024 * 1024);
+    expect(MAX_FILE_BYTES).toBeLessThan(4.5 * 1024 * 1024);
     expect(MAX_FILES_PER_DRAFT).toBe(6);
   });
 });

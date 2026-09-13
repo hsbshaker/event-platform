@@ -5,14 +5,13 @@ import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { createClient } from "@/lib/supabase/server";
 import { contentProfile, type ContentProfile } from "@/lib/events/content-profile";
+import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
-import { nextRsvpDeadline } from "@/lib/events/rsvp-deadline";
 import {
   missingRequiredDetails,
   type RequiredDetailKey,
   type EventDetailFields,
 } from "@/lib/events/required-details";
-import { resolveEventTimezone, validateTimezone } from "@/lib/events/timezone";
 
 /**
  * The missing-details flow that runs alongside generation (spec.md §7.3).
@@ -171,71 +170,7 @@ export async function updateEventDetails(
   if (!current) return { ok: false, error: "That event no longer exists." };
   const row = current as EventRow;
 
-  type EventUpdate = Partial<{
-    title: string | null;
-    event_date: string | null;
-    start_time: string | null;
-    end_time: string | null;
-    timezone: string | null;
-    venue_name: string | null;
-    address: string | null;
-    hosts: string | null;
-    baby_name: string | null;
-    visibility: "public" | "private" | null;
-    rsvp_deadline: string | null;
-    rsvp_deadline_edited: boolean;
-  }>;
-  const update: EventUpdate = {};
-  const pick = <K extends keyof typeof input, C extends keyof EventUpdate>(key: K, column: C) => {
-    if (input[key] === undefined) return;
-    const value = input[key] === "" ? null : input[key];
-    (update as Record<string, unknown>)[column] = value;
-  };
-  pick("title", "title");
-  pick("eventDate", "event_date");
-  pick("startTime", "start_time");
-  pick("endTime", "end_time");
-  pick("venueName", "venue_name");
-  pick("address", "address");
-  pick("hosts", "hosts");
-  pick("babyName", "baby_name");
-  pick("visibility", "visibility");
-
-  // Timezone: inferred from venue text, browser as fallback, never a geocoder (§7.4).
-  const venueText = [update.venue_name ?? row.venue_name, update.address ?? row.address]
-    .filter(Boolean)
-    .join(", ");
-  const venueChanged =
-    (update.venue_name !== undefined && update.venue_name !== row.venue_name) ||
-    (update.address !== undefined && update.address !== row.address);
-  if (!row.timezone || venueChanged) {
-    const resolved = resolveEventTimezone({
-      venueText,
-      browserTimezone: input.browserTimezone ?? null,
-    });
-    if (resolved && validateTimezone(resolved)) update.timezone = resolved;
-  }
-
-  const effectiveDate = update.event_date !== undefined ? update.event_date : row.event_date;
-  const effectiveStart = update.start_time !== undefined ? update.start_time : row.start_time;
-  const effectiveZone = update.timezone !== undefined ? update.timezone : row.timezone;
-
-  if (input.rsvpDeadline !== undefined) {
-    // An explicit choice by the host: store it and stop recomputing for good (§7.3).
-    update.rsvp_deadline = input.rsvpDeadline;
-    update.rsvp_deadline_edited = input.rsvpDeadline !== null;
-  } else {
-    const deadline = nextRsvpDeadline({
-      current: row.rsvp_deadline ? new Date(row.rsvp_deadline) : null,
-      edited: row.rsvp_deadline_edited,
-      eventDate: effectiveDate,
-      startTime: effectiveStart,
-      timezone: effectiveZone,
-      now: new Date(),
-    });
-    const iso = deadline ? deadline.toISOString() : null;
-    if (iso !== row.rsvp_deadline) update.rsvp_deadline = iso;
-  }
+  const update = computeEventPatch(row, input, new Date());
 
   if (Object.keys(update).length > 0) {
     const { error } = await supabase.from("events").update(update).eq("id", eventId);

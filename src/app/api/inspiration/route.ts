@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { RateLimitedError } from "@/lib/auth/errors";
 import {
   addInspirationToDraft,
   InspirationRejected,
@@ -23,6 +24,13 @@ export async function GET() {
   return NextResponse.json({ inspiration: await signInspiration(draft.inspiration) });
 }
 
+/** The client address, for the upload budget. Mirrors `src/app/actions/draft.ts`. */
+function requesterIp(request: NextRequest): string | null {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]!.trim();
+  return request.headers.get("x-real-ip");
+}
+
 export async function POST(request: NextRequest) {
   let form: FormData;
   try {
@@ -42,16 +50,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const asset = await addInspirationToDraft({
-      name: file.name,
-      type: file.type,
-      bytes: new Uint8Array(await file.arrayBuffer()),
-    });
+    const asset = await addInspirationToDraft(
+      {
+        name: file.name,
+        type: file.type,
+        bytes: new Uint8Array(await file.arrayBuffer()),
+      },
+      requesterIp(request),
+    );
     const [preview] = await signInspiration([asset]);
     return NextResponse.json({ inspiration: preview }, { status: 201 });
   } catch (error) {
     if (error instanceof InspirationRejected) {
       return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    if (error instanceof RateLimitedError) {
+      return NextResponse.json(
+        { error: "That is a lot of images. Try again in a few minutes." },
+        { status: 429 },
+      );
     }
     throw error;
   }

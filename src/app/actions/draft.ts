@@ -41,22 +41,28 @@ export async function loadComposerState(): Promise<ComposerState> {
 
 export type SaveDraftResult = { ok: true; hasInspiration: boolean } | { ok: false; error: string };
 
-/** Persists the prompt as the user writes, so nothing depends on the submit click landing. */
-export async function saveDraft(prompt: string): Promise<SaveDraftResult> {
+async function persist(
+  prompt: string,
+  reason: "autosave" | "submit",
+  throttled: string,
+): Promise<SaveDraftResult> {
   const trimmed = prompt.trim();
   if (trimmed.length === 0) return { ok: false, error: "Describe your event to continue." };
   if (trimmed.length > MAX_PROMPT_LENGTH) {
     return { ok: false, error: `Keep it under ${MAX_PROMPT_LENGTH} characters.` };
   }
   try {
-    const draft = await ensureDraft({ prompt: trimmed, ip: await requesterIp() });
+    const draft = await ensureDraft({ prompt: trimmed, ip: await requesterIp(), reason });
     return { ok: true, hasInspiration: draft.inspiration.length > 0 };
   } catch (error) {
-    if (error instanceof RateLimitedError) {
-      return { ok: false, error: "That is a lot of saving. Try again in a few minutes." };
-    }
+    if (error instanceof RateLimitedError) return { ok: false, error: throttled };
     throw error;
   }
+}
+
+/** Persists the prompt as the user writes, so nothing depends on the submit click landing. */
+export async function saveDraft(prompt: string): Promise<SaveDraftResult> {
+  return persist(prompt, "autosave", "That is a lot of saving. Try again in a few minutes.");
 }
 
 /**
@@ -65,7 +71,13 @@ export async function saveDraft(prompt: string): Promise<SaveDraftResult> {
  * need. The claim itself is idempotent (see the auth callback).
  */
 export async function createEvent(prompt: string): Promise<{ ok: false; error: string } | never> {
-  const saved = await saveDraft(prompt);
+  // `"submit"` so a background autosave budget can never stand between someone and the only
+  // way into the product; only brand-new draft creation is still throttled here.
+  const saved = await persist(
+    prompt,
+    "submit",
+    "We could not start your event just now. Try again in a few minutes.",
+  );
   if (!saved.ok) return saved;
 
   const user = await getCurrentUser();

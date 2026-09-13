@@ -31,31 +31,51 @@ function authorized(request: NextRequest): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/**
+ * The cutoff is this process's clock, but `purge_expired_pre_auth_state` refuses a cutoff in
+ * the database's future. A few hundred milliseconds of skew between the two would fail the
+ * purge *after* the objects were already deleted, so the cutoff is pulled back by a margin
+ * comfortably larger than any skew we would tolerate. Rows a minute younger than the cutoff
+ * simply wait for the next run.
+ */
+const CLOCK_SKEW_MARGIN_MS = 60_000;
+
+/**
+ * Reports the failing stage and the database's own error code to the caller, who by
+ * definition already holds `CRON_SECRET`. A bare 500 leaves a scheduled job with nothing to
+ * act on. The message is logged but never returned, so nothing about the schema leaks.
+ */
+function failed(stage: string, error: unknown): NextResponse {
+  const code = (error as { code?: string } | null)?.code ?? null;
+  console.error(`purge-pre-auth failed at ${stage}`, error);
+  return NextResponse.json({ ok: false, stage, code }, { status: 500 });
+}
+
 export async function GET(request: NextRequest) {
   if (!authorized(request)) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  const cutoff = new Date().toISOString();
+  const cutoff = new Date(Date.now() - CLOCK_SKEW_MARGIN_MS).toISOString();
   const admin = createAdminClient();
 
   const { data: keys, error: keysError } = await admin.rpc("expired_pre_auth_storage_keys", {
     p_cutoff: cutoff,
   });
-  if (keysError) throw keysError;
+  if (keysError) return failed("list_storage_keys", keysError);
 
   const storageKeys = (keys ?? []) as unknown as string[];
   let objectsRemoved = 0;
   if (storageKeys.length > 0) {
     const { error } = await admin.storage.from(INSPIRATION_BUCKET).remove(storageKeys);
-    if (error) throw error;
+    if (error) return failed("remove_objects", error);
     objectsRemoved = storageKeys.length;
   }
 
   const { data: purged, error: purgeError } = await admin.rpc("purge_expired_pre_auth_state", {
     p_cutoff: cutoff,
   });
-  if (purgeError) throw purgeError;
+  if (purgeError) return failed("purge_rows", purgeError);
 
   return NextResponse.json({ ok: true, cutoff, objectsRemoved, draftsPurged: purged ?? 0 });
 }

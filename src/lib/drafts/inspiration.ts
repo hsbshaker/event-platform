@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { enforceRateLimit, type RateLimitRule } from "@/lib/auth/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDraft, type DraftInspiration } from "./store";
 
@@ -26,8 +27,29 @@ export const ALLOWED_MIME_TYPES = [
   "image/heic",
   "image/heif",
 ] as const;
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+/**
+ * The upload route buffers the whole body inside the function, and the platform we are on
+ * rejects serverless request bodies above 4.5 MB before our code ever runs
+ * (docs/technology-decisions.md). A documented ceiling the platform would refuse is worse than
+ * a smaller one we can actually enforce and explain, so this sits under that limit with room
+ * for multipart framing. Raising it means moving to a signed direct-to-Storage upload first.
+ */
+export const MAX_FILE_BYTES = 4 * 1024 * 1024;
 export const MAX_FILES_PER_DRAFT = 6;
+/**
+ * `MAX_FILES_PER_DRAFT` is a concurrent cap, not a budget: delete-then-upload repeats forever
+ * without one. These are the budgets (spec.md §10 anti-abuse limits, §27 strict limits).
+ */
+export const INSPIRATION_UPLOADS_PER_DRAFT: RateLimitRule = {
+  bucket: "inspiration:upload:draft",
+  windowSeconds: 3600,
+  max: 40,
+};
+export const INSPIRATION_UPLOADS_PER_IP: RateLimitRule = {
+  bucket: "inspiration:upload:ip",
+  windowSeconds: 3600,
+  max: 120,
+};
 /** Read-back URLs live just long enough to render the composer thumbnails. */
 export const SIGNED_URL_TTL_SECONDS = 300;
 
@@ -72,13 +94,20 @@ function extensionFor(mime: AllowedMimeType): string {
 }
 
 /** Validates and stores one file against the browser's current draft. */
-export async function addInspirationToDraft(file: {
-  name: string;
-  type: string;
-  bytes: Uint8Array;
-}): Promise<DraftInspiration> {
+export async function addInspirationToDraft(
+  file: {
+    name: string;
+    type: string;
+    bytes: Uint8Array;
+  },
+  /** Requester IP for throttling; pass null only where no address is available. */
+  ip: string | null = null,
+): Promise<DraftInspiration> {
   const draft = await getDraft();
   if (!draft) throw new InspirationRejected("Start by describing your event.");
+  // Spend the budgets before touching Storage, so a flood costs a counter and not an upload.
+  await enforceRateLimit(INSPIRATION_UPLOADS_PER_DRAFT, draft.id);
+  if (ip) await enforceRateLimit(INSPIRATION_UPLOADS_PER_IP, ip);
   if (draft.inspiration.length >= MAX_FILES_PER_DRAFT) {
     throw new InspirationRejected(`You can add up to ${MAX_FILES_PER_DRAFT} images.`);
   }

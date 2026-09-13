@@ -16,11 +16,31 @@ import { generateDraftToken, hashDraftToken } from "./token";
  * plaintext token is never stored and never leaves the cookie.
  */
 
-/** Anonymous draft writes, per requester IP (spec.md §10 anti-abuse rate limits). */
+/**
+ * Anonymous draft limits (spec.md §10 anti-abuse rate limits).
+ *
+ * The counters are deliberately keyed differently from each other. Autosave fires on every
+ * typing pause and on blur, so a single honest visitor produces dozens of writes; behind
+ * carrier-grade NAT or one office egress address, a tight per-IP counter would lock real
+ * people out of the only way into the product. So the per-browser counter is the one that
+ * actually shapes autosave, the per-IP counter is a wide burst ceiling, and creating a new
+ * draft row — the expensive operation, and the one a script would abuse — is held much
+ * tighter per IP.
+ */
+export const DRAFT_WRITES_PER_DRAFT: RateLimitRule = {
+  bucket: "draft:write:draft",
+  windowSeconds: 3600,
+  max: 240,
+};
 export const DRAFT_WRITES_PER_IP: RateLimitRule = {
   bucket: "draft:write:ip",
   windowSeconds: 3600,
-  max: 60,
+  max: 1200,
+};
+export const DRAFT_CREATES_PER_IP: RateLimitRule = {
+  bucket: "draft:create:ip",
+  windowSeconds: 3600,
+  max: 20,
 };
 
 export const MAX_PROMPT_LENGTH = 4000;
@@ -90,6 +110,13 @@ export interface EnsureDraftInput {
   composerState?: Json | null;
   /** Requester IP for throttling; pass null only where no address is available. */
   ip: string | null;
+  /**
+   * `"autosave"` is the background write behind the composer and spends the autosave budget.
+   * `"submit"` is the visitor pressing `Create my event`; it never spends that budget, because
+   * a background save limit must not be able to block the primary funnel. Creating a brand new
+   * draft row is throttled either way.
+   */
+  reason: "autosave" | "submit";
 }
 
 /**
@@ -103,13 +130,17 @@ export async function ensureDraft(input: EnsureDraftInput): Promise<PreAuthDraft
   if (prompt.length > MAX_PROMPT_LENGTH) {
     throw new Error(`The prompt may be at most ${MAX_PROMPT_LENGTH} characters.`);
   }
-  if (input.ip) await enforceRateLimit(DRAFT_WRITES_PER_IP, input.ip);
-
   const admin = createAdminClient();
+  const token = await readDraftToken();
   const existing = await getDraft();
   const composerState = input.composerState ?? null;
 
   if (existing) {
+    if (input.reason === "autosave") {
+      // Keyed on the draft this browser owns, not on the address it arrived from.
+      await enforceRateLimit(DRAFT_WRITES_PER_DRAFT, token ?? existing.id);
+      if (input.ip) await enforceRateLimit(DRAFT_WRITES_PER_IP, input.ip);
+    }
     const { error } = await admin
       .from("pre_auth_event_drafts")
       .update({ prompt, composer_state: composerState })
@@ -119,18 +150,20 @@ export async function ensureDraft(input: EnsureDraftInput): Promise<PreAuthDraft
     return { ...existing, prompt, composerState };
   }
 
-  const token = generateDraftToken();
+  if (input.ip) await enforceRateLimit(DRAFT_CREATES_PER_IP, input.ip);
+
+  const freshToken = generateDraftToken();
   const { data, error } = await admin
     .from("pre_auth_event_drafts")
     .insert({
-      draft_token_hash: tokenHashHex(token),
+      draft_token_hash: tokenHashHex(freshToken),
       prompt,
       composer_state: composerState,
     })
     .select("id, expires_at")
     .single();
   if (error) throw error;
-  await writeDraftToken(token);
+  await writeDraftToken(freshToken);
   return {
     id: data.id,
     prompt,

@@ -113,6 +113,22 @@ describe("auth callback", () => {
     );
   });
 
+  it("refuses a backslash-smuggled off-site next parameter", async () => {
+    // URL parsing treats `\\` as `/` for http(s), so these all resolve to https://evil.test/
+    // even though each starts with a single `/`. A prefix check would let them through.
+    for (const next of ["/\\evil.test", "/\\/evil.test", "/\\\\evil.test"]) {
+      expect(location(await callback(`?code=abc&next=${encodeURIComponent(next)}`)), next).toBe(
+        `${ORIGIN}/events/event-1/create`,
+      );
+    }
+  });
+
+  it("keeps a percent-encoded backslash as an ordinary same-origin path", async () => {
+    expect(location(await callback("?code=abc&next=%2F%255Cevil.test"))).toBe(
+      `${ORIGIN}/%5Cevil.test`,
+    );
+  });
+
   it("honours a same-origin next parameter", async () => {
     expect(location(await callback("?code=abc&next=/events/event-1/create?welcome=1"))).toBe(
       `${ORIGIN}/events/event-1/create?welcome=1`,
