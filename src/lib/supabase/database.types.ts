@@ -17,6 +17,9 @@ export type EventMemberRole = "owner" | "cohost";
 export type ClaimOutcome =
   "claimed" | "already_claimed_by_user" | "claimed_by_other" | "expired" | "not_found";
 
+/** Outcomes of public.attach_inspiration_asset (supabase/migrations/20260913020000_phase2_asset_consistency.sql). */
+export type AttachInspirationOutcome = "attached" | "limit_reached" | "gone";
+
 export type ModelOperation =
   "event_identity" | "design_intent" | "composition" | "structured_extraction";
 
@@ -320,6 +323,30 @@ export type Database = {
       };
       expired_pre_auth_storage_keys: { Args: { p_cutoff: string }; Returns: string[] };
       purge_expired_pre_auth_state: { Args: { p_cutoff: string }; Returns: number };
+      attach_inspiration_asset: {
+        Args: {
+          p_draft_id: string;
+          p_storage_key: string;
+          p_mime_type: string;
+          p_size_bytes: number;
+          p_max_files: number;
+        };
+        Returns: {
+          outcome: AttachInspirationOutcome;
+          asset_id: string | null;
+          attached_event_id: string | null;
+          asset_created_at: string | null;
+        }[];
+      };
+      expired_pre_auth_draft_batch: {
+        Args: { p_cutoff: string; p_limit: number };
+        Returns: { draft_id: string; storage_keys: string[] }[];
+      };
+      purge_pre_auth_drafts: {
+        Args: { p_cutoff: string; p_draft_ids: string[] };
+        Returns: number;
+      };
+      purge_stale_rate_limits: { Args: Record<string, never>; Returns: number };
     };
     Enums: {
       event_status: EventStatus;
