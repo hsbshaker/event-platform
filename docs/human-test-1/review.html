@@ -129,27 +129,38 @@
   const EXPIRY_MARGIN_MS = 60000;
   let pending = null;
 
-  function heldCapability() {
+  function storedRecord() {
     try {
       const raw = sessionStorage.getItem(CAPABILITY_NAME);
       if (!raw) return null;
       const held = JSON.parse(raw);
-      if (!held || typeof held.capability !== "string") return null;
-      if (!(held.expiresAt > Date.now() + EXPIRY_MARGIN_MS)) return null;
-      return held.capability;
+      return held && typeof held.capability === "string" ? held : null;
     } catch (e) {
       return null;
     }
   }
 
+  /**
+   * The capability to submit with, renewing rather than replacing when the held one is stale.
+   *
+   * The distinction matters. Expiry says how long the authorization is fresh; the nonce inside
+   * says which row this session owns. Minting a *new* capability for a reviewer who already
+   * submitted would hand them a new row identity, so coming back to fix a rating would add a
+   * second response instead of correcting their own. Offering the stale one back lets the server
+   * re-sign the same nonce, and the correction lands where it should.
+   */
   function capability() {
-    const held = heldCapability();
-    if (held) return Promise.resolve(held);
+    const held = storedRecord();
+    if (held && held.expiresAt > Date.now() + EXPIRY_MARGIN_MS) return Promise.resolve(held.capability);
     // Memoised, so a submit that races the load-time fetch spends one capability rather than
     // minting a second and writing to a row the first one did not create.
     if (pending) return pending;
     pending = (async () => {
-      const res = await fetch(SESSION_ENDPOINT, { method: "POST" });
+      const res = await fetch(SESSION_ENDPOINT, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(held ? { previous: held.capability } : {}),
+      });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok || !body.capability) {
         throw new Error(body.error || "Could not start this survey session. Reload the page and try again.");
@@ -200,11 +211,14 @@
     try {
       let res = await send(r);
       if (res.status === 403) {
-        // The only 403 this page can provoke is a capability the server will not accept — stale,
-        // or minted against a key this deployment no longer has. Nothing was written under it, so
-        // discard it and mint a fresh one, once. Without this a reviewer could be stuck behind a
-        // refusal that survives every reload.
-        try { sessionStorage.removeItem(CAPABILITY_NAME); } catch (e) {}
+        // The only 403 this page can provoke is a capability the server will not accept. Offer it
+        // for renewal once: if it is merely stale the server re-signs the same nonce and the row
+        // identity survives, and if it is unrecognisable a fresh one is minted. Either way the
+        // reviewer is not stuck behind a refusal that survives every reload.
+        const held = storedRecord();
+        try {
+          sessionStorage.setItem(CAPABILITY_NAME, JSON.stringify({ capability: held ? held.capability : "", expiresAt: 0 }));
+        } catch (e) {}
         res = await send(r);
       }
       const body = await res.json().catch(() => ({}));

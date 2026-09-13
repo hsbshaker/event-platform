@@ -21,16 +21,23 @@ vi.mock("@/lib/auth/rate-limit", async (importOriginal) => ({
 }));
 
 const { POST } = await import("./route");
-const { resolveCapability } = await import("@/lib/human-test/capability");
+const { resolveCapability, issueCapability, CAPABILITY_TTL_MS } =
+  await import("@/lib/human-test/capability");
 
 const HOST = "survey.example.com";
 const APP_KEY = Buffer.alloc(32, 7).toString("base64");
 
-function request(headers: Record<string, string> = {}) {
+function request(headers: Record<string, string> = {}, body?: unknown) {
   return new NextRequest(`https://${HOST}/api/human-test-1/session`, {
     method: "POST",
     headers: { host: HOST, origin: `https://${HOST}`, ...headers },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
+}
+
+async function keyOf(res: Response): Promise<string> {
+  const resolved = resolveCapability((await res.json()).capability, APP_KEY);
+  return resolved.ok ? resolved.submissionKey : "";
 }
 
 beforeEach(() => {
@@ -116,5 +123,46 @@ describe("issuing a capability", () => {
         /model-authored|hand-authored|human-test-key|human-test-items|library|threshold|\b70\s*%/i,
       );
     }
+  });
+});
+
+describe("renewing a capability offered by the caller", () => {
+  it("keeps the nonce, so a reviewer's later correction replaces their own row", async () => {
+    const original = issueCapability(APP_KEY, Date.now() - CAPABILITY_TTL_MS * 2).capability;
+    const renewed = await POST(request({}, { previous: original }));
+    expect(renewed.status).toBe(200);
+    const originalKey = resolveCapability(original, APP_KEY, 0);
+    expect(originalKey.ok && (await keyOf(renewed)) === originalKey.submissionKey).toBe(true);
+  });
+
+  it("mints a fresh one when the offered capability is not ours", async () => {
+    const foreign = issueCapability(Buffer.alloc(32, 9).toString("base64")).capability;
+    const res = await POST(request({}, { previous: foreign }));
+    expect(res.status).toBe(200);
+    const foreignKey = resolveCapability(foreign, Buffer.alloc(32, 9).toString("base64"));
+    expect(foreignKey.ok && (await keyOf(res)) !== foreignKey.submissionKey).toBe(true);
+  });
+
+  it.each([
+    ["no body", undefined],
+    ["an empty object", {}],
+    ["a null previous", { previous: null }],
+    ["a junk previous", { previous: "let-me-in" }],
+    ["an unexpected shape", { nope: 1 }],
+  ])("still issues a usable capability given %s", async (_label, body) => {
+    const res = await POST(request({}, body));
+    expect(res.status).toBe(200);
+    expect(await keyOf(res)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  });
+
+  it("survives a malformed body rather than failing the reviewer", async () => {
+    const res = await POST(
+      new NextRequest(`https://${HOST}/api/human-test-1/session`, {
+        method: "POST",
+        headers: { host: HOST, origin: `https://${HOST}` },
+        body: "{{{not json",
+      }),
+    );
+    expect(res.status).toBe(200);
   });
 });

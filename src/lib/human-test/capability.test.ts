@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { CAPABILITY_TTL_MS, issueCapability, resolveCapability } from "./capability";
+import {
+  CAPABILITY_TTL_MS,
+  issueCapability,
+  renewCapability,
+  resolveCapability,
+} from "./capability";
 
 /**
  * The authorization boundary in front of the service role.
@@ -101,5 +106,72 @@ describe("anything else is refused, and reaches no database", () => {
   it("never leaks the submission key on a refusal", () => {
     const result = resolveCapability(`${version}.${nonce}.${expiry}.${"z".repeat(43)}`, KEY);
     expect(Object.keys(result).sort()).toEqual(["ok", "reason"]);
+  });
+});
+
+/**
+ * Renewal keeps the row, not just the authorization.
+ *
+ * The nonce names the row a session owns. If renewing minted a new one, a reviewer who submitted
+ * and came back after the window to fix a rating would write a *second* response instead of
+ * correcting their own — and `score-stored.mjs` would then refuse to resolve five reviewers
+ * without someone choosing between two rows by hand.
+ */
+describe("renewing a capability", () => {
+  it("keeps the nonce, so a correction lands on the row the session already owns", () => {
+    const now = 1_000_000;
+    const original = issueCapability(KEY, now);
+    const before = resolveCapability(original.capability, KEY, now);
+    const renewed = renewCapability(original.capability, KEY, now + CAPABILITY_TTL_MS + 1);
+    expect(renewed).not.toBeNull();
+    const after = resolveCapability(renewed!.capability, KEY, now + CAPABILITY_TTL_MS + 1);
+    expect(before.ok && after.ok && before.submissionKey === after.submissionKey).toBe(true);
+  });
+
+  it("renews one that has already expired — the whole point", () => {
+    const now = 1_000_000;
+    const stale = issueCapability(KEY, now).capability;
+    const late = now + CAPABILITY_TTL_MS * 3;
+    expect(resolveCapability(stale, KEY, late).ok).toBe(false);
+    const renewed = renewCapability(stale, KEY, late);
+    expect(renewed).not.toBeNull();
+    expect(resolveCapability(renewed!.capability, KEY, late).ok).toBe(true);
+  });
+
+  it("extends the window from now, not from the original expiry", () => {
+    const now = 1_000_000;
+    const late = now + CAPABILITY_TTL_MS * 3;
+    expect(renewCapability(issueCapability(KEY, now).capability, KEY, late)!.expiresAt).toBe(
+      late + CAPABILITY_TTL_MS,
+    );
+  });
+
+  it("refuses anything it did not sign, so renewal is not a way in", () => {
+    const { capability } = issueCapability(KEY);
+    const [version, nonce, expiry, signature] = capability.split(".");
+    for (const bad of [
+      undefined,
+      null,
+      "",
+      "let-me-in",
+      `${version}.${nonce}.${expiry}.${"z".repeat(43)}`,
+      `${version}.${"A".repeat(43)}.${expiry}.${signature}`,
+      `v2.${nonce}.${expiry}.${signature}`,
+      issueCapability(OTHER_KEY).capability,
+      "x".repeat(5000),
+    ]) {
+      expect(renewCapability(bad, KEY)).toBeNull();
+    }
+  });
+
+  it("grants nothing new: the presenter already held that nonce", () => {
+    // Renewal re-signs a nonce the caller demonstrably has. It cannot produce a nonce they did
+    // not present, which is what would make it an escalation.
+    const mine = issueCapability(KEY);
+    const theirs = issueCapability(KEY);
+    const renewed = renewCapability(mine.capability, KEY)!;
+    const a = resolveCapability(renewed.capability, KEY);
+    const b = resolveCapability(theirs.capability, KEY);
+    expect(a.ok && b.ok && a.submissionKey !== b.submissionKey).toBe(true);
   });
 });

@@ -61,13 +61,19 @@ function requireApp(): AppServer {
  * route tests.
  */
 const STUB_CAPABILITY = `v1.${"A".repeat(43)}.9999999999999.${"B".repeat(43)}`;
+/** Bodies the page sent to the session endpoint, so renewal can be asserted. */
+let sessionRequests: unknown[] = [];
+/** A capability whose window has closed — what a reviewer's tab holds a day later. */
+const STALE_CAPABILITY = `v1.${"C".repeat(43)}.1.${"D".repeat(43)}`;
 
 async function interceptSubmit(
   page: Page,
   respond: { ok: boolean; status?: number; body?: unknown } = { ok: true },
 ): Promise<unknown[]> {
+  sessionRequests = [];
   const posted: unknown[] = [];
   await page.route("**/api/human-test-1/session", async (route) => {
+    sessionRequests.push(JSON.parse(route.request().postData() || "null"));
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -309,11 +315,13 @@ describe.each([
       // A reviewer who opened the link, was interrupted, and came back the next day in the same
       // tab. The stale capability must not be presented, and must not survive as a refusal the
       // reviewer cannot escape by reloading.
-      await page.evaluate(() =>
-        sessionStorage.setItem(
-          "human-test-1-capability",
-          JSON.stringify({ capability: "v1.stale.1.stale", expiresAt: Date.now() - 1000 }),
-        ),
+      await page.evaluate(
+        (stale) =>
+          sessionStorage.setItem(
+            "human-test-1-capability",
+            JSON.stringify({ capability: stale, expiresAt: Date.now() - 1000 }),
+          ),
+        STALE_CAPABILITY,
       );
       await completeSurvey(page);
       await page.click("#submit");
@@ -321,6 +329,13 @@ describe.each([
 
       expect(posted).toHaveLength(1);
       expect((posted[0] as { capability: string }).capability).toBe(STUB_CAPABILITY);
+      // And it offered the stale one back for renewal rather than discarding it. The nonce inside
+      // names the row this session owns, so throwing it away would turn a reviewer's correction
+      // into a second response instead of replacing their own.
+      const renewals = sessionRequests.filter(
+        (b) => (b as { previous?: string } | null)?.previous === STALE_CAPABILITY,
+      );
+      expect(renewals.length).toBeGreaterThanOrEqual(1);
     } finally {
       await close();
     }

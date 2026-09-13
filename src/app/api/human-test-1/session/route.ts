@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { RateLimitedError } from "@/lib/auth/errors";
 import { enforceRateLimit, type RateLimitRule } from "@/lib/auth/rate-limit";
 import { serverEnv } from "@/lib/env";
-import { issueCapability } from "@/lib/human-test/capability";
+import { issueCapability, renewCapability } from "@/lib/human-test/capability";
 
 /**
  * Issues the anonymous reviewer capability the survey needs before it can submit
@@ -69,8 +69,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Not available." }, { status: 500 });
   }
 
+  // A capability the caller already holds, offered for renewal. Renewing keeps its nonce, which
+  // is what stops a reviewer who comes back after the TTL from being handed a new row identity
+  // and writing a second response instead of correcting their own. Optional, bounded, and
+  // ignored unless it verifies; the presenter already holds the nonce, so this grants nothing.
+  let previous: unknown;
   try {
-    const { capability, expiresAt } = issueCapability(serverEnv().APP_ENCRYPTION_KEY);
+    const raw = await request.text();
+    previous = raw ? (JSON.parse(raw) as { previous?: unknown }).previous : undefined;
+  } catch {
+    previous = undefined;
+  }
+
+  try {
+    const key = serverEnv().APP_ENCRYPTION_KEY;
+    const { capability, expiresAt } = renewCapability(previous, key) ?? issueCapability(key);
     // Never cached: two reviewers sharing a capability would share a row.
     return NextResponse.json(
       { ok: true, capability, expiresAt },

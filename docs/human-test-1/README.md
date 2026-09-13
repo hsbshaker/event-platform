@@ -32,7 +32,9 @@ nothing is downloaded, emailed or pasted.
    submission writes is named by that capability, not by anything the browser chose. Submission is
    therefore idempotent per session: a double tap or a retry does not create a second reviewer, a
    reviewer who reloads and corrects an answer replaces their own row, and nobody can address
-   somebody else's. Two rows for one name mean two separate sessions, and `score-stored.mjs`
+   somebody else's. The capability expires, but renewing it keeps the same row, so a reviewer who
+   comes back the next day to fix a rating still corrects their own response rather than adding
+   another. Two rows for one name mean two separate sessions, and `score-stored.mjs`
    refuses to choose between them for you.
 3. Check what has arrived, then score:
 

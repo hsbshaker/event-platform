@@ -73,6 +73,46 @@ export function issueCapability(key: string, now: number = Date.now()): IssuedCa
   return { capability: `${payload}.${sign(payload, key)}`, expiresAt };
 }
 
+/**
+ * Re-issues a capability, keeping its nonce.
+ *
+ * Expiry and identity are different things, and conflating them costs a response. The nonce
+ * names the row this session owns; the expiry only says how long the authorization is fresh. A
+ * reviewer who submits, comes back the next day to fix a rating, and is handed a *new* nonce
+ * would write a second row rather than replacing their own — which is the behaviour the survey
+ * documents, and which `score-stored.mjs` would then refuse to resolve without an operator
+ * choosing between two rows by hand.
+ *
+ * So renewal verifies the signature and deliberately ignores the expiry: a stale capability is
+ * still proof that this deployment minted that nonce. It grants nothing new — the presenter
+ * already holds the nonce, and could already address that row while the capability was fresh —
+ * it only extends how long they may keep using it.
+ *
+ * Returns null when the presented capability is not one of ours at all (forged, malformed, or
+ * signed with a key we no longer hold), in which case the caller mints a fresh one.
+ */
+export function renewCapability(
+  presented: unknown,
+  key: string,
+  now: number = Date.now(),
+): IssuedCapability | null {
+  if (typeof presented !== "string" || presented.length > 400) return null;
+  const parts = presented.split(".");
+  if (parts.length !== 4) return null;
+  const [version, nonce, expiry, signature] = parts as [string, string, string, string];
+  if (version !== VERSION) return null;
+  if (!/^[A-Za-z0-9_-]{43}$/.test(nonce)) return null;
+  if (!/^[0-9]{1,15}$/.test(expiry)) return null;
+
+  const expected = Buffer.from(sign(`${version}.${nonce}.${expiry}`, key));
+  const actual = Buffer.from(signature);
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
+
+  const expiresAt = now + CAPABILITY_TTL_MS;
+  const payload = `${VERSION}.${nonce}.${expiresAt}`;
+  return { capability: `${payload}.${sign(payload, key)}`, expiresAt };
+}
+
 export type CapabilityRefusal = "malformed" | "unknown-version" | "bad-signature" | "expired";
 
 export interface ResolvedCapability {
