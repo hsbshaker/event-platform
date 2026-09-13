@@ -2,8 +2,8 @@
 ## Event Identity, DesignIntent and Composition prompts and structured-output schemas
 
 **Status:** Revision 2 — composition-language baseline  
-**Prompt versions:** `event_identity_v2`, `design_intent_v3`, `composition_v1_p2`  
-**Schema versions:** `event_identity_schema_v2`, `design_intent_schema_v3`, `composition_schema_v1`  
+**Prompt versions:** `event_identity_v2`, `design_intent_v4`, `composition_v1_p2`  
+**Schema versions:** `event_identity_schema_v2`, `design_intent_schema_v4`, `composition_schema_v1`  
 **PRD:** `../spec.md` Revision 6  
 **Renderer:** `event-renderer-system.md` Revision 2
 
@@ -46,8 +46,8 @@ Prompts and schemas are versioned production assets:
 ```ts
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v2"
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v2"
-export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v3"
-export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v3"
+export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v4"
+export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v4"
 export const COMPOSITION_PROMPT_VERSION    = "composition_v1_p2"
 export const COMPOSITION_SCHEMA_VERSION    = "composition_schema_v1"
 export const PRIMITIVE_SET_VERSION         = "composition_v1"
@@ -74,7 +74,7 @@ Unchanged from Revision 1 except the catalogs: `availableHeroArchetypes` becomes
 
 ---
 
-# 5. DesignIntent (design_intent_v3)
+# 5. DesignIntent (design_intent_v4)
 
 ## 5.1 Contract
 
@@ -98,6 +98,14 @@ DesignIntent {
 ```
 
 `family` replaces `heroArchetype`. It is a design grammar the composition call is conditioned on, not a bundle: the compiler enforces no family rule; family lints are recorded as `intentDeviations`, never repaired. `composition` values are directives to the composition call and measurements taken from the tree afterwards; they select nothing.
+
+**v4 reconciliation.** v3's schema had drifted from the production vocabulary in three ways, all corrected together because they are one drift:
+
+- `typographyPairing` carried six category-shaped IDs. Pairing and category are different things: there are six categories and twelve concrete pairings, two per category. The v4 enum is the twelve, and runtime narrowing filters to the assigned category and, at monumental hierarchy, to the pairings that hold there.
+- `motifs` carried a ten-item catalog (`plaid_restrained`, `botanical_line`, `deco_border`, …) that no longer exists. The v4 enum is the seven curated IDs — four patterns (`plaid`, `stripe`, `gingham`, `linen`) and three arrangements (`equestrian`, `botanical`, `celestial`).
+- schema and prompt descriptions still said `archetype`, which Revision 6 removed. v4 says `family`, names the page system as compiler-owned, and names structure as the later composition call's.
+
+Creative responsibilities are unchanged: the planner assigns family, tone, typography category and hierarchy; the strong model returns the DesignIntent; the composition call authors structure. v3 is preserved at `docs/model-schemas/history/design-intent.v3.schema.json` and `docs/model-prompts/history/design-intent.v3.system.md`.
 
 ## 5.2 Input, assembly, narrowing, validation
 

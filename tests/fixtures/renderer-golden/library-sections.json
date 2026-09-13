@@ -1,0 +1,2027 @@
+{
+ "details:details_grid": {
+  "hash": "aabd416b",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "details",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "details",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "secondary",
+        "id": "s1.1",
+        "t": "Description"
+       },
+       {
+        "children": [
+         {
+          "child": {
+           "emphasis": "primary",
+           "form": "full",
+           "id": "s1.2.0.c",
+           "t": "Date"
+          },
+          "id": "s1.2.0",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "emphasis": "primary",
+           "id": "s1.2.1.c",
+           "t": "Time"
+          },
+          "id": "s1.2.1",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "children": [
+            {
+             "emphasis": "primary",
+             "id": "s1.2.2.c.0",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s1.2.2.c.1",
+             "t": "Location"
+            }
+           ],
+           "gap": "normal",
+           "id": "s1.2.2.c",
+           "t": "Stack"
+          },
+          "id": "s1.2.2",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         }
+        ],
+        "columns": 3,
+        "gap": "normal",
+        "id": "s1.2",
+        "mobile": 1,
+        "ruled": true,
+        "t": "Grid"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "details:details_sidebar_rows": {
+  "hash": "00b7e3da",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "details",
+     "root": {
+      "children": [
+       {
+        "id": "s1.0",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "align": "stretch",
+        "children": [
+         {
+          "emphasis": "primary",
+          "for": "details",
+          "id": "s1.1.0",
+          "t": "SectionHeading"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s1.1.1",
+          "t": "Description"
+         }
+        ],
+        "divider": "none",
+        "id": "s1.1",
+        "mobile": "stack",
+        "ratio": "38",
+        "t": "Split"
+       },
+       {
+        "id": "s1.2",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "align": "stretch",
+        "children": [
+         {
+          "emphasis": "primary",
+          "form": "full",
+          "id": "s1.3.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s1.3.1",
+          "t": "Time"
+         }
+        ],
+        "divider": "none",
+        "id": "s1.3",
+        "mobile": "stack",
+        "ratio": "38",
+        "t": "Split"
+       },
+       {
+        "id": "s1.4",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "align": "stretch",
+        "children": [
+         {
+          "emphasis": "primary",
+          "id": "s1.5.0",
+          "t": "Venue"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s1.5.1",
+          "t": "Location"
+         }
+        ],
+        "divider": "none",
+        "id": "s1.5",
+        "mobile": "stack",
+        "ratio": "38",
+        "t": "Split"
+       },
+       {
+        "id": "s1.6",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "details:details_split_panel": {
+  "hash": "ba9059c6",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "details",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "child": {
+         "children": [
+          {
+           "emphasis": "primary",
+           "for": "details",
+           "id": "s1.0.c.0",
+           "t": "SectionHeading"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s1.0.c.1",
+           "t": "Description"
+          }
+         ],
+         "gap": "normal",
+         "id": "s1.0.c",
+         "t": "Stack"
+        },
+        "id": "s1.0",
+        "inset": "normal",
+        "role": "accent",
+        "t": "Surface"
+       },
+       {
+        "child": {
+         "children": [
+          {
+           "children": [
+            {
+             "emphasis": "primary",
+             "form": "full",
+             "id": "s1.1.c.0.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s1.1.c.0.1",
+             "t": "Time"
+            }
+           ],
+           "gap": "normal",
+           "id": "s1.1.c.0",
+           "t": "Stack"
+          },
+          {
+           "id": "s1.1.c.1",
+           "orientation": "h",
+           "t": "Rule",
+           "weight": "hairline"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "primary",
+             "id": "s1.1.c.2.0",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s1.1.c.2.1",
+             "t": "Location"
+            }
+           ],
+           "gap": "normal",
+           "id": "s1.1.c.2",
+           "t": "Stack"
+          }
+         ],
+         "gap": "normal",
+         "id": "s1.1.c",
+         "t": "Stack"
+        },
+        "id": "s1.1",
+        "inset": "normal",
+        "rule": "hairline",
+        "t": "Frame"
+       }
+      ],
+      "divider": "none",
+      "id": "s1",
+      "mobile": "stack",
+      "ratio": "38",
+      "t": "Split"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "details:details_stacked": {
+  "hash": "c4977f90",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "details",
+     "root": {
+      "align": "center",
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "details",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "secondary",
+        "id": "s1.1",
+        "t": "Description"
+       },
+       {
+        "id": "s1.2",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "align": "center",
+        "children": [
+         {
+          "emphasis": "primary",
+          "form": "full",
+          "id": "s1.3.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s1.3.1",
+          "t": "Time"
+         }
+        ],
+        "gap": "normal",
+        "id": "s1.3",
+        "t": "Stack"
+       },
+       {
+        "id": "s1.4",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "align": "center",
+        "children": [
+         {
+          "emphasis": "primary",
+          "id": "s1.5.0",
+          "t": "Venue"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s1.5.1",
+          "t": "Location"
+         }
+        ],
+        "gap": "normal",
+        "id": "s1.5",
+        "t": "Stack"
+       },
+       {
+        "id": "s1.6",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "registry:registry_editorial_list": {
+  "hash": "e0d077e9",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s1.1",
+        "layout": {
+         "children": [
+          {
+           "emphasis": "standard",
+           "id": "s1.1.l.0",
+           "kind": "gift",
+           "t": "RegistryItem"
+          },
+          {
+           "emphasis": "standard",
+           "id": "s1.1.l.1",
+           "kind": "external",
+           "t": "RegistryItem"
+          },
+          {
+           "emphasis": "standard",
+           "id": "s1.1.l.2",
+           "kind": "cashfund",
+           "t": "RegistryItem"
+          }
+         ],
+         "gap": "normal",
+         "id": "s1.1.l",
+         "t": "Stack"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "registry:registry_featured": {
+  "hash": "eaf9b61b",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s1.1",
+        "layout": {
+         "align": "stretch",
+         "children": [
+          {
+           "emphasis": "featured",
+           "id": "s1.1.l.0",
+           "kind": "gift",
+           "t": "RegistryItem"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "standard",
+             "id": "s1.1.l.1.0",
+             "kind": "external",
+             "t": "RegistryItem"
+            },
+            {
+             "emphasis": "standard",
+             "id": "s1.1.l.1.1",
+             "kind": "cashfund",
+             "t": "RegistryItem"
+            }
+           ],
+           "gap": "normal",
+           "id": "s1.1.l.1",
+           "t": "Stack"
+          }
+         ],
+         "divider": "none",
+         "id": "s1.1.l",
+         "mobile": "stack",
+         "ratio": "62",
+         "t": "Split"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "registry:registry_tiles": {
+  "hash": "ac28f107",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s1.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s1.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s1.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s1.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s1.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s1.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s1.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s1.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "registry:registry_uneven_grid": {
+  "hash": "1aeeb5cf",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s1.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "featured",
+            "id": "s1.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s1.1.l.0",
+           "rowSpan": 2,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s1.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s1.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s1.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s1.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s1.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "rsvp:rsvp_contained_card": {
+  "hash": "52e93c04",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "child": {
+       "children": [
+        {
+         "emphasis": "primary",
+         "for": "rsvp",
+         "id": "s1.c.0",
+         "t": "SectionHeading"
+        },
+        {
+         "emphasis": "caption",
+         "id": "s1.c.1",
+         "t": "Deadline"
+        },
+        {
+         "id": "s1.c.2",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s1.c",
+       "t": "Stack"
+      },
+      "id": "s1",
+      "inset": "normal",
+      "rule": "hairline",
+      "t": "Frame"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "rsvp:rsvp_contrast_split": {
+  "hash": "5b542621",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "emphasis": "primary",
+          "for": "rsvp",
+          "id": "s1.0.0",
+          "t": "SectionHeading"
+         },
+         {
+          "emphasis": "caption",
+          "id": "s1.0.1",
+          "t": "Deadline"
+         }
+        ],
+        "gap": "normal",
+        "id": "s1.0",
+        "t": "Stack"
+       },
+       {
+        "id": "s1.1",
+        "t": "RSVP"
+       }
+      ],
+      "divider": "none",
+      "id": "s1",
+      "mobile": "stack",
+      "ratio": "38",
+      "t": "Split"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "rsvp:rsvp_edge_interruption": {
+  "hash": "c9396497",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "display",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s1.1",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "rsvp:rsvp_typographic_stack": {
+  "hash": "f8bd21e9",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ },
+ "rsvp:rsvp_wide_heading": {
+  "hash": "4be5876f",
+  "tree": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "child": {
+         "children": [
+          {
+           "emphasis": "caption",
+           "id": "s1.0.c.0",
+           "t": "Deadline"
+          },
+          {
+           "emphasis": "primary",
+           "for": "rsvp",
+           "id": "s1.0.c.1",
+           "t": "SectionHeading"
+          }
+         ],
+         "gap": "normal",
+         "id": "s1.0.c",
+         "t": "Stack"
+        },
+        "id": "s1.0",
+        "inset": "normal",
+        "role": "accent",
+        "t": "Surface"
+       },
+       {
+        "align": "stretch",
+        "children": [
+         {
+          "id": "s1.1.0",
+          "motif": "botanical",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "id": "s1.1.1",
+          "t": "RSVP"
+         }
+        ],
+        "divider": "none",
+        "id": "s1.1",
+        "mobile": "stack",
+        "ratio": "38",
+        "t": "Split"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    }
+   ],
+   "version": "composition_v1"
+  }
+ }
+}

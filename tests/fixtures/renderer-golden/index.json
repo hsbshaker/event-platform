@@ -1,0 +1,18 @@
+{
+ "capturedFrom": "proof-b",
+ "counts": {
+  "acceptedTrees": 72,
+  "modelCalls": 74,
+  "rejectedAttempts": 2
+ },
+ "files": [
+  "tests/fixtures/renderer-golden/library-heroes.json",
+  "tests/fixtures/renderer-golden/library-sections.json",
+  "tests/fixtures/renderer-golden/library-pages.json",
+  "tests/fixtures/renderer-golden/adversarial-schema-invalid.json",
+  "tests/fixtures/renderer-golden/adversarial-structural.json",
+  "tests/fixtures/renderer-golden/frozen-final.json",
+  "tests/fixtures/renderer-golden/frozen-final-reduced.json",
+  "tests/fixtures/renderer-golden/frozen-rejected-attempts.json"
+ ]
+}

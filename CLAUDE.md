@@ -141,6 +141,18 @@ Do not:
 - give the model a per-node color, font, size, pixel or free-text field;
 - silently recompile historical concepts against a newer compiler or primitive set.
 
+## 5.1 The Library Boundary Invariant
+
+`docs/event-renderer-system.md §7.1` is binding. The legacy library is **26 hero silhouettes and 13 section recipes** kept as fixtures; it is not the creative space.
+
+Production generation accepts and compiles any valid model-authored `CompositionTree`. It never selects, matches, ranks, schedules or maps a composition onto a legacy silhouette or recipe. A tree is legal because the rules admit it, never because it resembles a fixture, and a novel composition with no counterpart in the library is first-class on exactly the same path.
+
+The library may be used **only** for: regression and expressiveness fixtures; rotated few-shot examples; deterministic repair macros where the renderer doc specifies them; the terminal fallback after the documented retry is exhausted; and signature calibration.
+
+Never introduce: template or catalogue selection; normal candidate generation from the library; a recipe or silhouette identifier as a creative decision variable; nearest-library mapping; structural scheduling driven by the library; or renderer code that branches by recipe.
+
+This is the architecture Revision 2 chose when it replaced bundled archetypes. Rebuilding a template system underneath it, by any of the routes above, is the specific regression the invariant exists to prevent — so it is enforced by tests and lint, and a change that needs those relaxed is a stop condition, not a refactor.
+
 Regression gate for any change to the language, validator, compiler, renderer rules or planner: `proof-b/test.js`, `proof-b/adv-run.js`, the library expressiveness render, and a sibling-batch confirmation run evaluated with `proof-b/evaluate.js` against the thresholds in `docs/event-renderer-system.md §9`.
 
 ---

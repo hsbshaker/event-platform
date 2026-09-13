@@ -8,3 +8,8 @@ CLAUDE.md
 package-lock.json
 .claude
 src/spike/fixture.generated.html
+
+# Captured evidence, not source: the Phase 3 golden oracle is written by
+# scripts/renderer/capture-golden.mjs and must not be reformatted in place.
+tests/fixtures/renderer-golden
+docs/phase-3/deployed-geometry.json

@@ -1864,9 +1864,41 @@ Raw palette + tonal direction compile into:
 
 Required contrast must be valid by construction.
 
+## 15.6a Focus indicator contract (generated event controls)
+
+Binding on the event renderer's stylesheet and on every themed guest component.
+
+**The ring is drawn outside the control, against the adjacent event surface.** Not inside the
+control's fill, and not straddling the boundary.
+
+This is not a stylistic preference. Requiring one ring color to clear 3:1 against *both* a button's
+fill and the page surface behind it is unsatisfiable in the dark tonal direction: against the base
+the ring needs relative luminance at or above 0.178, against a mid-lightness fill at or below
+0.077. The semantic palette therefore derives `focus` against the surfaces it sits on
+(`surfaceBase`, `surfaceAlt`) and guarantees 3:1 there. A ring drawn inside a filled control has no
+such guarantee and can vanish.
+
+Requirements:
+
+- keyboard focus is always visible; `:focus-visible` never resolves to `outline: none` with nothing
+  in its place;
+- the indicator is offset outside the control boundary (`outline` plus a positive `outline-offset`,
+  or an equivalent outset ring);
+- the indicator clears **3:1 against the adjacent surface it is drawn on**, which the semantic
+  palette's `focus` token guarantees for `surfaceBase` and `surfaceAlt`;
+- focus is never signalled by color alone — the ring is a shape change, present at every tonal
+  direction;
+- verified at `light`, `mid` and `dark` event surfaces.
+
+Application chrome keeps its own focus treatment (§23.7); this contract governs generated event
+surfaces only.
+
 ## 15.7 Motif requirement
 
-Motifs declare supported roles and color/opacity behavior.
+Motifs declare a kind (pattern or arrangement), the roles they support, and bounded opacity and
+scale behavior. The ornament direction is a hard cap on how many render; suppressed motifs stay in
+the resolved spec as evidence with a logged deviation and are not drawn
+(`event-renderer-system.md §8`).
 
 Every composition exposes the same semantic section anchors:
 - field;

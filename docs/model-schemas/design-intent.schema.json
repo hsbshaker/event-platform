@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://event-platform.local/schemas/design-intent.schema.json",
-  "title": "DesignIntentResponse",
-  "description": "Canonical superset schema for the DesignIntent model response: the six design fields (family, tonalDirection, palette, typographyPairing, density, composition) plus motifs plus a non-design `presentation` object. The application splits the response into DesignIntent (six fields, consumed by the compiler) and ConceptPresentation (name/description, never read by the compiler). At runtime narrow hard-assignment/catalog enums before sending to the structured-output provider.",
+  "$id": "https://event-platform.local/schemas/design-intent.v4.schema.json",
+  "title": "DesignIntentResponse (design_intent_schema_v4)",
+  "description": "Canonical superset schema for the DesignIntent model response: the six design fields (family, tonalDirection, palette, typographyPairing, density, composition) plus motifs plus a non-design `presentation` object. The application splits the response into DesignIntent (six fields, consumed by the compiler) and ConceptPresentation (name/description, never read by the compiler). At runtime narrow hard-assignment/catalog enums before sending to the structured-output provider. v4 reconciles this schema with the Revision 6 production vocabulary: the twelve concrete typography pairing IDs replace six category-shaped IDs, the seven canonical motif IDs replace a ten-item catalog that no longer exists, and Revision 1 bundle wording is replaced by family. v3 is preserved at history/design-intent.v3.schema.json.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -63,14 +63,20 @@
     "typographyPairing": {
       "type": "string",
       "enum": [
-        "heritage_serif_clean_sans",
-        "high_contrast_editorial_sans",
-        "warm_oldstyle_humanist_sans",
-        "modern_grotesk_serif_accent",
-        "soft_serif_grotesk",
-        "refined_transitional_sans"
+        "heritage_caslon_karla",
+        "heritage_baskerville_inter",
+        "hc_bodoni_inter",
+        "hc_playfair_dmsans",
+        "oldstyle_garamond_worksans",
+        "oldstyle_cormorant_figtree",
+        "transitional_newsreader_tight",
+        "transitional_instrument_manrope",
+        "soft_fraunces_manrope",
+        "soft_dmserif_dmsans",
+        "grotesk_archivo_inter",
+        "grotesk_space_sourcesans"
       ],
-      "description": "Semantic pairing ID, not raw font names. Runtime schema must narrow this enum to pairings allowed for the assigned archetype + typography category."
+      "description": "A concrete curated pairing ID, not a category and not raw font names. Category and pairing are different things: each of the six typography categories holds two pairings. The runtime schema narrows this enum to the pairings in the planner-assigned typography category, and further to pairings that hold at the assigned hierarchy \u2014 when hierarchy is monumental, only monumental-capable pairings are offered."
     },
     "density": {
       "type": "string",
@@ -88,19 +94,16 @@
       "items": {
         "type": "string",
         "enum": [
-          "plaid_restrained",
+          "plaid",
+          "stripe",
           "gingham",
-          "botanical_line",
-          "stripe_classic",
-          "deco_border",
-          "linen_texture",
-          "equestrian_line",
-          "scallop_subtle",
-          "star_celestial",
-          "ribbon_line"
+          "linen",
+          "equestrian",
+          "botanical",
+          "celestial"
         ]
       },
-      "description": "Motif requests only. Runtime schema should narrow to motifs compatible with the assigned archetype's available slot roles."
+      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. Runtime narrowing may further constrain the catalog; the ornament direction in `composition` caps how many actually render."
     },
     "presentation": {
       "type": "object",
@@ -116,7 +119,7 @@
           "minLength": 4,
           "maxLength": 40,
           "pattern": "^[A-Za-z][A-Za-z' -]*[A-Za-z]$",
-          "description": "Two or three Title Case words evoking the concept's character. Not an archetype/enum ID, not a brand name, not a tone-plus-archetype template."
+          "description": "Two or three Title Case words evoking the concept's character. Not a family or enum ID, not a brand name, and not a formula of tone plus layout word."
         },
         "description": {
           "type": "string",
@@ -178,5 +181,5 @@
       "description": "Composition intent. Directives to the composition call and measurements taken from the tree afterwards; selects nothing."
     }
   },
-  "$comment": "design_intent_schema_v3: heroArchetype replaced by family; composition object added. Revision 2 of the renderer architecture (CompositionTree)."
+  "$comment": "design_intent_schema_v4: the twelve concrete typography pairing IDs replace six category-shaped IDs, the seven curated motif IDs replace a retired ten-item catalog, and family wording replaces the last of Revision 1's bundle language. v3 is preserved under history/."
 }

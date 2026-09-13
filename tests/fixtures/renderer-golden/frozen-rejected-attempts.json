@@ -1,0 +1,18 @@
+{
+ "final:10-1": {
+  "acceptedHash": "98963a7f",
+  "attemptHash": "84307f70",
+  "id": "10",
+  "reason": "superseded by a re-prompt after a selector collision",
+  "repairValid": true,
+  "schemaValid": true
+ },
+ "final:21-1": {
+  "acceptedHash": "7bca8c9c",
+  "attemptHash": "e027cb2c",
+  "id": "21",
+  "reason": "superseded by a re-prompt after a selector collision",
+  "repairValid": true,
+  "schemaValid": true
+ }
+}

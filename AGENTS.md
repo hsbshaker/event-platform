@@ -45,6 +45,13 @@ Heed deprecation notices in those docs over training-data habits.
   when a migration or policy changed.
 - **Model calls**: only through `src/lib/ai/provider.ts`. The compiler/renderer never
   calls a model.
+- **Library boundary**: the 26 legacy hero silhouettes and 13 section recipes are fixtures,
+  not the creative space (`docs/event-renderer-system.md §7.1`, `CLAUDE.md §5.1`). Production
+  compiles any valid model-authored `CompositionTree` and never selects, matches, ranks,
+  schedules or maps one onto a fixture. The library is reachable only as regression fixtures,
+  rotated few-shot examples, the specified repair macros, the terminal fallback after the
+  documented retry is exhausted, and signature calibration. Normal composition and compiler
+  modules do not import library selection; lint enforces it.
 
 ## Phase 2 notes
 
