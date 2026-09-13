@@ -56,6 +56,12 @@ export interface EventDraftView extends EventDetailFields {
   prompt: string;
   rsvpDeadlineEdited: boolean;
   generationRequestedAt: string | null;
+  /**
+   * The row version this view was read at. Monotonic, so the client can ignore a save
+   * response overtaken by a newer one rather than rolling its state back (see
+   * `shouldApplyServerEvent`).
+   */
+  rowVersion: number;
   /** §23.1 requirements not yet satisfied. Informational: nothing is blocked by them now. */
   missing: RequiredDetailKey[];
   /** What later composition would use today, real values where present (§7.3). */
@@ -115,6 +121,7 @@ function toView(row: EventRow, now: Date): EventDraftView {
     prompt: row.prompt,
     rsvpDeadlineEdited: row.rsvp_deadline_edited,
     generationRequestedAt: row.generation_requested_at,
+    rowVersion: row.row_version,
     missing: missingRequiredDetails(fields),
     provisional: provisionalContent(source, now),
   };
@@ -198,7 +205,8 @@ export async function updateEventDetails(
   let result: ApplyPatchResult<EventRow>;
   try {
     result = await applyEventPatch(store, (row) => computeEventPatch(row, input, new Date()));
-  } catch {
+  } catch (error) {
+    console.error("updateEventDetails: save failed", { eventId, error });
     return { ok: false, error: "Could not save that. Try again." };
   }
 
@@ -208,6 +216,12 @@ export async function updateEventDetails(
     case "contended":
       // Bounded rather than endless. The host sees the same retry affordance as any other
       // failed save; nothing new is surfaced for a conflict we could not settle ourselves.
+      // Logged because losing every attempt should be vanishingly rare: if it stops being
+      // rare, the bound is wrong and nothing else would say so.
+      console.warn("updateEventDetails: gave up after losing every attempt", {
+        eventId,
+        attempts: result.attempts,
+      });
       return { ok: false, error: "Could not save that. Try again." };
     default:
       return { ok: true, event: toView(result.row, new Date()) };

@@ -15,6 +15,24 @@ import type { EventUpdate } from "./detail-patch";
  * a save that keeps losing is reported rather than spun on.
  */
 
+/**
+ * Whether a save response should be applied to what the browser is showing.
+ *
+ * Saves are independent requests, so their responses can arrive out of order: an earlier save
+ * finishing after a later one would otherwise roll the displayed timezone and deadline back to
+ * a snapshot that has already lost. That is not cosmetic. A manual RSVP deadline edit converts
+ * the host's wall-clock choice using the displayed timezone and stores the result as
+ * host-edited, which nothing ever recomputes (spec.md §7.3), so one stale response can bake in
+ * a deadline for the wrong instant permanently.
+ *
+ * Versions are monotonic, so "not older than what is already applied" is the whole rule. It
+ * cannot be solved by re-reading before responding: the overtaking save can commit after the
+ * response is on the wire.
+ */
+export function shouldApplyServerEvent(appliedVersion: number, incomingVersion: number): boolean {
+  return incomingVersion >= appliedVersion;
+}
+
 /** Attempts in total, including the first. Small: contention here is two autosaves, not a herd. */
 export const MAX_SAVE_ATTEMPTS = 4;
 

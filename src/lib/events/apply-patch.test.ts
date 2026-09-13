@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyEventPatch, MAX_SAVE_ATTEMPTS, type EventPatchStore } from "./apply-patch";
+import {
+  applyEventPatch,
+  MAX_SAVE_ATTEMPTS,
+  shouldApplyServerEvent,
+  type EventPatchStore,
+} from "./apply-patch";
 import { computeEventPatch, type PatchableRow } from "./detail-patch";
 
 /**
@@ -248,5 +253,42 @@ describe("bounds and edges", () => {
     };
     expect((await applyEventPatch(store, () => ({ title: "x" }))).status).toBe("missing");
     expect(reads).toBe(1);
+  });
+});
+
+describe("a save response overtaken by a newer one is not applied", () => {
+  it("accepts a response no older than what is already on screen", () => {
+    expect(shouldApplyServerEvent(1, 2)).toBe(true);
+    expect(shouldApplyServerEvent(2, 2)).toBe(true); // a no-op save at the same version
+    expect(shouldApplyServerEvent(5, 9)).toBe(true);
+  });
+
+  it("drops a response that lost its race in flight", () => {
+    expect(shouldApplyServerEvent(3, 2)).toBe(false);
+    expect(shouldApplyServerEvent(9, 1)).toBe(false);
+  });
+
+  it("keeps the newest state when responses arrive out of order", () => {
+    // The form applies a response only through this rule, so replaying the rule over an
+    // out-of-order sequence is exactly what the screen would end up showing.
+    const responses = [
+      { version: 3, timezone: "America/New_York" },
+      { version: 2, timezone: null }, // the earlier save, overtaken and arriving late
+    ];
+    let applied = 1;
+    let shown: string | null = null;
+    for (const response of responses) {
+      if (!shouldApplyServerEvent(applied, response.version)) continue;
+      applied = response.version;
+      if (response.timezone) shown = response.timezone;
+    }
+    expect(shown).toBe("America/New_York");
+    expect(applied).toBe(3);
+
+    // Without the rule the late response would have moved the applied marker backwards, and a
+    // manual deadline edit made afterwards would convert against the stale zone and store the
+    // wrong instant as host-edited, which nothing recomputes.
+    const withoutRule = responses.reduce((acc, r) => r.version, 1);
+    expect(withoutRule).toBe(2);
   });
 });

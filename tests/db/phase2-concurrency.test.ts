@@ -193,6 +193,46 @@ describe("a write filtered on the version it read", () => {
     expect(after.timezone).toBeNull();
   });
 
+  it("returns its row when an owner does it through row-level security", async () => {
+    // The production path reads a successful write back from RETURNING and treats an empty
+    // result as a lost race. That only holds while the SELECT policy admits every row the
+    // UPDATE policy admits. Pin it here: if a future change narrows the select side, a
+    // successful save would start reporting as a conflict, retry, commit again, and then tell
+    // the host it failed — with the change actually applied.
+    const v = await versionOf();
+    const result = await asActor(
+      db,
+      { kind: "user", id: owner },
+      (q) =>
+        q(
+          `update public.events set title = 'Through RLS'
+           where id = $1 and row_version = $2
+           returning id, row_version`,
+          [eventId, v],
+        ),
+      { commit: true },
+    );
+    expect(result.rowCount).toBe(1);
+    expect(result.rows[0].row_version).toBe(v + 1);
+
+    // And a stale filter still returns nothing rather than raising, so the caller can tell the
+    // two apart by row count alone.
+    const stale = await asActor(
+      db,
+      { kind: "user", id: owner },
+      (q) =>
+        q(
+          `update public.events set title = 'Stale'
+           where id = $1 and row_version = $2
+           returning id`,
+          [eventId, v],
+        ),
+      { commit: true },
+    );
+    expect(stale.rowCount).toBe(0);
+    expect((await rowOf()).title).toBe("Through RLS");
+  });
+
   it("lets the loser succeed once it reads the row again", async () => {
     const stale = await versionOf();
     await db.query(`update public.events set timezone = 'America/New_York' where id = $1`, [
