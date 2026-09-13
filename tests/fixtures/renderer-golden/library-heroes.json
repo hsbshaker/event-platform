@@ -1,0 +1,7382 @@
+{
+ "editorial_daterail:rail_left": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "child": {
+       "children": [
+        {
+         "id": "s0.c.0",
+         "motif": "celestial",
+         "scale": "m",
+         "t": "Glyph"
+        },
+        {
+         "case": "upper",
+         "emphasis": "caption",
+         "id": "s0.c.1",
+         "t": "Eyebrow"
+        },
+        {
+         "case": "none",
+         "emphasis": "display",
+         "id": "s0.c.2",
+         "layout": "block",
+         "t": "EventTitle"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.c.3",
+         "t": "Hosts"
+        },
+        {
+         "id": "s0.c.4",
+         "style": "button",
+         "t": "CTA",
+         "target": "rsvp"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "id": "s0",
+      "mobile": "top",
+      "rail": {
+       "children": [
+        {
+         "emphasis": "secondary",
+         "form": "month-year",
+         "id": "s0.r.0",
+         "t": "Date"
+        },
+        {
+         "emphasis": "display",
+         "form": "numeral",
+         "id": "s0.r.1",
+         "t": "Date"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.r.2",
+         "t": "Time"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.r.3",
+         "t": "Venue"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.r",
+       "t": "Stack"
+      },
+      "side": "start",
+      "t": "Rail",
+      "width": "wide"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "da9a8630",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Rail:start:wide(",
+    "Stack(",
+    "Date:month-year",
+    "Date:numeral",
+    ")",
+    "|",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Rail:start:wide( Stack( Date:month-year Date:numeral ) | Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Date:month-year",
+    "Date:numeral",
+    ")",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Date:month-year Date:numeral ) Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_daterail:rail_right": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "child": {
+       "children": [
+        {
+         "id": "s0.c.0",
+         "motif": "celestial",
+         "scale": "m",
+         "t": "Glyph"
+        },
+        {
+         "case": "upper",
+         "emphasis": "caption",
+         "id": "s0.c.1",
+         "t": "Eyebrow"
+        },
+        {
+         "case": "none",
+         "emphasis": "display",
+         "id": "s0.c.2",
+         "layout": "block",
+         "t": "EventTitle"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.c.3",
+         "t": "Hosts"
+        },
+        {
+         "id": "s0.c.4",
+         "style": "button",
+         "t": "CTA",
+         "target": "rsvp"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "id": "s0",
+      "mobile": "top",
+      "rail": {
+       "children": [
+        {
+         "emphasis": "secondary",
+         "form": "month-year",
+         "id": "s0.r.0",
+         "t": "Date"
+        },
+        {
+         "emphasis": "display",
+         "form": "numeral",
+         "id": "s0.r.1",
+         "t": "Date"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.r.2",
+         "t": "Time"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.r.3",
+         "t": "Venue"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.r",
+       "t": "Stack"
+      },
+      "side": "end",
+      "t": "Rail",
+      "width": "wide"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "46e9d3a1",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Rail:end:wide(",
+    "Stack(",
+    "Date:month-year",
+    "Date:numeral",
+    ")",
+    "|",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Rail:end:wide( Stack( Date:month-year Date:numeral ) | Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Date:month-year",
+    "Date:numeral",
+    ")",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Date:month-year Date:numeral ) Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_masthead:band_top": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "id": "s0.0",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "strong"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "secondary",
+          "form": "full",
+          "id": "s0.1.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.1",
+          "t": "Venue"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.2",
+          "t": "Time"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.1",
+        "justify": "between",
+        "t": "Cluster"
+       },
+       {
+        "id": "s0.2",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "fill": "pattern",
+        "height": "tall",
+        "id": "s0.3",
+        "motif": {
+         "id": "plaid",
+         "role": "band"
+        },
+        "t": "MotifBand"
+       },
+       {
+        "children": [
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.4.0",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.4.1",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.4.2",
+          "t": "Hosts"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.4",
+        "t": "Stack"
+       },
+       {
+        "glyphs": "equestrian",
+        "id": "s0.5",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "caption",
+          "id": "s0.6.0",
+          "t": "Deadline"
+         },
+         {
+          "id": "s0.6.1",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.6",
+        "justify": "between",
+        "t": "Cluster"
+       }
+      ],
+      "gap": "normal",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "30face22",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "MotifBand:tall",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( MotifBand:tall Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "MotifBand:tall",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( MotifBand:tall Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_masthead:rail_left": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "id": "s0.0",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "strong"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "secondary",
+          "form": "full",
+          "id": "s0.1.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.1",
+          "t": "Venue"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.2",
+          "t": "Time"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.1",
+        "justify": "between",
+        "t": "Cluster"
+       },
+       {
+        "id": "s0.2",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "child": {
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.3.c.0",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.3.c.1",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.3.c.2",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.3.c",
+         "t": "Stack"
+        },
+        "id": "s0.3",
+        "mobile": "top",
+        "rail": {
+         "extent": "full",
+         "id": "s0.3.r",
+         "motif": {
+          "id": "stripe",
+          "role": "band"
+         },
+         "t": "MotifField"
+        },
+        "side": "start",
+        "t": "Rail",
+        "width": "medium"
+       },
+       {
+        "glyphs": "botanical",
+        "id": "s0.4",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "caption",
+          "id": "s0.5.0",
+          "t": "Deadline"
+         },
+         {
+          "id": "s0.5.1",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.5",
+        "justify": "between",
+        "t": "Cluster"
+       }
+      ],
+      "gap": "normal",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "6847467c",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Rail:start:medium(",
+    "MotifField:band",
+    "|",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Rail:start:medium( MotifField:band | Stack( Title ) ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "MotifField:band",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Stack( MotifField:band Stack( Title ) ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_masthead:rail_right": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "id": "s0.0",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "strong"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "secondary",
+          "form": "full",
+          "id": "s0.1.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.1",
+          "t": "Venue"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.2",
+          "t": "Time"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.1",
+        "justify": "between",
+        "t": "Cluster"
+       },
+       {
+        "id": "s0.2",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "child": {
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.3.c.0",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.3.c.1",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.3.c.2",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.3.c",
+         "t": "Stack"
+        },
+        "id": "s0.3",
+        "mobile": "bottom",
+        "rail": {
+         "extent": "full",
+         "id": "s0.3.r",
+         "motif": {
+          "id": "stripe",
+          "role": "band"
+         },
+         "t": "MotifField"
+        },
+        "side": "end",
+        "t": "Rail",
+        "width": "medium"
+       },
+       {
+        "glyphs": "botanical",
+        "id": "s0.4",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "caption",
+          "id": "s0.5.0",
+          "t": "Deadline"
+         },
+         {
+          "id": "s0.5.1",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.5",
+        "justify": "between",
+        "t": "Cluster"
+       }
+      ],
+      "gap": "normal",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "22759227",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Rail:end:medium(",
+    "MotifField:band",
+    "|",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Rail:end:medium( MotifField:band | Stack( Title ) ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Stack(",
+    "Title",
+    ")",
+    "MotifField:band",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Stack( Title ) MotifField:band ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_offset:plate_left": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "anchor": "bottom-start",
+      "content": {
+       "align": "start",
+       "children": [
+        {
+         "children": [
+          {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.c.0.0",
+           "t": "Date"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.0.1",
+           "t": "Time"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.0.2",
+           "t": "Venue"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.0.3",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "tight",
+         "id": "s0.c.0",
+         "t": "Stack"
+        },
+        {
+         "children": [
+          {
+           "id": "s0.c.1.0",
+           "motif": "equestrian",
+           "scale": "m",
+           "t": "Glyph"
+          },
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.c.1.1",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.c.1.2",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "id": "s0.c.1.3",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.1",
+         "t": "Stack"
+        }
+       ],
+       "divider": "none",
+       "id": "s0.c",
+       "mobile": "stack-reverse",
+       "ratio": "38",
+       "t": "Split"
+      },
+      "decoration": {
+       "extent": "full",
+       "id": "s0.d",
+       "motif": {
+        "id": "gingham",
+        "role": "field"
+       },
+       "t": "MotifField"
+      },
+      "extent": "half",
+      "id": "s0",
+      "mobile": "stack",
+      "t": "Overlay"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "d2308138",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Overlay:bottom-start:half(",
+    "Split:38(",
+    "Stack(",
+    "Date:full",
+    ")",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    "|",
+    "MotifField:field",
+    ")"
+   ],
+   "heroString": "Overlay:bottom-start:half( Split:38( Stack( Date:full ) Stack( Title ) ) | MotifField:field )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Stack(",
+    "Title",
+    ")",
+    "Stack(",
+    "Date:full",
+    ")",
+    ")",
+    "MotifBand",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Stack( Title ) Stack( Date:full ) ) MotifBand )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_offset:plate_right": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "anchor": "bottom-end",
+      "content": {
+       "align": "start",
+       "children": [
+        {
+         "children": [
+          {
+           "id": "s0.c.0.0",
+           "motif": "equestrian",
+           "scale": "m",
+           "t": "Glyph"
+          },
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.c.0.1",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.c.0.2",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "id": "s0.c.0.3",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.0",
+         "t": "Stack"
+        },
+        {
+         "align": "end",
+         "children": [
+          {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.c.1.0",
+           "t": "Date"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.1.1",
+           "t": "Time"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.1.2",
+           "t": "Venue"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.1.3",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "tight",
+         "id": "s0.c.1",
+         "t": "Stack"
+        }
+       ],
+       "divider": "none",
+       "id": "s0.c",
+       "mobile": "stack",
+       "ratio": "62",
+       "t": "Split"
+      },
+      "decoration": {
+       "extent": "full",
+       "id": "s0.d",
+       "motif": {
+        "id": "gingham",
+        "role": "field"
+       },
+       "t": "MotifField"
+      },
+      "extent": "half",
+      "id": "s0",
+      "mobile": "stack",
+      "t": "Overlay"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "b80df5a7",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Overlay:bottom-end:half(",
+    "Split:62(",
+    "Stack(",
+    "Title",
+    ")",
+    "Stack(",
+    "Date:full",
+    ")",
+    ")",
+    "|",
+    "MotifField:field",
+    ")"
+   ],
+   "heroString": "Overlay:bottom-end:half( Split:62( Stack( Title ) Stack( Date:full ) ) | MotifField:field )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Stack(",
+    "Title",
+    ")",
+    "Stack(",
+    "Date:full",
+    ")",
+    ")",
+    "MotifBand",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Stack( Title ) Stack( Date:full ) ) MotifBand )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_rulegrid:cells": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "child": {
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.0.c.0",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.0.c.1",
+           "layout": "block",
+           "t": "EventTitle"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.0.c",
+         "t": "Stack"
+        },
+        "id": "s0.0",
+        "rowSpan": 1,
+        "span": 2,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "children": [
+          {
+           "id": "s0.1.c.0",
+           "motif": "equestrian",
+           "scale": "m",
+           "t": "Glyph"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.1.c.1",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.1.c",
+         "t": "Stack"
+        },
+        "id": "s0.1",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "emphasis": "primary",
+         "form": "full",
+         "id": "s0.2.c",
+         "t": "Date"
+        },
+        "id": "s0.2",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "emphasis": "primary",
+         "id": "s0.3.c",
+         "t": "Time"
+        },
+        "id": "s0.3",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "children": [
+          {
+           "emphasis": "primary",
+           "id": "s0.4.c.0",
+           "t": "Venue"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.4.c.1",
+           "t": "Location"
+          },
+          {
+           "id": "s0.4.c.2",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.4.c",
+         "t": "Stack"
+        },
+        "id": "s0.4",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       }
+      ],
+      "columns": 3,
+      "gap": "normal",
+      "id": "s0",
+      "mobile": 2,
+      "ruled": true,
+      "t": "Grid"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "cd793061",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Grid:3:ruled(",
+    "Cell:2(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    "Cell:1(",
+    "Date:full",
+    ")",
+    ")"
+   ],
+   "heroString": "Grid:3:ruled( Cell:2( Stack( Title ) ) Cell:1( Date:full ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Grid:2:ruled(",
+    "Cell:2(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    "Cell:1(",
+    "Date:full",
+    ")",
+    ")"
+   ],
+   "heroString": "Grid:2:ruled( Cell:2( Stack( Title ) ) Cell:1( Date:full ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_rulegrid:columns": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "child": {
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.0.c.0",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.0.c.1",
+           "layout": "block",
+           "t": "EventTitle"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.0.c",
+         "t": "Stack"
+        },
+        "id": "s0.0",
+        "rowSpan": 1,
+        "span": 4,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "children": [
+          {
+           "id": "s0.1.c.0",
+           "motif": "equestrian",
+           "scale": "m",
+           "t": "Glyph"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.1.c.1",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.1.c",
+         "t": "Stack"
+        },
+        "id": "s0.1",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "emphasis": "primary",
+         "form": "full",
+         "id": "s0.2.c",
+         "t": "Date"
+        },
+        "id": "s0.2",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "emphasis": "primary",
+         "id": "s0.3.c",
+         "t": "Time"
+        },
+        "id": "s0.3",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       },
+       {
+        "child": {
+         "children": [
+          {
+           "emphasis": "primary",
+           "id": "s0.4.c.0",
+           "t": "Venue"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.4.c.1",
+           "t": "Location"
+          },
+          {
+           "id": "s0.4.c.2",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.4.c",
+         "t": "Stack"
+        },
+        "id": "s0.4",
+        "rowSpan": 1,
+        "span": 1,
+        "t": "Cell"
+       }
+      ],
+      "columns": 4,
+      "gap": "normal",
+      "id": "s0",
+      "mobile": 2,
+      "ruled": true,
+      "t": "Grid"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "fe6d58c8",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Grid:4:ruled(",
+    "Cell:4(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    "Cell:1(",
+    "Date:full",
+    ")",
+    ")"
+   ],
+   "heroString": "Grid:4:ruled( Cell:4( Stack( Title ) ) Cell:1( Date:full ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Grid:2:ruled(",
+    "Cell:4(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    "Cell:1(",
+    "Date:full",
+    ")",
+    ")"
+   ],
+   "heroString": "Grid:2:ruled( Cell:4( Stack( Title ) ) Cell:1( Date:full ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_split:field_left": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "extent": "full",
+        "id": "s0.0",
+        "motif": {
+         "id": "linen",
+         "role": "field"
+        },
+        "t": "MotifField"
+       },
+       {
+        "children": [
+         {
+          "id": "s0.1.0",
+          "motif": "botanical",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.1.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.1.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.1.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.1.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.1.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.1.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.1.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.1",
+        "t": "Stack"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack-reverse",
+      "ratio": "38",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "e31f49fb",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Split:38(",
+    "MotifField:field",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Split:38( MotifField:field Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Title",
+    ")",
+    "MotifField:field",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Title ) MotifField:field )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "editorial_split:field_right": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "id": "s0.0.0",
+          "motif": "equestrian",
+          "scale": "m",
+          "t": "Glyph"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.0.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.0.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.0.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.0.4.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.0.4.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.0.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.0.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "extent": "full",
+        "id": "s0.1",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "stack",
+      "ratio": "62",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "90d3d6db",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Split:62(",
+    "Stack(",
+    "Title",
+    ")",
+    "MotifField:field",
+    ")"
+   ],
+   "heroString": "Split:62( Stack( Title ) MotifField:field )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Title",
+    ")",
+    "MotifField:field",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Title ) MotifField:field )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "framed_invitation:deep_margin": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "child": {
+       "align": "center",
+       "children": [
+        {
+         "id": "s0.c.0",
+         "motif": "celestial",
+         "scale": "m",
+         "t": "Glyph"
+        },
+        {
+         "case": "upper",
+         "emphasis": "caption",
+         "id": "s0.c.1",
+         "t": "Eyebrow"
+        },
+        {
+         "case": "none",
+         "emphasis": "display",
+         "id": "s0.c.2",
+         "layout": "block",
+         "t": "EventTitle"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.c.3",
+         "t": "Hosts"
+        },
+        {
+         "children": [
+          {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.c.4.0",
+           "t": "Date"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.4.1",
+           "t": "Time"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.4.2",
+           "t": "Venue"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.4",
+         "justify": "center",
+         "t": "Cluster"
+        },
+        {
+         "id": "s0.c.5",
+         "style": "button",
+         "t": "CTA",
+         "target": "rsvp"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "id": "s0",
+      "inset": "deep",
+      "motif": {
+       "id": "plaid",
+       "role": "frame"
+      },
+      "rule": "hairline",
+      "t": "Frame"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "92837231",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Frame:ruled:deep(",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Frame:ruled:deep( Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Frame:ruled:deep(",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Frame:ruled:deep( Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "framed_invitation:thin_frame": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "child": {
+       "align": "center",
+       "children": [
+        {
+         "id": "s0.c.0",
+         "motif": "equestrian",
+         "scale": "m",
+         "t": "Glyph"
+        },
+        {
+         "case": "upper",
+         "emphasis": "caption",
+         "id": "s0.c.1",
+         "t": "Eyebrow"
+        },
+        {
+         "case": "none",
+         "emphasis": "display",
+         "id": "s0.c.2",
+         "layout": "block",
+         "t": "EventTitle"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.c.3",
+         "t": "Hosts"
+        },
+        {
+         "children": [
+          {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.c.4.0",
+           "t": "Date"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.4.1",
+           "t": "Time"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.4.2",
+           "t": "Venue"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.4",
+         "justify": "center",
+         "t": "Cluster"
+        },
+        {
+         "id": "s0.c.5",
+         "style": "button",
+         "t": "CTA",
+         "target": "rsvp"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "id": "s0",
+      "inset": "tight",
+      "motif": {
+       "id": "linen",
+       "role": "frame"
+      },
+      "rule": "hairline",
+      "t": "Frame"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "94a1c114",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Frame:ruled:tight(",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Frame:ruled:tight( Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Frame:ruled:tight(",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Frame:ruled:tight( Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "invitation_card:floating": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "anchor": "center",
+      "content": {
+       "child": {
+        "child": {
+         "align": "center",
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.c.c.c.0",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.c.c.c.1",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "glyphs": "botanical",
+           "id": "s0.c.c.c.2",
+           "orientation": "h",
+           "t": "Rule",
+           "weight": "hairline"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "secondary",
+             "form": "full",
+             "id": "s0.c.c.c.3.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.3.1",
+             "t": "Time"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.c.c.3",
+           "justify": "center",
+           "t": "Cluster"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.4.0",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.4.1",
+             "t": "Location"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.c.c.4",
+           "justify": "center",
+           "t": "Cluster"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.c.c.5",
+           "t": "Hosts"
+          },
+          {
+           "id": "s0.c.c.c.6",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.c.c",
+         "t": "Stack"
+        },
+        "id": "s0.c.c",
+        "inset": "deep",
+        "role": "contrast",
+        "t": "Surface"
+       },
+       "id": "s0.c",
+       "inset": "deep",
+       "rule": "none",
+       "t": "Frame"
+      },
+      "decoration": {
+       "extent": "full",
+       "id": "s0.d",
+       "motif": {
+        "id": "linen",
+        "role": "field"
+       },
+       "t": "MotifField"
+      },
+      "extent": "full",
+      "id": "s0",
+      "mobile": "keep",
+      "t": "Overlay"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "aef3661b",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:full(",
+    "Frame:inset:deep(",
+    "Surface:contrast(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    ")",
+    "|",
+    "MotifField:field",
+    ")"
+   ],
+   "heroString": "Overlay:center:full( Frame:inset:deep( Surface:contrast( Stack( Title ) ) ) | MotifField:field )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:full(",
+    "Frame:inset:deep(",
+    "Surface:contrast(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    ")",
+    "|",
+    "MotifField:field",
+    ")"
+   ],
+   "heroString": "Overlay:center:full( Frame:inset:deep( Surface:contrast( Stack( Title ) ) ) | MotifField:field )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "invitation_card:sheet": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "fill": "pattern",
+        "height": "tall",
+        "id": "s0.0",
+        "motif": {
+         "id": "linen",
+         "role": "band"
+        },
+        "t": "MotifBand"
+       },
+       {
+        "child": {
+         "align": "center",
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.1.c.0",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.1.c.1",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "glyphs": "botanical",
+           "id": "s0.1.c.2",
+           "orientation": "h",
+           "t": "Rule",
+           "weight": "hairline"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "secondary",
+             "form": "full",
+             "id": "s0.1.c.3.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.1.c.3.1",
+             "t": "Time"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.1.c.3",
+           "justify": "center",
+           "t": "Cluster"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "secondary",
+             "id": "s0.1.c.4.0",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.1.c.4.1",
+             "t": "Location"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.1.c.4",
+           "justify": "center",
+           "t": "Cluster"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.1.c.5",
+           "t": "Hosts"
+          },
+          {
+           "id": "s0.1.c.6",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.1.c",
+         "t": "Stack"
+        },
+        "id": "s0.1",
+        "inset": "deep",
+        "role": "contrast",
+        "t": "Surface"
+       },
+       {
+        "fill": "pattern",
+        "height": "tall",
+        "id": "s0.2",
+        "motif": {
+         "id": "linen",
+         "role": "band"
+        },
+        "t": "MotifBand"
+       }
+      ],
+      "gap": "tight",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "6ba73df2",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "MotifBand:tall",
+    "Surface:contrast(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    "MotifBand:tall",
+    ")"
+   ],
+   "heroString": "Stack( MotifBand:tall Surface:contrast( Stack( Title ) ) MotifBand:tall )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "MotifBand:tall",
+    "Surface:contrast(",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    "MotifBand:tall",
+    ")"
+   ],
+   "heroString": "Stack( MotifBand:tall Surface:contrast( Stack( Title ) ) MotifBand:tall )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "invitation_monogram:crest": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "center",
+      "children": [
+       {
+        "id": "s0.0",
+        "style": "ring",
+        "t": "Monogram"
+       },
+       {
+        "id": "s0.1",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "case": "upper",
+        "emphasis": "caption",
+        "id": "s0.2",
+        "t": "Eyebrow"
+       },
+       {
+        "case": "upper",
+        "emphasis": "primary",
+        "id": "s0.3",
+        "layout": "block",
+        "t": "EventTitle"
+       },
+       {
+        "emphasis": "secondary",
+        "id": "s0.4",
+        "t": "Hosts"
+       },
+       {
+        "glyphs": "celestial",
+        "id": "s0.5",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "hairline"
+       },
+       {
+        "align": "stretch",
+        "children": [
+         {
+          "align": "center",
+          "children": [
+           {
+            "emphasis": "primary",
+            "form": "full",
+            "id": "s0.6.0.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.6.0.1",
+            "t": "Time"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.6.0",
+          "t": "Stack"
+         },
+         {
+          "align": "center",
+          "children": [
+           {
+            "emphasis": "primary",
+            "id": "s0.6.1.0",
+            "t": "Venue"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.6.1.1",
+            "t": "Location"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.6.1",
+          "t": "Stack"
+         }
+        ],
+        "divider": "none",
+        "id": "s0.6",
+        "mobile": "stack",
+        "ratio": "50",
+        "t": "Split"
+       },
+       {
+        "id": "s0.7",
+        "style": "button",
+        "t": "CTA",
+        "target": "rsvp"
+       }
+      ],
+      "gap": "normal",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "56feb5dd",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Monogram:ring",
+    "Title",
+    "Split:50(",
+    "Stack(",
+    "Date:full",
+    ")",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Monogram:ring Title Split:50( Stack( Date:full ) ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Monogram:ring",
+    "Title",
+    "Stack(",
+    "Stack(",
+    "Date:full",
+    ")",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Monogram:ring Title Stack( Stack( Date:full ) ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "invitation_monogram:watermark": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "anchor": "center",
+      "content": {
+       "align": "center",
+       "children": [
+        {
+         "case": "upper",
+         "emphasis": "caption",
+         "id": "s0.c.0",
+         "t": "Eyebrow"
+        },
+        {
+         "case": "upper",
+         "emphasis": "primary",
+         "id": "s0.c.1",
+         "layout": "block",
+         "t": "EventTitle"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.c.2",
+         "t": "Hosts"
+        },
+        {
+         "glyphs": "celestial",
+         "id": "s0.c.3",
+         "orientation": "h",
+         "t": "Rule",
+         "weight": "hairline"
+        },
+        {
+         "align": "stretch",
+         "children": [
+          {
+           "align": "center",
+           "children": [
+            {
+             "emphasis": "primary",
+             "form": "full",
+             "id": "s0.c.4.0.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.4.0.1",
+             "t": "Time"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.4.0",
+           "t": "Stack"
+          },
+          {
+           "align": "center",
+           "children": [
+            {
+             "emphasis": "primary",
+             "id": "s0.c.4.1.0",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.4.1.1",
+             "t": "Location"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.4.1",
+           "t": "Stack"
+          }
+         ],
+         "divider": "none",
+         "id": "s0.c.4",
+         "mobile": "stack",
+         "ratio": "50",
+         "t": "Split"
+        },
+        {
+         "id": "s0.c.5",
+         "style": "button",
+         "t": "CTA",
+         "target": "rsvp"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "decoration": {
+       "id": "s0.d",
+       "style": "watermark",
+       "t": "Monogram"
+      },
+      "extent": "half",
+      "id": "s0",
+      "mobile": "keep",
+      "t": "Overlay"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "b6317e10",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:half(",
+    "Stack(",
+    "Title",
+    "Split:50(",
+    "Stack(",
+    "Date:full",
+    ")",
+    ")",
+    ")",
+    "|",
+    "Monogram:watermark",
+    ")"
+   ],
+   "heroString": "Overlay:center:half( Stack( Title Split:50( Stack( Date:full ) ) ) | Monogram:watermark )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:half(",
+    "Stack(",
+    "Title",
+    "Stack(",
+    "Stack(",
+    "Date:full",
+    ")",
+    ")",
+    ")",
+    "|",
+    "Monogram:watermark",
+    ")"
+   ],
+   "heroString": "Overlay:center:half( Stack( Title Stack( Stack( Date:full ) ) ) | Monogram:watermark )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "invitation_ticket:stub_left": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "anchor": "center",
+      "content": {
+       "child": {
+        "child": {
+         "align": "stretch",
+         "children": [
+          {
+           "align": "center",
+           "children": [
+            {
+             "emphasis": "display",
+             "form": "numeral",
+             "id": "s0.c.c.c.0.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "form": "month-year",
+             "id": "s0.c.c.c.0.1",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.0.2",
+             "t": "Time"
+            },
+            {
+             "id": "s0.c.c.c.0.3",
+             "style": "button",
+             "t": "CTA",
+             "target": "rsvp"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.c.c.0",
+           "t": "Stack"
+          },
+          {
+           "align": "center",
+           "children": [
+            {
+             "case": "upper",
+             "emphasis": "caption",
+             "id": "s0.c.c.c.1.0",
+             "t": "Eyebrow"
+            },
+            {
+             "case": "none",
+             "emphasis": "primary",
+             "id": "s0.c.c.c.1.1",
+             "layout": "block",
+             "t": "EventTitle"
+            },
+            {
+             "glyphs": "celestial",
+             "id": "s0.c.c.c.1.2",
+             "orientation": "h",
+             "t": "Rule",
+             "weight": "hairline"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.1.3",
+             "t": "Hosts"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.1.4",
+             "t": "Venue"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.c.c.1",
+           "t": "Stack"
+          }
+         ],
+         "divider": "dashed",
+         "id": "s0.c.c.c",
+         "mobile": "stack-reverse",
+         "ratio": "38",
+         "t": "Split"
+        },
+        "id": "s0.c.c",
+        "inset": "normal",
+        "role": "contrast",
+        "t": "Surface"
+       },
+       "id": "s0.c",
+       "inset": "normal",
+       "rule": "none",
+       "t": "Frame"
+      },
+      "decoration": {
+       "extent": "full",
+       "id": "s0.d",
+       "motif": {
+        "id": "plaid",
+        "role": "frame"
+       },
+       "t": "MotifField"
+      },
+      "extent": "full",
+      "id": "s0",
+      "mobile": "keep",
+      "t": "Overlay"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "35029d13",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:full(",
+    "Frame:inset:normal(",
+    "Surface:contrast(",
+    "Split:38(",
+    "Stack(",
+    "Date:numeral",
+    "Date:month-year",
+    ")",
+    "Stack(",
+    "Title",
+    ")",
+    ")",
+    ")",
+    ")",
+    "|",
+    "MotifField:frame",
+    ")"
+   ],
+   "heroString": "Overlay:center:full( Frame:inset:normal( Surface:contrast( Split:38( Stack( Date:numeral Date:month-year ) Stack( Title ) ) ) ) | MotifField:frame )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:full(",
+    "Frame:inset:normal(",
+    "Surface:contrast(",
+    "Stack(",
+    "Stack(",
+    "Title",
+    ")",
+    "Stack(",
+    "Date:numeral",
+    "Date:month-year",
+    ")",
+    ")",
+    ")",
+    ")",
+    "|",
+    "MotifField:frame",
+    ")"
+   ],
+   "heroString": "Overlay:center:full( Frame:inset:normal( Surface:contrast( Stack( Stack( Title ) Stack( Date:numeral Date:month-year ) ) ) ) | MotifField:frame )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "invitation_ticket:stub_right": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "anchor": "center",
+      "content": {
+       "child": {
+        "child": {
+         "align": "stretch",
+         "children": [
+          {
+           "align": "center",
+           "children": [
+            {
+             "case": "upper",
+             "emphasis": "caption",
+             "id": "s0.c.c.c.0.0",
+             "t": "Eyebrow"
+            },
+            {
+             "case": "none",
+             "emphasis": "primary",
+             "id": "s0.c.c.c.0.1",
+             "layout": "block",
+             "t": "EventTitle"
+            },
+            {
+             "glyphs": "celestial",
+             "id": "s0.c.c.c.0.2",
+             "orientation": "h",
+             "t": "Rule",
+             "weight": "hairline"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.0.3",
+             "t": "Hosts"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.0.4",
+             "t": "Venue"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.c.c.0",
+           "t": "Stack"
+          },
+          {
+           "align": "center",
+           "children": [
+            {
+             "emphasis": "display",
+             "form": "numeral",
+             "id": "s0.c.c.c.1.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "form": "month-year",
+             "id": "s0.c.c.c.1.1",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.c.1.2",
+             "t": "Time"
+            },
+            {
+             "id": "s0.c.c.c.1.3",
+             "style": "button",
+             "t": "CTA",
+             "target": "rsvp"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.c.c.1",
+           "t": "Stack"
+          }
+         ],
+         "divider": "dashed",
+         "id": "s0.c.c.c",
+         "mobile": "stack",
+         "ratio": "62",
+         "t": "Split"
+        },
+        "id": "s0.c.c",
+        "inset": "normal",
+        "role": "contrast",
+        "t": "Surface"
+       },
+       "id": "s0.c",
+       "inset": "normal",
+       "rule": "none",
+       "t": "Frame"
+      },
+      "decoration": {
+       "extent": "full",
+       "id": "s0.d",
+       "motif": {
+        "id": "plaid",
+        "role": "frame"
+       },
+       "t": "MotifField"
+      },
+      "extent": "full",
+      "id": "s0",
+      "mobile": "keep",
+      "t": "Overlay"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "ced78c3b",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:full(",
+    "Frame:inset:normal(",
+    "Surface:contrast(",
+    "Split:62(",
+    "Stack(",
+    "Title",
+    ")",
+    "Stack(",
+    "Date:numeral",
+    "Date:month-year",
+    ")",
+    ")",
+    ")",
+    ")",
+    "|",
+    "MotifField:frame",
+    ")"
+   ],
+   "heroString": "Overlay:center:full( Frame:inset:normal( Surface:contrast( Split:62( Stack( Title ) Stack( Date:numeral Date:month-year ) ) ) ) | MotifField:frame )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Overlay:center:full(",
+    "Frame:inset:normal(",
+    "Surface:contrast(",
+    "Stack(",
+    "Stack(",
+    "Title",
+    ")",
+    "Stack(",
+    "Date:numeral",
+    "Date:month-year",
+    ")",
+    ")",
+    ")",
+    ")",
+    "|",
+    "MotifField:frame",
+    ")"
+   ],
+   "heroString": "Overlay:center:full( Frame:inset:normal( Surface:contrast( Stack( Stack( Title ) Stack( Date:numeral Date:month-year ) ) ) ) | MotifField:frame )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "statement_numeral:numeral_left": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "align": "stretch",
+      "children": [
+       {
+        "children": [
+         {
+          "emphasis": "secondary",
+          "form": "month-year",
+          "id": "s0.0.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "display",
+          "form": "numeral",
+          "id": "s0.0.1",
+          "t": "Date"
+         },
+         {
+          "fill": "pattern",
+          "height": "tall",
+          "id": "s0.0.2",
+          "motif": {
+           "id": "stripe",
+           "role": "band"
+          },
+          "t": "MotifBand"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.0",
+        "t": "Stack"
+       },
+       {
+        "children": [
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.1.0",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "primary",
+          "id": "s0.1.1",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.1.2",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "id": "s0.1.3.0",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.1.3.1",
+            "t": "Venue"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.1.3.2",
+            "t": "Location"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.1.3",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.1.4",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.1",
+        "t": "Stack"
+       }
+      ],
+      "divider": "none",
+      "id": "s0",
+      "mobile": "keep",
+      "ratio": "38",
+      "t": "Split"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "8f3201aa",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Split:38(",
+    "Stack(",
+    "Date:month-year",
+    "Date:numeral",
+    "MotifBand:tall",
+    ")",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Split:38( Stack( Date:month-year Date:numeral MotifBand:tall ) Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Split:38(",
+    "Stack(",
+    "Date:month-year",
+    "Date:numeral",
+    "MotifBand:tall",
+    ")",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Split:38( Stack( Date:month-year Date:numeral MotifBand:tall ) Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "statement_numeral:numeral_top": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "align": "center",
+        "children": [
+         {
+          "emphasis": "display",
+          "form": "numeral",
+          "id": "s0.0.0",
+          "t": "Date"
+         },
+         {
+          "fill": "pattern",
+          "height": "tall",
+          "id": "s0.0.1",
+          "motif": {
+           "id": "stripe",
+           "role": "band"
+          },
+          "t": "MotifBand"
+         }
+        ],
+        "divider": "none",
+        "id": "s0.0",
+        "mobile": "keep",
+        "ratio": "38",
+        "t": "Split"
+       },
+       {
+        "id": "s0.1",
+        "orientation": "h",
+        "t": "Rule",
+        "weight": "strong"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "secondary",
+          "form": "month-year",
+          "id": "s0.2.0",
+          "t": "Date"
+         },
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.2.1",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "primary",
+          "id": "s0.2.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.2.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "id": "s0.2.4.0",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.2.4.1",
+            "t": "Venue"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.2.4.2",
+            "t": "Location"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.2.4",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.2.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.2",
+        "t": "Stack"
+       }
+      ],
+      "gap": "normal",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "40c784ab",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Split:38(",
+    "Date:numeral",
+    "MotifBand:tall",
+    ")",
+    "Stack(",
+    "Date:month-year",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Split:38( Date:numeral MotifBand:tall ) Stack( Date:month-year Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Split:38(",
+    "Date:numeral",
+    "MotifBand:tall",
+    ")",
+    "Stack(",
+    "Date:month-year",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Split:38( Date:numeral MotifBand:tall ) Stack( Date:month-year Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "statement_stack:alternate": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "child": {
+       "children": [
+        {
+         "case": "none",
+         "emphasis": "display",
+         "id": "s0.c.0",
+         "layout": "stagger",
+         "t": "EventTitle"
+        },
+        {
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.c.1.0",
+           "t": "Eyebrow"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.1.1",
+           "t": "Hosts"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.1.2",
+           "t": "Time"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.1",
+         "justify": "between",
+         "t": "Cluster"
+        },
+        {
+         "children": [
+          {
+           "id": "s0.c.2.0",
+           "motif": "celestial",
+           "scale": "m",
+           "t": "Glyph"
+          },
+          {
+           "id": "s0.c.2.1",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.2",
+         "justify": "end",
+         "t": "Cluster"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "id": "s0",
+      "mobile": "top",
+      "rail": {
+       "children": [
+        {
+         "emphasis": "secondary",
+         "form": "full",
+         "id": "s0.r.0",
+         "t": "Date"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.r.1",
+         "t": "Venue"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.r",
+       "t": "Stack"
+      },
+      "side": "start",
+      "t": "Rail",
+      "width": "thin"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "897fd738",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Rail:start:thin(",
+    "Stack(",
+    "Date:full",
+    ")",
+    "|",
+    "Stack(",
+    "Title:stagger",
+    ")",
+    ")"
+   ],
+   "heroString": "Rail:start:thin( Stack( Date:full ) | Stack( Title:stagger ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Date:full",
+    ")",
+    "Stack(",
+    "Title:stagger",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Date:full ) Stack( Title:stagger ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "statement_stack:cascade": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "child": {
+       "children": [
+        {
+         "case": "none",
+         "emphasis": "display",
+         "id": "s0.c.0",
+         "layout": "cascade",
+         "t": "EventTitle"
+        },
+        {
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "caption",
+           "id": "s0.c.1.0",
+           "t": "Eyebrow"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.1.1",
+           "t": "Hosts"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.1.2",
+           "t": "Time"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.1",
+         "justify": "between",
+         "t": "Cluster"
+        },
+        {
+         "children": [
+          {
+           "id": "s0.c.2.0",
+           "motif": "celestial",
+           "scale": "m",
+           "t": "Glyph"
+          },
+          {
+           "id": "s0.c.2.1",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.2",
+         "justify": "end",
+         "t": "Cluster"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "id": "s0",
+      "mobile": "top",
+      "rail": {
+       "children": [
+        {
+         "emphasis": "secondary",
+         "form": "full",
+         "id": "s0.r.0",
+         "t": "Date"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.r.1",
+         "t": "Venue"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.r",
+       "t": "Stack"
+      },
+      "side": "start",
+      "t": "Rail",
+      "width": "thin"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "277176cb",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Rail:start:thin(",
+    "Stack(",
+    "Date:full",
+    ")",
+    "|",
+    "Stack(",
+    "Title:cascade",
+    ")",
+    ")"
+   ],
+   "heroString": "Rail:start:thin( Stack( Date:full ) | Stack( Title:cascade ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Stack(",
+    "Date:full",
+    ")",
+    "Stack(",
+    "Title:cascade",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( Stack( Date:full ) Stack( Title:cascade ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "typography_first:band_above": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "fill": "pattern",
+        "height": "tall",
+        "id": "s0.0",
+        "motif": {
+         "id": "stripe",
+         "role": "band"
+        },
+        "t": "MotifBand"
+       },
+       {
+        "case": "upper",
+        "emphasis": "caption",
+        "id": "s0.1",
+        "t": "Eyebrow"
+       },
+       {
+        "case": "upper",
+        "emphasis": "display",
+        "id": "s0.2",
+        "layout": "block",
+        "t": "EventTitle"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "secondary",
+          "form": "full",
+          "id": "s0.3.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.3.1",
+          "t": "Time"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.3.2",
+          "t": "Venue"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.3",
+        "justify": "between",
+        "t": "Cluster"
+       },
+       {
+        "id": "s0.4",
+        "style": "button",
+        "t": "CTA",
+        "target": "rsvp"
+       }
+      ],
+      "gap": "normal",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "c4dc0688",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "MotifBand:tall",
+    "Title",
+    ")"
+   ],
+   "heroString": "Stack( MotifBand:tall Title )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "MotifBand:tall",
+    "Title",
+    ")"
+   ],
+   "heroString": "Stack( MotifBand:tall Title )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "typography_first:band_below": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "children": [
+       {
+        "case": "upper",
+        "emphasis": "caption",
+        "id": "s0.0",
+        "t": "Eyebrow"
+       },
+       {
+        "case": "upper",
+        "emphasis": "display",
+        "id": "s0.1",
+        "layout": "block",
+        "t": "EventTitle"
+       },
+       {
+        "fill": "pattern",
+        "height": "medium",
+        "id": "s0.2",
+        "motif": {
+         "id": "stripe",
+         "role": "band"
+        },
+        "t": "MotifBand"
+       },
+       {
+        "children": [
+         {
+          "emphasis": "secondary",
+          "form": "full",
+          "id": "s0.3.0",
+          "t": "Date"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.3.1",
+          "t": "Time"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.3.2",
+          "t": "Venue"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.3",
+        "justify": "between",
+        "t": "Cluster"
+       },
+       {
+        "id": "s0.4",
+        "style": "button",
+        "t": "CTA",
+        "target": "rsvp"
+       }
+      ],
+      "gap": "normal",
+      "id": "s0",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "73e8dc98",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Title",
+    "MotifBand:medium",
+    ")"
+   ],
+   "heroString": "Stack( Title MotifBand:medium )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "Title",
+    "MotifBand:medium",
+    ")"
+   ],
+   "heroString": "Stack( Title MotifBand:medium )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ },
+ "typography_first:band_rail": {
+  "canonical": {
+   "sections": [
+    {
+     "align": "start",
+     "fill": "screen",
+     "id": "s0",
+     "kind": "hero",
+     "root": {
+      "child": {
+       "children": [
+        {
+         "case": "upper",
+         "emphasis": "caption",
+         "id": "s0.c.0",
+         "t": "Eyebrow"
+        },
+        {
+         "case": "upper",
+         "emphasis": "display",
+         "id": "s0.c.1",
+         "layout": "block",
+         "t": "EventTitle"
+        },
+        {
+         "children": [
+          {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.c.2.0",
+           "t": "Date"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.2.1",
+           "t": "Time"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.2.2",
+           "t": "Venue"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.2",
+         "justify": "between",
+         "t": "Cluster"
+        },
+        {
+         "id": "s0.c.3",
+         "style": "button",
+         "t": "CTA",
+         "target": "rsvp"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0.c",
+       "t": "Stack"
+      },
+      "id": "s0",
+      "mobile": "top",
+      "rail": {
+       "extent": "full",
+       "id": "s0.r",
+       "motif": {
+        "id": "gingham",
+        "role": "band"
+       },
+       "t": "MotifField"
+      },
+      "side": "start",
+      "t": "Rail",
+      "width": "thin"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s1",
+     "kind": "rsvp",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "rsvp",
+        "id": "s1.0",
+        "t": "SectionHeading"
+       },
+       {
+        "emphasis": "caption",
+        "id": "s1.1",
+        "t": "Deadline"
+       },
+       {
+        "id": "s1.2",
+        "t": "RSVP"
+       }
+      ],
+      "gap": "normal",
+      "id": "s1",
+      "t": "Stack"
+     },
+     "surface": "base"
+    },
+    {
+     "align": "start",
+     "fill": "auto",
+     "id": "s2",
+     "kind": "registry",
+     "root": {
+      "children": [
+       {
+        "emphasis": "primary",
+        "for": "registry",
+        "id": "s2.0",
+        "t": "SectionHeading"
+       },
+       {
+        "id": "s2.1",
+        "layout": {
+         "children": [
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.0.c",
+            "kind": "gift",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.1.c",
+            "kind": "external",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "standard",
+            "id": "s2.1.l.2.c",
+            "kind": "cashfund",
+            "t": "RegistryItem"
+           },
+           "id": "s2.1.l.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s2.1.l",
+         "mobile": 1,
+         "ruled": false,
+         "t": "Grid"
+        },
+        "t": "Registry"
+       }
+      ],
+      "gap": "normal",
+      "id": "s2",
+      "t": "Stack"
+     },
+     "surface": "alt"
+    }
+   ],
+   "version": "composition_v1"
+  },
+  "canonicalHash": "1742c1be",
+  "schemaOk": true,
+  "skeletonDesktop": {
+   "align": "start",
+   "hero": [
+    "Rail:start:thin(",
+    "MotifField:band",
+    "|",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Rail:start:thin( MotifField:band | Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Grid:3(",
+    "Cell:1(",
+    "Item:gift",
+    ")",
+    "Cell:1(",
+    "Item:external",
+    ")",
+    "Cell:1(",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "skeletonMobile": {
+   "align": "start",
+   "hero": [
+    "Stack(",
+    "MotifField:band",
+    "Stack(",
+    "Title",
+    ")",
+    ")"
+   ],
+   "heroString": "Stack( MotifField:band Stack( Title ) )",
+   "registry": [
+    "Stack(",
+    "Registry(",
+    "Stack(",
+    "Item:gift",
+    "Item:external",
+    "Item:cashfund",
+    ")",
+    ")",
+    ")"
+   ],
+   "rsvp": [
+    "Stack(",
+    "RSVP",
+    ")"
+   ],
+   "surfaces": [
+    "base",
+    "base",
+    "alt"
+   ]
+  },
+  "structureViolations": []
+ }
+}

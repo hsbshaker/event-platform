@@ -1,0 +1,4668 @@
+{
+ "01-1": {
+  "id": "01-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [
+    {
+     "after": "secondary",
+     "before": "primary (desktop: ~4 lines)",
+     "kind": "fit-estimate",
+     "path": "sections[0].root.child.children[1].child",
+     "rule": "fit.estimate"
+    }
+   ],
+   "composition": {
+    "sections": [
+     {
+      "align": "center",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "child": {
+        "children": [
+         {
+          "child": {
+           "align": "center",
+           "children": [
+            {
+             "id": "s0.c.0.c.0",
+             "style": "ring",
+             "t": "Monogram"
+            },
+            {
+             "case": "upper",
+             "emphasis": "secondary",
+             "id": "s0.c.0.c.1",
+             "t": "Eyebrow"
+            },
+            {
+             "case": "none",
+             "emphasis": "display",
+             "id": "s0.c.0.c.2",
+             "layout": "stagger",
+             "t": "EventTitle"
+            }
+           ],
+           "gap": "tight",
+           "id": "s0.c.0.c",
+           "t": "Stack"
+          },
+          "id": "s0.c.0",
+          "rowSpan": 1,
+          "span": 3,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.c.1.c",
+           "t": "Date"
+          },
+          "id": "s0.c.1",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "emphasis": "primary",
+           "id": "s0.c.2.c",
+           "t": "Time"
+          },
+          "id": "s0.c.2",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "id": "s0.c.3.c",
+           "motif": "equestrian",
+           "scale": "m",
+           "t": "Glyph"
+          },
+          "id": "s0.c.3",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "children": [
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.4.c.0",
+             "t": "Hosts"
+            },
+            {
+             "id": "s0.c.4.c.1",
+             "style": "button",
+             "t": "CTA",
+             "target": "rsvp"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.4.c",
+           "justify": "center",
+           "t": "Cluster"
+          },
+          "id": "s0.c.4",
+          "rowSpan": 1,
+          "span": 3,
+          "t": "Cell"
+         }
+        ],
+        "columns": 3,
+        "gap": "normal",
+        "id": "s0.c",
+        "mobile": 1,
+        "ruled": true,
+        "t": "Grid"
+       },
+       "id": "s0",
+       "inset": "deep",
+       "motif": {
+        "id": "plaid",
+        "role": "frame"
+       },
+       "rule": "hairline",
+       "t": "Frame"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "center",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "details",
+      "root": {
+       "align": "center",
+       "children": [
+        {
+         "emphasis": "primary",
+         "for": "details",
+         "id": "s1.0",
+         "t": "SectionHeading"
+        },
+        {
+         "children": [
+          {
+           "child": {
+            "emphasis": "display",
+            "form": "numeral",
+            "id": "s1.1.0.c",
+            "t": "Date"
+           },
+           "id": "s1.1.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "emphasis": "primary",
+            "id": "s1.1.1.c",
+            "t": "Time"
+           },
+           "id": "s1.1.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "align": "center",
+            "children": [
+             {
+              "emphasis": "primary",
+              "id": "s1.1.2.c.0",
+              "t": "Venue"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s1.1.2.c.1",
+              "t": "Location"
+             }
+            ],
+            "gap": "tight",
+            "id": "s1.1.2.c",
+            "t": "Stack"
+           },
+           "id": "s1.1.2",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 3,
+         "gap": "normal",
+         "id": "s1.1",
+         "mobile": 1,
+         "ruled": true,
+         "t": "Grid"
+        }
+       ],
+       "gap": "normal",
+       "id": "s1",
+       "t": "Stack"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "center",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "align": "center",
+       "children": [
+        {
+         "child": {
+          "align": "center",
+          "children": [
+           {
+            "emphasis": "primary",
+            "for": "rsvp",
+            "id": "s2.0.c.0",
+            "t": "SectionHeading"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s2.0.c.1",
+            "t": "Deadline"
+           }
+          ],
+          "gap": "tight",
+          "id": "s2.0.c",
+          "t": "Stack"
+         },
+         "id": "s2.0",
+         "inset": "normal",
+         "role": "accent",
+         "t": "Surface"
+        },
+        {
+         "id": "s2.1",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s2",
+       "t": "Stack"
+      },
+      "surface": "base"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "25db33b7",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "symmetric",
+     "hierarchy": "monumental",
+     "ornament": "none",
+     "rhythm": "punctuated",
+     "sectionContrast": "moderate"
+    },
+    "density": "balanced",
+    "family": "editorial",
+    "pageSystem": {
+     "border": "double",
+     "borderWeight": 3,
+     "button": "solid_square",
+     "card": "tinted",
+     "displayTracking": -0.02
+    },
+    "tonalDirection": "mid",
+    "typography": "hc_playfair_dmsans",
+    "typographyCategory": "high_contrast_editorial",
+    "typographyObject": {
+     "body": "DM Sans",
+     "category": "high_contrast_editorial",
+     "display": "Playfair Display",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "insetPx": 64,
+     "motif": {
+      "id": "plaid",
+      "role": "frame"
+     },
+     "rule": "hairline"
+    },
+    "s0.c": {
+     "columns": 3,
+     "gapPx": 22,
+     "mobileColumns": 1,
+     "ruled": true
+    },
+    "s0.c.0": {
+     "rowSpan": 1,
+     "span": 3
+    },
+    "s0.c.0.c": {
+     "align": "center",
+     "gapPx": 10
+    },
+    "s0.c.0.c.0": {
+     "emphasis": null
+    },
+    "s0.c.0.c.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.0.c.2": {
+     "emphasis": "display"
+    },
+    "s0.c.1": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.1.c": {
+     "emphasis": "secondary"
+    },
+    "s0.c.2": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.2.c": {
+     "emphasis": "primary"
+    },
+    "s0.c.3": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.3.c": {
+     "emphasis": null
+    },
+    "s0.c.4": {
+     "rowSpan": 1,
+     "span": 3
+    },
+    "s0.c.4.c": {
+     "gapPx": 22,
+     "justify": "center"
+    },
+    "s0.c.4.c.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.4.c.1": {
+     "emphasis": null
+    },
+    "s1": {
+     "align": "center",
+     "gapPx": 22
+    },
+    "s1.0": {
+     "emphasis": "primary"
+    },
+    "s1.1": {
+     "columns": 3,
+     "gapPx": 22,
+     "mobileColumns": 1,
+     "ruled": true
+    },
+    "s1.1.0": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s1.1.0.c": {
+     "emphasis": "display"
+    },
+    "s1.1.1": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s1.1.1.c": {
+     "emphasis": "primary"
+    },
+    "s1.1.2": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s1.1.2.c": {
+     "align": "center",
+     "gapPx": 10
+    },
+    "s1.1.2.c.0": {
+     "emphasis": "primary"
+    },
+    "s1.1.2.c.1": {
+     "emphasis": "secondary"
+    },
+    "s2": {
+     "align": "center",
+     "gapPx": 22
+    },
+    "s2.0": {
+     "insetPx": 36,
+     "role": "accent"
+    },
+    "s2.0.c": {
+     "align": "center",
+     "gapPx": 10
+    },
+    "s2.0.c.0": {
+     "emphasis": "primary"
+    },
+    "s2.0.c.1": {
+     "emphasis": "secondary"
+    },
+    "s2.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "double",
+    "borderWeight": 3,
+    "button": "solid_square",
+    "card": "tinted",
+    "displayTracking": -0.02
+   },
+   "repairSummary": {
+    "fit-estimate": 1
+   },
+   "seed": 1128117092,
+   "typography": {
+    "body": "DM Sans",
+    "category": "high_contrast_editorial",
+    "display": "Playfair Display",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "02-1": {
+  "id": "02-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "child": {
+        "align": "start",
+        "children": [
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.c.0",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.c.1",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.c.2",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "primary",
+            "id": "s0.c.3.0",
+            "t": "Venue"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.c.3.1",
+            "t": "Location"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.c.3.2",
+            "t": "Time"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.c.3",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "child": {
+           "emphasis": "display",
+           "form": "numeral",
+           "id": "s0.c.4.c",
+           "t": "Date"
+          },
+          "id": "s0.c.4",
+          "inset": "normal",
+          "motif": {
+           "id": "plaid",
+           "role": "frame"
+          },
+          "rule": "hairline",
+          "t": "Frame"
+         },
+         {
+          "id": "s0.c.5",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.c",
+        "t": "Stack"
+       },
+       "id": "s0",
+       "inset": "deep",
+       "role": "contrast",
+       "t": "Surface"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "medium",
+       "id": "s1",
+       "motif": {
+        "id": "stripe",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "child": {
+          "emphasis": "display",
+          "for": "rsvp",
+          "id": "s2.0.c",
+          "t": "SectionHeading"
+         },
+         "id": "s2.0",
+         "inset": "tight",
+         "role": "accent",
+         "t": "Surface"
+        },
+        {
+         "emphasis": "primary",
+         "id": "s2.1",
+         "t": "Deadline"
+        },
+        {
+         "id": "s2.2",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "loose",
+       "id": "s2",
+       "t": "Stack"
+      },
+      "surface": "contrast"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "1bda14ba",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "gentle",
+     "hierarchy": "restrained",
+     "ornament": "restrained",
+     "rhythm": "alternating",
+     "sectionContrast": "high"
+    },
+    "density": "balanced",
+    "family": "invitation",
+    "pageSystem": {
+     "border": "double",
+     "borderWeight": 1,
+     "button": "solid_square",
+     "card": "tinted",
+     "displayTracking": 0.14
+    },
+    "tonalDirection": "dark",
+    "typography": "transitional_newsreader_tight",
+    "typographyCategory": "transitional",
+    "typographyObject": {
+     "body": "Inter Tight",
+     "category": "transitional",
+     "display": "Newsreader",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "insetPx": 64,
+     "role": "contrast"
+    },
+    "s0.c": {
+     "align": "start",
+     "gapPx": 22
+    },
+    "s0.c.0": {
+     "emphasis": "caption"
+    },
+    "s0.c.1": {
+     "emphasis": "display"
+    },
+    "s0.c.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.3": {
+     "gapPx": 22,
+     "justify": "start"
+    },
+    "s0.c.3.0": {
+     "emphasis": "primary"
+    },
+    "s0.c.3.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.3.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.4": {
+     "insetPx": 36,
+     "motif": {
+      "id": "plaid",
+      "role": "frame"
+     },
+     "rule": "hairline"
+    },
+    "s0.c.4.c": {
+     "emphasis": "display"
+    },
+    "s0.c.5": {
+     "emphasis": null
+    },
+    "s1": {
+     "fill": "pattern",
+     "heightPx": 48,
+     "motif": {
+      "id": "stripe",
+      "role": "band"
+     }
+    },
+    "s2": {
+     "align": "start",
+     "gapPx": 34
+    },
+    "s2.0": {
+     "insetPx": 14,
+     "role": "accent"
+    },
+    "s2.0.c": {
+     "emphasis": "display"
+    },
+    "s2.1": {
+     "emphasis": "primary"
+    },
+    "s2.2": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "double",
+    "borderWeight": 1,
+    "button": "solid_square",
+    "card": "tinted",
+    "displayTracking": 0.14
+   },
+   "repairSummary": {},
+   "seed": 1144894711,
+   "typography": {
+    "body": "Inter Tight",
+    "category": "transitional",
+    "display": "Newsreader",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "03-1": {
+  "id": "03-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "center",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "anchor": "center",
+       "content": {
+        "child": {
+         "child": {
+          "align": "center",
+          "children": [
+           {
+            "case": "none",
+            "emphasis": "display",
+            "id": "s0.c.c.c.0",
+            "layout": "block",
+            "t": "EventTitle"
+           },
+           {
+            "case": "none",
+            "emphasis": "secondary",
+            "id": "s0.c.c.c.1",
+            "t": "Hosts"
+           },
+           {
+            "children": [
+             {
+              "emphasis": "secondary",
+              "form": "full",
+              "id": "s0.c.c.c.2.0",
+              "t": "Date"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s0.c.c.c.2.1",
+              "t": "Time"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s0.c.c.c.2.2",
+              "t": "Venue"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s0.c.c.c.2.3",
+              "t": "Location"
+             }
+            ],
+            "gap": "normal",
+            "id": "s0.c.c.c.2",
+            "justify": "center",
+            "t": "Cluster"
+           },
+           {
+            "children": [
+             {
+              "emphasis": "caption",
+              "id": "s0.c.c.c.3.0",
+              "t": "Deadline"
+             },
+             {
+              "id": "s0.c.c.c.3.1",
+              "style": "button",
+              "t": "CTA",
+              "target": "rsvp"
+             }
+            ],
+            "gap": "normal",
+            "id": "s0.c.c.c.3",
+            "justify": "center",
+            "t": "Cluster"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.c.c.c",
+          "t": "Stack"
+         },
+         "id": "s0.c.c",
+         "inset": "tight",
+         "role": "contrast",
+         "t": "Surface"
+        },
+        "id": "s0.c",
+        "inset": "normal",
+        "rule": "hairline",
+        "t": "Frame"
+       },
+       "decoration": {
+        "extent": "full",
+        "id": "s0.d",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       },
+       "extent": "full",
+       "id": "s0",
+       "mobile": "stack",
+       "t": "Overlay"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "medium",
+       "id": "s1",
+       "motif": {
+        "id": "stripe",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "accent"
+     },
+     {
+      "align": "center",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "align": "center",
+       "children": [
+        {
+         "emphasis": "display",
+         "for": "rsvp",
+         "id": "s2.0",
+         "t": "SectionHeading"
+        },
+        {
+         "id": "s2.1",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s2",
+       "t": "Stack"
+      },
+      "surface": "base"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "e50ba3e8",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "symmetric",
+     "hierarchy": "dramatic",
+     "ornament": "restrained",
+     "rhythm": "continuous",
+     "sectionContrast": "moderate"
+    },
+    "density": "compact",
+    "family": "statement",
+    "pageSystem": {
+     "border": "none",
+     "borderWeight": 3,
+     "button": "underline",
+     "card": "tinted",
+     "displayTracking": -0.02
+    },
+    "tonalDirection": "light",
+    "typography": "grotesk_archivo_inter",
+    "typographyCategory": "grotesk_led",
+    "typographyObject": {
+     "body": "Inter",
+     "category": "grotesk_led",
+     "display": "Archivo",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "anchor": "center",
+     "extentPct": 100,
+     "mobile": "stack"
+    },
+    "s0.c": {
+     "insetPx": 36,
+     "motif": null,
+     "rule": "hairline"
+    },
+    "s0.c.c": {
+     "insetPx": 14,
+     "role": "contrast"
+    },
+    "s0.c.c.c": {
+     "align": "center",
+     "gapPx": 16
+    },
+    "s0.c.c.c.0": {
+     "emphasis": "display"
+    },
+    "s0.c.c.c.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.c.c.2": {
+     "gapPx": 16,
+     "justify": "center"
+    },
+    "s0.c.c.c.2.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.c.c.2.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.c.c.2.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.c.c.2.3": {
+     "emphasis": "secondary"
+    },
+    "s0.c.c.c.3": {
+     "gapPx": 16,
+     "justify": "center"
+    },
+    "s0.c.c.c.3.0": {
+     "emphasis": "caption"
+    },
+    "s0.c.c.c.3.1": {
+     "emphasis": null
+    },
+    "s0.d": {
+     "extentPct": 100,
+     "motif": {
+      "id": "plaid",
+      "role": "field"
+     }
+    },
+    "s1": {
+     "fill": "pattern",
+     "heightPx": 48,
+     "motif": {
+      "id": "stripe",
+      "role": "band"
+     }
+    },
+    "s2": {
+     "align": "center",
+     "gapPx": 16
+    },
+    "s2.0": {
+     "emphasis": "display"
+    },
+    "s2.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "none",
+    "borderWeight": 3,
+    "button": "underline",
+    "card": "tinted",
+    "displayTracking": -0.02
+   },
+   "repairSummary": {},
+   "seed": 1161672330,
+   "typography": {
+    "body": "Inter",
+    "category": "grotesk_led",
+    "display": "Archivo",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "04-1": {
+  "id": "04-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "child": {
+        "align": "start",
+        "children": [
+         {
+          "anchor": "top-end",
+          "content": {
+           "children": [
+            {
+             "case": "upper",
+             "emphasis": "secondary",
+             "id": "s0.c.0.c.0",
+             "t": "Eyebrow"
+            },
+            {
+             "case": "none",
+             "emphasis": "display",
+             "id": "s0.c.0.c.1",
+             "layout": "stagger",
+             "t": "EventTitle"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.0.c.2",
+             "t": "Hosts"
+            }
+           ],
+           "gap": "tight",
+           "id": "s0.c.0.c",
+           "t": "Stack"
+          },
+          "decoration": {
+           "id": "s0.c.0.d",
+           "motif": "botanical",
+           "scale": "l",
+           "t": "Glyph"
+          },
+          "extent": "third",
+          "id": "s0.c.0",
+          "mobile": "stack",
+          "t": "Overlay"
+         },
+         {
+          "child": {
+           "children": [
+            {
+             "child": {
+              "emphasis": "primary",
+              "form": "full",
+              "id": "s0.c.1.c.0.c",
+              "t": "Date"
+             },
+             "id": "s0.c.1.c.0",
+             "rowSpan": 1,
+             "span": 1,
+             "t": "Cell"
+            },
+            {
+             "child": {
+              "emphasis": "primary",
+              "id": "s0.c.1.c.1.c",
+              "t": "Time"
+             },
+             "id": "s0.c.1.c.1",
+             "rowSpan": 1,
+             "span": 1,
+             "t": "Cell"
+            },
+            {
+             "child": {
+              "emphasis": "primary",
+              "id": "s0.c.1.c.2.c",
+              "t": "Venue"
+             },
+             "id": "s0.c.1.c.2",
+             "rowSpan": 1,
+             "span": 1,
+             "t": "Cell"
+            }
+           ],
+           "columns": 3,
+           "gap": "normal",
+           "id": "s0.c.1.c",
+           "mobile": 1,
+           "ruled": true,
+           "t": "Grid"
+          },
+          "id": "s0.c.1",
+          "inset": "normal",
+          "motif": {
+           "id": "plaid",
+           "role": "frame"
+          },
+          "rule": "hairline",
+          "t": "Frame"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "id": "s0.c.2.0",
+            "t": "Location"
+           },
+           {
+            "id": "s0.c.2.1",
+            "style": "button",
+            "t": "CTA",
+            "target": "rsvp"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.c.2",
+          "justify": "between",
+          "t": "Cluster"
+         }
+        ],
+        "gap": "loose",
+        "id": "s0.c",
+        "t": "Stack"
+       },
+       "id": "s0",
+       "inset": "deep",
+       "role": "contrast",
+       "t": "Surface"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "thin",
+       "id": "s1",
+       "motif": {
+        "id": "stripe",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "children": [
+          {
+           "emphasis": "display",
+           "for": "rsvp",
+           "id": "s2.0.0",
+           "t": "SectionHeading"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s2.0.1",
+           "t": "Deadline"
+          }
+         ],
+         "gap": "normal",
+         "id": "s2.0",
+         "t": "Stack"
+        },
+        {
+         "id": "s2.1",
+         "t": "RSVP"
+        }
+       ],
+       "divider": "hairline",
+       "id": "s2",
+       "mobile": "stack",
+       "ratio": "38",
+       "t": "Split"
+      },
+      "surface": "accent"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "46933f69",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "strong",
+     "hierarchy": "restrained",
+     "ornament": "restrained",
+     "rhythm": "continuous",
+     "sectionContrast": "moderate"
+    },
+    "density": "spacious",
+    "family": "invitation",
+    "pageSystem": {
+     "border": "hairline",
+     "borderWeight": 3,
+     "button": "outline_square",
+     "card": "plate",
+     "displayTracking": 0.06
+    },
+    "tonalDirection": "mid",
+    "typography": "soft_fraunces_manrope",
+    "typographyCategory": "soft_serif",
+    "typographyObject": {
+     "body": "Manrope",
+     "category": "soft_serif",
+     "display": "Fraunces",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "insetPx": 64,
+     "role": "contrast"
+    },
+    "s0.c": {
+     "align": "start",
+     "gapPx": 44
+    },
+    "s0.c.0": {
+     "anchor": "top-end",
+     "extentPct": 33,
+     "mobile": "stack"
+    },
+    "s0.c.0.c": {
+     "align": null,
+     "gapPx": 14
+    },
+    "s0.c.0.c.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.0.c.1": {
+     "emphasis": "display"
+    },
+    "s0.c.0.c.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.0.d": {
+     "emphasis": null
+    },
+    "s0.c.1": {
+     "insetPx": 36,
+     "motif": {
+      "id": "plaid",
+      "role": "frame"
+     },
+     "rule": "hairline"
+    },
+    "s0.c.1.c": {
+     "columns": 3,
+     "gapPx": 30,
+     "mobileColumns": 1,
+     "ruled": true
+    },
+    "s0.c.1.c.0": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.1.c.0.c": {
+     "emphasis": "primary"
+    },
+    "s0.c.1.c.1": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.1.c.1.c": {
+     "emphasis": "primary"
+    },
+    "s0.c.1.c.2": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.1.c.2.c": {
+     "emphasis": "primary"
+    },
+    "s0.c.2": {
+     "gapPx": 30,
+     "justify": "between"
+    },
+    "s0.c.2.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.2.1": {
+     "emphasis": null
+    },
+    "s1": {
+     "fill": "pattern",
+     "heightPx": 24,
+     "motif": {
+      "id": "stripe",
+      "role": "band"
+     }
+    },
+    "s2": {
+     "align": "start",
+     "first": 38,
+     "mobile": "stack"
+    },
+    "s2.0": {
+     "align": null,
+     "gapPx": 30
+    },
+    "s2.0.0": {
+     "emphasis": "display"
+    },
+    "s2.0.1": {
+     "emphasis": "secondary"
+    },
+    "s2.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "hairline",
+    "borderWeight": 3,
+    "button": "outline_square",
+    "card": "plate",
+    "displayTracking": 0.06
+   },
+   "repairSummary": {},
+   "seed": 3485306015,
+   "typography": {
+    "body": "Manrope",
+    "category": "soft_serif",
+    "display": "Fraunces",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "05-1": {
+  "id": "05-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "children": [
+          {
+           "id": "s0.0.0",
+           "style": "ring",
+           "t": "Monogram"
+          },
+          {
+           "case": "upper",
+           "emphasis": "secondary",
+           "id": "s0.0.1",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.0.2",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.0.3",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "tight",
+         "id": "s0.0",
+         "t": "Stack"
+        },
+        {
+         "children": [
+          {
+           "glyphs": "botanical",
+           "id": "s0.1.0",
+           "orientation": "h",
+           "t": "Rule",
+           "weight": "hairline"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "secondary",
+             "form": "full",
+             "id": "s0.1.1.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.1.1.1",
+             "t": "Time"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.1.1.2",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.1.1.3",
+             "t": "Location"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.1.1",
+           "justify": "start",
+           "t": "Cluster"
+          },
+          {
+           "id": "s0.1.2",
+           "style": "button",
+           "t": "CTA",
+           "target": "rsvp"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.1",
+         "t": "Stack"
+        }
+       ],
+       "divider": "hairline",
+       "id": "s0",
+       "mobile": "stack",
+       "ratio": "38",
+       "t": "Split"
+      },
+      "surface": "contrast"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "medium",
+       "id": "s1",
+       "motif": {
+        "id": "plaid",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "children": [
+        {
+         "emphasis": "primary",
+         "for": "rsvp",
+         "id": "s2.0",
+         "t": "SectionHeading"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s2.1",
+         "t": "Deadline"
+        },
+        {
+         "id": "s2.2",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s2",
+       "t": "Stack"
+      },
+      "surface": "base"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "ebe8cc7c",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "strong",
+     "hierarchy": "dramatic",
+     "ornament": "none",
+     "rhythm": "continuous",
+     "sectionContrast": "high"
+    },
+    "density": "balanced",
+    "family": "statement",
+    "pageSystem": {
+     "border": "double",
+     "borderWeight": 1,
+     "button": "solid_square",
+     "card": "flat",
+     "displayTracking": -0.05
+    },
+    "tonalDirection": "dark",
+    "typography": "grotesk_space_sourcesans",
+    "typographyCategory": "grotesk_led",
+    "typographyObject": {
+     "body": "Source Sans 3",
+     "category": "grotesk_led",
+     "display": "Space Grotesk",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "align": "start",
+     "first": 38,
+     "mobile": "stack"
+    },
+    "s0.0": {
+     "align": null,
+     "gapPx": 10
+    },
+    "s0.0.0": {
+     "emphasis": null
+    },
+    "s0.0.1": {
+     "emphasis": "secondary"
+    },
+    "s0.0.2": {
+     "emphasis": "display"
+    },
+    "s0.0.3": {
+     "emphasis": "secondary"
+    },
+    "s0.1": {
+     "align": null,
+     "gapPx": 22
+    },
+    "s0.1.0": {
+     "emphasis": null
+    },
+    "s0.1.1": {
+     "gapPx": 22,
+     "justify": "start"
+    },
+    "s0.1.1.0": {
+     "emphasis": "secondary"
+    },
+    "s0.1.1.1": {
+     "emphasis": "secondary"
+    },
+    "s0.1.1.2": {
+     "emphasis": "secondary"
+    },
+    "s0.1.1.3": {
+     "emphasis": "secondary"
+    },
+    "s0.1.2": {
+     "emphasis": null
+    },
+    "s1": {
+     "fill": "pattern",
+     "heightPx": 48,
+     "motif": {
+      "id": "plaid",
+      "role": "band"
+     }
+    },
+    "s2": {
+     "align": null,
+     "gapPx": 22
+    },
+    "s2.0": {
+     "emphasis": "primary"
+    },
+    "s2.1": {
+     "emphasis": "secondary"
+    },
+    "s2.2": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "double",
+    "borderWeight": 1,
+    "button": "solid_square",
+    "card": "flat",
+    "displayTracking": -0.05
+   },
+   "repairSummary": {},
+   "seed": 3468528396,
+   "typography": {
+    "body": "Source Sans 3",
+    "category": "grotesk_led",
+    "display": "Space Grotesk",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "06-1": {
+  "id": "06-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "child": {
+        "align": "start",
+        "children": [
+         {
+          "case": "upper",
+          "emphasis": "secondary",
+          "id": "s0.c.0",
+          "t": "Eyebrow"
+         },
+         {
+          "case": "none",
+          "emphasis": "display",
+          "id": "s0.c.1",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "form": "full",
+            "id": "s0.c.2.0",
+            "t": "Date"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.c.2.1",
+            "t": "Time"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.c.2.2",
+            "t": "Venue"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.c.2",
+          "justify": "start",
+          "t": "Cluster"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.c.3",
+          "t": "Hosts"
+         },
+         {
+          "id": "s0.c.4",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "normal",
+        "id": "s0.c",
+        "t": "Stack"
+       },
+       "id": "s0",
+       "mobile": "top",
+       "rail": {
+        "extent": "full",
+        "id": "s0.r",
+        "motif": {
+         "id": "plaid",
+         "role": "field"
+        },
+        "t": "MotifField"
+       },
+       "side": "start",
+       "t": "Rail",
+       "width": "wide"
+      },
+      "surface": "contrast"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "details",
+      "root": {
+       "child": {
+        "children": [
+         {
+          "emphasis": "primary",
+          "for": "details",
+          "id": "s1.c.0",
+          "t": "SectionHeading"
+         },
+         {
+          "children": [
+           {
+            "child": {
+             "emphasis": "primary",
+             "form": "full",
+             "id": "s1.c.1.0.c",
+             "t": "Date"
+            },
+            "id": "s1.c.1.0",
+            "rowSpan": 1,
+            "span": 1,
+            "t": "Cell"
+           },
+           {
+            "child": {
+             "emphasis": "primary",
+             "id": "s1.c.1.1.c",
+             "t": "Time"
+            },
+            "id": "s1.c.1.1",
+            "rowSpan": 1,
+            "span": 1,
+            "t": "Cell"
+           },
+           {
+            "child": {
+             "children": [
+              {
+               "emphasis": "primary",
+               "id": "s1.c.1.2.c.0",
+               "t": "Venue"
+              },
+              {
+               "emphasis": "secondary",
+               "id": "s1.c.1.2.c.1",
+               "t": "Location"
+              }
+             ],
+             "gap": "normal",
+             "id": "s1.c.1.2.c",
+             "t": "Stack"
+            },
+            "id": "s1.c.1.2",
+            "rowSpan": 1,
+            "span": 1,
+            "t": "Cell"
+           }
+          ],
+          "columns": 3,
+          "gap": "normal",
+          "id": "s1.c.1",
+          "mobile": 1,
+          "ruled": true,
+          "t": "Grid"
+         }
+        ],
+        "gap": "normal",
+        "id": "s1.c",
+        "t": "Stack"
+       },
+       "id": "s1",
+       "inset": "normal",
+       "motif": {
+        "id": "gingham",
+        "role": "frame"
+       },
+       "rule": "hairline",
+       "t": "Frame"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "children": [
+        {
+         "child": {
+          "children": [
+           {
+            "emphasis": "caption",
+            "id": "s2.0.c.0",
+            "t": "Deadline"
+           },
+           {
+            "emphasis": "primary",
+            "for": "rsvp",
+            "id": "s2.0.c.1",
+            "t": "SectionHeading"
+           }
+          ],
+          "gap": "tight",
+          "id": "s2.0.c",
+          "t": "Stack"
+         },
+         "id": "s2.0",
+         "inset": "normal",
+         "role": "accent",
+         "t": "Surface"
+        },
+        {
+         "id": "s2.1",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s2",
+       "t": "Stack"
+      },
+      "surface": "base"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "71da2d85",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "symmetric",
+     "hierarchy": "editorial",
+     "ornament": "restrained",
+     "rhythm": "continuous",
+     "sectionContrast": "high"
+    },
+    "density": "compact",
+    "family": "editorial",
+    "pageSystem": {
+     "border": "hairline",
+     "borderWeight": 3,
+     "button": "solid_rounded",
+     "card": "plate",
+     "displayTracking": 0.06
+    },
+    "tonalDirection": "light",
+    "typography": "heritage_caslon_karla",
+    "typographyCategory": "heritage",
+    "typographyObject": {
+     "body": "Karla",
+     "category": "heritage",
+     "display": "Libre Caslon Text",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "mobile": "top",
+     "side": "start",
+     "widthPx": 192
+    },
+    "s0.c": {
+     "align": "start",
+     "gapPx": 16
+    },
+    "s0.c.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.1": {
+     "emphasis": "display"
+    },
+    "s0.c.2": {
+     "gapPx": 16,
+     "justify": "start"
+    },
+    "s0.c.2.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.2.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.2.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.3": {
+     "emphasis": "secondary"
+    },
+    "s0.c.4": {
+     "emphasis": null
+    },
+    "s0.r": {
+     "extentPct": 100,
+     "motif": {
+      "id": "plaid",
+      "role": "field"
+     }
+    },
+    "s1": {
+     "insetPx": 36,
+     "motif": {
+      "id": "gingham",
+      "role": "frame"
+     },
+     "rule": "hairline"
+    },
+    "s1.c": {
+     "align": null,
+     "gapPx": 16
+    },
+    "s1.c.0": {
+     "emphasis": "primary"
+    },
+    "s1.c.1": {
+     "columns": 3,
+     "gapPx": 16,
+     "mobileColumns": 1,
+     "ruled": true
+    },
+    "s1.c.1.0": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s1.c.1.0.c": {
+     "emphasis": "primary"
+    },
+    "s1.c.1.1": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s1.c.1.1.c": {
+     "emphasis": "primary"
+    },
+    "s1.c.1.2": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s1.c.1.2.c": {
+     "align": null,
+     "gapPx": 16
+    },
+    "s1.c.1.2.c.0": {
+     "emphasis": "primary"
+    },
+    "s1.c.1.2.c.1": {
+     "emphasis": "secondary"
+    },
+    "s2": {
+     "align": null,
+     "gapPx": 16
+    },
+    "s2.0": {
+     "insetPx": 36,
+     "role": "accent"
+    },
+    "s2.0.c": {
+     "align": null,
+     "gapPx": 8
+    },
+    "s2.0.c.0": {
+     "emphasis": "caption"
+    },
+    "s2.0.c.1": {
+     "emphasis": "primary"
+    },
+    "s2.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "hairline",
+    "borderWeight": 3,
+    "button": "solid_rounded",
+    "card": "plate",
+    "displayTracking": 0.06
+   },
+   "repairSummary": {},
+   "seed": 3518861253,
+   "typography": {
+    "body": "Karla",
+    "category": "heritage",
+    "display": "Libre Caslon Text",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "07-1": {
+  "id": "07-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "align": "start",
+         "children": [
+          {
+           "case": "upper",
+           "emphasis": "secondary",
+           "id": "s0.0.0",
+           "t": "Eyebrow"
+          },
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.0.1",
+           "layout": "cascade",
+           "t": "EventTitle"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.0.2",
+           "t": "Hosts"
+          }
+         ],
+         "gap": "tight",
+         "id": "s0.0",
+         "t": "Stack"
+        },
+        {
+         "child": {
+          "align": "start",
+          "children": [
+           {
+            "children": [
+             {
+              "emphasis": "secondary",
+              "form": "full",
+              "id": "s0.1.c.0.0",
+              "t": "Date"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s0.1.c.0.1",
+              "t": "Time"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s0.1.c.0.2",
+              "t": "Venue"
+             }
+            ],
+            "gap": "normal",
+            "id": "s0.1.c.0",
+            "justify": "start",
+            "t": "Cluster"
+           },
+           {
+            "id": "s0.1.c.1",
+            "style": "button",
+            "t": "CTA",
+            "target": "rsvp"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.1.c",
+          "t": "Stack"
+         },
+         "id": "s0.1",
+         "inset": "normal",
+         "motif": {
+          "id": "plaid",
+          "role": "frame"
+         },
+         "rule": "hairline",
+         "t": "Frame"
+        }
+       ],
+       "divider": "hairline",
+       "id": "s0",
+       "mobile": "stack",
+       "ratio": "62",
+       "t": "Split"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "medium",
+       "id": "s1",
+       "motif": {
+        "id": "stripe",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "details",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "emphasis": "primary",
+         "for": "details",
+         "id": "s2.0",
+         "t": "SectionHeading"
+        },
+        {
+         "children": [
+          {
+           "child": {
+            "emphasis": "display",
+            "form": "numeral",
+            "id": "s2.1.0.c",
+            "t": "Date"
+           },
+           "id": "s2.1.0",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          },
+          {
+           "child": {
+            "children": [
+             {
+              "emphasis": "primary",
+              "id": "s2.1.1.c.0",
+              "t": "Time"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s2.1.1.c.1",
+              "t": "Location"
+             }
+            ],
+            "gap": "tight",
+            "id": "s2.1.1.c",
+            "t": "Stack"
+           },
+           "id": "s2.1.1",
+           "rowSpan": 1,
+           "span": 1,
+           "t": "Cell"
+          }
+         ],
+         "columns": 2,
+         "gap": "normal",
+         "id": "s2.1",
+         "mobile": 1,
+         "ruled": true,
+         "t": "Grid"
+        }
+       ],
+       "gap": "loose",
+       "id": "s2",
+       "t": "Stack"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s3",
+      "kind": "rsvp",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "emphasis": "display",
+         "for": "rsvp",
+         "id": "s3.0",
+         "t": "SectionHeading"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s3.1",
+         "t": "Deadline"
+        },
+        {
+         "id": "s3.2",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s3",
+       "t": "Stack"
+      },
+      "surface": "alt"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "c62a6b5b",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "strong",
+     "hierarchy": "dramatic",
+     "ornament": "restrained",
+     "rhythm": "alternating",
+     "sectionContrast": "low"
+    },
+    "density": "compact",
+    "family": "statement",
+    "pageSystem": {
+     "border": "double",
+     "borderWeight": 1,
+     "button": "underline",
+     "card": "tinted",
+     "displayTracking": -0.05
+    },
+    "tonalDirection": "light",
+    "typography": "transitional_newsreader_tight",
+    "typographyCategory": "transitional",
+    "typographyObject": {
+     "body": "Inter Tight",
+     "category": "transitional",
+     "display": "Newsreader",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "align": "start",
+     "first": 62,
+     "mobile": "stack"
+    },
+    "s0.0": {
+     "align": "start",
+     "gapPx": 8
+    },
+    "s0.0.0": {
+     "emphasis": "secondary"
+    },
+    "s0.0.1": {
+     "emphasis": "display"
+    },
+    "s0.0.2": {
+     "emphasis": "secondary"
+    },
+    "s0.1": {
+     "insetPx": 36,
+     "motif": {
+      "id": "plaid",
+      "role": "frame"
+     },
+     "rule": "hairline"
+    },
+    "s0.1.c": {
+     "align": "start",
+     "gapPx": 16
+    },
+    "s0.1.c.0": {
+     "gapPx": 16,
+     "justify": "start"
+    },
+    "s0.1.c.0.0": {
+     "emphasis": "secondary"
+    },
+    "s0.1.c.0.1": {
+     "emphasis": "secondary"
+    },
+    "s0.1.c.0.2": {
+     "emphasis": "secondary"
+    },
+    "s0.1.c.1": {
+     "emphasis": null
+    },
+    "s1": {
+     "fill": "pattern",
+     "heightPx": 48,
+     "motif": {
+      "id": "stripe",
+      "role": "band"
+     }
+    },
+    "s2": {
+     "align": "start",
+     "gapPx": 24
+    },
+    "s2.0": {
+     "emphasis": "primary"
+    },
+    "s2.1": {
+     "columns": 2,
+     "gapPx": 16,
+     "mobileColumns": 1,
+     "ruled": true
+    },
+    "s2.1.0": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s2.1.0.c": {
+     "emphasis": "display"
+    },
+    "s2.1.1": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s2.1.1.c": {
+     "align": null,
+     "gapPx": 8
+    },
+    "s2.1.1.c.0": {
+     "emphasis": "primary"
+    },
+    "s2.1.1.c.1": {
+     "emphasis": "secondary"
+    },
+    "s3": {
+     "align": "start",
+     "gapPx": 16
+    },
+    "s3.0": {
+     "emphasis": "display"
+    },
+    "s3.1": {
+     "emphasis": "secondary"
+    },
+    "s3.2": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "double",
+    "borderWeight": 1,
+    "button": "underline",
+    "card": "tinted",
+    "displayTracking": -0.05
+   },
+   "repairSummary": {},
+   "seed": 484290157,
+   "typography": {
+    "body": "Inter Tight",
+    "category": "transitional",
+    "display": "Newsreader",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "08-1": {
+  "id": "08-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "center",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "child": {
+        "align": "center",
+        "children": [
+         {
+          "case": "upper",
+          "emphasis": "caption",
+          "id": "s0.c.0",
+          "t": "Eyebrow"
+         },
+         {
+          "emphasis": "display",
+          "form": "numeral",
+          "id": "s0.c.1",
+          "t": "Date"
+         },
+         {
+          "case": "none",
+          "emphasis": "primary",
+          "id": "s0.c.2",
+          "layout": "block",
+          "t": "EventTitle"
+         },
+         {
+          "emphasis": "secondary",
+          "id": "s0.c.3",
+          "t": "Hosts"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "secondary",
+            "id": "s0.c.4.0",
+            "t": "Venue"
+           },
+           {
+            "id": "s0.c.4.1",
+            "orientation": "v",
+            "t": "Rule",
+            "weight": "hairline"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.c.4.2",
+            "t": "Time"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.c.4",
+          "justify": "center",
+          "t": "Cluster"
+         },
+         {
+          "children": [
+           {
+            "emphasis": "caption",
+            "form": "month-year",
+            "id": "s0.c.5.0",
+            "t": "Date"
+           },
+           {
+            "id": "s0.c.5.1",
+            "orientation": "v",
+            "t": "Rule",
+            "weight": "hairline"
+           },
+           {
+            "emphasis": "caption",
+            "id": "s0.c.5.2",
+            "t": "Location"
+           }
+          ],
+          "gap": "tight",
+          "id": "s0.c.5",
+          "justify": "center",
+          "t": "Cluster"
+         },
+         {
+          "id": "s0.c.6",
+          "style": "button",
+          "t": "CTA",
+          "target": "rsvp"
+         }
+        ],
+        "gap": "tight",
+        "id": "s0.c",
+        "t": "Stack"
+       },
+       "id": "s0",
+       "inset": "normal",
+       "rule": "hairline",
+       "t": "Frame"
+      },
+      "surface": "contrast"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "accent",
+       "height": "thin",
+       "id": "s1",
+       "t": "MotifBand"
+      },
+      "surface": "accent"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "align": "start",
+         "children": [
+          {
+           "emphasis": "display",
+           "for": "rsvp",
+           "id": "s2.0.0",
+           "t": "SectionHeading"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s2.0.1",
+           "t": "Deadline"
+          }
+         ],
+         "gap": "normal",
+         "id": "s2.0",
+         "t": "Stack"
+        },
+        {
+         "id": "s2.1",
+         "t": "RSVP"
+        }
+       ],
+       "divider": "hairline",
+       "id": "s2",
+       "mobile": "stack",
+       "ratio": "38",
+       "t": "Split"
+      },
+      "surface": "alt"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "d93aca5f",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "gentle",
+     "hierarchy": "editorial",
+     "ornament": "restrained",
+     "rhythm": "alternating",
+     "sectionContrast": "high"
+    },
+    "density": "compact",
+    "family": "invitation",
+    "pageSystem": {
+     "border": "hairline",
+     "borderWeight": 1,
+     "button": "solid_square",
+     "card": "outlined",
+     "displayTracking": -0.02
+    },
+    "tonalDirection": "dark",
+    "typography": "heritage_baskerville_inter",
+    "typographyCategory": "heritage",
+    "typographyObject": {
+     "body": "Inter",
+     "category": "heritage",
+     "display": "Libre Baskerville",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "insetPx": 36,
+     "motif": null,
+     "rule": "hairline"
+    },
+    "s0.c": {
+     "align": "center",
+     "gapPx": 8
+    },
+    "s0.c.0": {
+     "emphasis": "caption"
+    },
+    "s0.c.1": {
+     "emphasis": "display"
+    },
+    "s0.c.2": {
+     "emphasis": "primary"
+    },
+    "s0.c.3": {
+     "emphasis": "secondary"
+    },
+    "s0.c.4": {
+     "gapPx": 16,
+     "justify": "center"
+    },
+    "s0.c.4.0": {
+     "emphasis": "secondary"
+    },
+    "s0.c.4.1": {
+     "emphasis": null
+    },
+    "s0.c.4.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.5": {
+     "gapPx": 8,
+     "justify": "center"
+    },
+    "s0.c.5.0": {
+     "emphasis": "caption"
+    },
+    "s0.c.5.1": {
+     "emphasis": null
+    },
+    "s0.c.5.2": {
+     "emphasis": "caption"
+    },
+    "s0.c.6": {
+     "emphasis": null
+    },
+    "s1": {
+     "fill": "accent",
+     "heightPx": 24,
+     "motif": null
+    },
+    "s2": {
+     "align": "start",
+     "first": 38,
+     "mobile": "stack"
+    },
+    "s2.0": {
+     "align": "start",
+     "gapPx": 16
+    },
+    "s2.0.0": {
+     "emphasis": "display"
+    },
+    "s2.0.1": {
+     "emphasis": "secondary"
+    },
+    "s2.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "hairline",
+    "borderWeight": 1,
+    "button": "solid_square",
+    "card": "outlined",
+    "displayTracking": -0.02
+   },
+   "repairSummary": {},
+   "seed": 467512538,
+   "typography": {
+    "body": "Inter",
+    "category": "heritage",
+    "display": "Libre Baskerville",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "09-1": {
+  "id": "09-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "child": {
+        "children": [
+         {
+          "child": {
+           "extent": "full",
+           "id": "s0.c.0.c",
+           "motif": {
+            "id": "plaid",
+            "role": "field"
+           },
+           "t": "MotifField"
+          },
+          "id": "s0.c.0",
+          "rowSpan": 2,
+          "span": 1,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "children": [
+            {
+             "case": "upper",
+             "emphasis": "caption",
+             "id": "s0.c.1.c.0",
+             "t": "Eyebrow"
+            },
+            {
+             "case": "none",
+             "emphasis": "display",
+             "id": "s0.c.1.c.1",
+             "layout": "block",
+             "t": "EventTitle"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.1.c.2",
+             "t": "Hosts"
+            }
+           ],
+           "gap": "tight",
+           "id": "s0.c.1.c",
+           "t": "Stack"
+          },
+          "id": "s0.c.1",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         },
+         {
+          "child": {
+           "children": [
+            {
+             "children": [
+              {
+               "emphasis": "primary",
+               "form": "full",
+               "id": "s0.c.2.c.0.0",
+               "t": "Date"
+              },
+              {
+               "emphasis": "primary",
+               "id": "s0.c.2.c.0.1",
+               "t": "Venue"
+              },
+              {
+               "emphasis": "secondary",
+               "id": "s0.c.2.c.0.2",
+               "t": "Time"
+              }
+             ],
+             "gap": "normal",
+             "id": "s0.c.2.c.0",
+             "justify": "between",
+             "t": "Cluster"
+            },
+            {
+             "id": "s0.c.2.c.1",
+             "orientation": "h",
+             "t": "Rule",
+             "weight": "hairline"
+            },
+            {
+             "children": [
+              {
+               "emphasis": "caption",
+               "id": "s0.c.2.c.2.0",
+               "t": "Deadline"
+              },
+              {
+               "id": "s0.c.2.c.2.1",
+               "style": "button",
+               "t": "CTA",
+               "target": "rsvp"
+              }
+             ],
+             "gap": "normal",
+             "id": "s0.c.2.c.2",
+             "justify": "between",
+             "t": "Cluster"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.2.c",
+           "t": "Stack"
+          },
+          "id": "s0.c.2",
+          "rowSpan": 1,
+          "span": 1,
+          "t": "Cell"
+         }
+        ],
+        "columns": 2,
+        "gap": "normal",
+        "id": "s0.c",
+        "mobile": 1,
+        "ruled": true,
+        "t": "Grid"
+       },
+       "id": "s0",
+       "inset": "normal",
+       "role": "contrast",
+       "t": "Surface"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "thin",
+       "id": "s1",
+       "motif": {
+        "id": "linen",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "details",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "children": [
+          {
+           "emphasis": "primary",
+           "for": "details",
+           "id": "s2.0.0",
+           "t": "SectionHeading"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s2.0.1",
+           "t": "Location"
+          }
+         ],
+         "gap": "tight",
+         "id": "s2.0",
+         "t": "Stack"
+        },
+        {
+         "child": {
+          "children": [
+           {
+            "children": [
+             {
+              "emphasis": "display",
+              "form": "numeral",
+              "id": "s2.1.c.0.0",
+              "t": "Date"
+             },
+             {
+              "emphasis": "secondary",
+              "id": "s2.1.c.0.1",
+              "t": "Time"
+             }
+            ],
+            "gap": "normal",
+            "id": "s2.1.c.0",
+            "justify": "start",
+            "t": "Cluster"
+           },
+           {
+            "id": "s2.1.c.1",
+            "orientation": "h",
+            "t": "Rule",
+            "weight": "hairline"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s2.1.c.2",
+            "t": "Deadline"
+           }
+          ],
+          "gap": "normal",
+          "id": "s2.1.c",
+          "t": "Stack"
+         },
+         "id": "s2.1",
+         "inset": "normal",
+         "rule": "hairline",
+         "t": "Frame"
+        }
+       ],
+       "divider": "hairline",
+       "id": "s2",
+       "mobile": "stack",
+       "ratio": "38",
+       "t": "Split"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s3",
+      "kind": "rsvp",
+      "root": {
+       "children": [
+        {
+         "child": {
+          "children": [
+           {
+            "emphasis": "display",
+            "for": "rsvp",
+            "id": "s3.0.c.0",
+            "t": "SectionHeading"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s3.0.c.1",
+            "t": "Deadline"
+           }
+          ],
+          "gap": "tight",
+          "id": "s3.0.c",
+          "t": "Stack"
+         },
+         "id": "s3.0",
+         "inset": "normal",
+         "role": "accent",
+         "t": "Surface"
+        },
+        {
+         "id": "s3.1",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s3",
+       "t": "Stack"
+      },
+      "surface": "alt"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "9ea1b197",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "symmetric",
+     "hierarchy": "monumental",
+     "ornament": "none",
+     "rhythm": "alternating",
+     "sectionContrast": "low"
+    },
+    "density": "compact",
+    "family": "editorial",
+    "pageSystem": {
+     "border": "accented",
+     "borderWeight": 1,
+     "button": "underline",
+     "card": "flat",
+     "displayTracking": -0.05
+    },
+    "tonalDirection": "mid",
+    "typography": "hc_playfair_dmsans",
+    "typographyCategory": "high_contrast_editorial",
+    "typographyObject": {
+     "body": "DM Sans",
+     "category": "high_contrast_editorial",
+     "display": "Playfair Display",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "insetPx": 36,
+     "role": "contrast"
+    },
+    "s0.c": {
+     "columns": 2,
+     "gapPx": 16,
+     "mobileColumns": 1,
+     "ruled": true
+    },
+    "s0.c.0": {
+     "rowSpan": 2,
+     "span": 1
+    },
+    "s0.c.0.c": {
+     "extentPct": 100,
+     "motif": {
+      "id": "plaid",
+      "role": "field"
+     }
+    },
+    "s0.c.1": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.1.c": {
+     "align": null,
+     "gapPx": 8
+    },
+    "s0.c.1.c.0": {
+     "emphasis": "caption"
+    },
+    "s0.c.1.c.1": {
+     "emphasis": "display"
+    },
+    "s0.c.1.c.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.2": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.c.2.c": {
+     "align": null,
+     "gapPx": 16
+    },
+    "s0.c.2.c.0": {
+     "gapPx": 16,
+     "justify": "between"
+    },
+    "s0.c.2.c.0.0": {
+     "emphasis": "primary"
+    },
+    "s0.c.2.c.0.1": {
+     "emphasis": "primary"
+    },
+    "s0.c.2.c.0.2": {
+     "emphasis": "secondary"
+    },
+    "s0.c.2.c.1": {
+     "emphasis": null
+    },
+    "s0.c.2.c.2": {
+     "gapPx": 16,
+     "justify": "between"
+    },
+    "s0.c.2.c.2.0": {
+     "emphasis": "caption"
+    },
+    "s0.c.2.c.2.1": {
+     "emphasis": null
+    },
+    "s1": {
+     "fill": "pattern",
+     "heightPx": 24,
+     "motif": {
+      "id": "linen",
+      "role": "band"
+     }
+    },
+    "s2": {
+     "align": "start",
+     "first": 38,
+     "mobile": "stack"
+    },
+    "s2.0": {
+     "align": null,
+     "gapPx": 8
+    },
+    "s2.0.0": {
+     "emphasis": "primary"
+    },
+    "s2.0.1": {
+     "emphasis": "secondary"
+    },
+    "s2.1": {
+     "insetPx": 36,
+     "motif": null,
+     "rule": "hairline"
+    },
+    "s2.1.c": {
+     "align": null,
+     "gapPx": 16
+    },
+    "s2.1.c.0": {
+     "gapPx": 16,
+     "justify": "start"
+    },
+    "s2.1.c.0.0": {
+     "emphasis": "display"
+    },
+    "s2.1.c.0.1": {
+     "emphasis": "secondary"
+    },
+    "s2.1.c.1": {
+     "emphasis": null
+    },
+    "s2.1.c.2": {
+     "emphasis": "secondary"
+    },
+    "s3": {
+     "align": null,
+     "gapPx": 16
+    },
+    "s3.0": {
+     "insetPx": 36,
+     "role": "accent"
+    },
+    "s3.0.c": {
+     "align": null,
+     "gapPx": 8
+    },
+    "s3.0.c.0": {
+     "emphasis": "display"
+    },
+    "s3.0.c.1": {
+     "emphasis": "secondary"
+    },
+    "s3.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "accented",
+    "borderWeight": 1,
+    "button": "underline",
+    "card": "flat",
+    "displayTracking": -0.05
+   },
+   "repairSummary": {},
+   "seed": 450734919,
+   "typography": {
+    "body": "DM Sans",
+    "category": "high_contrast_editorial",
+    "display": "Playfair Display",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "10-1": {
+  "id": "10-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "children": [
+        {
+         "child": {
+          "child": {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.0.c.c",
+           "t": "Date"
+          },
+          "id": "s0.0.c",
+          "inset": "normal",
+          "motif": {
+           "id": "plaid",
+           "role": "frame"
+          },
+          "rule": "hairline",
+          "t": "Frame"
+         },
+         "id": "s0.0",
+         "rowSpan": 1,
+         "span": 1,
+         "t": "Cell"
+        },
+        {
+         "child": {
+          "align": "start",
+          "children": [
+           {
+            "case": "upper",
+            "emphasis": "display",
+            "id": "s0.1.c.0",
+            "layout": "cascade",
+            "t": "EventTitle"
+           },
+           {
+            "emphasis": "secondary",
+            "id": "s0.1.c.1",
+            "t": "Hosts"
+           }
+          ],
+          "gap": "tight",
+          "id": "s0.1.c",
+          "t": "Stack"
+         },
+         "id": "s0.1",
+         "rowSpan": 1,
+         "span": 2,
+         "t": "Cell"
+        },
+        {
+         "child": {
+          "children": [
+           {
+            "emphasis": "primary",
+            "id": "s0.2.c.0",
+            "t": "Venue"
+           },
+           {
+            "id": "s0.2.c.1",
+            "style": "button",
+            "t": "CTA",
+            "target": "rsvp"
+           }
+          ],
+          "gap": "normal",
+          "id": "s0.2.c",
+          "justify": "between",
+          "t": "Cluster"
+         },
+         "id": "s0.2",
+         "rowSpan": 1,
+         "span": 3,
+         "t": "Cell"
+        }
+       ],
+       "columns": 3,
+       "gap": "normal",
+       "id": "s0",
+       "mobile": 1,
+       "ruled": true,
+       "t": "Grid"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "details",
+      "root": {
+       "align": "center",
+       "children": [
+        {
+         "emphasis": "primary",
+         "for": "details",
+         "id": "s1.0",
+         "t": "SectionHeading"
+        },
+        {
+         "id": "s1.1",
+         "orientation": "h",
+         "t": "Rule",
+         "weight": "hairline"
+        },
+        {
+         "align": "stretch",
+         "children": [
+          {
+           "align": "center",
+           "children": [
+            {
+             "emphasis": "primary",
+             "form": "full",
+             "id": "s1.2.0.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s1.2.0.1",
+             "t": "Time"
+            }
+           ],
+           "gap": "normal",
+           "id": "s1.2.0",
+           "t": "Stack"
+          },
+          {
+           "align": "center",
+           "children": [
+            {
+             "emphasis": "primary",
+             "id": "s1.2.1.0",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s1.2.1.1",
+             "t": "Location"
+            }
+           ],
+           "gap": "normal",
+           "id": "s1.2.1",
+           "t": "Stack"
+          }
+         ],
+         "divider": "hairline",
+         "id": "s1.2",
+         "mobile": "stack",
+         "ratio": "50",
+         "t": "Split"
+        },
+        {
+         "id": "s1.3",
+         "orientation": "h",
+         "t": "Rule",
+         "weight": "hairline"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s1.4",
+         "t": "Deadline"
+        }
+       ],
+       "gap": "normal",
+       "id": "s1",
+       "t": "Stack"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "center",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "rsvp",
+      "root": {
+       "align": "center",
+       "children": [
+        {
+         "emphasis": "display",
+         "for": "rsvp",
+         "id": "s2.0",
+         "t": "SectionHeading"
+        },
+        {
+         "id": "s2.1",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s2",
+       "t": "Stack"
+      },
+      "surface": "base"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "d87f3b60",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "gentle",
+     "hierarchy": "monumental",
+     "ornament": "none",
+     "rhythm": "alternating",
+     "sectionContrast": "low"
+    },
+    "density": "compact",
+    "family": "statement",
+    "pageSystem": {
+     "border": "accented",
+     "borderWeight": 3,
+     "button": "solid_square",
+     "card": "outlined",
+     "displayTracking": -0.02
+    },
+    "tonalDirection": "dark",
+    "typography": "grotesk_space_sourcesans",
+    "typographyCategory": "grotesk_led",
+    "typographyObject": {
+     "body": "Source Sans 3",
+     "category": "grotesk_led",
+     "display": "Space Grotesk",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "columns": 3,
+     "gapPx": 16,
+     "mobileColumns": 1,
+     "ruled": true
+    },
+    "s0.0": {
+     "rowSpan": 1,
+     "span": 1
+    },
+    "s0.0.c": {
+     "insetPx": 36,
+     "motif": {
+      "id": "plaid",
+      "role": "frame"
+     },
+     "rule": "hairline"
+    },
+    "s0.0.c.c": {
+     "emphasis": "secondary"
+    },
+    "s0.1": {
+     "rowSpan": 1,
+     "span": 2
+    },
+    "s0.1.c": {
+     "align": "start",
+     "gapPx": 8
+    },
+    "s0.1.c.0": {
+     "emphasis": "display"
+    },
+    "s0.1.c.1": {
+     "emphasis": "secondary"
+    },
+    "s0.2": {
+     "rowSpan": 1,
+     "span": 3
+    },
+    "s0.2.c": {
+     "gapPx": 16,
+     "justify": "between"
+    },
+    "s0.2.c.0": {
+     "emphasis": "primary"
+    },
+    "s0.2.c.1": {
+     "emphasis": null
+    },
+    "s1": {
+     "align": "center",
+     "gapPx": 16
+    },
+    "s1.0": {
+     "emphasis": "primary"
+    },
+    "s1.1": {
+     "emphasis": null
+    },
+    "s1.2": {
+     "align": "stretch",
+     "first": 50,
+     "mobile": "stack"
+    },
+    "s1.2.0": {
+     "align": "center",
+     "gapPx": 16
+    },
+    "s1.2.0.0": {
+     "emphasis": "primary"
+    },
+    "s1.2.0.1": {
+     "emphasis": "secondary"
+    },
+    "s1.2.1": {
+     "align": "center",
+     "gapPx": 16
+    },
+    "s1.2.1.0": {
+     "emphasis": "primary"
+    },
+    "s1.2.1.1": {
+     "emphasis": "secondary"
+    },
+    "s1.3": {
+     "emphasis": null
+    },
+    "s1.4": {
+     "emphasis": "secondary"
+    },
+    "s2": {
+     "align": "center",
+     "gapPx": 16
+    },
+    "s2.0": {
+     "emphasis": "display"
+    },
+    "s2.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "accented",
+    "borderWeight": 3,
+    "button": "solid_square",
+    "card": "outlined",
+    "displayTracking": -0.02
+   },
+   "repairSummary": {},
+   "seed": 524051556,
+   "typography": {
+    "body": "Source Sans 3",
+    "category": "grotesk_led",
+    "display": "Space Grotesk",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "11-1": {
+  "id": "11-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "start",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "id": "s0.0",
+         "style": "ring",
+         "t": "Monogram"
+        },
+        {
+         "case": "upper",
+         "emphasis": "caption",
+         "id": "s0.1",
+         "t": "Eyebrow"
+        },
+        {
+         "case": "none",
+         "emphasis": "display",
+         "id": "s0.2",
+         "layout": "block",
+         "t": "EventTitle"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s0.3",
+         "t": "Hosts"
+        },
+        {
+         "children": [
+          {
+           "emphasis": "secondary",
+           "form": "full",
+           "id": "s0.4.0",
+           "t": "Date"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.4.1",
+           "t": "Time"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.4.2",
+           "t": "Venue"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.4",
+         "justify": "start",
+         "t": "Cluster"
+        },
+        {
+         "id": "s0.5",
+         "style": "button",
+         "t": "CTA",
+         "target": "rsvp"
+        },
+        {
+         "extent": "third",
+         "id": "s0.6",
+         "motif": {
+          "id": "plaid",
+          "role": "field"
+         },
+         "t": "MotifField"
+        }
+       ],
+       "gap": "normal",
+       "id": "s0",
+       "t": "Stack"
+      },
+      "surface": "contrast"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "thin",
+       "id": "s1",
+       "motif": {
+        "id": "stripe",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "details",
+      "root": {
+       "child": {
+        "child": {
+         "align": "start",
+         "children": [
+          {
+           "emphasis": "primary",
+           "for": "details",
+           "id": "s2.c.c.0",
+           "t": "SectionHeading"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s2.c.c.1",
+           "t": "Location"
+          },
+          {
+           "id": "s2.c.c.2",
+           "orientation": "h",
+           "t": "Rule",
+           "weight": "hairline"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "primary",
+             "form": "numeral",
+             "id": "s2.c.c.3.0",
+             "t": "Date"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s2.c.c.3.1",
+             "t": "Time"
+            }
+           ],
+           "gap": "normal",
+           "id": "s2.c.c.3",
+           "justify": "start",
+           "t": "Cluster"
+          }
+         ],
+         "gap": "normal",
+         "id": "s2.c.c",
+         "t": "Stack"
+        },
+        "id": "s2.c",
+        "inset": "normal",
+        "rule": "hairline",
+        "t": "Frame"
+       },
+       "id": "s2",
+       "mobile": "hide",
+       "rail": {
+        "extent": "quarter",
+        "id": "s2.r",
+        "motif": {
+         "id": "linen",
+         "role": "field"
+        },
+        "t": "MotifField"
+       },
+       "side": "end",
+       "t": "Rail",
+       "width": "medium"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s3",
+      "kind": "rsvp",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "emphasis": "display",
+         "for": "rsvp",
+         "id": "s3.0",
+         "t": "SectionHeading"
+        },
+        {
+         "emphasis": "secondary",
+         "id": "s3.1",
+         "t": "Deadline"
+        },
+        {
+         "id": "s3.2",
+         "t": "RSVP"
+        }
+       ],
+       "gap": "normal",
+       "id": "s3",
+       "t": "Stack"
+      },
+      "surface": "contrast"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "bea7edb7",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "gentle",
+     "hierarchy": "dramatic",
+     "ornament": "none",
+     "rhythm": "punctuated",
+     "sectionContrast": "high"
+    },
+    "density": "spacious",
+    "family": "editorial",
+    "pageSystem": {
+     "border": "hairline",
+     "borderWeight": 3,
+     "button": "solid_square",
+     "card": "outlined",
+     "displayTracking": -0.02
+    },
+    "tonalDirection": "light",
+    "typography": "heritage_caslon_karla",
+    "typographyCategory": "heritage",
+    "typographyObject": {
+     "body": "Karla",
+     "category": "heritage",
+     "display": "Libre Caslon Text",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "align": "start",
+     "gapPx": 30
+    },
+    "s0.0": {
+     "emphasis": null
+    },
+    "s0.1": {
+     "emphasis": "caption"
+    },
+    "s0.2": {
+     "emphasis": "display"
+    },
+    "s0.3": {
+     "emphasis": "secondary"
+    },
+    "s0.4": {
+     "gapPx": 30,
+     "justify": "start"
+    },
+    "s0.4.0": {
+     "emphasis": "secondary"
+    },
+    "s0.4.1": {
+     "emphasis": "secondary"
+    },
+    "s0.4.2": {
+     "emphasis": "secondary"
+    },
+    "s0.5": {
+     "emphasis": null
+    },
+    "s0.6": {
+     "extentPct": 33,
+     "motif": {
+      "id": "plaid",
+      "role": "field"
+     }
+    },
+    "s1": {
+     "fill": "pattern",
+     "heightPx": 24,
+     "motif": {
+      "id": "stripe",
+      "role": "band"
+     }
+    },
+    "s2": {
+     "mobile": "hide",
+     "side": "end",
+     "widthPx": 96
+    },
+    "s2.c": {
+     "insetPx": 36,
+     "motif": null,
+     "rule": "hairline"
+    },
+    "s2.c.c": {
+     "align": "start",
+     "gapPx": 30
+    },
+    "s2.c.c.0": {
+     "emphasis": "primary"
+    },
+    "s2.c.c.1": {
+     "emphasis": "secondary"
+    },
+    "s2.c.c.2": {
+     "emphasis": null
+    },
+    "s2.c.c.3": {
+     "gapPx": 30,
+     "justify": "start"
+    },
+    "s2.c.c.3.0": {
+     "emphasis": "primary"
+    },
+    "s2.c.c.3.1": {
+     "emphasis": "secondary"
+    },
+    "s2.r": {
+     "extentPct": 25,
+     "motif": {
+      "id": "linen",
+      "role": "field"
+     }
+    },
+    "s3": {
+     "align": "start",
+     "gapPx": 30
+    },
+    "s3.0": {
+     "emphasis": "display"
+    },
+    "s3.1": {
+     "emphasis": "secondary"
+    },
+    "s3.2": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "hairline",
+    "borderWeight": 3,
+    "button": "solid_square",
+    "card": "outlined",
+    "displayTracking": -0.02
+   },
+   "repairSummary": {},
+   "seed": 540829175,
+   "typography": {
+    "body": "Karla",
+    "category": "heritage",
+    "display": "Libre Caslon Text",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ },
+ "12-1": {
+  "id": "12-1",
+  "remaining": [],
+  "repairValid": true,
+  "schemaValid": true,
+  "source": "model",
+  "spec": {
+   "capabilities": {
+    "cashFund": false,
+    "deadline": true,
+    "description": false,
+    "externalRegistry": false,
+    "gifts": false,
+    "hosts": true,
+    "location": true,
+    "registry": false,
+    "rsvp": true,
+    "time": true
+   },
+   "compilerRepairs": [],
+   "composition": {
+    "sections": [
+     {
+      "align": "center",
+      "fill": "screen",
+      "id": "s0",
+      "kind": "hero",
+      "root": {
+       "child": {
+        "anchor": "center",
+        "content": {
+         "align": "center",
+         "children": [
+          {
+           "case": "none",
+           "emphasis": "display",
+           "id": "s0.c.c.0",
+           "layout": "block",
+           "t": "EventTitle"
+          },
+          {
+           "emphasis": "secondary",
+           "id": "s0.c.c.1",
+           "t": "Hosts"
+          },
+          {
+           "glyphs": "botanical",
+           "id": "s0.c.c.2",
+           "orientation": "h",
+           "t": "Rule",
+           "weight": "hairline"
+          },
+          {
+           "children": [
+            {
+             "emphasis": "primary",
+             "id": "s0.c.c.3.0",
+             "t": "Venue"
+            },
+            {
+             "emphasis": "secondary",
+             "id": "s0.c.c.3.1",
+             "t": "Time"
+            },
+            {
+             "id": "s0.c.c.3.2",
+             "style": "button",
+             "t": "CTA",
+             "target": "rsvp"
+            }
+           ],
+           "gap": "normal",
+           "id": "s0.c.c.3",
+           "justify": "center",
+           "t": "Cluster"
+          },
+          {
+           "child": {
+            "emphasis": "primary",
+            "form": "full",
+            "id": "s0.c.c.4.c",
+            "t": "Date"
+           },
+           "id": "s0.c.c.4",
+           "inset": "tight",
+           "rule": "strong",
+           "t": "Frame"
+          }
+         ],
+         "gap": "normal",
+         "id": "s0.c.c",
+         "t": "Stack"
+        },
+        "decoration": {
+         "extent": "full",
+         "id": "s0.c.d",
+         "motif": {
+          "id": "plaid",
+          "role": "field"
+         },
+         "t": "MotifField"
+        },
+        "extent": "half",
+        "id": "s0.c",
+        "mobile": "stack",
+        "t": "Overlay"
+       },
+       "id": "s0",
+       "inset": "normal",
+       "role": "contrast",
+       "t": "Surface"
+      },
+      "surface": "base"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s1",
+      "kind": "details",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "id": "s1.0",
+         "orientation": "h",
+         "t": "Rule",
+         "weight": "hairline"
+        },
+        {
+         "align": "start",
+         "children": [
+          {
+           "emphasis": "primary",
+           "for": "details",
+           "id": "s1.1.0",
+           "t": "SectionHeading"
+          },
+          {
+           "children": [
+            {
+             "children": [
+              {
+               "emphasis": "secondary",
+               "form": "weekday",
+               "id": "s1.1.1.0.0",
+               "t": "Date"
+              },
+              {
+               "emphasis": "secondary",
+               "id": "s1.1.1.0.1",
+               "t": "Time"
+              }
+             ],
+             "gap": "normal",
+             "id": "s1.1.1.0",
+             "justify": "between",
+             "t": "Cluster"
+            },
+            {
+             "id": "s1.1.1.1",
+             "orientation": "h",
+             "t": "Rule",
+             "weight": "hairline"
+            },
+            {
+             "children": [
+              {
+               "emphasis": "secondary",
+               "id": "s1.1.1.2.0",
+               "t": "Location"
+              },
+              {
+               "emphasis": "secondary",
+               "id": "s1.1.1.2.1",
+               "t": "Deadline"
+              }
+             ],
+             "gap": "normal",
+             "id": "s1.1.1.2",
+             "justify": "between",
+             "t": "Cluster"
+            }
+           ],
+           "gap": "normal",
+           "id": "s1.1.1",
+           "t": "Stack"
+          }
+         ],
+         "divider": "hairline",
+         "id": "s1.1",
+         "mobile": "stack",
+         "ratio": "38",
+         "t": "Split"
+        },
+        {
+         "id": "s1.2",
+         "orientation": "h",
+         "t": "Rule",
+         "weight": "hairline"
+        }
+       ],
+       "gap": "normal",
+       "id": "s1",
+       "t": "Stack"
+      },
+      "surface": "alt"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s2",
+      "kind": "band",
+      "root": {
+       "fill": "pattern",
+       "height": "thin",
+       "id": "s2",
+       "motif": {
+        "id": "stripe",
+        "role": "band"
+       },
+       "t": "MotifBand"
+      },
+      "surface": "accent"
+     },
+     {
+      "align": "start",
+      "fill": "auto",
+      "id": "s3",
+      "kind": "rsvp",
+      "root": {
+       "align": "start",
+       "children": [
+        {
+         "emphasis": "display",
+         "for": "rsvp",
+         "id": "s3.0",
+         "t": "SectionHeading"
+        },
+        {
+         "id": "s3.1",
+         "t": "RSVP"
+        }
+       ],
+       "divider": "hairline",
+       "id": "s3",
+       "mobile": "stack",
+       "ratio": "38",
+       "t": "Split"
+      },
+      "surface": "contrast"
+     }
+    ],
+    "version": "composition_v1"
+   },
+   "compositionHash": "611956ad",
+   "content": {
+    "date": "Saturday, December 19, 2026",
+    "dayNumeral": "19",
+    "deadline": "Kindly respond by December 1",
+    "description": "An afternoon of good food, warm company, and celebrating our little boy.",
+    "eyebrow": "A baby shower for our little boy",
+    "hosts": "Hosted with love by Haseeb & Shezia",
+    "initial": "B",
+    "location": "Aldie, Virginia",
+    "monthShort": "Dec",
+    "time": "1:00–5:00 PM",
+    "title": "Baby Shaker is on the way",
+    "venue": "The Lodge at Hanson Park",
+    "weekday": "Saturday",
+    "year": "2026"
+   },
+   "designIntent": {
+    "composition": {
+     "asymmetry": "symmetric",
+     "hierarchy": "restrained",
+     "ornament": "decorative",
+     "rhythm": "punctuated",
+     "sectionContrast": "high"
+    },
+    "density": "balanced",
+    "family": "invitation",
+    "pageSystem": {
+     "border": "hairline",
+     "borderWeight": 3,
+     "button": "solid_square",
+     "card": "tinted",
+     "displayTracking": 0.06
+    },
+    "tonalDirection": "mid",
+    "typography": "soft_dmserif_dmsans",
+    "typographyCategory": "soft_serif",
+    "typographyObject": {
+     "body": "DM Sans",
+     "category": "soft_serif",
+     "display": "DM Serif Display",
+     "holdsAtMonumental": true
+    }
+   },
+   "layout": {
+    "s0": {
+     "insetPx": 36,
+     "role": "contrast"
+    },
+    "s0.c": {
+     "anchor": "center",
+     "extentPct": 50,
+     "mobile": "stack"
+    },
+    "s0.c.c": {
+     "align": "center",
+     "gapPx": 22
+    },
+    "s0.c.c.0": {
+     "emphasis": "display"
+    },
+    "s0.c.c.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.c.2": {
+     "emphasis": null
+    },
+    "s0.c.c.3": {
+     "gapPx": 22,
+     "justify": "center"
+    },
+    "s0.c.c.3.0": {
+     "emphasis": "primary"
+    },
+    "s0.c.c.3.1": {
+     "emphasis": "secondary"
+    },
+    "s0.c.c.3.2": {
+     "emphasis": null
+    },
+    "s0.c.c.4": {
+     "insetPx": 14,
+     "motif": null,
+     "rule": "strong"
+    },
+    "s0.c.c.4.c": {
+     "emphasis": "primary"
+    },
+    "s0.c.d": {
+     "extentPct": 100,
+     "motif": {
+      "id": "plaid",
+      "role": "field"
+     }
+    },
+    "s1": {
+     "align": "start",
+     "gapPx": 22
+    },
+    "s1.0": {
+     "emphasis": null
+    },
+    "s1.1": {
+     "align": "start",
+     "first": 38,
+     "mobile": "stack"
+    },
+    "s1.1.0": {
+     "emphasis": "primary"
+    },
+    "s1.1.1": {
+     "align": null,
+     "gapPx": 22
+    },
+    "s1.1.1.0": {
+     "gapPx": 22,
+     "justify": "between"
+    },
+    "s1.1.1.0.0": {
+     "emphasis": "secondary"
+    },
+    "s1.1.1.0.1": {
+     "emphasis": "secondary"
+    },
+    "s1.1.1.1": {
+     "emphasis": null
+    },
+    "s1.1.1.2": {
+     "gapPx": 22,
+     "justify": "between"
+    },
+    "s1.1.1.2.0": {
+     "emphasis": "secondary"
+    },
+    "s1.1.1.2.1": {
+     "emphasis": "secondary"
+    },
+    "s1.2": {
+     "emphasis": null
+    },
+    "s2": {
+     "fill": "pattern",
+     "heightPx": 24,
+     "motif": {
+      "id": "stripe",
+      "role": "band"
+     }
+    },
+    "s3": {
+     "align": "start",
+     "first": 38,
+     "mobile": "stack"
+    },
+    "s3.0": {
+     "emphasis": "display"
+    },
+    "s3.1": {
+     "emphasis": null
+    }
+   },
+   "pageSystem": {
+    "border": "hairline",
+    "borderWeight": 3,
+    "button": "solid_square",
+    "card": "tinted",
+    "displayTracking": 0.06
+   },
+   "repairSummary": {},
+   "seed": 557606794,
+   "typography": {
+    "body": "DM Sans",
+    "category": "soft_serif",
+    "display": "DM Serif Display",
+    "holdsAtMonumental": true
+   },
+   "verified": null,
+   "version": "resolved_v2",
+   "versions": {
+    "compiler": "proof-b-0.3",
+    "compositionPrompt": "composition_v1_p2",
+    "compositionSchema": "composition_v1",
+    "primitiveSet": "composition_v1"
+   }
+  },
+  "violationsBefore": 0
+ }
+}

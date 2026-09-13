@@ -1,0 +1,142 @@
+[
+ {
+  "name": "unknown node type",
+  "result": {
+   "errors": [
+    {
+     "detail": "unknown node type \"Hero\"",
+     "path": "sections[0].root.children[0]",
+     "rule": "schema.type"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "style key on a node",
+  "result": {
+   "errors": [
+    {
+     "detail": "unknown key on EventTitle",
+     "path": "sections[0].root.children[0].style",
+     "rule": "schema.key"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "pixel width on a Split",
+  "result": {
+   "errors": [
+    {
+     "detail": "\"640px\" not in \"38\"|\"50\"|\"62\"",
+     "path": "sections[0].root.ratio",
+     "rule": "schema.enum"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "free text copy",
+  "result": {
+   "errors": [
+    {
+     "detail": "unknown key on EventTitle",
+     "path": "sections[0].root.children[0].text",
+     "rule": "schema.key"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "Split with three children",
+  "result": {
+   "errors": [
+    {
+     "detail": "Split takes 2..2 children, got 3",
+     "path": "sections[0].root.children",
+     "rule": "schema.children.count"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "empty Stack",
+  "result": {
+   "errors": [
+    {
+     "detail": "Stack takes 1..8 children, got 0",
+     "path": "sections[0].root.children",
+     "rule": "schema.children.count"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "children on a Frame",
+  "result": {
+   "errors": [
+    {
+     "detail": "unknown key on Frame",
+     "path": "sections[0].root.children",
+     "rule": "schema.key"
+    },
+    {
+     "detail": "Frame requires child",
+     "path": "sections[0].root.child",
+     "rule": "schema.required"
+    },
+    {
+     "detail": "Frame has no children",
+     "path": "sections[0].root.children",
+     "rule": "schema.key"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "wrong version",
+  "result": {
+   "errors": [
+    {
+     "detail": "must be composition_v1",
+     "path": "version",
+     "rule": "schema.version"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "html string instead of a tree",
+  "result": {
+   "errors": [
+    {
+     "detail": "not an object",
+     "path": "",
+     "rule": "schema.root"
+    }
+   ],
+   "ok": false
+  }
+ },
+ {
+  "name": "missing required prop (Rail without side)",
+  "result": {
+   "errors": [
+    {
+     "detail": "Rail requires side",
+     "path": "sections[0].root.side",
+     "rule": "schema.required"
+    }
+   ],
+   "ok": false
+  }
+ }
+]
