@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import { ATTRACTIVE_TOKENS } from "./attractive-tokens";
 import { canonicalize } from "./canonicalize";
+import { repair } from "./repair";
 import { resolveLayout } from "./layout";
 import type { Capabilities, CompositionTree } from "./nodes";
 import { heroSimilarity, seqSim, skeleton } from "./signature";
@@ -451,5 +452,206 @@ describe("novelty", () => {
         ).toBeLessThan(0.7);
       }
     }
+  });
+});
+
+/**
+ * Production conformance for the array-child repairs, independent of `proof-b/`.
+ *
+ * The reference implementation resolved an array child's path to the node that owns the array
+ * rather than to the array, so `Array.isArray(parent)` was never true and no array-child repair
+ * could reach its removal branch (reference defect #1,
+ * `docs/phase-3-reference-defects.md`). Production corrects the lookup, which is the one place
+ * the port deliberately diverges. These tests state the behaviour the canonical documents
+ * require, so they stand on their own once the reference is gone:
+ *
+ * - `docs/event-renderer-system.md §2.3`: "the validator drops any reference to a disabled
+ *   capability as a `capability` repair" — drops, not replaces with a decorative stand-in;
+ * - `docs/event-renderer-system.md §3`: the node-budget repair drops decorative leaves first,
+ *   then trailing optional text, and only flattens a section when no graded drop is available.
+ */
+describe("array-child repairs (production conformance)", () => {
+  /** The graded order the node-budget repair drops in: decorative first, optional text last. */
+  const DROP_ORDER = [
+    "Glyph",
+    "Rule",
+    "MotifBand",
+    "MotifField",
+    "Monogram",
+    "Deadline",
+    "Location",
+    "Eyebrow",
+    "Time",
+    "Description",
+    "Hosts",
+  ];
+
+  /** The rsvp and registry sections every tree needs to satisfy the coverage rules. */
+  const tail = (): CompositionTree["sections"] =>
+    [
+      { kind: "rsvp", surface: "base", root: { t: "Stack", children: [{ t: "RSVP" }] } },
+      { kind: "registry", surface: "alt", root: { t: "Stack", children: [{ t: "Registry" }] } },
+    ] as unknown as CompositionTree["sections"];
+
+  it("drops decorative and optional leaves in the documented order, without demolishing the section", () => {
+    // One over-budget hero: a Frame wrapping a Cluster of required content, plus a long run of
+    // droppable leaves, one of every kind in DROP_ORDER and enough repeats to exceed the budget.
+    const droppable = [
+      ...DROP_ORDER.flatMap((t) =>
+        t === "Rule"
+          ? [{ t: "Rule", weight: "hairline" }]
+          : t === "Glyph"
+            ? [{ t: "Glyph", motif: { id: "linen", role: "glyph" } }]
+            : t === "MotifBand"
+              ? [{ t: "MotifBand", height: "medium" }]
+              : t === "MotifField"
+                ? [{ t: "MotifField", motif: { id: "linen", role: "field" } }]
+                : t === "Monogram"
+                  ? [{ t: "Monogram" }]
+                  : [{ t }],
+      ),
+      ...Array.from({ length: 34 }, () => ({ t: "Rule", weight: "hairline" })),
+    ];
+    const tree = {
+      version: "composition_v1",
+      sections: [
+        {
+          kind: "hero",
+          surface: "base",
+          root: {
+            t: "Stack",
+            children: [
+              { t: "EventTitle", emphasis: "display" },
+              {
+                t: "Frame",
+                rule: "hairline",
+                inset: "normal",
+                child: { t: "Cluster", children: [{ t: "Date", form: "full" }, { t: "Venue" }] },
+              },
+              ...droppable,
+            ],
+          },
+        },
+        ...tail(),
+      ],
+    } as unknown as CompositionTree;
+
+    expect(countNodes(tree.sections[0].root)).toBeGreaterThan(40);
+
+    const out = repair(clone(tree), FULL_CAPS, 7);
+    const budget = out.repairs.filter((r) => r.rule === "limits.sectionNodes");
+
+    // Graded drops actually ran, and the section was never flattened to its first eight leaves.
+    expect(budget.length).toBeGreaterThan(0);
+    expect(budget.map((r) => r.after)).not.toContain("flattened to leaves");
+    expect(out.remaining).toEqual([]);
+
+    // Each drop is of a kind no later in DROP_ORDER than the one before it.
+    const ranks = budget.map((r) => DROP_ORDER.indexOf(r.before as string));
+    expect(ranks).not.toContain(-1);
+    expect([...ranks].sort((a, b) => a - b)).toEqual(ranks);
+
+    // The structure the model authored survives: the Frame and its Cluster are still there, and
+    // the content leaves were never candidates.
+    const kinds: string[] = [];
+    walk({ ...tree, sections: [out.tree.sections[0]] } as CompositionTree, (v) =>
+      kinds.push(v.node.t),
+    );
+    expect(kinds).toContain("Frame");
+    expect(kinds).toContain("Cluster");
+    expect(kinds).toContain("EventTitle");
+    expect(kinds).toContain("Date");
+    expect(kinds).toContain("Venue");
+  });
+
+  it("removes a duplicate leaf instead of leaving a placeholder in its slot", () => {
+    const tree = {
+      version: "composition_v1",
+      sections: [
+        {
+          kind: "hero",
+          surface: "base",
+          root: {
+            t: "Stack",
+            children: [
+              { t: "EventTitle", emphasis: "display" },
+              { t: "Date", form: "full" },
+              { t: "Date", form: "full" },
+              { t: "Venue" },
+            ],
+          },
+        },
+        ...tail(),
+      ],
+    } as unknown as CompositionTree;
+
+    const out = repair(clone(tree), FULL_CAPS, 7);
+    expect(out.repairs.some((r) => r.rule === "coverage.duplicate")).toBe(true);
+
+    const hero = out.tree.sections[0].root as { children: { t: string }[] };
+    expect(hero.children.map((c) => c.t)).toEqual(["EventTitle", "Date", "Venue"]);
+    expect(out.remaining).toEqual([]);
+  });
+
+  it("removes a capability-disabled leaf instead of leaving a placeholder in its slot", () => {
+    const caps: Capabilities = { ...FULL_CAPS, hosts: false, time: false };
+    const tree = {
+      version: "composition_v1",
+      sections: [
+        {
+          kind: "hero",
+          surface: "base",
+          root: {
+            t: "Stack",
+            children: [
+              { t: "EventTitle", emphasis: "display" },
+              { t: "Hosts" },
+              { t: "Date", form: "full" },
+              { t: "Time" },
+              { t: "Venue" },
+            ],
+          },
+        },
+        ...tail(),
+      ],
+    } as unknown as CompositionTree;
+
+    const out = repair(clone(tree), caps, 7);
+    expect(out.repairs.filter((r) => r.kind === "capability").map((r) => r.before)).toEqual([
+      "Hosts",
+      "Time",
+    ]);
+
+    const hero = out.tree.sections[0].root as { children: { t: string }[] };
+    expect(hero.children.map((c) => c.t)).toEqual(["EventTitle", "Date", "Venue"]);
+    expect(out.remaining).toEqual([]);
+  });
+
+  it("still replaces rather than removes when the node is an only child", () => {
+    // Removal would leave an empty container, so the in-place substitution is correct here.
+    const caps: Capabilities = { ...FULL_CAPS, hosts: false };
+    const tree = {
+      version: "composition_v1",
+      sections: [
+        {
+          kind: "hero",
+          surface: "base",
+          root: {
+            t: "Stack",
+            children: [
+              { t: "EventTitle", emphasis: "display" },
+              { t: "Date", form: "full" },
+              { t: "Stack", children: [{ t: "Hosts" }] },
+            ],
+          },
+        },
+        ...tail(),
+      ],
+    } as unknown as CompositionTree;
+
+    const out = repair(clone(tree), caps, 7);
+    expect(out.repairs.some((r) => r.kind === "capability" && r.before === "Hosts")).toBe(true);
+    expect(JSON.stringify(out.tree)).not.toContain('"Hosts"');
+    expect(out.remaining).toEqual([]);
   });
 });

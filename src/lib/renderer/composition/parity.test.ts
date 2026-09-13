@@ -141,24 +141,76 @@ describe("parity: the adversarial set", () => {
     expect(normalize(produced)).toEqual(golden("adversarial-schema-invalid.json"));
   });
 
-  it("repairs every structural fixture with the same repair list, in the same order", () => {
-    const produced = A.structural.map(
-      (f: { name: string; tree: CompositionTree; caps?: Capabilities }) => {
-        const caps = f.caps || FULL_CAPS;
-        const before = validateStructure(f.tree, caps);
-        const repaired = repair(f.tree, caps, 7);
-        return {
-          name: f.name,
-          violationsBefore: before,
-          repairs: repaired.repairs,
-          remaining: repaired.remaining,
-          repairedSchemaOk: validateSchema(repaired.tree).ok,
-          repairedTree: repaired.tree,
-        };
-      },
+  /**
+   * The five fixtures on which production deliberately diverges from the reference, all through
+   * the single correction of reference defect #1 (`docs/phase-3-reference-defects.md`). The
+   * reference's parent lookup resolved an array child's path to the node that owns the array, so
+   * `Array.isArray(parent)` was never true and no array-child repair could ever reach its removal
+   * branch: a dropped duplicate or capability-disabled node was replaced in place by a hairline
+   * `Rule` the model never authored, and the node-budget repair skipped its graded drops entirely.
+   *
+   * Every other fixture, all 26 silhouettes, all 13 section recipes, all 16 A.1 pages and all 72
+   * frozen confirmation trees are byte-identical to the reference.
+   */
+  const DEFECT_1_DIVERGENCES = [
+    "two EventTitles",
+    "73 nodes in one section",
+    "Date three times, same form, in the hero",
+    "capabilities: Hosts, Description, CashFund and registry used on an event with none of them",
+    "capabilities: no rsvp on this event but an rsvp section",
+  ];
+
+  const runStructural = (
+    engine: { repair: typeof repair; validateStructure: typeof validateStructure },
+    f: { name: string; tree: CompositionTree; caps?: Capabilities },
+  ) => {
+    const caps = f.caps || FULL_CAPS;
+    const before = engine.validateStructure(f.tree, caps);
+    const repaired = engine.repair(f.tree, caps, 7);
+    return normalize({
+      name: f.name,
+      violationsBefore: before,
+      repairs: repaired.repairs,
+      remaining: repaired.remaining,
+      repairedSchemaOk: validateSchema(repaired.tree).ok,
+      repairedTree: repaired.tree,
+    });
+  };
+
+  it("repairs every unaffected structural fixture with the same repair list, in the same order", () => {
+    const oracle = golden("adversarial-structural.json") as { name: string }[];
+    const fixtures = A.structural as { name: string; tree: CompositionTree; caps?: Capabilities }[];
+    expect(fixtures).toHaveLength(oracle.length);
+
+    const unaffected = fixtures
+      .map((f, i) => [f, oracle[i]] as const)
+      .filter(([f]) => !DEFECT_1_DIVERGENCES.includes(f.name));
+    expect(unaffected).toHaveLength(fixtures.length - DEFECT_1_DIVERGENCES.length);
+
+    for (const [f, expected] of unaffected)
+      expect(runStructural({ repair, validateStructure }, f)).toEqual(expected);
+  });
+
+  it("diverges from the oracle on exactly the five fixtures defect #1 affects, and nowhere else", () => {
+    const oracle = golden("adversarial-structural.json") as unknown[];
+    const fixtures = A.structural as { name: string; tree: CompositionTree; caps?: Capabilities }[];
+    const diverging = fixtures.filter(
+      (f, i) =>
+        JSON.stringify(runStructural({ repair, validateStructure }, f)) !==
+        JSON.stringify(oracle[i]),
     );
-    expect(produced.length).toBeGreaterThan(0);
-    expect(normalize(produced)).toEqual(golden("adversarial-structural.json"));
+    expect(diverging.map((f) => f.name)).toEqual(DEFECT_1_DIVERGENCES);
+  });
+
+  it("leaves the oracle an intact record of the reference: the reference still reproduces it", () => {
+    // The divergence is ours and deliberate. The captured oracle is not edited to hide it, so the
+    // reference must still replay to it exactly — including on the five fixtures above.
+    const produced = (
+      A.structural as { name: string; tree: CompositionTree; caps?: Capabilities }[]
+    ).map((f) =>
+      runStructural({ repair: REF.repair, validateStructure: REF.validateStructure }, f),
+    );
+    expect(produced).toEqual(golden("adversarial-structural.json"));
   });
 });
 

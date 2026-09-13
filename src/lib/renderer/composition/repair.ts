@@ -18,7 +18,9 @@
  * are not rules; they come from the A.1 library, chosen by seed
  * (`docs/event-renderer-system.md §3`).
  *
- * Ported from `proof-b/src/composition.ts` with no behaviour change (Phase 3, item 1).
+ * Ported from `proof-b/src/composition.ts` (Phase 3, item 1) with one deliberate divergence: the
+ * parent lookup behind every array-child repair, recorded as defect #1 in
+ * `docs/phase-3-reference-defects.md`. See `slotOf` below. Everything else is byte-for-byte.
  */
 
 import type {
@@ -148,6 +150,22 @@ export function repair(
   };
   const leavesOf = (n: AnyNode): AnyNode[] =>
     childrenOf(n).length ? childrenOf(n).flatMap((c) => leavesOf(c.node)) : [n];
+
+  /**
+   * The slot a node occupies: the `children` array when it is an array child, otherwise the node
+   * that owns the single-node slot it sits in.
+   *
+   * `walk` emits an array child as one path segment (`...children[2]`), so dropping the last
+   * dot-segment lands on the owning node in both cases and `Array.isArray` on it is never true.
+   * The array-child repairs below all test exactly that, to decide between removing a node and
+   * replacing it in place; stripping the index instead of the whole segment is what makes the
+   * removal branch reachable. Production divergence from `proof-b/src/composition.ts`, recorded
+   * as defect #1 in `docs/phase-3-reference-defects.md`.
+   */
+  const slotOf = (path: string) => {
+    const arrayChild = /^(.*)\[(\d+)\]$/.exec(path);
+    return getAt(arrayChild ? arrayChild[1] : path.split(".").slice(0, -1).join("."));
+  };
 
   // one full validation → fix the first fixable violation of each category → loop until stable
   const pass = () => {
@@ -377,7 +395,7 @@ export function repair(
           } else if (r === "component.parent" || r === "component.narrowCell") {
             // hoist: remove and append to the section root Stack (wrapping root if needed)
             const n = getAt(p);
-            const parentArr = getAt(p.split(".").slice(0, -1).join("."));
+            const parentArr = slotOf(p);
             if (Array.isArray(parentArr) && parentArr.length > 1) removeAt(p);
             else setAt(p, { t: "Rule", weight: "hairline" });
             const si = Number(p.match(/sections\[(\d+)\]/)![1]);
@@ -434,8 +452,7 @@ export function repair(
             changed = true;
           } else if (r === "capability.node") {
             const n = getAt(p);
-            const parts = p.split(".");
-            const parent = getAt(parts.slice(0, -1).join("."));
+            const parent = slotOf(p);
             if (Array.isArray(parent)) {
               if (parent.length > 1) removeAt(p);
               else setAt(p, { t: "Rule", weight: "hairline" });
@@ -469,7 +486,7 @@ export function repair(
             for (const t of order) {
               const target = findLast(tree, si, t);
               if (target) {
-                const parent = getAt(target.split(".").slice(0, -1).join("."));
+                const parent = slotOf(target);
                 if (Array.isArray(parent) && parent.length > 1) {
                   removeAt(target);
                   dropped = true;
@@ -529,7 +546,7 @@ export function repair(
             const victim =
               t === "Date" && paths.length ? paths[paths.length - 1] : paths[1] || paths[0];
             if (!victim) continue;
-            const parent = getAt(victim.split(".").slice(0, -1).join("."));
+            const parent = slotOf(victim);
             if (Array.isArray(parent) && parent.length > 1) removeAt(victim);
             else setAt(victim, { t: "Rule", weight: "hairline" });
             log(r, victim, "coverage", t, "duplicate dropped");
