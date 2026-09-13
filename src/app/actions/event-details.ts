@@ -4,7 +4,6 @@ import { z } from "zod";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { createClient } from "@/lib/supabase/server";
-import { contentProfile, type ContentProfile } from "@/lib/events/content-profile";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
@@ -56,7 +55,6 @@ export interface EventDraftView extends EventDetailFields {
   missing: RequiredDetailKey[];
   /** What later composition would use today, real values where present (§7.3). */
   provisional: ProvisionalContent;
-  contentProfile: ContentProfile;
 }
 
 const COLUMNS =
@@ -112,7 +110,6 @@ function toView(row: EventRow, now: Date): EventDraftView {
     generationRequestedAt: row.generation_requested_at,
     missing: missingRequiredDetails(fields),
     provisional: provisionalContent(source, now),
-    contentProfile: contentProfile(source, now),
   };
 }
 

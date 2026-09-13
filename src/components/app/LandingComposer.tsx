@@ -23,7 +23,9 @@ import { PromptComposer } from "./PromptComposer";
 export const LOCAL_STORAGE_KEY = "event-platform:composer-prompt";
 const AUTOSAVE_DEBOUNCE_MS = 800;
 const MAX_FILES = 6;
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+// Mirrors MAX_FILE_BYTES in src/lib/drafts/inspiration.ts, which is server-only and cannot be
+// imported here. The server rejects anything larger regardless; this only saves a round trip.
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = [
   "image/png",
   "image/jpeg",
@@ -165,7 +167,7 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
         continue;
       }
       if (file.size > MAX_FILE_BYTES) {
-        setUploadError("Images must be 10 MB or smaller.");
+        setUploadError(`Images must be ${MAX_FILE_BYTES / (1024 * 1024)} MB or smaller.`);
         continue;
       }
       try {

@@ -42,7 +42,7 @@ function location(response: Response): string {
 
 beforeEach(() => {
   exchangeCodeForSession.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
-  claimDraftForUser.mockResolvedValue({ outcome: "claimed", eventId: "event-1" });
+  claimDraftForUser.mockResolvedValue({ outcome: "claimed", eventId: "event-1", hadToken: true });
   maybeSingle.mockResolvedValue({ data: null, error: null });
 });
 
@@ -70,24 +70,36 @@ describe("auth callback", () => {
   });
 
   it("explains a draft another account already claimed", async () => {
-    claimDraftForUser.mockResolvedValue({ outcome: "claimed_by_other", eventId: null });
+    claimDraftForUser.mockResolvedValue({
+      outcome: "claimed_by_other",
+      eventId: null,
+      hadToken: true,
+    });
     expect(location(await callback("?code=abc"))).toBe(`${ORIGIN}/?restore=taken`);
   });
 
   it("returns an expired draft to the composer with a restore notice", async () => {
-    claimDraftForUser.mockResolvedValue({ outcome: "expired", eventId: null });
+    claimDraftForUser.mockResolvedValue({ outcome: "expired", eventId: null, hadToken: true });
     expect(location(await callback("?code=abc"))).toBe(`${ORIGIN}/?restore=expired`);
   });
 
   it("continues to the most recent event when there was no draft", async () => {
-    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null });
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
     maybeSingle.mockResolvedValue({ data: { id: "event-9" }, error: null });
     expect(location(await callback("?code=abc"))).toBe(`${ORIGIN}/events/event-9/create`);
   });
 
   it("falls back to the composer for a first-time sign-in with nothing to open", async () => {
-    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null });
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
     expect(location(await callback("?code=abc"))).toBe(`${ORIGIN}/`);
+  });
+
+  it("explains itself when this browser had a draft the server no longer has", async () => {
+    // The magic link opened in another browser, or the draft expired between the two steps.
+    // Silently landing on an empty composer is the §7.2 failure this avoids.
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: true });
+    maybeSingle.mockResolvedValue({ data: { id: "event-9" }, error: null });
+    expect(location(await callback("?code=abc"))).toBe(`${ORIGIN}/?restore=expired`);
   });
 
   it("never claims when the session exchange fails, so a retry can still succeed", async () => {

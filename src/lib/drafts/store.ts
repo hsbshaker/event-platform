@@ -176,6 +176,12 @@ export async function ensureDraft(input: EnsureDraftInput): Promise<PreAuthDraft
 export interface ClaimResult {
   outcome: ClaimOutcome;
   eventId: string | null;
+  /**
+   * Whether this browser presented a draft token at all. `not_found` means two very different
+   * things — a returning visitor simply signing in, and someone whose server-side draft has
+   * gone — and only the caller knows which deserves an explanation.
+   */
+  hadToken: boolean;
 }
 
 /**
@@ -188,7 +194,7 @@ export interface ClaimResult {
  */
 export async function claimDraftForUser(userId: string): Promise<ClaimResult> {
   const token = await readDraftToken();
-  if (!token) return { outcome: "not_found", eventId: null };
+  if (!token) return { outcome: "not_found", eventId: null, hadToken: false };
 
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("claim_pre_auth_draft", {
@@ -203,5 +209,5 @@ export async function claimDraftForUser(userId: string): Promise<ClaimResult> {
 
   // The token has done its job (or can never do it): never leave it to be replayed.
   await clearDraftToken();
-  return { outcome, eventId };
+  return { outcome, eventId, hadToken: true };
 }

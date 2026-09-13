@@ -81,6 +81,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(target);
     }
     default: {
+      if (claim.hadToken) {
+        // This browser did carry a draft token and the server has no such draft. Treat it
+        // like an expired one rather than dropping them into an empty composer with no
+        // explanation: §7.2 calls losing the prompt a critical product failure, and the
+        // composer's local mirror still holds their text.
+        const target = new URL(next ?? "/", origin);
+        target.searchParams.set("restore", "expired");
+        return NextResponse.redirect(target);
+      }
       // Signed in without a draft in flight (for example straight from "Sign in"): continue
       // to the most recent event they own, or to the composer when there is none.
       const admin = createAdminClient();

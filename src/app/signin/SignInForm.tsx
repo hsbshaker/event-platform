@@ -75,7 +75,11 @@ export function SignInForm({ providers, errorCode }: SignInFormProps) {
 
       {sentTo ? (
         <InlineStatus variant="success" live>
-          Check your email — we sent a sign-in link to {sentTo}.
+          {/* The draft lives in this browser's cookie, so a link opened elsewhere signs the
+              person in but cannot restore what they wrote (spec.md §7.2). Say so before it
+              happens rather than showing them an empty composer afterwards. */}
+          Check your email — we sent a sign-in link to {sentTo}. Open it in this browser so we can
+          keep the event you just described.
         </InlineStatus>
       ) : (
         <div className="flex flex-col gap-6 rounded-2xl border border-app-border bg-app-surface p-6 shadow-soft">
