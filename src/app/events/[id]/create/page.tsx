@@ -46,11 +46,15 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
 
   return (
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col gap-8 px-4 py-10 lg:py-14">
+      {/* Nothing is generating in Phase 2, so nothing here says anything is. The panel beside
+          this header states the same truth; a header that promised directions were on the way
+          would contradict it on the same screen and hide a wait with no end (spec.md §7.10,
+          §32 guardrail #45). */}
       <header className="flex flex-col gap-2">
-        <h1 className="text-heading-xl text-app-text">A few details while we create…</h1>
+        <h1 className="text-heading-xl text-app-text">Your event</h1>
         <p className="text-body-md text-app-text-secondary">
-          Your directions are already on the way. Fill in what you can below — nothing here is
-          required to see them, only to publish later.
+          Fill in what you can below — nothing here is required to see your design directions, only
+          to publish later.
         </p>
       </header>
       <div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">

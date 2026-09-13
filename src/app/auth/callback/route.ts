@@ -17,14 +17,23 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Only same-origin paths, so `next` can never become an open redirect.
+ * The `next` parameter as an absolute, same-origin URL, or null. Never a string.
  *
- * Prefix checks are not enough here: WHATWG URL parsing treats a backslash as a slash for
- * special schemes, so `/\evil.test` starts with a single `/` yet resolves to
- * `https://evil.test/`. The only reliable test is to resolve the value against our own origin
- * and compare, then rebuild the path from the parsed result so nothing unparsed survives.
+ * Two separate traps, and each defeats the obvious guard for the other:
+ *
+ * 1. Prefix checks are not enough. WHATWG URL parsing treats a backslash as a slash for
+ *    http(s), so `/\evil.test` begins with a single `/` yet resolves to `https://evil.test/`.
+ *    Resolving against our own origin and comparing origins catches that.
+ * 2. Comparing origins and handing back a *path* is not enough either. A pathname may itself
+ *    begin with `//`, and a caller that re-resolves it then reads it as scheme-relative:
+ *    `//ourhost//evil.test` and `/..//evil.test` both parse to pathname `//evil.test`, which
+ *    resolves to `https://evil.test/` the second time round.
+ *
+ * So this returns the parsed URL itself and callers redirect to it directly, with no second
+ * resolution for a payload to survive into. The explicit `//` rejection is belt and braces:
+ * it holds even if a caller ever does rebuild a string from this.
  */
-function safeNext(value: string | null, origin: string): string | null {
+function safeNext(value: string | null, origin: string): URL | null {
   if (!value || !value.startsWith("/")) return null;
   let resolved: URL;
   try {
@@ -33,7 +42,8 @@ function safeNext(value: string | null, origin: string): string | null {
     return null;
   }
   if (resolved.origin !== origin) return null;
-  return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  if (resolved.pathname.startsWith("//")) return null;
+  return resolved;
 }
 
 export async function GET(request: NextRequest) {
@@ -62,21 +72,21 @@ export async function GET(request: NextRequest) {
   const claim = await claimDraftForUser(data.user.id);
 
   if (claim.eventId) {
-    return NextResponse.redirect(new URL(next ?? `/events/${claim.eventId}/create`, origin));
+    return NextResponse.redirect(next ?? new URL(`/events/${claim.eventId}/create`, origin));
   }
 
   switch (claim.outcome) {
     case "claimed_by_other": {
       // Someone else already turned that draft into their event. Say so plainly rather than
       // silently dropping the person into an empty composer.
-      const target = new URL(next ?? "/", origin);
+      const target = next ?? new URL("/", origin);
       target.searchParams.set("restore", "taken");
       return NextResponse.redirect(target);
     }
     case "expired": {
       // The server copy is gone. The composer restores from its own local copy and tells the
       // user what happened: a restore failure must never silently discard their input.
-      const target = new URL(next ?? "/", origin);
+      const target = next ?? new URL("/", origin);
       target.searchParams.set("restore", "expired");
       return NextResponse.redirect(target);
     }
@@ -86,7 +96,7 @@ export async function GET(request: NextRequest) {
         // like an expired one rather than dropping them into an empty composer with no
         // explanation: §7.2 calls losing the prompt a critical product failure, and the
         // composer's local mirror still holds their text.
-        const target = new URL(next ?? "/", origin);
+        const target = next ?? new URL("/", origin);
         target.searchParams.set("restore", "expired");
         return NextResponse.redirect(target);
       }
@@ -101,7 +111,7 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .maybeSingle();
       const fallback = latest?.id ? `/events/${latest.id}/create` : "/";
-      return NextResponse.redirect(new URL(next ?? fallback, origin));
+      return NextResponse.redirect(next ?? new URL(fallback, origin));
     }
   }
 }

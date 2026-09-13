@@ -174,8 +174,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
         <h2 className="text-heading-md text-app-text">A few details</h2>
         <p className="text-body-sm text-app-text-secondary">
           These help guests find and RSVP to the real event. They&apos;re only needed before you
-          publish — leave anything blank for now, and it won&apos;t affect the design directions
-          we&apos;re creating.
+          publish — leave anything blank for now, and it won&apos;t affect your design directions.
         </p>
       </div>
 

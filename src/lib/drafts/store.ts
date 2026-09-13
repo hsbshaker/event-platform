@@ -136,11 +136,16 @@ export async function ensureDraft(input: EnsureDraftInput): Promise<PreAuthDraft
   const composerState = input.composerState ?? null;
 
   if (existing) {
+    // The per-browser budget shapes autosave and is the one a background save must not be
+    // able to turn against the person; submitting skips it. The wide per-IP ceiling applies
+    // either way, because "the funnel must not be blocked" is a reason to raise the bound,
+    // not to remove it: at 1200/hour no real submitter will ever meet it, and an unbounded
+    // path would let one cookie drive writes and claim attempts forever.
     if (input.reason === "autosave") {
       // Keyed on the draft this browser owns, not on the address it arrived from.
       await enforceRateLimit(DRAFT_WRITES_PER_DRAFT, token ?? existing.id);
-      if (input.ip) await enforceRateLimit(DRAFT_WRITES_PER_IP, input.ip);
     }
+    if (input.ip) await enforceRateLimit(DRAFT_WRITES_PER_IP, input.ip);
     const { error } = await admin
       .from("pre_auth_event_drafts")
       .update({ prompt, composer_state: composerState })

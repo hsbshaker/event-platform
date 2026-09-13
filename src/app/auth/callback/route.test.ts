@@ -135,6 +135,23 @@ describe("auth callback", () => {
     }
   });
 
+  it("refuses a scheme-relative next parameter that survives an origin check", async () => {
+    // Each of these parses to pathname "//evil.test" while keeping OUR origin, so an origin
+    // comparison alone passes them; resolving the returned path a second time then reads it
+    // as scheme-relative and lands on another host. The first form embeds our own hostname,
+    // the others do not need to.
+    for (const next of [
+      `${ORIGIN.replace("https:", "")}//evil.test`,
+      "/..//evil.test",
+      "/.//evil.test",
+      "//evil.test",
+    ]) {
+      expect(location(await callback(`?code=abc&next=${encodeURIComponent(next)}`)), next).toBe(
+        `${ORIGIN}/events/event-1/create`,
+      );
+    }
+  });
+
   it("keeps a percent-encoded backslash as an ordinary same-origin path", async () => {
     expect(location(await callback("?code=abc&next=%2F%255Cevil.test"))).toBe(
       `${ORIGIN}/%5Cevil.test`,
