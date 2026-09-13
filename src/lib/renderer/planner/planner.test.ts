@@ -349,6 +349,33 @@ describe("planner: no legacy-library dependency", () => {
     }
   });
 
+  it("never grows a pageSystem field, at any level of the plan", () => {
+    // `docs/design-system.md §15.2`: the page system — borders, cards, buttons, type scale,
+    // spacing — is compiler-owned. `proof-b`'s fake DesignIntent carried one because the harness
+    // had no `generateDesignIntent()` call and bundled model simulation with compiler work. If
+    // this ever fails, resolved design has leaked back into the planner layer.
+    const hasPageSystemKey = (value: unknown): boolean => {
+      if (Array.isArray(value)) return value.some(hasPageSystemKey);
+      if (value && typeof value === "object")
+        return Object.entries(value as Record<string, unknown>).some(
+          ([k, v]) =>
+            /^(pageSystem|border|borderWeight|card|button|typeScale|spacing|defaultAlign|displayTracking)$/.test(
+              k,
+            ) || hasPageSystemKey(v),
+        );
+      return false;
+    };
+    for (const master of [20260921, 20260922, 5, 77]) {
+      for (let b = 0; b < 15; b++) {
+        const plan = planBatch(master, b);
+        expect(
+          hasPageSystemKey(plan),
+          `master ${master} batch ${b} carries a page-system field`,
+        ).toBe(false);
+      }
+    }
+  });
+
   it("exports the planner surface and nothing library-shaped", () => {
     expect(Object.keys(plannerModule).sort()).toEqual([
       "CAPS_PER_BATCH",

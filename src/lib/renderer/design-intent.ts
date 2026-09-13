@@ -109,6 +109,16 @@ export interface Deviation {
   readonly detail: string;
   readonly before?: string;
   readonly after?: string;
+  /**
+   * Why the compiler had to move, when the rule alone does not say. `gamut`: the authored value
+   * left the sRGB gamut once derived. `contrast`: it could not clear its role's ratio as given.
+   * `unsatisfiable`: no value clears it, and the safest available was used. `intent`: the model's
+   * output was internally inconsistent (a `dominant` outside `colors`, say) and was honoured as
+   * far as it could be. `budget`: a cap was already spent.
+   */
+  readonly kind?: "contrast" | "gamut" | "unsatisfiable" | "intent" | "budget";
+  /** Dotted path of the affected token or node, where one exists. */
+  readonly path?: string;
 }
 
 /** The typography category the pairing belongs to, for the planner's distinctness check. */

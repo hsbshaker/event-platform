@@ -10,14 +10,14 @@ Delete this file when Phase 3 closes and every row reads "enforced".
 | # | Guarantee | Enforced by | State |
 | --- | --- | --- | --- |
 | 1 | A valid novel `CompositionTree` with no corresponding fixture validates, canonicalizes and resolves layout, and collides with no library hero skeleton at either breakpoint | `composition.test.ts`, "novelty" | **enforced** |
-| 2 | The same novel tree compiles, renders and geometry-verifies clean, with no library selection invoked | `tests/unit/library-boundary.test.ts` proves the language half today: the novel tree validates, repairs and resolves layout with macros that throw if entered, carries no fixture identifier, and the core's own source never names an adapter | partial — the render and geometry-verify half needs the renderer and verifier |
+| 2 | The same novel tree compiles, renders and geometry-verifies clean, with no library selection invoked | the language and compiler halves are proven: `tests/unit/library-boundary.test.ts` (validate, repair and layout with macros that throw if entered) and `compile/spec.test.ts` (page system, palette, typography, motifs and layout resolve for a tree with no fixture counterpart, and the assembled spec carries no fixture identifier) | partial — the **render** and **geometry-verify** halves still need the renderer and the Chromium verifier |
 | 3 | No production module can import the legacy library | `eslint.config.mjs`, forbidden across `src/**`; `tests/unit/library-boundary.test.ts` runs the real config over the real composition, compiler, planner, selector, directives and vocabulary modules plus representative *future* generation and orchestration paths | **enforced**, mutation-checked against both a narrowed rule and a widened exemption |
 | 4 | Exactly two adapters are exempt, one per role, and `recovery/**` cannot absorb few-shot retrieval | `tests/unit/library-boundary.test.ts` asserts the exemption list structurally: `src/lib/renderer/recovery/**`, `src/lib/renderer/few-shot/**`, and test files | **enforced** |
 | 5 | The few-shot adapter exposes no recipe, silhouette or template identifier that could become a candidate-choice variable | `src/lib/renderer/few-shot/few-shot.test.ts`: the module exports only `compositionExamples` and its count, the returned trees carry none of the 61 library fixture identifiers (hero, details, rsvp, registry, plan and A.1 site) anywhere in their serialized shape, and the only parameter is a seed | **enforced** |
 | 6 | Normal generation consumes example trees without learning where they came from | test that the composition-call input carries trees and no fixture identifier | open — needs the generation path (Phase 4) |
 | 7 | The terminal fallback is unreachable until the documented retry was legitimately authorized *and* exhausted | `src/lib/renderer/recovery/fallback.ts` checks the whole attempt history, not just the last attempt: the first failure must be the one that authorized this reason's retry, and the retry must also have failed. `recovery.test.ts` enumerates every history of length 0–3 for both reasons and asserts exactly one is served (`[invalid, invalid]`; `[collided, collided]`), each refusal naming the right caller state. Mutation-checked: removing any one branch of the guard fails a test | **enforced** |
 | 8 | Fallback use and reason are observable in generation telemetry | `FallbackTelemetry` — reason, source, seed, fixtureId, attemptsSpent — is returned with every served fallback and asserted in `recovery.test.ts` | **Phase 3 side done**; open — Phase 4 records it on the `GenerationRun` |
-| 9 | Neither the `DesignIntent` nor the `CompositionTree` schema carries a recipe, silhouette or template identifier | test scanning both schemas for such a field | open — needs the ported schemas |
+| 9 | Neither the `DesignIntent` nor the `CompositionTree` schema carries a recipe, silhouette or template identifier | test scanning both schema boundaries for such a field | open — the `DesignIntent` **type** exists (`src/lib/renderer/design-intent.ts`) but the production **schema boundary** does not, and `docs/model-schemas/design-intent.schema.json` is unreconciled (defect record D). Both boundaries must exist and be mechanically checked before this moves |
 | 10 | The renderer stays recipe-agnostic: one fixed component per primitive, no branch per recipe | test asserting the component map's keys are exactly the primitive allowlist | open — needs the renderer components |
 | 11 | Seeded few-shot rotation is deterministic by specification, not by the engine's sort algorithm | replace the random-comparator sort with a specified shuffle; see **Phase 4 obligation** below | open — **Phase 4, before the first production model call** |
 
@@ -65,6 +65,14 @@ first production model call would mean two prompt regimes under one version iden
 fallback rate can be measured per fixture. It is an output of a failure, never an input to a
 decision. Feeding it back into generation would make it a candidate-choice variable, which §7.1
 forbids by name; row 6 is where that stays enforced once the generation path exists.
+
+**What the compiler slice added, and what it deliberately did not.** `src/lib/renderer/compile/`
+resolves the page system, the semantic palette, typography, motifs, density spacing and layout,
+and assembles them into a `PreVerificationDesignSpec`. That type's `verified` is `null` and its
+`state` is `"pre-verification"`: rendered geometry is authoritative (`§3.1`), it has not run, and
+the type makes claiming otherwise unrepresentable. Nothing here closes a row that depends on the
+renderer or the verifier.
+
 
 **The planner is on the right side of the boundary by construction.** `src/lib/renderer/planner`
 works over DesignIntent assignment dimensions (family, tonal direction, typography category,

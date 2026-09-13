@@ -132,7 +132,7 @@ only difference is that the threshold now exists where the code reads it.
 Distinct from the defects above. These are places where `proof-b/` did something because it had no
 production surrounding it, not because it was wrong. Porting them verbatim would be the error.
 
-## A. `proof-b/planner.js`'s `intentFor()` returns a whole DesignIntent
+## A. `proof-b/planner.js`'s `intentFor()` returns a whole DesignIntent, page system included
 
 The reference planner samples, by seed, a complete `DesignIntent`: family, tonal direction,
 typography pairing, density, all five composition values, and a page system. `proof-b` had no
@@ -161,6 +161,65 @@ category on the one vocabulary path where the naive category filter comes back e
 fallback pairing's category differs from the drawn one. The pairing itself is deliberately not
 emitted; the assignment carries the narrowed *list* instead (`docs/model-contracts.md §5.2`), so
 Phase 4 cannot accidentally skip the model call by reading a pairing off the plan.
+
+---
+
+## B. `proof-b` has no page-system resolver, no palette compiler and no motif resolution
+
+`proof-b/compile.js` passes `pageSystem` straight through from the fake DesignIntent and sets
+`typography: designIntent.typographyObject`. It produces no `tokens`, no `motifs` and no
+`intentDeviations`. The colour system is three hard-coded palettes in `proof-b/renderer.js`'s
+`TONES` table, for the single Ralph-Lauren-lodge brief; the fake DesignIntent has no `palette`
+field at all, and `composition.ornament` is never read by anything.
+
+So for this part of the compiler there is **nothing to port and no parity to prove**. What the
+proof does hold is canonical *data* in the wrong layer: the family → border/card/button tables and
+the hierarchy → tracking table (`proof-a1/vocab.js`), the type scale (`renderer.js`'s `HIER`), the
+density scale (`DENS`), the motif catalog and the ornament budget (`VOCAB.motifs`,
+`VOCAB.mapping.ornament`). Production moves those values into the compiler, where
+`docs/design-system.md §15.2` and `docs/event-renderer-system.md §6` put them, and builds the rest
+from the canonical contract.
+
+Practical consequence for anyone reading a frozen spec: its `pageSystem` was sampled by the
+harness, not resolved from a DesignIntent, so **do not treat the frozen values as a parity target
+for `resolvePageSystem`**. Reproducing them would mean replaying `intentFor()`'s random draws,
+which is precisely the harness/compiler entanglement the production split exists to undo.
+
+## C. Two canonical gaps found while building the resolvers, recorded rather than filled
+
+1. **Motif "channels" have no surviving definition.** `docs/event-renderer-system.md §8` and the
+   Revision 6 changelog both say "roles, channels, opacity bounds and caps are unchanged", and no
+   current document says what a channel is. `compile/motifs.ts` resolves everything that *is*
+   specified — kind, role, opacity bounds, ornament budget, scale — and invents no channel system.
+2. **The disposition of a motif beyond the ornament budget is unwritten.** `spec.md §32` #25
+   forbids dropping motifs silently, and §8 gives a wrong *kind* a swap rather than a drop. The
+   resolver therefore bounds treatment rather than count: every placed motif resolves, the ones
+   past the budget are held to the lowest approved opacity step, each logged as a `motif.budget`
+   deviation. Changing that to a drop is a product decision.
+
+## D. A `typographyPairing` enum that predates Revision 6
+
+`docs/model-schemas/design-intent.schema.json` carries a six-value `typographyPairing` enum whose
+values are the six typography *categories*, and whose description says "the assigned
+**archetype**" — wording Revision 6 removed when it replaced archetypes with families.
+`docs/model-contracts.md §5.1` requires a pairing to be "in the assigned category", and
+`docs/event-renderer-system.md §8` requires a per-pairing `holdsAtMonumental`; neither is
+expressible with six values that *are* the categories. Production uses the twelve concrete
+pairings.
+
+The schema file is **not** edited. It is a versioned model-facing asset
+(`docs/model-contracts.md §2`), so reconciling it carries a schema-version bump and belongs to a
+deliberate decision, not to this port. Nothing in the compiler depends on the outcome: the
+renderer needs concrete fonts either way, and only the twelve carry them.
+
+## E. A focus-ring constraint that follows from the contrast rules
+
+Requiring `focus` to clear 3:1 against **both** the page surface and the button fill is
+algebraically unsatisfiable in the dark tonal direction: against the base it needs relative
+luminance ≥ 0.178, against a mid-lightness button ≤ 0.077. The semantic palette therefore scopes
+`focus` and `border` to the surfaces they sit on, which means **the renderer must draw the focus
+ring outset on the page surface, not inside the button fill**. That is a real constraint on the
+renderer slice and is written down nowhere else.
 
 ---
 
