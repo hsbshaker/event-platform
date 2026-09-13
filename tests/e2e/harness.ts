@@ -116,15 +116,44 @@ export async function hasHorizontalScroll(page: Page): Promise<boolean> {
   );
 }
 
-/** The smallest tap target among the given elements, for the 44px rule (design-system §7.6). */
-export async function smallestTapTarget(page: Page, selector: string): Promise<number> {
-  return page.evaluate((sel) => {
-    const sizes = [...document.querySelectorAll(sel)]
-      .filter((el) => (el as HTMLElement).offsetParent !== null)
-      .map((el) => {
-        const r = el.getBoundingClientRect();
-        return Math.min(r.width, r.height);
-      });
-    return sizes.length ? Math.min(...sizes) : Number.POSITIVE_INFINITY;
-  }, selector);
+export interface TapTarget {
+  label: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * Visible interactive elements smaller than `min` in either direction — the 44px rule in
+ * design-system §7.6. Returns what failed, so a failure names the control.
+ */
+export async function undersizedTapTargets(
+  page: Page,
+  selector: string,
+  min = 44,
+): Promise<TapTarget[]> {
+  return page.evaluate(
+    ({ sel, limit }) =>
+      [...document.querySelectorAll(sel)]
+        .filter((el) => (el as HTMLElement).offsetParent !== null)
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            label: `${el.tagName.toLowerCase()}:${(el.textContent ?? "").trim().slice(0, 30) || (el as HTMLElement).getAttribute("aria-label") || ""}`,
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+          };
+        })
+        .filter((t) => t.width < limit || t.height < limit),
+    { sel: selector, limit: min },
+  );
+}
+
+/** Waits for a locator to be visible, returning false instead of throwing on timeout. */
+export async function becomesVisible(page: Page, selector: string, timeout = 10_000) {
+  try {
+    await page.locator(selector).first().waitFor({ state: "visible", timeout });
+    return true;
+  } catch {
+    return false;
+  }
 }

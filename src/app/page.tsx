@@ -27,7 +27,9 @@ export default async function LandingPage({
         <span className="text-label-md text-app-text-secondary">Event Platform</span>
         <Link
           href="/signin"
-          className="text-body-sm text-app-text-secondary underline-offset-2 hover:underline"
+          // min-h/min-w keep the touch target at 44px on phones (design-system §7.6) without
+          // changing how the link reads.
+          className="-mr-3 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-3 text-body-sm text-app-text-secondary underline-offset-2 hover:underline"
         >
           Sign in
         </Link>
