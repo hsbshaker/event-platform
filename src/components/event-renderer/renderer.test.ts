@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 
 import { resolveMotifs } from "@/lib/renderer/compile/motifs";
 import { assemblePreVerificationSpec } from "@/lib/renderer/compile/spec";
+import { NO_OVERRIDES } from "@/lib/renderer/compile/verification";
 import { canonicalize } from "@/lib/renderer/composition/canonicalize";
 import { resolveLayout } from "@/lib/renderer/composition/layout";
 import type { Capabilities, CNode, CompositionTree } from "@/lib/renderer/composition/nodes";
@@ -121,6 +122,7 @@ function contextFor(tree: CompositionTree, designIntent: DesignIntent = intent()
     typography: spec.tokens.typography,
     content: CONTENT,
     audience: "guest",
+    overrides: NO_OVERRIDES,
     renderNode: (node) => {
       const Primitive = PRIMITIVES[node.t];
       if (!Primitive) throw new Error(`no component for ${node.t}`);
@@ -488,7 +490,13 @@ describe("no creative value reaches the markup", () => {
     expect(styled.length).toBeGreaterThan(1);
 
     for (const [, attrs, style] of styled) {
+      // Decode before tokenizing. React escapes a quote inside an attribute (`'` → `&#x27;`), and
+      // that escape contains a `;` — so splitting the raw attribute text would cut a declaration
+      // in half. The browser decodes the attribute before the CSS parser sees it; so does this.
       const declarations = style
+        .replace(/&#x27;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, "&")
         .split(";")
         .map((d) => d.trim())
         .filter(Boolean);
@@ -498,6 +506,11 @@ describe("no creative value reaches the markup", () => {
         // family names, both compiler output. Still custom properties, and still never the raw
         // creative palette — the test above proves that separately.
         for (const declaration of declarations) expect(declaration).toMatch(/^--ev-[a-z-]+:/);
+        // A family name is quoted, so it is a CSS <string> and stays valid whatever it contains.
+        // Unquoted, `Source Sans 3` ends in a <number> and invalidates the whole declaration —
+        // and an invalid custom-property substitution takes the fallback stack down with it.
+        expect(declarations).toContain("--ev-font-display:'Libre Caslon Text'");
+        expect(declarations).toContain("--ev-font-body:'Karla'");
         continue;
       }
 

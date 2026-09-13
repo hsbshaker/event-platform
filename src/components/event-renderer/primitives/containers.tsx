@@ -8,11 +8,28 @@
  * emitted bare and `event-tokens.css` does the arithmetic in `calc()`, so the stylesheet stays
  * static and the model's token stays a number.
  *
- * None of them branches on anything but its own props and resolved layout. There is no recipe,
- * silhouette or template identifier in scope (`docs/event-renderer-system.md §7.1`).
+ * None of them branches on anything but its own props, its resolved layout and its verified-fit
+ * override. There is no recipe, silhouette or template identifier in scope
+ * (`docs/event-renderer-system.md §7.1`).
+ *
+ * # The three relaxable boxes
+ *
+ * `Frame`, `Surface` and `Rail` are the boxes §3.1 lets rendered-geometry verification relax when
+ * demoting emphasis was not enough: "the innermost `Frame`/`Surface`/`Rail` around the node is
+ * relaxed (Frame → Stack, Surface inset → tight, Rail widened)". Each reads its relaxation through
+ * `effectiveRelaxation` and changes only what it renders. The node keeps its type, its id and its
+ * props — a relaxed `Frame` is still a `Frame` in the tree and still carries `data-id`, because the
+ * §6 re-fit contract requires the canonical tree and the `compositionHash` to survive a fit
+ * unchanged (`@/lib/renderer/compile/verification`).
+ *
+ * The relaxed values come from `SCALES`, the same table `resolveLayout` reads, so there is exactly
+ * one definition of what "tight" and "one step wider" are worth in pixels.
  */
 
 import { Fragment } from "react";
+
+import { effectiveRelaxation, widenRail } from "@/lib/renderer/compile/verification";
+import { SCALES } from "@/lib/renderer/composition/layout";
 
 import type {
   Cell,
@@ -25,6 +42,7 @@ import type {
   Stack,
   Surface,
 } from "@/lib/renderer/composition/nodes";
+import type { RailWidth } from "@/lib/renderer/composition/tokens";
 import { cssNumbers, cssVars, renderableMotif, layoutOf } from "../contract";
 import { primitive } from "../primitive";
 import type {
@@ -89,11 +107,19 @@ export const SplitPrimitive = primitive<Split>((node, ctx) => {
 
 export const RailPrimitive = primitive<Rail>((node, ctx) => {
   const l = layoutOf<RailLayout>(ctx, node);
+  // `rail-widen`: one step along the approved widths. A rail already at the widest has nowhere to
+  // go, so `widenRail` returns null and the authored width stands — the verifier does not choose
+  // that relaxation for such a rail, and honouring it here would be a silent no-op either way.
+  const widened =
+    effectiveRelaxation(ctx.overrides, node.id) === "rail-widen"
+      ? (widenRail(node.width) as RailWidth | null)
+      : null;
+  const width = widened ?? node.width;
   return (
     <div
-      className={`ev-rail ev-side-${node.side} ev-w-${node.width} ev-m-${node.mobile}`}
+      className={`ev-rail ev-side-${node.side} ev-w-${width} ev-m-${node.mobile}`}
       data-id={node.id}
-      style={cssVars({ "--ev-rail-w": l?.widthPx })}
+      style={cssVars({ "--ev-rail-w": widened ? SCALES.railPx[widened] : l?.widthPx })}
     >
       <div className="ev-rail-track">{ctx.renderNode(node.rail)}</div>
       <div className="ev-rail-main">{ctx.renderNode(node.child)}</div>
@@ -137,24 +163,31 @@ export const CellPrimitive = primitive<Cell>((node, ctx) => {
 export const FramePrimitive = primitive<Frame>((node, ctx) => {
   const l = layoutOf<FrameLayout>(ctx, node);
   const motif = renderableMotif(ctx, node);
+  // `frame-as-stack`: the frame gives up its rule and its inset, which is what its box was costing
+  // the content. It is not rewritten into a `Stack` — the node stays a `Frame` and keeps its id.
+  const asStack = effectiveRelaxation(ctx.overrides, node.id) === "frame-as-stack";
   return (
     <div
       className={`ev-frame${motif ? ` ${motifClass(motif)}` : ""}`}
       data-id={node.id}
-      style={{ ...cssVars({ "--ev-inset": l?.insetPx }), ...motifVars(motif) }}
+      style={{ ...cssVars({ "--ev-inset": asStack ? 0 : l?.insetPx }), ...motifVars(motif) }}
     >
-      <div className={`ev-frame-box ev-rule-${node.rule}`}>{ctx.renderNode(node.child)}</div>
+      <div className={`ev-frame-box ev-rule-${asStack ? "none" : node.rule}`}>
+        {ctx.renderNode(node.child)}
+      </div>
     </div>
   );
 });
 
 export const SurfacePrimitive = primitive<Surface>((node, ctx) => {
   const l = layoutOf<SurfaceLayout>(ctx, node);
+  // `surface-inset-tight`: the surface renders at the tight inset whatever it asked for.
+  const tight = effectiveRelaxation(ctx.overrides, node.id) === "surface-inset-tight";
   return (
     <div
       className={`ev-surface ev-surf-${node.role}`}
       data-id={node.id}
-      style={cssVars({ "--ev-inset": l?.insetPx })}
+      style={cssVars({ "--ev-inset": tight ? SCALES.insetPx.tight : l?.insetPx })}
     >
       {ctx.renderNode(node.child)}
     </div>

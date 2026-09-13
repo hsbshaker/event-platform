@@ -33,6 +33,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import type { SemanticPalette } from "@/lib/renderer/compile/palette";
 import type { PreVerificationDesignSpec } from "@/lib/renderer/compile/spec";
+import { NO_OVERRIDES, type VerificationOverrides } from "@/lib/renderer/compile/verification";
 import type { ResolvedTypography } from "@/lib/renderer/compile/typography";
 import type { PageSystem } from "@/lib/renderer/compile/page-system";
 import type { AnyNode, Section } from "@/lib/renderer/composition/nodes";
@@ -64,6 +65,15 @@ export interface EventPageProps {
    * (`spec.md §31 — Creation Mode`).
    */
   readonly sectionActions?: (section: SectionRef) => ReactNode;
+  /**
+   * What rendered-geometry verification decided for this spec, keyed by canonical node id.
+   *
+   * The verifier renders this component under a growing override map and re-measures, so the same
+   * component that fits a page is the one that later serves it. A guest render passes the map its
+   * `ResolvedDesignSpec` was verified with; anything else — a pre-verification preview, a unit test
+   * — passes none and gets `NO_OVERRIDES`, which renders the tree exactly as the model authored it.
+   */
+  readonly overrides?: VerificationOverrides;
 }
 
 const EMPHASIS_STEPS: readonly Emphasis[] = ["display", "primary", "secondary", "caption"];
@@ -91,11 +101,24 @@ function typographyVars(typography: ResolvedTypography): CSSProperties {
     }
   }
   return {
-    // Bare family names; `event-tokens.css` owns the fallback stacks. Unquoted on purpose: a
-    // multi-word family is a valid unquoted CSS identifier sequence, and quoting it here would be
-    // escaped to `&quot;` in the attribute, putting a stray `;` inside a declaration.
-    "--ev-font-display": typography.display,
-    "--ev-font-body": typography.body,
+    // Family names only; `event-tokens.css` owns the fallback stacks. **Quoted**, and the quotes
+    // matter: a bare family name is a sequence of CSS identifiers, and `Source Sans 3` ends in a
+    // token that is a <number>, not an identifier. Unquoted, that makes the whole `font-family`
+    // declaration invalid at computed-value time — and an invalid custom-property substitution
+    // takes the *entire* value with it, fallback stack included, so the text renders in the UA
+    // default (Times New Roman) rather than in `ui-sans-serif`. Rendered-geometry verification
+    // caught it as an unloaded face; a guest would have seen a serif where a grotesk belongs.
+    //
+    // React escapes the quote in an attribute value — `'` becomes `&#x27;`, `"` becomes `&quot;` —
+    // and the HTML parser decodes it back before CSS ever sees the declaration, which is why this
+    // works and why the browser reports the face as loaded. The escape does put a `;` in the
+    // attribute *text*, though, so anything that reads a style attribute as a string (a test
+    // splitting on `;`, say) has to decode it first rather than tokenize it raw.
+    //
+    // Neither the name nor the quote comes from model output: the catalog is closed
+    // (`src/lib/renderer/vocabulary`) and the compiler picked from it (`spec.md §32` #19).
+    "--ev-font-display": `'${typography.display}'`,
+    "--ev-font-body": `'${typography.body}'`,
     ...cssVars(sizes),
     ...cssNumbers(ratios),
   } as CSSProperties;
@@ -185,7 +208,7 @@ function EventSection({
   );
 }
 
-export function EventPage({ spec, content, audience, sectionActions }: EventPageProps) {
+export function EventPage({ spec, content, audience, sectionActions, overrides }: EventPageProps) {
   const { pageSystem, tokens, composition } = spec;
   const ctx = createRenderNode({
     layout: spec.layout,
@@ -195,6 +218,7 @@ export function EventPage({ spec, content, audience, sectionActions }: EventPage
     typography: tokens.typography,
     content,
     audience,
+    overrides: overrides ?? NO_OVERRIDES,
   });
 
   return (

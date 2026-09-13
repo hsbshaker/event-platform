@@ -19,7 +19,18 @@ primitives/          the 29 components, grouped by the four kinds NODE_SPEC decl
 ```
 
 Styling lives in `src/styles/event-tokens.css`, which the consuming route must import; every
-declaration there is hand-written and keyed by the classes and numbers these components emit.
+declaration there is hand-written and keyed by the classes and numbers these components emit. Its
+section 0 declares the `@font-face` rules for all twenty families the twelve curated pairings name,
+served from `public/fonts/event/`.
+
+`EventPage` takes an optional `overrides` prop: the `VerificationOverrides` map that rendered-
+geometry verification produced for this spec (`src/lib/renderer/verify`,
+`src/lib/renderer/compile/verification.ts`). Text components read `effectiveEmphasis` and the three
+relaxable boxes — `Frame`, `Surface`, `Rail` — read `effectiveRelaxation`, never the raw prop, so a
+verified fit is honoured by default. The map exists because `docs/event-renderer-system.md §6`
+requires a re-fit to keep the same canonical tree and the same `compositionHash`: the fit is
+resolved data alongside `layout` and `motifs`, and the composition is never rewritten. Omitting the
+prop renders the tree exactly as the model authored it.
 
 Invariants enforced by `renderer.test.ts`: the map's keys equal the primitive allowlist, no
 suppressed motif is drawn, no raw creative palette value or library fixture identifier reaches the

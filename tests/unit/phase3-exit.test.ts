@@ -42,7 +42,6 @@ import type { DesignIntent } from "@/lib/renderer/design-intent";
 import { COLLISION_THRESHOLD } from "@/lib/renderer/planner/selector";
 
 const PROOF = new URL("../../proof-b/", import.meta.url);
-const PROOF_DIR = PROOF.pathname;
 const GOLDEN = new URL("../../tests/fixtures/renderer-golden/", import.meta.url).pathname;
 /* eslint-disable @typescript-eslint/no-explicit-any -- the reference side is untyped CommonJS. */
 const requireProof = createRequire(PROOF);

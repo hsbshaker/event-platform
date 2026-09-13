@@ -28,6 +28,7 @@ import type { ResolvedMotif } from "@/lib/renderer/compile/motifs";
 import type { PageSystem } from "@/lib/renderer/compile/page-system";
 import type { SemanticPalette } from "@/lib/renderer/compile/palette";
 import type { ResolvedTypography } from "@/lib/renderer/compile/typography";
+import type { VerificationOverrides } from "@/lib/renderer/compile/verification";
 
 /** The primitive allowlist, taken from the language spec so the two cannot drift. */
 export const PRIMITIVE_KINDS: readonly string[] = Object.keys(NODE_SPEC).sort();
@@ -79,6 +80,18 @@ export interface RenderContext {
   readonly typography: ResolvedTypography;
   readonly content: EventContent;
   readonly audience: RenderAudience;
+  /**
+   * What rendered-geometry verification decided, keyed by canonical node id
+   * (`@/lib/renderer/compile/verification`). Required, not optional: the verifier fits a page by
+   * re-rendering it under a growing override map, so a context that could omit it would be a
+   * context that renders the unfitted page. `NO_OVERRIDES` is the empty map, and `EventPage`
+   * supplies it when a caller passes none.
+   *
+   * Components never read this map directly — `effectiveEmphasis` and `effectiveRelaxation` are
+   * the accessors, so honouring a verified fit is the default path rather than a thing each
+   * component has to remember.
+   */
+  readonly overrides: VerificationOverrides;
   /** Renders a child node. Passed down so components never import the dispatcher directly. */
   readonly renderNode: (node: AnyNode) => React.ReactNode;
 }

@@ -15,6 +15,7 @@
  * (docs/design-system.md §23.7; the import direction is enforced in eslint.config.mjs).
  *
  * Layout of this file:
+ *   0. self-hosted font faces
  *   1. root token layer and breakpoint selection
  *   2. surfaces
  *   3. page system — border, card and button languages
@@ -26,6 +27,357 @@
  *   9. focus (design-system.md §15.6a — binding)
  *  10. mobile
  */
+
+/* ============================================================================================
+ * 0. Self-hosted font faces.
+ *
+ * The twelve curated pairings (`src/lib/renderer/vocabulary`) name twenty families between them,
+ * and `page.tsx` sets the two a concept resolved to as bare family names in `--ev-font-display`
+ * and `--ev-font-body`. The faces those names have to match are declared here, once, for the
+ * whole catalog: the pairing is a compiler decision made per concept, so the stylesheet cannot
+ * know in advance which two it will be asked for, and a family with no face behind it would
+ * silently render as the fallback stack.
+ *
+ * Self-hosted rather than fetched. Rendered-geometry verification is authoritative
+ * (`docs/event-renderer-system.md §3.1`) and it measures line counts, so a measurement taken
+ * against fallback metrics would be a wrong answer rather than a slow one. A third-party font
+ * host would put a network on that path; `public/fonts/event/` does not. The verifier goes one
+ * step further and inlines these files as data URIs, because it loads the page through
+ * `setContent`, which has no origin to resolve `/fonts/event/...` against.
+ *
+ * Assets: 41 woff2 files copied from `proof-a1/fonts/`. Weights are whatever each family ships;
+ * where the resolved type scale asks for a weight a family does not declare (it asks Archivo for
+ * 800, which ships 400 and 900) the browser picks the nearest — deterministically, and the same
+ * way at both breakpoints, which is all geometry verification needs of it.
+ * ========================================================================================== */
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/Archivo-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/event/Archivo-normal-900.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/BodoniModa-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/event/BodoniModa-normal-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/CormorantGaramond-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/CormorantGaramond-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/event/CormorantGaramond-normal-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/DMSans-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/event/DMSans-normal-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "DM Serif Display";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/DMSerifDisplay-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/EBGaramond-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/EBGaramond-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/Figtree-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/Figtree-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/Fraunces-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/event/Fraunces-normal-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/InstrumentSerif-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/Inter-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/event/Inter-normal-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/Inter-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/InterTight-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/event/InterTight-normal-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Karla";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/Karla-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Karla";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/Karla-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Libre Baskerville";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/LibreBaskerville-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Libre Baskerville";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/event/LibreBaskerville-normal-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Libre Caslon Text";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/LibreCaslonText-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Libre Caslon Text";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/event/LibreCaslonText-normal-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/Manrope-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/Manrope-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/Newsreader-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/Newsreader-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/PlayfairDisplay-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/event/PlayfairDisplay-normal-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/event/PlayfairDisplay-normal-900.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/SourceSans3-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/event/SourceSans3-normal-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/SpaceGrotesk-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/event/SpaceGrotesk-normal-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Work Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/event/WorkSans-normal-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Work Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/event/WorkSans-normal-500.woff2") format("woff2");
+}
 
 /* ============================================================================================
  * 1. Root token layer.
