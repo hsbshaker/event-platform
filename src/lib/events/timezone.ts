@@ -36,58 +36,169 @@ type NameTable = Record<string, LookupEntry>;
 /** A table of short codes, matched case-sensitively as all-caps whole words. */
 type AbbrevTable = Record<string, LookupEntry>;
 
-// Unambiguous US cities that disambiguate a state whose IANA zone is otherwise split.
-const US_CITY_NAMES: NameTable = {
-  phoenix: { zone: "America/Phoenix", confidence: "high", label: "Phoenix" },
-  indianapolis: { zone: "America/Indiana/Indianapolis", confidence: "high", label: "Indianapolis" },
-  "el paso": { zone: "America/Denver", confidence: "high", label: "El Paso" },
+/** Every key a city may name as its owning region; checked at compile time. */
+type RegionKey = keyof typeof US_STATE_NAMES | keyof typeof CA_PROVINCE_NAMES;
+
+/**
+ * A city entry additionally names the region it sits in, by that region's own key in
+ * `US_STATE_NAMES` / `CA_PROVINCE_NAMES`. That is what separates the two things a city
+ * name can mean when a region is named alongside it: an exception *inside* the matched
+ * region (El Paso is Mountain inside Central Texas; Pensacola is Central inside Eastern
+ * Florida) versus a same-named city in some *other* region (Oregon's Portland turning up
+ * in "Portland, ME").
+ */
+interface CityEntry extends LookupEntry {
+  region: RegionKey;
+}
+/** A table of cities, each tied to the region it belongs to. */
+type CityTable = Record<string, CityEntry>;
+
+// Cities that resolve a split-timezone region, or that are an exception to their own
+// region's zone. Every entry names its owning region.
+const CITY_NAMES = {
+  phoenix: { zone: "America/Phoenix", confidence: "high", label: "Phoenix", region: "arizona" },
+  indianapolis: {
+    zone: "America/Indiana/Indianapolis",
+    confidence: "high",
+    label: "Indianapolis",
+    region: "indiana",
+  },
+  "el paso": { zone: "America/Denver", confidence: "high", label: "El Paso", region: "texas" },
   // Florida: Eastern statewide except the western panhandle (Central).
-  miami: { zone: "America/New_York", confidence: "high", label: "Miami" },
-  orlando: { zone: "America/New_York", confidence: "high", label: "Orlando" },
-  tampa: { zone: "America/New_York", confidence: "high", label: "Tampa" },
-  jacksonville: { zone: "America/New_York", confidence: "high", label: "Jacksonville" },
-  pensacola: { zone: "America/Chicago", confidence: "high", label: "Pensacola" },
+  miami: { zone: "America/New_York", confidence: "high", label: "Miami", region: "florida" },
+  orlando: { zone: "America/New_York", confidence: "high", label: "Orlando", region: "florida" },
+  tampa: { zone: "America/New_York", confidence: "high", label: "Tampa", region: "florida" },
+  jacksonville: {
+    zone: "America/New_York",
+    confidence: "high",
+    label: "Jacksonville",
+    region: "florida",
+  },
+  pensacola: { zone: "America/Chicago", confidence: "high", label: "Pensacola", region: "florida" },
   // Tennessee: Central in the west, Eastern for the rest.
-  memphis: { zone: "America/Chicago", confidence: "high", label: "Memphis" },
-  nashville: { zone: "America/Chicago", confidence: "high", label: "Nashville" },
-  knoxville: { zone: "America/New_York", confidence: "high", label: "Knoxville" },
-  chattanooga: { zone: "America/New_York", confidence: "high", label: "Chattanooga" },
+  memphis: { zone: "America/Chicago", confidence: "high", label: "Memphis", region: "tennessee" },
+  nashville: {
+    zone: "America/Chicago",
+    confidence: "high",
+    label: "Nashville",
+    region: "tennessee",
+  },
+  knoxville: {
+    zone: "America/New_York",
+    confidence: "high",
+    label: "Knoxville",
+    region: "tennessee",
+  },
+  chattanooga: {
+    zone: "America/New_York",
+    confidence: "high",
+    label: "Chattanooga",
+    region: "tennessee",
+  },
   // Kentucky: split roughly along the middle.
-  louisville: { zone: "America/New_York", confidence: "high", label: "Louisville" },
-  lexington: { zone: "America/New_York", confidence: "high", label: "Lexington" },
-  "bowling green": { zone: "America/Chicago", confidence: "high", label: "Bowling Green" },
-  paducah: { zone: "America/Chicago", confidence: "high", label: "Paducah" },
+  louisville: {
+    zone: "America/New_York",
+    confidence: "high",
+    label: "Louisville",
+    region: "kentucky",
+  },
+  lexington: {
+    zone: "America/New_York",
+    confidence: "high",
+    label: "Lexington",
+    region: "kentucky",
+  },
+  "bowling green": {
+    zone: "America/Chicago",
+    confidence: "high",
+    label: "Bowling Green",
+    region: "kentucky",
+  },
+  paducah: { zone: "America/Chicago", confidence: "high", label: "Paducah", region: "kentucky" },
   // Kansas: mostly Central, a handful of far-western counties Mountain.
-  wichita: { zone: "America/Chicago", confidence: "high", label: "Wichita" },
-  topeka: { zone: "America/Chicago", confidence: "high", label: "Topeka" },
-  "kansas city": { zone: "America/Chicago", confidence: "high", label: "Kansas City" },
-  goodland: { zone: "America/Denver", confidence: "high", label: "Goodland" },
+  wichita: { zone: "America/Chicago", confidence: "high", label: "Wichita", region: "kansas" },
+  topeka: { zone: "America/Chicago", confidence: "high", label: "Topeka", region: "kansas" },
+  "kansas city": {
+    zone: "America/Chicago",
+    confidence: "high",
+    label: "Kansas City",
+    region: "kansas",
+  },
+  goodland: { zone: "America/Denver", confidence: "high", label: "Goodland", region: "kansas" },
   // Nebraska: mostly Central, western panhandle Mountain.
-  omaha: { zone: "America/Chicago", confidence: "high", label: "Omaha" },
-  lincoln: { zone: "America/Chicago", confidence: "high", label: "Lincoln" },
-  scottsbluff: { zone: "America/Denver", confidence: "high", label: "Scottsbluff" },
+  omaha: { zone: "America/Chicago", confidence: "high", label: "Omaha", region: "nebraska" },
+  lincoln: { zone: "America/Chicago", confidence: "high", label: "Lincoln", region: "nebraska" },
+  scottsbluff: {
+    zone: "America/Denver",
+    confidence: "high",
+    label: "Scottsbluff",
+    region: "nebraska",
+  },
   // North Dakota: mostly Central, a southwestern strip Mountain.
-  fargo: { zone: "America/Chicago", confidence: "high", label: "Fargo" },
-  bismarck: { zone: "America/North_Dakota/Center", confidence: "high", label: "Bismarck" },
+  fargo: { zone: "America/Chicago", confidence: "high", label: "Fargo", region: "north dakota" },
+  bismarck: {
+    zone: "America/North_Dakota/Center",
+    confidence: "high",
+    label: "Bismarck",
+    region: "north dakota",
+  },
   // South Dakota: split roughly along the Missouri river.
-  "sioux falls": { zone: "America/Chicago", confidence: "high", label: "Sioux Falls" },
-  "rapid city": { zone: "America/Denver", confidence: "high", label: "Rapid City" },
+  "sioux falls": {
+    zone: "America/Chicago",
+    confidence: "high",
+    label: "Sioux Falls",
+    region: "south dakota",
+  },
+  "rapid city": {
+    zone: "America/Denver",
+    confidence: "high",
+    label: "Rapid City",
+    region: "south dakota",
+  },
   // Michigan: Eastern statewide except a few far-western Upper Peninsula counties.
-  detroit: { zone: "America/Detroit", confidence: "high", label: "Detroit" },
-  "grand rapids": { zone: "America/Detroit", confidence: "high", label: "Grand Rapids" },
-  ironwood: { zone: "America/Menominee", confidence: "high", label: "Ironwood" },
+  detroit: { zone: "America/Detroit", confidence: "high", label: "Detroit", region: "michigan" },
+  "grand rapids": {
+    zone: "America/Detroit",
+    confidence: "high",
+    label: "Grand Rapids",
+    region: "michigan",
+  },
+  ironwood: {
+    zone: "America/Menominee",
+    confidence: "high",
+    label: "Ironwood",
+    region: "michigan",
+  },
   // Oregon: Pacific statewide except a small eastern (Malheur County) Mountain sliver.
-  portland: { zone: "America/Los_Angeles", confidence: "high", label: "Portland" },
+  portland: {
+    zone: "America/Los_Angeles",
+    confidence: "high",
+    label: "Portland",
+    region: "oregon",
+  },
   // "Ontario" alone is ambiguous (a CA/OR city and a Canadian province with a split
   // zone), so it is intentionally omitted rather than guessed.
   // Idaho: Mountain in the south, Pacific in the north panhandle.
-  boise: { zone: "America/Boise", confidence: "high", label: "Boise" },
-  "coeur d'alene": { zone: "America/Los_Angeles", confidence: "high", label: "Coeur d'Alene" },
-  "coeur dalene": { zone: "America/Los_Angeles", confidence: "high", label: "Coeur d'Alene" },
-};
+  boise: { zone: "America/Boise", confidence: "high", label: "Boise", region: "idaho" },
+  "coeur d'alene": {
+    zone: "America/Los_Angeles",
+    confidence: "high",
+    label: "Coeur d'Alene",
+    region: "idaho",
+  },
+  "coeur dalene": {
+    zone: "America/Los_Angeles",
+    confidence: "high",
+    label: "Coeur d'Alene",
+    region: "idaho",
+  },
+  // Ontario spans Eastern and Central, so the province alone stays ambiguous; Toronto
+  // resolves it the same way Pensacola resolves Florida.
+  toronto: { zone: "America/Toronto", confidence: "high", label: "Toronto", region: "ontario" },
+} satisfies CityTable;
 
 // Unambiguous US states/territories: a single IANA zone applies statewide (name form).
-const US_STATE_NAMES: NameTable = {
+const US_STATE_NAMES = {
   alabama: { zone: "America/Chicago", confidence: "high", label: "Alabama" },
   alaska: { zone: "America/Anchorage", confidence: "high", label: "Alaska" },
   arizona: { zone: "America/Phoenix", confidence: "high", label: "Arizona" },
@@ -97,6 +208,10 @@ const US_STATE_NAMES: NameTable = {
   connecticut: { zone: "America/New_York", confidence: "high", label: "Connecticut" },
   delaware: { zone: "America/New_York", confidence: "high", label: "Delaware" },
   "washington dc": { zone: "America/New_York", confidence: "high", label: "Washington, DC" },
+  // `normalize` turns the periods in "Washington, D.C." into spaces, so the punctuated
+  // form needs its own alias key; without it the longest-key rule would fall back to the
+  // `washington` state entry and return Pacific time for the District of Columbia.
+  "washington d c": { zone: "America/New_York", confidence: "high", label: "Washington, DC" },
   florida: { zone: null, confidence: "low", label: "Florida" },
   georgia: { zone: "America/New_York", confidence: "high", label: "Georgia" },
   hawaii: { zone: "Pacific/Honolulu", confidence: "high", label: "Hawaii" },
@@ -139,7 +254,7 @@ const US_STATE_NAMES: NameTable = {
   "west virginia": { zone: "America/New_York", confidence: "high", label: "West Virginia" },
   wisconsin: { zone: "America/Chicago", confidence: "high", label: "Wisconsin" },
   wyoming: { zone: "America/Denver", confidence: "high", label: "Wyoming" },
-};
+} satisfies NameTable;
 
 // US state/territory two-letter postal codes, matched case-sensitively (all caps).
 const US_STATE_ABBREVS: AbbrevTable = {
@@ -198,7 +313,7 @@ const US_STATE_ABBREVS: AbbrevTable = {
 
 // Canadian provinces/territories (name form). Most are unambiguous; a few straddle a
 // border (Ontario spans Eastern/Central).
-const CA_PROVINCE_NAMES: NameTable = {
+const CA_PROVINCE_NAMES = {
   alberta: { zone: "America/Edmonton", confidence: "high", label: "Alberta" },
   "british columbia": { zone: "America/Vancouver", confidence: "high", label: "British Columbia" },
   manitoba: { zone: "America/Winnipeg", confidence: "high", label: "Manitoba" },
@@ -229,7 +344,7 @@ const CA_PROVINCE_NAMES: NameTable = {
   },
   nunavut: { zone: null, confidence: "low", label: "Nunavut" },
   yukon: { zone: "America/Whitehorse", confidence: "high", label: "Yukon" },
-};
+} satisfies NameTable;
 
 const CA_PROVINCE_ABBREVS: AbbrevTable = {
   AB: CA_PROVINCE_NAMES.alberta,
@@ -238,6 +353,7 @@ const CA_PROVINCE_ABBREVS: AbbrevTable = {
   NB: CA_PROVINCE_NAMES["new brunswick"],
   NL: CA_PROVINCE_NAMES.newfoundland,
   NS: CA_PROVINCE_NAMES["nova scotia"],
+  ON: CA_PROVINCE_NAMES.ontario,
   PE: CA_PROVINCE_NAMES["prince edward island"],
   QC: CA_PROVINCE_NAMES.quebec,
   SK: CA_PROVINCE_NAMES.saskatchewan,
@@ -303,7 +419,8 @@ const WORLD_NAMES: NameTable = {
   australia: { zone: null, confidence: "low", label: "Australia" },
   auckland: { zone: "Pacific/Auckland", confidence: "high", label: "Auckland" },
   "new zealand": { zone: "Pacific/Auckland", confidence: "high", label: "New Zealand" },
-  toronto: { zone: "America/Toronto", confidence: "high", label: "Toronto" },
+  // Same entry as the city table uses, so the two can never drift apart.
+  toronto: CITY_NAMES.toronto,
   vancouver: { zone: "America/Vancouver", confidence: "high", label: "Vancouver" },
   montreal: { zone: "America/Toronto", confidence: "high", label: "Montreal" },
   canada: { zone: null, confidence: "low", label: "Canada" },
@@ -330,20 +447,36 @@ const WORLD_ABBREVS: AbbrevTable = {
   UAE: WORLD_NAMES["united arab emirates"],
 };
 
-interface Tier {
-  names: NameTable;
-  abbrevs?: AbbrevTable;
+interface Tier<E extends LookupEntry = LookupEntry> {
+  names: Record<string, E>;
+  abbrevs?: Record<string, E>;
 }
 
-// Order matters: cities (most specific, disambiguating) before states/provinces
-// before broad countries — a match in an earlier tier wins outright, and within a
-// tier the longest matching key wins.
-const TIERS: Tier[] = [
-  { names: US_CITY_NAMES },
+// Region tiers, most specific first: US states/territories, then Canadian
+// provinces/territories, then broad countries and well-known world cities. The first
+// tier with a match wins outright, and within a tier the longest matching key wins.
+const REGION_TIERS: Tier[] = [
   { names: US_STATE_NAMES, abbrevs: US_STATE_ABBREVS },
   { names: CA_PROVINCE_NAMES, abbrevs: CA_PROVINCE_ABBREVS },
   { names: WORLD_NAMES, abbrevs: WORLD_ABBREVS },
 ];
+
+// The city table is not a tier of its own: it refines a region rather than outranking
+// it. A city name alone ("Portland", "Lincoln", "Lexington") is ambiguous across states,
+// so it decides the zone only when no region matched, or when it sits inside the region
+// that did match and is therefore that region's own exception.
+const CITY_TIER: Tier<CityEntry> = { names: CITY_NAMES };
+
+/**
+ * The entry a city's `region` key refers to, by identity — abbreviation tables alias the
+ * very same objects as their name tables, so a region matched as "TX" and one matched as
+ * "Texas" compare equal here.
+ */
+function owningRegionEntry(city: CityEntry): LookupEntry {
+  const states: NameTable = US_STATE_NAMES;
+  const provinces: NameTable = CA_PROVINCE_NAMES;
+  return states[city.region] ?? provinces[city.region];
+}
 
 function normalize(text: string): string {
   return text
@@ -371,13 +504,17 @@ function containsAbbrev(rawText: string, code: string): boolean {
   return pattern.test(` ${rawText} `);
 }
 
-interface Candidate {
-  entry: LookupEntry;
+interface Candidate<E extends LookupEntry = LookupEntry> {
+  entry: E;
   weight: number;
 }
 
-function evaluateTier(rawText: string, normalizedText: string, tier: Tier): Candidate | null {
-  let best: Candidate | null = null;
+function evaluateTier<E extends LookupEntry>(
+  rawText: string,
+  normalizedText: string,
+  tier: Tier<E>,
+): Candidate<E> | null {
+  let best: Candidate<E> | null = null;
   for (const [key, entry] of Object.entries(tier.names)) {
     if (!containsWord(normalizedText, key)) continue;
     if (!best || key.length > best.weight) {
@@ -399,9 +536,21 @@ function evaluateTier(rawText: string, normalizedText: string, tier: Tier): Cand
 
 /**
  * spec.md §7.4 step 2: infer a candidate IANA timezone + confidence from venue text.
- * Looks up cities first (they disambiguate split-timezone regions), then
- * states/provinces, then broader countries/well-known cities. Returns `none` when
- * nothing in the table matches.
+ *
+ * Regions are resolved first, because the surrounding state/province/country is what
+ * says which "Portland" or "Lincoln" the text means. A city then decides only when it
+ * is the region's own business to be decided by it:
+ *
+ * 1. the matched city sits inside the matched region (`region` key identical) — it is
+ *    that region's exception or split-resolver, so it wins outright, whatever the
+ *    region's own zone says: El Paso in Texas, Pensacola in Florida, Toronto in Ontario;
+ * 2. the matched city belongs to some other region — a name collision, so the region
+ *    wins and the city is discarded: "Portland, ME", "Lincoln Center, New York, NY";
+ * 3. no city matched — the region wins, which for an ambiguous region (`zone: null`)
+ *    means `low` confidence with no zone;
+ * 4. no region matched — a city match decides on its own.
+ *
+ * Returns `none` when nothing in the tables matches.
  */
 export function inferTimezoneFromVenue(text: string | null | undefined): TimezoneInference {
   if (!text) {
@@ -412,10 +561,20 @@ export function inferTimezoneFromVenue(text: string | null | undefined): Timezon
     return { timezone: null, confidence: "none", matched: null };
   }
 
-  let best: Candidate | null = null;
-  for (const tier of TIERS) {
-    best = evaluateTier(text, normalized, tier);
-    if (best) break;
+  let region: Candidate | null = null;
+  for (const tier of REGION_TIERS) {
+    region = evaluateTier(text, normalized, tier);
+    if (region) break;
+  }
+  const city = evaluateTier(text, normalized, CITY_TIER);
+
+  let best: Candidate | null;
+  if (!region) {
+    best = city;
+  } else if (city && owningRegionEntry(city.entry) === region.entry) {
+    best = city;
+  } else {
+    best = region;
   }
 
   if (!best) {
