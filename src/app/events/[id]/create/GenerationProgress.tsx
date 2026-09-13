@@ -3,55 +3,59 @@
 import { useEffect, useState } from "react";
 
 /**
- * Honest, non-fake generation progress (spec.md §7.10, docs/design-system.md §12.1/§12.3,
- * §26). Phase 2 has no real generation signal to poll yet, so this shows only what is true —
- * that generation was requested and roughly how long ago — and never a percentage, a step
- * count, or invented activity. Phases 4-5 replace this with real Event Identity/concept
- * progress.
+ * Honest, non-fake generation status (spec.md §7.10, docs/design-system.md §12.1/§12.3, §26).
+ * Phase 2 has no real generation signal to poll — `getAiProvider()` is intentionally
+ * unimplemented until Phase 4 — so this never claims anything is currently running, never
+ * shows a percentage or step count, and never invents activity from a client timer. It states
+ * only what is true (the event was created and its design has not been generated yet) and,
+ * once `generationRequestedAt` is older than `STALE_AFTER_MS`, says plainly that the design
+ * has not started rather than continuing to imply progress — satisfying §7.10's requirement to
+ * measure reality and its ban on unbounded waits (§32 guardrail #45).
  */
 
-const PHASE_ONE = "Reading your idea";
-const PHASE_TWO = "Creating your event's direction";
-const PHASE_TWO_AFTER_SECONDS = 8;
+const STALE_AFTER_MS = 10 * 60 * 1000;
 
 export function GenerationProgress({
   generationRequestedAt,
 }: {
   generationRequestedAt: string | null;
 }) {
-  const [label, setLabel] = useState(PHASE_ONE);
+  const [isStale, setIsStale] = useState(() => isOlderThan(generationRequestedAt, STALE_AFTER_MS));
 
   useEffect(() => {
     if (!generationRequestedAt) return;
-    const startedAt = new Date(generationRequestedAt).getTime();
-    function tick() {
-      const elapsedSeconds = (Date.now() - startedAt) / 1000;
-      setLabel(elapsedSeconds >= PHASE_TWO_AFTER_SECONDS ? PHASE_TWO : PHASE_ONE);
+    const requestedAtMs = new Date(generationRequestedAt).getTime();
+    function check() {
+      setIsStale(Date.now() - requestedAtMs >= STALE_AFTER_MS);
     }
-    tick();
-    const interval = setInterval(tick, 2000);
+    check();
+    const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
   }, [generationRequestedAt]);
 
   return (
     <section
       aria-labelledby="generation-progress-heading"
-      className="flex flex-col gap-4 rounded-2xl border border-app-border bg-app-surface p-5 shadow-soft"
+      className="flex flex-col gap-2 rounded-2xl border border-app-border bg-app-surface p-5 shadow-soft"
     >
       <h2 id="generation-progress-heading" className="text-heading-md text-app-text">
-        We&apos;re already working on it
+        Your event has been created
       </h2>
-      <p aria-live="polite" className="text-body-md text-app-text-secondary">
-        {label}
+      <p className="text-body-md text-app-text-secondary">
+        Its design hasn&apos;t been generated yet.
       </p>
-      <div className="flex flex-col gap-2" aria-hidden="true">
-        <div className="h-3 w-4/5 rounded-pill bg-app-surface-muted motion-safe:animate-pulse" />
-        <div className="h-3 w-3/5 rounded-pill bg-app-surface-muted motion-safe:animate-pulse" />
-        <div className="h-3 w-2/3 rounded-pill bg-app-surface-muted motion-safe:animate-pulse" />
-      </div>
       <p className="text-body-sm text-app-text-tertiary">
-        Your first design directions will appear here as soon as they&apos;re ready.
+        {isStale
+          ? "Design generation hasn't started for this event."
+          : "In the meantime, filling in the details below helps us get it right."}
       </p>
     </section>
   );
+}
+
+function isOlderThan(iso: string | null, ms: number): boolean {
+  if (!iso) return false;
+  const time = new Date(iso).getTime();
+  if (Number.isNaN(time)) return false;
+  return Date.now() - time >= ms;
 }

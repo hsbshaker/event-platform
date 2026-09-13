@@ -9,6 +9,7 @@ import {
 import { Field } from "@/components/app/Field";
 import { Input } from "@/components/app/Input";
 import { InlineStatus } from "@/components/app/InlineStatus";
+import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
 
 /**
  * The missing-details autosave form (spec.md §7.3, docs/design-system.md §3.7/§11,
@@ -67,7 +68,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
   const [address, setAddress] = useState(event.address ?? "");
   const [hosts, setHosts] = useState(event.hosts ?? "");
   const [babyName, setBabyName] = useState(event.babyName ?? "");
-  const [visibility, setVisibility] = useState<"public" | "private">(event.visibility ?? "public");
+  const [visibility, setVisibility] = useState<"public" | "private" | null>(event.visibility);
   const [rsvpDeadlineIso, setRsvpDeadlineIso] = useState(event.rsvpDeadline);
   const [rsvpDeadlineEdited, setRsvpDeadlineEdited] = useState(event.rsvpDeadlineEdited);
   const [timezone, setTimezone] = useState(event.timezone ?? "UTC");
@@ -81,6 +82,17 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
     return () => {
       Object.values(timers).forEach(clearTimeout);
     };
+  }, []);
+
+  // Reaching this page means the draft was claimed into this event, so the landing composer's
+  // localStorage safety-net copy of the prompt is now stale — clear it here so a host who
+  // navigates back to `/` doesn't see the old prompt restored as if it were still a live draft.
+  useEffect(() => {
+    try {
+      window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } catch {
+      // Best-effort only.
+    }
   }, []);
 
   // §7.4: the browser timezone is sent once, only as a fallback for when venue text alone
@@ -303,7 +315,13 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
 
         {visibleMissing.has("visibility") && (
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-label-md text-app-text">Who can see this site?</legend>
+            <legend className="text-label-md text-app-text">
+              Who can see this site?
+              <span aria-hidden="true" className="text-app-danger">
+                {" "}
+                *
+              </span>
+            </legend>
             <div className="flex flex-wrap gap-4">
               {(["public", "private"] as const).map((option) => (
                 <label
@@ -336,7 +354,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
             id="rsvpDeadline"
             label="RSVP deadline"
             hint={
-              !rsvpDeadlineEdited ? "We picked this for you — adjust it if you'd like." : undefined
+              rsvpLocalValue && !rsvpDeadlineEdited
+                ? "We picked this for you — adjust it if you'd like."
+                : undefined
             }
             error={fieldErrors.rsvpDeadline}
           >

@@ -14,10 +14,13 @@ import { PromptComposer } from "./PromptComposer";
  * The composer is the hero: no template gallery, no signup step, no theme picker. Typing
  * mirrors into localStorage as a safety net (spec.md §7.2 step 3 / client state) and the
  * prompt autosaves to the server on a debounce and on blur so nothing depends on the submit
- * click landing.
+ * click landing. The mirror is preserved through `?restore=expired|taken` (the local copy
+ * is the only surviving copy of the host's text) and is cleared only once the draft has
+ * been claimed into an event, from `DetailsForm` on the create page.
  */
 
-const LOCAL_STORAGE_KEY = "event-platform:composer-prompt";
+/** Exported so the create-event page can clear this mirror once a draft is claimed. */
+export const LOCAL_STORAGE_KEY = "event-platform:composer-prompt";
 const AUTOSAVE_DEBOUNCE_MS = 800;
 const MAX_FILES = 6;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
