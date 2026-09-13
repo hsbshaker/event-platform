@@ -226,7 +226,7 @@ The renderer has one fixed component per primitive and per semantic node and a s
 
 # 7. The library
 
-The 27 Phase A.1 hero silhouettes and 13 section recipes, rewritten as `CompositionTree` fixtures (`proof-b/library.js`). Jobs: expressiveness regression (every silhouette must validate and render through the primitive renderer), rotated few-shot examples, repair macros, the fallback generator (the Gate 2 seeded selector), and signature calibration (mirror pairs collide, distinct recipes do not). The library is not a menu and the renderer has no code per recipe.
+The 26 Phase A.1 hero silhouettes and 13 section recipes, rewritten as `CompositionTree` fixtures (`proof-b/library.js`). Jobs: expressiveness regression (every silhouette must validate and render through the primitive renderer), rotated few-shot examples, repair macros, the fallback generator (the Gate 2 seeded selector), and signature calibration (mirror pairs collide, distinct recipes do not). The library is not a menu and the renderer has no code per recipe.
 
 ---
 
@@ -246,7 +246,7 @@ The proof harnesses are the regression suite. A change to the language, validato
 
 1. **Unit tests** (`proof-b/test.js`): library validity and canonicalization, every repair rule with a fixture, schema-invalid rejection, attractive-token detectors, planner distinctness, signature calibration.
 2. **Adversarial set** (`proof-b/adv-run.js`): every structural fixture repairs to zero remaining violations and renders with zero overflow at both widths; every schema-invalid payload is rejected with a rule and path.
-3. **Expressiveness**: all 27 silhouettes and 13 section recipes validate and render (`library-heroes-*.png`).
+3. **Expressiveness**: all 26 silhouettes and 13 section recipes validate and render (`library-heroes-*.png`).
 4. **Model confirmation run** (`proof-b/run-model.js --batches`, `render-set.js`, `evaluate.js`): sixty trees in sibling batches plus a reduced-capabilities batch, no curation, reported separately as schema validity, deterministic repairs, geometry, novelty and distinct skeletons, attractive-token distribution, collision rate, and design-quality review. Thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes; reviewers rate ≥ 70% of model screens designed.
 
 Palette-compiler unit tests, contrast rules and the imagery boundaries of Revision 1 remain in force.

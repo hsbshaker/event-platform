@@ -444,5 +444,5 @@ Regression gate for any change to the composition language, validator, compiler,
 
 1. `proof-b/test.js` (unit: library validity, every repair rule, schema rejection, token detectors, planner distinctness, signature calibration);
 2. `proof-b/adv-run.js` (every adversarial fixture repairs and renders with zero overflow);
-3. library expressiveness render (all 27 silhouettes, 13 section recipes);
+3. library expressiveness render (all 26 silhouettes, 13 section recipes);
 4. a sibling-batch confirmation run evaluated against the numeric thresholds, reported as separate schema, repair, geometry, invention, token, collision and review metrics.

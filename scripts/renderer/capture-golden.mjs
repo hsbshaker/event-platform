@@ -129,7 +129,19 @@ const structural = A.structural.map((f) => {
 });
 index.files.push(write("adversarial-structural.json", structural));
 
-// 4. The 72 frozen confirmation trees, compiled end to end short of geometry verification.
+// 4. The frozen confirmation set.
+//
+// Phase B made 74 composition calls but the confirmation set is 72 trees: 60 full-capability
+// and 12 reduced. Two full-capability ids hit a selector collision and were re-prompted, so
+// each has two raw responses. The filenames invite the wrong reading — `NN-collision.txt` is
+// the ACCEPTED re-prompt response and `NN-1.txt` is the rejected first attempt for those two
+// ids — so acceptance is decided by evidence instead: the accepted tree is the one whose
+// canonical hash matches the hash recorded in `results-verified.json`. The rejected attempts
+// are kept separately; they are evidence that the collision path fired, not confirmation
+// trees, and the Phase 3 replay gate is 72 of 72.
+const counts = { acceptedTrees: 0, rejectedAttempts: 0, modelCalls: 0 };
+const rejected = {};
+
 for (const [set, caps] of [
   ["final", FULL_CAPS],
   ["final-reduced", REDUCED_CAPS],
@@ -139,35 +151,62 @@ for (const [set, caps] of [
     readFileSync(path.join(PROOF, "model", set, "results-verified.json"), "utf8"),
   );
   const byId = new Map(results.map((r) => [String(r.id), r]));
-  const compiled = {};
+  const accepted = {};
+
   for (const file of readdirSync(dir).sort()) {
-    const id = file.replace(/\.txt$/, "");
+    const stem = file.replace(/\.txt$/, "");
+    const id = stem.split("-")[0];
+    const recorded = byId.get(id) ?? byId.get(stem);
     const source = readFileSync(path.join(dir, file), "utf8");
     const match = source.match(/\{[\s\S]*\}/);
-    if (!match) continue;
-    let raw;
-    try {
-      raw = JSON.parse(match[0]);
-    } catch {
-      compiled[id] = { unparseable: true };
+    counts.modelCalls += 1;
+
+    if (!match || !recorded?.spec?.designIntent) {
+      rejected[`${set}:${stem}`] = { reason: match ? "no recorded designIntent" : "unparseable" };
+      counts.rejectedAttempts += 1;
       continue;
     }
-    const recorded = byId.get(id) ?? byId.get(id.split("-")[0]);
-    if (!recorded?.spec?.designIntent) {
-      compiled[id] = { skipped: "no recorded designIntent" };
-      continue;
-    }
-    compiled[id] = compile({
-      raw,
+
+    const compiled = compile({
+      raw: JSON.parse(match[0]),
       caps,
       designIntent: recorded.spec.designIntent,
       pageSystem: recorded.spec.pageSystem,
       seed: recorded.spec.seed ?? 1,
       id,
     });
+
+    // The recorded hash is the arbiter of which attempt became the confirmation tree.
+    if (compiled.spec?.compositionHash === recorded.spec.compositionHash) {
+      accepted[id] = compiled;
+      counts.acceptedTrees += 1;
+    } else {
+      rejected[`${set}:${stem}`] = {
+        reason: "superseded by a re-prompt after a selector collision",
+        id,
+        attemptHash: compiled.spec?.compositionHash ?? null,
+        acceptedHash: recorded.spec.compositionHash,
+        schemaValid: compiled.schemaValid,
+        repairValid: compiled.repairValid,
+      };
+      counts.rejectedAttempts += 1;
+    }
   }
-  index.files.push(write(`frozen-${set}.json`, compiled));
+
+  const expected = set === "final" ? 60 : 12;
+  if (Object.keys(accepted).length !== expected) {
+    throw new Error(
+      `${set}: expected ${expected} accepted trees, matched ${Object.keys(accepted).length}`,
+    );
+  }
+  index.files.push(write(`frozen-${set}.json`, accepted));
 }
+
+if (counts.acceptedTrees !== 72) {
+  throw new Error(`expected 72 accepted confirmation trees, got ${counts.acceptedTrees}`);
+}
+index.counts = counts;
+index.files.push(write("frozen-rejected-attempts.json", rejected));
 
 index.files = index.files.map((f) => path.relative(ROOT, f));
 write("index.json", index);
