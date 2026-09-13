@@ -125,12 +125,26 @@ describe("inferTimezoneFromVenue", () => {
     });
   });
 
-  it("keeps the state's zone when a city in another state happens to agree with it", () => {
-    // Massachusetts's Lexington; Kentucky's Lexington is Eastern too, so the zone is the
-    // same either way and the more specific city label is reported.
-    const result = inferTimezoneFromVenue("Lexington, MA");
-    expect(result.timezone).toBe("America/New_York");
-    expect(result.confidence).toBe("high");
+  it("reports the named state when a colliding city in another state agrees on the zone", () => {
+    // Massachusetts's Lexington, not Kentucky's. Both are Eastern, so only the reported
+    // label tells the two apart.
+    expect(inferTimezoneFromVenue("Lexington, MA")).toEqual({
+      timezone: "America/New_York",
+      confidence: "high",
+      matched: "Massachusetts",
+    });
+  });
+
+  it("lets a city inside the named region override that region's own zone", () => {
+    // El Paso is Mountain inside otherwise-Central Texas: an in-state exception, not a
+    // cross-state collision, so the city wins however the state is written (or omitted).
+    for (const venue of ["El Paso, TX", "El Paso, Texas", "El Paso"]) {
+      expect(inferTimezoneFromVenue(venue)).toEqual({
+        timezone: "America/Denver",
+        confidence: "high",
+        matched: "El Paso",
+      });
+    }
   });
 
   it("resolves Washington, D.C. in each punctuation form without colliding with the state", () => {
@@ -157,11 +171,14 @@ describe("inferTimezoneFromVenue", () => {
   it("uses the city table to disambiguate a split-timezone state", () => {
     const cases: [string, string, string][] = [
       ["Portland, OR", "America/Los_Angeles", "Portland"],
+      ["Portland, Oregon", "America/Los_Angeles", "Portland"],
       ["Miami, FL", "America/New_York", "Miami"],
       ["Pensacola, FL", "America/Chicago", "Pensacola"],
       ["Memphis, TN", "America/Chicago", "Memphis"],
       ["Knoxville, TN", "America/New_York", "Knoxville"],
       ["Rapid City, SD", "America/Denver", "Rapid City"],
+      // Kansas City straddles the KS/MO line; both sides are Central.
+      ["Kansas City, MO", "America/Chicago", "Kansas City"],
     ];
     for (const [venue, timezone, matched] of cases) {
       expect(inferTimezoneFromVenue(venue)).toEqual({ timezone, confidence: "high", matched });
@@ -191,6 +208,22 @@ describe("inferTimezoneFromVenue", () => {
       timezone: null,
       confidence: "low",
       matched: "Nebraska",
+    });
+  });
+
+  it("resolves Toronto inside otherwise-ambiguous Ontario", () => {
+    for (const venue of ["Toronto, Ontario", "Toronto, ON", "Toronto"]) {
+      expect(inferTimezoneFromVenue(venue)).toEqual({
+        timezone: "America/Toronto",
+        confidence: "high",
+        matched: "Toronto",
+      });
+    }
+    // The province on its own still has no single zone.
+    expect(inferTimezoneFromVenue("A cabin in Ontario, Canada")).toEqual({
+      timezone: null,
+      confidence: "low",
+      matched: "Ontario",
     });
   });
 
