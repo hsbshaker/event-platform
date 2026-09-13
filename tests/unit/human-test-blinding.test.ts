@@ -147,11 +147,14 @@ describe("nothing at the public URL reveals the hidden classification", () => {
     ]);
   });
 
-  it("talks to exactly one endpoint, which never returns a classification", () => {
+  it("talks to exactly two endpoints, neither of which returns a classification", () => {
+    // One to obtain the reviewer capability, one to submit. Both are ours, both are named by a
+    // constant rather than built at the call site, and neither has any reason to know the key.
     const html = readFileSync(path.join(PUBLIC_DIR, "review.html"), "utf8");
     const endpoints = [...html.matchAll(/fetch\(\s*([A-Za-z_$][\w$]*|"[^"]*")/g)].map((m) => m[1]!);
-    expect(endpoints).toEqual(["ENDPOINT"]);
+    expect(new Set(endpoints)).toEqual(new Set(["ENDPOINT", "SESSION_ENDPOINT"]));
     expect(html).toContain('const ENDPOINT = "/api/human-test-1/submit";');
+    expect(html).toContain('const SESSION_ENDPOINT = "/api/human-test-1/session";');
   });
 
   /**
@@ -164,7 +167,9 @@ describe("nothing at the public URL reveals the hidden classification", () => {
    */
   it.each([
     "src/app/api/human-test-1/submit/route.ts",
+    "src/app/api/human-test-1/session/route.ts",
     "src/lib/human-test/submission.ts",
+    "src/lib/human-test/capability.ts",
     "src/lib/human-test/store.ts",
   ])("%s never loads the key, the manifest, or any file", (file) => {
     const source = readFileSync(path.join(ROOT, file), "utf8");

@@ -79,6 +79,7 @@
 <script>
   const N = 40;
   const ENDPOINT = "/api/human-test-1/submit";
+  const SESSION_ENDPOINT = "/api/human-test-1/session";
   const ratings = document.getElementById("ratings");
   for (let i = 1; i <= N; i += 1) {
     const id = String(i).padStart(2, "0");
@@ -104,22 +105,34 @@
     return { reviewer, ok: true, protocol: "proof-b/human-test-form.md", result: { groups, ratings: rat } };
   }
   /**
-   * One opaque key per survey session, so a double tap, a mobile retry or a resubmitted form
-   * lands on the row the first request created instead of counting as another reviewer. Kept in
-   * sessionStorage, which a reload survives and a new reviewer's fresh tab does not; private
-   * modes that refuse storage just get a new key per load, which is still one key per attempt.
+   * One server-issued capability per survey session.
+   *
+   * The page used to invent its own submission key. It does not any more: the key names the row
+   * the server writes, so it is minted server-side where it cannot be chosen, guessed at, or
+   * pointed at somebody else's answers. Kept in sessionStorage, which a reload survives and a new
+   * reviewer's fresh tab does not — so a double tap, a retry or a reload all land on one row,
+   * and two reviewers never share one.
+   *
+   * Nothing about this is visible to a reviewer: no account, no sign-in, no extra step.
    */
-  function submissionKey() {
-    const NAME = "human-test-1-submission-key";
-    try { const existing = sessionStorage.getItem(NAME); if (existing) return existing; } catch (e) {}
-    const bytes = new Uint8Array(24);
-    crypto.getRandomValues(bytes);
-    let binary = "";
-    for (const b of bytes) binary += String.fromCharCode(b);
-    const key = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    try { sessionStorage.setItem(NAME, key); } catch (e) {}
-    return key;
+  async function capability() {
+    const NAME = "human-test-1-capability";
+    try {
+      const held = sessionStorage.getItem(NAME);
+      if (held) return held;
+    } catch (e) {}
+    const res = await fetch(SESSION_ENDPOINT, { method: "POST" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok || !body.capability) {
+      throw new Error(body.error || "Could not start this survey session. Reload the page and try again.");
+    }
+    try { sessionStorage.setItem(NAME, body.capability); } catch (e) {}
+    return body.capability;
   }
+  // Fetched up front so it is ready when the reviewer finishes, and so a problem surfaces before
+  // they have spent time on forty ratings. Failure here is not fatal: submit asks again.
+  capability().catch(() => {});
+
   const status = document.getElementById("status");
   const submit = document.getElementById("submit");
   function validated() {
@@ -148,7 +161,7 @@
       const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ submissionKey: submissionKey(), response: r }),
+        body: JSON.stringify({ capability: await capability(), response: r }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) throw new Error(body.error || "Something went wrong. Please try again.");

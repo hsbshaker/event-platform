@@ -27,11 +27,13 @@ nothing is downloaded, emailed or pasted.
    without seeing others' answers. Do not send this README, `responses/` or anything from
    `proof-b/`: reviewers must not be told how the sheet is composed, and nothing at the public
    URL tells them.
-2. Each response is stored in `human_test_1_responses`. Submission is idempotent on an opaque
-   per-session key, so a double tap or a retry does not create a second reviewer; a reviewer who
-   reloads and corrects an answer replaces their own row rather than adding one. Two rows for one
-   name therefore mean two separate sessions, and `score-stored.mjs` refuses to choose between
-   them for you.
+2. Each response is stored in `human_test_1_responses`. On load the page asks the server for an
+   opaque reviewer capability — invisible to the reviewer, no account, no sign-in — and the row a
+   submission writes is named by that capability, not by anything the browser chose. Submission is
+   therefore idempotent per session: a double tap or a retry does not create a second reviewer, a
+   reviewer who reloads and corrects an answer replaces their own row, and nobody can address
+   somebody else's. Two rows for one name mean two separate sessions, and `score-stored.mjs`
+   refuses to choose between them for you.
 3. Check what has arrived, then score:
 
    ```bash
@@ -60,6 +62,12 @@ directly.
 `x-human-test-mode` header with a submission; it is stored in `human_test_1_test_responses`, a
 separate table `score-stored.mjs` never reads. Nothing a public client can put in a request body
 selects that table, so a synthetic submission cannot reach the real five.
+
+The header is a claim that must be *authorized*, and it fails closed: if the secret is unset,
+malformed, or does not match, the request is refused and written nowhere. It is never quietly
+downgraded to a real review — which is the failure that would put an operator's verification
+answers among the five reviewers. Obtain a capability first (`POST /api/human-test-1/session`,
+same-origin) and send it as `capability` in the submission body.
 
 If the very first submission returns 500 while everything else looks healthy, PostgREST is
 serving a schema cache that predates the tables. The migration now issues

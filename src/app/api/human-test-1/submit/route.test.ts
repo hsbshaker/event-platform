@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 import { RateLimitedError } from "@/lib/auth/errors";
+import { resetEnvCache } from "@/lib/env";
 
 /**
  * The Human Test #1 submit endpoint (`docs/human-test-1/README.md`).
@@ -36,6 +37,13 @@ vi.mock("@/lib/auth/rate-limit", async (importOriginal) => ({
 
 const { POST } = await import("./route");
 const { REAL_TABLE, SYNTHETIC_TABLE } = await import("@/lib/human-test/store");
+const { issueCapability } = await import("@/lib/human-test/capability");
+
+/**
+ * `APP_ENCRYPTION_KEY` has to be a real one: the route resolves the capability with it, so a
+ * placeholder would make every test exercise the refusal path instead of the one it names.
+ */
+const APP_KEY = Buffer.alloc(32, 7).toString("base64");
 
 const HOST = "survey.example.com";
 const TEST_SECRET = "human-test-secret-long-enough-to-pass-validation";
@@ -77,10 +85,24 @@ function submission(body: unknown, headers: Record<string, string> = {}) {
   });
 }
 
-const KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-const wellFormed = (response: unknown = validResponse()) => ({ submissionKey: KEY, response });
+/** One capability per test file run; its nonce is the row every well-formed request writes. */
+let CAPABILITY: string;
+let NONCE: string;
+
+const wellFormed = (response: unknown = validResponse()) => ({
+  capability: CAPABILITY,
+  response,
+});
 
 beforeEach(() => {
+  // `serverEnv()` validates the whole server schema, so the capability key alone is not enough.
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://stub.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "stub-anon-key";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "stub-service-role-key";
+  process.env.APP_ENCRYPTION_KEY = APP_KEY;
+  resetEnvCache();
+  CAPABILITY = issueCapability(APP_KEY).capability;
+  NONCE = CAPABILITY.split(".")[1]!;
   recordSubmission.mockReset().mockResolvedValue({ submissionId: "row-1" });
   enforceRateLimit.mockReset().mockResolvedValue(undefined);
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -97,7 +119,7 @@ describe("accepts a complete review", () => {
     const res = await POST(submission(wellFormed()));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, submissionId: "row-1" });
-    expect(recordSubmission).toHaveBeenCalledWith(REAL_TABLE, KEY, validResponse());
+    expect(recordSubmission).toHaveBeenCalledWith(REAL_TABLE, NONCE, validResponse());
   });
 
   it("stores the response verbatim, so the frozen scorer reads what review.html produced", async () => {
@@ -125,9 +147,9 @@ describe("accepts a complete review", () => {
         ratings: { ...validResponse().result.ratings, "7": 1 },
       },
     });
-    await POST(submission({ submissionKey: KEY, response: corrected }));
+    await POST(submission({ capability: CAPABILITY, response: corrected }));
     expect(recordSubmission).toHaveBeenCalledTimes(2);
-    expect(recordSubmission).toHaveBeenLastCalledWith(REAL_TABLE, KEY, corrected);
+    expect(recordSubmission).toHaveBeenLastCalledWith(REAL_TABLE, NONCE, corrected);
   });
 });
 
@@ -197,8 +219,8 @@ describe("refuses anything that is not a complete review", () => {
     ["an unknown field on the response", wellFormed(validResponse({ note: "hello" }))],
     ["a forged protocol", wellFormed(validResponse({ protocol: "something-else" }))],
     ["ok: false", wellFormed(validResponse({ ok: false }))],
-    ["a missing submission key", { response: validResponse() }],
-    ["a too-short submission key", { submissionKey: "short", response: validResponse() }],
+    ["a missing capability", { response: validResponse() }],
+    ["an empty capability", { capability: "", response: validResponse() }],
     ["an unknown top-level field", { ...wellFormed(), testMode: true }],
     ["a snake-cased test flag", { ...wellFormed(), test_mode: true }],
     ["a table selector", { ...wellFormed(), table: "human_test_1_test_responses" }],
@@ -292,28 +314,77 @@ describe("transport", () => {
   });
 });
 
+/**
+ * P1 #1: synthetic-test authorization fails closed.
+ *
+ * The rule is one sentence: **a request that presents `x-human-test-mode` is never written as a
+ * real review.** It is authorized and stored in the synthetic table, or it is refused and stored
+ * nowhere. The dangerous middle — "we could not establish the claim, so treat it as a genuine
+ * reviewer" — is what an earlier version did when the configured secret failed validation, and
+ * it would have written an operator's verification answers into the five-reviewer table.
+ *
+ * Every refusal below asserts `recordSubmission` was not called at all, which is the assertion
+ * that means "neither table was touched": the store is the only thing in this route that writes,
+ * and the table it writes to is its first argument.
+ */
 describe("synthetic submissions are isolated from the five real reviewers", () => {
-  it("goes to the real table when no secret is configured, even if the header is sent", async () => {
-    await POST(submission(wellFormed(), { "x-human-test-mode": "anything" }));
-    expect(recordSubmission).toHaveBeenCalledWith(REAL_TABLE, KEY, expect.anything());
+  it("no header, no secret configured: a normal reviewer, written to the real table", async () => {
+    await POST(submission(wellFormed()));
+    expect(recordSubmission).toHaveBeenCalledWith(REAL_TABLE, NONCE, expect.anything());
   });
 
-  it("goes to the real table when the header is absent", async () => {
+  it("no header, secret configured: still just a reviewer, written to the real table", async () => {
     process.env.HUMAN_TEST_1_TEST_SECRET = TEST_SECRET;
     await POST(submission(wellFormed()));
-    expect(recordSubmission).toHaveBeenCalledWith(REAL_TABLE, KEY, expect.anything());
+    expect(recordSubmission).toHaveBeenCalledWith(REAL_TABLE, NONCE, expect.anything());
   });
 
-  it("goes to the real table when the presented secret is wrong", async () => {
-    process.env.HUMAN_TEST_1_TEST_SECRET = TEST_SECRET;
-    await POST(submission(wellFormed(), { "x-human-test-mode": `${TEST_SECRET}x` }));
-    expect(recordSubmission).toHaveBeenCalledWith(REAL_TABLE, KEY, expect.anything());
-  });
-
-  it("goes to the synthetic table only when the exact secret is presented", async () => {
+  it("header and a matching configured secret: written to the synthetic table", async () => {
     process.env.HUMAN_TEST_1_TEST_SECRET = TEST_SECRET;
     await POST(submission(wellFormed(), { "x-human-test-mode": TEST_SECRET }));
-    expect(recordSubmission).toHaveBeenCalledWith(SYNTHETIC_TABLE, KEY, expect.anything());
+    expect(recordSubmission).toHaveBeenCalledWith(SYNTHETIC_TABLE, NONCE, expect.anything());
+  });
+
+  it("header but no secret configured: refused, and written nowhere", async () => {
+    delete process.env.HUMAN_TEST_1_TEST_SECRET;
+    const res = await POST(submission(wellFormed(), { "x-human-test-mode": "anything" }));
+    expect(res.status).toBe(403);
+    expect(recordSubmission).not.toHaveBeenCalled();
+  });
+
+  it("header but the configured secret is malformed: refused, and written nowhere", async () => {
+    // Too short for the schema in src/lib/env.ts, which is the thing that rejects a weak value.
+    process.env.HUMAN_TEST_1_TEST_SECRET = "too-short";
+    const res = await POST(submission(wellFormed(), { "x-human-test-mode": "too-short" }));
+    expect(res.status).toBe(403);
+    expect(recordSubmission).not.toHaveBeenCalled();
+  });
+
+  it("header but it does not match: refused, and written nowhere", async () => {
+    process.env.HUMAN_TEST_1_TEST_SECRET = TEST_SECRET;
+    const res = await POST(submission(wellFormed(), { "x-human-test-mode": `${TEST_SECRET}x` }));
+    expect(res.status).toBe(403);
+    expect(recordSubmission).not.toHaveBeenCalled();
+  });
+
+  it("an empty header value is a claim too, and is refused rather than ignored", async () => {
+    process.env.HUMAN_TEST_1_TEST_SECRET = TEST_SECRET;
+    const res = await POST(submission(wellFormed(), { "x-human-test-mode": "" }));
+    expect(res.status).toBe(403);
+    expect(recordSubmission).not.toHaveBeenCalled();
+  });
+
+  it("never routes a claimed-synthetic request to the real table, whatever the configuration", async () => {
+    for (const secret of [undefined, "too-short", TEST_SECRET]) {
+      for (const presented of ["", "wrong", `${TEST_SECRET}x`]) {
+        recordSubmission.mockClear();
+        if (secret === undefined) delete process.env.HUMAN_TEST_1_TEST_SECRET;
+        else process.env.HUMAN_TEST_1_TEST_SECRET = secret;
+        await POST(submission(wellFormed(), { "x-human-test-mode": presented }));
+        const wroteReal = recordSubmission.mock.calls.some(([table]) => table === REAL_TABLE);
+        expect(wroteReal).toBe(false);
+      }
+    }
   });
 
   it("cannot be selected from the request body, whatever it says", async () => {
@@ -328,6 +399,56 @@ describe("synthetic submissions are isolated from the five real reviewers", () =
       expect(res.status).toBe(400);
     }
     expect(recordSubmission).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * P1 #2: the service role is reached only behind a server-issued capability.
+ *
+ * The row a submission writes is addressed by the capability's nonce. If the caller could choose
+ * it, an upsert would let anyone name — and overwrite — another reviewer's answers, so the
+ * important assertions here are that nothing from the body reaches the store as a key, and that
+ * nothing without a valid capability reaches the store at all.
+ */
+describe("the service role is reached only behind a resolved capability", () => {
+  it("writes under the capability's own nonce, not anything the caller sent", async () => {
+    await POST(submission(wellFormed()));
+    const [, key] = recordSubmission.mock.calls[0]!;
+    expect(key).toBe(NONCE);
+    expect(CAPABILITY).toContain(String(key));
+  });
+
+  it.each([
+    ["a forged signature", () => `${CAPABILITY.slice(0, -43)}${"z".repeat(43)}`],
+    [
+      "one minted with another key",
+      () => issueCapability(Buffer.alloc(32, 9).toString("base64")).capability,
+    ],
+    ["an expired one", () => issueCapability(APP_KEY, Date.now() - 40 * 60 * 60 * 1000).capability],
+    ["free text", () => "let-me-in"],
+  ])("refuses %s, and writes nowhere", async (_label, build) => {
+    const res = await POST(submission({ capability: build(), response: validResponse() }));
+    expect(res.status).toBe(403);
+    expect(recordSubmission).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a capability-less body", { response: validResponse() }],
+    // Caught a gate earlier, by the schema rather than the resolver — still a refusal that
+    // writes nowhere, which is the property that matters.
+    ["an empty capability", { capability: "", response: validResponse() }],
+  ])("refuses %s outright", async (_label, body) => {
+    const res = await POST(submission(body));
+    expect(res.status).toBe(400);
+    expect(recordSubmission).not.toHaveBeenCalled();
+  });
+
+  it("gives two sessions two different rows", async () => {
+    await POST(submission(wellFormed()));
+    const second = issueCapability(APP_KEY).capability;
+    await POST(submission({ capability: second, response: validResponse() }));
+    const keys = recordSubmission.mock.calls.map(([, key]) => key);
+    expect(new Set(keys).size).toBe(2);
   });
 });
 

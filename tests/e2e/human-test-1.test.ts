@@ -23,7 +23,7 @@ import {
  *
  * The submit endpoint is intercepted rather than driven: the local app under test has no
  * database behind it, and what matters here is the page's half of the contract — that it posts
- * exactly the object `review.html` has always produced, once, under one session key, and shows
+ * exactly the object `review.html` has always produced, once, under one capability, and shows
  * the success state only when the server said yes. The server's half is covered in
  * `src/app/api/human-test-1/submit/route.test.ts` and `tests/db/human-test-1.test.ts`, and the
  * two are joined on a real deployment before reviewers are sent the link.
@@ -51,27 +51,43 @@ function requireApp(): AppServer {
   return app;
 }
 
-/** Captures every submission the page attempts, and answers as the endpoint would. */
-function interceptSubmit(
+/**
+ * Captures every submission the page attempts, and answers as the endpoints would.
+ *
+ * Two routes now: the page asks for a reviewer capability before it can submit. The stub issues a
+ * fixed one rather than a real signed capability, because this file tests the page's half of the
+ * contract — that it obtains one, keeps one per session, and sends it. Whether a capability is
+ * genuine is decided server-side, and covered in `src/lib/human-test/capability.test.ts` and the
+ * route tests.
+ */
+const STUB_CAPABILITY = `v1.${"A".repeat(43)}.9999999999999.${"B".repeat(43)}`;
+
+async function interceptSubmit(
   page: Page,
   respond: { ok: boolean; status?: number; body?: unknown } = { ok: true },
-) {
+): Promise<unknown[]> {
   const posted: unknown[] = [];
-  return page
-    .route("**/api/human-test-1/submit", async (route) => {
-      posted.push(JSON.parse(route.request().postData() ?? "null"));
-      await route.fulfill({
-        status: respond.status ?? (respond.ok ? 200 : 400),
-        contentType: "application/json",
-        body: JSON.stringify(
-          respond.body ??
-            (respond.ok
-              ? { ok: true, submissionId: "row-1" }
-              : { ok: false, error: "This submission could not be saved." }),
-        ),
-      });
-    })
-    .then(() => posted);
+  await page.route("**/api/human-test-1/session", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, capability: STUB_CAPABILITY, expiresAt: 9999999999999 }),
+    });
+  });
+  await page.route("**/api/human-test-1/submit", async (route) => {
+    posted.push(JSON.parse(route.request().postData() ?? "null"));
+    await route.fulfill({
+      status: respond.status ?? (respond.ok ? 200 : 400),
+      contentType: "application/json",
+      body: JSON.stringify(
+        respond.body ??
+          (respond.ok
+            ? { ok: true, submissionId: "row-1" }
+            : { ok: false, error: "This submission could not be saved." }),
+      ),
+    });
+  });
+  return posted;
 }
 
 /** Fills the questionnaire the way a reviewer would: name, one grouping, all forty ratings. */
@@ -230,9 +246,11 @@ describe.each([
       expect(await page.locator("#fallback").isVisible()).toBe(false);
 
       expect(posted).toHaveLength(1);
-      const body = posted[0] as { submissionKey: string; response: Record<string, unknown> };
-      expect(Object.keys(body).sort()).toEqual(["response", "submissionKey"]);
-      expect(body.submissionKey).toMatch(/^[A-Za-z0-9_-]{16,200}$/);
+      const body = posted[0] as { capability: string; response: Record<string, unknown> };
+      expect(Object.keys(body).sort()).toEqual(["capability", "response"]);
+      // The server issued this; the page did not invent it, which is what stops one reviewer
+      // from naming — and overwriting — another reviewer's row.
+      expect(body.capability).toBe(STUB_CAPABILITY);
       expect(Object.keys(body.response).sort()).toEqual(["ok", "protocol", "result", "reviewer"]);
       expect(body.response.reviewer).toBe("AB");
       expect(body.response.ok).toBe(true);
@@ -252,7 +270,7 @@ describe.each([
     }
   });
 
-  it("reuses one session key, so a retry cannot become a second reviewer", async () => {
+  it("reuses one capability, so a retry cannot become a second reviewer", async () => {
     const { page, close } = await newPage(browser, viewport);
     try {
       // First attempt refused by the server, so the page stays submittable and tries again.
@@ -271,9 +289,9 @@ describe.each([
       );
 
       expect(posted.length).toBeGreaterThanOrEqual(2);
-      const keys = new Set((posted as { submissionKey: string }[]).map((p) => p.submissionKey));
+      const keys = new Set((posted as { capability: string }[]).map((p) => p.capability));
       expect(keys.size).toBe(1);
-      expect(await page.evaluate(() => sessionStorage.getItem("human-test-1-submission-key"))).toBe(
+      expect(await page.evaluate(() => sessionStorage.getItem("human-test-1-capability"))).toBe(
         [...keys][0],
       );
     } finally {

@@ -88,22 +88,20 @@ export const reviewerResponseSchema = z.strictObject({
 export type ReviewerResponse = z.infer<typeof reviewerResponseSchema>;
 
 /**
- * Opaque, client-generated, one per survey session; the unique key that makes submission
- * idempotent. Constrained to a URL-safe alphabet and a length band rather than to a UUID shape,
- * so the page is free to use `crypto.randomUUID()` or a random-bytes fallback on a browser
- * that lacks it, and neither spelling becomes a protocol detail.
- */
-const submissionKey = z
-  .string()
-  .regex(/^[A-Za-z0-9_-]{16,200}$/, "submission key must be 16-200 URL-safe characters");
-
-/**
- * The request body. `strictObject` all the way down is the point: a public client cannot add a
- * field, and in particular cannot add anything resembling `testMode` — which table a submission
- * lands in is decided from a server-side secret in the request *headers*, never from the body.
+ * The request body.
+ *
+ * `strictObject` all the way down is the point: a public client cannot add a field, and in
+ * particular cannot add anything resembling `testMode` — which table a submission lands in is
+ * decided from a server-side secret in the request *headers*, never from the body.
+ *
+ * `capability` is the server-issued reviewer capability (`./capability.ts`). It replaced a
+ * client-generated submission key: the key addresses the row an upsert replaces, so letting the
+ * caller choose it would let anyone name — and overwrite — another reviewer's answers. Only its
+ * shape is checked here; `resolveCapability` decides whether it is real, and the route resolves
+ * it before anything reaches the service role.
  */
 export const submissionRequestSchema = z.strictObject({
-  submissionKey,
+  capability: z.string().min(1).max(400),
   response: reviewerResponseSchema,
 });
 

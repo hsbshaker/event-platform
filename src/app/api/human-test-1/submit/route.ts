@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { RateLimitedError } from "@/lib/auth/errors";
 import { enforceRateLimit, type RateLimitRule } from "@/lib/auth/rate-limit";
-import { humanTest1TestSecret } from "@/lib/env";
+import { humanTest1TestSecret, serverEnv } from "@/lib/env";
+import { resolveCapability } from "@/lib/human-test/capability";
 import { MAX_SUBMISSION_BYTES, parseSubmission } from "@/lib/human-test/submission";
 import { recordSubmission, REAL_TABLE, SYNTHETIC_TABLE } from "@/lib/human-test/store";
 
@@ -80,25 +81,46 @@ function sameOrigin(request: NextRequest): boolean {
 }
 
 /**
- * Whether this submission is synthetic, i.e. presents `HUMAN_TEST_1_TEST_SECRET`.
+ * Whether this submission is a synthetic verification request — and if it claims to be, whether
+ * that claim is authorized.
  *
- * A header, not a body field: the submission schema is strict all the way down, so a public
- * client cannot even name this choice, let alone make it. Unset secret means no request is ever
- * synthetic — the fail-closed direction, since the failure that matters is a synthetic row
- * being counted as one of the five reviewers.
+ * Three states rather than a boolean, because "not synthetic" and "claimed synthetic but could
+ * not be authorized" are opposite situations that a boolean collapses into the same answer. That
+ * collapse was a real defect: an earlier version caught a configuration error and returned
+ * `false`, so an operator running the documented verification against a malformed
+ * `HUMAN_TEST_1_TEST_SECRET` would have had their synthetic answers written into the
+ * five-reviewer table — the one contamination the two-table design exists to prevent.
+ *
+ * So the invariant is: **a request that presents the header is never written as a real review.**
+ * It is authorized and written to the synthetic table, or it is refused and written nowhere.
+ *
+ * The secret is consulted only when the header is present. A reviewer's submission carries no
+ * header and does not depend on the secret at all, so a misconfigured operator secret cannot
+ * take the survey down for the five people it exists for — and there is no code path in which a
+ * parsing failure becomes "this is a real review".
  */
-function isSynthetic(request: NextRequest): boolean {
+type SyntheticClaim = "absent" | "authorized" | "refused";
+
+function syntheticClaim(request: NextRequest): SyntheticClaim {
+  const presented = request.headers.get("x-human-test-mode");
+  if (presented === null) return "absent";
+
   let secret: string | undefined;
   try {
     secret = humanTest1TestSecret();
   } catch (error) {
+    // The schema in `src/lib/env.ts` is what rejects a malformed or trivially weak value
+    // (AGENTS.md, "Secrets"). Refuse rather than reinterpret: the header says this was meant to
+    // be synthetic, and we cannot establish that it is.
     console.error("human-test-1/submit: HUMAN_TEST_1_TEST_SECRET is set but invalid", error);
-    return false;
+    return "refused";
   }
-  if (!secret) return false;
-  const presented = Buffer.from(request.headers.get("x-human-test-mode") ?? "");
-  const expected = Buffer.from(secret);
-  return presented.length === expected.length && timingSafeEqual(presented, expected);
+  if (!secret) return "refused";
+
+  const a = Buffer.from(presented);
+  const b = Buffer.from(secret);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return "refused";
+  return "authorized";
 }
 
 /**
@@ -148,20 +170,32 @@ export async function POST(request: NextRequest) {
   const parsed = parseSubmission(body);
   if (!parsed.ok) return rejected(400, parsed.detail);
 
-  const synthetic = isSynthetic(request);
+  // A claimed-but-unauthorized synthetic request stops here, before anything is written. It is
+  // never downgraded to a real review: see `syntheticClaim`.
+  const claim = syntheticClaim(request);
+  if (claim === "refused") {
+    return rejected(403, "synthetic-test authorization could not be established");
+  }
+
   try {
     // Throttled after validation so a malformed flood is refused without burning a reviewer's
     // budget, and before the write so the budget still bounds what reaches the table.
     await enforceRateLimit(SUBMIT_PER_IP, requesterIp(request));
     await enforceRateLimit(SUBMIT_PER_IP_DAILY, requesterIp(request));
 
+    // The authorization boundary in front of the service role (AGENTS.md, "Supabase clients").
+    // Resolved here, after the rate limit and before `recordSubmission`, so an unforgeable
+    // server-issued capability — not a caller-chosen string — names the row that gets written.
+    const capability = resolveCapability(parsed.value.capability, serverEnv().APP_ENCRYPTION_KEY);
+    if (!capability.ok) return rejected(403, `capability ${capability.reason}`);
+
     const { submissionId } = await recordSubmission(
-      synthetic ? SYNTHETIC_TABLE : REAL_TABLE,
-      parsed.value.submissionKey,
+      claim === "authorized" ? SYNTHETIC_TABLE : REAL_TABLE,
+      capability.submissionKey,
       parsed.value.response,
     );
-    // Deliberately identical for a first submission and for a retry of the same key: the page
-    // shows one success state either way, and nothing here counts as a second reviewer.
+    // Deliberately identical for a first submission and for a retry under the same capability:
+    // the page shows one success state either way, and nothing here counts as a second reviewer.
     return NextResponse.json({ ok: true, submissionId });
   } catch (error) {
     if (error instanceof RateLimitedError) {
