@@ -78,19 +78,43 @@ for local runs.
 
 ### Deployed Vercel preview
 
-Not yet run: this repository's agent environment has no Vercel credentials and its network
-policy refuses `api.vercel.com`. Run the two `run.mjs` commands above against the preview and
-commit the two result files here; then record the verdict.
+Project `event-platform` (team `haseeb-shakers-projects`), preview of this branch at
+`https://event-platform-git-claude-phase-5ca18b-haseeb-shakers-projects.vercel.app`; Fluid
+compute, Standard memory class, region `iad1`, Node `v22.23.2`, Chromium `153.0.8010.0`. Files:
+`vercel-first-cold.json` (first invocation after the packaging fix), `vercel-warm.json` (ten
+back-to-back invocations), `vercel-cold.json` (invocations separated by ten idle minutes),
+`vercel-memory.json` (three invocations on the build that reads Chromium memory from `/proc`).
+
+| Measure | First cold instance | Warm (10 runs) | Cold after idle (2 cold of 3 runs) |
+| --- | --- | --- | --- |
+| Invocations succeeded | 1/1 | 10/10 | 3/3 |
+| Geometry deterministic across the 3 repeats, both widths | yes | yes | yes |
+| Geometry identical across invocations and identical to the local container (hero 609.16 @390, 712.03 @1280) | yes | yes | yes |
+| Both font families loaded | yes | yes | yes |
+| Overflow (page, element, text) | none | none | none |
+| Module import | 0.9 s | 0 | 0.9–1.0 s |
+| Browser archive inflate | 2.2 s | 0 | 2.3 s, 3.1 s |
+| Browser launch | 63 ms | 39 ms median, 44 ms p95 | 91 ms, 101 ms |
+| Render + measure, 390 | 201 ms first, 117–143 after | 148 ms median, 181 ms p95 | 201–275 ms first, 85–238 after |
+| Render + measure, 1280 | 166 ms first, 140–153 after | 138 ms median, 168 ms p95 | 180–183 ms first, 160–217 after |
+| Function time (6 renders) | 5.7 s | 1.4–2.9 s | 4.6 s, 7.3 s |
+| Wall time as seen by the caller | 6.8 s | 2.7 s median, 3.0 s p95 | 7.1 s, 9.7 s (the non-cold run: 1.6 s) |
+| Node process RSS | 222 MB | 175 MB max | 171 MB, 228 MB |
+| Chromium processes RSS (from `/proc`, added after the warm series) | not measured | not measured | 195–206 MB (`vercel-memory.json`, 3 runs on the instrumented build: Node 168–203 MB + Chromium 195–206 MB) |
+
+Packaging finding: Vercel's static file tracing omitted `playwright-core/browsers.json`, which
+the library reads at runtime, and the first deployed invocation failed with "Cannot find module";
+both packages are now traced whole via `outputFileTracingIncludes` (93 MB function). The
+fail-closed gate was confirmed on the deployment: 404 with no token configured, 403 with a wrong
+token, 200 with the token, and 404 by construction in the production environment.
 
 ## Verdict
 
-Pending the deployed runs. The local evidence supports **GO — Vercel serverless Chromium**
-on every measure that does not depend on the platform (launch, fonts, determinism, geometry);
-the platform-dependent measures (cold start on Lambda including bundle load and the extra
-`al2023` library archive the package inflates on Amazon Linux 2023, package acceptance under
-the 250 MB limit, `/tmp` capacity, function memory, execution time budget, cost per run) are
-what the deployed runs confirm. Two things to carry into the Phase 3 verifier whatever the
-verdict: serialize the first-request browser extraction per instance (the package's
+**GO — Vercel serverless Chromium**, recorded in `docs/technology-decisions.md` ("Phase 0 spike
+verdict") and the Phase 0 row of `docs/development-plan.md`. Every platform-independent measure
+(launch, fonts, determinism, geometry) and every platform-dependent one (cold start, package
+acceptance, `/tmp` capacity, memory class, execution budget, cost) came in with margin; no
+measured blocker exists, so the render-worker option is not adopted. Two things carry into the
+Phase 3 verifier: serialize the first-request browser extraction per instance (the package's
 `existsSync` gate is not atomic under concurrent cold requests), and treat the route's
-`coldStart` flag as per-instance, not per-request. The verdict is recorded in `docs/technology-decisions.md` and the Phase 0 row of
-`docs/development-plan.md` only after those runs.
+`coldStart` flag as per-instance, not per-request.
