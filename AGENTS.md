@@ -20,8 +20,12 @@ Heed deprecation notices in those docs over training-data habits.
 
 ## Conventions
 
-- **Secrets** are read only through `serverEnv()` in `src/lib/env.ts` from server code.
-  `NEXT_PUBLIC_*` values are the only ones that reach the browser.
+- **Secrets** are read only through `serverEnv()` in `src/lib/env.ts` from server code, or
+  through a named accessor in that same file for an optional one (`spikeToken()`,
+  `cronSecret()`). Never read a secret straight from `process.env` elsewhere: the schema is
+  what rejects a malformed or trivially weak value. `NEXT_PUBLIC_*` values are the only ones
+  that reach the browser, and because Next.js inlines them at build time they must be
+  available to the build — on Vercel that means they must not be marked "Sensitive".
 - **Supabase clients**: `src/lib/supabase/server.ts` in Server Components, Server Actions
   and Route Handlers; `client.ts` in Client Components; `admin.ts` (service role, bypasses
   RLS) only after the caller has been authorized with `src/lib/auth` and only for
@@ -45,14 +49,19 @@ Heed deprecation notices in those docs over training-data habits.
 ## Phase 2 notes
 
 - **Event creation is server-side only.** End users have no `insert` on `events`; the only
-  path is `claim_pre_auth_draft`, called from the auth callback with the service role. It
-  decides under a row lock, so a retried or concurrent callback returns the first event rather
-  than creating a second.
+  paths are `claim_pre_auth_draft` (this browser's cookie) and `claim_pre_auth_draft_by_email`
+  (the address the session proves control of, for a link opened in another browser), both
+  called from the auth callback with the service role. Both delegate to one locked body, so a
+  retried, concurrent, or mixed pair of callbacks returns the first event rather than creating
+  a second.
 - **The draft cookie** (`ep_draft`, httpOnly, `SameSite=Lax`) is what carries the prompt and
   inspiration through the OAuth redirect. The database stores only its keyed hash.
 - **Inspiration** is private: allowlisted image types, magic-byte sniffed, at most 6 files of
-  10 MB each per draft, read back through short-lived signed URLs, re-parented to the event on
-  claim, and removed by the scheduled cleanup when a draft is abandoned.
+  4 MB each per draft, read back through short-lived signed URLs, re-parented to the event on
+  claim, and removed by the scheduled cleanup when a draft is abandoned. The 4 MB ceiling is
+  the platform's serverless request-body limit, not a preference: the upload route buffers the
+  whole body, so a larger documented limit would be rejected before our code runs. Raising it
+  means moving to a signed direct-to-Storage upload first.
 - **Required details never block anything.** They are §23.1 publish requirements collected
   while generation runs; no code path gates on them.
 
