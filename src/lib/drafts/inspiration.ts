@@ -130,28 +130,43 @@ export async function addInspirationToDraft(
     .upload(storageKey, file.bytes, { contentType: sniffed, upsert: false });
   if (uploadError) throw uploadError;
 
-  const { data, error } = await admin
-    .from("inspiration_assets")
-    .insert({
-      pre_auth_draft_id: draft.id,
-      storage_key: storageKey,
-      mime_type: sniffed,
-      size_bytes: file.bytes.byteLength,
-      expires_at: draft.expiresAt,
-    })
-    .select("id, storage_key, mime_type, size_bytes, created_at")
-    .single();
-  if (error) {
-    await admin.storage.from(INSPIRATION_BUCKET).remove([storageKey]);
-    throw error;
+  // The upload above is a network round trip, so the draft may have been claimed while it was
+  // in flight. `attach_inspiration_asset` decides under the same row lock the claim takes, so
+  // the asset joins whichever owner is true at that instant — the still-unclaimed draft, or
+  // the event the draft was claimed into — instead of referencing a draft that has already
+  // handed its assets over. It enforces the file cap under that lock too, which a count taken
+  // out here cannot do.
+  const { data, error } = await admin.rpc("attach_inspiration_asset", {
+    p_draft_id: draft.id,
+    p_storage_key: storageKey,
+    p_mime_type: sniffed,
+    p_size_bytes: file.bytes.byteLength,
+    p_max_files: MAX_FILES_PER_DRAFT,
+  });
+  const row = Array.isArray(data) ? data[0] : undefined;
+  if (error || row?.outcome !== "attached" || !row.asset_id || !row.asset_created_at) {
+    // No row names this object now, and none ever will: take it back out of the bucket rather
+    // than leave a private file nothing knows about. A failure here is logged with the key,
+    // which is the only thing that makes the leftover object findable by hand.
+    const { error: cleanupError } = await admin.storage
+      .from(INSPIRATION_BUCKET)
+      .remove([storageKey]);
+    if (cleanupError) {
+      console.error(`inspiration upload left an orphaned object at ${storageKey}`, cleanupError);
+    }
+    if (error) throw error;
+    if (row?.outcome === "limit_reached") {
+      throw new InspirationRejected(`You can add up to ${MAX_FILES_PER_DRAFT} images.`);
+    }
+    throw new InspirationRejected("Start by describing your event.");
   }
 
   return {
-    id: data.id,
-    storageKey: data.storage_key,
-    mimeType: data.mime_type,
-    sizeBytes: data.size_bytes,
-    createdAt: data.created_at,
+    id: row.asset_id,
+    storageKey,
+    mimeType: sniffed,
+    sizeBytes: file.bytes.byteLength,
+    createdAt: row.asset_created_at,
   };
 }
 
@@ -163,14 +178,26 @@ export async function removeInspirationFromDraft(assetId: string): Promise<boole
   if (!asset) return false;
 
   const admin = createAdminClient();
-  const { error } = await admin
+  // Object first, row second, and neither step's failure is swallowed. The row is the only
+  // record of the object key, so deleting it before the object is gone turns a transient
+  // Storage failure into a private file nothing can ever name again; this way a failure leaves
+  // a row pointing at a missing object, which the purge job clears. Same ordering as
+  // src/app/api/cron/purge-pre-auth/route.ts.
+  const { error: removeError } = await admin.storage
+    .from(INSPIRATION_BUCKET)
+    .remove([asset.storageKey]);
+  if (removeError) throw removeError;
+
+  // Scoped to the draft, as the read above was: a claim re-parents assets to the event, and
+  // this must not report success for a row it did not delete.
+  const { data: deleted, error } = await admin
     .from("inspiration_assets")
     .delete()
     .eq("id", assetId)
-    .eq("pre_auth_draft_id", draft.id);
+    .eq("pre_auth_draft_id", draft.id)
+    .select("id");
   if (error) throw error;
-  await admin.storage.from(INSPIRATION_BUCKET).remove([asset.storageKey]);
-  return true;
+  return (deleted ?? []).length > 0;
 }
 
 export interface InspirationPreview extends DraftInspiration {
