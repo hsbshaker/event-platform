@@ -229,6 +229,22 @@ component.
 
 ---
 
+## F. The semantic text copy table is named but never written down
+
+`docs/event-renderer-system.md §2` says `SectionHeading` copy "comes from a compiler table". No
+current document gives that table's contents, and `proof-b`'s is sample copy for one fictional
+event ("Join us at the lodge."), not neutral production copy — so there is nothing to port.
+
+The renderer uses the section's own names (`Details`, `RSVP`, `Registry`) and equivalently plain
+CTA labels: the minimum that invents no voice. They live in one constant in
+`src/components/event-renderer/primitives/text.tsx` that no component branches on, so replacing
+them is a one-line change.
+
+**This is product copy, not an engineering decision.** It needs a real table before launch, and it
+is the kind of default that quietly becomes permanent if nobody looks at it.
+
+---
+
 ## Recommended disposition
 
 Defects 1 and 6 are settled. Keep 2 to 5 as ported until Phase 3 meets its exit gate; they are one-line

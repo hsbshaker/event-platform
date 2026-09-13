@@ -1,12 +1,1293 @@
 /*
- * Event-renderer tokens — docs/event-renderer-system.md, docs/design-system.md §15.
+ * Event-renderer stylesheet — docs/event-renderer-system.md §6, docs/design-system.md §15.
  *
- * This file is owned by the renderer (Phase 3). It is populated when the production
- * CompositionTree engine is ported from proof-b. Values are emitted by the semantic
- * palette compiler per ResolvedDesignSpec as numeric custom properties and classes;
- * nothing here is authored per concept and nothing here may be imported by app chrome
- * (design-system.md §23.7; enforced by the ESLint boundary rule in eslint.config.mjs).
+ * Every declaration in this file is written by hand. Nothing here is generated per concept and
+ * nothing here is derived from model output (spec.md §32 #19): a composition reaches this
+ * stylesheet as a class, and a compiled value reaches it as a *number* in a custom property that
+ * calc() multiplies into lengths this file already chose. That is the whole contract — the model
+ * picks `gap: "loose"`, the compiler resolves 34, and the arithmetic lives here.
+ *
+ * Colors arrive only as the semantic palette, set once on `.ev-site` by `page.tsx`. The raw
+ * creative palette never reaches this file, directly or through a variable
+ * (docs/design-system.md §15.6, spec.md §32 #25).
+ *
+ * Nothing here may be imported by app chrome, and app chrome tokens never appear here
+ * (docs/design-system.md §23.7; the import direction is enforced in eslint.config.mjs).
+ *
+ * Layout of this file:
+ *   1. root token layer and breakpoint selection
+ *   2. surfaces
+ *   3. page system — border, card and button languages
+ *   4. sections
+ *   5. containers
+ *   6. decorative leaves and motif patterns
+ *   7. text
+ *   8. opaque guest components
+ *   9. focus (design-system.md §15.6a — binding)
+ *  10. mobile
  */
-.event-renderer-root {
-  /* populated by the renderer port; intentionally empty in Phase 0/1 */
+
+/* ============================================================================================
+ * 1. Root token layer.
+ *
+ * `page.tsx` sets each scale at both breakpoints under distinct names, because an inline style
+ * cannot answer a media query. This file picks between them, so the choice stays static.
+ * ========================================================================================== */
+
+.ev-site {
+  --ev-display-size: var(--ev-display-size-desktop);
+  --ev-primary-size: var(--ev-primary-size-desktop);
+  --ev-secondary-size: var(--ev-secondary-size-desktop);
+  --ev-caption-size: var(--ev-caption-size-desktop);
+  --ev-display-lh: var(--ev-display-lh-desktop);
+  --ev-primary-lh: var(--ev-primary-lh-desktop);
+  --ev-secondary-lh: var(--ev-secondary-lh-desktop);
+  --ev-caption-lh: var(--ev-caption-lh-desktop);
+  --ev-display-weight: var(--ev-display-weight-desktop);
+  --ev-primary-weight: var(--ev-primary-weight-desktop);
+  --ev-secondary-weight: var(--ev-secondary-weight-desktop);
+  --ev-caption-weight: var(--ev-caption-weight-desktop);
+
+  --ev-section-y: var(--ev-section-y-desktop);
+  --ev-container-gap: var(--ev-container-gap-desktop);
+  --ev-page-inset: var(--ev-inset-desktop);
+
+  /* Defaults for the two motif numbers, so a rule that reads them is never invalid. */
+  --ev-motif-opacity: 0.22;
+  --ev-motif-scale: 1;
+
+  /* A hero's screen fill is viewport-relative by nature; svh keeps it correct on mobile chrome. */
+  --ev-hero-h: 80svh;
+
+  /* Reading measure and the page gutter are typographic constants, not compiled values. */
+  --ev-measure: 62ch;
+  --ev-gutter: 24px;
+  --ev-max-width: 1120px;
+
+  font-family: var(--ev-font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--ev-secondary-size);
+  line-height: var(--ev-secondary-lh);
+  color: var(--ev-text);
+  background: var(--ev-surface-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The §3.1 floor. A page cannot scroll horizontally even before geometry verification runs. */
+.ev-site,
+.ev-site * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.ev-site {
+  overflow-x: clip;
+}
+
+/* ============================================================================================
+ * 2. Surfaces.
+ *
+ * A surface sets the ground and the ink for its subtree. `button`/`buttonText` and
+ * `accent`/`accentText` are self-contained pairs — a fill carries its own ink — so they hold on
+ * any surface without a per-surface swap.
+ * ========================================================================================== */
+
+.ev-surf-base {
+  --ev-bg: var(--ev-surface-base);
+  --ev-fg: var(--ev-text);
+  --ev-focus-ring: var(--ev-focus);
+}
+
+.ev-surf-alt {
+  --ev-bg: var(--ev-surface-alt);
+  --ev-fg: var(--ev-text);
+  --ev-focus-ring: var(--ev-focus);
+}
+
+/*
+ * `focus` is derived against `surfaceBase`/`surfaceAlt` and guaranteed 3:1 only there
+ * (design-system.md §15.6a). On the two inverted surfaces the ring is the surface's own ink,
+ * which clears 4.5:1 against it by construction — comfortably past the 3:1 a ring needs.
+ */
+.ev-surf-contrast {
+  --ev-bg: var(--ev-surface-contrast);
+  --ev-fg: var(--ev-text-on-contrast);
+  --ev-focus-ring: currentColor;
+}
+
+.ev-surf-accent {
+  --ev-bg: var(--ev-surface-accent);
+  --ev-fg: var(--ev-text-on-accent);
+  --ev-focus-ring: currentColor;
+}
+
+/* ============================================================================================
+ * 3. Page system — proof-b/renderer.js's BORDER, CARD and BTN tables, written out as classes.
+ *
+ * The reference built these as strings and interpolated the border weight. Here the weight is the
+ * only thing that arrives (`--ev-rule-w`, a number of px) and the treatments are static.
+ * ========================================================================================== */
+
+.ev-site {
+  --ev-rule: var(--ev-rule-w) solid color-mix(in srgb, currentColor 30%, transparent);
+  --ev-rule-strong: calc(var(--ev-rule-w) + 1px) solid currentColor;
+  --ev-rule-outline: 0;
+  --ev-field-border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  --ev-field-border-b: var(--ev-field-border);
+}
+
+.ev-border-none {
+  --ev-rule: 0;
+  --ev-rule-strong: 0;
+  --ev-field-border: 0;
+  --ev-field-border-b: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.ev-border-double {
+  --ev-rule: var(--ev-rule-w) solid color-mix(in srgb, currentColor 55%, transparent);
+  --ev-rule-strong: 3px double currentColor;
+  --ev-rule-outline: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  --ev-field-border: 1px solid color-mix(in srgb, currentColor 50%, transparent);
+}
+
+.ev-border-accented {
+  --ev-rule-strong: calc(var(--ev-rule-w) * 2) solid var(--ev-accent);
+  --ev-field-border: 0;
+  --ev-field-border-b: 2px solid currentColor;
+}
+
+.ev-card-flat {
+  --ev-card-bg: color-mix(in srgb, currentColor 6%, transparent);
+  --ev-card-border: 0;
+  --ev-card-outline: 0;
+}
+
+.ev-card-outlined {
+  --ev-card-bg: transparent;
+  --ev-card-border: var(--ev-rule);
+  --ev-card-outline: 0;
+}
+
+.ev-card-tinted {
+  --ev-card-bg: color-mix(in srgb, var(--ev-accent) 12%, transparent);
+  --ev-card-border: 0;
+  --ev-card-outline: 0;
+}
+
+.ev-card-plate {
+  --ev-card-bg: transparent;
+  --ev-card-border: var(--ev-rule);
+  --ev-card-outline: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+}
+
+.ev-btn-solid_square {
+  --ev-btn-bg: var(--ev-button);
+  --ev-btn-fg: var(--ev-button-text);
+  --ev-btn-border: 1px solid var(--ev-button);
+  --ev-btn-radius: 0;
+  --ev-btn-tracking: 0.08em;
+  --ev-btn-transform: uppercase;
+  --ev-btn-size: 0.78rem;
+}
+
+.ev-btn-solid_rounded {
+  --ev-btn-bg: var(--ev-button);
+  --ev-btn-fg: var(--ev-button-text);
+  --ev-btn-border: 1px solid var(--ev-button);
+  --ev-btn-radius: 8px;
+  --ev-btn-tracking: 0;
+  --ev-btn-transform: none;
+  --ev-btn-size: 0.95rem;
+}
+
+.ev-btn-outline_square {
+  --ev-btn-bg: transparent;
+  --ev-btn-fg: inherit;
+  --ev-btn-border: 1.5px solid currentColor;
+  --ev-btn-radius: 0;
+  --ev-btn-tracking: 0.06em;
+  --ev-btn-transform: uppercase;
+  --ev-btn-size: 0.8rem;
+}
+
+.ev-btn-underline {
+  --ev-btn-bg: transparent;
+  --ev-btn-fg: inherit;
+  --ev-btn-border: 0;
+  --ev-btn-radius: 0;
+  --ev-btn-tracking: 0.12em;
+  --ev-btn-transform: uppercase;
+  --ev-btn-size: 0.78rem;
+}
+
+.ev-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 46px keeps every generated control past the 44px touch target the design system requires. */
+  min-height: 46px;
+  padding: 0 20px;
+  font-family: var(--ev-font-body), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: var(--ev-btn-size);
+  letter-spacing: var(--ev-btn-tracking);
+  text-transform: var(--ev-btn-transform);
+  background: var(--ev-btn-bg);
+  color: var(--ev-btn-fg);
+  border: var(--ev-btn-border);
+  border-radius: var(--ev-btn-radius);
+  text-decoration: none;
+}
+
+.ev-btn-underline .ev-button {
+  min-height: auto;
+  padding: 0 0 4px;
+  border-bottom: 2px solid currentColor;
+}
+
+.ev-link {
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.ev-card {
+  padding: clamp(16px, 2.2vw, 26px);
+  background: var(--ev-card-bg);
+  border: var(--ev-card-border);
+  outline: var(--ev-card-outline);
+  outline-offset: 5px;
+}
+
+/* ============================================================================================
+ * 4. Sections.
+ * ========================================================================================== */
+
+.ev-section {
+  padding: var(--ev-section-y) 0;
+  background: var(--ev-bg);
+  color: var(--ev-fg);
+}
+
+.ev-section.ev-kind-band {
+  padding: 0;
+}
+
+.ev-inner {
+  width: min(var(--ev-max-width), calc(100% - var(--ev-gutter) * 2));
+  margin: 0 auto;
+}
+
+.ev-section.ev-al-start .ev-inner {
+  margin-left: var(--ev-gutter);
+}
+
+.ev-section.ev-al-end .ev-inner {
+  margin-left: auto;
+  margin-right: var(--ev-gutter);
+}
+
+.ev-section.ev-al-center {
+  text-align: center;
+}
+
+.ev-section.ev-al-end {
+  text-align: right;
+}
+
+.ev-section.ev-fill-screen {
+  display: flex;
+  align-items: center;
+  min-height: var(--ev-hero-h);
+}
+
+.ev-section.ev-fill-screen .ev-inner {
+  flex: 1;
+}
+
+/* A screen-filling hero's root stretches to the section, so the composition reads as designed. */
+.ev-section.ev-kind-hero.ev-fill-screen .ev-inner > .ev-frame,
+.ev-section.ev-kind-hero.ev-fill-screen .ev-inner > .ev-overlay,
+.ev-section.ev-kind-hero.ev-fill-screen .ev-inner > .ev-split,
+.ev-section.ev-kind-hero.ev-fill-screen .ev-inner > .ev-rail,
+.ev-section.ev-kind-hero.ev-fill-screen .ev-inner > .ev-surface {
+  min-height: calc(var(--ev-hero-h) - var(--ev-section-y) * 2);
+}
+
+.ev-section.ev-kind-hero.ev-fill-screen .ev-inner > .ev-frame,
+.ev-section.ev-kind-hero.ev-fill-screen .ev-inner > .ev-overlay {
+  display: grid;
+}
+
+.ev-collaborator-slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  width: min(var(--ev-max-width), calc(100% - var(--ev-gutter) * 2));
+  margin: 0 auto;
+}
+
+/* ============================================================================================
+ * 5. Containers.
+ * ========================================================================================== */
+
+.ev-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--ev-gap);
+}
+
+.ev-stack.ev-al-start {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.ev-stack.ev-al-center {
+  align-items: center;
+  text-align: center;
+}
+
+.ev-stack.ev-al-end {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/*
+ * A Stack's alignment aligns its *leaves*. Containers and components always take the full width,
+ * or a centered Stack would shrink-wrap a form to its own content.
+ */
+.ev-stack
+  > :is(
+    .ev-stack,
+    .ev-cluster,
+    .ev-split,
+    .ev-rail,
+    .ev-grid,
+    .ev-frame,
+    .ev-surface,
+    .ev-overlay,
+    .ev-rsvp,
+    .ev-registry,
+    .ev-registry-item,
+    .ev-field,
+    .ev-band,
+    .ev-rule,
+    .ev-divider
+  ) {
+  width: 100%;
+  align-self: stretch;
+}
+
+.ev-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--ev-gap) * 0.6) var(--ev-gap);
+}
+
+.ev-cluster.ev-j-center {
+  justify-content: center;
+}
+
+.ev-cluster.ev-j-end {
+  justify-content: flex-end;
+}
+
+.ev-cluster.ev-j-between {
+  justify-content: space-between;
+}
+
+/* The ratio arrives as a bare number; the two tracks are computed here. */
+.ev-split {
+  display: grid;
+  grid-template-columns:
+    calc(var(--ev-split-first) * 1fr)
+    calc((100 - var(--ev-split-first)) * 1fr);
+  gap: clamp(20px, 3vw, 40px);
+}
+
+.ev-split.ev-sal-start {
+  align-items: start;
+}
+
+.ev-split.ev-sal-center {
+  align-items: center;
+}
+
+.ev-split.ev-sal-stretch {
+  align-items: stretch;
+}
+
+.ev-split.ev-div-hairline > :first-child {
+  border-right: var(--ev-rule);
+  padding-right: clamp(20px, 3vw, 40px);
+}
+
+.ev-split.ev-div-strong > :first-child {
+  border-right: var(--ev-rule-strong);
+  padding-right: clamp(20px, 3vw, 40px);
+}
+
+.ev-split.ev-div-dashed > :first-child {
+  border-right: 2px dashed color-mix(in srgb, currentColor 45%, transparent);
+  padding-right: clamp(20px, 3vw, 40px);
+}
+
+.ev-rail {
+  display: grid;
+  grid-template-columns: var(--ev-rail-w) 1fr;
+  gap: clamp(20px, 3vw, 40px);
+}
+
+.ev-rail.ev-side-end {
+  grid-template-columns: 1fr var(--ev-rail-w);
+}
+
+.ev-rail.ev-side-end .ev-rail-track {
+  order: 2;
+}
+
+.ev-rail-track {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* A rail clips: nothing inside a fixed-width column may widen the page. */
+  overflow: hidden;
+  border-right: var(--ev-rule-strong);
+  padding-right: clamp(12px, 2vw, 24px);
+}
+
+.ev-rail.ev-side-end .ev-rail-track {
+  border-right: 0;
+  border-left: var(--ev-rule-strong);
+  padding-right: 0;
+  padding-left: clamp(12px, 2vw, 24px);
+}
+
+.ev-rail-track:has(> .ev-field) {
+  border: 0;
+  padding: 0;
+}
+
+.ev-rail-track .ev-field {
+  height: 100%;
+  min-height: 200px;
+}
+
+.ev-rail-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* A thin rail sets its contents on their side; the numeral is sized by the rail, not the scale. */
+.ev-rail.ev-w-thin .ev-rail-track .ev-stack {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ev-rail.ev-w-thin .ev-rail-track .ev-stack .ev-text {
+  white-space: nowrap;
+}
+
+.ev-rail.ev-w-thin .ev-rail-track .ev-text.ev-t-Date.ev-form-numeral,
+.ev-rail.ev-w-medium .ev-rail-track .ev-text.ev-t-Date.ev-form-numeral.ev-em-display,
+.ev-rail.ev-w-wide .ev-rail-track .ev-text.ev-t-Date.ev-form-numeral.ev-em-display {
+  font-size: calc(var(--ev-rail-w) * 0.7);
+  line-height: 1;
+}
+
+.ev-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ev-cols), minmax(0, 1fr));
+  gap: var(--ev-gap);
+}
+
+.ev-grid.ev-ruled {
+  gap: 0;
+  border-top: var(--ev-rule-strong);
+  border-left: var(--ev-rule);
+}
+
+.ev-grid.ev-ruled .ev-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 120px;
+  padding: clamp(18px, 2.4vw, 30px);
+  border-right: var(--ev-rule);
+  border-bottom: var(--ev-rule);
+}
+
+.ev-cell {
+  grid-column: span var(--ev-span, 1);
+  grid-row: span var(--ev-rspan, 1);
+}
+
+.ev-frame {
+  padding: var(--ev-inset);
+}
+
+.ev-frame-box {
+  position: relative;
+  padding: clamp(24px, 4vw, 56px) clamp(20px, 4vw, 48px);
+}
+
+.ev-section.ev-kind-hero.ev-fill-screen .ev-frame-box {
+  display: grid;
+  align-content: center;
+}
+
+.ev-frame-box.ev-rule-hairline {
+  border: var(--ev-rule);
+}
+
+.ev-frame-box.ev-rule-strong {
+  border: var(--ev-rule-strong);
+}
+
+.ev-frame-box.ev-rule-double {
+  border: var(--ev-rule);
+  outline: var(--ev-rule-outline);
+  outline-offset: 8px;
+}
+
+.ev-frame-box.ev-rule-none {
+  border: 0;
+}
+
+.ev-surface {
+  display: grid;
+  align-content: center;
+  padding: var(--ev-inset);
+  background: var(--ev-bg);
+  color: var(--ev-fg);
+}
+
+.ev-surface.ev-surf-accent {
+  padding: calc(var(--ev-inset) * 0.75) var(--ev-inset);
+}
+
+.ev-overlay {
+  position: relative;
+}
+
+.ev-overlay-content {
+  position: relative;
+  z-index: 1;
+}
+
+.ev-section.ev-kind-hero.ev-fill-screen .ev-overlay-content {
+  display: grid;
+  align-content: center;
+}
+
+/* A decoration is clipped and behind: it can never take space from text or widen the page. */
+.ev-overlay-decoration {
+  position: absolute;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ev-overlay-decoration .ev-field {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.ev-overlay-decoration .ev-text,
+.ev-overlay-decoration .ev-glyph {
+  opacity: 0.12;
+}
+
+.ev-overlay-decoration .ev-text.ev-t-Date.ev-form-numeral {
+  font-family: var(--ev-font-display), ui-serif, Georgia, serif;
+  font-size: calc(var(--ev-display-size) * 3.2);
+  font-weight: var(--ev-display-weight);
+  line-height: 1;
+}
+
+.ev-overlay.ev-ext-full .ev-overlay-decoration {
+  inset: 0;
+}
+
+.ev-overlay.ev-ext-half .ev-overlay-decoration {
+  width: 60%;
+  height: 50%;
+}
+
+.ev-overlay.ev-ext-third .ev-overlay-decoration {
+  width: 42%;
+  height: 36%;
+}
+
+.ev-overlay.ev-ext-quarter .ev-overlay-decoration {
+  width: 32%;
+  height: 26%;
+}
+
+.ev-overlay.ev-anchor-top-start .ev-overlay-decoration {
+  top: 0;
+  left: 0;
+}
+
+.ev-overlay.ev-anchor-top-end .ev-overlay-decoration {
+  top: 0;
+  right: 0;
+}
+
+.ev-overlay.ev-anchor-bottom-start .ev-overlay-decoration {
+  bottom: 0;
+  left: 0;
+}
+
+.ev-overlay.ev-anchor-bottom-end .ev-overlay-decoration {
+  bottom: 0;
+  right: 0;
+}
+
+.ev-overlay.ev-anchor-center .ev-overlay-decoration {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ev-overlay:not(.ev-ext-full) .ev-overlay-content {
+  padding: clamp(24px, 4vw, 56px) 0;
+}
+
+/* ============================================================================================
+ * 6. Decorative leaves and motif patterns.
+ *
+ * The four pattern gradients are proof-b/renderer.js's PATTERN table with its two interpolated
+ * numbers pulled out: `--ev-motif-scale` multiplies every length, `--ev-motif-opacity` sets the
+ * ink. The reference computed the whole gradient string per node; here the string is fixed and
+ * only the numbers move.
+ * ========================================================================================== */
+
+.ev-motif-plaid,
+.ev-motif-stripe,
+.ev-motif-gingham,
+.ev-motif-linen {
+  --ev-motif-ink: color-mix(
+    in srgb,
+    currentColor calc(var(--ev-motif-opacity) * 100%),
+    transparent
+  );
+  --ev-motif-ink-soft: color-mix(
+    in srgb,
+    currentColor calc(var(--ev-motif-opacity) * 55%),
+    transparent
+  );
+  --ev-motif-ink-half: color-mix(
+    in srgb,
+    currentColor calc(var(--ev-motif-opacity) * 50%),
+    transparent
+  );
+}
+
+.ev-motif-plaid {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      var(--ev-motif-ink-soft) 0 1px,
+      transparent 1px calc(24px * var(--ev-motif-scale))
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--ev-motif-ink-soft) 0 1px,
+      transparent 1px calc(24px * var(--ev-motif-scale))
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 calc(94px * var(--ev-motif-scale)),
+      var(--ev-motif-ink) calc(94px * var(--ev-motif-scale)) calc(98px * var(--ev-motif-scale)),
+      transparent calc(98px * var(--ev-motif-scale)) calc(120px * var(--ev-motif-scale))
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(94px * var(--ev-motif-scale)),
+      var(--ev-motif-ink) calc(94px * var(--ev-motif-scale)) calc(98px * var(--ev-motif-scale)),
+      transparent calc(98px * var(--ev-motif-scale)) calc(120px * var(--ev-motif-scale))
+    );
+}
+
+.ev-motif-stripe {
+  background-image: repeating-linear-gradient(
+    0deg,
+    var(--ev-motif-ink) 0 calc(5px * var(--ev-motif-scale)),
+    transparent calc(5px * var(--ev-motif-scale)) calc(14px * var(--ev-motif-scale))
+  );
+}
+
+.ev-motif-gingham {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      var(--ev-motif-ink-half) 0 calc(18px * var(--ev-motif-scale)),
+      transparent calc(18px * var(--ev-motif-scale)) calc(36px * var(--ev-motif-scale))
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--ev-motif-ink-half) 0 calc(18px * var(--ev-motif-scale)),
+      transparent calc(18px * var(--ev-motif-scale)) calc(36px * var(--ev-motif-scale))
+    );
+}
+
+.ev-motif-linen {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      var(--ev-motif-ink-soft) 0 1px,
+      transparent 1px calc(3px * var(--ev-motif-scale))
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--ev-motif-ink-half) 0 1px,
+      transparent 1px calc(4px * var(--ev-motif-scale))
+    );
+}
+
+.ev-field {
+  width: 100%;
+  min-height: 200px;
+}
+
+.ev-stack > .ev-field.ev-ext-full {
+  min-height: calc(var(--ev-hero-h) * 0.5);
+}
+
+.ev-stack > .ev-field.ev-ext-half {
+  min-height: calc(var(--ev-hero-h) * 0.35);
+}
+
+.ev-stack > .ev-field.ev-ext-third {
+  min-height: calc(var(--ev-hero-h) * 0.25);
+}
+
+.ev-stack > .ev-field.ev-ext-quarter {
+  min-height: calc(var(--ev-hero-h) * 0.18);
+}
+
+.ev-split > .ev-field {
+  min-height: 100%;
+}
+
+.ev-band {
+  width: 100%;
+  height: var(--ev-band-h);
+}
+
+.ev-band.ev-band-accent {
+  background: var(--ev-accent);
+}
+
+.ev-section.ev-kind-band .ev-band {
+  height: calc(var(--ev-band-h) * 2);
+}
+
+.ev-rule {
+  width: 100%;
+  border-top: var(--ev-rule);
+}
+
+.ev-rule.ev-w-strong {
+  border-top: var(--ev-rule-strong);
+}
+
+.ev-rule.ev-w-double {
+  border-top: 3px double currentColor;
+}
+
+.ev-rule.ev-rule-v {
+  width: 0;
+  min-height: 1.4em;
+  align-self: stretch;
+  border-top: 0;
+  border-left: var(--ev-rule);
+}
+
+.ev-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.ev-divider::before,
+.ev-divider::after {
+  content: "";
+  flex: 1;
+  border-top: var(--ev-rule);
+}
+
+.ev-glyph {
+  display: inline-flex;
+}
+
+/* A row of ornament wraps and its marks shrink, so ornament is never what overflows a page. */
+.ev-glyphs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.ev-glyphs svg {
+  flex-shrink: 1;
+  width: calc(26px * var(--ev-motif-scale));
+  height: calc(26px * var(--ev-motif-scale));
+  max-width: 100%;
+}
+
+.ev-monogram {
+  display: grid;
+  place-items: center;
+  font-family: var(--ev-font-display), ui-serif, Georgia, serif;
+}
+
+.ev-monogram.ev-mono-ring span {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border: var(--ev-rule);
+  border-radius: 50%;
+  font-size: 2.2rem;
+}
+
+.ev-monogram.ev-mono-plain span {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.ev-monogram.ev-mono-watermark span {
+  font-size: calc(var(--ev-display-size) * 5);
+  line-height: 1;
+  opacity: 0.1;
+}
+
+/* ============================================================================================
+ * 7. Text.
+ * ========================================================================================== */
+
+/* The floor: a word can always break. Demotion runs first, so this is the last resort (§3.1). */
+.ev-text {
+  overflow-wrap: anywhere;
+}
+
+.ev-text.ev-em-display {
+  font-family: var(--ev-font-display), ui-serif, Georgia, serif;
+  font-size: var(--ev-display-size);
+  font-weight: var(--ev-display-weight);
+  line-height: var(--ev-display-lh);
+  letter-spacing: var(--ev-tracking);
+}
+
+.ev-text.ev-em-primary {
+  font-family: var(--ev-font-display), ui-serif, Georgia, serif;
+  font-size: var(--ev-primary-size);
+  font-weight: var(--ev-primary-weight);
+  line-height: var(--ev-primary-lh);
+  letter-spacing: var(--ev-tracking);
+}
+
+.ev-text.ev-em-secondary {
+  max-width: var(--ev-measure);
+  font-size: var(--ev-secondary-size);
+  font-weight: var(--ev-secondary-weight);
+  line-height: var(--ev-secondary-lh);
+}
+
+.ev-text.ev-em-caption {
+  font-size: var(--ev-caption-size);
+  font-weight: var(--ev-caption-weight);
+  line-height: var(--ev-caption-lh);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.ev-cluster .ev-text {
+  max-width: none;
+}
+
+.ev-text.ev-case-upper {
+  text-transform: uppercase;
+}
+
+h1.ev-text.ev-em-display.ev-case-upper {
+  line-height: 0.9;
+}
+
+h1.ev-text.ev-lay-stagger,
+h1.ev-text.ev-lay-cascade {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.9;
+}
+
+h1.ev-text.ev-em-display.ev-lay-stagger,
+h1.ev-text.ev-em-display.ev-lay-cascade {
+  font-size: calc(var(--ev-display-size) * 1.05);
+}
+
+h1.ev-text.ev-em-primary.ev-lay-stagger,
+h1.ev-text.ev-em-primary.ev-lay-cascade {
+  font-size: calc(var(--ev-primary-size) * 1.15);
+}
+
+h1.ev-text .ev-line {
+  overflow-wrap: anywhere;
+}
+
+h1.ev-text.ev-lay-stagger .ev-line:nth-child(even) {
+  text-align: right;
+}
+
+h1.ev-text.ev-lay-cascade .ev-line:nth-child(2) {
+  padding-left: 12%;
+}
+
+h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
+  padding-left: 24%;
+}
+
+.ev-text.ev-t-Date.ev-form-numeral.ev-em-display {
+  font-size: calc(var(--ev-display-size) * 1.6);
+  line-height: 0.85;
+}
+
+.ev-text.ev-t-Date.ev-form-numeral.ev-em-primary {
+  font-size: calc(var(--ev-primary-size) * 1.6);
+  line-height: 0.9;
+}
+
+.ev-text.ev-t-Eyebrow {
+  opacity: 0.9;
+}
+
+.ev-text.ev-t-Hosts.ev-em-secondary,
+.ev-text.ev-t-Description {
+  opacity: 0.9;
+}
+
+.ev-cta {
+  display: inline-flex;
+}
+
+/* ============================================================================================
+ * 8. Opaque guest components.
+ *
+ * Shells for now (see primitives/components.tsx): the right box, at the right width, on the right
+ * surface, in the page's own card language, so geometry verification measures the real page.
+ * ========================================================================================== */
+
+.ev-rsvp {
+  container-type: inline-size;
+  width: 100%;
+  align-self: stretch;
+  text-align: left;
+}
+
+.ev-registry {
+  width: 100%;
+  align-self: stretch;
+  text-align: left;
+}
+
+.ev-registry-item,
+.ev-registry .ev-card {
+  height: 100%;
+}
+
+.ev-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1.1 / 1;
+  border: var(--ev-rule);
+  background-image: repeating-linear-gradient(
+    0deg,
+    color-mix(in srgb, currentColor 16%, transparent) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+.ev-card-body {
+  margin-top: 14px;
+}
+
+.ev-registry-item.ev-featured .ev-card {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 22px;
+}
+
+.ev-registry-item.ev-featured .ev-card-body {
+  margin-top: 0;
+}
+
+.ev-registry-list .ev-stack {
+  gap: 0;
+}
+
+.ev-registry-list .ev-card {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 22px;
+  align-items: center;
+  padding: 20px 0;
+  background: transparent;
+  border: 0;
+  border-top: var(--ev-rule);
+  outline: 0;
+}
+
+.ev-registry-list .ev-card-body {
+  margin-top: 0;
+}
+
+.ev-registry-list .ev-thumb {
+  aspect-ratio: 1;
+}
+
+.ev-cashfund {
+  max-width: 560px;
+}
+
+.ev-placeholder {
+  display: grid;
+  gap: 12px;
+}
+
+.ev-placeholder-line {
+  display: block;
+  height: 1em;
+  border-bottom: var(--ev-field-border-b);
+}
+
+.ev-placeholder-line:nth-child(even) {
+  width: 70%;
+}
+
+.ev-rsvp .ev-placeholder-line {
+  height: 46px;
+  border: var(--ev-field-border);
+  border-bottom: var(--ev-field-border-b);
+  border-radius: var(--ev-btn-radius);
+}
+
+.ev-rsvp .ev-placeholder-line:nth-child(even) {
+  width: 100%;
+}
+
+/* ============================================================================================
+ * 9. Focus — docs/design-system.md §15.6a, binding.
+ *
+ * The ring is drawn *outside* the control, against the surface behind it, never inside a filled
+ * control where one color cannot be guaranteed to clear 3:1 against both the fill and the page.
+ * `--ev-focus-ring` is set per surface in §2 and is always a token derived against the surface it
+ * lands on. It is a shape change — an outline at an offset — not a color swap, so it survives
+ * every tonal direction and forced-colors mode.
+ *
+ * There is deliberately no `outline: none` anywhere in this file.
+ * ========================================================================================== */
+
+.ev-site :focus-visible {
+  outline: 3px solid var(--ev-focus-ring);
+  outline-offset: 3px;
+}
+
+@media (forced-colors: active) {
+  .ev-site :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* ============================================================================================
+ * 10. Mobile — the compiler owns the breakpoint; the tree's mobile intents decide what converges.
+ * ========================================================================================== */
+
+@media (max-width: 700px) {
+  .ev-site {
+    --ev-display-size: var(--ev-display-size-mobile);
+    --ev-primary-size: var(--ev-primary-size-mobile);
+    --ev-secondary-size: var(--ev-secondary-size-mobile);
+    --ev-caption-size: var(--ev-caption-size-mobile);
+    --ev-display-lh: var(--ev-display-lh-mobile);
+    --ev-primary-lh: var(--ev-primary-lh-mobile);
+    --ev-secondary-lh: var(--ev-secondary-lh-mobile);
+    --ev-caption-lh: var(--ev-caption-lh-mobile);
+    --ev-display-weight: var(--ev-display-weight-mobile);
+    --ev-primary-weight: var(--ev-primary-weight-mobile);
+    --ev-secondary-weight: var(--ev-secondary-weight-mobile);
+    --ev-caption-weight: var(--ev-caption-weight-mobile);
+
+    --ev-section-y: var(--ev-section-y-mobile);
+    --ev-container-gap: var(--ev-container-gap-mobile);
+    --ev-page-inset: var(--ev-inset-mobile);
+    --ev-gutter: 16px;
+    --ev-hero-h: 72svh;
+  }
+
+  .ev-split.ev-m-stack,
+  .ev-split.ev-m-stack-reverse {
+    grid-template-columns: 1fr;
+  }
+
+  .ev-split.ev-m-stack-reverse > :first-child {
+    order: 2;
+  }
+
+  /* `keep` holds the two columns but pulls the ratio back toward even so neither column starves. */
+  .ev-split.ev-m-keep {
+    grid-template-columns:
+      calc(clamp(38, var(--ev-split-first), 62) * 1fr)
+      calc((100 - clamp(38, var(--ev-split-first), 62)) * 1fr);
+    gap: 14px;
+  }
+
+  .ev-split.ev-m-stack.ev-div-hairline > :first-child,
+  .ev-split.ev-m-stack.ev-div-strong > :first-child,
+  .ev-split.ev-m-stack.ev-div-dashed > :first-child {
+    border-right: 0;
+    padding-right: 0;
+    border-bottom: var(--ev-rule);
+    padding-bottom: 16px;
+  }
+
+  .ev-split.ev-m-stack-reverse.ev-div-hairline > :first-child,
+  .ev-split.ev-m-stack-reverse.ev-div-strong > :first-child,
+  .ev-split.ev-m-stack-reverse.ev-div-dashed > :first-child {
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .ev-rail,
+  .ev-rail.ev-side-end {
+    grid-template-columns: 1fr;
+  }
+
+  .ev-rail .ev-rail-track,
+  .ev-rail.ev-side-end .ev-rail-track {
+    order: 0;
+    border: 0;
+    padding: 0;
+    border-bottom: var(--ev-rule-strong);
+    padding-bottom: 14px;
+  }
+
+  .ev-rail.ev-m-bottom .ev-rail-track {
+    order: 2;
+    border-bottom: 0;
+    border-top: var(--ev-rule-strong);
+    padding-top: 14px;
+    padding-bottom: 0;
+  }
+
+  .ev-rail.ev-m-hide .ev-rail-track {
+    display: none;
+  }
+
+  .ev-rail .ev-rail-track .ev-field {
+    min-height: var(--ev-rail-w);
+  }
+
+  /* A vertical rail cannot stay vertical at phone width; it becomes an ordinary wrapping row. */
+  .ev-rail.ev-w-thin .ev-rail-track .ev-stack {
+    writing-mode: horizontal-tb;
+    transform: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+  }
+
+  .ev-rail.ev-w-thin .ev-rail-track .ev-stack .ev-text {
+    white-space: normal;
+  }
+
+  .ev-grid {
+    grid-template-columns: repeat(var(--ev-mcols), minmax(0, 1fr));
+  }
+
+  .ev-cell {
+    grid-column: span min(var(--ev-span, 1), var(--ev-mcols));
+  }
+
+  .ev-grid.ev-ruled .ev-cell {
+    min-height: 90px;
+    padding: 14px;
+  }
+
+  .ev-frame {
+    padding: calc(var(--ev-inset) * 0.6);
+  }
+
+  .ev-frame-box {
+    padding: 32px 18px;
+  }
+
+  .ev-surface {
+    padding: calc(var(--ev-inset) * 0.6);
+  }
+
+  .ev-overlay:not(.ev-ext-full) .ev-overlay-content,
+  .ev-overlay.ev-m-stack .ev-overlay-content {
+    padding: 0;
+  }
+
+  /* `mobile: "stack"` takes the decoration out of the overlay and puts it under the content. */
+  .ev-overlay.ev-m-stack .ev-overlay-decoration {
+    position: static;
+    width: 100%;
+    height: auto;
+    margin-top: 16px;
+    transform: none;
+  }
+
+  .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-field {
+    min-height: 140px;
+  }
+
+  .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-text.ev-t-Date.ev-form-numeral {
+    font-size: calc(var(--ev-display-size) * 2);
+  }
+
+  .ev-registry-item.ev-featured .ev-card {
+    grid-template-columns: 1fr;
+  }
+
+  .ev-registry-item.ev-featured .ev-card-body {
+    margin-top: 14px;
+  }
+
+  .ev-registry-list .ev-card {
+    grid-template-columns: 72px 1fr;
+  }
+
+  .ev-monogram.ev-mono-watermark span {
+    font-size: calc(var(--ev-display-size) * 3.5);
+  }
+
+  h1.ev-text.ev-lay-cascade .ev-line:nth-child(2) {
+    padding-left: 6%;
+  }
+
+  h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
+    padding-left: 12%;
+  }
 }
