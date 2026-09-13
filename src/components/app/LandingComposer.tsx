@@ -87,6 +87,12 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const promptRef = useRef(prompt);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Serializes every autosave (debounce + blur) behind a single chain, so at most one save is
+  // ever in flight and each queued save reads the prompt at the moment it actually runs — never
+  // a stale snapshot captured when it was scheduled. `Create my event` awaits this chain before
+  // sending its own authoritative save, so an older autosave can never land after and overwrite
+  // the prompt the visitor just submitted (spec.md §7.2).
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     promptRef.current = prompt;
@@ -141,17 +147,24 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
     }
   }
 
+  /** Queues an autosave behind whatever is already in flight or queued; never overtakes it. */
+  function queueAutosave(): Promise<void> {
+    const next = saveChainRef.current.then(persistPrompt, persistPrompt);
+    saveChainRef.current = next;
+    return next;
+  }
+
   function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
     setPrompt(event.target.value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      void persistPrompt();
+      void queueAutosave();
     }, AUTOSAVE_DEBOUNCE_MS);
   }
 
   function handleBlur() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    void persistPrompt();
+    void queueAutosave();
   }
 
   async function handleFilesSelected(files: FileList | null) {
@@ -188,16 +201,44 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
   }
 
   async function handleRemoveInspiration(id: string) {
+    const removedIndex = inspiration.findIndex((item) => item.id === id);
+    const removed = removedIndex >= 0 ? inspiration[removedIndex] : undefined;
     setInspiration((prev) => prev.filter((item) => item.id !== id));
+
+    function restore() {
+      if (!removed) return;
+      setInspiration((prev) => {
+        const next = [...prev];
+        next.splice(Math.min(removedIndex, next.length), 0, removed);
+        return next;
+      });
+      setUploadError("Could not remove that image. Try again.");
+    }
+
     try {
-      await fetch(`/api/inspiration?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/inspiration?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        restore();
+        return;
+      }
+      setUploadError(null);
     } catch {
-      // The thumbnail is already gone locally; a failed cleanup call is not worth surfacing.
+      restore();
     }
   }
 
   async function handleCreate() {
     setCreateError(null);
+    // Cancel any scheduled autosave — its stale snapshot must never be the last write — and
+    // wait for whatever is already in flight or queued to finish before sending our own,
+    // authoritative save with the current text, so it is always the final write (spec.md §7.2).
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    await saveChainRef.current;
     const result = await createEvent(prompt);
     if (!result.ok) setCreateError(result.error);
     // On success `createEvent` redirects and this component unmounts.
@@ -286,7 +327,7 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
                 <SaveIndicator
                   status={saveStatus}
                   error={saveError}
-                  onRetry={() => void persistPrompt()}
+                  onRetry={() => void queueAutosave()}
                 />
               </div>
               <SubmitButton disabled={!prompt.trim()} />
