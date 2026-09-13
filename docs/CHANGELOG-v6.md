@@ -59,6 +59,50 @@ A related count, recorded so the Phase 3 replay gate is unambiguous: the frozen 
 
 Where frozen proof artifacts state 27 (`proof-a1/vocabulary.md`, `proof-b/README.md`, `proof-b/PROPOSAL.md`, and the comment in `proof-b/library.js`), that wording is preserved as the historical record and is the miscount this entry reconciles. Those files are pinned by `proof-b/FREEZE.md` and are not edited. Current canonical documents state 26.
 
+## Revision 6.3 — the one intentional production correction in the Phase 3 port
+
+Implementation history, not architecture. The CompositionTree language, the primitive set, the
+planner and the creative architecture are untouched; this records a narrowly scoped correctness
+fix so a later reader does not mistake it for drift.
+
+Phase 3 ports `proof-b` to production TypeScript. It first established **exact parity**: the
+reference engine's output over the library, the adversarial set and the frozen confirmation run
+was captured as a golden oracle (`tests/fixtures/renderer-golden/`) before any production code
+existed, so "no behaviour change" was measurable rather than asserted.
+
+The port then exposed a defect in the reference. `repair()` addresses nodes by dot-path and
+derived a node's parent by slicing off the last dot-segment. An array index lives *inside* one
+segment (`children[3]`), so that always yielded the parent **node**, never the `children` array,
+and `Array.isArray(parent)` was false everywhere. No array-child repair could reach its removal
+branch: a duplicate or capability-disabled node was replaced in place by a hairline `Rule` the
+model never authored, and the node-budget repair's graded path was unreachable, so every
+over-budget section was flattened to its first eight leaves.
+
+Production corrected it, because the reference behaviour contradicts higher-authority canonical
+contracts: `event-renderer-system.md §2.3` says the validator **drops** a reference to a disabled
+capability, and §3 describes graded repair, which `spec.md §32` #22 requires to be deterministic
+rather than a demolition. Only the parent lookup changed; the repair ordering, guards and log
+text are as ported.
+
+The frozen proof and its oracle were **not** rewritten. `adversarial-structural.json` still
+records what the reference does, and the parity suite asserts the reference still replays to it
+byte-for-byte, so the divergence stays visible instead of being edited away.
+
+Measured across all 164 golden items:
+
+| Golden set | Diverging |
+| --- | --- |
+| 26 legacy hero fixtures | 0 |
+| 13 section recipes | 0 |
+| 16 A.1 pages | 0 |
+| 72 accepted confirmation trees | 0 |
+| 37 adversarial structural fixtures | **5, intentionally** |
+
+Reference parity and production conformance are separate test concerns from here on: the
+byte-for-byte comparisons live in `parity.test.ts` and die with `proof-b`; the behaviour the
+canonical documents require is stated independently in `composition.test.ts` and outlives it.
+Full detail, including the five fixtures by name, is in `docs/phase-3-reference-defects.md`.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

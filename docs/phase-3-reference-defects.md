@@ -53,9 +53,9 @@ documents, which outrank frozen proof behaviour when a reproduced defect conflic
 so the removal branch is reachable. The repair algorithm itself — its ordering, its guards, its
 log text — is unchanged; only the lookup the existing code already expressed was fixed.
 
-**Measured blast radius** across all 127 golden items (26 hero silhouettes, 13 section recipes,
+**Measured blast radius** across all 164 golden items (26 hero silhouettes, 13 section recipes,
 16 A.1 pages, 37 adversarial fixtures, 72 frozen confirmation trees — 109 of which exercise
-repair):
+repair: the 37 adversarial fixtures and the 72 frozen trees):
 
 | Golden set | Diverging |
 | --- | --- |
