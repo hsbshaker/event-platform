@@ -227,6 +227,97 @@ describe("inferTimezoneFromVenue", () => {
     });
   });
 
+  it("does not let a split-zone country outrank a city inside it", () => {
+    const cases: [string, string, string][] = [
+      ["Sydney, Australia", "Australia/Sydney", "Sydney"],
+      ["Perth, Australia", "Australia/Perth", "Perth"],
+      ["Brisbane, Australia", "Australia/Brisbane", "Brisbane"],
+      ["Melbourne, Australia", "Australia/Melbourne", "Melbourne"],
+      ["Toronto, Canada", "America/Toronto", "Toronto"],
+      ["Vancouver, Canada", "America/Vancouver", "Vancouver"],
+      ["Montreal, Canada", "America/Toronto", "Montreal"],
+      ["Sao Paulo, Brazil", "America/Sao_Paulo", "Sao Paulo"],
+    ];
+    for (const [venue, timezone, matched] of cases) {
+      expect(inferTimezoneFromVenue(venue)).toEqual({ timezone, confidence: "high", matched });
+    }
+    // The city still stands on its own with no country named.
+    expect(inferTimezoneFromVenue("An opera house in Sydney")).toEqual({
+      timezone: "Australia/Sydney",
+      confidence: "high",
+      matched: "Sydney",
+    });
+  });
+
+  it("still returns no zone for a split-zone country named on its own", () => {
+    const cases: [string, string][] = [
+      ["A beach wedding in Australia", "Australia"],
+      ["A lodge somewhere in Canada", "Canada"],
+      ["A rooftop in Brazil", "Brazil"],
+      ["A hall in the United States", "United States"],
+    ];
+    for (const [venue, matched] of cases) {
+      expect(inferTimezoneFromVenue(venue)).toEqual({ timezone: null, confidence: "low", matched });
+    }
+  });
+
+  it("prefers a named region to a same-named city in a country tier below it", () => {
+    // Sydney, Nova Scotia is a real place, and the province is named, so Australia's
+    // Sydney must not win.
+    expect(inferTimezoneFromVenue("Sydney, Nova Scotia")).toEqual({
+      timezone: "America/Halifax",
+      confidence: "high",
+      matched: "Nova Scotia",
+    });
+  });
+
+  it("does not read an all-caps English word as a state or country code", () => {
+    // All-caps venue text is ordinary, and IN, LA, OK, ME, HI and US are English words.
+    // Reading one as a code produced a high-confidence wrong zone, which is written
+    // straight to the event's stored timezone.
+    for (const venue of [
+      "DINNER IN LA",
+      "THE LOFT IN DOWNTOWN SEATTLE",
+      "JOIN US OK",
+      "CALL ME FOR THE ADDRESS",
+      "ALOHA HI EVERYONE",
+    ]) {
+      expect(inferTimezoneFromVenue(venue)).toEqual({
+        timezone: null,
+        confidence: "none",
+        matched: null,
+      });
+    }
+  });
+
+  it("reads a code after a comma or immediately before a postal code", () => {
+    expect(inferTimezoneFromVenue("Austin TX 78701")).toEqual({
+      timezone: "America/Chicago",
+      confidence: "high",
+      matched: "Texas",
+    });
+    expect(inferTimezoneFromVenue("Toronto ON M5V 2T6")).toEqual({
+      timezone: "America/Toronto",
+      confidence: "high",
+      matched: "Toronto",
+    });
+    // With neither signal nothing separates a code from an ordinary word, so the text
+    // resolves to nothing rather than to a guess.
+    expect(inferTimezoneFromVenue("Austin TX")).toEqual({
+      timezone: null,
+      confidence: "none",
+      matched: null,
+    });
+  });
+
+  it("refuses to choose between two codes of the same length that disagree", () => {
+    expect(inferTimezoneFromVenue("Texarkana, TX, AR")).toEqual({
+      timezone: null,
+      confidence: "none",
+      matched: null,
+    });
+  });
+
   it("does not match a substring inside an unrelated word (word-boundary safe)", () => {
     // "in" (Indiana's abbreviation) must not match inside "Kingston" or "Increase".
     const result = inferTimezoneFromVenue("Kingston Hall, Increase Ave");

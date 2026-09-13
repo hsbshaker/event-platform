@@ -6,11 +6,12 @@
  * or partial matches are `low`; nothing found is `none`. It is better to return `none`
  * than to guess a wrong zone.
  *
- * Two-letter/short codes (state and province abbreviations, "us"/"uk"/"uae") are
- * matched case-sensitively as an all-caps whole word against the *original* text
- * (never the lowercased form) — real addresses render them as "Austin, TX", never
- * "austin, tx" prose — so common lowercase English words ("in", "or", "me", "hi", "ok")
- * never collide with a state/country code.
+ * Two-letter/short codes (state and province abbreviations, "US"/"UK"/"UAE") are matched
+ * case-sensitively against the *original* text, and only where an address puts one:
+ * straight after a comma ("Austin, TX") or immediately before a postal code
+ * ("Austin TX 78701"). Case alone is not enough — all-caps venue text is ordinary, and
+ * several codes are also English words, so "DINNER IN LA" would otherwise resolve to
+ * Indiana at high confidence and be written straight to the event's stored timezone.
  *
  * Pure, dependency-free: no I/O, no network calls.
  */
@@ -23,13 +24,37 @@ export interface TimezoneInference {
   matched: string | null;
 }
 
+/**
+ * The broad, split-zone regions that contain other entries in the same table. Naming
+ * them as a closed set keeps `within` honest in both directions: an entry cannot claim
+ * a container that does not exist, and `WORLD_CONTAINERS` cannot quietly stop providing
+ * one that entries still name.
+ */
+type ContainerKey = "australia" | "canada" | "brazil" | "united states";
+
 interface LookupEntry {
   /** Canonical IANA zone, or null for an ambiguous state/region match. */
   zone: string | null;
   confidence: TimezoneConfidence;
   /** Canonical label recorded as `matched` when this entry wins. */
   label: string;
+  /**
+   * The broad split-zone region this entry sits inside, when there is one. A container
+   * never outranks a place inside it that also matched: "Sydney, Australia" is Sydney's
+   * zone, not Australia's absence of one.
+   */
+  within?: ContainerKey;
 }
+
+// Countries whose IANA zone is split, so they resolve nothing on their own. Each is the
+// single shared entry its own table and `within` both point at, so a container and the
+// places inside it can be compared by identity.
+const WORLD_CONTAINERS: Record<ContainerKey, LookupEntry> = {
+  australia: { zone: null, confidence: "low", label: "Australia" },
+  canada: { zone: null, confidence: "low", label: "Canada" },
+  brazil: { zone: null, confidence: "low", label: "Brazil" },
+  "united states": { zone: null, confidence: "low", label: "United States" },
+};
 
 /** A table of full names/cities, matched case-insensitively as whole words/phrases. */
 type NameTable = Record<string, LookupEntry>;
@@ -194,7 +219,13 @@ const CITY_NAMES = {
   },
   // Ontario spans Eastern and Central, so the province alone stays ambiguous; Toronto
   // resolves it the same way Pensacola resolves Florida.
-  toronto: { zone: "America/Toronto", confidence: "high", label: "Toronto", region: "ontario" },
+  toronto: {
+    zone: "America/Toronto",
+    confidence: "high",
+    label: "Toronto",
+    region: "ontario",
+    within: "canada",
+  },
 } satisfies CityTable;
 
 // Unambiguous US states/territories: a single IANA zone applies statewide (name form).
@@ -412,30 +443,56 @@ const WORLD_NAMES: NameTable = {
   "south africa": { zone: "Africa/Johannesburg", confidence: "high", label: "South Africa" },
   nigeria: { zone: "Africa/Lagos", confidence: "high", label: "Nigeria" },
   lagos: { zone: "Africa/Lagos", confidence: "high", label: "Lagos" },
-  sydney: { zone: "Australia/Sydney", confidence: "high", label: "Sydney" },
-  melbourne: { zone: "Australia/Melbourne", confidence: "high", label: "Melbourne" },
-  brisbane: { zone: "Australia/Brisbane", confidence: "high", label: "Brisbane" },
-  perth: { zone: "Australia/Perth", confidence: "high", label: "Perth" },
-  australia: { zone: null, confidence: "low", label: "Australia" },
+  sydney: {
+    zone: "Australia/Sydney",
+    confidence: "high",
+    label: "Sydney",
+    within: "australia",
+  },
+  melbourne: {
+    zone: "Australia/Melbourne",
+    confidence: "high",
+    label: "Melbourne",
+    within: "australia",
+  },
+  brisbane: {
+    zone: "Australia/Brisbane",
+    confidence: "high",
+    label: "Brisbane",
+    within: "australia",
+  },
+  perth: { zone: "Australia/Perth", confidence: "high", label: "Perth", within: "australia" },
+  australia: WORLD_CONTAINERS.australia,
   auckland: { zone: "Pacific/Auckland", confidence: "high", label: "Auckland" },
   "new zealand": { zone: "Pacific/Auckland", confidence: "high", label: "New Zealand" },
   // Same entry as the city table uses, so the two can never drift apart.
   toronto: CITY_NAMES.toronto,
-  vancouver: { zone: "America/Vancouver", confidence: "high", label: "Vancouver" },
-  montreal: { zone: "America/Toronto", confidence: "high", label: "Montreal" },
-  canada: { zone: null, confidence: "low", label: "Canada" },
+  vancouver: {
+    zone: "America/Vancouver",
+    confidence: "high",
+    label: "Vancouver",
+    within: "canada",
+  },
+  montreal: { zone: "America/Toronto", confidence: "high", label: "Montreal", within: "canada" },
+  canada: WORLD_CONTAINERS.canada,
   "mexico city": { zone: "America/Mexico_City", confidence: "high", label: "Mexico City" },
   mexico: { zone: "America/Mexico_City", confidence: "high", label: "Mexico" },
-  "sao paulo": { zone: "America/Sao_Paulo", confidence: "high", label: "Sao Paulo" },
-  brazil: { zone: null, confidence: "low", label: "Brazil" },
+  "sao paulo": {
+    zone: "America/Sao_Paulo",
+    confidence: "high",
+    label: "Sao Paulo",
+    within: "brazil",
+  },
+  brazil: WORLD_CONTAINERS.brazil,
   "buenos aires": {
     zone: "America/Argentina/Buenos_Aires",
     confidence: "high",
     label: "Buenos Aires",
   },
   argentina: { zone: "America/Argentina/Buenos_Aires", confidence: "high", label: "Argentina" },
-  "united states": { zone: null, confidence: "low", label: "United States" },
-  usa: { zone: null, confidence: "low", label: "United States" },
+  "united states": WORLD_CONTAINERS["united states"],
+  // The same entry, so "USA" and "United States" are one place, not two.
+  usa: WORLD_CONTAINERS["united states"],
 };
 
 // Country-level short codes, matched case-sensitively (all caps) for the same reason
@@ -497,11 +554,25 @@ function containsWord(haystack: string, key: string): boolean {
   return pattern.test(` ${haystack} `);
 }
 
-/** Case-sensitive whole-word match of an all-caps code against the original text. */
+/**
+ * Case-sensitive match of an all-caps code against the original text, in one of the two
+ * positions an address actually puts one: straight after a comma ("Austin, TX",
+ * "Toronto, ON") or immediately before a postal code ("Austin TX 78701",
+ * "Toronto ON M5V 2T6").
+ *
+ * Case on its own is not evidence: all-caps venue and address text is ordinary, and IN,
+ * LA, OK, ME, HI and US are also English words, so matching a bare all-caps word turned
+ * "DINNER IN LA" into Indiana and "JOIN US OK" into Oklahoma — at `high` confidence,
+ * which `resolveEventTimezone` writes straight to the event's stored zone. Requiring the
+ * address position costs only the "Austin TX" form with neither comma nor postal code,
+ * and that returns `none` rather than a wrong zone.
+ */
 function containsAbbrev(rawText: string, code: string): boolean {
   const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`(^|[^A-Za-z0-9])${escaped}($|[^A-Za-z0-9])`);
-  return pattern.test(` ${rawText} `);
+  if (new RegExp(`,\\s*${escaped}(?![A-Za-z0-9])`).test(rawText)) return true;
+  // US ZIP (12345 / 12345-6789) or the first half of a Canadian postal code (M5V).
+  const postalCode = String.raw`\d{5}(-\d{4})?|[A-Z]\d[A-Z]`;
+  return new RegExp(`(^|[^A-Za-z0-9])${escaped}\\s+(${postalCode})(?![A-Za-z0-9])`).test(rawText);
 }
 
 interface Candidate<E extends LookupEntry = LookupEntry> {
@@ -509,29 +580,56 @@ interface Candidate<E extends LookupEntry = LookupEntry> {
   weight: number;
 }
 
+/**
+ * The best match within one tier, by a stated order rather than by table order:
+ *
+ * 1. a place beats a broad container it sits inside, however much longer the
+ *    container's key is — "Sydney, Australia" is Sydney, not ambiguous Australia;
+ * 2. otherwise the longest matching name key wins, since it is the most specific
+ *    ("new hampshire" over "hampshire" were both present);
+ * 3. names beat abbreviations, which are short and easier to hit by accident;
+ * 4. among abbreviations the longest code wins ("USA" over "US");
+ * 5. two codes of the same length pointing at different places means the text
+ *    contradicts itself, so neither wins — guessing risks a confidently wrong zone;
+ * 6. anything still tied is settled by table order, which is stable.
+ */
 function evaluateTier<E extends LookupEntry>(
   rawText: string,
   normalizedText: string,
   tier: Tier<E>,
 ): Candidate<E> | null {
-  let best: Candidate<E> | null = null;
+  const matches: Candidate<E>[] = [];
   for (const [key, entry] of Object.entries(tier.names)) {
-    if (!containsWord(normalizedText, key)) continue;
-    if (!best || key.length > best.weight) {
-      best = { entry, weight: key.length };
+    if (containsWord(normalizedText, key)) matches.push({ entry, weight: key.length });
+  }
+
+  // Rule 1: any container that a more specific match sits inside is out of the running.
+  const shadowed = new Set<LookupEntry>();
+  for (const match of matches) {
+    if (!match.entry.within || match.entry.zone === null) continue;
+    const container = WORLD_CONTAINERS[match.entry.within];
+    if (container.zone === null) shadowed.add(container);
+  }
+
+  let best: Candidate<E> | null = null;
+  for (const match of matches) {
+    if (shadowed.has(match.entry)) continue;
+    if (!best || match.weight > best.weight) best = match;
+  }
+  if (best || !tier.abbrevs) return best;
+
+  let winner: Candidate<E> | null = null;
+  let contradicted = false;
+  for (const [code, entry] of Object.entries(tier.abbrevs)) {
+    if (!containsAbbrev(rawText, code)) continue;
+    if (!winner || code.length > winner.weight) {
+      winner = { entry, weight: code.length };
+      contradicted = false;
+    } else if (code.length === winner.weight && entry !== winner.entry) {
+      contradicted = true;
     }
   }
-  if (tier.abbrevs) {
-    for (const [code, entry] of Object.entries(tier.abbrevs)) {
-      if (!containsAbbrev(rawText, code)) continue;
-      // Abbreviations are inherently short; only let one win over a name match if no
-      // name match was found in this tier.
-      if (!best) {
-        best = { entry, weight: code.length };
-      }
-    }
-  }
-  return best;
+  return contradicted ? null : winner;
 }
 
 /**
