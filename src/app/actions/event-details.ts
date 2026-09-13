@@ -4,6 +4,11 @@ import { z } from "zod";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { createClient } from "@/lib/supabase/server";
+import {
+  applyEventPatch,
+  type ApplyPatchResult,
+  type EventPatchStore,
+} from "@/lib/events/apply-patch";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
@@ -58,7 +63,7 @@ export interface EventDraftView extends EventDetailFields {
 }
 
 const COLUMNS =
-  "id, prompt, title, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at";
+  "id, prompt, title, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at, row_version";
 
 type EventRow = {
   id: string;
@@ -76,6 +81,8 @@ type EventRow = {
   rsvp_deadline: string | null;
   rsvp_deadline_edited: boolean;
   generation_requested_at: string | null;
+  /** Concurrency token, never sent to the client and never written by this module. */
+  row_version: number;
 };
 
 function toFields(row: EventRow): EventDetailFields {
@@ -158,27 +165,51 @@ export async function updateEventDetails(
   }
 
   const supabase = await createClient();
-  const { data: current, error: readError } = await supabase
-    .from("events")
-    .select(COLUMNS)
-    .eq("id", eventId)
-    .maybeSingle();
-  if (readError) throw readError;
-  if (!current) return { ok: false, error: "That event no longer exists." };
-  const row = current as EventRow;
 
-  const update = computeEventPatch(row, input, new Date());
+  // Compare-and-set on `row_version`, so the patch and its derived RSVP deadline can only
+  // land on the snapshot they were computed from. A save that loses the race recomputes
+  // against the winner's state rather than overwriting it (see applyEventPatch).
+  const store: EventPatchStore<EventRow> = {
+    async read() {
+      const { data, error } = await supabase
+        .from("events")
+        .select(COLUMNS)
+        .eq("id", eventId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const row = data as EventRow;
+      return { row, version: row.row_version };
+    },
+    async compareAndSet(patch, version) {
+      const { data, error } = await supabase
+        .from("events")
+        .update(patch)
+        .eq("id", eventId)
+        .eq("row_version", version)
+        .select(COLUMNS);
+      if (error) throw error;
+      // Zero rows means another writer moved the version between the read and here.
+      const row = (data ?? [])[0] as EventRow | undefined;
+      return row ? { row, version: row.row_version } : null;
+    },
+  };
 
-  if (Object.keys(update).length > 0) {
-    const { error } = await supabase.from("events").update(update).eq("id", eventId);
-    if (error) return { ok: false, error: "Could not save that. Try again." };
+  let result: ApplyPatchResult<EventRow>;
+  try {
+    result = await applyEventPatch(store, (row) => computeEventPatch(row, input, new Date()));
+  } catch {
+    return { ok: false, error: "Could not save that. Try again." };
   }
 
-  const { data: after, error: afterError } = await supabase
-    .from("events")
-    .select(COLUMNS)
-    .eq("id", eventId)
-    .maybeSingle();
-  if (afterError) throw afterError;
-  return { ok: true, event: toView(after as EventRow, new Date()) };
+  switch (result.status) {
+    case "missing":
+      return { ok: false, error: "That event no longer exists." };
+    case "contended":
+      // Bounded rather than endless. The host sees the same retry affordance as any other
+      // failed save; nothing new is surfaced for a conflict we could not settle ourselves.
+      return { ok: false, error: "Could not save that. Try again." };
+    default:
+      return { ok: true, event: toView(result.row, new Date()) };
+  }
 }

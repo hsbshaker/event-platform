@@ -58,6 +58,12 @@ type EventRow = {
   message_sends_used: number;
   published_at: string | null;
   paid_at: string | null;
+  /**
+   * Optimistic concurrency token (20260913040000_phase2_event_row_version.sql). A trigger
+   * increments it on every update and overwrites anything the caller supplies, so it is
+   * readable and usable as an update filter but never written by application code.
+   */
+  row_version: number;
   created_at: string;
   updated_at: string;
 };
@@ -226,6 +232,7 @@ export type Database = {
           | "message_sends_used"
           | "published_at"
           | "paid_at"
+          | "row_version"
           | "created_at"
           | "updated_at"
         >
