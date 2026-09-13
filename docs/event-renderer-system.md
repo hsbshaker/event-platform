@@ -167,7 +167,7 @@ Unchanged in role: borders, cards, buttons, type scale, spacing chosen by the co
 
 # 4. DesignIntent and the composition call
 
-`DesignIntent` (model contract, `design_intent_v3`) keeps six fields and replaces `heroArchetype` with `family` and adds `composition`:
+`DesignIntent` (model contract: prompt `design_intent_v4`, schema `design_intent_schema_v4`) keeps six fields and replaces `heroArchetype` with `family` and adds `composition`:
 
 ```ts
 DesignIntent {

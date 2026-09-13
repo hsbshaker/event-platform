@@ -15,6 +15,8 @@
  * an empty measured element would report geometry for a line that is not there.
  */
 
+import { CTA_COPY, SECTION_HEADING_COPY } from "@/lib/renderer/compile/semantic-copy";
+
 import type { ReactNode } from "react";
 
 import type { CTA, DateNode, Heading, TextNode, TextKind } from "@/lib/renderer/composition/nodes";
@@ -33,21 +35,11 @@ const TEXT_FIELD: Record<Exclude<TextKind, "EventTitle">, keyof EventContent> = 
 };
 
 /**
- * Fixed per-section copy. `docs/event-renderer-system.md §2.2` says a `SectionHeading`'s "copy
- * comes from a compiler table" but no canonical document gives that table's contents, and
- * `proof-b`'s is sample copy for one fictional event ("Join us at the lodge."), not neutral
- * production copy. These are the section's own names — the minimum that can stand in without
- * inventing voice — and they are isolated here so replacing them is a one-line change that no
- * component branches on. Flagged to the lead as an open product-copy decision.
+ * Section-heading and CTA copy is compiler-owned (`docs/event-renderer-system.md §2.2`) and lives
+ * in `@/lib/renderer/compile/semantic-copy`. Components consume the table and must never author
+ * their own: these strings are geometry, and copy invented here would change a rendered line count
+ * without passing through anything that re-verifies the fit.
  */
-const SECTION_HEADING_COPY: Record<Heading["for"], string> = {
-  details: "Details",
-  rsvp: "RSVP",
-  registry: "Registry",
-};
-
-/** Likewise fixed, and likewise the target's own name rather than invented voice. */
-const CTA_COPY: Record<CTA["target"], string> = { rsvp: "RSVP", registry: "Registry" };
 
 function textClass(node: { t: string; emphasis?: string; case?: string }): string {
   return `ev-text ev-t-${node.t} ev-em-${node.emphasis ?? "secondary"} ev-case-${node.case ?? "none"}`;

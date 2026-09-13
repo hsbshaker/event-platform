@@ -19,6 +19,8 @@
  * component's own name, which is the least that can make it announceable.
  */
 
+import { SECTION_HEADING_COPY } from "@/lib/renderer/compile/semantic-copy";
+
 import type { CashFund, Registry, RegistryItem, RSVP } from "@/lib/renderer/composition/nodes";
 import { primitive } from "../primitive";
 
@@ -37,7 +39,7 @@ function Placeholder({ lines }: { lines: number }) {
 }
 
 export const RSVPPrimitive = primitive<RSVP>((node) => (
-  <div className="ev-rsvp" data-id={node.id} role="region" aria-label="RSVP">
+  <div className="ev-rsvp" data-id={node.id} role="region" aria-label={SECTION_HEADING_COPY.rsvp}>
     <Placeholder lines={4} />
   </div>
 ));
@@ -49,7 +51,7 @@ export const RegistryPrimitive = primitive<Registry>((node, ctx) => (
     className={`ev-registry${node.layout.t === "Stack" ? " ev-registry-list" : ""}`}
     data-id={node.id}
     role="region"
-    aria-label="Registry"
+    aria-label={SECTION_HEADING_COPY.registry}
   >
     {ctx.renderNode(node.layout)}
   </div>
