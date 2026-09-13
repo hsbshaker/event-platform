@@ -61,8 +61,16 @@ export async function startApp(): Promise<AppServer | null> {
     env: {
       ...process.env,
       NODE_ENV: "production",
-      // Deliberately absent: NEXT_PUBLIC_SUPABASE_URL / ANON_KEY. The proxy treats an
-      // unconfigured Supabase as "nothing to refresh", so pages render and writes fail.
+      // Configured, but pointing nowhere. Leaving these out entirely makes `publicEnv()`
+      // throw, and every authenticated surface then returns a generic 500 for a
+      // misconfiguration rather than exercising its own access check — which is precisely
+      // what the private-surface test needs to see. With placeholders, a visitor carrying no
+      // auth cookie resolves to "no user" without a network call, so the access check runs
+      // for real and writes still fail (there is no database behind this).
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://e2e.invalid.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "e2e-placeholder-anon-key",
       NEXT_PUBLIC_APP_URL: baseUrl,
     },
     stdio: "ignore",
