@@ -104,6 +104,96 @@ describe("inferTimezoneFromVenue", () => {
     });
   });
 
+  it("lets an explicitly named state beat a same-named city in another state", () => {
+    // Maine's Portland, not Oregon's.
+    expect(inferTimezoneFromVenue("Portland, ME")).toEqual({
+      timezone: "America/New_York",
+      confidence: "high",
+      matched: "Maine",
+    });
+    // New York's Lincoln Center, not Nebraska's Lincoln.
+    expect(inferTimezoneFromVenue("Lincoln Center, New York, NY")).toEqual({
+      timezone: "America/New_York",
+      confidence: "high",
+      matched: "New York",
+    });
+    // Texas's Jacksonville, not Florida's.
+    expect(inferTimezoneFromVenue("Jacksonville, TX")).toEqual({
+      timezone: "America/Chicago",
+      confidence: "high",
+      matched: "Texas",
+    });
+  });
+
+  it("keeps the state's zone when a city in another state happens to agree with it", () => {
+    // Massachusetts's Lexington; Kentucky's Lexington is Eastern too, so the zone is the
+    // same either way and the more specific city label is reported.
+    const result = inferTimezoneFromVenue("Lexington, MA");
+    expect(result.timezone).toBe("America/New_York");
+    expect(result.confidence).toBe("high");
+  });
+
+  it("resolves Washington, D.C. in each punctuation form without colliding with the state", () => {
+    for (const venue of [
+      "Washington, D.C.",
+      "Washington DC",
+      "Washington, D.C",
+      "Washington, DC",
+    ]) {
+      expect(inferTimezoneFromVenue(venue)).toEqual({
+        timezone: "America/New_York",
+        confidence: "high",
+        matched: "Washington, DC",
+      });
+    }
+    // The state of Washington still resolves to Pacific.
+    expect(inferTimezoneFromVenue("A lodge in Washington")).toEqual({
+      timezone: "America/Los_Angeles",
+      confidence: "high",
+      matched: "Washington",
+    });
+  });
+
+  it("uses the city table to disambiguate a split-timezone state", () => {
+    const cases: [string, string, string][] = [
+      ["Portland, OR", "America/Los_Angeles", "Portland"],
+      ["Miami, FL", "America/New_York", "Miami"],
+      ["Pensacola, FL", "America/Chicago", "Pensacola"],
+      ["Memphis, TN", "America/Chicago", "Memphis"],
+      ["Knoxville, TN", "America/New_York", "Knoxville"],
+      ["Rapid City, SD", "America/Denver", "Rapid City"],
+    ];
+    for (const [venue, timezone, matched] of cases) {
+      expect(inferTimezoneFromVenue(venue)).toEqual({ timezone, confidence: "high", matched });
+    }
+  });
+
+  it("falls back to the city table alone when no state or region is named", () => {
+    expect(inferTimezoneFromVenue("Phoenix")).toEqual({
+      timezone: "America/Phoenix",
+      confidence: "high",
+      matched: "Phoenix",
+    });
+    expect(inferTimezoneFromVenue("Miami")).toEqual({
+      timezone: "America/New_York",
+      confidence: "high",
+      matched: "Miami",
+    });
+  });
+
+  it("stays low confidence when an ambiguous region has no disambiguating city", () => {
+    expect(inferTimezoneFromVenue("A wedding barn in Oregon")).toEqual({
+      timezone: null,
+      confidence: "low",
+      matched: "Oregon",
+    });
+    expect(inferTimezoneFromVenue("A ranch in Nebraska")).toEqual({
+      timezone: null,
+      confidence: "low",
+      matched: "Nebraska",
+    });
+  });
+
   it("does not match a substring inside an unrelated word (word-boundary safe)", () => {
     // "in" (Indiana's abbreviation) must not match inside "Kingston" or "Increase".
     const result = inferTimezoneFromVenue("Kingston Hall, Increase Ave");

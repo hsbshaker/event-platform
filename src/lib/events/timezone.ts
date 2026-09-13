@@ -97,6 +97,10 @@ const US_STATE_NAMES: NameTable = {
   connecticut: { zone: "America/New_York", confidence: "high", label: "Connecticut" },
   delaware: { zone: "America/New_York", confidence: "high", label: "Delaware" },
   "washington dc": { zone: "America/New_York", confidence: "high", label: "Washington, DC" },
+  // `normalize` turns the periods in "Washington, D.C." into spaces, so the punctuated
+  // form needs its own alias key; without it the longest-key rule would fall back to the
+  // `washington` state entry and return Pacific time for the District of Columbia.
+  "washington d c": { zone: "America/New_York", confidence: "high", label: "Washington, DC" },
   florida: { zone: null, confidence: "low", label: "Florida" },
   georgia: { zone: "America/New_York", confidence: "high", label: "Georgia" },
   hawaii: { zone: "Pacific/Honolulu", confidence: "high", label: "Hawaii" },
@@ -335,15 +339,20 @@ interface Tier {
   abbrevs?: AbbrevTable;
 }
 
-// Order matters: cities (most specific, disambiguating) before states/provinces
-// before broad countries — a match in an earlier tier wins outright, and within a
-// tier the longest matching key wins.
-const TIERS: Tier[] = [
-  { names: US_CITY_NAMES },
+// Region tiers, most specific first: US states/territories, then Canadian
+// provinces/territories, then broad countries and well-known world cities. The first
+// tier with a match wins outright, and within a tier the longest matching key wins.
+const REGION_TIERS: Tier[] = [
   { names: US_STATE_NAMES, abbrevs: US_STATE_ABBREVS },
   { names: CA_PROVINCE_NAMES, abbrevs: CA_PROVINCE_ABBREVS },
   { names: WORLD_NAMES, abbrevs: WORLD_ABBREVS },
 ];
+
+// The city table is not a tier of its own: it refines a region rather than outranking
+// it. A city name alone ("Portland", "Lincoln", "Lexington") is ambiguous across states,
+// so it may only decide the zone when no region matched, or when the region that matched
+// is itself split (`zone: null`) and the city is exactly what resolves the split.
+const CITY_TIER: Tier = { names: US_CITY_NAMES };
 
 function normalize(text: string): string {
   return text
@@ -399,9 +408,19 @@ function evaluateTier(rawText: string, normalizedText: string, tier: Tier): Cand
 
 /**
  * spec.md §7.4 step 2: infer a candidate IANA timezone + confidence from venue text.
- * Looks up cities first (they disambiguate split-timezone regions), then
- * states/provinces, then broader countries/well-known cities. Returns `none` when
- * nothing in the table matches.
+ *
+ * Regions are resolved first, because the surrounding state/province/country is what
+ * says which "Portland" or "Lincoln" the text means:
+ *
+ * 1. an unambiguous region (`zone` non-null) wins; a city match only refines the
+ *    `matched` label when the two agree on the zone, and a city whose zone disagrees
+ *    (a same-named city in another state) is discarded rather than returned;
+ * 2. an ambiguous region (`zone: null` — a split-timezone state, province or country)
+ *    is disambiguated by the city table, which is what that table exists for; with no
+ *    city match it stays `low` confidence with no zone;
+ * 3. with no region match at all, a city match decides on its own.
+ *
+ * Returns `none` when nothing in the tables matches.
  */
 export function inferTimezoneFromVenue(text: string | null | undefined): TimezoneInference {
   if (!text) {
@@ -412,10 +431,20 @@ export function inferTimezoneFromVenue(text: string | null | undefined): Timezon
     return { timezone: null, confidence: "none", matched: null };
   }
 
-  let best: Candidate | null = null;
-  for (const tier of TIERS) {
-    best = evaluateTier(text, normalized, tier);
-    if (best) break;
+  let region: Candidate | null = null;
+  for (const tier of REGION_TIERS) {
+    region = evaluateTier(text, normalized, tier);
+    if (region) break;
+  }
+  const city = evaluateTier(text, normalized, CITY_TIER);
+
+  let best: Candidate | null;
+  if (!region) {
+    best = city;
+  } else if (region.entry.zone) {
+    best = city && city.entry.zone === region.entry.zone ? city : region;
+  } else {
+    best = city ?? region;
   }
 
   if (!best) {
