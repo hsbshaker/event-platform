@@ -13,6 +13,14 @@ export type EventStatus =
   "DRAFT" | "DESIGN_SELECTED" | "READY_TO_PUBLISH" | "PUBLISHED" | "PASSED" | "ARCHIVED";
 export type EventVisibility = "public" | "private";
 export type EventMemberRole = "owner" | "cohost";
+/** Outcomes of public.claim_pre_auth_draft (supabase/migrations/20260913010000_phase2_prompt_auth.sql). */
+export type ClaimOutcome =
+  | "claimed"
+  | "already_claimed_by_user"
+  | "claimed_by_other"
+  | "expired"
+  | "not_found";
+
 export type ModelOperation =
   "event_identity" | "design_intent" | "composition" | "structured_extraction";
 
@@ -37,6 +45,9 @@ type EventRow = {
   timezone: string | null;
   venue_name: string | null;
   address: string | null;
+  hosts: string | null;
+  baby_name: string | null;
+  generation_requested_at: string | null;
   visibility: EventVisibility | null;
   access_code_encrypted: string | null;
   rsvp_deadline: string | null;
@@ -202,6 +213,9 @@ export type Database = {
           | "timezone"
           | "venue_name"
           | "address"
+          | "hosts"
+          | "baby_name"
+          | "generation_requested_at"
           | "visibility"
           | "access_code_encrypted"
           | "rsvp_deadline"
@@ -295,6 +309,10 @@ export type Database = {
       event_role: { Args: { p_event_id: string }; Returns: EventMemberRole | null };
       is_event_member: { Args: { p_event_id: string }; Returns: boolean };
       is_event_owner: { Args: { p_event_id: string }; Returns: boolean };
+      claim_pre_auth_draft: {
+        Args: { p_token_hash: string; p_user_id: string };
+        Returns: { event_id: string | null; outcome: ClaimOutcome }[];
+      };
       consume_rate_limit: {
         Args: { p_bucket: string; p_key_hash: string; p_window_seconds: number; p_max: number };
         Returns: boolean;
