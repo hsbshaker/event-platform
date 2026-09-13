@@ -19,7 +19,7 @@ import { canonicalize } from "./canonicalize";
 import { repair } from "./repair";
 import { resolveLayout } from "./layout";
 import type { Capabilities, CompositionTree } from "./nodes";
-import { heroSimilarity, seqSim, skeleton } from "./signature";
+import { heroSimilarity, seqSim, similarity, skeleton } from "./signature";
 import { validateSchema } from "./validate-schema";
 import { validateStructure } from "./validate-structure";
 import { clone, countNodes, walk } from "./walk";
@@ -520,5 +520,115 @@ describe("array-child repairs (production conformance)", () => {
     expect(out.repairs.some((r) => r.kind === "capability" && r.before === "Hosts")).toBe(true);
     expect(JSON.stringify(out.tree)).not.toContain('"Hosts"');
     expect(out.remaining).toEqual([]);
+  });
+});
+
+/**
+ * Signature calibration, stated without `proof-b`.
+ *
+ * `docs/event-renderer-system.md §5`: the .70 threshold is "calibrated on the library" — mirror
+ * pairs must collide, structurally distinct recipes must not, and the sixteen A.1 pages must all
+ * sit below it. Those three facts are what make the threshold a usable collision test rather than
+ * an arbitrary number, and they are properties of the signature, not of the reference.
+ *
+ * The library trees here come from the committed golden oracle's skeletons, so the calibration
+ * still means something once `proof-b/` is gone.
+ */
+describe("signature calibration", () => {
+  const THRESHOLD = 0.7;
+
+  /** Skeleton-level similarity, from the oracle's captured hero token sequences. */
+  const heroSim = (a: string, b: string, mode: "skeletonDesktop" | "skeletonMobile") =>
+    Math.round(
+      seqSim(LIBRARY_HERO_SKELETONS[a][mode].hero, LIBRARY_HERO_SKELETONS[b][mode].hero) * 100,
+    ) / 100;
+
+  it("collides the library's mirror pairs, which is what the threshold is calibrated on", () => {
+    // Same silhouette, opposite handedness: the skeleton drops handedness, so these read as the
+    // same page and must land on or above the threshold.
+    for (const [a, b] of [
+      ["editorial_daterail:rail_left", "editorial_daterail:rail_right"],
+      ["editorial_masthead:rail_left", "editorial_masthead:rail_right"],
+      ["statement_stack:alternate", "statement_stack:cascade"],
+      ["invitation_ticket:stub_right", "invitation_ticket:stub_left"],
+    ] as const) {
+      expect(heroSim(a, b, "skeletonDesktop"), `${a} vs ${b}`).toBeGreaterThanOrEqual(THRESHOLD);
+    }
+  });
+
+  it("keeps structurally distinct silhouettes below the threshold", () => {
+    for (const [a, b] of [
+      ["editorial_split:field_right", "invitation_ticket:stub_right"],
+      ["typography_first:band_below", "statement_numeral:numeral_left"],
+      ["editorial_rulegrid:cells", "invitation_monogram:crest"],
+      ["framed_invitation:thin_frame", "editorial_masthead:rail_right"],
+      // Not every "mirror" is one: this pair swaps the Split's ratio token as well as the side,
+      // so the skeleton sees two different pages. The threshold is not a handedness test.
+      ["editorial_split:field_right", "editorial_split:field_left"],
+    ] as const) {
+      expect(heroSim(a, b, "skeletonDesktop"), `${a} vs ${b}`).toBeLessThan(THRESHOLD);
+    }
+  });
+
+  it("is symmetric, and scores a skeleton against itself as 1", () => {
+    const keys = Object.keys(LIBRARY_HERO_SKELETONS);
+    expect(keys).toHaveLength(26);
+    for (const k of keys) expect(heroSim(k, k, "skeletonDesktop")).toBe(1);
+    for (let i = 0; i < keys.length; i += 5)
+      for (let j = 0; j < keys.length; j += 7)
+        expect(heroSim(keys[i], keys[j], "skeletonDesktop")).toBe(
+          heroSim(keys[j], keys[i], "skeletonDesktop"),
+        );
+  });
+
+  it("credits nothing for the partial overlap every hero shares", () => {
+    // Every hero contains a title stack, so `similarity` floors the hero term at .5 overlap.
+    // Two trees sharing only that must score below the threshold on the hero term alone.
+    const a = novelTree();
+    const bare = {
+      version: "composition_v1",
+      sections: [
+        {
+          kind: "hero",
+          surface: "base",
+          root: { t: "Stack", children: [{ t: "EventTitle", emphasis: "display" }] },
+        },
+        { kind: "rsvp", surface: "base", root: { t: "Stack", children: [{ t: "RSVP" }] } },
+        {
+          kind: "registry",
+          surface: "alt",
+          root: {
+            t: "Stack",
+            children: [
+              {
+                t: "Registry",
+                layout: { t: "Stack", children: [{ t: "RegistryItem", kind: "gift" }] },
+              },
+            ],
+          },
+        },
+      ],
+    } as unknown as CompositionTree;
+
+    for (const mode of ["desktop", "mobile"] as const) {
+      const score = similarity(
+        { tree: a, category: "heritage", tone: "dark" },
+        { tree: bare, category: "grotesk_led", tone: "light" },
+        mode,
+      );
+      expect(score, mode).toBeLessThan(THRESHOLD);
+    }
+  });
+
+  it("scores an identical tree as a collision, in both modes", () => {
+    const tree = novelTree();
+    for (const mode of ["desktop", "mobile"] as const)
+      expect(
+        similarity(
+          { tree, category: "heritage", tone: "dark" },
+          { tree, category: "heritage", tone: "dark" },
+          mode,
+        ),
+      ).toBe(1);
   });
 });

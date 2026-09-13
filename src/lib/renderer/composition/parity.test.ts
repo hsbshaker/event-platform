@@ -26,7 +26,7 @@ import { estimateFit } from "./fit-estimate";
 import { resolveLayout } from "./layout";
 import { rulesText, specText } from "./prompt-text";
 import { DEFAULT_MACROS, repair, type Macros } from "./repair";
-import { skeleton } from "./signature";
+import { SIG_WEIGHTS, heroSimilarity, seqSim, similarity, skeleton } from "./signature";
 import { validateSchema } from "./validate-schema";
 import { validateStructure } from "./validate-structure";
 import type { Capabilities, CompositionTree, Section } from "./nodes";
@@ -365,6 +365,74 @@ describe("parity: the frozen confirmation set", () => {
     // The two rejected first attempts are evidence that the collision path fired, not
     // confirmation trees; they never count toward a gate.
     expect(normalize(rejected)).toEqual(golden("frozen-rejected-attempts.json"));
+  });
+});
+
+describe("parity: the signature", () => {
+  /**
+   * The golden oracle already pins `skeleton()` for the 26 silhouettes. What it does not cover is
+   * the scoring on top: `seqSim`, the partial-overlap floor inside `similarity`, the per-mode
+   * weights and `heroSimilarity`. Those decide collisions, so they are compared against the
+   * reference directly, over the frozen confirmation trees rather than hand-picked pairs.
+   */
+  const frozenTrees = (set: string) => {
+    const records = JSON.parse(
+      readFileSync(path.join(PROOF_DIR, "model", set, "results-verified.json"), "utf8"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped recorded results
+    ) as any[];
+    return records.map((r) => ({
+      id: r.id,
+      tree: r.spec.composition as CompositionTree,
+      category: r.spec.designIntent.typographyCategory as string | undefined,
+      tone: r.spec.designIntent.tonalDirection as string,
+    }));
+  };
+
+  const ALL = [...frozenTrees("final"), ...frozenTrees("final-reduced")];
+
+  it("skeletonizes all 72 frozen trees identically at both breakpoints", () => {
+    expect(ALL).toHaveLength(72);
+    for (const { id, tree } of ALL)
+      for (const mode of ["desktop", "mobile"] as const)
+        expect(normalize(skeleton(tree, mode)), `${id} ${mode}`).toEqual(
+          normalize(REF.skeleton(tree, mode)),
+        );
+  });
+
+  it("scores every frozen pair identically at both breakpoints", () => {
+    let compared = 0;
+    for (let i = 0; i < ALL.length; i++) {
+      for (let j = i + 1; j < ALL.length; j++) {
+        const a = { tree: ALL[i].tree, category: ALL[i].category, tone: ALL[i].tone };
+        const b = { tree: ALL[j].tree, category: ALL[j].category, tone: ALL[j].tone };
+        for (const mode of ["desktop", "mobile"] as const) {
+          expect(similarity(a, b, mode), `${ALL[i].id}/${ALL[j].id} ${mode}`).toBe(
+            REF.similarity(a, b, mode),
+          );
+          compared++;
+        }
+        expect(heroSimilarity(ALL[i].tree, ALL[j].tree, "desktop")).toBe(
+          REF.heroSimilarity(ALL[i].tree, ALL[j].tree, "desktop"),
+        );
+      }
+    }
+    // 72 choose 2, at two breakpoints.
+    expect(compared).toBe(((72 * 71) / 2) * 2);
+  });
+
+  it("has the reference's weights, and treats a tree-only comparison the same way", () => {
+    expect(SIG_WEIGHTS).toEqual(REF.SIG_WEIGHTS);
+    // No category given: the reference credits both terms in full (conservative).
+    for (const { tree } of ALL.slice(0, 12))
+      for (const mode of ["desktop", "mobile"] as const)
+        expect(similarity({ tree }, { tree }, mode)).toBe(REF.similarity({ tree }, { tree }, mode));
+  });
+
+  it("computes normalized edit distance identically over the frozen hero skeletons", () => {
+    const heroes = ALL.map((a) => skeleton(a.tree, "desktop").hero);
+    for (let i = 0; i < heroes.length; i++)
+      for (let j = 0; j < heroes.length; j++)
+        expect(seqSim(heroes[i], heroes[j])).toBe(REF.seqSim(heroes[i], heroes[j]));
   });
 });
 

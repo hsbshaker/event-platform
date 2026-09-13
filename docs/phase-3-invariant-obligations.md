@@ -11,7 +11,7 @@ Delete this file when Phase 3 closes and every row reads "enforced".
 | --- | --- | --- | --- |
 | 1 | A valid novel `CompositionTree` with no corresponding fixture validates, canonicalizes and resolves layout, and collides with no library hero skeleton at either breakpoint | `composition.test.ts`, "novelty" | **enforced** |
 | 2 | The same novel tree compiles, renders and geometry-verifies clean, with no library selection invoked | `tests/unit/library-boundary.test.ts` proves the language half today: the novel tree validates, repairs and resolves layout with macros that throw if entered, carries no fixture identifier, and the core's own source never names an adapter | partial — the render and geometry-verify half needs the renderer and verifier |
-| 3 | No production module can import the legacy library | `eslint.config.mjs`, forbidden across `src/**`; `tests/unit/library-boundary.test.ts` runs the real config over representative present *and future* module paths, including generation and orchestration | **enforced**, mutation-checked against both a narrowed rule and a widened exemption |
+| 3 | No production module can import the legacy library | `eslint.config.mjs`, forbidden across `src/**`; `tests/unit/library-boundary.test.ts` runs the real config over the real composition, compiler, planner, selector, directives and vocabulary modules plus representative *future* generation and orchestration paths | **enforced**, mutation-checked against both a narrowed rule and a widened exemption |
 | 4 | Exactly two adapters are exempt, one per role, and `recovery/**` cannot absorb few-shot retrieval | `tests/unit/library-boundary.test.ts` asserts the exemption list structurally: `src/lib/renderer/recovery/**`, `src/lib/renderer/few-shot/**`, and test files | **enforced** |
 | 5 | The few-shot adapter exposes no recipe, silhouette or template identifier that could become a candidate-choice variable | `src/lib/renderer/few-shot/few-shot.test.ts`: the module exports only `compositionExamples` and its count, the returned trees carry none of the 61 library fixture identifiers (hero, details, rsvp, registry, plan and A.1 site) anywhere in their serialized shape, and the only parameter is a seed | **enforced** |
 | 6 | Normal generation consumes example trees without learning where they came from | test that the composition-call input carries trees and no fixture identifier | open — needs the generation path (Phase 4) |
@@ -65,6 +65,15 @@ first production model call would mean two prompt regimes under one version iden
 fallback rate can be measured per fixture. It is an output of a failure, never an input to a
 decision. Feeding it back into generation would make it a candidate-choice variable, which §7.1
 forbids by name; row 6 is where that stays enforced once the generation path exists.
+
+**The planner is on the right side of the boundary by construction.** `src/lib/renderer/planner`
+works over DesignIntent assignment dimensions (family, tonal direction, typography category,
+hierarchy) and the eight independent directive dimensions. It has no runtime dependency on the
+library or on `proof-a1/`, no fixture identifier appears in any plan it emits, and the selector
+hands a re-prompt the *colliding skeleton string* rather than any fixture identity. A collision
+authorizes the one re-prompt and then the terminal fallback in `recovery/**`, which is the only
+path from a collision to the library, and it fails closed (row 7).
+
 
 **Why the rule is production-wide rather than renderer-scoped.** A rule that named the renderer
 directories would have been silent about the modules most likely to want a shortcut: the Phase 4

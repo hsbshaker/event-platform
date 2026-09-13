@@ -113,9 +113,60 @@ body either side.
 `countText` at module level and `contentOf` inside `repair`. Both carried over as exported,
 documented helpers so nothing is lost if a later change needs them.
 
+## 6. `SIG_WEIGHTS.threshold` is read but never defined
+
+`proof-b/run-model.js` decides a collision with
+`worst >= C.SIG_WEIGHTS.threshold || worst >= 0.7`. `SIG_WEIGHTS` has no `threshold` key — in the
+reference either — so the first comparison is always `worst >= undefined`, which is `false`, and
+the decision falls through to the literal. Harmless, and the effective threshold is .70 exactly as
+`docs/event-renderer-system.md §5` specifies.
+
+**Disposition: named, not reproduced.** `src/lib/renderer/planner/selector.ts` exports
+`COLLISION_THRESHOLD = 0.7`. The value is unchanged, so this is strictly behaviour-preserving; the
+only difference is that the threshold now exists where the code reads it.
+
+---
+
+# Harness stand-ins that are not production contracts
+
+Distinct from the defects above. These are places where `proof-b/` did something because it had no
+production surrounding it, not because it was wrong. Porting them verbatim would be the error.
+
+## A. `proof-b/planner.js`'s `intentFor()` returns a whole DesignIntent
+
+The reference planner samples, by seed, a complete `DesignIntent`: family, tonal direction,
+typography pairing, density, all five composition values, and a page system. `proof-b` had no
+`generateDesignIntent` call, so the harness stood in for the model.
+
+That is not the planner's contract. `spec.md §7.7` — the highest-authority source — says the
+planner plans three concept **assignments** (a distinct compatible family, then tonal direction,
+then typography category and hierarchy; a distinct structural directive; a token allotment), and
+that "the assignment is passed to the DesignIntent call". `docs/model-contracts.md §1` draws the
+same line: planner → assignment → `generateDesignIntent(...) × 3` → DesignIntent × 3. The palette,
+the pairing, density, the composition object and the motifs are the strong model's output.
+
+Porting `intentFor()` as production would let generation produce DesignIntents with no model call.
+So `src/lib/renderer/planner` stops at the assignment, and nothing in production samples a
+DesignIntent.
+
+**Parity is unaffected for everything the contract keeps.** The batch seed, the per-sibling seeds,
+the directives, the token allotments and all four assignment fields replay byte-identically to the
+frozen confirmation run for all 72 concepts, from the two master seeds `proof-b/FREEZE.md` records
+(20260921 and 20260922). The fields the port stops short of are exactly the fields the model owns.
+
+One wrinkle worth knowing, because it looks like dead code and is not: `assignmentFor()` draws a
+typography pairing and discards it. The reference drew one at that point, and the draw has to be
+consumed or the tone drawn next diverges from the frozen run. It also resolves the assigned
+category on the one vocabulary path where the naive category filter comes back empty and the
+fallback pairing's category differs from the drawn one. The pairing itself is deliberately not
+emitted; the assignment carries the narrowed *list* instead (`docs/model-contracts.md §5.2`), so
+Phase 4 cannot accidentally skip the model call by reading a pairing off the plan.
+
+---
+
 ## Recommended disposition
 
-Defect 1 is settled. Keep 2 to 5 as ported until Phase 3 meets its exit gate; they are one-line
+Defects 1 and 6 are settled. Keep 2 to 5 as ported until Phase 3 meets its exit gate; they are one-line
 clarifications with no behavioural effect, and folding them into one change afterwards keeps the
 parity oracle meaningful in the meantime. Do not infer new behaviour for any of them — cleanup
 only if it is strictly behaviour-preserving.
