@@ -1,0 +1,163 @@
+{
+  "$comment": "FROZEN HOLDOUT. Authored before the Phase 4A remediation and never altered afterwards on the basis of model performance. It exists because every output of `creative-understanding.json` has now been inspected and discussed, which makes that corpus a regression suite rather than fresh evidence (docs/model-evals/results/creative-understanding-v1/astra-qualitative-review.md). These cases must never appear in a production prompt, as few-shot examples, or in repair macros. Contract: docs/model-contracts.md §4.5.",
+  "version": "creative_understanding_holdout_v1",
+  "authoredBefore": "the hostConstraints/creativeGuidance remediation",
+  "designNote": "Cases declare the INVARIANT under test, never a target creative answer. That split is deliberate and load-bearing: the deterministic checks judge provenance and authority, which are facts about the host's words; whether the creative answer is any good is judged only by an independent blind reviewer who never sees this file. `mustNotBeClaimedAsHostConstraint` entries are not aesthetic prohibitions — each is a statement the host demonstrably did not make, so claiming it as host authority is a fabrication regardless of whether it is good advice.",
+  "invariantFamilies": {
+    "host-prohibition-vs-recommendation": "An explicit host prohibition is authoritative and must survive. The model's own taste about adjacent matters must not acquire host authority.",
+    "literal-subject-matter": "Recognizable, literal subject matter is permitted. Sophistication is a property of execution; the model must not abstract a reference away in order to make it feel refined.",
+    "sentiment-not-suppressed": "Affection, warmth and sentimentality are legitimate creative registers and must not be automatically neutralized.",
+    "consequential-ambiguity": "Several materially different creative worlds are live and the choice would substantially change the experience. One question may earn its place.",
+    "bet-rather-than-ask": "The prompt is loose but every plausible reading lands in a similar world. Asking wastes the host's time; the model should decide.",
+    "creative-delegation": "The host has explicitly handed over the creative decision. Asking them to supply it is a failure.",
+    "organizing-premise": "The brief must contain an actual idea a designer can visualize, not adjectives describing the property of being original.",
+    "cultural-specificity": "Cultural ground must be handled precisely and without reducing it to a motif inventory.",
+    "shorthand-multiple-worlds": "A single word of aesthetic shorthand admits several genuine interpretations.",
+    "theme-is-not-event-type": "Theme or aesthetic language must not be promoted into `eventType`, which records the kind of gathering the host named.",
+    "honoree-context-preserved": "Host-supplied human context about who the event is for must survive verbatim rather than being dropped or inverted into a constraint."
+  },
+  "clarificationCeiling": 3,
+  "cases": [
+    {
+      "id": "HO-01",
+      "prompt": "40th for my wife. Absolutely no balloons — she'd hate that.",
+      "tests": ["host-prohibition-vs-recommendation"],
+      "hostPhrases": ["no balloons"],
+      "mustNotBeClaimedAsHostConstraint": [
+        "no confetti",
+        "no streamers",
+        "avoid party clichés",
+        "no novelty decoration",
+        "nothing childish"
+      ],
+      "expectClarification": "no",
+      "rationale": "One unmistakable prohibition, stated with force, about a single object. The neighbourhood around it is wide open. Tests whether an explicit prohibition survives intact without recruiting the model's opinions about adjacent party decoration into the same authority."
+    },
+    {
+      "id": "HO-02",
+      "prompt": "housewarming, we're completely obsessed with our cat Miso",
+      "tests": ["literal-subject-matter", "sentiment-not-suppressed"],
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": [
+        "avoid literal cat imagery",
+        "keep the cat reference abstract",
+        "no pet illustration",
+        "avoid cute animal graphics",
+        "nothing twee"
+      ],
+      "expectClarification": "no",
+      "rationale": "The host volunteers an affectionate, thoroughly literal subject and no constraint whatsoever. Tests whether the model can take delight seriously, and whether a named pet is correctly treated as context rather than as the event's honoree."
+    },
+    {
+      "id": "HO-03",
+      "prompt": "30th anniversary party, we want it art deco",
+      "tests": ["consequential-ambiguity", "shorthand-multiple-worlds"],
+      "hostPhrases": ["art deco"],
+      "mustNotBeClaimedAsHostConstraint": [
+        "avoid gold",
+        "keep the deco restrained",
+        "nothing theatrical",
+        "no period pastiche"
+      ],
+      "expectClarification": "expected",
+      "rationale": "A named movement whose plausible readings are genuinely far apart and would produce different evenings. If any case in this set warrants one question, it is this one — and the question must be about register, never about the venue or the date."
+    },
+    {
+      "id": "HO-04",
+      "prompt": "graduation party, something summery",
+      "tests": ["bet-rather-than-ask"],
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": ["nothing formal", "avoid dark tones"],
+      "expectClarification": "no",
+      "rationale": "Loose, but the plausible readings converge. The correct move is to commit. Paired with HO-03 so the two together test discrimination rather than a blanket policy in either direction."
+    },
+    {
+      "id": "HO-05",
+      "prompt": "baby naming ceremony. honestly I have zero taste, just make it beautiful",
+      "tests": ["creative-delegation", "organizing-premise"],
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": [
+        "the host wants understated design",
+        "avoid bold choices",
+        "keep it simple"
+      ],
+      "expectClarification": "no",
+      "rationale": "Explicit delegation, phrased as self-deprecation rather than as an instruction. Tests that the system does not hand the work back, and that what it produces is an actual premise rather than a description of beauty. A host with no design vocabulary must not get a worse result for saying so."
+    },
+    {
+      "id": "HO-06",
+      "prompt": "Tết dinner for my parents — we're Vietnamese, not Chinese, please",
+      "tests": ["cultural-specificity", "host-prohibition-vs-recommendation"],
+      "hostPhrases": ["we're Vietnamese, not Chinese"],
+      "mustNotBeClaimedAsHostConstraint": [
+        "avoid red",
+        "no lanterns",
+        "keep cultural references subtle",
+        "avoid traditional motifs"
+      ],
+      "expectClarification": "no",
+      "rationale": "A correction the host took the trouble to make, and one that is genuinely a constraint. Tests precision on cultural ground, and whether 'subtlety' gets applied as a reflex to a culture the host is celebrating rather than hedging."
+    },
+    {
+      "id": "HO-07",
+      "prompt": "memorial gathering for my grandmother. she grew roses her whole life and we want it to feel like her.",
+      "tests": ["sentiment-not-suppressed", "literal-subject-matter", "honoree-context-preserved"],
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": [
+        "avoid literal roses",
+        "keep botanical references abstract",
+        "no sentimentality",
+        "restrained floral linework",
+        "nothing ornate"
+      ],
+      "expectClarification": "no",
+      "rationale": "The one case where suppressing warmth would be most obviously wrong, and where the literal subject is the entire point. 'Feel like her' is a brief, not a vague wish. Tests the failure mode most directly: whether the system reaches for abstraction as a proxy for taste when the assignment asks for the opposite."
+    },
+    {
+      "id": "HO-08",
+      "prompt": "50th birthday, western",
+      "tests": ["shorthand-multiple-worlds"],
+      "hostPhrases": ["western"],
+      "mustNotBeClaimedAsHostConstraint": [
+        "avoid literal western iconography",
+        "nothing kitsch",
+        "keep it understated"
+      ],
+      "expectClarification": "acceptable",
+      "rationale": "One word spanning ranch-and-rodeo warmth, high-desert minimalism and a darker frontier register. Either a question or a confident bet is defensible here; what is not defensible is quietly resolving it toward whichever reading is most muted."
+    },
+    {
+      "id": "HO-09",
+      "prompt": "a night at the opera",
+      "tests": ["theme-is-not-event-type", "organizing-premise"],
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": ["formal dress", "evening event"],
+      "expectClarification": "acceptable",
+      "rationale": "Pure theme with no event type stated anywhere. `eventType` must be absent rather than filled with the theme. Also tests that a formality register is not silently promoted into a fact about the host's event."
+    },
+    {
+      "id": "HO-10",
+      "prompt": "party for my best friend, she's turning 25",
+      "tests": ["organizing-premise", "bet-rather-than-ask"],
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": ["avoid anything childish", "keep it grown up"],
+      "expectClarification": "acceptable",
+      "rationale": "Almost no aesthetic signal, and nothing an honest question could recover — the host has not withheld a preference, they have not formed one. Tests whether the system can invent a specific organizing idea from a warm but empty brief instead of retreating to adjectives."
+    },
+    {
+      "id": "HO-11",
+      "prompt": "bat mitzvah for our daughter Noa. she wants it to feel grown up, nothing babyish.",
+      "tests": ["honoree-context-preserved", "host-prohibition-vs-recommendation"],
+      "hostPhrases": ["grown up", "nothing babyish"],
+      "mustNotBeClaimedAsHostConstraint": [
+        "avoid pastel",
+        "avoid pink",
+        "no playful elements",
+        "nothing decorative",
+        "avoid florals"
+      ],
+      "expectClarification": "no",
+      "rationale": "Carries a name, a relationship, and two constraints in the honoree's own voice. Tests that host-supplied human context survives verbatim, and that 'nothing babyish' is preserved as stated without being widened into a general prohibition on colour, ornament or play — the precise widening the baseline run performed on a comparable prompt."
+    }
+  ]
+}

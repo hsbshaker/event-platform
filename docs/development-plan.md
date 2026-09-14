@@ -49,12 +49,37 @@ understanding, so shipping a weak interpreter compounds rather than shows up lat
 | **4F** | Does creating the event feel like watching your idea come to life? | The real progress experience over actual pipeline artifacts (`spec.md §7.10`, `product-doctrine.md §8a`): interpreted vibe, palette territory, visual vocabulary, concept names, art direction, progressive and independent concept readiness, optional detail entry while generation continues. No fake reasoning, no fake percentages, no generic spinner |
 | **4G** | Does the whole thing deliver personalization rather than rescue? | End to end: prompt → identity → clarification if needed → three directions → compositions → artwork where appropriate → responsive verified sites → selection → send-ready. **Human Test #2's protocol and threshold are frozen and recorded here, before any HT2 result is seen** (`spec.md §11.9`) |
 
-**4A status: implementation complete, evaluation pending.** The contract, prompt `event_identity_v3`,
-the OpenAI call and the deterministic runner are on `main`'s branch history; the fourteen-case run
-against a live model has not been executed, so no claim about understanding is made yet. A clean
-mechanical run is necessary and never sufficient (`model-contracts.md §4.5`): the gate is
-deterministic checks, then independent engineering review, then an independent qualitative read of
-the blind artifact, then an explicit go/no-go before 4B.
+**4A status: first live run complete; the independent qualitative gate did NOT pass; remediation is
+in progress; Phase 4B is blocked.**
+
+The fourteen-case run against `gpt-5.6-sol` was executed on 2026-09-14 at implementation `ba34c5e`.
+Mechanical evidence was collected and is preserved unchanged in
+`../docs/model-evals/results/creative-understanding-v1/`: 14/14 structured output, 13/14 mechanical
+pass, p50 latency 24.6 s. The one mechanical failure (CU-05) is an evaluator false positive,
+recorded rather than repaired, and the original result stands.
+
+**The independent qualitative review failed the gate**
+(`creative-understanding-v1/astra-qualitative-review.md`). The mechanical run was measuring a
+boundary the corpus never drew: the model routinely converts its own taste into constraints
+*attributed to the host* — roughly 39 of the 55 constraints the run produced are model taste
+wearing host authority. That is not a quality problem but a correctness one, of the same kind as
+inventing a fact, and every later stage reads this object and cannot tell an invented prohibition
+from a real one. Three further findings: an overly strong house taste that equates sophistication
+with abstraction, zero clarifications across all fourteen cases, and briefs that describe
+originality rather than supplying it.
+
+This is exactly the failure `model-contracts.md §4.5` predicted when it said a mechanical pass is
+"necessary and never sufficient", and exactly why the human gate exists.
+
+Remediation, approved as a source-of-truth change: split `designConstraints` into authoritative
+`hostConstraints` (grounded in an explicit host phrase) and advisory `creativeGuidance`; add a
+verbatim honoree-context field; rewrite the prompt's originality section so sophistication is a
+property of execution rather than abstraction; and make the clarification rule decidable.
+
+**The original fourteen cases are now a regression suite, not fresh evidence** — every output has
+been inspected and discussed. Fresh evaluation runs against a new blinded holdout, authored and
+frozen *before* remediation. The gate to 4B remains: deterministic checks, independent engineering
+review, an independent qualitative read of a fresh blind artifact, then an explicit go/no-go.
 
 ## Recorded deviations
 
