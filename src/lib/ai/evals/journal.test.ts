@@ -135,12 +135,15 @@ describe("paid responses survive a checker that throws", () => {
   });
 });
 
-describe("a completed provider interaction can be reconstructed from the journal alone", () => {
+describe("an entry carries what reconstructing a case needs", () => {
   /**
    * The recovery invariant, exercised rather than asserted in prose: read one line back off
    * disk and rebuild the `CaseRun` a report would have been written from, using nothing but
    * that line. `tsc` is doing half the work here — `CaseRun` is the production type, so a
-   * telemetry field the journal fails to carry makes this file stop compiling.
+   * *required* telemetry field the journal fails to carry makes this file stop compiling. The
+   * five optional ones (token counts, `providerRequestId`) it cannot enforce, and these
+   * payloads are fixtures rather than runner output: what the runner writes is only exercisable
+   * against a live provider.
    *
    * What is deliberately *not* reconstructed is `caseData` and `evaluation`: the corpus is
    * frozen and joined on `caseId`, and the evaluation is deterministic over the output. Those

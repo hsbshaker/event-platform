@@ -65,8 +65,9 @@ export type JournalStatus = "response" | "unvalidated_response" | "no_response";
  * including `promptVersion` and `schemaVersion`, which live there and are deliberately not
  * duplicated at this level, because two copies of a version are two chances to disagree.
  *
- * Every field here is required, so `tsc` refuses a call site that forgets one. That is the point:
- * the previous version of this file left `payload` as `unknown`, and what a recovery would have
+ * Every field here is required — the optional ones inside `telemetry` excepted, where absence is
+ * itself the record — so `tsc` refuses a call site that forgets one. That is the point: the
+ * previous version of this file left `payload` as `unknown`, and what a recovery would have
  * needed was whatever the caller happened to pass.
  */
 export interface JournalEntry {

@@ -200,13 +200,33 @@ entries and reports damaged lines, and nothing rebuilds `run.json` or the two do
 That is a known tooling gap, recorded rather than implied — the journal guarantees the evidence is
 recoverable, not that it rebuilds itself.
 
+Two things a manual reconstruction must not get wrong. `run.json`'s `complete: true` is a
+constant written only on a clean finish, so a report rebuilt from an aborted run's journal must
+not carry it. And `corpusVersion` is a version string the corpus declares about itself, not a
+hash — a corpus edited without bumping it defeats the join, which is why the corpora are frozen.
+
 **The sealed challenge path is wired before its cases exist.** `EVAL_SET=challenge` names a corpus
 and an output directory that are fixed now; the corpus file is deliberately absent and is authored
 independently after the implementation freeze. A challenge invocation before it lands fails at
 module scope — before the API-key check, before a client is constructed, and with no provider call
-— and the runner refuses any set whose corpus is missing, uniformly. Adding the file must then be
-the entire change: no runner, checker, prompt, schema or model code may move, because moving any
-of it after seeing the cases is precisely what a sealed challenge exists to prevent.
+— and the runner refuses any set whose corpus is missing, uniformly. `prompt-leakage.test.ts`
+already names the challenge filename behind an existence check, so the independently authored
+corpus is scanned against the frozen prompt and wire schema the moment it lands, without anyone
+editing benchmark-integrity tooling after seeing the cases. Adding the file is then the entire
+change: no runner, checker, prompt, schema or model code moves, because moving any of it after
+seeing the cases is precisely what a sealed challenge exists to prevent.
+
+**The corpus contract, published so an independent author can satisfy it without reading the
+runner.** A corpus is a JSON object with a non-empty `version` string and a non-empty `cases`
+array. Every case needs a unique non-empty `id` (the journal's join key), a non-empty `prompt`
+(the host's own words, the only thing sent to the model), and an `expectClarification` of exactly
+`"no"`, `"likely"`, `"acceptable"` or `"expected"`. Everything else is optional and each check
+reports `n/a` when its input is absent: `facts` and `mustAvoid` in the regression style,
+`hostPhrases`, `expectedFacts`, `mustNotBeClaimedAsHostConstraint` and `tests` in the validation
+style, or any mix. The runner asserts this shape at module scope, before any provider call,
+because a malformed case in a one-shot corpus would otherwise spend a sealed case on a prompt of
+`undefined`. The rule itself lives in `src/lib/ai/evals/corpus.ts`, not in the runner, so it can
+be unit-tested — against the real corpora — without importing the module that spends money.
 
 The deterministic checks live in `src/lib/ai/evals/creative-understanding.ts` and decide exactly
 one thing — whether an **outright failure** was committed. Two of them are derived from the host's

@@ -5,8 +5,8 @@
  * transient HTTP retries underneath those.
  *
  * Run with `npm run eval:regression`, `npm run eval:holdout` or `npm run eval:challenge`. It is
- * its own vitest project,
- * excluded from `npm test`, because it costs money, takes minutes and talks to a live provider —
+ * its own vitest project, excluded from `npm test`, because it costs money, takes minutes and
+ * talks to a live provider —
  * `docs/model-contracts.md §4.5`: "do not gate ordinary code changes on it — it measures
  * the creative stack, not the compiler."
  *
@@ -32,6 +32,7 @@ import { describe, expect, it } from "vitest";
 import { EventIdentityError, generateEventIdentity } from "@/lib/ai/openai/event-identity";
 import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understanding";
+import { validateCorpusShape } from "@/lib/ai/evals/corpus";
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
 import {
   appendJournal,
@@ -147,6 +148,27 @@ interface Corpus {
   cases: CorpusCase[];
 }
 
+/**
+ * The corpus has to be the right shape before a single case is spent.
+ *
+ * Nothing validated this, and the sealed challenge is the one corpus we cannot afford that on:
+ * it is authored by someone else, run once, and costs money per case. `evals/corpus.ts` says
+ * which fields matter and why, and — unlike this file — can be unit-tested without paying a
+ * provider, which is the whole reason the rule lives there rather than here.
+ *
+ * It runs at module scope for the same reason the existence check does: this is the last moment
+ * a malformed corpus costs nothing.
+ */
+const corpus = JSON.parse(readFileSync(CORPUS, "utf8")) as Corpus;
+const shapeProblems = validateCorpusShape(corpus);
+if (shapeProblems.length > 0) {
+  throw new Error(
+    `${path.relative(ROOT, CORPUS)} is not a usable corpus, so EVAL_SET=${SET} cannot run. ` +
+      `No provider call is made. The contract is in docs/model-contracts.md §4.5. ` +
+      `${shapeProblems.length} problem(s):\n  - ${shapeProblems.join("\n  - ")}`,
+  );
+}
+
 describe("creative-understanding corpus", () => {
   it(
     "runs every case against the production Event Identity call",
@@ -160,7 +182,6 @@ describe("creative-understanding corpus", () => {
         );
       }
 
-      const corpus = JSON.parse(readFileSync(CORPUS, "utf8")) as Corpus;
       expect(corpus.cases.length).toBeGreaterThan(0);
 
       process.stdout.write(`\n${EVAL_SETS[SET].label}\n\n`);
@@ -224,8 +245,8 @@ describe("creative-understanding corpus", () => {
               schemaValidFirstCall: false,
             },
           };
-          runs.push({ caseData, error: payload.error, telemetry: payload.telemetry });
           appendJournal(journal, failureEntry(caseContext(caseData.id), payload));
+          runs.push({ caseData, error: payload.error, telemetry: payload.telemetry });
           process.stdout.write(`FAILED (${failure.kind})\n`);
           continue;
         }

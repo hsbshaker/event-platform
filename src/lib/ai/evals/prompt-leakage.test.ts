@@ -19,7 +19,7 @@
  *
  * Acceptance criteria: N/A — benchmark integrity. `docs/model-contracts.md §4.5`.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
@@ -44,14 +44,27 @@ interface EvalCase {
   rationale?: string;
 }
 
-const CORPORA = ["creative-understanding.json", "creative-understanding-holdout.json"].map(
-  (file) => ({
+/**
+ * Every corpus the frozen prompt must not have seen.
+ *
+ * The sealed challenge is named here **before its cases exist**, guarded by `existsSync` so it
+ * is a no-op until the file lands. Editing this array after the reveal would be a post-reveal
+ * change to benchmark-integrity tooling — and given that four leaks reached the production
+ * prompt during Phase 4A, the independently authored corpus is the last one that should go
+ * unscanned. The prompt is frozen, so this can only ever fail by the corpus overlapping it,
+ * which is what we would need to know before spending the set.
+ */
+const CORPORA = [
+  "creative-understanding.json",
+  "creative-understanding-holdout.json",
+  "creative-understanding-sealed-challenge.json",
+]
+  .map((file) => ({ file, path: `${ROOT}docs/model-evals/${file}` }))
+  .filter(({ path }) => existsSync(path))
+  .map(({ file, path }) => ({
     file,
-    cases: (
-      JSON.parse(readFileSync(`${ROOT}docs/model-evals/${file}`, "utf8")) as { cases: EvalCase[] }
-    ).cases,
-  }),
-);
+    cases: (JSON.parse(readFileSync(path, "utf8")) as { cases: EvalCase[] }).cases,
+  }));
 
 const fold = (v: string) => v.normalize("NFC").replace(/\s+/g, " ").trim().toLowerCase();
 
@@ -69,7 +82,7 @@ function spans(prompt: string, size = 3): string[] {
   return out;
 }
 
-describe.each(Object.entries(SURFACES))("%s is clean of both corpora", (_name, surfaceRaw) => {
+describe.each(Object.entries(SURFACES))("%s is clean of every corpus", (_name, surfaceRaw) => {
   const surface = fold(surfaceRaw);
 
   for (const { file, cases } of CORPORA) {

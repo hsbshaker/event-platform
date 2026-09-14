@@ -43,6 +43,32 @@ that the runner's new plumbing type-checked, and an API key was present in the e
 It used the already-known regression corpus rather than the validation set, so no
 pre-registered case was spent.
 
+## A second accidental run occurred, and its output was also discarded
+
+During the harness pass that wired the sealed-challenge path, a second real run started against
+the **regression suite** by accident, under an explicit instruction not to run any evaluation.
+
+The cause was a verification command, not the runner: a newly added corpus shape check lived
+inside the eval runner, and the only apparent way to confirm it accepted the two real corpora was
+to invoke the runner. `npm run eval:regression` was run expecting it to stop at the API-key check.
+A key was present in the environment, so it did not stop — it began calling the provider.
+
+- It was killed roughly two minutes in, part-way through the corpus.
+- **Its outputs were never inspected.** The directory was deleted without any file being opened.
+- **Its evidence is discarded and is not used in any evaluation claim.**
+- The immutable baseline was verified byte-identical afterwards.
+- Again the regression suite, so again no pre-registered case was spent, and the sealed challenge
+  was untouched.
+
+The fix is the same lesson the journal rotation had already taught, applied one level up: **a
+guard on a hazard must be checkable without triggering the hazard.** `validateCorpusShape` now
+lives in `src/lib/ai/evals/corpus.ts` as a pure function with unit tests that run it against both
+real corpora, so confirming it never requires importing the module that spends money.
+
+The general point, recorded because it is the more useful one: the eval runner is the single
+module in this repository that cannot be run to find anything out. Any future check placed inside
+it is unverifiable by construction, and belongs beside this one.
+
 Two changes followed so it cannot recur:
 
 1. **`EVAL_SET` has no default.** A bare `vitest run --project eval` now refuses with an error

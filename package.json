@@ -17,8 +17,8 @@
     "proof:test": "cd proof-b && npx --yes -p typescript@6 tsc -p tsconfig.json && node test.js",
     "test:e2e": "vitest run --project e2e",
     "schemas:event-identity": "UPDATE_SCHEMAS=1 vitest run --project unit src/lib/ai/event-identity/schema-drift.test.ts",
-    "eval:holdout": "EVAL_SET=holdout vitest run --project eval",
     "eval:regression": "EVAL_SET=regression vitest run --project eval",
+    "eval:holdout": "EVAL_SET=holdout vitest run --project eval",
     "eval:challenge": "EVAL_SET=challenge vitest run --project eval"
   },
   "dependencies": {
