@@ -103,38 +103,56 @@ byte-for-byte comparisons live in `parity.test.ts` and die with `proof-b`; the b
 canonical documents require is stated independently in `composition.test.ts` and outlives it.
 Full detail, including the five fixtures by name, is in `docs/phase-3-reference-defects.md`.
 
-## Human Test #1 — qualitative finding recorded during collection
+## Human Test #1 — stopped early; qualitative calibration evidence
 
-Calibration notes, filed while the frozen test is still collecting responses. The experiment is
-unchanged: sheets, `review.html`, the hidden key, `proof-b/score-human.js` and
-`scripts/human-test/score.mjs` are untouched, and no remediation has been implemented.
+Human Test #1 was **stopped early by decision**. It is qualitative calibration evidence, not a
+pass/fail gate, and **no pass/fail claim is made**. The frozen assets — both sheets,
+`review.html`, the hidden key, `proof-b/human-test-form.md`, `proof-b/score-human.js` and
+`scripts/human-test/score.mjs` — are unchanged. **Human Test #2, on the frozen production stack,
+remains the launch design-quality gate.**
 
-**F1 — rendered typography lacks sufficient composition safeguards.** Valid layouts can produce
-accidental-looking headline stagger, inconsistent continuation-line alignment, pathological
-narrow-column wrapping and other line-break behaviour that materially reduces perceived design
-quality and trust in the generator. Multiple reviewers raised it independently, and several began
-reading intentional asymmetry as a rendering defect once they had seen a few bad cases — which
-taxes every screen, not only the broken ones.
+This supersedes the expectation in condition 2 above that the first run would be scored against
+the library in the same session. The rest of condition 2 stands: the bar is a launch and
+design-quality gate, not a canonicalization gate, and it runs twice.
 
-The system cannot currently distinguish intentional editorial staggering from accidental
-container-driven wrapping and indentation. A design can pass rendered-geometry verification — no
-overflow, no clipping, no collision — while still being typographically incoherent, because every
-clause of the clean criteria (`verify/verify.ts`) is a *containment* test. A right-aligned middle
-title line is inside its container; a date wrapped into four fragments in a 60px column is inside
-its column. Both are clean, correctly, under the criteria as written.
+**`docs/human-test-1/qualitative-findings.md` is the canonical record of the qualitative
+evidence.** Findings live there and nowhere else; this entry is a pointer, not a second copy.
 
-This bears directly on condition 2 above. The ≥ 70% design-quality bar is a launch and
-design-quality gate, and F1 is evidence about the instrument's subject rather than about the
-instrument: it identifies a deterministic renderer behaviour that depresses perceived quality
-independently of what the model composed.
+Four findings are recorded, in two deliberately separate classes:
 
-Mechanisms traced read-only, blind spots in verification, and the distinction between what the
-CompositionTree language already expresses (`EventTitle.layout`, planner-rationed) and what is left
-to the renderer to decide are recorded in `docs/human-test-1/qualitative-findings.md`.
+*Defects in what we already ship — "stop looking broken":*
 
-Remediation is deferred until the frozen test is complete and scored, so the quantitative result
-and this qualitative evidence are weighed together. Any change that follows re-runs the §9
-regression gates of `event-renderer-system.md`.
+- **F1, typography composition** (high confidence, high severity, Phase 3.1). Valid layouts
+  produce accidental-looking headline stagger, inconsistent continuation-line alignment and
+  pathological narrow-column wrapping. Every clause of the geometry clean criteria is a
+  *containment* test, so all of it passes: the renderer knows whether text physically fits, but
+  not whether the resulting typography looks intentionally composed.
+- **F2, decorative hierarchy** (medium-high, Phase 3.1 narrow safeguard or defer). Decoration can
+  dominate spatially while semantic content becomes visually insignificant, so pages read as
+  unfinished. Note for scoping: the `Monogram` is explicitly exempt from the ornament budget
+  ("the initial is event content, not ornament"), so this is not an extension of an existing
+  budget but a new, small hierarchy check.
+
+*Capabilities we do not have — "raise the creative ceiling":*
+
+- **F3, missing thematic hero imagery** (medium-high confidence, potentially high severity,
+  Phase 4). Typography, layout and motifs alone often do not provide enough thematic specificity.
+- **F4, ambient thematic imagery** (medium, Phase 4). Some designs may benefit from a
+  low-emphasis thematic layer. Planned as one system with F3, not as a separate feature.
+
+A synthesis worth testing rather than assuming: with no imagery, the renderer must carry all
+visual interest with typography and decoration, which may partly explain F1 and F2. A thematic
+anchor may let designs become simpler and more confident. That is a hypothesis for Human Test #2.
+
+**The MVP non-goal on AI-generated site imagery is not removed here.** F3 and F4 challenge it, so
+it is recorded as a product decision requiring intentional revision, with the original assumption,
+the new evidence, a proposed revised decision, and the canonical documents that would need
+amendment — all in the findings document. No contract, spec or guardrail is amended by this entry.
+
+Sequence: Phase 3.1 (deterministic visual-quality hardening, no imagery, no model calls, prefer no
+schema change) → Phase 4 (creative generation, with the visual-anchor architecture now explicitly
+under consideration) → Human Test #2 as the launch gate. Any Phase 3.1 change re-runs the §9
+regression gates.
 
 ## Documentation hierarchy
 
