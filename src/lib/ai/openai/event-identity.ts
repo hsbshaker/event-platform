@@ -90,6 +90,15 @@ export class EventIdentityError extends Error {
     readonly kind: "provider" | "invalid_output",
     readonly issues?: ValidationIssue[],
     readonly usage?: Partial<EventIdentityUsage>,
+    /**
+     * Provider text already returned and paid for when this failed, oldest first.
+     *
+     * An `invalid_output` failure is not a call that produced nothing: the provider answered,
+     * twice on the repair path, and our own validation rejected what came back. Dropping that
+     * text on the floor loses a paid response the caller may need to keep — and on a one-shot
+     * corpus it is unrecoverable. Empty for a `provider` failure, which by definition has none.
+     */
+    readonly rawResponses?: string[],
   ) {
     super(message);
     this.name = "EventIdentityError";
@@ -149,6 +158,14 @@ export async function generateEventIdentity(
   let repairFeedback: string | undefined;
   let previousRaw: string | undefined;
   let lastIssues: ValidationIssue[] | undefined;
+  /**
+   * Every provider text this call has been billed for, oldest first.
+   *
+   * The durability boundary the eval journal provides starts when this function returns. Our own
+   * deterministic validation runs after the money is spent and before that return, so anything
+   * paid for in here has to leave with the error or it is gone.
+   */
+  const rawResponses: string[] = [];
 
   // Two passes at most: the original call, then the single repair retry.
   for (let attempt = 0; attempt <= 1; attempt += 1) {
@@ -206,7 +223,18 @@ export async function generateEventIdentity(
     }
 
     const raw = response.output_text ?? "";
-    const outcome = parseAndValidateEventIdentityResult(raw);
+    rawResponses.push(raw);
+    // Validation is our code, not theirs. A bug in a zod refinement throws out of `safeParse`
+    // rather than being reported as an issue, and would otherwise destroy the text just paid
+    // for. The original error is rethrown unchanged — not caught, not relabelled — carrying
+    // the responses so the caller can journal them.
+    let outcome: ReturnType<typeof parseAndValidateEventIdentityResult>;
+    try {
+      outcome = parseAndValidateEventIdentityResult(raw);
+    } catch (error) {
+      (error as { rawResponses?: string[] }).rawResponses = [...rawResponses];
+      throw error;
+    }
 
     if (outcome.ok) {
       return {
@@ -243,5 +271,6 @@ export async function generateEventIdentity(
     "invalid_output",
     lastIssues,
     { latencyMs: Date.now() - startedAt, transientRetries, repairRetries },
+    rawResponses,
   );
 }

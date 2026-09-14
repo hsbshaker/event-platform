@@ -25,9 +25,12 @@ function scratch(): string {
   return path.join(mkdtempSync(path.join(tmpdir(), "journal-")), JOURNAL_FILENAME);
 }
 
-const response = (caseId: string): JournalEntry => ({
+const RUN = "2026-09-14T00:00:00.000Z";
+
+const response = (caseId: string, runStartedAt = RUN): JournalEntry => ({
   caseId,
   status: "response",
+  runStartedAt,
   recordedAt: "2026-09-14T00:00:00.000Z",
   payload: { identity: { creativeDirection: `brief for ${caseId}` } },
 });
@@ -55,8 +58,9 @@ describe("paid responses survive a checker that throws", () => {
     // All four are durable: the fourth response was paid for too, and was journaled before
     // the checker ever saw it.
     const recovered = readJournal(journal);
-    expect(recovered.map((e) => e.caseId)).toEqual(["A", "B", "C", "D"]);
-    expect(recovered.every((e) => e.status === "response")).toBe(true);
+    expect(recovered.entries.map((e) => e.caseId)).toEqual(["A", "B", "C", "D"]);
+    expect(recovered.entries.every((e) => e.status === "response")).toBe(true);
+    expect(recovered.corruptLines).toEqual([]);
   });
 
   it("propagates the checker's own exception rather than swallowing it", () => {
@@ -72,17 +76,21 @@ describe("paid responses survive a checker that throws", () => {
     // The two are different kinds of broken. A checker bug recorded as a model failure would
     // put a lie in evidence that is meant to be immutable.
     const journal = scratch();
+    // Captured rather than asserted inside a `catch`: a `catch` that never runs would let this
+    // test pass by not executing its own assertions.
+    let thrown: unknown;
     try {
       recordThenEvaluate(journal, response("A"), () => {
         throw new CheckerBug("boom");
       });
     } catch (error) {
-      expect(error).toBeInstanceOf(CheckerBug);
-      expect((error as { kind?: string }).kind).toBeUndefined();
+      thrown = error;
     }
+    expect(thrown).toBeInstanceOf(CheckerBug);
+
     const recovered = readJournal(journal);
-    expect(recovered).toHaveLength(1);
-    expect(recovered[0].status).toBe("response");
+    expect(recovered.entries).toHaveLength(1);
+    expect(recovered.entries[0].status).toBe("response");
   });
 
   it("writes each case exactly once", () => {
@@ -90,37 +98,86 @@ describe("paid responses survive a checker that throws", () => {
     for (const id of ["A", "B", "C"]) {
       recordThenEvaluate(journal, response(id), () => undefined);
     }
-    const ids = readJournal(journal).map((e) => e.caseId);
+    const ids = readJournal(journal).entries.map((e) => e.caseId);
     expect(ids).toEqual(["A", "B", "C"]);
     expect(new Set(ids).size).toBe(ids.length);
   });
+});
 
-  it("distinguishes a provider failure from a paid response", () => {
+describe("a status never claims something untrue about the provider", () => {
+  it("separates text we paid for and rejected from a call that returned nothing", () => {
+    // `invalid_output` is the case that matters: the provider answered and our own validation
+    // refused the answer. Filed as a provider failure it would read as "no response", and a
+    // reader recovering responses would skip text that was paid for twice.
     const journal = scratch();
     appendJournal(journal, response("A"));
     appendJournal(journal, {
       caseId: "B",
-      status: "provider_error",
+      status: "unvalidated_response",
+      runStartedAt: RUN,
       recordedAt: "2026-09-14T00:00:01.000Z",
-      payload: { kind: "provider", message: "503" },
+      payload: { kind: "invalid_output", rawResponses: ["{bad", "{still bad"] },
     });
-    expect(readJournal(journal).map((e) => e.status)).toEqual(["response", "provider_error"]);
+    appendJournal(journal, {
+      caseId: "C",
+      status: "no_response",
+      runStartedAt: RUN,
+      recordedAt: "2026-09-14T00:00:02.000Z",
+      payload: { kind: "provider", message: "503", rawResponses: [] },
+    });
+
+    const { entries } = readJournal(journal);
+    expect(entries.map((e) => e.status)).toEqual([
+      "response",
+      "unvalidated_response",
+      "no_response",
+    ]);
+    // Paid text is recoverable from the rejected case, which is the whole point of the status.
+    expect((entries[1].payload as { rawResponses: string[] }).rawResponses).toHaveLength(2);
+    expect((entries[2].payload as { rawResponses: string[] }).rawResponses).toEqual([]);
+  });
+});
+
+describe("entries stay attributable to their run", () => {
+  it("carries the run's startedAt on every line", () => {
+    const journal = scratch();
+    recordThenEvaluate(journal, response("A"), () => undefined);
+    expect(readJournal(journal).entries[0].runStartedAt).toBe(RUN);
   });
 
-  it("survives a truncated final line rather than losing the whole file", () => {
+  it("makes two runs' entries distinguishable if they ever share a file", () => {
+    // The runner rotates an existing journal aside rather than appending, so this should not
+    // happen. If it does — a copied file, a hand-merged directory — duplicate case ids must
+    // still be separable rather than silently reading as one run.
+    const journal = scratch();
+    appendJournal(journal, response("A", "2026-09-14T00:00:00.000Z"));
+    appendJournal(journal, response("A", "2026-09-15T00:00:00.000Z"));
+
+    const { entries } = readJournal(journal);
+    expect(entries.map((e) => e.caseId)).toEqual(["A", "A"]);
+    expect(new Set(entries.map((e) => e.runStartedAt)).size).toBe(2);
+  });
+});
+
+describe("a damaged line costs that line and nothing else", () => {
+  it("returns the intact entries and reports the truncated tail", () => {
     // The failure mode a rewrite-the-whole-file approach would have: one bad write destroys
-    // every response already recorded. Append-per-line can only damage the last.
+    // every response already recorded. Append-per-line can only damage the last — but only if
+    // the reader hands back what survived instead of refusing the file.
     const journal = scratch();
     appendJournal(journal, response("A"));
     appendJournal(journal, response("B"));
     const intact = readFileSync(journal, "utf8");
     writeFileSync(journal, `${intact}{"caseId":"C","status":"resp`);
 
-    expect(() => readJournal(journal)).toThrow(); // the truncated line is visibly broken
-    // …and the intact prefix is still recoverable by hand or by trimming the last line.
-    const lines = readFileSync(journal, "utf8").split("\n").filter(Boolean);
-    expect(lines).toHaveLength(3);
-    expect(JSON.parse(lines[0]).caseId).toBe("A");
-    expect(JSON.parse(lines[1]).caseId).toBe("B");
+    const { entries, corruptLines } = readJournal(journal);
+    expect(entries.map((e) => e.caseId)).toEqual(["A", "B"]);
+    expect(corruptLines).toHaveLength(1);
+    expect(corruptLines[0].line).toBe(3);
+    expect(corruptLines[0].text).toContain('"caseId":"C"');
+  });
+
+  it("is empty, not an error, when no journal was ever written", () => {
+    expect(readJournal(scratch())).toEqual({ entries: [], corruptLines: [] });
   });
 });

@@ -20,6 +20,24 @@ vi.mock("openai", () => ({
   },
 }));
 
+/**
+ * A bug in our own validation, injected. Zod reports schema problems as issues, but an
+ * exception thrown *inside* a refinement escapes `safeParse` — and it escapes after the
+ * provider has already been paid.
+ */
+const validationBug = vi.hoisted(() => ({ throws: null as Error | null }));
+
+vi.mock("@/lib/ai/event-identity/validate", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/ai/event-identity/validate")>();
+  return {
+    ...actual,
+    parseAndValidateEventIdentityResult: (raw: string) => {
+      if (validationBug.throws) throw validationBug.throws;
+      return actual.parseAndValidateEventIdentityResult(raw);
+    },
+  };
+});
+
 const validIdentity = {
   creativeDirection: "A restrained, tactile winter identity built on materials rather than motifs.",
   toneKeywords: ["restrained", "tactile", "warm"],
@@ -89,6 +107,7 @@ describe("the OpenAI event identity call", () => {
   });
 
   afterEach(() => {
+    validationBug.throws = null;
     vi.useRealTimers();
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_MODEL;
@@ -166,6 +185,36 @@ describe("the OpenAI event identity call", () => {
     await expect(run()).rejects.toMatchObject({ kind: "invalid_output" });
     // Two calls total: never a third attempt at a response that keeps missing the schema.
     expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("carries both paid responses out on the invalid-output failure", async () => {
+    // The provider answered twice and was billed twice; our validation refused both. Dropping
+    // that text here would lose it for good — the eval journal can only record what it is
+    // given, and on a one-shot corpus the case cannot be re-run.
+    create.mockResolvedValue(ok({ identity: validIdentity }));
+    await expect(run()).rejects.toMatchObject({
+      kind: "invalid_output",
+      rawResponses: [expect.stringContaining("identity"), expect.stringContaining("identity")],
+    });
+  });
+
+  it("carries the paid response out when our own validation throws", async () => {
+    // Not the model's failure: a bug in parsing or in a zod refinement, which throws rather
+    // than reporting an issue. It must stay its own exception — not caught, not relabelled as
+    // a model failure — and must not take the paid response down with it.
+    const bug = new Error("refinement blew up");
+    validationBug.throws = bug;
+    create.mockResolvedValue(ok());
+
+    const thrown = await run().then(
+      () => null,
+      (error: unknown) => error,
+    );
+    expect(thrown).toBe(bug);
+    expect((thrown as { kind?: string }).kind).toBeUndefined();
+    expect((thrown as { rawResponses?: string[] }).rawResponses).toEqual([
+      expect.stringContaining("identity"),
+    ]);
   });
 
   it("records that the repair was needed when the retry succeeds", async () => {

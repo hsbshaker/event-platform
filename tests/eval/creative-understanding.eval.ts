@@ -1,5 +1,8 @@
 /**
- * One real model call per case in the selected corpus, then the two documents.
+ * Every case in the selected corpus against the live model, then the two documents.
+ *
+ * A case is one model call, or two when the single repair retry is spent (`§8`), plus any
+ * transient HTTP retries underneath those.
  *
  * Run with `npm run eval:regression` or `npm run eval:holdout`. It is its own vitest project,
  * excluded from `npm test`, because it costs money, takes minutes and talks to a live provider —
@@ -17,9 +20,11 @@
  *
  * **Paid responses are durable before anything can throw.** Each response is journaled the
  * moment it arrives, so a bug in our own deterministic code cannot destroy model calls already
- * paid for — which on a one-shot set would be unrecoverable (`evals/journal.ts`).
+ * paid for — which on a one-shot set would be unrecoverable (`evals/journal.ts`). Text paid for
+ * but never accepted by validation is journaled too, carried out of the provider boundary on
+ * `EventIdentityError.rawResponses`.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -97,7 +102,8 @@ if (OUT === BASELINE) {
 if (existsSync(OUT) && process.env.EVAL_OVERWRITE !== "1") {
   throw new Error(
     `${path.relative(ROOT, OUT)} already holds evidence from a previous run. ` +
-      "Move or delete it, or set EVAL_OVERWRITE=1 if replacing it is what you mean.",
+      `Move it aside — it may contain ${JOURNAL_FILENAME}, the paid provider responses, which ` +
+      "deleting destroys — or set EVAL_OVERWRITE=1 if replacing the reports is what you mean.",
   );
 }
 
@@ -131,6 +137,16 @@ describe("creative-understanding corpus", () => {
       // directory holding a journal and no `run.json` is an aborted run, visibly.
       mkdirSync(OUT, { recursive: true });
       const journal = path.join(OUT, JOURNAL_FILENAME);
+      // The three reports are truncated by `writeFileSync`; the journal is appended. Under
+      // `EVAL_OVERWRITE=1` that difference would blend two runs' paid responses into one file
+      // beside a `run.json` describing only one of them — evidence that misrepresents what was
+      // run. Rotate rather than append, and rotate rather than delete: the displaced file is
+      // paid for.
+      if (existsSync(journal)) {
+        const rotated = path.join(OUT, `${JOURNAL_FILENAME}.${startedAt.replace(/[:.]/g, "-")}`);
+        renameSync(journal, rotated);
+        process.stdout.write(`kept the previous journal as ${path.basename(rotated)}\n`);
+      }
 
       for (const caseData of corpus.cases) {
         process.stdout.write(`${caseData.id} … `);
@@ -138,6 +154,12 @@ describe("creative-understanding corpus", () => {
         // The model call is the only statement inside the `try`. Anything else in here would be
         // caught below and recorded as a model failure — a checker bug written into evidence
         // meant to be immutable, as a lie about what the model did.
+        //
+        // The boundary is not quite the HTTP response: parsing and schema validation run inside
+        // `generateEventIdentity`, after the money is spent, and a throw from there does land in
+        // this catch. It cannot destroy the text, which leaves on `rawResponses` and is journaled
+        // below — but it is recorded as `kind: "unknown"`, so read such an entry as our bug until
+        // proven otherwise.
         let call: Awaited<ReturnType<typeof generateEventIdentity>> | undefined;
         try {
           call = await generateEventIdentity({ prompt: caseData.prompt });
@@ -160,11 +182,17 @@ describe("creative-understanding corpus", () => {
               schemaValidFirstCall: false,
             },
           });
+          // `invalid_output` is not a call that produced nothing: the provider answered — twice,
+          // when the repair retry was spent — and our validation rejected the text. Recording
+          // that as a provider failure would claim the model never responded, and would hide
+          // paid text from anyone reading the journal back.
+          const rawResponses = failure.rawResponses ?? [];
           appendJournal(journal, {
             caseId: caseData.id,
-            status: "provider_error",
+            status: rawResponses.length > 0 ? "unvalidated_response" : "no_response",
+            runStartedAt: startedAt,
             recordedAt: new Date().toISOString(),
-            payload: { kind: failure.kind ?? "unknown", message: failure.message },
+            payload: { kind: failure.kind ?? "unknown", message: failure.message, rawResponses },
           });
           process.stdout.write(`FAILED (${failure.kind})\n`);
           continue;
@@ -177,6 +205,7 @@ describe("creative-understanding corpus", () => {
             {
               caseId: caseData.id,
               status: "response",
+              runStartedAt: startedAt,
               recordedAt: new Date().toISOString(),
               payload: { raw: succeeded.raw, output: succeeded.output, usage: succeeded.usage },
             },
@@ -209,7 +238,8 @@ describe("creative-understanding corpus", () => {
       }
 
       // Written only here, on a clean finish. Its absence beside a journal is what makes a
-      // partial run unable to masquerade as a complete one.
+      // partial run unable to masquerade as a complete one; `complete: true` is a constant, and
+      // says so only for a reader holding the JSON without the directory around it.
       writeFileSync(
         path.join(OUT, "run.json"),
         `${JSON.stringify({ evalSet: SET, label: EVAL_SETS[SET].label, corpusVersion: corpus.version, startedAt, complete: true, runs }, null, 2)}\n`,

@@ -162,12 +162,22 @@ The middle row is the one most easily overstated, and `results/creative-understa
 records why, along with the one semantic axis inside it that is not novel.
 
 **Runner:** `npm run eval:regression` / `npm run eval:holdout` (`tests/eval/creative-understanding.eval.ts`),
-added in Phase 4A. It runs the cases **sequentially** against the live model — fourteen concurrent
-calls would report a latency no host will ever experience — records failures rather than retrying
-them away, and writes three artifacts to the directory its `EVAL_SET` names — never the immutable baseline, which it refuses:
-`run.json` (every response and its telemetry), `mechanical-report.md` (for us), and
-`blind-review.md` (for an independent qualitative reviewer). It is excluded from `npm test`: it
-costs money and measures the creative stack, not the compiler.
+added in Phase 4A. It runs the cases **sequentially** against the live model — concurrent calls
+would report a latency no host will ever experience — records failures rather than retrying
+them away, and writes four files to the directory its `EVAL_SET` names — never the immutable baseline, which it refuses:
+`raw-responses.jsonl` (below), `run.json` (every response and its telemetry),
+`mechanical-report.md` (for us), and `blind-review.md` (for an independent qualitative reviewer).
+It is excluded from `npm test`: it costs money and measures the creative stack, not the compiler.
+
+**A paid response is durable before our own code can destroy it.** `raw-responses.jsonl` is
+appended the moment each response arrives, ahead of any deterministic evaluation, because a bug
+in the checker used to abort the loop before `run.json` existed and take every response already
+paid for with it — unrecoverable on a one-shot sealed challenge. Text the provider returned and
+our validation then rejected is journaled too, on `EventIdentityError.rawResponses`: `invalid_output`
+is a call that was answered and billed, not one that produced nothing, and no status may say
+otherwise. The three reports are rewritten on each run; the journal is rotated aside rather than
+appended to or deleted, so two runs can never blend into one file. `run.json` is written only on
+a clean finish, so a journal with no `run.json` beside it is visibly an aborted run.
 
 The deterministic checks live in `src/lib/ai/evals/creative-understanding.ts` and decide exactly
 one thing — whether an **outright failure** was committed. Two of them are derived from the host's
