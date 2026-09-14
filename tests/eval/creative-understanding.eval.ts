@@ -1,19 +1,23 @@
 /**
- * The creative-understanding run: fourteen real model calls, then the two documents.
+ * One real model call per case in the selected corpus, then the two documents.
  *
- * Run with `npm run eval:regression` or `npm run eval:holdout`. It is its own vitest project, excluded
- * from `npm test`, because it costs money, takes minutes and talks to a live provider —
+ * Run with `npm run eval:regression` or `npm run eval:holdout`. It is its own vitest project,
+ * excluded from `npm test`, because it costs money, takes minutes and talks to a live provider —
  * `docs/model-contracts.md §4.5`: "do not gate ordinary code changes on it — it measures
  * the creative stack, not the compiler."
  *
- * Two deliberate choices about how it runs:
+ * Three deliberate choices about how it runs:
  *
- * **Sequential, not parallel.** Fourteen concurrent calls would finish sooner and report
- * latency that no host will ever experience. `spec.md §7.10` has a latency target to answer
- * against, so each case is timed alone.
+ * **Sequential, not parallel.** Concurrent calls would finish sooner and report a latency no
+ * host will ever experience. `spec.md §7.10` has a latency target to answer against, so each
+ * case is timed alone.
  *
  * **Failures are recorded, never retried away.** A case that fails validation after its one
  * repair retry is written into the report as a failure (`§4.9`: "Do not hide failed calls").
+ *
+ * **Paid responses are durable before anything can throw.** Each response is journaled the
+ * moment it arrives, so a bug in our own deterministic code cannot destroy model calls already
+ * paid for — which on a one-shot set would be unrecoverable (`evals/journal.ts`).
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -23,14 +27,24 @@ import { EventIdentityError, generateEventIdentity } from "@/lib/ai/openai/event
 import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understanding";
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
+import { appendJournal, JOURNAL_FILENAME, recordThenEvaluate } from "@/lib/ai/evals/journal";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 /**
  * Which corpus runs, and where its evidence lands.
  *
- * `EVAL_SET=holdout` is the fresh evidence; the default is the original fourteen, which are
- * now a REGRESSION suite rather than fresh evidence — every one of their outputs has been
- * inspected and discussed (`results/creative-understanding-v1/astra-qualitative-review.md`).
+ * There is no default — see the `EVAL_SET` check below. Neither set available here is fresh
+ * generalization evidence, and the labels say so, because a report that overstates its own
+ * evidence class is how a weak result gets read as a strong one:
+ *
+ * - **regression** — the original cases. Every output has been inspected and discussed
+ *   (`results/creative-understanding-v1/astra-qualitative-review.md`), so a re-run catches
+ *   regressions and nothing more.
+ * - **holdout** — the pre-registered validation set. Frozen and independently reviewed before
+ *   the remediation, but authored by the same person who then wrote the prompt, with knowledge
+ *   of the cases. Useful validation; not the strongest evidence of generalization.
+ *
+ * The independently authored sealed challenge is what will provide that, and it is not here.
  *
  * The output directory is derived from the set, never shared. Hardcoding it meant pointing the
  * runner at a second corpus would have overwritten the immutable Phase 4A baseline in place,
@@ -40,12 +54,15 @@ const EVAL_SETS = {
   regression: {
     corpus: "docs/model-evals/creative-understanding.json",
     out: "docs/model-evals/results/creative-understanding-v1-regression",
-    label: "REGRESSION RE-RUN of the original fourteen — not fresh evidence",
+    label: "REGRESSION RE-RUN — known cases, not fresh evidence",
   },
   holdout: {
     corpus: "docs/model-evals/creative-understanding-holdout.json",
     out: "docs/model-evals/results/creative-understanding-holdout-v1",
-    label: "FRESH EVIDENCE from the frozen holdout",
+    label:
+      "PRE-REGISTERED VALIDATION SET — frozen before remediation, but known to the " +
+      "implementation author; useful validation evidence, not the strongest evidence of " +
+      "generalization",
   },
 } as const;
 
@@ -109,14 +126,18 @@ describe("creative-understanding corpus", () => {
       const startedAt = new Date().toISOString();
       const runs: CaseRun[] = [];
 
+      // Created up front, not after the loop: every paid response is journaled here the moment
+      // it arrives, so nothing our deterministic code does afterwards can destroy it. A
+      // directory holding a journal and no `run.json` is an aborted run, visibly.
+      mkdirSync(OUT, { recursive: true });
+      const journal = path.join(OUT, JOURNAL_FILENAME);
+
       for (const caseData of corpus.cases) {
         process.stdout.write(`${caseData.id} … `);
         const startedCase = Date.now();
-        // Only the model call is guarded, and it is the only statement inside the `try`. A
-        // checker bug throwing in here would otherwise be caught below, recorded as a model
-        // failure in evidence meant to be immutable, and — once the push moved above the
-        // evaluation — pushed a second time for the same case, double-counting it and failing
-        // the length assertion after the money was already spent.
+        // The model call is the only statement inside the `try`. Anything else in here would be
+        // caught below and recorded as a model failure — a checker bug written into evidence
+        // meant to be immutable, as a lie about what the model did.
         let call: Awaited<ReturnType<typeof generateEventIdentity>> | undefined;
         try {
           call = await generateEventIdentity({ prompt: caseData.prompt });
@@ -139,15 +160,32 @@ describe("creative-understanding corpus", () => {
               schemaValidFirstCall: false,
             },
           });
+          appendJournal(journal, {
+            caseId: caseData.id,
+            status: "provider_error",
+            recordedAt: new Date().toISOString(),
+            payload: { kind: failure.kind ?? "unknown", message: failure.message },
+          });
           process.stdout.write(`FAILED (${failure.kind})\n`);
           continue;
         }
 
         {
+          const succeeded = call;
+          const evaluation = recordThenEvaluate(
+            journal,
+            {
+              caseId: caseData.id,
+              status: "response",
+              recordedAt: new Date().toISOString(),
+              payload: { raw: succeeded.raw, output: succeeded.output, usage: succeeded.usage },
+            },
+            () => evaluateCase(caseData, succeeded.output),
+          );
           runs.push({
             caseData,
             result: call.output,
-            evaluation: evaluateCase(caseData, call.output),
+            evaluation,
             telemetry: {
               model: call.usage.model,
               promptVersion: call.promptVersion,
@@ -170,10 +208,11 @@ describe("creative-understanding corpus", () => {
         }
       }
 
-      mkdirSync(OUT, { recursive: true });
+      // Written only here, on a clean finish. Its absence beside a journal is what makes a
+      // partial run unable to masquerade as a complete one.
       writeFileSync(
         path.join(OUT, "run.json"),
-        `${JSON.stringify({ evalSet: SET, label: EVAL_SETS[SET].label, corpusVersion: corpus.version, startedAt, runs }, null, 2)}\n`,
+        `${JSON.stringify({ evalSet: SET, label: EVAL_SETS[SET].label, corpusVersion: corpus.version, startedAt, complete: true, runs }, null, 2)}\n`,
       );
       writeFileSync(
         path.join(OUT, "mechanical-report.md"),

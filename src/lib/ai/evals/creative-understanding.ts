@@ -419,11 +419,12 @@ const NEGATING_PREFIX = /(^|[^a-z])(non|anti|un)-?$/;
 /**
  * "pink must be entirely absent", "gold is excluded": the negation trails the term.
  *
- * The copula is mandatory and the run-up is a single optional intensifier. Anything looser
- * bridged clauses that reverse the meaning — "pink is avoided as a field colour but used for
- * the rule lines" proposes pink. `never` is deliberately absent — it is already a leading cue, and
- * as a trailing one it matched "pink never dominates", which is "no pink" read as "less pink",
- * the exact failure this whole check exists to catch.
+ * The copula is **optional** — "pink, excluded at every level" is a correct exclusion with no
+ * copula at all. What closed the hole was removing the free run-up that used to bridge to the
+ * exclusion word from anywhere in the following twelve characters, plus `EXCLUSION_REVERSED`
+ * below for clauses that take the exclusion back. `never` is deliberately absent from this
+ * list: it is already a leading cue, and as a trailing one it matched "pink never dominates",
+ * which is "no pink" read as "less pink" — the exact failure this whole check exists to catch.
  */
 const TRAILING_NEGATION =
   /^[\s,]{0,4}((is|are|must be|should be|stays|remains)\s+)?(entirely |completely |always |wholly )?(absent|avoided|excluded|omitted|prohibited|forbidden|banned)\b/;
