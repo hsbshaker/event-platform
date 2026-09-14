@@ -2,177 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/event-identity.schema.json",
   "title": "EventIdentity",
-  "description": "The creative brief. Inference is expected and generous. Carries no operational data.",
+  "description": "Canonical structured output for the event creative brief. Runtime may narrow family/category enums to currently enabled catalog values.",
   "type": "object",
-  "properties": {
-    "creativeDirection": {
-      "type": "string",
-      "minLength": 20,
-      "maxLength": 420,
-      "description": "Concise 1-3 sentence creative thesis. No renderer implementation choices."
-    },
-    "toneKeywords": {
-      "minItems": 3,
-      "maxItems": 7,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 2,
-        "maxLength": 48
-      },
-      "description": "Ranked/curated tone adjectives or short phrases with minimal synonym redundancy."
-    },
-    "colorsExplicitlyConstrained": {
-      "type": "boolean",
-      "description": "True only when the host explicitly narrows/requires/excludes palette families."
-    },
-    "paletteIntent": {
-      "type": "object",
-      "properties": {
-        "requiredColors": {
-          "maxItems": 5,
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 60
-          },
-          "description": "Hard color requirements in short natural language; preserve exact user hex strings."
-        },
-        "preferredColors": {
-          "maxItems": 7,
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 60
-          },
-          "description": "Softer palette preferences."
-        },
-        "avoidColors": {
-          "maxItems": 7,
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 60
-          },
-          "description": "Explicit color exclusions. An exclusion is absolute and covers near neighbours."
-        },
-        "dominanceNotes": {
-          "type": "string",
-          "maxLength": 300,
-          "description": "How palette families should dominate/recede; empty string when unspecified."
-        }
-      },
-      "required": [
-        "requiredColors",
-        "preferredColors",
-        "avoidColors",
-        "dominanceNotes"
-      ],
-      "additionalProperties": false
-    },
-    "tonalIntent": {
-      "type": "string",
-      "minLength": 5,
-      "maxLength": 320,
-      "description": "Natural-language brightness/depth/contrast intent."
-    },
-    "toneExplicitlyConstrained": {
-      "type": "boolean",
-      "description": "True only when the host explicitly constrains light/mid/dark tonal space."
-    },
-    "compatibleTonalDirections": {
-      "minItems": 1,
-      "maxItems": 3,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "light",
-          "mid",
-          "dark"
-        ]
-      },
-      "description": "Ranked best-first compatible tonal directions. Do not pad with incompatible values."
-    },
-    "compatibleFamilies": {
-      "minItems": 1,
-      "maxItems": 3,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "editorial",
-          "invitation",
-          "statement"
-        ]
-      },
-      "description": "Ranked best-first compatible design families. A family is a compositional character."
-    },
-    "compatibleTypographyCategories": {
-      "minItems": 1,
-      "maxItems": 6,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "heritage",
-          "high_contrast_editorial",
-          "oldstyle",
-          "grotesk_led",
-          "soft_serif",
-          "transitional"
-        ]
-      },
-      "description": "Ranked compatible broad typography categories, not a font choice."
-    },
-    "visualMotifs": {
-      "maxItems": 8,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 3,
-        "maxLength": 90
-      },
-      "description": "Natural-language motif ideas, not renderer motif IDs."
-    },
-    "textureDirection": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 300,
-      "description": "Tactile/visual texture character. Never an image asset."
-    },
-    "typographyDirection": {
-      "type": "string",
-      "minLength": 5,
-      "maxLength": 300,
-      "description": "Typographic character/hierarchy, not a raw font-family choice."
-    },
-    "copyTone": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 260,
-      "description": "Voice of guest-facing event copy."
-    },
-    "designConstraints": {
-      "maxItems": 10,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 3,
-        "maxLength": 180
-      },
-      "description": "Host-specific aesthetic constraints, including important negative constraints."
-    },
-    "inspirationSummary": {
-      "type": "string",
-      "minLength": 5,
-      "maxLength": 700,
-      "description": "Compact summary of inspiration evidence; exactly 'No visual inspiration supplied.' when none exists."
-    }
-  },
+  "additionalProperties": false,
   "required": [
     "creativeDirection",
     "toneKeywords",
@@ -190,6 +22,186 @@
     "designConstraints",
     "inspirationSummary"
   ],
-  "additionalProperties": false,
-  "$comment": "Shape unchanged from event_identity_schema_v2. Operational event data is never carried here; it lives in the result envelope's `suppliedFacts` sibling (spec.md §7.5)."
+  "properties": {
+    "creativeDirection": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 420,
+      "description": "Concise 1-3 sentence creative thesis. No renderer implementation choices."
+    },
+    "toneKeywords": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 48
+      },
+      "description": "Ranked/curated tone adjectives or short phrases with minimal synonym redundancy."
+    },
+    "colorsExplicitlyConstrained": {
+      "type": "boolean",
+      "description": "True only when the host explicitly narrows/requires/excludes palette families."
+    },
+    "paletteIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requiredColors",
+        "preferredColors",
+        "avoidColors",
+        "dominanceNotes"
+      ],
+      "properties": {
+        "requiredColors": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "description": "Hard color requirements in short natural language; preserve exact user hex strings when provided."
+        },
+        "preferredColors": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "description": "Softer palette preferences."
+        },
+        "avoidColors": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "description": "Explicit color exclusions."
+        },
+        "dominanceNotes": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "How palette families should dominate/recede; empty string when unspecified."
+        }
+      }
+    },
+    "tonalIntent": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 320,
+      "description": "Natural-language brightness/depth/contrast intent."
+    },
+    "toneExplicitlyConstrained": {
+      "type": "boolean",
+      "description": "True only when the host explicitly constrains light/mid/dark tonal space."
+    },
+    "compatibleTonalDirections": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "light",
+          "mid",
+          "dark"
+        ]
+      },
+      "description": "Ranked best-first compatible tonal directions. Do not pad with incompatible values."
+    },
+    "compatibleFamilies": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "editorial",
+          "invitation",
+          "statement"
+        ]
+      },
+      "description": "Ranked best-first compatible design families. Runtime schema should narrow to currently enabled families."
+    },
+    "compatibleTypographyCategories": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "heritage",
+          "high_contrast_editorial",
+          "oldstyle",
+          "grotesk_led",
+          "soft_serif",
+          "transitional"
+        ]
+      },
+      "description": "Ranked compatible broad typography categories. Runtime may narrow to enabled categories."
+    },
+    "visualMotifs": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 90
+      },
+      "description": "Natural-language motif ideas, not renderer motif IDs."
+    },
+    "textureDirection": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 300
+    },
+    "typographyDirection": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 300,
+      "description": "Typographic character/hierarchy, not a raw font-family choice."
+    },
+    "copyTone": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 260
+    },
+    "designConstraints": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 180
+      },
+      "description": "Host-specific aesthetic constraints, including important negative constraints."
+    },
+    "inspirationSummary": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 700,
+      "description": "Compact summary of inspiration evidence; exactly 'No visual inspiration supplied.' when none exists."
+    }
+  },
+  "$comment": "event_identity_schema_v2: compatibleHeroArchetypes replaced by compatibleFamilies (Revision 6, CompositionTree)."
 }
