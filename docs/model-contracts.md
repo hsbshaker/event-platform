@@ -175,9 +175,17 @@ in the checker used to abort the loop before `run.json` existed and take every r
 paid for with it — unrecoverable on a one-shot sealed challenge. Text the provider returned and
 our validation then rejected is journaled too, on `EventIdentityError.rawResponses`: `invalid_output`
 is a call that was answered and billed, not one that produced nothing, and no status may say
-otherwise. The three reports are rewritten on each run; the journal is rotated aside rather than
-appended to or deleted, so two runs can never blend into one file. `run.json` is written only on
-a clean finish, so a journal with no `run.json` beside it is visibly an aborted run.
+otherwise. Nor may `kind` decide that on its own — a provider failure on the *repair* attempt
+also follows a response that was returned and billed, so what the error carries decides, not what
+it is called. The three reports are rewritten on each run; the journal is rotated aside — kept
+under a stamped name, never appended to and never deleted — so two runs can never blend into one
+file. `run.json` is written only on a clean finish, so a journal with no `run.json` beside it is
+visibly an aborted run.
+
+Recovering a report from a journal is a manual job today: `readJournal` returns the intact entries
+and reports damaged lines, and nothing rebuilds `run.json` or the two reports from them. That is a
+known gap, recorded rather than implied — the journal guarantees the responses survive, not that
+the evidence rebuilds itself.
 
 The deterministic checks live in `src/lib/ai/evals/creative-understanding.ts` and decide exactly
 one thing — whether an **outright failure** was committed. Two of them are derived from the host's

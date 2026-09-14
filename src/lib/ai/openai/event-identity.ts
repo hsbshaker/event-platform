@@ -96,7 +96,10 @@ export class EventIdentityError extends Error {
      * An `invalid_output` failure is not a call that produced nothing: the provider answered,
      * twice on the repair path, and our own validation rejected what came back. Dropping that
      * text on the floor loses a paid response the caller may need to keep — and on a one-shot
-     * corpus it is unrecoverable. Empty for a `provider` failure, which by definition has none.
+     * corpus it is unrecoverable.
+     *
+     * Empty only when no response had yet arrived. A `provider` failure on the repair attempt
+     * carries the first one, so `kind` does not tell you whether this is empty; its length does.
      */
     readonly rawResponses?: string[],
   ) {
@@ -213,11 +216,16 @@ export async function generateEventIdentity(
           await sleep(TRANSIENT_BACKOFF_MS[Math.min(t, TRANSIENT_BACKOFF_MS.length - 1)]);
           continue;
         }
+        // `rawResponses` is usually empty here, but not always: a provider failure on the
+        // repair attempt follows a first response that was returned, billed and rejected.
+        // Leaving it off would drop that text and let the caller record the case as one the
+        // provider never answered.
         throw new EventIdentityError(
           `OpenAI request failed: ${(error as Error)?.message ?? String(error)}`,
           "provider",
           undefined,
           { latencyMs: Date.now() - startedAt, transientRetries },
+          [...rawResponses],
         );
       }
     }
@@ -226,13 +234,19 @@ export async function generateEventIdentity(
     rawResponses.push(raw);
     // Validation is our code, not theirs. A bug in a zod refinement throws out of `safeParse`
     // rather than being reported as an issue, and would otherwise destroy the text just paid
-    // for. The original error is rethrown unchanged — not caught, not relabelled — carrying
-    // the responses so the caller can journal them.
+    // for. So it is caught, annotated with the paid responses, and rethrown as itself: the same
+    // object, the same type, no `kind` — a checker bug must not read as a model failure.
+    //
+    // The annotation is guarded because a non-object or frozen throw would make the assignment
+    // itself throw, replacing the original exception and losing the responses in the one place
+    // whose whole purpose is keeping them.
     let outcome: ReturnType<typeof parseAndValidateEventIdentityResult>;
     try {
       outcome = parseAndValidateEventIdentityResult(raw);
     } catch (error) {
-      (error as { rawResponses?: string[] }).rawResponses = [...rawResponses];
+      if (error && typeof error === "object" && Object.isExtensible(error)) {
+        (error as { rawResponses?: string[] }).rawResponses = [...rawResponses];
+      }
       throw error;
     }
 
@@ -271,6 +285,6 @@ export async function generateEventIdentity(
     "invalid_output",
     lastIssues,
     { latencyMs: Date.now() - startedAt, transientRetries, repairRetries },
-    rawResponses,
+    [...rawResponses],
   );
 }

@@ -18,6 +18,7 @@ import {
   JOURNAL_FILENAME,
   readJournal,
   recordThenEvaluate,
+  rotateJournal,
   type JournalEntry,
 } from "./journal";
 
@@ -156,6 +157,46 @@ describe("entries stay attributable to their run", () => {
     const { entries } = readJournal(journal);
     expect(entries.map((e) => e.caseId)).toEqual(["A", "A"]);
     expect(new Set(entries.map((e) => e.runStartedAt)).size).toBe(2);
+  });
+});
+
+describe("a new run never appends into the previous run's journal", () => {
+  it("moves the existing journal aside and starts empty", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "journal-"));
+    const journal = path.join(dir, JOURNAL_FILENAME);
+    appendJournal(journal, response("A"));
+    appendJournal(journal, response("B"));
+
+    const rotated = rotateJournal(dir, "2026-09-15T12:30:00.000Z");
+    expect(rotated).not.toBeNull();
+    // Nothing is destroyed: the displaced file was paid for.
+    expect(readJournal(rotated as string).entries.map((e) => e.caseId)).toEqual(["A", "B"]);
+    // And the run that follows writes into an empty journal, so the two cannot blend.
+    expect(readJournal(journal).entries).toEqual([]);
+
+    appendJournal(journal, response("A", "2026-09-15T12:30:00.000Z"));
+    expect(readJournal(journal).entries.map((e) => e.caseId)).toEqual(["A"]);
+  });
+
+  it("does nothing, and says so, when there is no journal to move", () => {
+    expect(rotateJournal(mkdtempSync(path.join(tmpdir(), "journal-")), RUN)).toBeNull();
+  });
+
+  it("names the rotated file distinctly per rotating run", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "journal-"));
+    const journal = path.join(dir, JOURNAL_FILENAME);
+
+    appendJournal(journal, response("A"));
+    const first = rotateJournal(dir, "2026-09-15T12:30:00.000Z");
+    appendJournal(journal, response("B"));
+    const second = rotateJournal(dir, "2026-09-16T09:00:00.000Z");
+
+    // A third run must not clobber what the second displaced.
+    expect(first).not.toBe(second);
+    expect(readJournal(first as string).entries.map((e) => e.caseId)).toEqual(["A"]);
+    expect(readJournal(second as string).entries.map((e) => e.caseId)).toEqual(["B"]);
+    // No colons or dots from the timestamp survive into the filename.
+    expect(path.basename(second as string)).toBe(`${JOURNAL_FILENAME}.2026-09-16T09-00-00-000Z`);
   });
 });
 

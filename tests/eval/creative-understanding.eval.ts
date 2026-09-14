@@ -24,7 +24,7 @@
  * but never accepted by validation is journaled too, carried out of the provider boundary on
  * `EventIdentityError.rawResponses`.
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -32,7 +32,12 @@ import { EventIdentityError, generateEventIdentity } from "@/lib/ai/openai/event
 import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understanding";
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
-import { appendJournal, JOURNAL_FILENAME, recordThenEvaluate } from "@/lib/ai/evals/journal";
+import {
+  appendJournal,
+  JOURNAL_FILENAME,
+  recordThenEvaluate,
+  rotateJournal,
+} from "@/lib/ai/evals/journal";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 /**
@@ -137,16 +142,10 @@ describe("creative-understanding corpus", () => {
       // directory holding a journal and no `run.json` is an aborted run, visibly.
       mkdirSync(OUT, { recursive: true });
       const journal = path.join(OUT, JOURNAL_FILENAME);
-      // The three reports are truncated by `writeFileSync`; the journal is appended. Under
-      // `EVAL_OVERWRITE=1` that difference would blend two runs' paid responses into one file
-      // beside a `run.json` describing only one of them — evidence that misrepresents what was
-      // run. Rotate rather than append, and rotate rather than delete: the displaced file is
-      // paid for.
-      if (existsSync(journal)) {
-        const rotated = path.join(OUT, `${JOURNAL_FILENAME}.${startedAt.replace(/[:.]/g, "-")}`);
-        renameSync(journal, rotated);
-        process.stdout.write(`kept the previous journal as ${path.basename(rotated)}\n`);
-      }
+      // Never append into a previous run's journal: `evals/journal.ts` says why, and is where
+      // this is asserted rather than only read.
+      const rotated = rotateJournal(OUT, startedAt);
+      if (rotated) process.stdout.write(`kept the previous journal as ${path.basename(rotated)}\n`);
 
       for (const caseData of corpus.cases) {
         process.stdout.write(`${caseData.id} … `);

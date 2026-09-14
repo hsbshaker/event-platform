@@ -198,6 +198,20 @@ describe("the OpenAI event identity call", () => {
     });
   });
 
+  it("keeps the first paid response when the repair attempt never reaches the provider", async () => {
+    // The easiest one to miss: the failure is a provider failure, but a response had already
+    // arrived and been billed. Recorded as a call that produced nothing, it would take that
+    // text with it — and `kind` alone cannot tell the two apart.
+    create
+      .mockResolvedValueOnce(ok({ identity: validIdentity }))
+      .mockRejectedValue(providerError(500));
+
+    await expect(run()).rejects.toMatchObject({
+      kind: "provider",
+      rawResponses: [expect.stringContaining("identity")],
+    });
+  });
+
   it("carries the paid response out when our own validation throws", async () => {
     // Not the model's failure: a bug in parsing or in a zod refinement, which throws rather
     // than reporting an issue. It must stay its own exception — not caught, not relabelled as

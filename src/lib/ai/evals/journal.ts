@@ -29,7 +29,8 @@
  * damaged lines rather than refusing the whole file, so that property is real for a reader and
  * not only for the bytes.
  */
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, renameSync } from "node:fs";
+import path from "node:path";
 
 export const JOURNAL_FILENAME = "raw-responses.jsonl";
 
@@ -41,6 +42,10 @@ export const JOURNAL_FILENAME = "raw-responses.jsonl";
  * deterministic validation did not accept it. Calling that a provider error would claim the
  * call never produced output, which is false, and would make a recovery reader filtering on
  * `response` skip text we paid for.
+ *
+ * `no_response` is the complement and means exactly what it says: nothing was returned for this
+ * case, so there is no paid text to keep. It is decided by what the error carries, not by its
+ * kind — a provider failure on the repair attempt still has the first response.
  */
 export type JournalStatus = "response" | "unvalidated_response" | "no_response";
 
@@ -57,6 +62,27 @@ export interface JournalReadResult {
   entries: JournalEntry[];
   /** Lines that did not parse, by 1-based position, with the text as found. */
   corruptLines: { line: number; text: string }[];
+}
+
+/**
+ * Move an existing journal out of the way before a run starts, and return where it went.
+ *
+ * The three reports are truncated on each run; the journal is appended. Under `EVAL_OVERWRITE=1`
+ * that difference would blend two runs' paid responses into one file beside a `run.json`
+ * describing only one of them — evidence that misrepresents what was run.
+ *
+ * Rotate rather than append, and rotate rather than delete: the displaced file was paid for. It
+ * lives in the eval runner's path, which only executes against a live provider, so it is here
+ * instead — the mechanism that discharges that hazard should be asserted, not read.
+ */
+export function rotateJournal(dir: string, runStartedAt: string): string | null {
+  const journal = path.join(dir, JOURNAL_FILENAME);
+  if (!existsSync(journal)) return null;
+  // Stamped with the rotating run's `startedAt` — when it was displaced, not when it was
+  // written. What produced each line is `runStartedAt`, inside the file.
+  const rotated = path.join(dir, `${JOURNAL_FILENAME}.${runStartedAt.replace(/[:.]/g, "-")}`);
+  renameSync(journal, rotated);
+  return rotated;
 }
 
 export function appendJournal(journalPath: string, entry: JournalEntry): void {
