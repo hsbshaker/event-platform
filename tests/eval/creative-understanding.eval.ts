@@ -112,34 +112,14 @@ describe("creative-understanding corpus", () => {
       for (const caseData of corpus.cases) {
         process.stdout.write(`${caseData.id} … `);
         const startedCase = Date.now();
+        // Only the model call is guarded, and it is the only statement inside the `try`. A
+        // checker bug throwing in here would otherwise be caught below, recorded as a model
+        // failure in evidence meant to be immutable, and — once the push moved above the
+        // evaluation — pushed a second time for the same case, double-counting it and failing
+        // the length assertion after the money was already spent.
+        let call: Awaited<ReturnType<typeof generateEventIdentity>> | undefined;
         try {
-          // Only the model call is guarded. `evaluateCase` runs after, because a bug in the
-          // checker throwing in here would be caught below and recorded as a model failure in
-          // evidence that is meant to be immutable.
-          const call = await generateEventIdentity({ prompt: caseData.prompt });
-          runs.push({
-            caseData,
-            result: call.output,
-            telemetry: {
-              model: call.usage.model,
-              promptVersion: call.promptVersion,
-              schemaVersion: call.schemaVersion,
-              latencyMs: call.usage.latencyMs,
-              transientRetries: call.usage.transientRetries,
-              repairRetries: call.usage.repairRetries,
-              schemaValidFirstCall: call.usage.schemaValidFirstCall,
-              inputTokens: call.usage.inputTokens,
-              cachedInputTokens: call.usage.cachedInputTokens,
-              outputTokens: call.usage.outputTokens,
-              reasoningTokens: call.usage.reasoningTokens,
-              providerRequestId: call.usage.providerRequestId,
-            },
-          });
-          const last = runs[runs.length - 1];
-          last.evaluation = evaluateCase(caseData, call.output);
-          process.stdout.write(
-            `${last.telemetry.latencyMs}ms ${last.evaluation?.mechanicalPass ? "ok" : "MECHANICAL FAIL"}\n`,
-          );
+          call = await generateEventIdentity({ prompt: caseData.prompt });
         } catch (error) {
           const failure = error as EventIdentityError;
           runs.push({
@@ -160,6 +140,33 @@ describe("creative-understanding corpus", () => {
             },
           });
           process.stdout.write(`FAILED (${failure.kind})\n`);
+          continue;
+        }
+
+        {
+          runs.push({
+            caseData,
+            result: call.output,
+            evaluation: evaluateCase(caseData, call.output),
+            telemetry: {
+              model: call.usage.model,
+              promptVersion: call.promptVersion,
+              schemaVersion: call.schemaVersion,
+              latencyMs: call.usage.latencyMs,
+              transientRetries: call.usage.transientRetries,
+              repairRetries: call.usage.repairRetries,
+              schemaValidFirstCall: call.usage.schemaValidFirstCall,
+              inputTokens: call.usage.inputTokens,
+              cachedInputTokens: call.usage.cachedInputTokens,
+              outputTokens: call.usage.outputTokens,
+              reasoningTokens: call.usage.reasoningTokens,
+              providerRequestId: call.usage.providerRequestId,
+            },
+          });
+          const last = runs[runs.length - 1];
+          process.stdout.write(
+            `${last.telemetry.latencyMs}ms ${last.evaluation?.mechanicalPass ? "ok" : "MECHANICAL FAIL"}\n`,
+          );
         }
       }
 

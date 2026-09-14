@@ -60,11 +60,7 @@ export interface ReportContext {
 export function buildMechanicalReport(
   runs: CaseRun[],
   startedAt: string,
-  context: ReportContext = {
-    corpusPath: "docs/model-evals/creative-understanding.json",
-    corpusVersion: "creative_understanding_v1",
-    label: "unlabelled run",
-  },
+  context: ReportContext,
 ): string {
   const completed = runs.filter((r) => r.result);
   const latencies = completed.map((r) => r.telemetry.latencyMs);

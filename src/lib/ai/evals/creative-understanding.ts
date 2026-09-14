@@ -270,7 +270,6 @@ export function checkHostPhraseRouting(caseData: CorpusCase, identity: EventIden
   if (phrases.length === 0) {
     return { name: "hostPhraseRouting", status: "n/a", detail: "the case declares no phrases" };
   }
-  const constraintText = fold(identity.hostConstraints.join(" | "));
   const problems: string[] = [];
 
   for (const { phrase, kind } of phrases) {
@@ -282,7 +281,6 @@ export function checkHostPhraseRouting(caseData: CorpusCase, identity: EventIden
       const e = fold(entry);
       return e.includes(folded) || (folded.includes(e) && e.split(" ").length > 1);
     });
-    void constraintText;
     if (kind === "constraint" && !filedAsConstraint) {
       problems.push(`"${phrase}" is a host constraint and was not carried as one`);
     }
@@ -412,7 +410,7 @@ export function negatedTerms(prompt: string): string[] {
  * of pink" and "nothing but soft pink" both propose the colour while opening with a cue word.
  */
 const NEGATION_CUE =
-  /\b(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)\b(?!\s+(more|less|fewer|but|other than|beyond))[\s\w-]{0,16}$/;
+  /\b(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)\b(?!\s+(more|less|fewer|but|other than|beyond|heavy|heavily|too|much|overus\w*|relying|leaning|excessive|dominant|dominating))[\s\w-]{0,16}$/;
 
 /** "non-pink", "anti-", "un-": the negation is glued to the term and no cue precedes it. */
 const NEGATING_PREFIX = /(^|[^a-z])(non|anti|un)-?$/;
@@ -421,12 +419,22 @@ const NEGATING_PREFIX = /(^|[^a-z])(non|anti|un)-?$/;
 /**
  * "pink must be entirely absent", "gold is excluded": the negation trails the term.
  *
- * A copula is required, and `never` is deliberately absent — it is already a leading cue, and
+ * The copula is mandatory and the run-up is a single optional intensifier. Anything looser
+ * bridged clauses that reverse the meaning — "pink is avoided as a field colour but used for
+ * the rule lines" proposes pink. `never` is deliberately absent — it is already a leading cue, and
  * as a trailing one it matched "pink never dominates", which is "no pink" read as "less pink",
  * the exact failure this whole check exists to catch.
  */
 const TRAILING_NEGATION =
-  /^[\s,]{0,4}(is |are |must be |should be |stays |remains )?[\s\w-]{0,12}\b(absent|avoided|excluded|omitted|prohibited|forbidden|banned)\b/;
+  /^[\s,]{0,4}((is|are|must be|should be|stays|remains)\s+)?(entirely |completely |always |wholly )?(absent|avoided|excluded|omitted|prohibited|forbidden|banned)\b/;
+
+/**
+ * "…avoided as a field colour **but used** for the rule lines" reverses the exclusion it just
+ * stated. The copula form alone cannot see past the clause boundary, so the reversal is looked
+ * for explicitly rather than pretended away.
+ */
+const EXCLUSION_REVERSED =
+  /\b(but|except|although|though|save)\b[\s\w-]{0,30}\b(used|use|uses|present|appears|retained|kept|allowed|permitted)\b/;
 
 /**
  * A term is only a violation when the brief *proposes* it.
@@ -448,62 +456,82 @@ function proposesPositively(haystack: string, term: string): boolean {
     // And the negation can follow: "Pink must be entirely absent" is an exclusion written the
     // other way round. Both of these passed a brief that was honouring its constraint, which is
     // the baseline's one mechanical failure.
-    if (TRAILING_NEGATION.test(after)) continue;
+    if (TRAILING_NEGATION.test(after) && !EXCLUSION_REVERSED.test(after)) continue;
     return true;
   }
   return false;
 }
 
+/**
+ * Fields where naming the excluded thing is unambiguously *proposing* it.
+ *
+ * A colour in `preferredColors` or a motif in `visualMotifs` is a design decision, not a
+ * sentence. These stay gating whether or not the model also recorded the exclusion — otherwise
+ * a brief that dutifully writes "no pink" into `hostConstraints` earns the right to put blush
+ * in the palette, which is "no pink" read as "less pink" and the exact outright failure the
+ * corpus calls out.
+ */
+const PROPOSAL_FIELDS = ["visualMotifs"] as const;
+const PROPOSAL_PALETTE_FIELDS = ["requiredColors", "preferredColors", "dominanceNotes"] as const;
+
+/**
+ * Prose fields, where the same word can be a proposal or a description of what was excluded.
+ * "distinguished from a Chinese New Year register" belongs here and is not decidable lexically,
+ * which is why a carried term downgrades to advisory in prose and nowhere else.
+ */
+const PROSE_FIELDS = [
+  "creativeDirection",
+  "tonalIntent",
+  "copyTone",
+  "textureDirection",
+  "typographyDirection",
+  "toneKeywords",
+  "inspirationSummary",
+] as const;
+
 export function checkHostNegationRespected(caseData: CorpusCase, identity: EventIdentity): Check {
-  const carried = fold(identity.hostConstraints.join(" | "));
   const terms = negatedTerms(caseData.prompt);
   if (terms.length === 0) {
     return { name: "hostNegationRespected", status: "n/a", detail: "no negation in the prompt" };
   }
 
-  const positive = { ...identity, paletteIntent: { ...identity.paletteIntent } } as Partial<
-    EventIdentity & { paletteIntent: Partial<EventIdentity["paletteIntent"]> }
-  >;
-  // Where an exclusion is *supposed* to be recorded. `creativeGuidance` is included too:
-  // "avoid relying on pink-adjacent shades as a loophole" is the brief carrying the constraint
-  // forward, not proposing the colour. Missing one of these is how the check condemns a brief
-  // for doing its job — and after the rename, deleting `designConstraints` would silently
-  // delete nothing at all.
-  delete (positive as { hostConstraints?: unknown }).hostConstraints;
-  delete (positive as { creativeGuidance?: unknown }).creativeGuidance;
-  delete (positive.paletteIntent as { avoidColors?: unknown }).avoidColors;
-  const haystack = fold(JSON.stringify(positive));
+  // `hostConstraints`, `creativeGuidance` and `avoidColors` are where an exclusion is *supposed*
+  // to be recorded, so none of them is scanned at all.
+  const proposals = fold(
+    JSON.stringify([
+      ...PROPOSAL_FIELDS.map((f) => identity[f]),
+      ...PROPOSAL_PALETTE_FIELDS.map((f) => identity.paletteIntent[f]),
+    ]),
+  );
+  const prose = fold(JSON.stringify(PROSE_FIELDS.map((f) => identity[f])));
+  const carried = fold(identity.hostConstraints.join(" | "));
 
-  const violations = terms.filter((term) => proposesPositively(haystack, term));
+  const hard = terms.filter((term) => proposesPositively(proposals, term));
+  const inProse = terms.filter((term) => !hard.includes(term) && proposesPositively(prose, term));
+  // Only in prose, and only when the model also recorded the exclusion, is the mention
+  // ambiguous enough to be a judgement rather than a failure.
+  const soft = inProse.filter((term) => carried.includes(term));
+  const hardProse = inProse.filter((term) => !carried.includes(term));
+  const failing = [...hard, ...hardProse];
 
-  // A term the model carried as a host constraint is downgraded to advisory rather than
-  // dropped. The holdout pre-registered the hazard on HO-06: "not Chinese" makes "chinese" a
-  // negated term, and a brief distinguishing one tradition from another then fails for doing
-  // exactly the right thing. But skipping such terms outright would open a worse hole — a
-  // brief could carry "no pink" and propose pink two fields later, unchecked. Reported and
-  // read by a human is the honest middle: the signal survives, the false failure does not.
-  const soft = violations.filter((term) => carried.includes(term));
-  const hard = violations.filter((term) => !carried.includes(term));
-
-  if (hard.length === 0 && soft.length > 0) {
+  if (failing.length > 0) {
+    return {
+      name: "hostNegationRespected",
+      status: "fail",
+      detail: `host negated [${failing.join(", ")}] but the positive brief still proposes it`,
+    };
+  }
+  if (soft.length > 0) {
     return {
       name: "hostNegationRespected",
       status: "advisory",
-      detail: `[${soft.join(", ")}] appears in the positive brief, but is also carried as a host constraint — distinguishing what was excluded is legitimate, proposing it is not, and telling them apart is a judgement`,
-    };
-  }
-
-  if (violations.length === 0) {
-    return {
-      name: "hostNegationRespected",
-      status: "pass",
-      detail: `negated term(s) [${terms.join(", ")}] absent from the positive brief`,
+      detail: `[${soft.join(", ")}] appears in the brief's prose and is also carried as a host constraint — describing what was excluded is legitimate, proposing it is not, and telling them apart is a judgement`,
     };
   }
   return {
     name: "hostNegationRespected",
-    status: "fail",
-    detail: `host negated [${hard.join(", ")}] but the positive brief still proposes it`,
+    status: "pass",
+    detail: `negated term(s) [${terms.join(", ")}] absent from the positive brief`,
   };
 }
 

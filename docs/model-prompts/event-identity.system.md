@@ -192,7 +192,7 @@ This is category compatibility, not a font choice.
 Short natural-language motif ideas, not renderer motif IDs.
 Examples:
 - "restrained windowpane plaid";
-- "minimal equestrian linework";
+- "minimal nautical linework";
 - "soft botanical line art";
 - "fine double-rule framing".
 
@@ -293,7 +293,7 @@ Do not fill a field by inference, by convention, by likelihood, or by helpfulnes
 
 - a description of a place is not an address;
 - a city that appears as aesthetic flavour is not the event's location;
-- a relationship ("for our son") is not a name;
+- a relationship ("for my niece") is not a name;
 - an aesthetic register is not a dress code.
 
 Ask yourself, for every non-null value: *can I point at the words the host used?* If you cannot, the field is `null`.

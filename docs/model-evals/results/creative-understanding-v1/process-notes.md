@@ -81,6 +81,12 @@ stops anyone looking. The scan now exists as `src/lib/ai/evals/prompt-leakage.te
 the ordinary unit suite, and checks the prompt **and the wire schema** against full prompts,
 distinctive spans, probes, host phrases, expected answers and case notes.
 
+Two further inherited leaks were found by *reading*, not by the scan, and both were invisible
+to it by construction: `"for our son"` (11 characters, below the scan's distinctive-span floor)
+illustrating CU-11's own honoree assertion, and `"minimal equestrian linework"` as a motif
+example, which is close to CU-01's expected translation. Both are now replaced. They are the
+clearest argument for the read-not-scan control.
+
 It is necessary and not sufficient: it catches literal reuse and cannot catch a near-paraphrase
 or a case-specific instruction dressed as a general principle — both of which have occurred —
 which is why the independent engineering review is required to inspect benchmark integrity by

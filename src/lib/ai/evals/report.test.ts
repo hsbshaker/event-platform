@@ -15,6 +15,12 @@ import { readFileSync } from "node:fs";
 import type { CorpusCase } from "./creative-understanding";
 import { buildBlindArtifact, buildMechanicalReport, percentile, type CaseRun } from "./report";
 
+const CONTEXT = {
+  corpusPath: "docs/model-evals/creative-understanding.json",
+  corpusVersion: "creative_understanding_v1",
+  label: "test run",
+};
+
 const run: CaseRun = {
   caseData: {
     id: "TEST-01",
@@ -140,7 +146,7 @@ describe("the blind artifact", () => {
 });
 
 describe("the mechanical report", () => {
-  const report = buildMechanicalReport([run], "2026-09-14T08:00:00Z");
+  const report = buildMechanicalReport([run], "2026-09-14T08:00:00Z", CONTEXT);
 
   it("states what it does not establish", () => {
     expect(report).toContain("necessary and never sufficient");
@@ -160,7 +166,7 @@ describe("the mechanical report", () => {
       evaluation: undefined,
       error: { kind: "invalid_output", message: "failed after the repair retry" },
     };
-    const withFailure = buildMechanicalReport([failed], "2026-09-14T08:00:00Z");
+    const withFailure = buildMechanicalReport([failed], "2026-09-14T08:00:00Z", CONTEXT);
     expect(withFailure).toContain("CALL FAILED");
     expect(withFailure).toContain("0 / 1");
   });

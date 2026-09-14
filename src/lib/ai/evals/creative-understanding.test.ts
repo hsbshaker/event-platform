@@ -207,6 +207,21 @@ describe("negative constraints", () => {
     }
   });
 
+  it("catches the degree-word and clause-bridging false negatives", () => {
+    // "less, not none", dressed in language that happens to contain a negation token.
+    for (const carrier of [
+      "avoid heavy use of pink across the suite",
+      "avoid leaning on pink for the accents",
+      "pink is avoided as a field colour but used for the rule lines",
+    ]) {
+      const check = checkHostNegationRespected(
+        corpusCase({ prompt: "girly but no pink" }),
+        identity({ tonalIntent: carrier }),
+      );
+      expect(check.status, `${carrier}: ${check.detail}`).toBe("fail");
+    }
+  });
+
   it("catches the false negatives the repair introduced", () => {
     // Each of these skipped the occurrence before the cue and trailing rules were tightened.
     // They are "no pink" read as "less pink" — the failure the check exists for — dressed in
@@ -224,9 +239,10 @@ describe("negative constraints", () => {
     }
   });
 
-  it("does not let a carried constraint hide a proposal of the same colour", () => {
-    // Downgraded to advisory rather than skipped: skipping would let a brief carry "no pink"
-    // and propose pink two fields later with nothing reported at all.
+  it("still gates a palette proposal even when the exclusion is carried", () => {
+    // The downgrade is scoped to prose. A colour in preferredColors is a design decision, not
+    // a sentence, so recording "no pink" earns no licence to put blush in the palette — that
+    // is "no pink" read as "less pink", which the corpus calls an outright failure.
     const check = checkHostNegationRespected(
       corpusCase({ prompt: "girly but no pink" }),
       identity({
@@ -239,8 +255,36 @@ describe("negative constraints", () => {
         },
       }),
     );
-    expect(check.status).toBe("advisory");
-    expect(check.detail).toContain("pink");
+    expect(check.status).toBe("fail");
+  });
+
+  it("gates a motif proposal on the same footing as a palette one", () => {
+    const check = checkHostNegationRespected(
+      corpusCase({ prompt: "christening, no gold anywhere" }),
+      identity({ hostConstraints: ["no gold"], visualMotifs: ["fine gold rule work"] }),
+    );
+    expect(check.status).toBe("fail");
+  });
+
+  it("downgrades only a prose mention, and only when the exclusion is carried", () => {
+    const carried = checkHostNegationRespected(
+      corpusCase({ prompt: "supper — we're Vietnamese, not Chinese" }),
+      identity({
+        hostConstraints: ["we're Vietnamese, not Chinese"],
+        creativeDirection:
+          "Rooted in Vietnamese tradition, a world apart from Chinese festival design.",
+      }),
+    );
+    expect(carried.status).toBe("advisory");
+
+    const uncarried = checkHostNegationRespected(
+      corpusCase({ prompt: "supper — we're Vietnamese, not Chinese" }),
+      identity({
+        creativeDirection:
+          "Rooted in Vietnamese tradition, a world apart from Chinese festival design.",
+      }),
+    );
+    expect(uncarried.status).toBe("fail");
   });
 
   it("still suppresses a genuine trailing exclusion", () => {
