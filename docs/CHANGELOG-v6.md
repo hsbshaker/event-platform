@@ -103,6 +103,39 @@ byte-for-byte comparisons live in `parity.test.ts` and die with `proof-b`; the b
 canonical documents require is stated independently in `composition.test.ts` and outlives it.
 Full detail, including the five fixtures by name, is in `docs/phase-3-reference-defects.md`.
 
+## Human Test #1 — qualitative finding recorded during collection
+
+Calibration notes, filed while the frozen test is still collecting responses. The experiment is
+unchanged: sheets, `review.html`, the hidden key, `proof-b/score-human.js` and
+`scripts/human-test/score.mjs` are untouched, and no remediation has been implemented.
+
+**F1 — rendered typography lacks sufficient composition safeguards.** Valid layouts can produce
+accidental-looking headline stagger, inconsistent continuation-line alignment, pathological
+narrow-column wrapping and other line-break behaviour that materially reduces perceived design
+quality and trust in the generator. Multiple reviewers raised it independently, and several began
+reading intentional asymmetry as a rendering defect once they had seen a few bad cases — which
+taxes every screen, not only the broken ones.
+
+The system cannot currently distinguish intentional editorial staggering from accidental
+container-driven wrapping and indentation. A design can pass rendered-geometry verification — no
+overflow, no clipping, no collision — while still being typographically incoherent, because every
+clause of the clean criteria (`verify/verify.ts`) is a *containment* test. A right-aligned middle
+title line is inside its container; a date wrapped into four fragments in a 60px column is inside
+its column. Both are clean, correctly, under the criteria as written.
+
+This bears directly on condition 2 above. The ≥ 70% design-quality bar is a launch and
+design-quality gate, and F1 is evidence about the instrument's subject rather than about the
+instrument: it identifies a deterministic renderer behaviour that depresses perceived quality
+independently of what the model composed.
+
+Mechanisms traced read-only, blind spots in verification, and the distinction between what the
+CompositionTree language already expresses (`EventTitle.layout`, planner-rationed) and what is left
+to the renderer to decide are recorded in `docs/human-test-1/qualitative-findings.md`.
+
+Remediation is deferred until the frozen test is complete and scored, so the quantitative result
+and this qualitative evidence are weighed together. Any change that follows re-runs the §9
+regression gates of `event-renderer-system.md`.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
