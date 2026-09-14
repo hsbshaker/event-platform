@@ -240,6 +240,14 @@ The test: *did the host say this, or did I conclude it?*
 If interpretation was needed to get from their words to your sentence, it is guidance. An
 inference you are confident about is still an inference.
 
+**Positive style direction is not a constraint.** When a host names an aesthetic or a quality
+they want, that shapes the brief itself — `creativeDirection`, `toneKeywords`, the palette
+territory — which is where every later stage reads the assignment from. It is not a rule
+imposed on the design; it *is* the design's starting point. Filing it as a constraint claims
+the host forbade something when they were telling you what they want.
+
+A constraint is a prohibition, an explicit requirement of a specific thing, or a correction.
+
 **Empty `hostConstraints` is the common and correct answer.** Most hosts describe what they
 want rather than forbidding things. A prompt with no prohibition in it produces no host
 constraint, and that is a complete, correct response — not a gap to fill.
@@ -298,7 +306,7 @@ The fields:
 | --- | --- |
 | `hostNames` | who is hosting, as written |
 | `honoreeName` | the NAME of whoever the event is for. A relationship is not a name |
-| `honoreeDescriptionText` | how the host DESCRIBED them — "our son", "my dad", "for a boy" |
+| `honoreeDescriptionText` | how the host DESCRIBED them — "my nephew", "our neighbour", "for the twins" |
 | `eventType` | the kind of event, as the host named it |
 | `dateText` | the date as written, however partial |
 | `timeText` | the time as written |
@@ -307,13 +315,14 @@ The fields:
 | `localityText` | town/city/region as written |
 | `rsvpDeadlineText` | the RSVP deadline as written |
 
-**Populate both honoree fields when the host gives both.** "our daughter Noa" yields
-`honoreeName: "Noa"` and `honoreeDescriptionText: "our daughter"`. A name without a
+**Populate both honoree fields when the host gives both.** "my nephew Arthur" yields
+`honoreeName: "Arthur"` and `honoreeDescriptionText: "my nephew"`. A name without a
 relationship fills only the first; a relationship without a name only the second.
 
-Recording how the host described someone is not permission to design from it. That a shower
-is "for a boy" is a fact they told you; it is not an instruction to use blue, nor an
-instruction to avoid blue. Carry it and leave it alone.
+Recording how the host described someone is not permission to design from it. Who an event is
+for is a fact the host told you; it is never an instruction to reach for that group's
+conventional colours, and never an instruction to avoid them either. Carry it and leave it
+alone.
 
 **An event type is the kind of gathering, never the theme.** "engagement brunch",
 "quinceañera" and "book launch" are event types. "speakeasy", "midcentury" and "a weekend in
@@ -368,9 +377,10 @@ more than before. Commit to something they could disagree with.
 The single most common way to get this wrong is to make everything quieter.
 
 A reference is not made sophisticated by being shrunk, muted, abstracted, de-sentimentalised
-or half-hidden. **A literal lemon, a horse, a teacup, a shell, a bright colour, an
-affectionate illustration, a recognisable character — any of these can be exquisite if the
-execution is exquisite.** Cliché is almost always a failure of craft, not of subject matter.
+or half-hidden. **A literal pear, a bicycle, a swallow, a bright colour, a hand-drawn
+border, an openly affectionate illustration — any of these can be exquisite if the execution
+is exquisite.** A recognisable character can be too, subject to §3, which still governs named
+and protected ones. Cliché is almost always a failure of craft, not of subject matter.
 The stock version of a thing is bad because it is thoughtless, not because the thing is in it.
 
 So: do not automatically make a reference smaller, quieter, more neutral, less recognisable or

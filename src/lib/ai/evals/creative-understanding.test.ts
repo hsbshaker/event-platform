@@ -207,6 +207,69 @@ describe("negative constraints", () => {
     }
   });
 
+  it("catches the false negatives the repair introduced", () => {
+    // Each of these skipped the occurrence before the cue and trailing rules were tightened.
+    // They are "no pink" read as "less pink" — the failure the check exists for — dressed in
+    // language that happened to contain a negation token.
+    for (const carrier of [
+      "pink never dominates, but it is there",
+      "no more than a whisper of pink through the palette",
+      "nothing but soft pink for the accents",
+    ]) {
+      const check = checkHostNegationRespected(
+        corpusCase({ prompt: "girly but no pink" }),
+        identity({ tonalIntent: carrier }),
+      );
+      expect(check.status, `${carrier}: ${check.detail}`).toBe("fail");
+    }
+  });
+
+  it("does not let a carried constraint hide a proposal of the same colour", () => {
+    // Downgraded to advisory rather than skipped: skipping would let a brief carry "no pink"
+    // and propose pink two fields later with nothing reported at all.
+    const check = checkHostNegationRespected(
+      corpusCase({ prompt: "girly but no pink" }),
+      identity({
+        hostConstraints: ["no pink"],
+        paletteIntent: {
+          requiredColors: [],
+          preferredColors: ["blush pink"],
+          avoidColors: [],
+          dominanceNotes: "",
+        },
+      }),
+    );
+    expect(check.status).toBe("advisory");
+    expect(check.detail).toContain("pink");
+  });
+
+  it("still suppresses a genuine trailing exclusion", () => {
+    for (const carrier of [
+      "pink is entirely absent",
+      "pink must be avoided throughout",
+      "pink, excluded at every level",
+    ]) {
+      const check = checkHostNegationRespected(
+        corpusCase({ prompt: "girly but no pink" }),
+        identity({ tonalIntent: carrier }),
+      );
+      expect(check.status, `${carrier}: ${check.detail}`).not.toBe("fail");
+    }
+  });
+
+  it("does not punish a brief for naming what the host corrected, once it is carried", () => {
+    // The hazard HO-06 pre-registered: "not Chinese" makes "chinese" a negated term, and a
+    // brief distinguishing one tradition from another then fails for doing the right thing.
+    const check = checkHostNegationRespected(
+      corpusCase({ prompt: "Tet dinner for my parents - we're Vietnamese, not Chinese, please" }),
+      identity({
+        hostConstraints: ["we're Vietnamese, not Chinese"],
+        creativeDirection: "Rooted specifically in Vietnamese Tet, distinct from Chinese New Year.",
+      }),
+    );
+    expect(check.status).not.toBe("fail");
+  });
+
   it("catches an exclusion the model contradicts itself on", () => {
     const check = checkExclusionSelfConsistency(
       identity({

@@ -274,7 +274,15 @@ export function checkHostPhraseRouting(caseData: CorpusCase, identity: EventIden
   const problems: string[] = [];
 
   for (const { phrase, kind } of phrases) {
-    const filedAsConstraint = constraintText.includes(fold(phrase));
+    // Carried either way round: the model may quote a trimmed span of the declared phrase, which
+    // `checkHostConstraintsGrounded` explicitly permits. Demanding containment in one direction
+    // only would fail a near-verbatim quotation for being near-verbatim.
+    const folded = fold(phrase);
+    const filedAsConstraint = identity.hostConstraints.some((entry) => {
+      const e = fold(entry);
+      return e.includes(folded) || (folded.includes(e) && e.split(" ").length > 1);
+    });
+    void constraintText;
     if (kind === "constraint" && !filedAsConstraint) {
       problems.push(`"${phrase}" is a host constraint and was not carried as one`);
     }
@@ -399,15 +407,26 @@ export function negatedTerms(prompt: string): string[] {
  * absolute, and "no X" never means "less X".
  */
 /** Negation cues that turn a mention into a restatement of the constraint, not a proposal. */
+/**
+ * The run-up is short and excludes comparatives, which invert the cue: "no more than a whisper
+ * of pink" and "nothing but soft pink" both propose the colour while opening with a cue word.
+ */
 const NEGATION_CUE =
-  /\b(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)\b[\s\w-]{0,24}$/;
+  /\b(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)\b(?!\s+(more|less|fewer|but|other than|beyond))[\s\w-]{0,16}$/;
 
 /** "non-pink", "anti-", "un-": the negation is glued to the term and no cue precedes it. */
 const NEGATING_PREFIX = /(^|[^a-z])(non|anti|un)-?$/;
 
 /** "pink must be entirely absent", "gold is excluded": the negation trails the term. */
+/**
+ * "pink must be entirely absent", "gold is excluded": the negation trails the term.
+ *
+ * A copula is required, and `never` is deliberately absent — it is already a leading cue, and
+ * as a trailing one it matched "pink never dominates", which is "no pink" read as "less pink",
+ * the exact failure this whole check exists to catch.
+ */
 const TRAILING_NEGATION =
-  /^[\s\w-]{0,24}\b(absent|avoided|excluded|omitted|prohibited|forbidden|banned|never)\b/;
+  /^[\s,]{0,4}(is |are |must be |should be |stays |remains )?[\s\w-]{0,12}\b(absent|avoided|excluded|omitted|prohibited|forbidden|banned)\b/;
 
 /**
  * A term is only a violation when the brief *proposes* it.
@@ -436,6 +455,7 @@ function proposesPositively(haystack: string, term: string): boolean {
 }
 
 export function checkHostNegationRespected(caseData: CorpusCase, identity: EventIdentity): Check {
+  const carried = fold(identity.hostConstraints.join(" | "));
   const terms = negatedTerms(caseData.prompt);
   if (terms.length === 0) {
     return { name: "hostNegationRespected", status: "n/a", detail: "no negation in the prompt" };
@@ -456,6 +476,23 @@ export function checkHostNegationRespected(caseData: CorpusCase, identity: Event
 
   const violations = terms.filter((term) => proposesPositively(haystack, term));
 
+  // A term the model carried as a host constraint is downgraded to advisory rather than
+  // dropped. The holdout pre-registered the hazard on HO-06: "not Chinese" makes "chinese" a
+  // negated term, and a brief distinguishing one tradition from another then fails for doing
+  // exactly the right thing. But skipping such terms outright would open a worse hole — a
+  // brief could carry "no pink" and propose pink two fields later, unchecked. Reported and
+  // read by a human is the honest middle: the signal survives, the false failure does not.
+  const soft = violations.filter((term) => carried.includes(term));
+  const hard = violations.filter((term) => !carried.includes(term));
+
+  if (hard.length === 0 && soft.length > 0) {
+    return {
+      name: "hostNegationRespected",
+      status: "advisory",
+      detail: `[${soft.join(", ")}] appears in the positive brief, but is also carried as a host constraint — distinguishing what was excluded is legitimate, proposing it is not, and telling them apart is a judgement`,
+    };
+  }
+
   if (violations.length === 0) {
     return {
       name: "hostNegationRespected",
@@ -466,7 +503,7 @@ export function checkHostNegationRespected(caseData: CorpusCase, identity: Event
   return {
     name: "hostNegationRespected",
     status: "fail",
-    detail: `host negated [${violations.join(", ")}] but the positive brief still proposes it`,
+    detail: `host negated [${hard.join(", ")}] but the positive brief still proposes it`,
   };
 }
 
@@ -672,7 +709,12 @@ const LOGISTICS_PATTERNS: [string, RegExp][] = [
   // Doctrine §5 classes a dress code as a fact about the event, not a taste question, and
   // indoors/outdoors and season are inferences CU-03 forbids being made at all.
   ["dressCode", /\bdress code\b|\bblack[- ]tie\b.*\?|\bhow formal (is|will)\b/i],
-  ["setting", /\bindoors?\b|\boutdoors?\b/i],
+  // Narrowed to the question form. "Should the palette feel indoors or outdoors?" is a
+  // creative question; "is it indoors or outdoors?" is asking for a venue fact.
+  [
+    "setting",
+    /\b(is|will|are)\s+(it|this|the\s+\w+)\s+(indoors?|outdoors?)\b|\b(indoors?|outdoors?)\s+or\s+(indoors?|outdoors?)\?/i,
+  ],
   ["season", /\bwhat season\b|\bwhich season\b|\btime of year\b/i],
 ];
 

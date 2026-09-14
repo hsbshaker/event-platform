@@ -50,7 +50,22 @@ export function percentile(values: number[], p: number): number {
 
 /* ------------------------------------------------------------------ mechanical report */
 
-export function buildMechanicalReport(runs: CaseRun[], startedAt: string): string {
+export interface ReportContext {
+  /** Which set produced this. Hardcoding it meant a holdout report named the regression file. */
+  corpusPath: string;
+  corpusVersion: string;
+  label: string;
+}
+
+export function buildMechanicalReport(
+  runs: CaseRun[],
+  startedAt: string,
+  context: ReportContext = {
+    corpusPath: "docs/model-evals/creative-understanding.json",
+    corpusVersion: "creative_understanding_v1",
+    label: "unlabelled run",
+  },
+): string {
   const completed = runs.filter((r) => r.result);
   const latencies = completed.map((r) => r.telemetry.latencyMs);
   const passed = runs.filter((r) => r.evaluation?.mechanicalPass);
@@ -58,7 +73,9 @@ export function buildMechanicalReport(runs: CaseRun[], startedAt: string): strin
   const lines: string[] = [
     "# Creative-understanding run — mechanical results",
     "",
-    `Corpus: \`docs/model-evals/creative-understanding.json\` (\`creative_understanding_v1\`, ${runs.length} cases)`,
+    `**${context.label}**`,
+    "",
+    `Corpus: \`${context.corpusPath}\` (\`${context.corpusVersion}\`, ${runs.length} cases)`,
     `Rubric: \`docs/model-contracts.md §4.5\``,
     `Run started: ${startedAt}`,
     `Model: \`${runs[0]?.telemetry.model ?? "—"}\``,

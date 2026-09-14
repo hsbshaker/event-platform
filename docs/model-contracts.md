@@ -81,7 +81,7 @@ inferred; a date, a venue, a dress code or any other fact is quoted from the hos
 
 Unchanged from Revision 1 except the catalogs: `availableHeroArchetypes` becomes `availableFamilies` (`editorial`, `invitation`, `statement`, each with an intent sentence) and `compatibleHeroArchetypes` becomes `compatibleFamilies`. Runtime narrowing, semantic invariants, the untrusted-input rules and evals EI-01…EI-10 stand with that substitution. `docs/model-prompts/event-identity.system.md` carries the family catalog.
 
-### 4.1 The result envelope (`event_identity_schema_v3`, Phase 4A)
+### 4.1 The result envelope (`event_identity_schema_v4`, Phase 4A)
 
 `spec.md §7.5` left the supplied-fact mechanism to Phase 4 and named two options. Phase 4A took
 the second in schema terms and neither in call terms: **one call returns three siblings**, so the
@@ -91,7 +91,7 @@ prompt has always promised.
 | | |
 | --- | --- |
 | `identity` | the creative brief. Inference expected and generous — except in `hostConstraints` |
-| `suppliedFacts` | nine `*Text` fields — hosts, honoree, type, date, time, venue, address, locality, RSVP deadline — each a **verbatim quotation from the host or `null`** |
+| `suppliedFacts` | ten `*Text` fields — hosts, honoree, type, date, time, venue, address, locality, RSVP deadline — each a **verbatim quotation from the host or `null`** |
 | `clarification` | `needed`, plus at most three taste questions (`spec.md §7.6b`) |
 
 Facts and identity share one round trip because a second call would roughly double latency
@@ -150,13 +150,21 @@ failure.
 | `creative-understanding-holdout.json`, 12 cases | **pre-registered validation set** — frozen and independently reviewed before the remediation, but authored by the same person who then wrote the prompt | validation against pre-registered invariants; not the strongest evidence of generalization |
 | sealed challenge corpus | **sealed challenge** — authored independently, unseen while the prompt was written | generalization |
 
+**A limit the go/no-go record must carry, not just the blind reviewer.** The clarification
+check gates only against *over*-asking: `expectClarification: "no"` fails a question that
+should not have been asked, and the other labels are advisory because whether a question
+earned its place is a judgement. The baseline failure was *under*-asking — zero questions on
+all fourteen cases. So a remediation that fixes authority correctly and still asks nothing
+anywhere passes both sets mechanically, and only a human reading the briefs can see it. Do not
+read a clean mechanical run as evidence on clarification.
+
 The middle row is the one most easily overstated, and `results/creative-understanding-v1/process-notes.md`
 records why, along with the one semantic axis inside it that is not novel.
 
 **Runner:** `npm run eval:regression` / `npm run eval:holdout` (`tests/eval/creative-understanding.eval.ts`),
 added in Phase 4A. It runs the cases **sequentially** against the live model — fourteen concurrent
 calls would report a latency no host will ever experience — records failures rather than retrying
-them away, and writes three artifacts to `docs/model-evals/results/creative-understanding-v1/`:
+them away, and writes three artifacts to the directory its `EVAL_SET` names — never the immutable baseline, which it refuses:
 `run.json` (every response and its telemetry), `mechanical-report.md` (for us), and
 `blind-review.md` (for an independent qualitative reviewer). It is excluded from `npm test`: it
 costs money and measures the creative stack, not the compiler.

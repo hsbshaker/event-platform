@@ -566,7 +566,8 @@ EventIdentity {
   textureDirection
   typographyDirection
   copyTone
-  designConstraints[]
+  hostConstraints[]                 // authoritative: prohibitions, specific requirements, corrections
+  creativeGuidance[]                // advisory: the model's own recommendations
   inspirationSummary
 }
 ```
@@ -592,7 +593,7 @@ It must hold one boundary exactly:
   `additionalProperties: false` and carries no operational field, so supplied facts would either
   vanish or fail validation. Of the two options this section named, Phase 4A took the second in
   schema terms and neither in call terms. One call returns an envelope of three siblings:
-  `identity` (the creative brief, shape unchanged), `suppliedFacts` (nine `*Text` fields, each a
+  `identity` (the creative brief, shape unchanged), `suppliedFacts` (ten `*Text` fields, each a
   verbatim quotation or `null`), and `clarification` (§7.6b). The brief therefore keeps its closed
   shape and its promise, and a schema-drift test fails if an operational-looking key ever appears
   inside it. Facts and identity share one round trip because a second call would roughly double
@@ -611,6 +612,15 @@ It must hold one boundary exactly:
   stages may reconsider, override or evolve when they find something better. If interpretation
   was needed to turn the host's words into an execution recommendation, it is guidance.
 
+  **A host constraint is narrow: a prohibition, an explicit requirement of a specific thing, or
+  a correction.** Positive style direction the host names — an aesthetic, a period, a tone they
+  want — is not a constraint and does not go there. It shapes the creative brief itself
+  (`creativeDirection`, `toneKeywords`, palette territory), which is the object every later
+  stage reads the assignment from, so it loses no authority by being recorded there: it is the
+  assignment rather than a rule imposed on it. Filing it as a constraint claims the host
+  forbade something when they were saying what they wanted, and that over-correction is the
+  mirror of the fabrication this boundary exists to stop.
+
   There is deliberately no "directly entailed" middle ground. Entailment is not mechanically
   decidable, and a standard that requires interpretation to apply is the standard model taste
   re-enters through. Inference is welcome — generous, even — everywhere else in the identity;
@@ -626,6 +636,13 @@ It must hold one boundary exactly:
   object and cannot tell a fabricated prohibition from a real one, which makes it a correctness
   failure of the same kind as inventing a fact
   (`docs/model-evals/results/creative-understanding-v1/astra-qualitative-review.md`).
+
+- **Host-supplied human context is preserved, and is never a design instruction.** How the
+  host described who the event is for — a relationship, a role, a stage of life — is carried
+  verbatim in `honoreeDescriptionText`, alongside `honoreeName` when they gave a name; both are
+  populated when both are present. Recording it is not permission to design from it: who an
+  event is for is never an instruction to reach for that group's conventional colours, and
+  never an instruction to avoid them either.
 
 - **Creative interpretation is expected and generous.** Tone, sophistication, visual vocabulary,
   palette territory, materials and textures, symbols, imagery opportunities and things to avoid are
@@ -1965,7 +1982,7 @@ EventIdentity {
   textureDirection,
   typographyDirection,
   copyTone,
-  designConstraints[],
+  hostConstraints[], creativeGuidance[],
   inspirationSummary,
   createdAt, updatedAt
 }

@@ -51,7 +51,7 @@ Two changes followed so it cannot recur:
    so no run can overwrite immutable evidence in place — a hazard the validation-set review had
    flagged before this happened.
 
-## Benchmark leakage was caught three times in the production prompt
+## Benchmark leakage was caught four times in the production prompt
 
 Recorded because the pattern matters more than any individual instance: each was introduced
 while working on something else, and twice while actively fixing a different leak.
@@ -66,11 +66,25 @@ while working on something else, and twice while actively fixing a different lea
    by an automated scan added at that moment, which also found two leaks inherited from `v2`
    that predate the corpora.
 
-An automated scan over the production prompt against both corpora now runs, covering full
-prompts, three-word spans, probe entries, host phrases and case notes. It is necessary and not
-sufficient: it catches literal reuse and cannot catch a near-paraphrase or a case-specific
-instruction dressed as a general principle, which is why the independent engineering review is
-required to inspect benchmark integrity by reading rather than by trusting the scanner.
+4. **Writing `v4`'s honoree rule leaked HO-11's prompt *and* its gating answer** — "our
+   daughter Noa" yielding `honoreeName: "Noa"` and `honoreeDescriptionText: "our daughter"` —
+   into both the prompt and, through the field description, the wire schema. The model would
+   have been shown the answer twice to the only mechanical assertion of that field's central
+   behaviour. Caught by independent review. The same review found regression-case subject
+   matter reused as worked examples in the new §7 and §9.
+
+**A correction to this document.** An earlier version of this section stated that an automated
+scan "now runs". That was false when written: the scan existed only as an ad-hoc shell command
+run once, and no such file was in the repository — which is why leak 4 survived. A control
+asserted in immutable evidence and absent from the tree is worse than no control, because it
+stops anyone looking. The scan now exists as `src/lib/ai/evals/prompt-leakage.test.ts`, runs in
+the ordinary unit suite, and checks the prompt **and the wire schema** against full prompts,
+distinctive spans, probes, host phrases, expected answers and case notes.
+
+It is necessary and not sufficient: it catches literal reuse and cannot catch a near-paraphrase
+or a case-specific instruction dressed as a general principle — both of which have occurred —
+which is why the independent engineering review is required to inspect benchmark integrity by
+reading rather than by trusting the scanner.
 
 ## No model calls after the discarded run
 

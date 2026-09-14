@@ -131,7 +131,7 @@
           "items": {
             "type": "string"
           },
-          "description": "AUTHORITATIVE. Only what the host themselves ruled in or out, grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. If interpretation was needed to get here it is not a host constraint — it is creativeGuidance. Empty is the common and correct answer."
+          "description": "AUTHORITATIVE, and narrow. A prohibition, an explicit requirement of a specific thing, or a correction the host made — grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. Positive style direction is NOT a constraint: a named aesthetic or a tone adjective the host wants shapes the brief itself (creativeDirection, toneKeywords, palette), which is where later stages read it. If interpretation was needed to get here it is creativeGuidance. Empty is the common and correct answer."
         },
         "creativeGuidance": {
           "type": "array",
@@ -200,7 +200,7 @@
               "type": "null"
             }
           ],
-          "description": "How the host DESCRIBED who the event is for — 'our son', 'my dad', 'for a boy'. Populate this even when honoreeName is also present: 'our daughter Noa' gives honoreeName 'Noa' and honoreeDescriptionText 'our daughter'. Quoted from the host verbatim, or null. Never inferred, and never a reason to impose a stereotyped palette."
+          "description": "How the host DESCRIBED who the event is for — 'my nephew', 'our neighbour', 'for the twins'. Populate this even when honoreeName is also present: 'my nephew Arthur' gives honoreeName 'Arthur' and honoreeDescriptionText 'my nephew'. Quoted from the host verbatim, or null. Never inferred, and never a reason to impose a stereotyped palette."
         },
         "eventType": {
           "anyOf": [

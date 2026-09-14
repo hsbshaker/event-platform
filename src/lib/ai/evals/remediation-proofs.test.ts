@@ -93,13 +93,17 @@ describe("proof 1 — inferred creative advice cannot become a host-owned constr
   });
 
   it("passes the identical advice when it is filed as guidance", () => {
+    // Deliberately paired with a grounded constraint present, so this exercises the real
+    // filter rather than the empty-array early return.
     const check = checkHostConstraintsGrounded(
-      testCase({ prompt }),
+      testCase({ prompt: `${prompt}, and no photographs on the walls` }),
       identity({
+        hostConstraints: ["no photographs on the walls"],
         creativeGuidance: ["avoid literal nautical motifs", "no navy and white stripes"],
       }),
     );
     expect(check.status).toBe("pass");
+    expect(check.detail).toContain("1 host constraint");
   });
 
   it("fails a platform rule claimed as a host instruction", () => {
@@ -153,6 +157,19 @@ describe("proof 2 — explicit host constraints remain authoritative and cannot 
     expect(check.detail).toContain("was not carried");
   });
 
+  it("accepts a near-verbatim quotation of the declared phrase", () => {
+    // Grounding permits a trimmed span, so routing must too. Demanding containment in one
+    // direction only failed a model for quoting exactly as near-verbatim as instructed.
+    const check = checkHostPhraseRouting(
+      testCase({
+        prompt: "supper for my in-laws — we're Ghanaian, not Nigerian, it matters to them",
+        hostPhrases: [{ phrase: "we're Ghanaian, not Nigerian", kind: "constraint" }],
+      }),
+      identity({ hostConstraints: ["Ghanaian, not Nigerian"] }),
+    );
+    expect(check.status).toBe("pass");
+  });
+
   it("fails when it is demoted into advisory guidance", () => {
     // Demotion is the mirror of fabrication and just as damaging: a real prohibition becomes
     // something a later stage is entitled to overrule.
@@ -171,13 +188,15 @@ describe("proof 3 — literal subject matter is not automatically prohibited", (
 
   it("does not fail a brief that embraces the literal subject", () => {
     const check = checkHostConstraintsGrounded(
-      testCase({ prompt }),
+      testCase({ prompt: `${prompt}, nothing black-tie` }),
       identity({
+        hostConstraints: ["nothing black-tie"],
         visualMotifs: ["honeycomb rule work", "a single drawn bee"],
         creativeGuidance: ["let the bees be literal and beautifully drawn rather than implied"],
       }),
     );
     expect(check.status).toBe("pass");
+    expect(check.detail).toContain("1 host constraint");
   });
 
   it("fails a brief that suppresses it under claimed host authority", () => {
@@ -193,8 +212,11 @@ describe("proof 3 — literal subject matter is not automatically prohibited", (
     // Both of the above are mechanically decidable only about authority. Whether abstraction
     // was the better call is not, and the checks must not pretend otherwise.
     const abstracted = checkHostConstraintsGrounded(
-      testCase({ prompt }),
-      identity({ creativeGuidance: ["keep the bees implied rather than drawn"] }),
+      testCase({ prompt: `${prompt}, nothing black-tie` }),
+      identity({
+        hostConstraints: ["nothing black-tie"],
+        creativeGuidance: ["keep the bees implied rather than drawn"],
+      }),
     );
     expect(abstracted.status).toBe("pass");
   });

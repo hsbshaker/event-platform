@@ -164,7 +164,7 @@
         "minLength": 3,
         "maxLength": 180
       },
-      "description": "AUTHORITATIVE. Only what the host themselves ruled in or out, grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. If interpretation was needed to get here it is not a host constraint — it is creativeGuidance. Empty is the common and correct answer."
+      "description": "AUTHORITATIVE, and narrow. A prohibition, an explicit requirement of a specific thing, or a correction the host made — grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. Positive style direction is NOT a constraint: a named aesthetic or a tone adjective the host wants shapes the brief itself (creativeDirection, toneKeywords, palette), which is where later stages read it. If interpretation was needed to get here it is creativeGuidance. Empty is the common and correct answer."
     },
     "creativeGuidance": {
       "maxItems": 10,
@@ -202,5 +202,5 @@
     "inspirationSummary"
   ],
   "additionalProperties": false,
-  "$comment": "Shape unchanged from event_identity_schema_v2. Operational event data is never carried here; it lives in the result envelope's `suppliedFacts` sibling (spec.md §7.5)."
+  "$comment": "The creative brief as of event_identity_schema_v4. Operational event data is never carried here; it lives in the result envelope's `suppliedFacts` sibling (spec.md §7.5)."
 }

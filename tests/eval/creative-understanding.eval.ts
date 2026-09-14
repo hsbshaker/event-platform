@@ -1,7 +1,7 @@
 /**
  * The creative-understanding run: fourteen real model calls, then the two documents.
  *
- * Run with `npm run eval:creative-understanding`. It is its own vitest project, excluded
+ * Run with `npm run eval:regression` or `npm run eval:holdout`. It is its own vitest project, excluded
  * from `npm test`, because it costs money, takes minutes and talks to a live provider —
  * `docs/model-contracts.md §4.5`: "do not gate ordinary code changes on it — it measures
  * the creative stack, not the compiler."
@@ -15,11 +15,12 @@
  * **Failures are recorded, never retried away.** A case that fails validation after its one
  * repair retry is written into the report as a failure (`§4.9`: "Do not hide failed calls").
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { EventIdentityError, generateEventIdentity } from "@/lib/ai/openai/event-identity";
+import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understanding";
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
 
@@ -71,6 +72,18 @@ if (OUT === BASELINE) {
   throw new Error("refusing to overwrite the immutable Phase 4A baseline evidence");
 }
 
+/**
+ * Evidence is written once. The validation set in particular is one-shot by construction — a
+ * second `npm run eval:holdout` would destroy the first and only fresh evidence exactly as the
+ * accidental run nearly did. `EVAL_OVERWRITE=1` is the deliberate override.
+ */
+if (existsSync(OUT) && process.env.EVAL_OVERWRITE !== "1") {
+  throw new Error(
+    `${path.relative(ROOT, OUT)} already holds evidence from a previous run. ` +
+      "Move or delete it, or set EVAL_OVERWRITE=1 if replacing it is what you mean.",
+  );
+}
+
 interface Corpus {
   version: string;
   cases: CorpusCase[];
@@ -100,11 +113,13 @@ describe("creative-understanding corpus", () => {
         process.stdout.write(`${caseData.id} … `);
         const startedCase = Date.now();
         try {
+          // Only the model call is guarded. `evaluateCase` runs after, because a bug in the
+          // checker throwing in here would be caught below and recorded as a model failure in
+          // evidence that is meant to be immutable.
           const call = await generateEventIdentity({ prompt: caseData.prompt });
           runs.push({
             caseData,
             result: call.output,
-            evaluation: evaluateCase(caseData, call.output),
             telemetry: {
               model: call.usage.model,
               promptVersion: call.promptVersion,
@@ -121,6 +136,7 @@ describe("creative-understanding corpus", () => {
             },
           });
           const last = runs[runs.length - 1];
+          last.evaluation = evaluateCase(caseData, call.output);
           process.stdout.write(
             `${last.telemetry.latencyMs}ms ${last.evaluation?.mechanicalPass ? "ok" : "MECHANICAL FAIL"}\n`,
           );
@@ -135,8 +151,8 @@ describe("creative-understanding corpus", () => {
             },
             telemetry: {
               model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol",
-              promptVersion: "event_identity_v4",
-              schemaVersion: "event_identity_schema_v4",
+              promptVersion: EVENT_IDENTITY_PROMPT_VERSION,
+              schemaVersion: EVENT_IDENTITY_SCHEMA_VERSION,
               latencyMs: failure.usage?.latencyMs ?? Date.now() - startedCase,
               transientRetries: failure.usage?.transientRetries ?? 0,
               repairRetries: failure.usage?.repairRetries ?? 0,
@@ -152,7 +168,14 @@ describe("creative-understanding corpus", () => {
         path.join(OUT, "run.json"),
         `${JSON.stringify({ evalSet: SET, label: EVAL_SETS[SET].label, corpusVersion: corpus.version, startedAt, runs }, null, 2)}\n`,
       );
-      writeFileSync(path.join(OUT, "mechanical-report.md"), buildMechanicalReport(runs, startedAt));
+      writeFileSync(
+        path.join(OUT, "mechanical-report.md"),
+        buildMechanicalReport(runs, startedAt, {
+          corpusPath: EVAL_SETS[SET].corpus,
+          corpusVersion: corpus.version,
+          label: EVAL_SETS[SET].label,
+        }),
+      );
       writeFileSync(path.join(OUT, "blind-review.md"), buildBlindArtifact(runs));
 
       const completed = runs.filter((r) => r.result).length;

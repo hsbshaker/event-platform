@@ -136,7 +136,8 @@ The bar for `EventIdentity`'s output: **a strong human designer reading it shoul
 assignment they have been given.** The current schema
 (`model-schemas/event-identity.schema.json`, `spec.md §7.5`) already carries most of this shape —
 `creativeDirection`, `toneKeywords`, `paletteIntent`, `visualMotifs`, `textureDirection`,
-`typographyDirection`, `copyTone`, `designConstraints`, `inspirationSummary`. Whether it is
+`typographyDirection`, `copyTone`, `hostConstraints`, `creativeGuidance`,
+`inspirationSummary`. Whether it is
 *sufficient* is a Phase 4 question. This document proposes no schema change.
 
 ## 5. Grounded facts vs creative interpretation

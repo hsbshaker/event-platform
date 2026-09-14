@@ -167,7 +167,7 @@
             "minLength": 3,
             "maxLength": 180
           },
-          "description": "AUTHORITATIVE, and narrow. A prohibition, an explicit requirement of a specific thing, or a correction the host made — grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. Positive style direction is NOT a constraint: a named aesthetic or a tone adjective the host wants shapes the brief itself (creativeDirection, toneKeywords, palette), which is where later stages read it. If interpretation was needed to get here it is creativeGuidance. Empty is the common and correct answer."
+          "description": "AUTHORITATIVE. Only what the host themselves ruled in or out, grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. If interpretation was needed to get here it is not a host constraint — it is creativeGuidance. Empty is the common and correct answer."
         },
         "creativeGuidance": {
           "maxItems": 10,
@@ -432,5 +432,5 @@
     "clarification"
   ],
   "additionalProperties": false,
-  "$comment": "event_identity_schema_v4: `designConstraints` splits into `hostConstraints` (authoritative, host-grounded) and `creativeGuidance` (advisory), and `suppliedFacts` gains `honoreeDescriptionText`. v3 introduced the envelope: `identity` plus `suppliedFacts` (quoted or null, never inferred) and `clarification`. Provider strict mode receives the reduced projection in event-identity-result.wire.schema.json; the application always runs the full contract (docs/model-contracts.md §3)."
+  "$comment": "event_identity_schema_v3: the v2 creative brief becomes `identity` and gains two siblings — `suppliedFacts` (quoted or null, never inferred) and `clarification`. Provider strict mode receives the reduced projection in event-identity-result.wire.schema.json; the application always runs the full contract (docs/model-contracts.md §3)."
 }

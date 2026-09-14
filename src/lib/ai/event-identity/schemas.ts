@@ -35,8 +35,10 @@ export function buildSchemaFiles(): Record<keyof typeof SCHEMA_FILES, JsonSchema
         "at most three taste questions. spec.md §7.5, §7.6b; docs/model-contracts.md §4.",
       ...stripMeta(canonical),
       $comment:
-        "event_identity_schema_v3: the v2 creative brief becomes `identity` and gains two " +
-        "siblings — `suppliedFacts` (quoted or null, never inferred) and `clarification`. " +
+        "event_identity_schema_v4: `designConstraints` splits into `hostConstraints` " +
+        "(authoritative, host-grounded) and `creativeGuidance` (advisory), and `suppliedFacts` " +
+        "gains `honoreeDescriptionText`. v3 introduced the envelope: `identity` plus " +
+        "`suppliedFacts` (quoted or null, never inferred) and `clarification`. " +
         "Provider strict mode receives the reduced projection in " +
         "event-identity-result.wire.schema.json; the application always runs the full " +
         "contract (docs/model-contracts.md §3).",
@@ -51,7 +53,7 @@ export function buildSchemaFiles(): Record<keyof typeof SCHEMA_FILES, JsonSchema
         "src/lib/ai/event-identity/contract.ts — do not hand-edit.",
       ...properties.identity,
       $comment:
-        "Shape unchanged from event_identity_schema_v2. Operational event data is never " +
+        "The creative brief as of event_identity_schema_v4. Operational event data is never " +
         "carried here; it lives in the result envelope's `suppliedFacts` sibling " +
         "(spec.md §7.5).",
     },
