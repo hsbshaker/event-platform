@@ -4,6 +4,7 @@ This folder is the reconciled documentation set after the creation-UX pressure t
 
 ## Source-of-truth order
 
+0. **`product-doctrine.md`** — what the product promises and the creative bar it must clear. Read first, before any creative or product decision; it states intent rather than requirements and never overrides a document below it. Its §14 records the known conflicts between that intent and the canonical set.
 1. **`../spec.md`** — product/business/architecture requirements.
 2. **`technology-decisions.md`** — locked MVP stack; do not relitigate.
 3. **`design-system.md`** — application UX, interaction, visual tokens, responsive/motion/accessibility system.

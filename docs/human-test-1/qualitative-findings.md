@@ -19,6 +19,11 @@ be read as a tally. Screen numbers refer to the frozen sheets. Naming a screen s
 which source it came from; the classification stays in `proof-b/human-test-key.txt` and was not
 consulted while writing this.
 
+**Where doctrine lives.** This is the evidence. The durable product principles it produced — the
+product promise, the quality bar, `EventIdentity`'s responsibility, the fact-versus-interpretation
+boundary, the clarification doctrine, and the Phase 4 visual-art direction — are canonical in
+`docs/product-doctrine.md`. Findings are not restated there and principles are not restated here.
+
 The findings below are the record of what reviewers observed. They are not edited by later work:
 where a finding has since been answered, the response is recorded beside it as a clearly marked
 section ("F1 — what shipped", "F2 — scope decision") and the observation itself is left as it was
@@ -660,37 +665,15 @@ can express.
 So the honest summary is: **no architectural conflict, one small addition, and one real sequencing
 problem.** The sequencing problem is geometry verification — see below.
 
-### The creative interpreter is `EventIdentity`, and the raw prompt never reaches the generator
+### The creative interpreter is `EventIdentity` — now canonical elsewhere
 
-Recorded as a Phase 4 conclusion, because it is the question the whole imagery discussion turns
-on: *what stands between what a host types and what a model draws?*
+The conclusion this evidence produced — that `EventIdentity` is the product's creative interpreter,
+and that a host's prompt must never be forwarded into a generic "generate a website" or "generate
+an image" prompt — **now lives in `docs/product-doctrine.md §4`**, with the reasons stated in full.
 
-The answer is **`EventIdentity`**. It is this product's creative interpreter — the step that reads
-a host's prompt and any inspiration and settles what kind of event this is, what it is called, who
-it is for, what register it wants and what visual references it carries. Everything downstream —
-`DesignIntent`, the composition, and any future art brief — is an interpretation of that, not of
-the raw prompt.
-
-**A host's prompt must not be forwarded, verbatim or lightly wrapped, into a generic
-"generate a website" or "generate an image" prompt.** That is not a stylistic preference:
-
-- A generic generator has no notion of an *event* — no host, no date, no RSVP, no registry, no
-  guest — so it optimises for a plausible page rather than for this event's meaning, which is the
-  "well-typeset flyer" F3 describes from the other direction.
-- It bypasses every constraint this document records. The originality rule ("Ralph Lauren" becomes
-  heritage prep, tartan, navy and cream — never Polo Bear), the safety constraints, the four
-  visual-direction modes and the transparency requirement are all properties of the *brief*. A raw
-  prompt handed to a generic generator has already skipped them.
-- It makes the output unattributable and unrepeatable. `EventIdentity` is persisted; a concept can
-  be re-fitted, redesigned or explained against it. A raw prompt piped downstream leaves nothing
-  to re-derive from.
-- It reintroduces the decision-making this product exists to remove. The landing page is the
-  prompt precisely so the host does not have to art-direct; an unmediated prompt puts that burden
-  straight back on them.
-
-So Phase 4's imagery pipeline, if it is built, is `EventIdentity → art brief (constrained,
-reviewable, persisted) → image generation`, never `host prompt → image generation`. The brief is
-where the constraints live, and the brief is derived, not quoted.
+It is recorded there rather than here because it is a durable product principle rather than a
+Human Test #1 observation, and because implementation agents read the doctrine before they reach
+this ledger. The evidence that produced it stays above, unedited.
 
 ## MVP non-goal under revision — AI-generated imagery
 

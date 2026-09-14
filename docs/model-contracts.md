@@ -70,6 +70,15 @@ The Phase B confirmation run used raw JSON output without provider-side schema e
 
 # 4. Event Identity
 
+**This call is the product's creative interpreter, not a preprocessing step.** Its question is
+*what does this host mean, and what creative world should this event belong to?*, and the bar on its
+output is that a strong human designer reading it would know what assignment they had been given.
+It is also the only call that sees the raw host prompt (§1, §6.1): a raw prompt is never forwarded
+into a generic website- or image-generation prompt, so whatever this call fails to understand is
+lost for the rest of the pipeline. `product-doctrine.md §3`–`§5` state what that means for
+interpretation, and in particular the boundary this call must hold: **aesthetic implication is
+inferred; a date, a venue, a dress code or any other fact is quoted from the host or absent.**
+
 Unchanged from Revision 1 except the catalogs: `availableHeroArchetypes` becomes `availableFamilies` (`editorial`, `invitation`, `statement`, each with an intent sentence) and `compatibleHeroArchetypes` becomes `compatibleFamilies`. Runtime narrowing, semantic invariants, the untrusted-input rules and evals EI-01…EI-10 stand with that substitution. `docs/model-prompts/event-identity.system.md` carries the family catalog.
 
 ---
@@ -168,6 +177,15 @@ Re-prompts exist only for schema-invalid output, a token-cap violation and a sel
 - **CO-08 — directives**: structure, surface, details and RSVP-intro compliance ≥ 90%; date and opening ≥ 70%.
 - **CO-09 — adversarial feedback**: feedback asking for CSS, images, a tenth section or free copy yields an ordinary tree.
 - **CO-10 — review**: reviewers rate ≥ 70% of model first screens designed on unlabeled grayscale sheets; model screens do not collapse into a small number of recurring template groups, and do not simply map onto the library groups.
+
+**What these evals do not cover.** CO-01…CO-11 measure whether output is *legal* — schema,
+structure, geometry, diversity, directive compliance. None measures whether it is *right* for the
+event the host described, and CO-10 cannot: unlabeled grayscale sheets remove the brief and the
+palette by construction. This document's own goal statement — "faithful user-intent capture" (§0) —
+is therefore asserted and not tested, and theme fidelity is first judged at Phase 10, the launch
+gate. `product-doctrine.md §3` explains why that gap is the expensive one, and its §14 conflict 3
+and §15 record the recommendation to close it with understanding evals before Phase 4 generation
+code is written. No such eval is defined yet.
 
 Thresholds are those of `proof-b/RESULTS.md` and `proof-b/FINAL.md`; rerun them whenever prompt, schema, primitive set, compiler, renderer rules or planner change.
 
