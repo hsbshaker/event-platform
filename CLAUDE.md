@@ -53,7 +53,7 @@ Before proposing or implementing a solution, check it against these rules:
 - The Phase A/A.1 recipes are a library: regression fixtures, few-shot examples, repair/fallback macros, calibration. Not a menu, not the creative ceiling, no renderer code per recipe.
 - Generated design data is immutable; renderer code may receive bug/accessibility/responsive fixes.
 - App chrome and event renderer styling are separate systems.
-- No decorative event-site imagery in MVP. Theme-specific artwork is a Phase 4 direction under consideration and is **not** approved; the non-goal stays binding until amended deliberately (`docs/product-doctrine.md §9`, `§14`).
+- No host-uploaded, stock or model-placed site imagery. **Optional AI-generated thematic artwork is approved for Phase 4** (`spec.md §7.6a`): optional and chosen by the creative direction, art-directed to serve the composition, and placed by the compiler through the composition language — never mandatory, never by pixel or model-authored CSS. Not in the current build (`docs/product-doctrine.md §9`–`§10`).
 - No guest accounts.
 - No gift reservation/hold state.
 - Mobile-first does not mean phone-framed desktop.

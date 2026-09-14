@@ -583,9 +583,20 @@ image-generation prompt (`docs/product-doctrine.md §4`).
 It must hold one boundary exactly:
 
 - **Grounded facts are preserved, never invented.** Hosts and names, event type, date, time, venue,
-  address and RSVP deadline come only from the host's input or trusted saved event data. Extract
-  and carry forward whatever the prompt supplies; where the prompt is silent, the field is absent,
-  and the host completes it later (§7.3, §23.1).
+  address and RSVP deadline come only from the host's input or trusted saved event data. Whatever
+  the prompt supplies is carried forward; where the prompt is silent, the field is absent, and the
+  host completes it later (§7.3, §23.1).
+
+  **The mechanism is unspecified and Phase 4 must choose it.** The `EventIdentity` schema is a
+  creative brief: it declares `additionalProperties: false`, carries no operational field, and its
+  prompt states "You are **not** extracting operational event data." So the identity object as it
+  stands cannot be where supplied facts live, and this requirement is not satisfiable by simply
+  running the call as documented today. Two options, neither taken here: extend the identity schema
+  with an operational block, or extract facts on a separate channel from the same raw prompt and
+  persist them onto the event draft. The second is more consistent with the schema's stated purpose
+  and with §7.3's "skip values already supplied", which presumes something has already parsed them.
+  **What this section fixes is the requirement — facts are quoted or absent, never invented — not
+  the plumbing.**
 - **Creative interpretation is expected and generous.** Tone, sophistication, visual vocabulary,
   palette territory, materials and textures, symbols, imagery opportunities and things to avoid are
   all fair inference. "Lemons in Italy but classy" may imply linen, ceramic detail and an

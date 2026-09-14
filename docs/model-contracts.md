@@ -229,9 +229,9 @@ structure, geometry, diversity, directive compliance. None measures whether it i
 event the host described, and CO-10 cannot: unlabeled grayscale sheets remove the brief and the
 palette by construction. This document's own goal statement — "faithful user-intent capture" (§0) —
 is therefore asserted and not tested, and theme fidelity is first judged at Phase 10, the launch
-gate. `product-doctrine.md §3` explains why that gap is the expensive one, and its §14 conflict 3
-and §15 record the recommendation to close it with understanding evals before Phase 4 generation
-code is written. No such eval is defined yet.
+gate. `product-doctrine.md §3` explains why that gap is the expensive one. **§4.5 now defines the
+evaluation that closes it**, over `docs/model-evals/creative-understanding.json`; what remains is a
+runner, not a definition, and the Phase 4 exit criterion depends on it.
 
 Thresholds are those of `proof-b/RESULTS.md` and `proof-b/FINAL.md`; rerun them whenever prompt, schema, primitive set, compiler, renderer rules or planner change.
 
