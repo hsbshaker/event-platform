@@ -1259,6 +1259,36 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * Headings step down from `anywhere` to `break-word`.
+ *
+ * Both break a word that cannot fit on a line of its own, so the zero-overflow floor is unchanged
+ * — `min-width: 0` and `minmax(0, 1fr)` already stop any container being sized by its content, so
+ * the two properties differ only in intrinsic sizing, not in whether text escapes. What
+ * `break-word` removes is a mid-word break offered while whole words would still have fitted,
+ * which at display sizes reads as a rendering fault rather than as typography
+ * (`docs/human-test-1/qualitative-findings.md`, F1).
+ *
+ * `balance` then evens out whatever wrapping remains, so a title that outgrows its measure sheds a
+ * short tail instead of leaving one word alone on the last line (F1 mechanism M5). It applies to
+ * the browser's short-block limit, which is every heading here.
+ */
+h1.ev-text,
+h2.ev-text {
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+/*
+ * Body and metadata keep `anywhere` but ask for better rag: `pretty` costs the last few lines of
+ * layout time and buys orphan avoidance, which is what turns "The Lodge at Hanson" / "Park" into
+ * one balanced pair of lines (F1, M5).
+ */
+.ev-text.ev-em-secondary,
+.ev-text.ev-em-caption {
+  text-wrap: pretty;
+}
+
 .ev-text.ev-em-display {
   font-family: var(--ev-font-display), ui-serif, Georgia, serif;
   font-size: var(--ev-display-size);
@@ -1321,19 +1351,37 @@ h1.ev-text.ev-em-primary.ev-lay-cascade {
 }
 
 h1.ev-text .ev-line {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
+/*
+ * The two treatments, as bounded offsets in the inline direction.
+ *
+ * `stagger` used to flip every even line to `text-align: right`. Against the fixed 2/2/rest word
+ * split it threw the shortest, least meaningful line — usually a connective — to the far margin,
+ * and against a centered or end-aligned composition it fought the section's own alignment. Both
+ * were read as bugs rather than as choices (F1, mechanisms M1-M2). The break points are chosen
+ * syntactically now (`@/lib/renderer/compile/title-lines`), and the displacement is a bounded
+ * indent: `stagger` alternates, `cascade` ramps, and neither line ever leaves the measure it
+ * shares with its siblings.
+ *
+ * The offsets are percentages of the title's own width, and `padding-inline-start` rather than a
+ * transform, so they follow the writing direction, stay inside the box the geometry verifier
+ * measures, and cannot widen the page. The ramp is shallower than the 12%/24% it replaces: a
+ * third line that gave up a quarter of its measure was a standing invitation to the narrow-column
+ * wrapping F1 describes, and the minimum-measure check now fails a line that gets there anyway.
+ */
 h1.ev-text.ev-lay-stagger .ev-line:nth-child(even) {
-  text-align: right;
+  padding-inline-start: 8%;
 }
 
 h1.ev-text.ev-lay-cascade .ev-line:nth-child(2) {
-  padding-left: 12%;
+  padding-inline-start: 8%;
 }
 
 h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
-  padding-left: 24%;
+  padding-inline-start: 16%;
 }
 
 .ev-text.ev-t-Date.ev-form-numeral.ev-em-display {
@@ -1652,11 +1700,16 @@ h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
     font-size: calc(var(--ev-display-size) * 3.5);
   }
 
+  /* Half the desktop offset: 390px of measure has far less to give (F1, M3). */
+  h1.ev-text.ev-lay-stagger .ev-line:nth-child(even) {
+    padding-inline-start: 4%;
+  }
+
   h1.ev-text.ev-lay-cascade .ev-line:nth-child(2) {
-    padding-left: 6%;
+    padding-inline-start: 4%;
   }
 
   h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
-    padding-left: 12%;
+    padding-inline-start: 8%;
   }
 }

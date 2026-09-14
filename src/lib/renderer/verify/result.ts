@@ -39,6 +39,14 @@ export interface BreakpointSummary {
   readonly overflowingElements: number;
   readonly textOverflow: number;
   readonly textOverLimit: number;
+  /**
+   * The three composition defects `verify.ts` added for F1: text broken inside its own words,
+   * atomic metadata past its line budget, and lines that do not share an aligned edge. All three
+   * are zero in a clean run (`docs/human-test-1/qualitative-findings.md`).
+   */
+  readonly textWordBroken: number;
+  readonly textOverMetadataLimit: number;
+  readonly textEdgeIncoherent: number;
   readonly measuredTexts: number;
   readonly excludedTexts: number;
   readonly heroHeight: number;

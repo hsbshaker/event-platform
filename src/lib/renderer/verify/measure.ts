@@ -73,16 +73,50 @@ export interface Box {
   readonly height: number;
 }
 
+/**
+ * The rendered line boxes of one text node.
+ *
+ * §3.1 as written measures a node's *bounding box* and divides by its line height. That answers
+ * "how tall is this" and nothing else: a line starting far right of its siblings, or a column so
+ * narrow that every line holds two words, produces exactly the same height as a well-set one.
+ * Human Test #1 reviewers read both as rendering faults
+ * (`docs/human-test-1/qualitative-findings.md`, F1, blind spots 1-3), so the line boxes themselves
+ * are measured here.
+ *
+ * From `Range.getClientRects()`, which returns the real inline fragments the browser laid out —
+ * not an inference from character counts, which is the advisory static estimate's job.
+ */
+export interface LineGeometry {
+  /** Line boxes actually laid out. `0` only where the node rendered nothing measurable. */
+  readonly count: number;
+  /** The widest and narrowest line, in CSS pixels. Both `0` when `count` is `0`. */
+  readonly maxWidth: number;
+  readonly minWidth: number;
+  /**
+   * How far apart the lines' *aligned* edges sit — left edges for start-aligned text, centers for
+   * centered text, right edges for end-aligned. Zero for well-set text at any alignment; large
+   * only when something displaced one line relative to its siblings.
+   */
+  readonly edgeSpread: number;
+}
+
 export interface MeasuredText {
   /** The canonical node id this text belongs to, from `data-id` on it or its nearest ancestor. */
   readonly id: string | null;
   /** The emphasis it actually rendered at, read back off its `ev-em-*` class. */
   readonly emphasis: string | null;
+  /** The primitive it is, read back off its `ev-t-*` class — `Date`, `Venue`, `EventTitle`, … */
+  readonly kind: string | null;
+  /** The title treatment in effect, read back off its `ev-lay-*` class, or `null` for none. */
+  readonly layout: string | null;
+  /** Whitespace-separated tokens in the rendered text. The floor on how few lines it can take. */
+  readonly words: number;
   readonly lines: number;
   readonly fontPx: number;
   readonly lineHeightPx: number;
   readonly box: Box;
   readonly containerBox: Box;
+  readonly lineGeometry: LineGeometry;
   /** Wider than its own content box, or past its container's edges, beyond the tolerance. */
   readonly overflow: boolean;
 }
@@ -179,8 +213,73 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
     return false;
   }
 
+  function wordsIn(el: Element): number {
+    const text = (el.textContent || "").trim();
+    if (text.length === 0) return 0;
+    return text.split(/\s+/).length;
+  }
+
   function escapes(inner: Box, outer: Box): boolean {
     return inner.right > outer.right + tol || inner.left < outer.left - tol;
+  }
+
+  /**
+   * Group a node's inline fragments into line boxes and describe them.
+   *
+   * Fragments are grouped by vertical position rather than counted, because one visual line can
+   * produce several rects — a staggered title puts each line in its own span, and any inline run
+   * with mixed metrics splits too. Two fragments belong to the same line when their tops are
+   * within half a line height, which is unambiguous for stacked lines at any line height the
+   * stylesheet sets, including the 0.9 a display treatment uses.
+   */
+  function lineGeometryOf(el: Element, lineHeightPx: number, align: string): LineGeometry {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const rects = range.getClientRects();
+    const tops: number[] = [];
+    const lefts: number[] = [];
+    const rights: number[] = [];
+    for (let i = 0; i < rects.length; i += 1) {
+      const r = rects[i];
+      if (r.width <= 0 || r.height <= 0) continue;
+      let group = -1;
+      for (let j = 0; j < tops.length; j += 1) {
+        if (Math.abs(tops[j] - r.top) < lineHeightPx * 0.5) {
+          group = j;
+          break;
+        }
+      }
+      if (group === -1) {
+        tops.push(r.top);
+        lefts.push(r.left);
+        rights.push(r.right);
+      } else {
+        if (r.left < lefts[group]) lefts[group] = r.left;
+        if (r.right > rights[group]) rights[group] = r.right;
+      }
+    }
+    if (tops.length === 0) return { count: 0, maxWidth: 0, minWidth: 0, edgeSpread: 0 };
+
+    let maxWidth = 0;
+    let minWidth = Infinity;
+    let minEdge = Infinity;
+    let maxEdge = -Infinity;
+    const centered = align === "center";
+    const toEnd = align === "right" || align === "end";
+    for (let i = 0; i < tops.length; i += 1) {
+      const width = rights[i] - lefts[i];
+      if (width > maxWidth) maxWidth = width;
+      if (width < minWidth) minWidth = width;
+      const edge = centered ? (lefts[i] + rights[i]) / 2 : toEnd ? rights[i] : lefts[i];
+      if (edge < minEdge) minEdge = edge;
+      if (edge > maxEdge) maxEdge = edge;
+    }
+    return {
+      count: tops.length,
+      maxWidth,
+      minWidth,
+      edgeSpread: tops.length > 1 ? maxEdge - minEdge : 0,
+    };
   }
 
   const texts: MeasuredText[] = [];
@@ -201,14 +300,20 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
     const b = box(el);
     const cb = containerBoxOf(el);
     const emphasisMatch = /(?:^|\s)ev-em-([a-z]+)(?:\s|$)/.exec(el.className);
+    const kindMatch = /(?:^|\s)ev-t-([A-Za-z]+)(?:\s|$)/.exec(el.className);
+    const layoutMatch = /(?:^|\s)ev-lay-([a-z]+)(?:\s|$)/.exec(el.className);
     texts.push({
       id: canonicalId(el),
       emphasis: emphasisMatch ? emphasisMatch[1] : null,
+      kind: kindMatch ? kindMatch[1] : null,
+      layout: layoutMatch ? layoutMatch[1] : null,
+      words: wordsIn(el),
       lines: Math.max(1, Math.round(b.height / lineHeightPx)),
       fontPx,
       lineHeightPx,
       box: b,
       containerBox: cb,
+      lineGeometry: lineGeometryOf(el, lineHeightPx, cs.textAlign),
       overflow: el.scrollWidth > el.clientWidth + tol || escapes(b, cb),
     });
   }
@@ -312,6 +417,87 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
     overflowingTotal,
     excludedTexts,
   };
+}
+
+/**
+ * The text kinds whose content is one atomic value rather than prose.
+ *
+ * A date, a time, a venue and a locality are single facts. They are short, they are never written
+ * to fill a measure, and a reader takes them in at a glance — so unlike a description or a set of
+ * hosts, there is a number of lines past which they are not "long", they are *fragmented*
+ * ("…December 19," / "2026"). Everything else is prose and gets no budget: a description that runs
+ * to six lines is a description.
+ */
+export const ATOMIC_METADATA_KINDS: readonly string[] = ["Date", "Time", "Venue", "Location"];
+
+/**
+ * The lines an atomic metadata value gets for free, before its own length earns it more.
+ *
+ * This is F1 blind spot 3 (`docs/human-test-1/qualitative-findings.md`): `FIT_LIMITS` covers
+ * `display` and `primary` only, and these four kinds default to `secondary`, so the nodes most
+ * exposed to a narrow column were the ones with no budget at all. Two lines at desktop and three
+ * at mobile — one more at 390, where a narrower measure is the medium rather than a defect.
+ */
+export const METADATA_LINE_LIMITS: Record<Breakpoint, number> = { desktop: 2, mobile: 3 };
+
+/**
+ * Beyond the free lines, one more line per this many words.
+ *
+ * Without it the budget would be a length limit rather than a fragmentation limit, and would
+ * condemn a legitimately long value — a host who types a venue as a sentence — for being long.
+ * Three words to a line is the point below which a short fact stops reading as a phrase and starts
+ * reading as a column of fragments, which is what reviewers saw.
+ */
+const METADATA_WORDS_PER_LINE = 3;
+
+/**
+ * The line budget for an atomic metadata node, or `null` where `FIT_LIMITS` already governs it.
+ *
+ * `display` and `primary` are deliberately excluded rather than tightened: a date set large across
+ * three lines is a composition, and §3.1's own limit already bounds it. The budget applies where
+ * §3.1 is silent.
+ */
+export function metadataLineLimit(
+  mode: Breakpoint,
+  kind: string | null,
+  emphasis: string | null,
+  words: number,
+): number | null {
+  if (kind === null || ATOMIC_METADATA_KINDS.indexOf(kind) === -1) return null;
+  if (emphasis !== "secondary" && emphasis !== "caption") return null;
+  return Math.max(METADATA_LINE_LIMITS[mode], Math.ceil(words / METADATA_WORDS_PER_LINE));
+}
+
+/**
+ * Is this node being broken *inside* its words?
+ *
+ * The minimum usable measure, stated so that it needs no threshold. Laying `w` words out on `n`
+ * lines needs `n - 1` break points, and only `w - 1` of them fall between words; so `n > w` proves
+ * at least one break landed inside a word. That is the column-too-narrow failure F1 describes
+ * (mechanism M4) — "the zero-overflow floor converts would-be overflows into arbitrary wraps" —
+ * caught without asking how many ems a line ought to be.
+ *
+ * A measure in ems was the obvious alternative and is the wrong instrument: display type gets few
+ * ems per line by its nature, so any threshold strict enough to catch a title chopped across eight
+ * lines also condemns a large, well-set one. This rule separates them exactly.
+ */
+export function breaksInsideWords(text: MeasuredText): boolean {
+  return text.words > 0 && text.lineGeometry.count > text.words;
+}
+
+/**
+ * Do this node's lines share an edge?
+ *
+ * Normal multiline text agrees on its aligned edge to within a fraction of a pixel. A `stagger` or
+ * `cascade` title does not, by design — those are the only treatments that displace a line, and
+ * their offsets are bounded by the stylesheet — so they are exempt. Anything else whose lines
+ * disagree is the "arbitrarily indented continuation line" F1 records, and it is a defect no
+ * amount of demoting or widening repairs: it means a rule displaced a line that nothing asked to
+ * be displaced.
+ */
+export function edgesIncoherent(text: MeasuredText, tolerancePx: number): boolean {
+  if (text.layout === "stagger" || text.layout === "cascade") return false;
+  return text.lineGeometry.edgeSpread > tolerancePx;
 }
 
 /** The line limit for an emphasis at a breakpoint, or `null` where §3.1 sets none. */

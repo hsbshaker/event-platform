@@ -27,8 +27,8 @@ Nothing in this document is implemented. It is a findings ledger and a sequence.
 
 | Finding | User impact | Confidence | Priority | Owner phase | Proposed response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| **F1** Typography composition | High — pages read as CSS bugs; reviewers began distrusting intentional asymmetry too | High | 1 | **3.1** | Deterministic typography hardening: real line-box measurement, minimum measures, metadata line budgets, treatment-aware line breaking | Confirmed; remediation planned |
-| **F2** Decorative hierarchy | Medium-high — pages read as unfinished or placeholder-like | Medium-high | 2 | **3.1 (narrow) or defer** | A bounded hierarchy safeguard *if* it fits existing infrastructure; defer if it needs a visual-ranking engine | Confirmed signal; scope decision pending |
+| **F1** Typography composition | High — pages read as CSS bugs; reviewers began distrusting intentional asymmetry too | High | 1 | **3.1** | Deterministic typography hardening: real line-box measurement, minimum measures, metadata line budgets, treatment-aware line breaking | **Remediated in Phase 3.1** — see “F1 — what shipped” |
+| **F2** Decorative hierarchy | Medium-high — pages read as unfinished or placeholder-like | Medium-high | 2 | **4** | A bounded hierarchy safeguard *if* it fits existing infrastructure; defer if it needs a visual-ranking engine | **Deferred to Phase 4** — see “F2 — scope decision” |
 | **F3** Missing theme-specific visual language | Potentially high — pages feel like well-typeset flyers rather than an event | Medium-high | 3 | **4** | A coordinated visual language — anchor, supporting motifs, border/pattern, palette from the artwork — art-directed with the composition | Strong hypothesis, sharpened by reviewer reference designs; architecture planning required |
 | **F4** Ambient / supporting artwork | Medium — some pages feel blank or flat | Medium | 4 | **4** | Low-emphasis layer of the *same* visual language as F3, not a separate feature | Supporting hypothesis |
 
@@ -43,8 +43,8 @@ These must not be merged into one remediation project.
 
 ## F1 — Typography composition / accidental-looking indentation
 
-**ID** F1 · **Status** Confirmed · **Confidence** High · **Severity** High · **Class**
-Deterministic infrastructure · **Phase** 3.1
+**ID** F1 · **Status** Confirmed; **remediated in Phase 3.1** · **Confidence** High ·
+**Severity** High · **Class** Deterministic infrastructure · **Phase** 3.1
 
 ### Observation
 
@@ -179,13 +179,59 @@ The gap is in the contract as much as the implementation.
 Not removing stagger or cascade. Not banning asymmetry. Not adding a typography language or
 per-node offsets. Not making the model responsible for line breaks by handing it pixels.
 
+### F1 — what shipped
+
+Phase 3.1. No schema change, no new primitive, prop or token, no model call, and nothing new
+exposed to the model: it still chooses a treatment and never a break point, an offset or a pixel.
+
+**The break points became syntactic** (`src/lib/renderer/compile/title-lines.ts`). The fixed
+0–1 / 2–3 / rest slice is gone. Every way to cut the words into lines is enumerated and scored,
+preferring even lines and penalising the three shapes that read as accidents: a line of nothing
+but function words (M1), a break taken after a preposition or article, and an orphaned last word
+(M5). A title short enough for one line keeps it — breaking "Maya & Tom" to satisfy a treatment is
+the artifact the treatment exists to avoid. `"Baby Shaker is on the way"` now sets as
+`["Baby Shaker", "is on the way"]`.
+
+**The treatments became bounded offsets** (`src/styles/event-tokens.css`). `stagger` no longer
+flips alternate lines to `text-align: right` (M2), which threw the weakest line to the far margin
+and fought a centred or end-aligned section outright (screen 01). Both treatments now displace by
+a bounded percentage of the title's own measure — `stagger` alternating, `cascade` ramping, and
+the ramp shallower than the 12%/24% it replaces, halved again at 390. Headings step from
+`overflow-wrap: anywhere` to `break-word` with `text-wrap: balance`, and body and metadata get
+`text-wrap: pretty`, so residual wrapping is even and orphan-averse (M3, M5).
+
+**Verification learned to see composition, not only containment** (`verify/measure.ts`,
+`verify/verify.ts`; contract in `docs/event-renderer-system.md §3.1`). Rendered line boxes are
+measured with `Range.getClientRects()`, and three defects join the clean criterion: text broken
+inside its own words (the minimum usable measure, stated as `lines > words` so it needs no
+threshold — M4); atomic metadata past a line budget that scales with its own word count (blind
+spot 3); and line boxes that do not share their aligned edge, with the two title treatments
+exempt (blind spot 1). The first two feed the existing ladder — demote, then relax the innermost
+box — so no new repair kind was invented. The third has no repair and is reported.
+
+**Evidence.** Across the 72 frozen confirmation trees the new checks fire on exactly the
+compositions the finding describes and nowhere else: frozen 32 sets "Saturday, December 19, 2026"
+on six lines at 1280 and nine at 390 from four words, and frozen 51 sets "The Lodge at Hanson
+Park" four lines deep in a 62px rail track. Both were **clean** on the old criterion — contained,
+and therefore invisible — and both now take a structural relaxation and come out genuinely clean.
+All 72 still verify clean. `src/lib/renderer/verify/typography.test.ts` pins both by name at 390
+and 1280, together with an expressive `strong`/`monumental`/`cascade` page that must keep its
+asymmetry.
+
+**Not done, deliberately.** A minimum measure expressed in ems was tried and rejected: display
+type gets few ems per line by nature, so no threshold separates a large well-set title (screen 25)
+from one chopped across eight lines (frozen 32) — the word-fit rule separates them exactly. Mobile
+convergence for `EventTitle.layout` was not added; the treatments now behave at 390 without it,
+and `design-system.md §15.5` makes typography a carrier of distinction at phone width, so removing
+it there needs a product decision rather than a fit rule.
+
 ---
 
 ## F2 — Decorative hierarchy / giant monograms
 
-**ID** F2 · **Status** Confirmed qualitative signal; scope decision pending · **Confidence**
-Medium-high · **Severity** Medium-high · **Class** Deterministic infrastructure · **Phase** 3.1
-candidate, narrow safeguard only
+**ID** F2 · **Status** Confirmed qualitative signal; **scope decision made — deferred to
+Phase 4** · **Confidence** Medium-high · **Severity** Medium-high · **Class** Deterministic
+infrastructure · **Phase** 4
 
 ### Observation
 
@@ -244,6 +290,35 @@ engine, **defer it to Phase 4 or later rather than overbuild in 3.1.**
 Monograms are not bad. Large decorative elements are not banned. Editorial whitespace is not bad.
 Asymmetry is not removed. **A giant monogram can be excellent** — the problem is only when
 decoration becomes the *only* visually meaningful object.
+
+### F2 — scope decision
+
+**Deferred to Phase 4. Nothing shipped in Phase 3.1.** The condition for a 3.1 safeguard was that
+it be a small, obvious extension of the existing motif and ornament system. It is not, for three
+reasons that are facts about the code rather than judgements about the design:
+
+1. **The Monogram is exempt from the ornament budget by explicit decision**, not by oversight —
+   `primitives/decorative.tsx`: *"The initial is event content, not ornament, so it is never
+   suppressed by the ornament budget."* Bringing it under that budget reverses a stated
+   architectural choice, which is a spec change, not a safeguard.
+2. **There is no scale to bound.** `Monogram` carries `style` only; every size is CSS. A cap would
+   have to be a new measured property of the *rendered* page, compared against a *different*
+   node's prominence — a relative-visual-weight rule, which the system has nowhere to put.
+3. **There is no repair for it.** The ladder demotes text emphasis and relaxes boxes. Reducing
+   decoration is neither, so a credible safeguard needs a new override kind and a new repair rung
+   — the "generalized visual-ranking engine" this finding already said should be deferred rather
+   than overbuilt in 3.1.
+
+The one-line alternative — shrinking `watermark` from `calc(var(--ev-display-size) * 5)` — was
+considered and rejected: reviewers reported *relative dominance*, so an absolute multiplier picked
+without evidence is a taste change applied to every concept, and it would not touch the `ring`
+monogram above a title, which is the other half of the report.
+
+What Phase 4 needs to decide: whether prominence is measured (rendered area or optical weight of
+decoration against the title) or authored (the model declaring a decorative role the compiler
+bounds), and what the repair is when hierarchy collapses. The geometry verifier now measures every
+text node's line boxes as well as its bounds, so the *text* half of the comparison exists; the
+decoration half does not.
 
 ---
 
@@ -405,6 +480,9 @@ F1 must be fixed on its own terms, in Phase 3.1, before any of this is testable.
 Scope: F1 in full; F2 only as a narrow safeguard, and only if it fits the existing motif and
 hierarchy infrastructure cleanly.
 
+**Outcome.** F1 shipped in full — see "F1 — what shipped". F2 did not meet its condition and is
+deferred to Phase 4 — see "F2 — scope decision". F3 and F4 were not touched.
+
 Constraints: **no generated imagery; no model calls; prefer no schema changes; no new
 CompositionTree primitives, props or tokens.** Any change re-runs the `event-renderer-system.md
 §9` regression gates — unit tests, the adversarial set, the library expressiveness render, and a
@@ -563,6 +641,38 @@ can express.
 So the honest summary is: **no architectural conflict, one small addition, and one real sequencing
 problem.** The sequencing problem is geometry verification — see below.
 
+### The creative interpreter is `EventIdentity`, and the raw prompt never reaches the generator
+
+Recorded as a Phase 4 conclusion, because it is the question the whole imagery discussion turns
+on: *what stands between what a host types and what a model draws?*
+
+The answer is **`EventIdentity`**. It is this product's creative interpreter — the step that reads
+a host's prompt and any inspiration and settles what kind of event this is, what it is called, who
+it is for, what register it wants and what visual references it carries. Everything downstream —
+`DesignIntent`, the composition, and any future art brief — is an interpretation of that, not of
+the raw prompt.
+
+**A host's prompt must not be forwarded, verbatim or lightly wrapped, into a generic
+"generate a website" or "generate an image" prompt.** That is not a stylistic preference:
+
+- A generic generator has no notion of an *event* — no host, no date, no RSVP, no registry, no
+  guest — so it optimises for a plausible page rather than for this event's meaning, which is the
+  "well-typeset flyer" F3 describes from the other direction.
+- It bypasses every constraint this document records. The originality rule ("Ralph Lauren" becomes
+  heritage prep, tartan, navy and cream — never Polo Bear), the safety constraints, the four
+  visual-direction modes and the transparency requirement are all properties of the *brief*. A raw
+  prompt handed to a generic generator has already skipped them.
+- It makes the output unattributable and unrepeatable. `EventIdentity` is persisted; a concept can
+  be re-fitted, redesigned or explained against it. A raw prompt piped downstream leaves nothing
+  to re-derive from.
+- It reintroduces the decision-making this product exists to remove. The landing page is the
+  prompt precisely so the host does not have to art-direct; an unmediated prompt puts that burden
+  straight back on them.
+
+So Phase 4's imagery pipeline, if it is built, is `EventIdentity → art brief (constrained,
+reviewable, persisted) → image generation`, never `host prompt → image generation`. The brief is
+where the constraints live, and the brief is derived, not quoted.
+
 ## MVP non-goal under revision — AI-generated imagery
 
 **Not removed here.** Recorded as a product decision requiring intentional revision.
@@ -669,6 +779,9 @@ No filters or policies are implemented in this pass.
 
 ## What this pass explicitly did not do
 
-No renderer, compiler, CompositionTree, typography-rule or schema change. No image generation, no
-image model selected, no storage tables, no model-prompt change, no hero-image API. No change to
-the frozen Human Test #1 assets or scorer. No Phase 3.1 implementation PR. Phase 4 not started.
+No image generation, no image model selected, no storage tables, no model-prompt change, no
+hero-image API. No change to the frozen Human Test #1 assets or scorer. Phase 4 not started.
+
+Phase 3.1 has since been implemented against this ledger: F1 in full, F2 deferred with its
+reasons, F3 and F4 untouched. The findings above are the record of what was observed and are not
+edited by that work; "F1 — what shipped" and "F2 — scope decision" record the response.

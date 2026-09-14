@@ -77,8 +77,12 @@ import { buildMeasurableDocument, requiredFamilies, type AssetPaths, DEFAULT_ASS
 import {
   BREAKPOINTS,
   VIEWPORTS,
+  breaksInsideWords,
+  edgesIncoherent,
   lineLimit,
+  metadataLineLimit,
   type Breakpoint,
+  type MeasuredText,
   type PageMeasurement,
 } from "./measure";
 import {
@@ -176,13 +180,35 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-export function summarise(m: PageMeasurement): BreakpointSummary {
+/**
+ * The three typographic defects §3.1's containment tests cannot see, named once.
+ *
+ * `summarise` counts them, `isClean` gates on them and `typographyViolations` turns the two
+ * repairable ones into work, so all three read the same predicates. They are stated in
+ * `measure.ts` beside the geometry they read.
+ */
+function wordBroken(t: MeasuredText): boolean {
+  return breaksInsideWords(t);
+}
+
+function overMetadataBudget(mode: Breakpoint, t: MeasuredText): boolean {
+  const limit = metadataLineLimit(mode, t.kind, t.emphasis, t.words);
+  return limit !== null && t.lineGeometry.count > limit;
+}
+
+export function summarise(m: PageMeasurement, tolerancePx: number): BreakpointSummary {
   let textOverflow = 0;
   let textOverLimit = 0;
+  let textWordBroken = 0;
+  let textOverMetadataLimit = 0;
+  let textEdgeIncoherent = 0;
   for (const t of m.texts) {
     if (t.overflow) textOverflow += 1;
     const limit = lineLimit(m.mode, t.emphasis);
     if (limit !== null && t.lines > limit) textOverLimit += 1;
+    if (wordBroken(t)) textWordBroken += 1;
+    if (overMetadataBudget(m.mode, t)) textOverMetadataLimit += 1;
+    if (edgesIncoherent(t, tolerancePx)) textEdgeIncoherent += 1;
   }
   return {
     viewport: m.viewport,
@@ -193,6 +219,9 @@ export function summarise(m: PageMeasurement): BreakpointSummary {
     overflowingElements: m.overflowingTotal,
     textOverflow,
     textOverLimit,
+    textWordBroken,
+    textOverMetadataLimit,
+    textEdgeIncoherent,
     measuredTexts: m.texts.length,
     excludedTexts: m.excludedTexts,
     heroHeight: round2(m.heroHeight),
@@ -223,7 +252,16 @@ export function isClean(summaries: BreakpointSummaries): boolean {
   return BREAKPOINTS.every((bp) => {
     const s = summaries[bp];
     return (
-      s.measuredTexts > 0 && !s.pageOverflow && s.overflowingElements === 0 && s.textOverflow === 0
+      s.measuredTexts > 0 &&
+      !s.pageOverflow &&
+      s.overflowingElements === 0 &&
+      s.textOverflow === 0 &&
+      // Contained, but not composed. Human Test #1 reviewers read all three as rendering faults,
+      // and each of them renders inside its box, so none of the clauses above can see them
+      // (`docs/human-test-1/qualitative-findings.md`, F1).
+      s.textWordBroken === 0 &&
+      s.textOverMetadataLimit === 0 &&
+      s.textEdgeIncoherent === 0
     );
   });
 }
@@ -259,12 +297,25 @@ export function demotionViolations(
       if (!t.id || !index.has(t.id)) continue;
       const limit = lineLimit(bp, t.emphasis);
       const overLimit = limit !== null && t.lines > limit;
-      const overflowing = t.overflow && (t.emphasis === "display" || t.emphasis === "primary");
-      if (!overLimit && !overflowing) continue;
+      const demotable = t.emphasis === "display" || t.emphasis === "primary";
+      const overflowing = t.overflow && demotable;
+      // The measure is too narrow for the node's own words. Demotion is a real remedy here: the
+      // box does not change, so smaller type puts more of a word on each line. A node already at
+      // `secondary` has nowhere to go and falls through to the structural pass, exactly as an
+      // overflowing one does.
+      const wordBreak = wordBroken(t) && demotable;
+      const metadataBudget = overMetadataBudget(bp, t) && demotable;
+      if (!overLimit && !overflowing && !wordBreak && !metadataBudget) continue;
       const note = overLimit
         ? `${bp}: ${t.lines} lines at ${t.emphasis} (limit ${limit})`
-        : `${bp}: ${t.emphasis} overflows its container by ` +
-          `${round2(Math.max(t.box.right - t.containerBox.right, t.containerBox.left - t.box.left))}px`;
+        : wordBreak
+          ? `${bp}: ${t.lineGeometry.count} lines for ${t.words} words at ${t.emphasis} — ` +
+            "the measure cannot hold them whole"
+          : metadataBudget
+            ? `${bp}: ${t.kind} on ${t.lineGeometry.count} lines at ${t.emphasis} ` +
+              `(budget ${metadataLineLimit(bp, t.kind, t.emphasis, t.words)})`
+            : `${bp}: ${t.emphasis} overflows its container by ` +
+              `${round2(Math.max(t.box.right - t.containerBox.right, t.containerBox.left - t.box.left))}px`;
       const list = evidence.get(t.id);
       if (list) list.push(note);
       else evidence.set(t.id, [note]);
@@ -352,7 +403,18 @@ export function innermostRelaxation(
   return null;
 }
 
-/** Canonical node ids that a measurement reports as overflowing, at either width. */
+/**
+ * Canonical node ids whose box has to give, at either width.
+ *
+ * Overflow, plus the two defects a wider box also fixes: text broken inside its words, and atomic
+ * metadata past its line budget. Both mean the measure is too narrow, which is what relaxing the
+ * innermost `Frame`/`Surface`/`Rail` is for — and unlike demotion, relaxation is still available
+ * to a node that has already bottomed out at `secondary`, which is where most metadata sits.
+ *
+ * Edge incoherence is deliberately absent: a displaced line is not a narrow one, and widening its
+ * box would not move it back. It is a defect with no repair, so `isClean` reports it and the
+ * concept is rejected rather than quietly re-rendered.
+ */
 export function overflowingIds(
   measurements: Record<Breakpoint, PageMeasurement>,
   index: NodeIndex,
@@ -360,7 +422,10 @@ export function overflowingIds(
   const ids: string[] = [];
   for (const bp of BREAKPOINTS) {
     const m = measurements[bp];
-    for (const t of m.texts) if (t.overflow && t.id) ids.push(t.id);
+    for (const t of m.texts) {
+      if (!t.id) continue;
+      if (t.overflow || wordBroken(t) || overMetadataBudget(bp, t)) ids.push(t.id);
+    }
     for (const e of m.overflowing) if (e.id) ids.push(e.id);
   }
   return orderIds(
@@ -419,8 +484,14 @@ function deepFreezeOverrides(overrides: VerificationOverrides): VerificationOver
   });
 }
 
-function summariseAll(measurements: Record<Breakpoint, PageMeasurement>): BreakpointSummaries {
-  return { desktop: summarise(measurements.desktop), mobile: summarise(measurements.mobile) };
+function summariseAll(
+  measurements: Record<Breakpoint, PageMeasurement>,
+  tolerancePx: number,
+): BreakpointSummaries {
+  return {
+    desktop: summarise(measurements.desktop, tolerancePx),
+    mobile: summarise(measurements.mobile, tolerancePx),
+  };
 }
 
 /** A required family whose faces did not load makes every line count in the run meaningless. */
@@ -524,7 +595,7 @@ export async function runFitLoop(
       });
     }
     assertFontsLoaded(measurements);
-    const summaries = summariseAll(measurements);
+    const summaries = summariseAll(measurements, tolerancePx);
     // A render that produced no measurable text is not a fitting page; it is a page that did not
     // render. Fail as infrastructure before the fit loop can mistake the absence for a clean pass.
     if (!measuredAnything(summaries)) {
@@ -576,7 +647,9 @@ export async function runFitLoop(
           `${relaxationRounds} relaxation rounds at a ${tolerancePx}px tolerance: ` +
           BREAKPOINTS.map(
             (bp) =>
-              `${bp} pageOverflow=${final[bp].pageOverflow} elements=${final[bp].overflowingElements} text=${final[bp].textOverflow}`,
+              `${bp} pageOverflow=${final[bp].pageOverflow} elements=${final[bp].overflowingElements} ` +
+              `text=${final[bp].textOverflow} wordBroken=${final[bp].textWordBroken} ` +
+              `metadataLines=${final[bp].textOverMetadataLimit} edges=${final[bp].textEdgeIncoherent}`,
           ).join(", "),
         overrides: deepFreezeOverrides(overrides),
         repairs: Object.freeze([...repairs]),

@@ -154,6 +154,54 @@ schema change) → Phase 4 (creative generation, with the visual-anchor architec
 under consideration) → Human Test #2 as the launch gate. Any Phase 3.1 change re-runs the §9
 regression gates.
 
+## Revision 6.4 — Phase 3.1: composition is verified, not only containment
+
+The response to Human Test #1's F1. It changes the *criterion* for a final spec, so it is recorded
+here rather than left in an implementation note. `docs/human-test-1/qualitative-findings.md` stays
+the canonical record of the evidence; this entry records the contract change.
+
+**§3.1 gains a second question.** It asked whether text fits — page overflow, element overflow,
+text overflow, all three containment tests. It now also asks whether the text is *composed*, from
+rendered line boxes (`Range.getClientRects()`) rather than from a bounding box divided by a line
+height. Three defects join the clean criterion, all of which must be zero:
+
+- `textWordBroken` — line boxes exceed the node's word count, which proves a break landed inside a
+  word. The minimum usable measure, stated without a threshold.
+- `textOverMetadataLimit` — an atomic metadata value (`Date`, `Time`, `Venue`, `Location`) at
+  `secondary` or `caption` past `max(2 desktop / 3 mobile, ⌈words ÷ 3⌉)` line boxes. `FIT_LIMITS`
+  covered `display` and `primary` only; this covers the emphases where §3.1 was silent.
+- `textEdgeIncoherent` — line boxes that do not share their aligned edge, with the two `EventTitle`
+  treatments exempt.
+
+The first two are repaired by the existing ladder — demote one emphasis step, then relax the
+innermost `Frame`/`Surface`/`Rail` — so no new repair kind, override kind or relaxation was added.
+The third has no repair and is reported: a displaced line is not a narrow one.
+
+**`EventTitle.layout` is documented rather than implicit.** The 0–1 / 2–3 / rest word slice
+appeared in no document and was invisible to the model, the schema and the validator at once. The
+model chooses the treatment; **where the title breaks is the compiler's**, chosen deterministically
+by scoring the possible cuts. `stagger` and `cascade` displace by a bounded percentage of the
+title's own measure instead of flipping a line's alignment to the opposite margin.
+
+No schema change, no new primitive, prop or token, no primitive-set version bump, no model call,
+and nothing new exposed to the model — so `spec.md §32` #15 and #19 are untouched and the Library
+Boundary Invariant is not involved.
+
+**Gates re-run** (`event-renderer-system.md §9`): the 72-tree frozen confirmation replay through
+production geometry, 72 of 72 clean; the full unit suite; `proof-b/test.js`; `proof-b/adv-run.js`,
+37 of 37 repair-valid with zero overflow at either width. Two of the 72 — frozen 32 and frozen 51
+— were clean on the old criterion and are not on the new one; both are repaired by a structural
+relaxation and come out clean, and both are pinned by name as regression cases.
+
+**F2 is deferred to Phase 4.** Its Phase 3.1 condition was that a safeguard be a small extension of
+existing infrastructure. It is not: the `Monogram` is exempt from the ornament budget by explicit
+decision, it carries no scale to bound, and reducing decoration is neither a demotion nor a box
+relaxation. Reasons in full in the findings document.
+
+**Human Test #1's evidence is now a *before* measurement.** Hardening changes rendered geometry, so
+the §9 confirmation thresholds that include a human design-quality rate are carried by Human
+Test #2, which remains the launch gate.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
