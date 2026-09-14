@@ -9,8 +9,9 @@ this repository, satisfy all of them, and still ship the wrong product.
 **Read this before making a creative or product decision. It decides nothing on its own.**
 `spec.md` remains the authority for requirements and acceptance criteria, and every other document
 keeps the authority it already has. Where this document and a lower one disagree about a
-*requirement*, that is a real conflict to raise and resolve explicitly — §14 lists the ones known
-today — never something to resolve by quietly editing either side.
+*requirement*, that is a real conflict to raise and resolve explicitly — §14 is the audit trail of
+the ones found and resolved so far, and §14a the one still open — never something to resolve by
+quietly editing either side.
 
 Principles here are durable. Anecdotes, screenshots and reviewer quotes belong in
 `human-test-1/qualitative-findings.md`, which stays the canonical record of what was observed.
@@ -101,7 +102,7 @@ into a single vague prompt.
 | **sibling planner** (deterministic) | *How do three concepts stay genuinely different?* | Distinct family, tone, typography category, hierarchy, structural directive and attractive-token allotment per sibling (`spec.md §7.7`). |
 | **`DesignIntent` ×3** | *What are three excellent and genuinely different ways a designer could express that identity?* | Family, tone, palette, typography pairing, density, composition. |
 | **`CompositionTree` ×3** | *How is this concept actually composed?* | Structure, nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent. |
-| **`VisualArtIntent`** (Phase 4, under consideration — §9) | *What artwork would serve this composition?* | Art direction for a generated asset, as a sibling of the tree, never inside it. |
+| **`VisualArtIntent`** (Phase 4, approved — §9) | *What artwork would serve this composition?* | Art direction for a generated asset, as a sibling of the tree, never inside it. |
 | **compiler + renderer** | *Is this safe, legible, fitting and responsive?* | CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, geometry verification, business logic. |
 
 **`EventIdentity` is this product's creative interpreter**, and it is the reason a raw prompt never
@@ -157,8 +158,10 @@ inference. A date, a place or a dress code is a fact, and facts are quoted, neve
 
 ## 6. Adaptive creative clarification
 
-`EventIdentity` should be able to decide that it needs one thing clarified. This must never become
-a setup wizard.
+**Approved**, and canonical as `spec.md §7.6b`. `EventIdentity` may decide it needs one thing
+clarified. This must never become a setup wizard — a wizard is a fixed, sequential, gating intake
+of information the product needs; this is a small number of questions, generated from an ambiguity
+actually present in this prompt, about taste only.
 
 > **Understand aggressively. Infer creatively. Ask selectively.**
 
@@ -236,10 +239,11 @@ giant monogram + aggressive stagger + grid + tiny metadata
     →  thematic artwork + one excellent restrained headline + a subtle supporting motif
 ```
 
-**Status: under consideration and not approved.** `spec.md §5.2` and `§32 #32`, and
-`design-system.md §15.11`, currently forbid AI-generated decorative site imagery, and those rules
-remain binding until amended deliberately. `spec.md §33` already parks "AI-generated hero
-illustration/motif image per concept" as a deferred opportunity. See §14.
+**Status: approved for Phase 4**, and canonical as `spec.md §7.6a`. Imagery is optional,
+art-directed and compiler-placed; it is never mandatory, never model-positioned, and never reopens
+host photography, galleries or stock imagery. Neither the image model nor the artwork schema is
+selected. What changed the decision: reviewer reference invitations showed thematic visual language
+behaving as part of core design quality rather than as decoration.
 
 ## 10. If imagery happens, it is art-directed and optional
 
@@ -340,33 +344,45 @@ enterprise events, branded experiences, team collaboration, organizational brand
 richer operational workflows; the architecture should not gratuitously foreclose that. Do not add
 enterprise functionality now.
 
-## 14. Known conflicts with canonical documents
+## 14. Conflicts with the canonical set, and how they were resolved
 
-Recorded, not resolved. None of these is changed by this document.
+The Phase 4 readiness pass resolved every conflict this document originally recorded. Kept here as
+the audit trail for decisions that changed.
 
-| # | Existing rule | This doctrine | Real or wording | Recommended resolution |
-| --- | --- | --- | --- | --- |
-| 1 | AI-generated decorative site imagery is an explicit MVP non-goal — `spec.md §5.2`, `§32 #32`, `design-system.md §15.11` ("No: … AI-generated decorative imagery") | Theme-specific artwork is a serious Phase 4 direction (§9–§10) | **Real**, and already anticipated: `spec.md §33` defers "AI-generated hero illustration/motif image per concept", and the Phase 4 plan row lists it as under consideration | Keep the non-goal binding. If approved, amend `spec.md §5.2`, `§32 #32`, `design-system.md §15.11` and `event-renderer-system.md §8` in one deliberate PR, with the new primitive and its proof run per `§32 #15` |
-| 2 | No clarification loop exists anywhere: `spec.md` forbids questionnaires and wizards (`§4.1`, `§4.7`, `§5.1`, `§32 #9`); `model-contracts.md §8` contemplates only mechanical retries; the Event Identity prompt returns a schema object and never a turn back to the host | Adaptive creative clarification, bounded and usually zero questions (§6) | **Real gap rather than a contradiction.** `spec.md` forbids *gating* and *questionnaire* behaviour and is silent on one non-blocking creative question. `§7.3`'s parallel non-blocking details form is the precedent for how such a thing may exist | Design it against `spec.md §7` and `model-contracts.md §1`/`§8` as an explicit amendment before implementing. It must inherit `§7.3`'s rule: never a gate on concepts appearing |
-| 3 | `model-contracts.md §0` promises "faithful user-intent capture"; no eval measures it. `§6.4` CO-01…CO-11 test schema, structure, geometry, diversity and directive compliance; CO-10, the only human measure, judges "unlabeled grayscale sheets", which removes the brief and the palette by construction | Understanding is the make-or-break capability (§3) | **Real gap.** Theme fidelity first appears as a judging criterion at Phase 10, the launch gate | Add understanding evals to `model-contracts.md §6.4` and a creative exit criterion to the Phase 4 plan row (§15) |
-| 4 | Phase 4's exit condition is "Uncontrolled model calls impossible; confirmation-run metrics reproduced on the production stack" | §13's priority order puts understanding first | **Real gap**: the exit criterion is purely operational and contains no creative bar | Add a creative exit criterion to the Phase 4 row when the evals of #3 exist |
-| 5 | `spec.md §11.9` states "reviewers rate ≥ 70% of model first screens designed" flatly, as one regression threshold among many; `CHANGELOG-v6.md` condition 2 calls it a launch gate *and* says "the threshold is to be calibrated against the library's score in the same session" | — | **Real inconsistency between two canonical documents**, independent of this doctrine | Reconcile: either `§11.9` records that the number is provisional and calibrated, or the changelog drops the caveat |
-| 6 | Three dangling authorities: `model-contracts.md §4` and `§5.2` defer the EventIdentity field list and DesignIntent input to a "Revision 1" not in the repo; `event-renderer-system.md §8`/`§9` defer imagery boundaries to the same absent Revision 1; `spec.md §11.11` defers to "Revision 5 §11.12–§11.13", which does not exist in the file | — | **Real documentation defect.** The imagery prohibition survives only in `spec.md §5.1`/`§5.2`/`§32 #32` and `design-system.md §15.11` | Inline the surviving rules at the citing sections, or delete the dangling pointers |
-| 7 | `spec.md` header still reads "Status: Revision 5 — MVP baseline for implementation" while `§0a`/`§0b` describe Revision 6 and 6.1 | — | **Real, minor** | Correct the header |
-| 8 | `spec.md §32 #46`, "Make the smallest implementation that satisfies the product" | §2: design quality is core functionality | **Wording only.** It is a scope instruction, not a quality allowance | None. §2 names the reading to avoid |
+| # | What it was | Resolution |
+| --- | --- | --- |
+| 1 | AI-generated decorative site imagery was an explicit MVP non-goal (`spec.md §5.2`, `§32 #32`, `design-system.md §15.11`) while this document argued for thematic artwork | **Resolved by decision.** Optional AI-generated thematic artwork is approved for Phase 4 as `spec.md §7.6a`. `§5.2` now excludes host, stock, mandatory and model-placed imagery instead of generated artwork; `§32 #32` and `design-system.md §15.11` restate it; `§11.11` states the boundary directly; `§33` no longer defers it. Host photography remains excluded |
+| 2 | No clarification loop existed anywhere, and `spec.md` forbids questionnaires and wizards | **Resolved by decision.** Adaptive creative clarification is approved as `spec.md §7.6b`, bounded to taste, capped at three, never logistics, never a gate. `§32 #9` now names it as the one permitted pre-concept question. The question schema, model contract and surface are still undesigned |
+| 3 | `model-contracts.md §0` promised "faithful user-intent capture" and nothing tested it | **Resolved.** `model-contracts.md §4.5` defines the creative-understanding evaluation contract over `docs/model-evals/creative-understanding.json`, with each dimension labelled deterministic, mixed or qualitative. No runner exists yet |
+| 4 | Phase 4's exit condition was operational only | **Resolved.** The Phase 4 row now carries a creative exit criterion requiring evidence against §4.5 — understanding, fact discipline, selective clarification, distinct directions, intent fidelity, and *personalization rather than rescue*. Thresholds are calibrated on first real run, not invented |
+| 5 | `spec.md §11.9` stated the ≥ 70% bar flatly; `CHANGELOG-v6.md` called it provisional | **Resolved by removing the number from both regression-threshold lists.** It is a launch gate, not a regression threshold: a code change cannot re-run it. Human Test #1 was stopped early, produced calibration evidence only, and established no pass/fail result; Human Test #2 is the launch gate and calibrates its own threshold. `spec.md §11.9` and `event-renderer-system.md §9` now say so |
+| 6 | Three sections cited Revisions absent from the repository | **Resolved where the requirement was recoverable.** `spec.md §11.11` now states the imagery boundary directly; `event-renderer-system.md §8`/`§9` cite it instead of the absent Revision 1. `model-contracts.md §4`/`§5.2` still defer to a Revision 1 for the EventIdentity field list and the DesignIntent input contract — see §14a |
+| 7 | `spec.md` header read "Revision 5" while `§0a`/`§0b` describe 6 and 6.1 | **Resolved.** The header reads Revision 6.1 |
+| 8 | `spec.md §32 #46`, "smallest implementation that satisfies the product" | **Wording only, unchanged.** It is a scope instruction; §2 names the misreading to avoid |
 
-**Checked and *not* in conflict:** nothing in the canonical set routes a raw prompt directly to
-design generation. `spec.md §7.3`, `§7.7`, `§35` and `model-contracts.md §1` already put
-`EventIdentity` and the deterministic sibling planner between the prompt and `DesignIntent`, and
-`model-contracts.md §6.1` shows the composition call receives `eventIdentity`, never the prompt
-text. The doctrine in §4 describes the existing architecture, not a change to it.
+### 14a. Still unresolved
 
-## 15. Before Phase 4 coding begins
+**`model-contracts.md §4` and `§5.2` defer to a "Revision 1" that is not in this repository**, for
+the EventIdentity field list and the DesignIntent input contract. Not invented here, because the
+intended target is not recoverable with confidence: `docs/history/` holds only `design-system_v1/v2`
+and `spec_v1`–`v4`. The requirement survives in artifacts that *are* present — the field list in
+`docs/model-schemas/event-identity.schema.json` and `spec.md §7.5`, the DesignIntent contract in
+`docs/model-schemas/design-intent.schema.json` — so nothing is lost, but the citation is a dead
+pointer. Inline both at their citing sections when Phase 4 touches those contracts.
 
-The gap this document makes visible is that **we can measure whether generation is legal and cannot
-measure whether it is right.** The recommended next step is to close that before writing Phase 4
-generation code: define the understanding evals of conflict #3 — a prompt set that is vague,
-colloquial and taste-heavy, judged on whether `EventIdentity` understood the assignment, inferred
-appropriate vocabulary, avoided cliché, invented no facts, asked only necessary questions, produced
-materially distinct directions, and yielded a site that needs personalization rather than rescue —
-and attach a creative exit criterion to the Phase 4 plan row.
+## 15. Where Phase 4 starts
+
+The readiness pass closed the measurement gap on paper: `model-contracts.md §4.5` and
+`docs/model-evals/creative-understanding.json` define how creative understanding will be judged, and
+the Phase 4 plan row now requires that evidence to exit.
+
+What remains is to run it. The first implementation slice is the one that makes the rubric
+executable end to end at the smallest possible scope: the real `generateEventIdentity` call against
+the fourteen-case corpus, with the deterministic half of the rubric checked mechanically — facts
+supplied versus facts returned, the `mustAvoid` terms, the question count and ceiling, the absence
+of logistics questions — and the qualitative half read by a person. That produces the first honest
+answer to *does it understand?*, and the thresholds the exit criterion currently leaves open.
+
+Everything else in Phase 4 — sibling planning against a real identity, DesignIntent, composition,
+spend controls, and any artwork at all — comes after that answer, because it is the answer that
+decides whether the rest is worth building on the identity we have.

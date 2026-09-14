@@ -1,7 +1,7 @@
 # AI-Native Event Website + RSVP + Registry Platform
 
 **Document:** Product Requirements Document (PRD) / `spec.md`
-**Status:** Revision 5 — MVP baseline for implementation
+**Status:** Revision 6.1 — MVP baseline for implementation (§0a, §0b; Revision 5 changes recorded in §0)
 **Initial launch vertical:** Baby showers
 **Platform architecture:** Event-generic, baby-shower-first
 **Primary build principle:** **AI should remove decisions, not create more decisions.**
@@ -296,7 +296,7 @@ However, renderer implementation code is normal product code. Accessibility fixe
 - Pre-publish redesign rounds from concept screen, reveal, or Design controls.
 - All generated concepts remain browsable before publish.
 - Current active design remains unchanged until a new concept is explicitly selected.
-- No host-uploaded decorative/event imagery.
+- No host-uploaded decorative/event imagery. Original AI-generated thematic artwork is in scope for Phase 4 and is optional, art-directed and compiler-placed — §7.6a.
 
 **Creation Mode**
 - Selected concept becomes the actual event site.
@@ -381,7 +381,9 @@ Implementing agents must **not** add these unless explicitly requested later:
 - seating charts, timeline/planning modules, vendors, venue marketplace;
 - photo galleries, printed stationery, thank-you-note manager, invitation sending;
 - host decorative site-photo uploads, hero-photo uploads, crop/position controls;
-- AI-generated decorative site imagery;
+- host-supplied or stock site photography of any kind;
+- **mandatory** imagery: artwork on every concept regardless of creative direction;
+- model-placed imagery: any image positioned by pixel, by model-authored CSS, or by anything outside the composition language;
 - public/open RSVP;
 - guest accounts;
 - browser extensions/bookmarklets;
@@ -571,11 +573,109 @@ EventIdentity {
 
 The Event Identity describes compatibility and intent. It does not contain renderer treatment choices.
 
+**Event Identity is the only stage that interprets the raw host prompt.** It is not validation or
+preprocessing: it is where "what does this host mean, and what creative world should this event
+belong to?" is answered. No later stage receives the prompt text — the planner, the DesignIntent
+call and the composition call all read this object — so an understanding this stage does not reach
+is not recoverable downstream. A raw prompt is never forwarded into a generic website- or
+image-generation prompt (`docs/product-doctrine.md §4`).
+
+It must hold one boundary exactly:
+
+- **Grounded facts are preserved, never invented.** Hosts and names, event type, date, time, venue,
+  address and RSVP deadline come only from the host's input or trusted saved event data. Extract
+  and carry forward whatever the prompt supplies; where the prompt is silent, the field is absent,
+  and the host completes it later (§7.3, §23.1).
+- **Creative interpretation is expected and generous.** Tone, sophistication, visual vocabulary,
+  palette territory, materials and textures, symbols, imagery opportunities and things to avoid are
+  all fair inference. "Lemons in Italy but classy" may imply linen, ceramic detail and an
+  ivory/olive palette.
+- **Inference never becomes a fact.** The same prompt may not conclude that the event is in
+  Positano, outdoors, or black-tie. An aesthetic implication is an implication; a date, a place or
+  a dress code is a claim about the host's event and is quoted or absent.
+
 ### 7.6 Brand/style references
 
 Named references such as Ralph Lauren are interpreted into original attributes: heritage, equestrian, classic Americana, editorial serif, navy/ivory/forest/camel, restrained plaid, understated luxury.
 
 Never copy protected logos/graphics or reproduce a specific proprietary design.
+
+### 7.6a Optional AI-generated thematic artwork (Phase 4)
+
+**Approved decision.** Phase 4 may generate original, theme-specific visual artwork as part of an
+event's creative direction.
+
+> Imagery is **optional**, **art-directed**, and serves the composition. It is never mechanically
+> added to every site.
+
+The decision changed on evidence. Revision 6 treated AI imagery as decorative scope and excluded
+it; Human Test #1 reviewers supplied reference invitations whose identity came from a coordinated
+theme-specific visual language — an illustrative anchor, supporting motifs, a border treatment,
+atmospheric artwork, a palette drawn from the artwork, and restrained typography — and read our
+image-free output as abstract by comparison. Thematic visual language is therefore judged part of
+core design quality, not decoration. Evidence: `docs/human-test-1/qualitative-findings.md` F3/F4;
+intent: `docs/product-doctrine.md §9`–`§10`.
+
+In scope for Phase 4, as capabilities to design rather than a settled schema:
+
+- an illustrative visual anchor;
+- transparent-background object, character or still-life art;
+- subtle atmospheric or background artwork;
+- framed/editorial illustration.
+
+Binding constraints, which do not wait for the schema:
+
+1. **Optional, and chosen by the creative direction.** "Every event site gets an image" is not a
+   product rule. A sophisticated black-tie concept may be stronger with none.
+2. **Art-directed to the composition.** The brief follows the layout — subject weighting, negative
+   space, crop safety — never "generate a picture, then find somewhere to put it."
+3. **The model never places the image.** No pixels, no model-authored CSS, no free positioning.
+   Placement is a composition-language concern and the compiler realizes it, so any new decorative
+   leaf is a primitive-set version bump and a `docs/event-renderer-system.md §9` gate re-run
+   (§32 #15).
+4. **Original language only.** §7.6 governs: named references are translated, never copied. No
+   logos, proprietary characters or campaign artwork, whatever the host's prompt asks for.
+5. **The deterministic renderer still owns safe realization** — contrast, legibility, responsive
+   behaviour and geometry verification are unchanged, and text readability always wins over
+   artwork.
+6. **Host photography stays out.** This approves *generated original artwork*, not uploads,
+   galleries or stock photography, which remain non-goals (§5.2).
+
+Neither the image model nor the artwork schema is selected here. Transparent-background reliability
+varies by model and is an input to that selection rather than something a prompt adds afterwards.
+
+### 7.6b Adaptive creative clarification
+
+**Approved decision.** Event Identity **may** ask the host a creative clarifying question before
+concepts are generated, and only when that materially improves understanding of the requested
+creative identity.
+
+This is not the setup wizard §4.7 forbids, and the distinction is precise: a wizard is a fixed,
+sequential, gating intake of information the product needs; this is at most a small number of
+questions, generated from an ambiguity actually present in this prompt, about *taste only*.
+
+Canonical rules:
+
+1. **The preferred number of questions is zero.** Typically 0; sometimes 1–2; a hard working
+   ceiling of 3 before concept generation.
+2. **Dynamically generated** from the actual ambiguity. There is no fixed question list.
+3. **Every question must pass:** *would different answers produce meaningfully different creative
+   identities?* If no, it is not asked.
+4. **Always offer `You decide` / `Surprise me`** or equivalent. A host must never need design
+   vocabulary to use this product, and one who has none must not get a worse result.
+5. **Never low-level design choices.** Not fonts, grids, hero side, heading treatment or hex
+   values — §4.1 stands unchanged. Clarification establishes the creative identity; it never
+   outsources the design.
+6. **Never logistics.** Clarification may not ask for a missing date, time, venue, address, RSVP
+   deadline or any other operational field, and may not make design generation wait on one. Those
+   are publish requirements collected after the host chooses a concept (§7.3, §23.1). Concept
+   creation is not an event-information intake form.
+
+The flow is therefore: prompt → creative understanding → optional creative clarification →
+concepts → choose → complete the operational details.
+
+Neither the question schema, the model contract change nor the surface that presents a question is
+designed here; see `docs/model-contracts.md §4` and `docs/product-doctrine.md §6`.
 
 ### 7.7 Diversity planning before concept model calls
 
@@ -1066,7 +1166,9 @@ The renderer reads only this object: one fixed component per primitive and seman
 
 The sibling planner (§7.7) provides distinct intents, directives and token allotments; the skeleton signature (structural tokens of the hero, surface sequence, RSVP and registry skeletons, alignment, typography category, tone; per breakpoint; threshold .70) rejects collisions with siblings and redesign history.
 
-The proof harnesses in `proof-b/` are the regression suite. Any change to the language, validator, compiler, renderer rules or planner reruns: unit tests; the adversarial set (every fixture repairs to zero violations and renders with zero overflow; every schema-invalid payload is rejected); expressiveness (every library silhouette validates and renders); and a sibling-batch confirmation run with these thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes; reviewers rate ≥ 70% of model first screens designed. Mobile convergence is expressed by the tree's mobile intents and is not a failure.
+The proof harnesses in `proof-b/` are the regression suite. Any change to the language, validator, compiler, renderer rules or planner reruns: unit tests; the adversarial set (every fixture repairs to zero violations and renders with zero overflow; every schema-invalid payload is rejected); expressiveness (every library silhouette validates and renders); and a sibling-batch confirmation run with these thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes. Mobile convergence is expressed by the tree's mobile intents and is not a failure.
+
+**The human design-quality bar is deliberately not in that list.** It is a launch gate, not a regression threshold: a code change cannot re-run it, and it measures the product rather than the compiler. Its status is exactly this — **Human Test #1 was stopped early, produced qualitative calibration evidence only, and established no pass/fail result; no score is claimed from it. Human Test #2, on the frozen production creative stack, is the launch-quality human gate, and its threshold is calibrated against the library's score in the same session rather than assumed.** The ≥ 70% figure recorded in earlier revisions was provisional and was never approved as a settled number; treat it as the working expectation to calibrate against, not as a decided threshold. See `docs/CHANGELOG-v6.md` and `docs/human-test-1/qualitative-findings.md`.
 
 ### 11.10 Guest-surface component system
 
@@ -1074,7 +1176,21 @@ Unchanged from Revision 5 §11.9: the themed guest components, the fixed semanti
 
 ### 11.11 Imagery boundaries and visual regression
 
-Unchanged from Revision 5 §11.12–§11.13, with the screenshot matrix replaced by the confirmation-run renders at 390 and 1280 (gray and color) and the library expressiveness sheets.
+The imagery boundary is stated here rather than by reference, because the Revision 5 sections this
+previously cited (§11.12–§11.13) are not in this document.
+
+- **Not permitted:** host-uploaded decorative or event photography, venue/maternity galleries,
+  stock photography, crop/position tools, and any image placed by the model rather than by the
+  composition language (§5.2, §32 #32).
+- **Permitted as content, not decoration:** the native registry item thumbnail, which is product
+  content and never retailer-hotlinked (§15.2).
+- **Approved for Phase 4:** original AI-generated thematic artwork, optional, art-directed and
+  compiler-placed, under §7.6a. Text readability and semantic hierarchy always win over artwork.
+- **Inspiration uploads are private model inputs** and never become public site imagery (§7.2,
+  §26, §27).
+
+Visual regression is the confirmation-run renders at 390 and 1280 (gray and color) and the library
+expressiveness sheets, replacing the Revision 5 screenshot matrix.
 
 ## 12. Guest List and RSVP
 
@@ -1567,7 +1683,7 @@ Content operations remain separate:
 - section order;
 - section visibility.
 
-There are no published-site image controls.
+There are no published-site image controls. Should Phase 4 ship thematic artwork (§7.6a), art direction is a property of the concept, not a host-facing image editor.
 
 ### 20.2 Event designOverrides
 
@@ -2215,9 +2331,14 @@ The host should feel:
 - [ ] Abandoned pre-auth draft/assets expire and remain private.
 - [ ] Required details are collected only when missing and while generation runs, and never block concepts from appearing.
 - [ ] Venue-text timezone inference + validation + browser fallback works.
+- [ ] Adaptive creative clarification asks nothing in the common case, at most three questions ever, never a logistics field, and never gates concepts from appearing (§7.6b).
+- [ ] Every clarification offered is one whose answers would produce materially different creative identities, and every one offers a `You decide` option.
 
 ### Event Identity and diversity
 - [ ] Event Identity persists tone/color constraints and compatible family/tone/typography-category guidance.
+- [ ] Event Identity is the only stage that receives the raw host prompt; the planner, DesignIntent and composition calls read the persisted identity (§7.5).
+- [ ] Event Identity preserves supplied event facts exactly and invents none that the host did not supply, while inferring aesthetic implications freely (§7.5).
+- [ ] Named aesthetic references become original visual language; no logo, proprietary character or campaign artwork is reproduced (§7.6).
 - [ ] The sibling planner assigns three distinct compatible families whenever possible, then distinct tones, typography categories and hierarchies when the brief allows.
 - [ ] Siblings receive distinct structural directives (at least structure and opening differ) and attractive-token allotments (each token to at most one sibling in three).
 - [ ] Siblings never share an identical DesignIntent.
@@ -2344,7 +2465,7 @@ The host should feel:
 6. Do not add a template gallery.
 7. Do not send concept selection to a generic pre-publish dashboard.
 8. Creation Mode is the actual event with contextual collaborator controls.
-9. Do not turn readiness into a wizard.
+9. Do not turn readiness into a wizard. Adaptive creative clarification (§7.6b) is the one permitted pre-concept question and is bounded: taste only, never logistics, never a gate on concepts appearing.
 10. Do not count optional Guests/Registry as publish blockers.
 11. Do not build token/chat-level AI editing.
 12. Strong model returns a six-field DesignIntent (`family`, `composition`, no `heroArchetype`) plus non-design presentation metadata, and a `CompositionTree` of trusted primitives; nothing else.
@@ -2367,7 +2488,7 @@ The host should feel:
 29. The sibling planner gives each batch distinct intents, distinct directives and attractive-token allotments; never the same intent with different seeds.
 30. Accept mobile guest-surface structural convergence; do not damage usability to force layout novelty.
 31. The Phase A/A.1 recipes are a library (regression, examples, macros, calibration); do not turn them, directives or caps into a template menu.
-32. Do not add decorative/event site images in MVP.
+32. Do not add host-uploaded, stock or model-placed site imagery. Original AI-generated thematic artwork is approved for Phase 4 under §7.6a and is optional, art-directed and compiler-placed; it never arrives by pixel, by model-authored CSS, or on every concept by default.
 33. Native product thumbnail is content exception; never hotlink retailer image.
 34. Do not add retailer scraping/sync/proxies/anti-bot workarounds.
 35. Do not require guest accounts.
@@ -2392,7 +2513,6 @@ If a decision conflicts with this principle, stop:
 Intentionally deferred; may become roadmap items:
 
 - host-uploaded public-site imagery (hero/maternity/venue photos) with crop/position/edit controls;
-- AI-generated hero illustration/motif image per concept;
 - broader event types;
 - custom domains;
 - invitations generated from Event Identity and invitation sending;
@@ -2417,7 +2537,7 @@ Intentionally deferred; may become roadmap items:
 - Missing-phone imported parties cannot RSVP until fixed/overridden.
 - Name lookup reveals minimal party-name existence to someone who can guess.
 - SMS can fail; STOP is not bypassed through email.
-- Published event visuals have no host photos/generated decorative imagery.
+- Published event visuals have no host photos or stock photography. Original AI-generated thematic artwork is approved for Phase 4 (§7.6a) and is not in the current build.
 - Native product thumbnail may be unavailable and must fall back gracefully.
 - Inspiration links may fail; uploaded screenshots are the reliable visual input.
 - Raw inspiration requires temporary private storage.

@@ -224,6 +224,68 @@ relaxation. Reasons in full in the findings document.
 the §9 confirmation thresholds that include a human design-quality rate are carried by Human
 Test #2, which remains the launch gate.
 
+## Revision 6.5 — product doctrine, and the two Phase 4 decisions it forced
+
+Documentation and evaluation-fixture changes only. No implementation, no model call, no prompt, no
+schema, no renderer or compiler change.
+
+**`docs/product-doctrine.md` is new and canonical for product and creative intent**, read first in
+`CLAUDE.md` and `docs/README.md` and ranking last in conflict resolution: it explains what we are
+trying to build, and decides nothing. `spec.md` remains the authority for requirements. It exists
+because the architecture was well documented and the product was not — an agent could satisfy every
+contract here and still ship the wrong product, which Human Test #1 demonstrated when every screen
+reviewers called broken passed every gate we had.
+
+**Two product decisions are now approved and canonical.**
+
+- **`spec.md §7.6a` — optional AI-generated thematic artwork in Phase 4.** This reverses Revision
+  6's non-goal, deliberately and on evidence: reviewer reference invitations derived their identity
+  from a coordinated theme-specific visual language, so thematic artwork is judged part of core
+  design quality rather than decorative scope. Imagery is optional, art-directed to the
+  composition, and placed by the compiler through the composition language — never mandatory, never
+  by pixel or model-authored CSS. Host photography, galleries and stock imagery remain excluded;
+  `§7.6`'s reference-translation rule governs; the image model and artwork schema are unselected.
+  `§5.1`, `§5.2`, `§11.11`, `§20.1`, `§32 #32`, `§33`, `§34`, `design-system.md §15.11` and
+  `event-renderer-system.md §8` are reconciled.
+- **`spec.md §7.6b` — adaptive creative clarification.** Event Identity may ask a creative
+  clarifying question before concepts, bounded: preferred zero, ceiling three, generated from real
+  ambiguity, always offering `You decide`, never a low-level design choice, **never a logistics
+  field, and never a gate on concepts appearing.** The wizard prohibition stands; `§32 #9` now names
+  this as the one permitted pre-concept question. The question schema, the model contract and the
+  surface are undesigned.
+
+**`spec.md §7.5` now states Event Identity's responsibility**: the only stage that receives the raw
+prompt, and the holder of the boundary between facts — quoted from the host or absent — and
+aesthetic inference, which is expected and generous.
+
+**The creative-understanding gap is closed on paper.** `model-contracts.md §4.5` defines the
+evaluation contract over a fourteen-case corpus (`docs/model-evals/creative-understanding.json`):
+vague and taste-heavy prompts, negative constraints, prompts already clear enough that zero
+questions is correct, fact-bearing prompts, one open delegation, one genuinely ambiguous case. Ten
+rubric dimensions, each labelled deterministic, mixed or qualitative — fact discipline is fully
+mechanical, cliché avoidance and clarification judgment and reference translation are mechanical
+only in their negative half, and understanding itself needs a human. No runner exists yet.
+
+**Phase 4 gains a creative exit criterion.** It is no longer complete on valid JSON, validating
+schemas, compiling trees and acceptable latency; it requires evidence against §4.5 that the system
+understands representative prompts, invents no facts, clarifies selectively, produces materially
+distinct directions faithful to the identity, and reaches *personalization rather than rescue*.
+
+**The ≥ 70% human design-quality bar is removed from both regression-threshold lists**
+(`spec.md §11.9`, `event-renderer-system.md §9`) and its status made unambiguous. It is a launch
+gate, not a regression threshold — a code change cannot re-run it. Human Test #1 was stopped early,
+produced calibration evidence only and established no pass/fail result; no score is claimed from
+it. Human Test #2 is the launch-quality human gate and calibrates its own threshold rather than
+inheriting a number that was never approved as settled. This resolves the standing contradiction
+between `spec.md §11.9` and condition 2 above.
+
+**Clerical:** the `spec.md` header now reads Revision 6.1 rather than Revision 5; `§11.11` states
+the imagery boundary directly instead of citing Revision 5 sections absent from the file; and
+`event-renderer-system.md §8`/`§9` cite it rather than an absent Revision 1. Still open, and not
+invented: `model-contracts.md §4` and `§5.2` defer to a Revision 1 not in this repository for the
+EventIdentity field list and the DesignIntent input contract — the requirements survive in the
+committed schemas and `spec.md §7.5`, so nothing is lost, but the citations are dead pointers.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

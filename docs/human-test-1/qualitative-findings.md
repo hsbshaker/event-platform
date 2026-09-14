@@ -677,7 +677,14 @@ this ledger. The evidence that produced it stays above, unedited.
 
 ## MVP non-goal under revision — AI-generated imagery
 
-**Not removed here.** Recorded as a product decision requiring intentional revision.
+**Status: the revision was made.** Optional AI-generated thematic artwork is approved for Phase 4
+and is canonical as `spec.md §7.6a`; the intent is `docs/product-doctrine.md §9`–`§10`. Imagery is
+optional, art-directed and compiler-placed, never mandatory and never model-positioned, and host
+photography, galleries and stock imagery remain excluded. The image model and the artwork schema
+are still unselected.
+
+The analysis below is left exactly as it was written, as the record of the evidence and reasoning
+that produced that decision. It is no longer a proposal.
 
 **Original assumption.** AI-generated decorative site imagery is out of MVP scope. Stated in
 `spec.md` MVP non-goals ("AI-generated decorative site imagery"), `spec.md §11.11` imagery

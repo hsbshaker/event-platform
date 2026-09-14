@@ -1,0 +1,173 @@
+{
+  "$comment": "Phase 4 creative-understanding eval corpus. Data only — no runner exists yet. Contract and rubric: docs/model-contracts.md §4.5. Doctrine: docs/product-doctrine.md §3, §5, §6.",
+  "version": "creative_understanding_v1",
+  "clarificationCeiling": 3,
+  "classes": {
+    "taste-heavy": "Vague, colloquial, taste-led. The assignment is a vibe, and keyword matching fails it.",
+    "negative-constraint": "Names something to avoid. Producing the avoided thing is an outright failure.",
+    "clear": "Already sufficient. The correct number of clarifying questions is zero.",
+    "genuinely-ambiguous": "Several plausible creative identities. A clarifying question is expected to earn its place.",
+    "open": "The host has explicitly delegated taste. Asking them to supply it is a failure.",
+    "fact-bearing": "Carries grounded facts that must survive verbatim, and invites facts that must not be invented."
+  },
+  "cases": [
+    {
+      "id": "CU-01",
+      "prompt": "Ralph Lauren but baby",
+      "class": ["taste-heavy", "genuinely-ambiguous"],
+      "facts": {},
+      "expectClarification": "likely",
+      "mustAvoid": [
+        "Polo Bear",
+        "any Ralph Lauren logo, wordmark or crest",
+        "copied campaign imagery"
+      ],
+      "notes": "The canonical reference-translation case (spec.md §7.6). Heritage prep, equestrian detail, tartan, navy and cream, leather and brass. Ambiguity worth one question: heritage/equestrian vs heirloom-nursery vs country-club prep."
+    },
+    {
+      "id": "CU-02",
+      "prompt": "Ralph Lauren baby shower for a boy, classy not cheesy",
+      "class": ["taste-heavy", "negative-constraint"],
+      "facts": { "eventType": "baby shower" },
+      "expectClarification": "no",
+      "mustAvoid": [
+        "Polo Bear",
+        "any Ralph Lauren logo or crest",
+        "cartoon or novelty treatments",
+        "primary-blue nursery clichés"
+      ],
+      "notes": "Same reference as CU-01 but the host has already resolved the register. Asking anything here is over-asking."
+    },
+    {
+      "id": "CU-03",
+      "prompt": "lemons in Italy but classy",
+      "class": ["taste-heavy", "negative-constraint"],
+      "facts": {},
+      "expectClarification": "no",
+      "mustAvoid": [
+        "cartoon citrus",
+        "novelty or kitsch treatments",
+        "inferring Positano, the Amalfi coast or any named place as a fact",
+        "inferring the event is outdoors"
+      ],
+      "notes": "The fact-discipline case. Mediterranean warmth, citrus leaves, linen, ceramic detail, refined still life, ivory / muted lemon / olive are legitimate inferences. A location is not."
+    },
+    {
+      "id": "CU-04",
+      "prompt": "Winnie the Pooh but not corny",
+      "class": ["taste-heavy", "negative-constraint", "genuinely-ambiguous"],
+      "facts": {},
+      "expectClarification": "acceptable",
+      "mustAvoid": [
+        "the Disney Winnie-the-Pooh character design",
+        "any Disney trademark or character likeness",
+        "primary red and yellow cartoon palette"
+      ],
+      "notes": "Reference translation against a protected character. Classic English storybook illustration, honey and moss, hand-lettered restraint, Hundred Acre Wood as a mood rather than a cast."
+    },
+    {
+      "id": "CU-05",
+      "prompt": "girly but no pink",
+      "class": ["negative-constraint"],
+      "facts": {},
+      "expectClarification": "no",
+      "mustAvoid": ["pink in any role", "blush, rose or dusty-pink as a workaround"],
+      "notes": "The instruction-following case. A palette containing pink is an outright failure, and so is reading 'no pink' as 'less pink'."
+    },
+    {
+      "id": "CU-06",
+      "prompt": "old money garden party",
+      "class": ["taste-heavy"],
+      "facts": { "eventType": "garden party" },
+      "expectClarification": "no",
+      "mustAvoid": ["overt luxury signalling", "gold-on-black 'elegance' clichés", "inferring a venue"],
+      "notes": "Restraint is the whole signal. Inherited rather than purchased: worn linen, box hedge, silver, faded chintz, engraved type."
+    },
+    {
+      "id": "CU-07",
+      "prompt": "modern Indian baby shower but subtle",
+      "class": ["taste-heavy", "negative-constraint"],
+      "facts": { "eventType": "baby shower" },
+      "expectClarification": "acceptable",
+      "mustAvoid": [
+        "saturated wedding-palette defaults",
+        "generic mandala or paisley wallpaper",
+        "religious iconography the host did not ask for"
+      ],
+      "notes": "Cultural specificity without cliché, and 'subtle' governs. A godh bharai register handled with restraint; marigold and turmeric as accents rather than as a theme."
+    },
+    {
+      "id": "CU-08",
+      "prompt": "luxury safari",
+      "class": ["taste-heavy"],
+      "facts": {},
+      "expectClarification": "no",
+      "mustAvoid": ["cartoon animals", "zoo or jungle-nursery treatments", "animal-print maximalism"],
+      "notes": "Tented-camp restraint: canvas, brass, leather, acacia silhouettes, sun-bleached neutrals. The distance between this and a jungle nursery is the whole test."
+    },
+    {
+      "id": "CU-09",
+      "prompt": "cute but not childish",
+      "class": ["negative-constraint", "genuinely-ambiguous"],
+      "facts": {},
+      "expectClarification": "likely",
+      "mustAvoid": ["balloons, clouds, rattles and similar baby-graphic defaults", "script fonts as the sole 'cute' signal"],
+      "notes": "The spec's own trap (model-prompts/event-identity.system.md §7). Charm carried by material and craft rather than by juvenile motifs."
+    },
+    {
+      "id": "CU-10",
+      "prompt": "something unique, idk surprise me",
+      "class": ["open"],
+      "facts": {},
+      "expectClarification": "no",
+      "mustAvoid": ["asking the host to supply the taste they just delegated", "defaulting to a generic house style"],
+      "notes": "Delegation is an answer. A confident, specific identity is required; a question here fails the case."
+    },
+    {
+      "id": "CU-11",
+      "prompt": "Baby shower for our son on Saturday, December 19 2026 at 1pm, The Lodge at Hanson Park in Aldie, Virginia. Navy, cream and forest green, preppy and warm, a bit equestrian, not cheesy.",
+      "class": ["clear", "fact-bearing"],
+      "facts": {
+        "eventType": "baby shower",
+        "date": "Saturday, December 19, 2026",
+        "time": "1:00 PM",
+        "venue": "The Lodge at Hanson Park",
+        "location": "Aldie, Virginia"
+      },
+      "expectClarification": "no",
+      "mustAvoid": ["asking for any supplied field", "altering or paraphrasing a supplied fact"],
+      "notes": "Fully specified in both taste and logistics. Every fact must survive verbatim and the question count must be zero."
+    },
+    {
+      "id": "CU-12",
+      "prompt": "bridal shower, tea party vibes, at my mum's house in June",
+      "class": ["fact-bearing", "clear"],
+      "facts": { "eventType": "bridal shower", "venueHint": "my mum's house", "monthHint": "June" },
+      "expectClarification": "no",
+      "mustAvoid": [
+        "inventing a date from 'June'",
+        "inventing an address from 'my mum's house'",
+        "inferring a dress code"
+      ],
+      "notes": "Partial facts. A month is not a date and a description is not an address; both are carried as given and completed later, never fabricated and never asked for before concepts."
+    },
+    {
+      "id": "CU-13",
+      "prompt": "60th birthday for my dad, he likes jazz and old maps",
+      "class": ["taste-heavy", "fact-bearing"],
+      "facts": { "eventType": "60th birthday" },
+      "expectClarification": "no",
+      "mustAvoid": ["generic milestone-birthday confetti", "literal saxophone or globe clip-art"],
+      "notes": "Taste arrives through the guest of honour rather than a style name. Cartography line work, foxed paper, brass, a late-night blue — interests translated, not illustrated."
+    },
+    {
+      "id": "CU-14",
+      "prompt": "engagement party, beachy",
+      "class": ["genuinely-ambiguous"],
+      "facts": { "eventType": "engagement party" },
+      "expectClarification": "expected",
+      "mustAvoid": ["inferring a beach as the venue", "asking where or when the event is"],
+      "notes": "The clearest case for one question: 'beachy' spans barefoot-coastal, Hamptons-nautical and Mediterranean-resort, and the three produce genuinely different identities. The question must be about register, never about the venue."
+    }
+  ]
+}
