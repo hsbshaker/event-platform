@@ -23,6 +23,7 @@
  */
 
 import { CTA_COPY, SECTION_HEADING_COPY } from "@/lib/renderer/compile/semantic-copy";
+import { titleLines } from "@/lib/renderer/compile/title-lines";
 import { effectiveEmphasis } from "@/lib/renderer/compile/verification";
 
 import type { ReactNode } from "react";
@@ -92,22 +93,15 @@ export const LocationPrimitive = plainText("Location");
 export const TimePrimitive = plainText("Time");
 
 /**
- * `layout` stagger/cascade breaks the title into up to three lines, at the same two word offsets
- * the reference used. The offsets are structural, not a measurement: fitting is the geometry
- * verifier's job, and it demotes emphasis rather than re-breaking lines.
+ * `layout` stagger/cascade breaks the title into coherent lines (`@/lib/renderer/compile/title-
+ * lines`) and offsets them. The break is structural, not a measurement: fitting is still the
+ * geometry verifier's job, and it demotes emphasis rather than re-breaking lines.
  */
-function titleLines(title: string): string[] {
-  const words = title.split(" ");
-  return [
-    words.slice(0, 2).join(" "),
-    words.slice(2, 4).join(" "),
-    words.slice(4).join(" "),
-  ].filter(Boolean);
-}
-
 export const EventTitlePrimitive = primitive<TextNode>((node, ctx) => {
   const { title } = ctx.content;
-  if (!title) return null;
+  // `title.trim()`, not `title`: a whitespace-only title is truthy but breaks into no lines, and an
+  // empty `h1` would report geometry for text that is not there.
+  if (!title || !title.trim()) return null;
   const layout = node.layout ?? "block";
   let body: ReactNode = title;
   if (layout !== "block") {

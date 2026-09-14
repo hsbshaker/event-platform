@@ -1259,6 +1259,40 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * Headings step down from `anywhere` to `break-word`.
+ *
+ * Both break a word that cannot fit on a line of its own, so the zero-overflow floor is unchanged
+ * — `min-width: 0` and `minmax(0, 1fr)` already stop any container being sized by its content, so
+ * the two properties differ only in intrinsic sizing, not in whether text escapes. What
+ * `break-word` removes is a mid-word break offered while whole words would still have fitted,
+ * which at display sizes reads as a rendering fault rather than as typography
+ * (`docs/human-test-1/qualitative-findings.md`, F1).
+ *
+ * `balance` then evens out whatever wrapping remains, so a title that outgrows its measure sheds a
+ * short tail instead of leaving one word alone on the last line (F1 mechanism M5). It applies to
+ * the browser's short-block limit, which is every heading here.
+ */
+h1.ev-text,
+h2.ev-text {
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+/*
+ * Body and metadata keep `anywhere` but ask for better rag: `pretty` costs the last few lines of
+ * layout time and buys orphan avoidance, which is what turns "The Lodge at Hanson" / "Park" into
+ * one balanced pair of lines (F1, M5).
+ */
+/*
+ * `:where()` so this rule carries the specificity of `.ev-text` alone. A demoted `h1` still sets at
+ * `secondary`, and a heading wants `balance` whatever size it ends up at; with a plain two-class
+ * selector this rule would outrank `h1.ev-text` and silently take it back.
+ */
+.ev-text:where(.ev-em-secondary, .ev-em-caption) {
+  text-wrap: pretty;
+}
+
 .ev-text.ev-em-display {
   font-family: var(--ev-font-display), ui-serif, Georgia, serif;
   font-size: var(--ev-display-size);
@@ -1321,19 +1355,49 @@ h1.ev-text.ev-em-primary.ev-lay-cascade {
 }
 
 h1.ev-text .ev-line {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
-h1.ev-text.ev-lay-stagger .ev-line:nth-child(even) {
-  text-align: right;
+/*
+ * The two treatments, as bounded offsets in the inline direction.
+ *
+ * `stagger` indents the odd lines and `cascade` ramps from the second, so the two are distinct at
+ * two lines as well as three — and two lines is what most titles break into. Indenting the even
+ * lines instead would make the treatments render identically whenever there are only two, which is
+ * most of the time, and quietly cost the model one of its three choices.
+ *
+ * `stagger` used to flip every even line to `text-align: right`. Against the fixed 2/2/rest word
+ * split it threw the shortest, least meaningful line — usually a connective — to the far margin,
+ * and against a centered or end-aligned composition it fought the section's own alignment. Both
+ * were read as bugs rather than as choices (F1, mechanisms M1-M2). The break points are chosen
+ * syntactically now (`@/lib/renderer/compile/title-lines`), and the displacement is a bounded
+ * indent that never takes a line outside the measure it shares with its siblings.
+ *
+ * `padding-inline-start` rather than a transform, so the offsets follow the writing direction,
+ * stay inside the box the geometry verifier measures, and cannot widen the page.
+ *
+ * **In `em`, and deliberately not in `%`.** A percentage is resolved against the containing block,
+ * and during *intrinsic* sizing CSS resolves it to zero. A title leaf shrink-wraps to its own
+ * content in a `start`-aligned Stack, so a percentage indent is computed out of a width that was
+ * measured as though the indent were not there — which guarantees the longest line loses exactly
+ * the indent and breaks inside a word ("Quinceane" / "ra"). That is the old 12%/24% `cascade` ramp's
+ * real defect, not just its size, and it is the mid-word chop F1 records. A length contributes to
+ * the intrinsic width, so the box grows to hold the indent and nothing breaks.
+ *
+ * Sized against the title's own type rather than its measure, which is also the more typographic
+ * quantity: a little over half a character at display size, ramping to a little over one.
+ */
+h1.ev-text.ev-lay-stagger .ev-line:nth-child(odd) {
+  padding-inline-start: 0.6em;
 }
 
 h1.ev-text.ev-lay-cascade .ev-line:nth-child(2) {
-  padding-left: 12%;
+  padding-inline-start: 0.6em;
 }
 
 h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
-  padding-left: 24%;
+  padding-inline-start: 1.2em;
 }
 
 .ev-text.ev-t-Date.ev-form-numeral.ev-em-display {
@@ -1652,11 +1716,16 @@ h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
     font-size: calc(var(--ev-display-size) * 3.5);
   }
 
+  /* Two thirds of the desktop offset: 390px of measure has far less to give (F1, M3). */
+  h1.ev-text.ev-lay-stagger .ev-line:nth-child(odd) {
+    padding-inline-start: 0.4em;
+  }
+
   h1.ev-text.ev-lay-cascade .ev-line:nth-child(2) {
-    padding-left: 6%;
+    padding-inline-start: 0.4em;
   }
 
   h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
-    padding-left: 12%;
+    padding-inline-start: 0.8em;
   }
 }

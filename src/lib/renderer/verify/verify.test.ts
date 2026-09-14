@@ -163,11 +163,19 @@ function fakePage(
         return {
           id: t.id,
           emphasis: t.emphasis,
+          kind: null,
+          layout: null,
+          // Enough words for `lines` never to imply a break inside one, and line boxes that agree
+          // on their edge: this stand-in simulates the *old* defects, not the typographic ones.
+          words: Math.max(lines, 1) + 1,
+          segments: Math.max(lines, 1) + 1,
+          segmentsSplit: 0,
           lines,
           fontPx: 16,
           lineHeightPx: 16,
           box,
           containerBox: { left: 0, right: 400, width: 400, height: 10 },
+          lineGeometry: { count: lines, maxWidth: 100, minWidth: 80, edgeSpread: 0 },
           overflow,
         };
       });
@@ -268,7 +276,19 @@ describe("canonical id order", () => {
 
 function measurementWith(
   mode: Breakpoint,
-  texts: { id: string; emphasis: string; lines: number; overflow?: boolean }[],
+  texts: {
+    id: string;
+    emphasis: string;
+    lines: number;
+    overflow?: boolean;
+    kind?: string;
+    layout?: string;
+    words?: number;
+    segments?: number;
+    segmentsSplit?: number;
+    lineBoxes?: number;
+    edgeSpread?: number;
+  }[],
 ): PageMeasurement {
   return {
     mode,
@@ -279,16 +299,31 @@ function measurementWith(
     pageOverflow: false,
     heroHeight: 500,
     fonts: { required: [], loaded: [], missing: [], faces: [], checked: [] },
-    texts: texts.map((t) => ({
-      id: t.id,
-      emphasis: t.emphasis,
-      lines: t.lines,
-      fontPx: 16,
-      lineHeightPx: 16,
-      box: { left: 0, right: t.overflow ? 500 : 100, width: 100, height: 10 },
-      containerBox: { left: 0, right: 400, width: 400, height: 10 },
-      overflow: !!t.overflow,
-    })),
+    texts: texts.map((t) => {
+      const lineBoxes = t.lineBoxes ?? t.lines;
+      return {
+        id: t.id,
+        emphasis: t.emphasis,
+        kind: t.kind ?? null,
+        layout: t.layout ?? null,
+        // Defaults that assert nothing: enough words to hold the lines whole, and one shared edge.
+        words: t.words ?? lineBoxes + 1,
+        segments: t.segments ?? t.words ?? lineBoxes + 1,
+        segmentsSplit: t.segmentsSplit ?? 0,
+        lines: t.lines,
+        fontPx: 16,
+        lineHeightPx: 16,
+        box: { left: 0, right: t.overflow ? 500 : 100, width: 100, height: 10 },
+        containerBox: { left: 0, right: 400, width: 400, height: 10 },
+        lineGeometry: {
+          count: lineBoxes,
+          maxWidth: 100,
+          minWidth: 80,
+          edgeSpread: t.edgeSpread ?? 0,
+        },
+        overflow: !!t.overflow,
+      };
+    }),
     overflowing: [],
     overflowingTotal: 0,
     excludedTexts: 0,
@@ -535,6 +570,9 @@ describe("the clean predicate", () => {
     overflowingElements: 0,
     textOverflow: 0,
     textOverLimit: 0,
+    textWordBroken: 0,
+    textOverMetadataLimit: 0,
+    textEdgeIncoherent: 0,
     measuredTexts: 12,
     excludedTexts: 1,
     heroHeight: 600,
@@ -549,6 +587,13 @@ describe("the clean predicate", () => {
     expect(isClean(both({ pageOverflow: true }))).toBe(false);
     expect(isClean(both({ overflowingElements: 1 }))).toBe(false);
     expect(isClean(both({ textOverflow: 1 }))).toBe(false);
+  });
+
+  it("also fails on the three composition defects, each on its own", () => {
+    // F1: all three render inside their boxes, so every overflow clause above passes them.
+    expect(isClean(both({ textWordBroken: 1 }))).toBe(false);
+    expect(isClean(both({ textOverMetadataLimit: 1 }))).toBe(false);
+    expect(isClean(both({ textEdgeIncoherent: 1 }))).toBe(false);
   });
 
   it("fails when only one breakpoint is dirty", () => {
@@ -567,10 +612,58 @@ describe("the clean predicate", () => {
       { id: "a", emphasis: "display", lines: 5 },
       { id: "b", emphasis: "secondary", lines: 9, overflow: true },
     ]);
-    const s = summarise(m);
+    const s = summarise(m, TOLERANCE_PX);
     expect(s.textOverLimit).toBe(1);
     expect(s.textOverflow).toBe(1);
     expect(s.measuredTexts).toBe(2);
+  });
+
+  it("counts each composition defect, and counts nothing for well-set text", () => {
+    const clean = summarise(
+      measurementWith("desktop", [
+        { id: "a", emphasis: "secondary", kind: "Venue", lines: 2, words: 5, lineBoxes: 2 },
+      ]),
+      TOLERANCE_PX,
+    );
+    expect([clean.textWordBroken, clean.textOverMetadataLimit, clean.textEdgeIncoherent]).toEqual([
+      0, 0, 0,
+    ]);
+
+    const defective = summarise(
+      measurementWith("desktop", [
+        // Four words on six lines: two breaks landed inside a word.
+        { id: "a", emphasis: "secondary", kind: "Date", lines: 6, words: 4, lineBoxes: 6 },
+        // Within its words, but a three-line venue at desktop is past the budget of two.
+        { id: "b", emphasis: "secondary", kind: "Venue", lines: 3, words: 5, lineBoxes: 3 },
+        // Lines that do not share an edge, with no treatment asking them to.
+        { id: "c", emphasis: "secondary", lines: 2, words: 6, lineBoxes: 2, edgeSpread: 40 },
+      ]),
+      TOLERANCE_PX,
+    );
+    expect(defective.textWordBroken).toBe(1);
+    expect(defective.textOverMetadataLimit).toBe(2);
+    expect(defective.textEdgeIncoherent).toBe(1);
+  });
+
+  it("exempts a staggered title's displaced lines, and prose from the metadata budget", () => {
+    const s = summarise(
+      measurementWith("desktop", [
+        {
+          id: "a",
+          emphasis: "display",
+          kind: "EventTitle",
+          layout: "stagger",
+          lines: 3,
+          words: 6,
+          lineBoxes: 3,
+          edgeSpread: 60,
+        },
+        { id: "b", emphasis: "secondary", kind: "Description", lines: 6, words: 40, lineBoxes: 6 },
+      ]),
+      TOLERANCE_PX,
+    );
+    expect(s.textEdgeIncoherent).toBe(0);
+    expect(s.textOverMetadataLimit).toBe(0);
   });
 });
 
