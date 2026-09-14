@@ -90,7 +90,7 @@ prompt has always promised.
 
 | | |
 | --- | --- |
-| `identity` | the creative brief. Shape unchanged from `v2`. Inference expected and generous |
+| `identity` | the creative brief. Inference expected and generous — except in `hostConstraints` |
 | `suppliedFacts` | nine `*Text` fields — hosts, honoree, type, date, time, venue, address, locality, RSVP deadline — each a **verbatim quotation from the host or `null`** |
 | `clarification` | `needed`, plus at most three taste questions (`spec.md §7.6b`) |
 
@@ -100,6 +100,23 @@ requirements are checkable rather than inferred from wording: the `You decide` o
 requires is a structural `isDefer` boolean, not a phrase to pattern-match; and every fact field is
 named `*Text` and described as a quotation, because **normalization is the application's job, never
 the model's** — `1pm` stays `1pm`.
+
+### The authority boundary (`v4`)
+
+`designConstraints` is gone. In its place:
+
+| | |
+| --- | --- |
+| `hostConstraints` | **authoritative.** Grounded in an explicit phrase from the host's own words. Respected unless the host changes them |
+| `creativeGuidance` | **advisory.** The model's own recommendations; later creative stages may reconsider, override or evolve them |
+
+Platform rules belong in neither. The gating check is prompt-grounding — every
+`hostConstraints` entry must be quotable from the raw prompt — chosen because it is decidable
+without a semantic classifier, and a probe that guesses at entailment is what produced the
+baseline's only mechanical failure.
+
+`suppliedFacts` gains `honoreeDescriptionText`, and both honoree fields populate when a name
+and a relationship co-occur. `spec.md §7.5` carries the requirement and the evidence.
 
 Source of truth is `src/lib/ai/event-identity/contract.ts`. The three files under
 `model-schemas/` — the envelope, the brief nested inside it, and the reduced strict-mode projection
@@ -125,7 +142,18 @@ ambiguous case where a question should earn its place. Each case declares its cl
 host actually supplied, whether clarification is expected, and what would count as an outright
 failure.
 
-**Runner:** `npm run eval:creative-understanding` (`tests/eval/creative-understanding.eval.ts`),
+**Three evidence classes, and they are not interchangeable.**
+
+| Set | Class | What it supports |
+| --- | --- | --- |
+| `creative-understanding.json`, 14 cases | **regression suite** — every output inspected and discussed | catching regressions; never fresh evidence again |
+| `creative-understanding-holdout.json`, 12 cases | **pre-registered validation set** — frozen and independently reviewed before the remediation, but authored by the same person who then wrote the prompt | validation against pre-registered invariants; not the strongest evidence of generalization |
+| sealed challenge corpus | **sealed challenge** — authored independently, unseen while the prompt was written | generalization |
+
+The middle row is the one most easily overstated, and `results/creative-understanding-v1/process-notes.md`
+records why, along with the one semantic axis inside it that is not novel.
+
+**Runner:** `npm run eval:regression` / `npm run eval:holdout` (`tests/eval/creative-understanding.eval.ts`),
 added in Phase 4A. It runs the cases **sequentially** against the live model — fourteen concurrent
 calls would report a latency no host will ever experience — records failures rather than retrying
 them away, and writes three artifacts to `docs/model-evals/results/creative-understanding-v1/`:

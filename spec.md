@@ -603,6 +603,30 @@ It must hold one boundary exactly:
   place. What is never done is *expanding* a partial into something more specific. Rewriting `1pm`
   as `1:00 PM` is a paraphrase of the host and is a failure of this boundary, not a tidy-up.
   Contract: `src/lib/ai/event-identity/contract.ts`; `docs/model-contracts.md §4.1`.
+- **Only the host can create a host constraint.** The creative brief carries two separate
+  lists and they do not share authority. `hostConstraints` is **authoritative**: an entry
+  belongs there only when it is grounded in an explicit phrase from the host's own words, kept
+  verbatim or near-verbatim, and later stages must respect it unless the host changes it.
+  `creativeGuidance` is **advisory**: the model's own recommendations, which later creative
+  stages may reconsider, override or evolve when they find something better. If interpretation
+  was needed to turn the host's words into an execution recommendation, it is guidance.
+
+  There is deliberately no "directly entailed" middle ground. Entailment is not mechanically
+  decidable, and a standard that requires interpretation to apply is the standard model taste
+  re-enters through. Inference is welcome — generous, even — everywhere else in the identity;
+  it is barred from exactly one field.
+
+  Platform rules (§7.6: no logos, no proprietary characters, no campaign artwork) belong in
+  neither list. They are always true, they are not this host's instruction, and the platform
+  enforces them regardless.
+
+  **This was decided on evidence.** The first live run produced roughly 39 model-taste entries
+  out of 55 constraints, including a brief that told downstream stages the client had
+  prohibited baby blue when the host had said only "for a boy". Every later stage reads this
+  object and cannot tell a fabricated prohibition from a real one, which makes it a correctness
+  failure of the same kind as inventing a fact
+  (`docs/model-evals/results/creative-understanding-v1/astra-qualitative-review.md`).
+
 - **Creative interpretation is expected and generous.** Tone, sophistication, visual vocabulary,
   palette territory, materials and textures, symbols, imagery opportunities and things to avoid are
   all fair inference. "Lemons in Italy but classy" may imply linen, ceramic detail and an
@@ -674,7 +698,15 @@ questions, generated from an ambiguity actually present in this prompt, about *t
 Canonical rules:
 
 1. **The preferred number of questions is zero.** Typically 0; sometimes 1–2; a hard working
-   ceiling of 3 before concept generation.
+   ceiling of 3 before concept generation. A question is warranted only when **all five** hold:
+   two or more materially different creative worlds are plausible; the host has not delegated
+   the choice; choosing wrong would substantially alter the experience rather than an execution
+   detail; the distinction is creative rather than logistical; and asking is more valuable than
+   making a reasonable creative bet. Otherwise decide.
+
+   **Explicit delegation is an answer.** "Surprise me", "you decide" or equivalent biases
+   strongly toward committing, and what is owed then is a concrete organizing premise a
+   designer could visualize — not adjectives about originality or surprise.
 2. **Dynamically generated** from the actual ambiguity. There is no fixed question list.
 3. **Every question must pass:** *would different answers produce meaningfully different creative
    identities?* If no, it is not asked.
