@@ -306,7 +306,7 @@ Every question must offer a genuine "you decide" escape: one option, and exactly
 
 Set `needed: true` when and only when `questions` is non-empty.
 
-**When the host has explicitly delegated taste** — telling you to surprise them, or that they do not know what they want — asking them to supply it is a failure. Commit to a specific, confident identity.
+**When the host has explicitly delegated taste** — telling you to surprise them, or that they do not know what they want — asking them to supply it is a failure.
 
 `whyItMatters` records, for the product's own evaluation, how the answers would diverge creatively. It is not shown to the host as written.
 

@@ -188,6 +188,22 @@ describe("negative constraints", () => {
     }
   });
 
+  it("is not fooled by a negation cue hiding inside another word", () => {
+    // "monogram" contains "no". Before word boundaries this passed a brief that proposes
+    // pink as a positive typographic accent on a prompt that excluded it.
+    for (const carrier of [
+      "a restrained monogram and pink letterpress accents",
+      "a monochrome base with pink foil detailing",
+      "another warm pink, used sparingly",
+    ]) {
+      const check = checkHostNegationRespected(
+        corpusCase({ prompt: "girly but no pink" }),
+        identity({ typographyDirection: carrier }),
+      );
+      expect(check.status, `${carrier}: ${check.detail}`).toBe("fail");
+    }
+  });
+
   it("catches an exclusion the model contradicts itself on", () => {
     const check = checkExclusionSelfConsistency(
       identity({
@@ -230,6 +246,42 @@ describe("mustAvoid probing", () => {
     );
     expect(checks.find((c) => c.name === "mustAvoidNamedThings")?.status).toBe("pass");
     expect(checks.find((c) => c.name === "mustAvoidNameEchoes")?.status).toBe("advisory");
+  });
+
+  it("gates a protected character written with spaces where the corpus used hyphens", () => {
+    // "Winnie-the-Pooh" in the corpus, "Winnie the Pooh" in any identity that proposes it.
+    // Before normalization this probe could never fire on the one case it exists for.
+    const checks = checkMustAvoid(
+      corpusCase({ mustAvoid: ["the Disney Winnie-the-Pooh character design"] }),
+      identity({ visualMotifs: ["the Disney Winnie the Pooh characters, softened"] }),
+    );
+    expect(checks.find((c) => c.name === "mustAvoidNamedThings")?.status).toBe("fail");
+  });
+
+  it("normalizes both sides, not just the probe", () => {
+    // The mirror of the case above: the corpus names it with spaces, the identity hyphenates.
+    const checks = checkMustAvoid(
+      corpusCase({ mustAvoid: ["Polo Bear"] }),
+      identity({ visualMotifs: ["a Polo-Bear motif, softened"] }),
+    );
+    expect(checks.find((c) => c.name === "mustAvoidNamedThings")?.status).toBe("fail");
+  });
+
+  it("lets a brief name a licensed reference without reproducing its artwork", () => {
+    // spec.md §7.6 licenses the house as shorthand; the entry forbids the logo. Naming the
+    // reference in a thesis is the most natural correct answer to "Ralph Lauren but baby".
+    const named = checkMustAvoid(
+      corpusCase({ mustAvoid: ["any Ralph Lauren logo, wordmark or crest"] }),
+      identity({ creativeDirection: "Ralph Lauren heritage prep, translated for a nursery." }),
+    );
+    expect(named.find((c) => c.name === "mustAvoidNamedThings")?.status).toBe("pass");
+
+    // Reaching for the artifact itself still fails.
+    const reproduced = checkMustAvoid(
+      corpusCase({ mustAvoid: ["any Ralph Lauren logo, wordmark or crest"] }),
+      identity({ visualMotifs: ["the Ralph Lauren crest as a repeating wordmark"] }),
+    );
+    expect(reproduced.find((c) => c.name === "mustAvoidNamedThings")?.status).toBe("fail");
   });
 
   it("leaves an inferred-fact prohibition to the fact checks", () => {

@@ -27,6 +27,17 @@ const SRC = new URL("../../", import.meta.url).pathname;
 /** The one module allowed to put host prose into a model request. */
 const INTERPRETER = path.join("lib", "ai", "openai", "event-identity.ts");
 
+/** Every module that reaches a model, by any shape the SDK offers. */
+function modelCallers(): string[] {
+  return sourceFiles(SRC)
+    .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
+    .filter((file) =>
+      // `stream` and `parse` reach the same model with the same payload as `create`.
+      /\.(responses|chat\.completions)\.(create|stream|parse)\(/.test(readFileSync(file, "utf8")),
+    )
+    .map((file) => path.relative(SRC, file));
+}
+
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const full = path.join(dir, entry);
@@ -36,40 +47,36 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe("the raw-prompt boundary", () => {
-  it("is crossed by exactly one module", () => {
-    // The invariant is *who may read host prose*, not who may call a model. Phase 4C and 4D
-    // each add a legitimate second and third call site, so an inventory of call sites would
-    // fail by construction on correct work — and the cheapest way to green it is to append
-    // the new module, after which the test constrains nothing at all.
+  it("lets no model caller but the interpreter name a prompt", () => {
+    // The invariant is *who may read host prose*, not who may call a model: Phase 4C and 4D
+    // each add a legitimate call site, so a bare inventory would fail on correct work and the
+    // cheapest way to green it would gut the test.
     //
-    // Scoped to the model-call input type, not to any code touching a `prompt`. Phase 2's
-    // draft store reads `input.prompt` and must: storing what the host typed is not the same
-    // act as feeding it to a model, and the boundary this protects is the second one.
-    const readers = sourceFiles(SRC)
-      .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
-      .filter((file) => /GenerateEventIdentityInput/.test(readFileSync(file, "utf8")))
-      .map((file) => path.relative(SRC, file))
-      // provider.ts declares the type; declaring is not reading.
-      .filter((file) => file !== path.join("lib", "ai", "provider.ts"));
+    // This binds "reads host prose" to "calls a model", which is the actual boundary. Scanning for
+    // the type name would pass on a naming coincidence — a 4C module wanting host prose would
+    // not call its parameter `GenerateEventIdentityInput`, it would read the draft store's
+    // prompt column or take `{ hostWords: string }`. And scanning every file for `prompt`
+    // catches Phase 2's draft store, which reads `input.prompt` and must: storing what the
+    // host typed is not the same act as feeding it to a model.
+    //
+    // So: among the files that call a model, only the interpreter may name a prompt at all.
+    const offenders = modelCallers()
+      .filter((file) => file !== INTERPRETER)
+      .filter((file) => {
+        const source = readFileSync(path.join(SRC, file), "utf8")
+          // Not host prose: our own system prompt, the retry kind, the version stamp.
+          .replace(/systemPrompt|PROMPT_PATH|reprompt|promptVersion|PROMPT_VERSION/g, "");
+        return /\bprompt\b/i.test(source);
+      });
 
-    expect(readers).toEqual([INTERPRETER]);
+    expect(offenders).toEqual([]);
   });
 
   it("has exactly one model call site today, and says what adding another costs", () => {
     // Kept as a separate, extensible inventory rather than folded into the invariant above.
     // Adding a module here is allowed — 4C and 4D will — but it is the moment to re-prove
     // that the new call site reads the persisted identity and not the words behind it.
-    const allowed = [INTERPRETER];
-    const callers = sourceFiles(SRC)
-      .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
-      .filter((file) =>
-        // Every shape the SDK offers, not just the two this call happens to use: `stream`
-        // and `parse` reach the same model with the same payload.
-        /\.(responses|chat\.completions)\.(create|stream|parse)\(/.test(readFileSync(file, "utf8")),
-      )
-      .map((file) => path.relative(SRC, file));
-
-    expect(callers).toEqual(allowed);
+    expect(modelCallers()).toEqual([INTERPRETER]);
   });
 
   it("keeps the downstream call inputs free of prompt text", () => {

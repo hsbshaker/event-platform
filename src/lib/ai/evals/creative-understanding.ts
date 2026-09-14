@@ -242,7 +242,7 @@ export function negatedTerms(prompt: string): string[] {
  */
 /** Negation cues that turn a mention into a restatement of the constraint, not a proposal. */
 const NEGATION_CUE =
-  /(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)[\s\w-]{0,24}$/;
+  /\b(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)\b[\s\w-]{0,24}$/;
 
 /**
  * A term is only a violation when the brief *proposes* it.
@@ -340,7 +340,7 @@ export function properNounProbes(mustAvoid: string): Probes {
     const sequence = match[1].trim();
     if (sequence.length < 3) continue;
     // A multi-word name in the identity is the named thing itself.
-    if (/[ ]/.test(sequence)) gating.add(sequence);
+    if (/[-\s]/.test(sequence)) gating.add(sequence);
     else advisory.add(sequence);
     // Each word on its own too, but only as advisory. "the Disney Winnie-the-Pooh character
     // design" names two things and reaching for either is the forbidden move — yet a lone
@@ -367,10 +367,37 @@ function isFactProhibition(entry: string): boolean {
   return /\bas a fact\b|\binferring\b|\binfer\b/i.test(entry);
 }
 
-/** Word-boundary containment, so "Bear" does not match "bearing". */
+/**
+ * The artifacts that make a named reference a reproduction rather than a reference.
+ *
+ * This is the character-versus-house distinction, and it decides whether naming the thing is
+ * itself the offence. "Polo Bear" and "Winnie-the-Pooh" cannot be translated while named, so
+ * the name gates. "Ralph Lauren" and "Disney" are pointers `spec.md §7.6` explicitly licenses
+ * as shorthand — a `creativeDirection` reading "Ralph Lauren heritage prep, translated for a
+ * nursery" is the most natural correct answer to a prompt that is literally "Ralph Lauren but
+ * baby", and failing it would be failing a brief for succeeding.
+ *
+ * So when the corpus entry forbids an *artifact* of the house rather than the house, the bare
+ * name is advisory, and gating needs the artifact word to appear in the identity too.
+ */
+const REPRODUCTION_ARTIFACT =
+  /\b(logos?|wordmarks?|crests?|trademarks?|likenesse?s?|campaigns?|mascots?)\b/i;
+
+/**
+ * Word-boundary containment, so "Bear" does not match "bearing".
+ *
+ * Hyphens and spaces are normalized on both sides first: the corpus writes
+ * "Winnie-the-Pooh" and an identity proposing the character writes "Winnie the Pooh", and a
+ * probe that cannot span that difference is a probe that never fires on the one case it
+ * exists for.
+ */
+function spaced(value: string): string {
+  return fold(value).replace(/[-\s]+/g, " ");
+}
+
 function mentions(haystack: string, probe: string): boolean {
-  const escaped = fold(probe).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`).test(haystack);
+  const escaped = spaced(probe).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`).test(spaced(haystack));
 }
 
 export function checkMustAvoid(caseData: CorpusCase, identity: EventIdentity): Check[] {
@@ -392,8 +419,17 @@ export function checkMustAvoid(caseData: CorpusCase, identity: EventIdentity): C
       unprobeable.push(entry);
       continue;
     }
+    // An entry that forbids the house's artwork rather than the house itself only gates when
+    // the identity reaches for that artwork; naming the reference stays a licensed shorthand.
+    const namesArtifact = REPRODUCTION_ARTIFACT.test(entry);
+    const identityReachesForArtifact = REPRODUCTION_ARTIFACT.test(haystack);
     for (const probe of gating) {
-      if (mentions(haystack, probe)) hits.push(`"${probe}" (from: ${entry})`);
+      if (!mentions(haystack, probe)) continue;
+      if (namesArtifact && !identityReachesForArtifact) {
+        echoes.push(`"${probe}" named as a reference, no reproduction artifact (from: ${entry})`);
+        continue;
+      }
+      hits.push(`"${probe}" (from: ${entry})`);
     }
     for (const probe of advisory) {
       if (mentions(haystack, probe)) echoes.push(`"${probe}" (from: ${entry})`);
