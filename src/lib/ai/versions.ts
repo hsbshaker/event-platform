@@ -4,7 +4,26 @@
  * keeping the same version.
  */
 /**
- * `v3` is Phase 4A. The creative brief's own shape is unchanged from `v2`; what changed is
+ * `v4` is the Phase 4A remediation, after the first live run failed its independent
+ * qualitative gate. A `v3` response is not a valid `v4` response.
+ *
+ * `designConstraints` splits into `hostConstraints` and `creativeGuidance`. The run showed
+ * roughly 39 of 55 constraints were the model's own taste carrying host authority, which
+ * every downstream stage would have read as client instruction. `suppliedFacts` gains
+ * `honoreeDescriptionText`, because "for a boy" and "our son" had no home and were dropped —
+ * and in one case reappeared inverted as a fabricated prohibition.
+ *
+ * The prompt's originality section is rewritten rather than extended: it was titled
+ * "Originality and restraint", three of its four rules prohibited literal subject matter, and
+ * it instructed the model to take the harder reading. It taught the bias the gate failed on.
+ * Clarification becomes a five-condition test with delegation biasing toward a concrete bet.
+ *
+ * `v3` is preserved in `docs/model-prompts/history/`; its baseline run is immutable evidence
+ * in `docs/model-evals/results/creative-understanding-v1/`.
+ */
+
+/**
+ * `v3` was Phase 4A. The creative brief's own shape is unchanged from `v2`; what changed is
  * everything around it, and each part on its own would require the bump.
  *
  * The schema became an envelope: `identity` (the v2 brief, untouched) now has two siblings,
@@ -18,8 +37,8 @@
  * (`docs/model-evals/creative-understanding.json` CU-01, CU-02), so keeping it would have
  * scored the prompt on a question it had been shown.
  */
-export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v3";
-export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v3";
+export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v4";
+export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v4";
 export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v4";
 export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v4";
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";

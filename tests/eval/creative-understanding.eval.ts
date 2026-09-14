@@ -24,8 +24,52 @@ import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understan
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
-const CORPUS = path.join(ROOT, "docs/model-evals/creative-understanding.json");
-const OUT = path.join(ROOT, "docs/model-evals/results/creative-understanding-v1");
+/**
+ * Which corpus runs, and where its evidence lands.
+ *
+ * `EVAL_SET=holdout` is the fresh evidence; the default is the original fourteen, which are
+ * now a REGRESSION suite rather than fresh evidence — every one of their outputs has been
+ * inspected and discussed (`results/creative-understanding-v1/astra-qualitative-review.md`).
+ *
+ * The output directory is derived from the set, never shared. Hardcoding it meant pointing the
+ * runner at a second corpus would have overwritten the immutable Phase 4A baseline in place,
+ * and the first anyone would know is that the evidence no longer matched the report.
+ */
+const EVAL_SETS = {
+  regression: {
+    corpus: "docs/model-evals/creative-understanding.json",
+    out: "docs/model-evals/results/creative-understanding-v1-regression",
+    label: "REGRESSION RE-RUN of the original fourteen — not fresh evidence",
+  },
+  holdout: {
+    corpus: "docs/model-evals/creative-understanding-holdout.json",
+    out: "docs/model-evals/results/creative-understanding-holdout-v1",
+    label: "FRESH EVIDENCE from the frozen holdout",
+  },
+} as const;
+
+/**
+ * No default. A bare `vitest run --project eval` must refuse rather than quietly spend money
+ * and write evidence — which is exactly what it did once during the remediation, producing a
+ * run against a half-finished implementation that had to be deleted unexamined. Naming the set
+ * is how you say you meant it.
+ */
+const SET = process.env.EVAL_SET as keyof typeof EVAL_SETS | undefined;
+if (!SET || !(SET in EVAL_SETS)) {
+  throw new Error(
+    `EVAL_SET must be set explicitly to one of ${Object.keys(EVAL_SETS).join(", ")}. ` +
+      "Use `npm run eval:regression` or `npm run eval:holdout`; this run costs money and " +
+      "writes evidence, so it never starts by accident.",
+  );
+}
+const CORPUS = path.join(ROOT, EVAL_SETS[SET].corpus);
+const OUT = path.join(ROOT, EVAL_SETS[SET].out);
+
+/** The immutable baseline. No run may write here again, whatever EVAL_SET says. */
+const BASELINE = path.join(ROOT, "docs/model-evals/results/creative-understanding-v1");
+if (OUT === BASELINE) {
+  throw new Error("refusing to overwrite the immutable Phase 4A baseline evidence");
+}
 
 interface Corpus {
   version: string;
@@ -48,6 +92,7 @@ describe("creative-understanding corpus", () => {
       const corpus = JSON.parse(readFileSync(CORPUS, "utf8")) as Corpus;
       expect(corpus.cases.length).toBeGreaterThan(0);
 
+      process.stdout.write(`\n${EVAL_SETS[SET].label}\n\n`);
       const startedAt = new Date().toISOString();
       const runs: CaseRun[] = [];
 
@@ -90,8 +135,8 @@ describe("creative-understanding corpus", () => {
             },
             telemetry: {
               model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol",
-              promptVersion: "event_identity_v3",
-              schemaVersion: "event_identity_schema_v3",
+              promptVersion: "event_identity_v4",
+              schemaVersion: "event_identity_schema_v4",
               latencyMs: failure.usage?.latencyMs ?? Date.now() - startedCase,
               transientRetries: failure.usage?.transientRetries ?? 0,
               repairRetries: failure.usage?.repairRetries ?? 0,
@@ -105,7 +150,7 @@ describe("creative-understanding corpus", () => {
       mkdirSync(OUT, { recursive: true });
       writeFileSync(
         path.join(OUT, "run.json"),
-        `${JSON.stringify({ corpusVersion: corpus.version, startedAt, runs }, null, 2)}\n`,
+        `${JSON.stringify({ evalSet: SET, label: EVAL_SETS[SET].label, corpusVersion: corpus.version, startedAt, runs }, null, 2)}\n`,
       );
       writeFileSync(path.join(OUT, "mechanical-report.md"), buildMechanicalReport(runs, startedAt));
       writeFileSync(path.join(OUT, "blind-review.md"), buildBlindArtifact(runs));

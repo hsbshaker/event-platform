@@ -39,7 +39,8 @@ const validIdentity = {
   textureDirection: "linen-like",
   typographyDirection: "quiet oldstyle serif",
   copyTone: "warm and unfussy",
-  designConstraints: [],
+  hostConstraints: [],
+  creativeGuidance: [],
   inspirationSummary: "No visual inspiration supplied.",
 };
 
@@ -48,6 +49,7 @@ const validBody = {
   suppliedFacts: {
     hostNames: null,
     honoreeName: null,
+    honoreeDescriptionText: null,
     eventType: null,
     dateText: null,
     timeText: null,
@@ -113,7 +115,7 @@ describe("the OpenAI event identity call", () => {
     expect(result.usage.repairRetries).toBe(0);
     expect(result.usage.transientRetries).toBe(0);
     expect(result.usage.reasoningTokens).toBe(50);
-    expect(result.promptVersion).toBe("event_identity_v3");
+    expect(result.promptVersion).toBe("event_identity_v4");
     expect(create).toHaveBeenCalledTimes(1);
   });
 

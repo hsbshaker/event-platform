@@ -40,8 +40,25 @@ export const CLARIFICATION_CEILING = 3;
 const shortText = z.string().trim().min(2).max(48);
 
 /**
- * The creative brief. Shape unchanged from `event_identity_schema_v2`: this phase adds
- * siblings around it, never operational fields inside it.
+ * The creative brief.
+ *
+ * `hostConstraints` and `creativeGuidance` exist because the baseline run proved that one
+ * field for "things that must be respected" is one field too few. About 39 of the 55
+ * constraints it produced were the model's own taste wearing host authority — a brief that
+ * told downstream stages the client had prohibited baby blue when the host had said only
+ * "for a boy". Every later stage reads this object and cannot tell a fabricated prohibition
+ * from a real one, which makes it a correctness failure of the same kind as inventing a fact.
+ *
+ * The invariant: **only the host can create a host constraint.** Inference is welcome
+ * everywhere else here and is the point of the call; it is barred from exactly one field.
+ * Authority is carried by the field *name* rather than by a property, because the failure
+ * being prevented is downstream code misreading authority, and a name cannot be skipped.
+ *
+ * Platform rules — no logos, no proprietary characters, no campaign artwork (`spec.md §7.6`)
+ * — belong in neither field. They are always true, they are not the host's instruction, and
+ * the platform enforces them regardless.
+ *
+ * Operational data never appears in here at all; it lives in the `suppliedFacts` sibling.
  */
 export const eventIdentitySchema = z
   .object({
@@ -128,10 +145,23 @@ export const eventIdentitySchema = z
       .max(300)
       .describe("Typographic character/hierarchy, not a raw font-family choice."),
     copyTone: z.string().trim().min(3).max(260).describe("Voice of guest-facing event copy."),
-    designConstraints: z
+    hostConstraints: z
       .array(z.string().trim().min(3).max(180))
       .max(10)
-      .describe("Host-specific aesthetic constraints, including important negative constraints."),
+      .describe(
+        "AUTHORITATIVE. Only what the host themselves ruled in or out, grounded in an explicit " +
+          "phrase from their own words and kept verbatim or near-verbatim. If interpretation was " +
+          "needed to get here it is not a host constraint — it is creativeGuidance. Empty is the " +
+          "common and correct answer.",
+      ),
+    creativeGuidance: z
+      .array(z.string().trim().min(3).max(180))
+      .max(10)
+      .describe(
+        "ADVISORY. Your own creative recommendations. Later design stages may reconsider, " +
+          "override or evolve any of these when they find something better. This is where your " +
+          "taste belongs — never in hostConstraints.",
+      ),
     inspirationSummary: z
       .string()
       .trim()
@@ -173,7 +203,20 @@ export const suppliedEventFactsSchema = z
       .max(200)
       .nullable()
       .describe(
-        "Who the event is for, as written. Quoted from the host verbatim, or null. Never inferred.",
+        "The NAME of whoever the event is for, as written. A relationship is not a name. " +
+          "Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    honoreeDescriptionText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .nullable()
+      .describe(
+        "How the host DESCRIBED who the event is for — 'our son', 'my dad', 'for a boy'. " +
+          "Populate this even when honoreeName is also present: 'our daughter Noa' gives " +
+          "honoreeName 'Noa' and honoreeDescriptionText 'our daughter'. Quoted from the host " +
+          "verbatim, or null. Never inferred, and never a reason to impose a stereotyped palette.",
       ),
     eventType: z
       .string()
@@ -182,7 +225,9 @@ export const suppliedEventFactsSchema = z
       .max(120)
       .nullable()
       .describe(
-        "The kind of event, as the host named it. Quoted from the host verbatim, or null. Never inferred.",
+        "The kind of GATHERING the host named — a dinner, a shower, a birthday. A theme, an " +
+          "aesthetic or a mood is never an event type, however literally the host stated it. " +
+          "Quoted from the host verbatim, or null. Never inferred.",
       ),
     dateText: z
       .string()

@@ -33,13 +33,15 @@ const identity = {
   textureDirection: "linen-like",
   typographyDirection: "quiet oldstyle serif",
   copyTone: "warm and unfussy",
-  designConstraints: [],
+  hostConstraints: [],
+  creativeGuidance: [],
   inspirationSummary: "No visual inspiration supplied.",
 };
 
 const suppliedFacts = {
   hostNames: null,
   honoreeName: null,
+  honoreeDescriptionText: null,
   eventType: null,
   dateText: null,
   timeText: null,

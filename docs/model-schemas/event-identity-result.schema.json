@@ -159,7 +159,7 @@
           "maxLength": 260,
           "description": "Voice of guest-facing event copy."
         },
-        "designConstraints": {
+        "hostConstraints": {
           "maxItems": 10,
           "type": "array",
           "items": {
@@ -167,7 +167,17 @@
             "minLength": 3,
             "maxLength": 180
           },
-          "description": "Host-specific aesthetic constraints, including important negative constraints."
+          "description": "AUTHORITATIVE. Only what the host themselves ruled in or out, grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. If interpretation was needed to get here it is not a host constraint — it is creativeGuidance. Empty is the common and correct answer."
+        },
+        "creativeGuidance": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 180
+          },
+          "description": "ADVISORY. Your own creative recommendations. Later design stages may reconsider, override or evolve any of these when they find something better. This is where your taste belongs — never in hostConstraints."
         },
         "inspirationSummary": {
           "type": "string",
@@ -190,7 +200,8 @@
         "textureDirection",
         "typographyDirection",
         "copyTone",
-        "designConstraints",
+        "hostConstraints",
+        "creativeGuidance",
         "inspirationSummary"
       ],
       "additionalProperties": false,
@@ -223,7 +234,20 @@
               "type": "null"
             }
           ],
-          "description": "Who the event is for, as written. Quoted from the host verbatim, or null. Never inferred."
+          "description": "The NAME of whoever the event is for, as written. A relationship is not a name. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "honoreeDescriptionText": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How the host DESCRIBED who the event is for — 'our son', 'my dad', 'for a boy'. Populate this even when honoreeName is also present: 'our daughter Noa' gives honoreeName 'Noa' and honoreeDescriptionText 'our daughter'. Quoted from the host verbatim, or null. Never inferred, and never a reason to impose a stereotyped palette."
         },
         "eventType": {
           "anyOf": [
@@ -236,7 +260,7 @@
               "type": "null"
             }
           ],
-          "description": "The kind of event, as the host named it. Quoted from the host verbatim, or null. Never inferred."
+          "description": "The kind of GATHERING the host named — a dinner, a shower, a birthday. A theme, an aesthetic or a mood is never an event type, however literally the host stated it. Quoted from the host verbatim, or null. Never inferred."
         },
         "dateText": {
           "anyOf": [
@@ -320,6 +344,7 @@
       "required": [
         "hostNames",
         "honoreeName",
+        "honoreeDescriptionText",
         "eventType",
         "dateText",
         "timeText",

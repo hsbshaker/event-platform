@@ -45,12 +45,14 @@ const run: CaseRun = {
       textureDirection: "brushed cotton and worn leather",
       typographyDirection: "editorial serif with a quiet sans companion",
       copyTone: "warm, unfussy",
-      designConstraints: ["Avoid literal nursery graphics."],
+      hostConstraints: ["Avoid literal nursery graphics."],
+      creativeGuidance: [],
       inspirationSummary: "No visual inspiration supplied.",
     },
     suppliedFacts: {
       hostNames: null,
       honoreeName: null,
+      honoreeDescriptionText: null,
       eventType: "baby shower",
       dateText: null,
       timeText: null,
@@ -188,9 +190,9 @@ describe("blinding, against the real corpus", () => {
 
   it("leaks no mustAvoid entry, note, or class label from any case", () => {
     for (const c of corpus.cases) {
-      for (const avoid of c.mustAvoid) expect(artifact).not.toContain(avoid);
+      for (const avoid of c.mustAvoid ?? []) expect(artifact).not.toContain(avoid);
       if (c.notes) expect(artifact).not.toContain(c.notes);
-      for (const label of c.class) expect(artifact).not.toContain(label);
+      for (const label of c.class ?? []) expect(artifact).not.toContain(label);
     }
   });
 

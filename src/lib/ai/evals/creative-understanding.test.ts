@@ -45,7 +45,8 @@ const identity = (overrides: Partial<EventIdentity> = {}): EventIdentity => ({
   textureDirection: "linen-like, with a soft paper grain",
   typographyDirection: "quiet oldstyle serif with a modern sans companion",
   copyTone: "warm, concise, unfussy",
-  designConstraints: [],
+  hostConstraints: [],
+  creativeGuidance: [],
   inspirationSummary: "No visual inspiration supplied.",
   ...overrides,
 });
@@ -53,6 +54,7 @@ const identity = (overrides: Partial<EventIdentity> = {}): EventIdentity => ({
 const emptyFacts = {
   hostNames: null,
   honoreeName: null,
+  honoreeDescriptionText: null,
   eventType: null,
   dateText: null,
   timeText: null,
@@ -156,7 +158,8 @@ describe("negative constraints", () => {
           avoidColors: ["pink"],
           dominanceNotes: "",
         },
-        designConstraints: ["No pink in any role."],
+        hostConstraints: ["No pink in any role."],
+        creativeGuidance: [],
       }),
     );
     expect(check.status).toBe("pass");

@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { SUPPLIED_FACT_FIELDS } from "./contract";
 import { buildSchemaFiles, serializeSchema, SCHEMA_FILES } from "./schemas";
 import { strictWireSchema } from "./wire-schema";
 
@@ -91,9 +92,12 @@ describe("event identity schemas", () => {
   it("the creative brief carries no operational event field", () => {
     // spec.md §7.5: the identity object is a creative brief and never an event-data dump.
     // Supplied facts live in the envelope's sibling, and this is the guard on that boundary.
-    const identity = built.brief.properties as Record<string, unknown>;
-    const operational = Object.keys(identity).filter((key) =>
-      /date|time|venue|address|locality|rsvp|deadline|guest|host|honoree/i.test(key),
+    // Checked against the actual supplied-fact field names rather than a keyword regex: the
+    // regex matched `hostConstraints` on "host", which is a creative field and exactly the
+    // kind of false positive this suite exists to avoid producing.
+    const identity = Object.keys(built.brief.properties as Record<string, unknown>);
+    const operational = identity.filter((key) =>
+      (SUPPLIED_FACT_FIELDS as readonly string[]).includes(key),
     );
     expect(operational).toEqual([]);
   });

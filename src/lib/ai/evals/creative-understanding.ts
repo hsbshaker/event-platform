@@ -38,14 +38,37 @@ export interface Check {
   detail: string;
 }
 
+export type HostPhraseKind = "constraint" | "direction";
+
+export interface HostPhrase {
+  phrase: string;
+  kind: HostPhraseKind;
+}
+
+/**
+ * One evaluation case, covering both corpora.
+ *
+ * `creative-understanding.json` (the regression suite) carries `class`, `facts` and
+ * `mustAvoid`; `creative-understanding-holdout.json` (fresh evidence) carries `hostPhrases`,
+ * `expectedFacts` and `tests`. Every field is optional and each check reports `n/a` when its
+ * input is absent, so one code path serves both without branching on which corpus it is.
+ */
 export interface CorpusCase {
   id: string;
   prompt: string;
-  class: string[];
-  facts: Record<string, string>;
   expectClarification: "no" | "likely" | "acceptable" | "expected";
-  mustAvoid: string[];
+  class?: string[];
+  tests?: string[];
+  /** Regression corpus: supplied facts keyed by the case author's own names. */
+  facts?: Record<string, string>;
+  mustAvoid?: string[];
+  /** Holdout: phrases present verbatim, tagged by whether they are constraints or direction. */
+  hostPhrases?: HostPhrase[];
+  /** Holdout: gating assertions on `suppliedFacts`. `null` means the field must be null. */
+  expectedFacts?: Record<string, string | null>;
+  mustNotBeClaimedAsHostConstraint?: string[];
   notes?: string;
+  rationale?: string;
 }
 
 export interface CaseEvaluation {
@@ -66,7 +89,9 @@ export interface CaseEvaluation {
  * the host did not write, and that difference is precisely what CU-11 exists to catch.
  */
 function fold(value: string): string {
-  return value.replace(/\s+/g, " ").trim().toLowerCase();
+  // NFC first: "Tết" has three legitimate encodings and neither `includes` nor `toLowerCase`
+  // normalizes, so without this a correct verbatim quotation can fail on encoding alone.
+  return value.normalize("NFC").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function quotesFrom(prompt: string, value: string): boolean {
@@ -96,7 +121,7 @@ function nonNullFacts(facts: SuppliedEventFacts): [string, string][] {
  * Which field received a value is reported separately as advisory.
  */
 export function checkFactsPreserved(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
-  const supplied = Object.entries(caseData.facts);
+  const supplied = Object.entries(caseData.facts ?? {});
   if (supplied.length === 0) {
     return { name: "factsPreserved", status: "n/a", detail: "the case supplies no facts" };
   }
@@ -154,7 +179,7 @@ export function checkFactsGrounded(caseData: CorpusCase, facts: SuppliedEventFac
 
 /** Which contract field received each supplied fact. Reported for the reviewer, never gating. */
 export function reportFactFieldMapping(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
-  const supplied = Object.entries(caseData.facts);
+  const supplied = Object.entries(caseData.facts ?? {});
   if (supplied.length === 0) {
     return { name: "factFieldMapping", status: "n/a", detail: "the case supplies no facts" };
   }
@@ -178,7 +203,7 @@ export function reportFactFieldMapping(caseData: CorpusCase, facts: SuppliedEven
  * proof of invention.
  */
 export function reportSurplusFacts(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
-  const expected = new Set(Object.values(caseData.facts).map(fold));
+  const expected = new Set(Object.values(caseData.facts ?? {}).map(fold));
   const surplus = nonNullFacts(facts).filter(([, value]) => !expected.has(fold(value)));
   if (surplus.length === 0) {
     return { name: "surplusFacts", status: "pass", detail: "no fact beyond those supplied" };
@@ -188,6 +213,139 @@ export function reportSurplusFacts(caseData: CorpusCase, facts: SuppliedEventFac
     status: "advisory",
     detail: `carried but not listed by the case: ${surplus.map(([f, v]) => `${f}="${v}"`).join("; ")}`,
   };
+}
+
+/* ------------------------------------------------------------------ authority */
+
+/**
+ * **Only the host can create a host constraint.**
+ *
+ * The one gating authority check, and the whole point of the remediation. Every
+ * `hostConstraints` entry must be quotable from the host's own words. It is fixture-free,
+ * needs no semantic matching, and subsumes every `mustNotBeClaimedAsHostConstraint` probe in
+ * either corpus without one — deliberately, because a lexical entailment probe is what
+ * produced the baseline's only mechanical failure, a false positive on a brief that was
+ * honouring its constraint.
+ *
+ * Matching is containment rather than equality: a host constraint is allowed to be a
+ * near-verbatim span ("no balloons" from "Absolutely no balloons"), and requiring exact
+ * equality would fail correct answers for trimming a filler word. What it may not do is
+ * contain material the host never said, which containment catches.
+ */
+export function checkHostConstraintsGrounded(caseData: CorpusCase, identity: EventIdentity): Check {
+  if (identity.hostConstraints.length === 0) {
+    return {
+      name: "hostConstraintsGrounded",
+      status: "pass",
+      detail: "no host constraint claimed",
+    };
+  }
+  const ungrounded = identity.hostConstraints.filter((c) => !quotesFrom(caseData.prompt, c));
+  if (ungrounded.length === 0) {
+    return {
+      name: "hostConstraintsGrounded",
+      status: "pass",
+      detail: `all ${identity.hostConstraints.length} host constraint(s) quotable from the prompt`,
+    };
+  }
+  return {
+    name: "hostConstraintsGrounded",
+    status: "fail",
+    detail: ungrounded
+      .map((c) => `"${c}" is not something the host said — it is the model's own recommendation`)
+      .join("; "),
+  };
+}
+
+/**
+ * The mirror defect: over-correction.
+ *
+ * A phrase the holdout tags `constraint` is something the host ruled in or out and belongs in
+ * `hostConstraints`. A phrase tagged `direction` is positive style shorthand — "art deco",
+ * "western" — which belongs in the creative brief, and filing it as a constraint claims the
+ * host forbade something when they were describing what they want.
+ */
+export function checkHostPhraseRouting(caseData: CorpusCase, identity: EventIdentity): Check {
+  const phrases = caseData.hostPhrases ?? [];
+  if (phrases.length === 0) {
+    return { name: "hostPhraseRouting", status: "n/a", detail: "the case declares no phrases" };
+  }
+  const constraintText = fold(identity.hostConstraints.join(" | "));
+  const problems: string[] = [];
+
+  for (const { phrase, kind } of phrases) {
+    const filedAsConstraint = constraintText.includes(fold(phrase));
+    if (kind === "constraint" && !filedAsConstraint) {
+      problems.push(`"${phrase}" is a host constraint and was not carried as one`);
+    }
+    if (kind === "direction" && filedAsConstraint) {
+      problems.push(`"${phrase}" is creative direction, not a rule the host imposed`);
+    }
+  }
+  return problems.length === 0
+    ? {
+        name: "hostPhraseRouting",
+        status: "pass",
+        detail: `${phrases.length} declared phrase(s) routed correctly`,
+      }
+    : { name: "hostPhraseRouting", status: "fail", detail: problems.join("; ") };
+}
+
+/* ------------------------------------------------------------------ expected facts */
+
+/**
+ * Fields that fail by expansion and reformatting, compared by equality.
+ *
+ * Containment would accept "Thursday March 12, 2026" for "Thursday March 12" and "1:00 PM"
+ * for "1pm" — the paraphrase `spec.md §7.5` exists to forbid, and the thing the fact-bearing
+ * holdout case is for.
+ */
+const EXPECTED_FACT_EQUALITY = new Set([
+  "dateText",
+  "timeText",
+  "venueText",
+  "addressText",
+  "localityText",
+  "rsvpDeadlineText",
+  "honoreeName",
+]);
+
+/**
+ * Gating assertions on `suppliedFacts`, and the only way the facts-side invariants are
+ * decidable — a theme promoted into `eventType` is quotable from the prompt, so a grounding
+ * check passes it unnoticed. That is exactly how the baseline's CU-08 bug escaped.
+ *
+ * `eventType` and `honoreeDescriptionText` use containment, because how much of the phrase is
+ * captured is legitimately variable: "30th anniversary party" and "for my parents" are correct.
+ */
+export function checkExpectedFacts(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
+  const expected = Object.entries(caseData.expectedFacts ?? {}) as [string, string | null][];
+  if (expected.length === 0) {
+    return { name: "expectedFacts", status: "n/a", detail: "the case asserts no facts" };
+  }
+  const problems: string[] = [];
+
+  for (const [field, want] of expected) {
+    const got = (facts as Record<string, string | null>)[field] ?? null;
+    if (want === null) {
+      if (got !== null) problems.push(`${field} must be absent, got "${got}"`);
+      continue;
+    }
+    if (got === null) {
+      problems.push(`${field} must carry "${want}", got null`);
+      continue;
+    }
+    const ok = EXPECTED_FACT_EQUALITY.has(field)
+      ? fold(got) === fold(want)
+      : fold(got).includes(fold(want));
+    if (!ok) {
+      const mode = EXPECTED_FACT_EQUALITY.has(field) ? "exactly" : "at least";
+      problems.push(`${field} must be ${mode} "${want}", got "${got}"`);
+    }
+  }
+  return problems.length === 0
+    ? { name: "expectedFacts", status: "pass", detail: `${expected.length} assertion(s) hold` }
+    : { name: "expectedFacts", status: "fail", detail: problems.join("; ") };
 }
 
 /* ------------------------------------------------------------------ negative constraints */
@@ -244,6 +402,13 @@ export function negatedTerms(prompt: string): string[] {
 const NEGATION_CUE =
   /\b(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)\b[\s\w-]{0,24}$/;
 
+/** "non-pink", "anti-", "un-": the negation is glued to the term and no cue precedes it. */
+const NEGATING_PREFIX = /(^|[^a-z])(non|anti|un)-?$/;
+
+/** "pink must be entirely absent", "gold is excluded": the negation trails the term. */
+const TRAILING_NEGATION =
+  /^[\s\w-]{0,24}\b(absent|avoided|excluded|omitted|prohibited|forbidden|banned|never)\b/;
+
 /**
  * A term is only a violation when the brief *proposes* it.
  *
@@ -256,7 +421,16 @@ function proposesPositively(haystack: string, term: string): boolean {
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   for (const match of haystack.matchAll(new RegExp(`\\b${escaped}\\b`, "g"))) {
     const before = haystack.slice(Math.max(0, match.index - 40), match.index);
-    if (!NEGATION_CUE.test(before)) return true;
+    const after = haystack.slice(match.index + match[0].length, match.index + match[0].length + 40);
+    // A negating prefix is part of the word, not a cue before it: "non-pink" says the opposite
+    // of "pink", and `\bno\b` cannot see it because "non" keeps going.
+    if (NEGATING_PREFIX.test(before)) continue;
+    if (NEGATION_CUE.test(before)) continue;
+    // And the negation can follow: "Pink must be entirely absent" is an exclusion written the
+    // other way round. Both of these passed a brief that was honouring its constraint, which is
+    // the baseline's one mechanical failure.
+    if (TRAILING_NEGATION.test(after)) continue;
+    return true;
   }
   return false;
 }
@@ -270,8 +444,13 @@ export function checkHostNegationRespected(caseData: CorpusCase, identity: Event
   const positive = { ...identity, paletteIntent: { ...identity.paletteIntent } } as Partial<
     EventIdentity & { paletteIntent: Partial<EventIdentity["paletteIntent"]> }
   >;
-  // Where a constraint is *supposed* to be recorded.
-  delete (positive as { designConstraints?: unknown }).designConstraints;
+  // Where an exclusion is *supposed* to be recorded. `creativeGuidance` is included too:
+  // "avoid relying on pink-adjacent shades as a loophole" is the brief carrying the constraint
+  // forward, not proposing the colour. Missing one of these is how the check condemns a brief
+  // for doing its job — and after the rename, deleting `designConstraints` would silently
+  // delete nothing at all.
+  delete (positive as { hostConstraints?: unknown }).hostConstraints;
+  delete (positive as { creativeGuidance?: unknown }).creativeGuidance;
   delete (positive.paletteIntent as { avoidColors?: unknown }).avoidColors;
   const haystack = fold(JSON.stringify(positive));
 
@@ -401,7 +580,7 @@ function mentions(haystack: string, probe: string): boolean {
 }
 
 export function checkMustAvoid(caseData: CorpusCase, identity: EventIdentity): Check[] {
-  if (caseData.mustAvoid.length === 0) {
+  if (!caseData.mustAvoid || caseData.mustAvoid.length === 0) {
     return [{ name: "mustAvoid", status: "n/a", detail: "the case forbids nothing explicitly" }];
   }
   const haystack = fold(identityText(identity));
@@ -409,7 +588,7 @@ export function checkMustAvoid(caseData: CorpusCase, identity: EventIdentity): C
   const echoes: string[] = [];
   const unprobeable: string[] = [];
 
-  for (const entry of caseData.mustAvoid) {
+  for (const entry of caseData.mustAvoid ?? []) {
     if (isFactProhibition(entry)) {
       unprobeable.push(`${entry} [fact discipline — see factsGrounded]`);
       continue;
@@ -594,6 +773,10 @@ export function checkClarification(
 
 export function evaluateCase(caseData: CorpusCase, result: EventIdentityResult): CaseEvaluation {
   const checks: Check[] = [
+    // Authority first: it is the invariant the remediation exists to enforce.
+    checkHostConstraintsGrounded(caseData, result.identity),
+    checkHostPhraseRouting(caseData, result.identity),
+    checkExpectedFacts(caseData, result.suppliedFacts),
     checkFactsPreserved(caseData, result.suppliedFacts),
     checkFactsGrounded(caseData, result.suppliedFacts),
     reportFactFieldMapping(caseData, result.suppliedFacts),

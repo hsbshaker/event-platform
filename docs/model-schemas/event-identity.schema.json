@@ -156,7 +156,7 @@
       "maxLength": 260,
       "description": "Voice of guest-facing event copy."
     },
-    "designConstraints": {
+    "hostConstraints": {
       "maxItems": 10,
       "type": "array",
       "items": {
@@ -164,7 +164,17 @@
         "minLength": 3,
         "maxLength": 180
       },
-      "description": "Host-specific aesthetic constraints, including important negative constraints."
+      "description": "AUTHORITATIVE. Only what the host themselves ruled in or out, grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. If interpretation was needed to get here it is not a host constraint — it is creativeGuidance. Empty is the common and correct answer."
+    },
+    "creativeGuidance": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 180
+      },
+      "description": "ADVISORY. Your own creative recommendations. Later design stages may reconsider, override or evolve any of these when they find something better. This is where your taste belongs — never in hostConstraints."
     },
     "inspirationSummary": {
       "type": "string",
@@ -187,7 +197,8 @@
     "textureDirection",
     "typographyDirection",
     "copyTone",
-    "designConstraints",
+    "hostConstraints",
+    "creativeGuidance",
     "inspirationSummary"
   ],
   "additionalProperties": false,

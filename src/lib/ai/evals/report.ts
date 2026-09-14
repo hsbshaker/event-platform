@@ -111,7 +111,7 @@ export function buildMechanicalReport(runs: CaseRun[], startedAt: string): strin
   for (const run of runs) {
     lines.push(`### ${run.caseData.id} — \`${escapePipes(run.caseData.prompt)}\``);
     lines.push("");
-    lines.push(`Class: ${run.caseData.class.join(", ")}`);
+    lines.push(`Class: ${(run.caseData.class ?? run.caseData.tests ?? []).join(", ")}`);
     lines.push(
       `Latency ${run.telemetry.latencyMs} ms · first-call valid: ${run.telemetry.schemaValidFirstCall} · repair retries: ${run.telemetry.repairRetries} · transient retries: ${run.telemetry.transientRetries}`,
     );
@@ -204,7 +204,12 @@ export function buildBlindArtifact(runs: CaseRun[]): string {
     lines.push(`- **Texture** — ${identity.textureDirection}`);
     lines.push(`- **Typography** — ${identity.typographyDirection}`);
     lines.push(`- **Copy voice** — ${identity.copyTone}`);
-    lines.push(`- **Constraints it believes it was given** — ${list(identity.designConstraints)}`);
+    // The two are rendered separately and labelled by authority, because a reviewer judging
+    // whether the system understood the assignment needs to see which of these it is claiming
+    // the host said and which are its own ideas. Collapsing them would hide the failure the
+    // baseline run was gated on.
+    lines.push(`- **Rules it believes the host set** — ${list(identity.hostConstraints)}`);
+    lines.push(`- **Its own recommendations** — ${list(identity.creativeGuidance)}`);
     lines.push(
       `- **Structural fit** — families: ${identity.compatibleFamilies.join(" > ")}; type: ${identity.compatibleTypographyCategories.join(" > ")}; tone: ${identity.compatibleTonalDirections.join(" > ")}`,
     );
