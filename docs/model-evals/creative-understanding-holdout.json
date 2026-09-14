@@ -5,9 +5,9 @@
   "designNote": "Cases declare the INVARIANT under test, never a target creative answer. That split is deliberate and load-bearing: the deterministic checks judge provenance and authority, which are facts about the host's words; whether the creative answer is any good is judged only by an independent blind reviewer who never sees this file.",
   "howThisIsChecked": {
     "gatingProvenanceRule": "The one gating authority check is prompt-grounding: EVERY `hostConstraints` entry the model returns must be quotable from that case's raw prompt, folded for case and whitespace but never for punctuation. It is fixture-free, needs no semantic matching, and subsumes every `mustNotBeClaimedAsHostConstraint` entry in this file without one. This is deliberate — a lexical entailment probe is what produced the baseline's only mechanical failure, a false positive on a brief that was honouring its constraint.",
-    "hostPhrases": "Phrases present verbatim in the prompt, each tagged with `kind`. `kind: \"constraint\"` is something the host ruled in or out and a correct response carries it in `hostConstraints`. `kind: \"direction\"` is positive style shorthand; it belongs in the creative brief (`creativeDirection`, `toneKeywords`, palette territory) and filing it as a constraint is over-correction, not compliance. An empty or absent list means no `hostConstraint` is REQUIRED — never that one is forbidden; any entry the model does emit must still satisfy the grounding rule above.",
+    "hostPhrases": "Phrases present verbatim in the prompt, each tagged with `kind`. `kind: \"constraint\"` is an explicit prohibition or an explicit requirement of a specific thing — a colour ruled out, an object banned, a claim corrected — and a correct response carries it in `hostConstraints`. A bare tone adjective is NOT a constraint, however firmly it is meant. `kind: \"direction\"` is positive style shorthand; it belongs in the creative brief (`creativeDirection`, `toneKeywords`, palette territory) and filing it as a constraint is over-correction, not compliance. An empty or absent list means no `hostConstraint` is REQUIRED — never that one is forbidden; any entry the model does emit must still satisfy the grounding rule above.",
     "mustNotBeClaimedAsHostConstraint": "ILLUSTRATIVE AND NON-GATING. Each entry is a statement the host demonstrably did not make, recorded so a human reading a report can see the specific fabrications this case is watching for. They are not matched mechanically: deciding whether a model's phrasing 'is' one of these needs exactly the semantic classifier this design excludes. The grounding rule catches them all anyway.",
-    "expectedFacts": "Gating. A string value must appear verbatim in that `suppliedFacts` field (same folding as the grounding rule); `null` must be null. An absent key asserts nothing. This is the only way the facts-side invariants — theme-is-not-event-type, honoree-context-preserved — are decidable, since a theme promoted to `eventType` is quotable from the prompt and would otherwise pass a grounding check unnoticed, which is precisely how the baseline's CU-08 bug escaped gating.",
+    "expectedFacts": "Gating. `null` must be null. A string value is compared under one of two modes, folded for case and whitespace but never for punctuation, because the two halves of fact discipline fail in opposite directions. EQUALITY for `dateText`, `timeText`, `venueText`, `addressText`, `localityText`, `rsvpDeadlineText` and `honoreeName`, which fail by expansion and reformatting: containment would accept \"Thursday March 12, 2026\" for \"Thursday March 12\" and \"1:00 PM\" for \"1pm\", the paraphrase spec.md §7.5 exists to forbid. CONTAINMENT for `eventType` and `honoreeDescriptionText`, where how much of the phrase is captured is legitimately variable and \"30th anniversary party\" or \"for my parents\" are correct answers that equality would fail. An absent key asserts nothing. This is the only way the facts-side invariants — theme-is-not-event-type, honoree-context-preserved — are decidable, since a theme promoted to `eventType` is quotable from the prompt and would otherwise pass a grounding check unnoticed, which is precisely how the baseline's CU-08 bug escaped gating.",
     "expectClarification": "Only `\"no\"` gates. `\"expected\"` and `\"acceptable\"` are advisory, because whether a question earned its place is a judgement. KNOWN LIMIT: this set therefore exerts mechanical pressure against over-asking and none against under-asking, while the baseline failure was under-asking — zero questions on all fourteen cases. A remediation that fixes authority and still asks nothing anywhere passes this set mechanically. The clarification claim rests on the blind reviewer, and the go/no-go record must say so."
   },
   "invariantFamilies": {
@@ -30,8 +30,15 @@
     {
       "id": "HO-01",
       "prompt": "40th for my wife. Absolutely no balloons — she'd hate that.",
-      "tests": ["host-prohibition-vs-recommendation"],
-      "hostPhrases": [{ "phrase": "no balloons", "kind": "constraint" }],
+      "tests": [
+        "host-prohibition-vs-recommendation"
+      ],
+      "hostPhrases": [
+        {
+          "phrase": "no balloons",
+          "kind": "constraint"
+        }
+      ],
       "mustNotBeClaimedAsHostConstraint": [
         "no confetti",
         "no streamers",
@@ -45,9 +52,14 @@
     {
       "id": "HO-02",
       "prompt": "housewarming, we're completely obsessed with our cat Miso",
-      "tests": ["literal-subject-matter", "sentiment-not-suppressed"],
+      "tests": [
+        "literal-subject-matter",
+        "sentiment-not-suppressed"
+      ],
       "hostPhrases": [],
-      "expectedFacts": { "eventType": "housewarming" },
+      "expectedFacts": {
+        "eventType": "housewarming"
+      },
       "mustNotBeClaimedAsHostConstraint": [
         "avoid literal cat imagery",
         "keep the cat reference abstract",
@@ -61,9 +73,19 @@
     {
       "id": "HO-03",
       "prompt": "30th anniversary party, we want it art deco",
-      "tests": ["consequential-ambiguity", "shorthand-multiple-worlds"],
-      "hostPhrases": [{ "phrase": "art deco", "kind": "direction" }],
-      "expectedFacts": { "eventType": "anniversary party" },
+      "tests": [
+        "consequential-ambiguity",
+        "shorthand-multiple-worlds"
+      ],
+      "hostPhrases": [
+        {
+          "phrase": "art deco",
+          "kind": "direction"
+        }
+      ],
+      "expectedFacts": {
+        "eventType": "anniversary party"
+      },
       "mustNotBeClaimedAsHostConstraint": [
         "avoid gold",
         "keep the deco restrained",
@@ -76,19 +98,35 @@
     {
       "id": "HO-04",
       "prompt": "graduation party, something summery",
-      "tests": ["bet-rather-than-ask"],
-      "hostPhrases": [{ "phrase": "something summery", "kind": "direction" }],
-      "expectedFacts": { "eventType": "graduation party" },
-      "mustNotBeClaimedAsHostConstraint": ["nothing formal"],
+      "tests": [
+        "bet-rather-than-ask"
+      ],
+      "hostPhrases": [
+        {
+          "phrase": "something summery",
+          "kind": "direction"
+        }
+      ],
+      "expectedFacts": {
+        "eventType": "graduation party"
+      },
+      "mustNotBeClaimedAsHostConstraint": [
+        "nothing formal"
+      ],
       "expectClarification": "no",
       "rationale": "Loose, but the plausible readings converge. The correct move is to commit. Paired with HO-03 so the two together test discrimination rather than a blanket policy in either direction."
     },
     {
       "id": "HO-05",
       "prompt": "baby naming ceremony. honestly I have zero taste, just make it beautiful",
-      "tests": ["creative-delegation", "organizing-premise"],
+      "tests": [
+        "creative-delegation",
+        "organizing-premise"
+      ],
       "hostPhrases": [],
-      "expectedFacts": { "eventType": "baby naming ceremony" },
+      "expectedFacts": {
+        "eventType": "baby naming ceremony"
+      },
       "mustNotBeClaimedAsHostConstraint": [
         "the host wants understated design",
         "avoid bold choices",
@@ -100,9 +138,20 @@
     {
       "id": "HO-06",
       "prompt": "Tết dinner for my parents — we're Vietnamese, not Chinese, please",
-      "tests": ["cultural-specificity", "host-prohibition-vs-recommendation"],
-      "hostPhrases": [{ "phrase": "we're Vietnamese, not Chinese", "kind": "constraint" }],
-      "expectedFacts": { "honoreeDescriptionText": "my parents" },
+      "tests": [
+        "cultural-specificity",
+        "host-prohibition-vs-recommendation"
+      ],
+      "hostPhrases": [
+        {
+          "phrase": "we're Vietnamese, not Chinese",
+          "kind": "constraint"
+        }
+      ],
+      "expectedFacts": {
+        "eventType": "Tết dinner",
+        "honoreeDescriptionText": "my parents"
+      },
       "mustNotBeClaimedAsHostConstraint": [
         "avoid red",
         "no lanterns",
@@ -115,7 +164,11 @@
     {
       "id": "HO-07",
       "prompt": "memorial gathering for my grandmother. she grew roses her whole life and we want it to feel like her.",
-      "tests": ["sentiment-not-suppressed", "literal-subject-matter", "honoree-context-preserved"],
+      "tests": [
+        "sentiment-not-suppressed",
+        "literal-subject-matter",
+        "honoree-context-preserved"
+      ],
       "hostPhrases": [],
       "expectedFacts": {
         "eventType": "memorial gathering",
@@ -134,9 +187,18 @@
     {
       "id": "HO-08",
       "prompt": "50th birthday, western",
-      "tests": ["shorthand-multiple-worlds"],
-      "hostPhrases": [{ "phrase": "western", "kind": "direction" }],
-      "expectedFacts": { "eventType": "50th birthday" },
+      "tests": [
+        "shorthand-multiple-worlds"
+      ],
+      "hostPhrases": [
+        {
+          "phrase": "western",
+          "kind": "direction"
+        }
+      ],
+      "expectedFacts": {
+        "eventType": "50th birthday"
+      },
       "mustNotBeClaimedAsHostConstraint": [
         "avoid literal western iconography",
         "nothing kitsch",
@@ -148,30 +210,55 @@
     {
       "id": "HO-09",
       "prompt": "a night at the opera",
-      "tests": ["theme-is-not-event-type", "organizing-premise"],
+      "tests": [
+        "theme-is-not-event-type",
+        "organizing-premise"
+      ],
       "hostPhrases": [],
-      "expectedFacts": { "eventType": null },
-      "mustNotBeClaimedAsHostConstraint": ["formal dress"],
+      "expectedFacts": {
+        "eventType": null
+      },
+      "mustNotBeClaimedAsHostConstraint": [
+        "formal dress"
+      ],
       "expectClarification": "acceptable",
       "rationale": "Pure theme with no event type stated anywhere. `eventType` must be absent rather than filled with the theme — a promotion that a grounding check alone cannot catch, because the theme is quotable from the prompt. This is the baseline's confirmed CU-08 defect on fresh ground."
     },
     {
       "id": "HO-10",
       "prompt": "party for my best friend, she's turning 25",
-      "tests": ["organizing-premise", "bet-rather-than-ask"],
+      "tests": [
+        "organizing-premise",
+        "bet-rather-than-ask"
+      ],
       "hostPhrases": [],
-      "expectedFacts": { "honoreeDescriptionText": "my best friend" },
-      "mustNotBeClaimedAsHostConstraint": ["avoid anything childish", "keep it grown up"],
+      "expectedFacts": {
+        "eventType": "party",
+        "honoreeDescriptionText": "my best friend"
+      },
+      "mustNotBeClaimedAsHostConstraint": [
+        "avoid anything childish",
+        "keep it grown up"
+      ],
       "expectClarification": "no",
       "rationale": "Almost no aesthetic signal, and nothing an honest question could recover — the host has not withheld a preference, they have not formed one. Tests whether the system can invent a specific organizing idea from a warm but empty brief instead of retreating to adjectives."
     },
     {
       "id": "HO-11",
       "prompt": "bat mitzvah for our daughter Noa. she wants it to feel grown up, nothing babyish.",
-      "tests": ["honoree-context-preserved", "host-prohibition-vs-recommendation"],
+      "tests": [
+        "honoree-context-preserved",
+        "host-prohibition-vs-recommendation"
+      ],
       "hostPhrases": [
-        { "phrase": "grown up", "kind": "constraint" },
-        { "phrase": "nothing babyish", "kind": "constraint" }
+        {
+          "phrase": "grown up",
+          "kind": "direction"
+        },
+        {
+          "phrase": "nothing babyish",
+          "kind": "constraint"
+        }
       ],
       "expectedFacts": {
         "eventType": "bat mitzvah",
@@ -197,11 +284,17 @@
         "host-prohibition-vs-recommendation",
         "honoree-context-preserved"
       ],
-      "hostPhrases": [{ "phrase": "No black", "kind": "constraint" }],
+      "hostPhrases": [
+        {
+          "phrase": "No black",
+          "kind": "constraint"
+        }
+      ],
       "expectedFacts": {
         "eventType": "Retirement dinner",
         "dateText": "Thursday March 12",
         "venueText": "Ember & Oak",
+        "localityText": null,
         "honoreeDescriptionText": "my boss",
         "timeText": null,
         "addressText": null,
