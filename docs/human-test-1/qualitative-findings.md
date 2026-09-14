@@ -29,8 +29,8 @@ Nothing in this document is implemented. It is a findings ledger and a sequence.
 | --- | --- | --- | --- | --- | --- | --- |
 | **F1** Typography composition | High — pages read as CSS bugs; reviewers began distrusting intentional asymmetry too | High | 1 | **3.1** | Deterministic typography hardening: real line-box measurement, minimum measures, metadata line budgets, treatment-aware line breaking | Confirmed; remediation planned |
 | **F2** Decorative hierarchy | Medium-high — pages read as unfinished or placeholder-like | Medium-high | 2 | **3.1 (narrow) or defer** | A bounded hierarchy safeguard *if* it fits existing infrastructure; defer if it needs a visual-ranking engine | Confirmed signal; scope decision pending |
-| **F3** Missing thematic hero visual | Potentially high — pages feel like well-typeset flyers rather than an event | Medium-high | 3 | **4** | Generated visual anchor, art-directed with the composition | Strong product hypothesis; architecture planning required |
-| **F4** Ambient thematic imagery | Medium — some pages feel blank or flat | Medium | 4 | **4** | Low-emphasis thematic layer, same system as F3 | Supporting hypothesis |
+| **F3** Missing theme-specific visual language | Potentially high — pages feel like well-typeset flyers rather than an event | Medium-high | 3 | **4** | A coordinated visual language — anchor, supporting motifs, border/pattern, palette from the artwork — art-directed with the composition | Strong hypothesis, sharpened by reviewer reference designs; architecture planning required |
+| **F4** Ambient / supporting artwork | Medium — some pages feel blank or flat | Medium | 4 | **4** | Low-emphasis layer of the *same* visual language as F3, not a separate feature | Supporting hypothesis |
 
 The ordering is deliberate and reflects a distinction the roadmap keeps visible:
 
@@ -247,28 +247,63 @@ decoration becomes the *only* visually meaningful object.
 
 ---
 
-## F3 — Missing theme-specific hero imagery
+## F3 — Missing theme-specific visual language / illustrative anchor
 
-**ID** F3 · **Status** Strong product hypothesis; architecture planning required · **Confidence**
-Medium-high · **Severity** Potentially high · **Class** AI creative behavior · **Phase** 4
+**ID** F3 · **Status** Strong product hypothesis, sharpened by reference evidence; architecture
+planning required · **Confidence** Medium-high · **Severity** Potentially high · **Class** AI
+creative behavior · **Phase** 4
 
 ### Observation
 
 Multiple reviewers said the generated sites often feel like well-typeset flyers, abstract
 editorial compositions, or layouts without a strong emotional or thematic anchor. They expected a
-visual hero tied to the event's theme.
+visual identity tied to the event's theme.
 
-Examples of what they expected: a lemon theme producing an elegant basket, still-life or
-illustration of lemons, lemonade or citrus branches; a garden theme producing botanical or floral
-artwork; a nautical theme producing an original maritime still-life; a heritage/preppy aesthetic
-reference translated into an original visual language — heritage American prep, equestrian cues,
-tartan, navy and cream, leather and brass, vintage teddy-bear energy, refined still-life styling.
+Reviewers then supplied concrete reference invitations showing what they felt was missing. **This
+materially reframes the finding.** The references are not "pages with a hero photograph". They are
+pages built around a *theme-specific visual language*.
+
+### Reference evidence
+
+The references repeatedly use a recognizable theme-specific visual subject or art system:
+
+teddy bear · bunny · bee · hot-air balloon · baby pram · florals and botanicals · toile scenes ·
+rocking horse · safari animals · tea service · city illustration · food and object motifs ·
+decorative bows and heirloom objects.
+
+The strongest references combine five things:
+
+1. a recognizable visual anchor;
+2. supporting illustration or motifs;
+3. borders, corner treatments, patterns or background artwork;
+4. a palette derived from the illustration;
+5. **relatively restrained typography.**
+
+Point 5 is the one that most directly indicts our current output. In the references the type is
+usually modest in scale, quietly set, and often centred — it is not doing the creative work,
+because the illustration is. Our system does the opposite.
+
+Note also how the anchors are *integrated*: the bear sits above the text, the balloon floats in
+the field, a floral cluster occupies a corner, a wreath encircles the copy. Very few are
+rectangular pictures with text beneath. This has a direct technical consequence, recorded under
+"Transparent artwork" below.
 
 ### Canonical finding
 
-> Typography, layout and decorative motifs alone often do not provide enough thematic
-> specificity. A bespoke visual anchor tied to the user's event concept may materially improve
-> emotional richness, perceived craftsmanship and uniqueness.
+> The design identity comes from the entire visual language, not merely from putting a
+> rectangular hero image into the page. Typography, layout and decorative motifs alone often do
+> not provide enough thematic specificity; a coordinated theme-specific visual language — anchor,
+> supporting motifs, border/pattern treatment and a palette derived from the artwork — may
+> materially improve emotional richness, perceived craftsmanship and uniqueness.
+
+### Product interpretation
+
+> The current renderer has relatively few ways to create thematic specificity, so typography,
+> grids, rules, monograms, motifs, whitespace and asymmetric layout are being asked to carry
+> nearly all of the creative burden. This may contribute to both the typography overreach seen in
+> F1 and the decorative dominance seen in F2. Reference designs suggest that a theme-specific
+> visual language can carry much of that emotional/design identity, allowing typography and layout
+> to become more restrained and confident.
 
 ### Root cause
 
@@ -278,29 +313,47 @@ predates this evidence (see "MVP non-goal under revision" below).
 ### Non-goals for F3
 
 Never copy logos, branded characters, campaign artwork or recognizable proprietary design assets.
-Named aesthetic references must continue to become **original design language, not clones**. F3
-does not belong in Phase 3.1 under any circumstances.
+Named aesthetic references must continue to become **original design language, not clones** — see
+"Originality" below. Not every concept needs artwork. F3 does not belong in Phase 3.1 under any
+circumstances.
 
 ---
 
-## F4 — Subtle atmospheric background imagery
+## F4 — Ambient / supporting thematic artwork
 
-**ID** F4 · **Status** Supporting hypothesis · **Confidence** Medium · **Severity** Medium ·
-**Class** AI creative behavior · **Phase** 4
+**ID** F4 · **Status** Supporting hypothesis; now understood as part of F3's visual language ·
+**Confidence** Medium · **Severity** Medium · **Class** AI creative behavior · **Phase** 4
 
 ### Observation
 
 Some sites feel too blank or flat, depending entirely on solid backgrounds, plain white, lines,
 grids, typography and monograms. A very subtle theme-specific image or illustration behind the
 composition — often with a soft white wash or low opacity — could add atmosphere without becoming
-the focal point: washed citrus branches behind a lemon shower, an extremely soft botanical
-illustration, a muted equestrian or textile atmosphere for a heritage-prep concept, a tonal
-still-life, a subtle illustrated texture.
+the focal point.
 
 ### Canonical finding
 
 > Some designs may benefit from a low-emphasis thematic visual layer that adds atmosphere and
 > specificity without competing with semantic content.
+
+**Reframed by the reference evidence:** this is a *secondary expression of the same visual
+language* as F3, not an unrelated background-image feature. Planning them apart would produce two
+systems where one belongs.
+
+### What one coherent visual identity looks like
+
+Illustrative, not a specification:
+
+**Lemon theme** — primary anchor: illustrated lemon basket or citrus still-life; ambient layer:
+very soft citrus branches or lemon-blossom wash; supporting motif: small citrus ornament; palette:
+cream / lemon / leaf green.
+
+**Heirloom teddy theme** — primary anchor: original illustrated teddy; ambient layer: faint
+plaid or woven texture; supporting motif: bow, stitch or star; palette: cream / powder blue /
+warm brown.
+
+The point is that anchor, ambient layer, motif and palette should read as **one art direction**,
+not as separate features that happen to be switched on together.
 
 ### Constraints
 
@@ -311,10 +364,8 @@ and composition.
 
 ### Non-goals for F4
 
-Not a standalone product feature. F4 is part of the same visual system as F3 and is planned with
-it.
-
----
+Not a standalone product feature. **Do not conclude that every site needs multiple generated
+images.**
 
 ## Synthesis — why F1, F2 and F3/F4 may be one story
 
@@ -334,8 +385,14 @@ we may get
 
 > theme-specific artwork + a restrained headline + a subtle motif system.
 
-**This is a hypothesis to test in Human Test #2, not a proven fact.** It does not reduce the case
-for F1: a page that looks like a CSS bug is a defect whether or not it also has an image.
+The reviewer reference designs strengthen this considerably. In those references the typography is
+consistently *restrained* — modest in scale, quietly set — because the illustration carries the
+identity. Our output does the reverse: oversized type, aggressive stagger, dominant monograms. That
+is what a system with no other means of thematic expression looks like.
+
+**This is still a hypothesis to test in Human Test #2, not a proven fact.** And it does not reduce
+the case for F1: a page that looks like a CSS bug is a defect whether or not it also has an image.
+F1 must be fixed on its own terms, in Phase 3.1, before any of this is testable.
 
 ---
 
@@ -364,40 +421,98 @@ Test #1's evidence becomes a *before* measurement and Human Test #2 carries the 
 Existing scope unchanged: production DesignIntent and CompositionTree generation, thematic
 creative interpretation, spend controls, telemetry, idempotency, fallbacks.
 
-Added under consideration on this evidence: optional visual-anchor selection, art-brief
-generation, an image-generation pipeline, composition-aware image placement, latency and cost
-strategy, and fallback behavior when image generation fails or is slow. **F3 and F4 belong here
-and only here.**
+Added under consideration on this evidence: optional **visual-direction** selection across the
+four modes, art-brief generation, an image-generation pipeline, composition-aware placement,
+latency and cost strategy, and fallback when generation fails or is slow. Scoped to the smallest
+useful capability — **one primary art-directed asset per concept, when imagery is appropriate** —
+with transparency evaluated as a requirement for the illustration-led and framed modes *before* an
+image model is chosen. **F3 and F4 belong here and only here**, and are planned as one visual
+system rather than two features.
 
 ### Human Test #2 — the launch gate
 
 Run on the actual production stack: hardened typography, production model and prompt, real
 CompositionTree generation, optional thematic imagery, final responsive behavior.
 
-It should test design quality, diversity, theme fidelity, typography credibility, visual
-hierarchy, whether imagery feels bespoke rather than generic, whether image-free concepts still
-feel intentional, and whether visual anchors improve perceived craftsmanship.
+It should test design quality, diversity, theme fidelity, typography credibility and visual
+hierarchy, and specifically:
+
+- does the site feel specifically designed for the requested theme?
+- is there a memorable visual anchor when one is appropriate?
+- does imagery feel integrated rather than pasted into a template?
+- do image-free concepts still feel deliberately complete?
+- does the visual language remain coherent across artwork, typography, palette and motifs?
+- do supporting/ambient images enrich the site without hurting readability?
+- does generated artwork look original rather than like generic AI or stock imagery?
+
+The last two also test the F1/F2 hypothesis from the other side: if a thematic anchor lets
+typography and decoration relax, Human Test #2 should see fewer of the composition complaints that
+dominated Human Test #1.
 
 ---
 
 ## Conceptual: one visual system for F3 + F4
 
-**Conceptual naming only. No schema change is proposed or made.**
+**Conceptual naming and planning categories only. No schema change is proposed or made.**
 
-Working concept: `VisualAnchorIntent`, with modes along the lines of `none`,
-`ambient_background`, `hero_art`, and possibly `hero_art_with_ambient_echo`.
+### Four visual-direction modes
 
-The important idea is the decision, not the vocabulary: **the AI should choose whether imagery
-materially improves a concept.** "Every event website gets an AI image" must not become a rule.
-Some concepts should remain intentionally typography-led, and Human Test #2 should check that
-those still feel deliberate.
+Planning categories, not enum values:
+
+1. **typography-led** — no generated artwork; the concept is deliberately type-and-motif driven;
+2. **illustration-led** — a recognizable subject anchors the page (teddy, balloon, pram, lemon
+   basket, floral cluster);
+3. **atmosphere-led** — no discrete subject; a soft thematic wash or texture behind the
+   composition;
+4. **framed/editorial illustration** — artwork as border, corner treatment, wreath or frame
+   around the content rather than beside it.
+
+Mode 4 comes directly from the references and would be easy to miss if we planned only for
+"hero image or background image". Several of the strongest references are frames, not heroes.
+
+**Imagery stays optional.** The creative system decides whether a visual anchor improves the
+concept; "every event website gets an AI image" must not become a rule. Human Test #2 should
+check that typography-led concepts still feel deliberate rather than unfinished.
+
+### The smallest useful capability
+
+For initial Phase 4 planning, evaluate this and resist more:
+
+- **one primary generated visual asset** per selected visual direction, when imagery is
+  appropriate;
+- **art-directed** so the renderer can integrate it flexibly rather than slot it into a fixed box;
+- potentially usable as anchor, crop, frame element, or subdued atmospheric treatment **from the
+  same asset**;
+- deterministic motifs remain available and unchanged alongside it.
+
+One asset with flexible integration is a much smaller capability than an artwork *set*, and it
+covers most of what the references achieve. Whether one asset can genuinely serve both anchor and
+ambient use, or whether ambient needs its own lower-cost generation, is an open Phase 4 question.
+
+### Transparent artwork — evaluate as a first-class requirement
+
+The references integrate their subjects into the layout: the bear sits above the copy, the balloon
+floats in the field, the floral cluster occupies a corner, the wreath encircles the text. A
+rectangular image with hard edges cannot do this. It produces the "pasted into a template" look
+reviewers were reacting against in the first place.
+
+So **transparent-background artwork (alpha) is likely a requirement for illustration-led and
+framed/editorial modes**, not a nice-to-have. Atmosphere-led probably does not need it.
+
+This must be decided **before** image-model selection, not after: alpha support, and its
+reliability, varies sharply between models and is not something a prompt can add later. Recorded
+here as an input to that decision.
+
+Consequences to weigh: alpha allows artwork to overlap text, which makes contrast a placement
+problem rather than a background problem; and crop-safety changes shape, because what is cropped
+is the canvas, not the subject.
 
 ### Division of responsibility for image generation
 
-The creative model should generate an **art direction / structured art brief**, never raw
-HTML/CSS and never arbitrary image placement. Conceptually, fields along the lines of: role;
-subject; medium/style; mood; relationship to the visual palette; composition and subject
-placement; desired negative space; background treatment; prohibited content.
+The creative model should generate an **art direction / structured art brief**, never raw HTML/CSS
+and never arbitrary image placement. Conceptually, fields along the lines of: role; subject;
+medium/style; mood; relationship to the visual palette; composition and subject placement; desired
+negative space; background treatment (including whether alpha is required); prohibited content.
 
 Illustrative only — **the implementation is not locked to this shape**:
 
@@ -408,6 +523,7 @@ medium:          editorial gouache / refined still-life illustration
 mood:            warm, elegant, Mediterranean
 composition:     subject weighted toward lower-right
 negative space:  quiet left field reserved for title
+background:      transparent
 avoid:           text, logos, brands, watermarks, people
 ```
 
@@ -416,10 +532,36 @@ The critical architectural idea:
 > Image generation and page composition should be art-directed together.
 
 Do not generate an arbitrary square image and then try to fit it into a page afterward. The
-composition may tell the art brief where the subject should sit, where negative space must
-remain, and whether it needs portrait/landscape/crop flexibility.
+composition may tell the art brief where the subject should sit, where negative space must remain,
+and whether it needs portrait/landscape/crop flexibility.
 
----
+### The broader hypothesis: the creative unit may be larger than a CompositionTree
+
+> The eventual creative unit may need to be more than a CompositionTree. The AI is effectively
+> art-directing an event identity: composition, typography, palette, motif system and optional
+> generated artwork should feel like coordinated outputs from one creative direction.
+
+**Assessment: this can remain a sibling output, and should.** The target shape
+
+```
+DesignIntent → CompositionTree + optional VisualArtIntent → compiler → ResolvedDesignSpec
+```
+
+holds, for a specific reason worth stating so it is not lost. `spec.md §32` forbids the model
+emitting free text, colors, pixels or anything outside the primitive allowlist **in the
+CompositionTree**. An art brief is irreducibly descriptive — "woven basket of lemons with olive
+branches" is free text and cannot be an enum. Keeping the brief *outside* the tree, as a sibling
+of `DesignIntent`, preserves that guardrail intact. Folding art direction into the tree would
+break it.
+
+What the tree would still need is a **placement**: somewhere for the compiler to put the resolved
+asset. That is at most one new decorative leaf referencing an asset by id, with enum tokens for
+role and treatment — the same shape as every existing primitive, no pixels and no free text. It is
+a primitive-set version bump and a §9 gate re-run, but it is not an expansion of what the language
+can express.
+
+So the honest summary is: **no architectural conflict, one small addition, and one real sequencing
+problem.** The sequencing problem is geometry verification — see below.
 
 ## MVP non-goal under revision — AI-generated imagery
 
@@ -483,6 +625,13 @@ This document does **not** amend any of them.
 Recorded, not solved. These are Phase 4 architecture and product decisions and must not be pulled
 into Phase 3.1.
 
+**The sequencing problem, first.** Geometry verification renders the *real* page in a headless
+browser and is the authority for whether a spec is final. If a concept carries artwork, the
+artwork must exist and be loaded when that runs, or the spec is verified against a page guests
+will never see. That inverts today's order — generate, then verify — and it is the one genuine
+architectural consequence of imagery, distinct from cost and lifecycle. It needs a deliberate
+answer, not a default.
+
 - Generate imagery for all three concepts, or only the selected one?
 - Lower-cost draft imagery per concept, refined only after selection?
 - Generate only when imagery is essential to understanding the concept?
@@ -498,7 +647,21 @@ Recorded now, implemented later. Generated imagery should avoid logos and tradem
 assets; avoid copying named-brand characters; translate named aesthetic references into original
 visual language; avoid embedded text unless explicitly supported; avoid watermarks; avoid a
 generic stock-photo appearance where possible; be generated to serve the composition; maintain
-accessible text contrast when used as a background; and be crop-safe for responsive layouts.
+accessible text contrast when used as a background or where alpha artwork overlaps text; and be
+crop-safe for responsive layouts.
+
+### Originality — named references become original language
+
+The rule, stated concretely because the failure mode is concrete. A user reference such as "Ralph
+Lauren" must **not** produce Polo Bear, Ralph Lauren logos, copied campaign imagery, or
+proprietary characters and design assets.
+
+It should translate the reference into an original aesthetic language: heritage American prep;
+equestrian details; tartan; navy and cream; leather and brass; vintage teddy-bear energy; heirloom
+illustration; restrained luxury.
+
+This is a constraint on the art brief and on generation, not only on review — a brief that names a
+brand has already failed, whatever the image comes back looking like.
 
 No filters or policies are implemented in this pass.
 
