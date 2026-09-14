@@ -587,16 +587,22 @@ It must hold one boundary exactly:
   the prompt supplies is carried forward; where the prompt is silent, the field is absent, and the
   host completes it later (§7.3, §23.1).
 
-  **The mechanism is unspecified and Phase 4 must choose it.** The `EventIdentity` schema is a
-  creative brief: it declares `additionalProperties: false`, carries no operational field, and its
-  prompt states "You are **not** extracting operational event data." So the identity object as it
-  stands cannot be where supplied facts live, and this requirement is not satisfiable by simply
-  running the call as documented today. Two options, neither taken here: extend the identity schema
-  with an operational block, or extract facts on a separate channel from the same raw prompt and
-  persist them onto the event draft. The second is more consistent with the schema's stated purpose
-  and with §7.3's "skip values already supplied", which presumes something has already parsed them.
-  **What this section fixes is the requirement — facts are quoted or absent, never invented — not
-  the plumbing.**
+  **The mechanism was chosen in Phase 4A: a sibling, not a field.** The requirement was once
+  unsatisfiable — the `EventIdentity` schema is a creative brief, declares
+  `additionalProperties: false` and carries no operational field, so supplied facts would either
+  vanish or fail validation. Of the two options this section named, Phase 4A took the second in
+  schema terms and neither in call terms. One call returns an envelope of three siblings:
+  `identity` (the creative brief, shape unchanged), `suppliedFacts` (nine `*Text` fields, each a
+  verbatim quotation or `null`), and `clarification` (§7.6b). The brief therefore keeps its closed
+  shape and its promise, and a schema-drift test fails if an operational-looking key ever appears
+  inside it. Facts and identity share one round trip because a second call would roughly double
+  latency (§7.10) to separate what the schema has already separated.
+
+  **Normalization is the application's job, never the model's.** A supplied value is carried as the
+  host wrote it, including a partial one — a bare month, a weekday without a date, a described
+  place. What is never done is *expanding* a partial into something more specific. Rewriting `1pm`
+  as `1:00 PM` is a paraphrase of the host and is a failure of this boundary, not a tidy-up.
+  Contract: `src/lib/ai/event-identity/contract.ts`; `docs/model-contracts.md §4.1`.
 - **Creative interpretation is expected and generous.** Tone, sophistication, visual vocabulary,
   palette territory, materials and textures, symbols, imagery opportunities and things to avoid are
   all fair inference. "Lemons in Italy but classy" may imply linen, ceramic detail and an

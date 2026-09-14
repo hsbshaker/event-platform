@@ -10,6 +10,9 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { readFileSync } from "node:fs";
+
+import type { CorpusCase } from "./creative-understanding";
 import { buildBlindArtifact, buildMechanicalReport, percentile, type CaseRun } from "./report";
 
 const run: CaseRun = {
@@ -158,6 +161,41 @@ describe("the mechanical report", () => {
     const withFailure = buildMechanicalReport([failed], "2026-09-14T08:00:00Z");
     expect(withFailure).toContain("CALL FAILED");
     expect(withFailure).toContain("0 / 1");
+  });
+});
+
+describe("blinding, against the real corpus", () => {
+  // `docs/model-contracts.md §4.5` claims the blinding is asserted "against every case in the
+  // corpus". Until this existed that claim was true of one synthetic fixture, which is the
+  // kind of gap that only shows up after the artifact has already been sent to a reviewer.
+  const corpus = JSON.parse(
+    readFileSync(
+      new URL("../../../../docs/model-evals/creative-understanding.json", import.meta.url).pathname,
+      "utf8",
+    ),
+  ) as { cases: CorpusCase[] };
+
+  const artifact = buildBlindArtifact(
+    corpus.cases.map((caseData) => ({ ...run, caseData, evaluation: undefined })),
+  );
+
+  it("carries every case and its prompt", () => {
+    for (const c of corpus.cases) {
+      expect(artifact).toContain(c.id);
+      expect(artifact).toContain(c.prompt);
+    }
+  });
+
+  it("leaks no mustAvoid entry, note, or class label from any case", () => {
+    for (const c of corpus.cases) {
+      for (const avoid of c.mustAvoid) expect(artifact).not.toContain(avoid);
+      if (c.notes) expect(artifact).not.toContain(c.notes);
+      for (const label of c.class) expect(artifact).not.toContain(label);
+    }
+  });
+
+  it("counts the cases it actually has rather than asserting fourteen", () => {
+    expect(artifact).toContain(`Below are ${corpus.cases.length} host descriptions`);
   });
 });
 

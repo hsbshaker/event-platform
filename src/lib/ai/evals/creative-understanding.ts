@@ -165,6 +165,31 @@ export function reportFactFieldMapping(caseData: CorpusCase, facts: SuppliedEven
   return { name: "factFieldMapping", status: "advisory", detail: mapping.join("; ") };
 }
 
+/**
+ * A fact the corpus did not list, carried anyway.
+ *
+ * `checkFactsGrounded` asks only whether a value is quotable, and `checkFactsPreserved` walks
+ * corpus to response — so a value the host never offered as a fact slips through both if it
+ * happens to appear in their sentence. `honoreeName: "our son"` is quotable from CU-11 and is
+ * exactly what the prompt forbids: "a relationship ('for our son') is not a name".
+ *
+ * Advisory rather than gating: the corpus lists the facts a case is *about*, not every fact a
+ * correct extractor may legitimately find, so a surplus is evidence for the reviewer and not
+ * proof of invention.
+ */
+export function reportSurplusFacts(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
+  const expected = new Set(Object.values(caseData.facts).map(fold));
+  const surplus = nonNullFacts(facts).filter(([, value]) => !expected.has(fold(value)));
+  if (surplus.length === 0) {
+    return { name: "surplusFacts", status: "pass", detail: "no fact beyond those supplied" };
+  }
+  return {
+    name: "surplusFacts",
+    status: "advisory",
+    detail: `carried but not listed by the case: ${surplus.map(([f, v]) => `${f}="${v}"`).join("; ")}`,
+  };
+}
+
 /* ------------------------------------------------------------------ negative constraints */
 
 const NEGATION_PATTERNS = [
@@ -215,6 +240,27 @@ export function negatedTerms(prompt: string): string[] {
  * `spec.md §7.6b` and the prompt both state the rule this enforces: an exclusion is
  * absolute, and "no X" never means "less X".
  */
+/** Negation cues that turn a mention into a restatement of the constraint, not a proposal. */
+const NEGATION_CUE =
+  /(no|not|never|without|avoid|avoiding|free of|nothing|rather than|instead of)[\s\w-]{0,24}$/;
+
+/**
+ * A term is only a violation when the brief *proposes* it.
+ *
+ * "never childish", "without tipping into cheesy" and "nothing pink-adjacent" are the brief
+ * doing its job: carrying the host's exclusion in prose. Gating on a bare token match would
+ * fail a good answer for honouring the constraint out loud, which is the opposite of what
+ * this check is for.
+ */
+function proposesPositively(haystack: string, term: string): boolean {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  for (const match of haystack.matchAll(new RegExp(`\\b${escaped}\\b`, "g"))) {
+    const before = haystack.slice(Math.max(0, match.index - 40), match.index);
+    if (!NEGATION_CUE.test(before)) return true;
+  }
+  return false;
+}
+
 export function checkHostNegationRespected(caseData: CorpusCase, identity: EventIdentity): Check {
   const terms = negatedTerms(caseData.prompt);
   if (terms.length === 0) {
@@ -229,9 +275,7 @@ export function checkHostNegationRespected(caseData: CorpusCase, identity: Event
   delete (positive.paletteIntent as { avoidColors?: unknown }).avoidColors;
   const haystack = fold(JSON.stringify(positive));
 
-  const violations = terms.filter((term) =>
-    new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(haystack),
-  );
+  const violations = terms.filter((term) => proposesPositively(haystack, term));
 
   if (violations.length === 0) {
     return {
@@ -281,19 +325,46 @@ export function checkExclusionSelfConsistency(identity: EventIdentity): Check {
  * yields no probes and is reported as not mechanically checkable, which is the honest
  * answer rather than a guess.
  */
-export function properNounProbes(mustAvoid: string): string[] {
-  const probes = new Set<string>();
+export interface Probes {
+  /** Multi-word names. A match is a reproduction, and gates. */
+  gating: string[];
+  /** Single words. Reported, never gating — see below. */
+  advisory: string[];
+}
+
+export function properNounProbes(mustAvoid: string): Probes {
+  const gating = new Set<string>();
+  const advisory = new Set<string>();
+
   for (const match of mustAvoid.matchAll(/\b([A-Z][\w'-]*(?:[- ][A-Z][\w'-]*)*)\b/g)) {
     const sequence = match[1].trim();
-    if (sequence.length >= 3) probes.add(sequence);
-    // Each name on its own as well as the full run. "the Disney Winnie-the-Pooh character
-    // design" names two separate things, and an identity that reaches for just one of them
-    // has still done the forbidden thing — matching only the whole run would miss it.
+    if (sequence.length < 3) continue;
+    // A multi-word name in the identity is the named thing itself.
+    if (/[ ]/.test(sequence)) gating.add(sequence);
+    else advisory.add(sequence);
+    // Each word on its own too, but only as advisory. "the Disney Winnie-the-Pooh character
+    // design" names two things and reaching for either is the forbidden move — yet a lone
+    // token cannot tell that move apart from the translation we asked for. "Polo Bear"
+    // yields "polo", and "restrained polo-field linework" is exactly the original visual
+    // language `spec.md §7.6` wants from a heritage-prep prompt. Gating on it would fail a
+    // brief for succeeding.
     for (const part of sequence.split(" ")) {
-      if (part.length >= 3) probes.add(part);
+      if (part.length >= 3 && !gating.has(part)) advisory.add(part);
     }
   }
-  return [...probes];
+  return { gating: [...gating], advisory: [...advisory] };
+}
+
+/**
+ * Entries about *inferring a fact* are not identity-scan material.
+ *
+ * CU-03 forbids "inferring Positano ... as a fact". The real failure is a fabricated
+ * `localityText`, which `checkFactsGrounded` already catches. Scanning `identity` for the
+ * place name instead condemns "Amalfi-coast lemon groves" in `creativeDirection` — which
+ * `spec.md §7.5` and `product-doctrine.md §5` explicitly license as aesthetic inference.
+ */
+function isFactProhibition(entry: string): boolean {
+  return /\bas a fact\b|\binferring\b|\binfer\b/i.test(entry);
 }
 
 /** Word-boundary containment, so "Bear" does not match "bearing". */
@@ -308,16 +379,24 @@ export function checkMustAvoid(caseData: CorpusCase, identity: EventIdentity): C
   }
   const haystack = fold(identityText(identity));
   const hits: string[] = [];
+  const echoes: string[] = [];
   const unprobeable: string[] = [];
 
   for (const entry of caseData.mustAvoid) {
-    const probes = properNounProbes(entry);
-    if (probes.length === 0) {
+    if (isFactProhibition(entry)) {
+      unprobeable.push(`${entry} [fact discipline — see factsGrounded]`);
+      continue;
+    }
+    const { gating, advisory } = properNounProbes(entry);
+    if (gating.length === 0 && advisory.length === 0) {
       unprobeable.push(entry);
       continue;
     }
-    for (const probe of probes) {
+    for (const probe of gating) {
       if (mentions(haystack, probe)) hits.push(`"${probe}" (from: ${entry})`);
+    }
+    for (const probe of advisory) {
+      if (mentions(haystack, probe)) echoes.push(`"${probe}" (from: ${entry})`);
     }
   }
 
@@ -331,6 +410,13 @@ export function checkMustAvoid(caseData: CorpusCase, identity: EventIdentity): C
       : { name: "mustAvoidNamedThings", status: "fail", detail: hits.join("; ") },
   ];
 
+  if (echoes.length > 0) {
+    checks.push({
+      name: "mustAvoidNameEchoes",
+      status: "advisory",
+      detail: `a word from a forbidden name appears; translation or reproduction is a judgement: ${echoes.join("; ")}`,
+    });
+  }
   if (unprobeable.length > 0) {
     checks.push({
       name: "mustAvoidTasteJudgements",
@@ -357,11 +443,22 @@ const LOGISTICS_PATTERNS: [string, RegExp][] = [
   // lookahead rather than by adding "of day" as a category, because a false positive
   // wrongly condemns a good question and a miss is caught by the qualitative reviewer.
   ["time", /\b(what|which)\s+time\b(?!\s+of\s+day)|\bstart(ing)?\s+time\b/i],
-  ["venue", /\b(what|which|the)\s+(venue|location)\b|\bwhere\s+(is|will|are|does|do)\b/i],
+  [
+    "venue",
+    /\b(what|which|the|a|any|your)\s+(venue|location)\b|\bwhere\s+(is|will|are|does|do)\b|\bvenue in mind\b/i,
+  ],
   ["address", /\baddress\b/i],
   ["rsvp", /\brsvp\b|\bdeadline\b/i],
-  ["guests", /\bhow many\s+(people|guests|are coming)\b|\bguest (count|list)\b/i],
+  [
+    "guests",
+    /\bhow (many|large|big)\b|\bguest (count|list)\b|\bhow many\s+(people|guests|are coming)\b/i,
+  ],
   ["budget", /\bbudget\b/i],
+  // Doctrine §5 classes a dress code as a fact about the event, not a taste question, and
+  // indoors/outdoors and season are inferences CU-03 forbids being made at all.
+  ["dressCode", /\bdress code\b|\bblack[- ]tie\b.*\?|\bhow formal (is|will)\b/i],
+  ["setting", /\bindoors?\b|\boutdoors?\b/i],
+  ["season", /\bwhat season\b|\bwhich season\b|\btime of year\b/i],
 ];
 
 export function logisticsCategories(question: string): string[] {
@@ -464,6 +561,7 @@ export function evaluateCase(caseData: CorpusCase, result: EventIdentityResult):
     checkFactsPreserved(caseData, result.suppliedFacts),
     checkFactsGrounded(caseData, result.suppliedFacts),
     reportFactFieldMapping(caseData, result.suppliedFacts),
+    reportSurplusFacts(caseData, result.suppliedFacts),
     checkHostNegationRespected(caseData, result.identity),
     checkExclusionSelfConsistency(result.identity),
     ...checkMustAvoid(caseData, result.identity),

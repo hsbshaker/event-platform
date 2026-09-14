@@ -37,14 +37,39 @@ function sourceFiles(dir: string): string[] {
 
 describe("the raw-prompt boundary", () => {
   it("is crossed by exactly one module", () => {
+    // The invariant is *who may read host prose*, not who may call a model. Phase 4C and 4D
+    // each add a legitimate second and third call site, so an inventory of call sites would
+    // fail by construction on correct work — and the cheapest way to green it is to append
+    // the new module, after which the test constrains nothing at all.
+    //
+    // Scoped to the model-call input type, not to any code touching a `prompt`. Phase 2's
+    // draft store reads `input.prompt` and must: storing what the host typed is not the same
+    // act as feeding it to a model, and the boundary this protects is the second one.
+    const readers = sourceFiles(SRC)
+      .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
+      .filter((file) => /GenerateEventIdentityInput/.test(readFileSync(file, "utf8")))
+      .map((file) => path.relative(SRC, file))
+      // provider.ts declares the type; declaring is not reading.
+      .filter((file) => file !== path.join("lib", "ai", "provider.ts"));
+
+    expect(readers).toEqual([INTERPRETER]);
+  });
+
+  it("has exactly one model call site today, and says what adding another costs", () => {
+    // Kept as a separate, extensible inventory rather than folded into the invariant above.
+    // Adding a module here is allowed — 4C and 4D will — but it is the moment to re-prove
+    // that the new call site reads the persisted identity and not the words behind it.
+    const allowed = [INTERPRETER];
     const callers = sourceFiles(SRC)
       .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
       .filter((file) =>
-        /\.responses\.create\(|\.chat\.completions\.create\(/.test(readFileSync(file, "utf8")),
+        // Every shape the SDK offers, not just the two this call happens to use: `stream`
+        // and `parse` reach the same model with the same payload.
+        /\.(responses|chat\.completions)\.(create|stream|parse)\(/.test(readFileSync(file, "utf8")),
       )
       .map((file) => path.relative(SRC, file));
 
-    expect(callers).toEqual([INTERPRETER]);
+    expect(callers).toEqual(allowed);
   });
 
   it("keeps the downstream call inputs free of prompt text", () => {
@@ -63,7 +88,9 @@ describe("the raw-prompt boundary", () => {
     expect(Object.keys(designIntent)).toEqual(["eventIdentity", "diversityAssignment"]);
     expect(Object.keys(composition)).toEqual(["designIntent", "capabilities", "directive"]);
 
-    // And the shapes carry no field that could smuggle prose in under another name.
+    // `eventIdentity` is `Record<string, unknown>` until Phase 4C types it, so the type
+    // system cannot yet stop prose arriving as `eventIdentity.sourcePrompt`. Say so rather
+    // than let the assertion above imply a guarantee it does not give.
     type HasPrompt<T> = Extract<keyof T, `${string}rompt${string}` | `${string}Text`>;
     const designIntentPromptFields: HasPrompt<GenerateDesignIntentInput>[] = [];
     const compositionPromptFields: HasPrompt<GenerateCompositionInput>[] = [];

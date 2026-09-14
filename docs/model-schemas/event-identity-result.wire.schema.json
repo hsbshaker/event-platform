@@ -203,7 +203,7 @@
               "type": "null"
             }
           ],
-          "description": "The date exactly as written, however partial. A month is not a date. Quoted from the host verbatim, or null. Never inferred."
+          "description": "The date exactly as written, however partial. Never expanded into a fuller date. Quoted from the host verbatim, or null. Never inferred."
         },
         "timeText": {
           "anyOf": [
@@ -236,7 +236,7 @@
               "type": "null"
             }
           ],
-          "description": "A street address, only if the host gave one. A description is not an address. Quoted from the host verbatim, or null. Never inferred."
+          "description": "A street address, only if the host gave one. Never derived from a described place. Quoted from the host verbatim, or null. Never inferred."
         },
         "localityText": {
           "anyOf": [

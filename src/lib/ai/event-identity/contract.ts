@@ -191,7 +191,7 @@ export const suppliedEventFactsSchema = z
       .max(120)
       .nullable()
       .describe(
-        "The date exactly as written, however partial. A month is not a date. Quoted from the host verbatim, or null. Never inferred.",
+        "The date exactly as written, however partial. Never expanded into a fuller date. Quoted from the host verbatim, or null. Never inferred.",
       ),
     timeText: z
       .string()
@@ -218,7 +218,7 @@ export const suppliedEventFactsSchema = z
       .max(300)
       .nullable()
       .describe(
-        "A street address, only if the host gave one. A description is not an address. Quoted from the host verbatim, or null. Never inferred.",
+        "A street address, only if the host gave one. Never derived from a described place. Quoted from the host verbatim, or null. Never inferred.",
       ),
     localityText: z
       .string()

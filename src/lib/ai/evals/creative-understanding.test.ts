@@ -162,6 +162,32 @@ describe("negative constraints", () => {
     expect(check.status).toBe("pass");
   });
 
+  it("does not fail a brief for naming the exclusion in prose", () => {
+    // All three of these are good answers that the bare-token version condemned.
+    const regressions: [string, Partial<EventIdentity>][] = [
+      [
+        "girly but no pink",
+        {
+          paletteIntent: {
+            requiredColors: [],
+            preferredColors: ["coral"],
+            avoidColors: ["pink"],
+            dominanceNotes: "greens and corals dominate; nothing pink-adjacent",
+          },
+        },
+      ],
+      ["cute but not childish", { copyTone: "warm and charming, never childish" }],
+      [
+        "preppy and warm, not cheesy",
+        { creativeDirection: "Preppy and warm without tipping into cheesy pastiche and kitsch." },
+      ],
+    ];
+    for (const [prompt, patch] of regressions) {
+      const check = checkHostNegationRespected(corpusCase({ prompt }), identity(patch));
+      expect(check.status, `${prompt}: ${check.detail}`).not.toBe("fail");
+    }
+  });
+
   it("catches an exclusion the model contradicts itself on", () => {
     const check = checkExclusionSelfConsistency(
       identity({
@@ -178,10 +204,47 @@ describe("negative constraints", () => {
 });
 
 describe("mustAvoid probing", () => {
-  it("extracts named things and ignores taste prose", () => {
-    expect(properNounProbes("any Ralph Lauren logo, wordmark or crest")).toContain("Ralph Lauren");
-    expect(properNounProbes("the Disney Winnie-the-Pooh character design")).toContain("Disney");
-    expect(properNounProbes("cartoon or novelty treatments")).toEqual([]);
+  it("gates on full names and only advises on their parts", () => {
+    const rl = properNounProbes("any Ralph Lauren logo, wordmark or crest");
+    expect(rl.gating).toContain("Ralph Lauren");
+    // "Ralph" alone cannot tell a reproduction from the translation spec.md §7.6 asks for.
+    expect(rl.advisory).toContain("Ralph");
+    expect(rl.gating).not.toContain("Ralph");
+
+    const pooh = properNounProbes("the Disney Winnie-the-Pooh character design");
+    expect(pooh.gating).toContain("Disney Winnie-the-Pooh");
+    expect(pooh.advisory).toContain("Disney");
+  });
+
+  it("finds nothing to probe in taste prose", () => {
+    const probes = properNounProbes("cartoon or novelty treatments");
+    expect(probes.gating).toEqual([]);
+    expect(probes.advisory).toEqual([]);
+  });
+
+  it("does not fail a brief for translating a reference into original language", () => {
+    // "Polo Bear" is forbidden; "polo-field linework" is exactly what §7.6 wants instead.
+    const checks = checkMustAvoid(
+      corpusCase({ mustAvoid: ["Polo Bear"] }),
+      identity({ visualMotifs: ["restrained polo-field linework"] }),
+    );
+    expect(checks.find((c) => c.name === "mustAvoidNamedThings")?.status).toBe("pass");
+    expect(checks.find((c) => c.name === "mustAvoidNameEchoes")?.status).toBe("advisory");
+  });
+
+  it("leaves an inferred-fact prohibition to the fact checks", () => {
+    // CU-03 forbids inferring Positano *as a fact*. "Amalfi-coast lemon groves" in the
+    // creative direction is licensed aesthetic inference, and the real failure — a fabricated
+    // localityText — is checkFactsGrounded's to catch.
+    const checks = checkMustAvoid(
+      corpusCase({
+        mustAvoid: ["inferring Positano, the Amalfi coast or any named place as a fact"],
+      }),
+      identity({
+        creativeDirection: "Amalfi-coast lemon groves rendered as restrained still life.",
+      }),
+    );
+    expect(checks.find((c) => c.name === "mustAvoidNamedThings")?.status).toBe("pass");
   });
 
   it("fails when a forbidden named thing appears in the identity", () => {

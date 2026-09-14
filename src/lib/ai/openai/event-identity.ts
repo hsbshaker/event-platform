@@ -66,7 +66,6 @@ export interface EventIdentityUsage {
   cachedInputTokens?: number;
   outputTokens?: number;
   reasoningTokens?: number;
-  costEstimateUsd?: number;
   latencyMs: number;
   /** Transient provider retries consumed. */
   transientRetries: number;
@@ -132,13 +131,23 @@ export async function generateEventIdentity(
   input: GenerateEventIdentityInput,
 ): Promise<EventIdentityCallResult> {
   const env = openAiEnv();
-  const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: env.OPENAI_API_KEY,
+    // Retrying is this file's job, not the SDK's. Left at the default (2) every
+    // `create()` would be up to three HTTP attempts, making the worst case eighteen
+    // requests against the six this policy documents — and `transientRetries` would
+    // undercount real provider load threefold in the run report.
+    maxRetries: 0,
+    // A hung request must not eat the eval run's budget and abort the cases after it.
+    timeout: 120_000,
+  });
   const schema = strictWireSchema();
   const startedAt = Date.now();
 
   let transientRetries = 0;
   let repairRetries = 0;
   let repairFeedback: string | undefined;
+  let previousRaw: string | undefined;
   let lastIssues: ValidationIssue[] | undefined;
 
   // Two passes at most: the original call, then the single repair retry.
@@ -147,7 +156,11 @@ export async function generateEventIdentity(
       { role: "system", content: systemPrompt() },
       { role: "user", content: userMessage(input.prompt) },
     ];
-    if (repairFeedback) {
+    if (repairFeedback && previousRaw !== undefined) {
+      // The Responses call is stateless, so without this the model is asked to correct a
+      // response it was never shown — making the "repair" a fresh generation with a
+      // confusing preamble, which is exactly the re-roll this policy exists to prevent.
+      messages.push({ role: "assistant", content: previousRaw });
       messages.push({
         role: "user",
         content: [
@@ -221,6 +234,7 @@ export async function generateEventIdentity(
     if (attempt === 0) {
       repairRetries = 1;
       repairFeedback = describeIssues(outcome.issues);
+      previousRaw = raw;
     }
   }
 
