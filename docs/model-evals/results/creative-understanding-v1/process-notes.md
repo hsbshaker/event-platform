@@ -43,6 +43,17 @@ that the runner's new plumbing type-checked, and an API key was present in the e
 It used the already-known regression corpus rather than the validation set, so no
 pre-registered case was spent.
 
+Two changes followed this first incident:
+
+1. **`EVAL_SET` has no default.** A bare `vitest run --project eval` now refuses with an error
+   naming the three scripts. Naming the set is how you say you meant it.
+2. **The runner derives its output directory from the set and hard-refuses the baseline path**,
+   so no run can overwrite immutable evidence in place — a hazard the validation-set review had
+   flagged before this happened.
+
+Neither prevented the second incident below, because neither addressed its cause: both guard
+against running the wrong set, and that run named the set it meant.
+
 ## A second accidental run occurred, and its output was also discarded
 
 During the harness pass that wired the sealed-challenge path, a second real run started against
@@ -68,14 +79,6 @@ real corpora, so confirming it never requires importing the module that spends m
 The general point, recorded because it is the more useful one: the eval runner is the single
 module in this repository that cannot be run to find anything out. Any future check placed inside
 it is unverifiable by construction, and belongs beside this one.
-
-Two changes followed so it cannot recur:
-
-1. **`EVAL_SET` has no default.** A bare `vitest run --project eval` now refuses with an error
-   naming the two scripts. Naming the set is how you say you meant it.
-2. **The runner derives its output directory from the set and hard-refuses the baseline path**,
-   so no run can overwrite immutable evidence in place — a hazard the validation-set review had
-   flagged before this happened.
 
 ## Benchmark leakage was caught four times in the production prompt
 

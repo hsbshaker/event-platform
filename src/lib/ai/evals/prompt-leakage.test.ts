@@ -22,6 +22,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { CORPUS_FILES, corpusPath, type CorpusSet } from "./corpus";
+
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 
 const PROMPT = readFileSync(`${ROOT}docs/model-prompts/event-identity.system.md`, "utf8");
@@ -47,24 +49,39 @@ interface EvalCase {
 /**
  * Every corpus the frozen prompt must not have seen.
  *
- * The sealed challenge is named here **before its cases exist**, guarded by `existsSync` so it
- * is a no-op until the file lands. Editing this array after the reveal would be a post-reveal
- * change to benchmark-integrity tooling — and given that four leaks reached the production
- * prompt during Phase 4A, the independently authored corpus is the last one that should go
- * unscanned. The prompt is frozen, so this can only ever fail by the corpus overlapping it,
- * which is what we would need to know before spending the set.
+ * The filenames come from `corpus.ts`, shared with the eval runner, so a path change cannot
+ * silently unhook this scan — which matters because the sealed challenge is named here **before
+ * its cases exist** and is skipped until the file lands. Given that four leaks reached the
+ * production prompt during Phase 4A, the independently authored corpus is the last one that
+ * should go unscanned, and wiring it now is what keeps its arrival from requiring an edit to
+ * benchmark-integrity tooling after the cases are known.
+ *
+ * A skip is reported as its own test below rather than inferred from a missing one: a control
+ * that quietly covers nothing is the defect `process-notes.md` already records.
  */
-const CORPORA = [
-  "creative-understanding.json",
-  "creative-understanding-holdout.json",
-  "creative-understanding-sealed-challenge.json",
-]
-  .map((file) => ({ file, path: `${ROOT}docs/model-evals/${file}` }))
-  .filter(({ path }) => existsSync(path))
-  .map(({ file, path }) => ({
-    file,
-    cases: (JSON.parse(readFileSync(path, "utf8")) as { cases: EvalCase[] }).cases,
-  }));
+const CANDIDATES = (Object.keys(CORPUS_FILES) as CorpusSet[]).map((set) => ({
+  file: CORPUS_FILES[set],
+  path: `${ROOT}${corpusPath(set)}`,
+}));
+const CORPORA = CANDIDATES.filter(({ path }) => existsSync(path)).map(({ file, path }) => ({
+  file,
+  cases: (JSON.parse(readFileSync(path, "utf8")) as { cases: EvalCase[] }).cases,
+}));
+const ABSENT = CANDIDATES.filter(({ path }) => !existsSync(path)).map(({ file }) => file);
+
+describe("which corpora this scan covers", () => {
+  it("scans every corpus that exists", () => {
+    expect(CORPORA.map((c) => c.file)).toEqual(
+      CANDIDATES.filter(({ path }) => existsSync(path)).map((c) => c.file),
+    );
+  });
+
+  // Prints the unscanned corpus by name. When the sealed challenge lands this test reports an
+  // empty list, and the three `describe`s below start covering it with no edit here.
+  it.runIf(ABSENT.length > 0)("names any corpus that does not exist yet, as unscanned", () => {
+    expect(ABSENT).toEqual(["creative-understanding-sealed-challenge.json"]);
+  });
+});
 
 const fold = (v: string) => v.normalize("NFC").replace(/\s+/g, " ").trim().toLowerCase();
 

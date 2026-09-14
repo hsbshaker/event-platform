@@ -95,8 +95,9 @@ describe("a corpus that would spend a paid case on nothing is refused", () => {
   it("reports every problem at once, not just the first", () => {
     // An author fixing a corpus cannot run our checker, so one round trip per problem is the
     // wrong shape of feedback.
-    const problems = validateCorpusShape({ cases: [{}, {}] });
-    expect(problems.length).toBeGreaterThanOrEqual(5);
+    // One `version` problem plus three per case: exact, so the accumulation is pinned rather
+    // than bounded.
+    expect(validateCorpusShape({ cases: [{}, {}] })).toHaveLength(7);
   });
 
   it("refuses an empty or absent case list instead of running zero cases", () => {
@@ -112,7 +113,13 @@ describe("a corpus that would spend a paid case on nothing is refused", () => {
     // It is handed `JSON.parse` output, which can be anything at all.
     expect(() => validateCorpusShape(null)).not.toThrow();
     expect(() => validateCorpusShape("a string")).not.toThrow();
+    // A top-level array is what a hand-edited corpus most plausibly becomes.
+    expect(() => validateCorpusShape([{ id: "X-01" }])).not.toThrow();
+    // …and a null or primitive case inside an otherwise well-formed list.
+    expect(() => validateCorpusShape({ version: "1.0.0", cases: [null, 3, "x"] })).not.toThrow();
     expect(validateCorpusShape(null).length).toBeGreaterThan(0);
+    expect(validateCorpusShape([{ id: "X-01" }]).length).toBeGreaterThan(0);
+    expect(validateCorpusShape({ version: "1.0.0", cases: [null] })).toHaveLength(3);
   });
 
   it("ignores the optional fields entirely, so any corpus style passes", () => {

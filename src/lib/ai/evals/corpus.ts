@@ -26,7 +26,42 @@
  * contract is published in `docs/model-contracts.md §4.5` so an author can satisfy it without
  * reading any of this.
  */
-export const CLARIFICATION_LABELS = ["no", "likely", "acceptable", "expected"] as const;
+import type { CorpusCase } from "./creative-understanding";
+
+/**
+ * `satisfies` ties these to the checker's own union, so the two declarations of the same four
+ * literals cannot drift apart silently. The import is type-only and fully erased.
+ */
+export const CLARIFICATION_LABELS = [
+  "no",
+  "likely",
+  "acceptable",
+  "expected",
+] as const satisfies readonly CorpusCase["expectClarification"][];
+
+/**
+ * Every corpus, named once.
+ *
+ * The runner and the leakage scan both need these paths, and they were separate string literals
+ * in two files. The scan skips a corpus it cannot find, so a path edited on the runner side would
+ * have silently unhooked the scan while `docs/model-contracts.md §4.5` went on asserting the
+ * sealed challenge is scanned the moment it lands — a control that stops anyone looking, which is
+ * the exact defect this project's leakage-scan claim already turned out to be once.
+ *
+ * `challenge` deliberately names a file that does not exist yet.
+ */
+export const CORPUS_FILES = {
+  regression: "creative-understanding.json",
+  holdout: "creative-understanding-holdout.json",
+  challenge: "creative-understanding-sealed-challenge.json",
+} as const;
+
+export type CorpusSet = keyof typeof CORPUS_FILES;
+
+/** Repository-relative, because both callers resolve it against their own root. */
+export function corpusPath(set: CorpusSet): string {
+  return `docs/model-evals/${CORPUS_FILES[set]}`;
+}
 
 /** Only the fields this validation reads. A corpus carries far more, all of it optional. */
 interface UncheckedCorpus {

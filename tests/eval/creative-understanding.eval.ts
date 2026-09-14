@@ -32,7 +32,7 @@ import { describe, expect, it } from "vitest";
 import { EventIdentityError, generateEventIdentity } from "@/lib/ai/openai/event-identity";
 import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understanding";
-import { validateCorpusShape } from "@/lib/ai/evals/corpus";
+import { corpusPath, validateCorpusShape } from "@/lib/ai/evals/corpus";
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
 import {
   appendJournal,
@@ -67,12 +67,12 @@ const ROOT = new URL("../../", import.meta.url).pathname;
  */
 const EVAL_SETS = {
   regression: {
-    corpus: "docs/model-evals/creative-understanding.json",
+    corpus: corpusPath("regression"),
     out: "docs/model-evals/results/creative-understanding-v1-regression",
     label: "REGRESSION RE-RUN — known cases, not fresh evidence",
   },
   holdout: {
-    corpus: "docs/model-evals/creative-understanding-holdout.json",
+    corpus: corpusPath("holdout"),
     out: "docs/model-evals/results/creative-understanding-holdout-v1",
     label:
       "PRE-REGISTERED VALIDATION SET — frozen before remediation, but known to the " +
@@ -80,7 +80,7 @@ const EVAL_SETS = {
       "generalization",
   },
   challenge: {
-    corpus: "docs/model-evals/creative-understanding-sealed-challenge.json",
+    corpus: corpusPath("challenge"),
     out: "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
     label:
       "SEALED CHALLENGE — independently authored after the production implementation was " +
@@ -159,7 +159,17 @@ interface Corpus {
  * It runs at module scope for the same reason the existence check does: this is the last moment
  * a malformed corpus costs nothing.
  */
-const corpus = JSON.parse(readFileSync(CORPUS, "utf8")) as Corpus;
+let corpus: Corpus;
+try {
+  corpus = JSON.parse(readFileSync(CORPUS, "utf8")) as Corpus;
+} catch (error) {
+  // A bare `SyntaxError` names neither the file nor the set, which is a poor first thing for an
+  // independent corpus author to see.
+  throw new Error(
+    `${path.relative(ROOT, CORPUS)} is not valid JSON, so EVAL_SET=${SET} cannot run. ` +
+      `No provider call is made. ${(error as Error).message}`,
+  );
+}
 const shapeProblems = validateCorpusShape(corpus);
 if (shapeProblems.length > 0) {
   throw new Error(
@@ -181,8 +191,6 @@ describe("creative-understanding corpus", () => {
             "would produce evidence about nothing.",
         );
       }
-
-      expect(corpus.cases.length).toBeGreaterThan(0);
 
       process.stdout.write(`\n${EVAL_SETS[SET].label}\n\n`);
       const startedAt = new Date().toISOString();
