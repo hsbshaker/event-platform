@@ -11,6 +11,7 @@ Do **not** begin implementation by guessing from the codebase alone. Read the au
 
 Use this source-of-truth order:
 
+0. **`docs/product-doctrine.md`** — what this product promises, the creative bar it has to clear, and the responsibilities of `EventIdentity` / `DesignIntent` / `CompositionTree` / compiler. **Read it first, before any creative or product decision.** It is intent, not requirements: it decides nothing on its own, it never overrides a document below it, and `spec.md` remains the authority for requirements and acceptance criteria. Where it and a lower document disagree about a *requirement*, that is a real conflict to raise — its §14 lists the ones known today — never one to resolve by quietly editing either side.
 1. **`spec.md`** — product, business, data, architecture, permissions, lifecycle, acceptance criteria, and implementation guardrails.
 2. **`docs/technology-decisions.md`** — locked MVP stack. Do not relitigate or substitute infrastructure by preference.
 3. **`docs/design-system.md`** — application UX, interaction patterns, visual tokens, responsive behavior, motion, accessibility, and strict component governance.
@@ -22,7 +23,7 @@ Use this source-of-truth order:
 9. **`docs/prototypes/creation-flow.html`** — behavioral reference only; it does not override the docs above.
 10. **`proof/`, `proof-a1/`, `proof-b/`** — the proof phases that decided the renderer architecture; `proof-b/` is the reference implementation of the composition language, validator, compiler pipeline, planner and regression suite until the production package exists. **`docs/renderer-tests/`** — older visual evidence; not product requirements.
 
-If two documents conflict, follow the higher source in this list unless that higher source explicitly delegates an implementation detail to a lower one.
+If two documents conflict, follow the higher source in this list unless that higher source explicitly delegates an implementation detail to a lower one. Item 0 is the exception, and the only one: it is read first and ranks last, because it explains what we are trying to build rather than what is required.
 
 Historical files such as `spec_v4.md`, old prototypes, and the first renderer gallery are evidence only. Do not make them current by patching them.
 
@@ -32,7 +33,9 @@ Historical files such as `spec_v4.md`, old prototypes, and the first renderer ga
 
 Before proposing or implementing a solution, check it against these rules:
 
-- **AI should remove decisions, not create more decisions.**
+- **AI should remove decisions, not create more decisions.** It means the system makes the design decisions it was hired to make — never which font, which grid, which hex value. `docs/product-doctrine.md §7`.
+- **Design quality and creative understanding are core functionality, not polish.** MVP is permission to omit features, never permission for a mediocre central path. `docs/product-doctrine.md §2`.
+- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. `docs/product-doctrine.md §4`.
 - The landing page is the prompt.
 - Prompt first → auth/save second → strong-model generation third.
 - Prompt and inspiration must survive auth/OAuth exactly.
@@ -50,7 +53,7 @@ Before proposing or implementing a solution, check it against these rules:
 - The Phase A/A.1 recipes are a library: regression fixtures, few-shot examples, repair/fallback macros, calibration. Not a menu, not the creative ceiling, no renderer code per recipe.
 - Generated design data is immutable; renderer code may receive bug/accessibility/responsive fixes.
 - App chrome and event renderer styling are separate systems.
-- No decorative event-site imagery in MVP.
+- No host-uploaded, stock or model-placed site imagery. **Optional AI-generated thematic artwork is approved for Phase 4** (`spec.md §7.6a`): optional and chosen by the creative direction, art-directed to serve the composition, and placed by the compiler through the composition language — never mandatory, never by pixel or model-authored CSS. Not in the current build (`docs/product-doctrine.md §9`–`§10`).
 - No guest accounts.
 - No gift reservation/hold state.
 - Mobile-first does not mean phone-framed desktop.

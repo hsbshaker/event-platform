@@ -271,6 +271,12 @@ A clarification of the architecture above, not a change to it. Revision 2 replac
 
 # 8. Typography, motifs, palette, density, guest components, imagery
 
+**Imagery is not defined here.** The boundary is `spec.md §11.11`, with the component rule in
+`design-system.md §15.11`: no host, stock or model-placed imagery, and — approved for Phase 4 and
+not in the current build — optional, art-directed, compiler-placed thematic artwork under
+`spec.md §7.6a`. Nothing in the current primitive set renders an image; adding one is a
+primitive-set version bump and a §9 gate re-run.
+
 Sections 6–9, 14 and 19 of Revision 1 stand, with these deltas:
 - typography compatibility is by family and hierarchy (a pairing must hold at monumental scale), not by archetype;
 - motifs are placed by the tree in one of five structural slots (`MotifField`, `MotifBand`, `Frame.motif`, `Glyph`, `Rule.glyphs`); each declares a **kind** (pattern or arrangement) and a **role** (field, band, frame, divider, accent), and the compiler resolves opacity and scale within bounded steps. A motif of the wrong kind for its slot is swapped and logged (`motif.kind`), never dropped silently; a motif whose declared roles do not admit its slot is swapped and logged (`motif.role`).
@@ -287,9 +293,9 @@ The proof harnesses are the regression suite. A change to the language, validato
 1. **Unit tests** (`proof-b/test.js`): library validity and canonicalization, every repair rule with a fixture, schema-invalid rejection, attractive-token detectors, planner distinctness, signature calibration.
 2. **Adversarial set** (`proof-b/adv-run.js`): every structural fixture repairs to zero remaining violations and renders with zero overflow at both widths; every schema-invalid payload is rejected with a rule and path.
 3. **Expressiveness**: all 26 silhouettes and 13 section recipes validate and render (`library-heroes-*.png`).
-4. **Model confirmation run** (`proof-b/run-model.js --batches`, `render-set.js`, `evaluate.js`): sixty trees in sibling batches plus a reduced-capabilities batch, no curation, reported separately as schema validity, deterministic repairs, geometry, novelty and distinct skeletons, attractive-token distribution, collision rate, and design-quality review. Thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes; reviewers rate ≥ 70% of model screens designed.
+4. **Model confirmation run** (`proof-b/run-model.js --batches`, `render-set.js`, `evaluate.js`): sixty trees in sibling batches plus a reduced-capabilities batch, no curation, reported separately as schema validity, deterministic repairs, geometry, novelty and distinct skeletons, attractive-token distribution, collision rate, and design-quality review. Thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes. The human design-quality bar is deliberately not in this list: it is a launch gate rather than a regression threshold, its number was never approved as settled, and it is calibrated at Human Test #2 (`spec.md §11.9`).
 
-Palette-compiler unit tests, contrast rules and the imagery boundaries of Revision 1 remain in force.
+Palette-compiler unit tests and contrast rules remain in force. The imagery boundary is `spec.md §11.11` and `design-system.md §15.11` — Revision 1 of this document is not in the repository, so it is cited there rather than here.
 
 ---
 

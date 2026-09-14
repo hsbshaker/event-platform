@@ -8,6 +8,12 @@ against the hand-authored library (`docs/CHANGELOG-v6.md`, open condition 2); it
 production prompt/model choice. The launch gate is human test #2 on the frozen production
 stack (Phase 10).
 
+**Status of the ≥ 70% number.** It is the bar this frozen instrument's scorer enforces, and it is
+unchanged here. It is **not** an approved product threshold: this run was stopped early, produced
+qualitative calibration evidence only, and established no pass/fail result — no score is claimed
+from it. Human Test #2 calibrates its own threshold rather than inheriting this one
+(`../../spec.md §11.9`, `qualitative-findings.md`).
+
 **Blinding:** the sheets are `sheets/human-test-1280-gray-unlabeled.png` and
 `sheets/human-test-390-gray-unlabeled.png`, taken verbatim from the frozen proof branch
 `proof/phase-b` (`b74ccab`). Reviewers must never see `proof-b/human-test-key.txt` or

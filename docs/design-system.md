@@ -1935,13 +1935,21 @@ It inherits event styling but remains low-emphasis and non-editable in MVP.
 ## 15.11 No decorative site imagery in MVP
 
 No:
+
 - hero/event photo uploads;
 - venue/maternity galleries;
 - stock photography;
-- AI-generated decorative imagery;
-- crop/position tools.
+- crop/position tools;
+- any image placed by the model rather than by the composition language.
 
 Design power comes from composition, type, palette, motif, texture, pattern, border, and spacing.
+
+**Phase 4 exception, approved: original AI-generated thematic artwork** (`../spec.md §7.6a`). It is
+optional and chosen by the creative direction, art-directed to serve the composition, and placed by
+the compiler through the composition language — never by pixel, never by model-authored CSS, and
+never on every concept by default. Text readability and semantic hierarchy always win over artwork.
+It is not in the current build, and it does not reopen host photography, galleries or stock imagery,
+which remain excluded above.
 
 ---
 

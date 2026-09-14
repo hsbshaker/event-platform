@@ -70,7 +70,62 @@ The Phase B confirmation run used raw JSON output without provider-side schema e
 
 # 4. Event Identity
 
+**This call is the product's creative interpreter, not a preprocessing step.** Its question is
+*what does this host mean, and what creative world should this event belong to?*, and the bar on its
+output is that a strong human designer reading it would know what assignment they had been given.
+It is also the only call that sees the raw host prompt (§1, §6.1): a raw prompt is never forwarded
+into a generic website- or image-generation prompt, so whatever this call fails to understand is
+lost for the rest of the pipeline. `product-doctrine.md §3`–`§5` state what that means for
+interpretation, and in particular the boundary this call must hold: **aesthetic implication is
+inferred; a date, a venue, a dress code or any other fact is quoted from the host or absent.**
+
 Unchanged from Revision 1 except the catalogs: `availableHeroArchetypes` becomes `availableFamilies` (`editorial`, `invitation`, `statement`, each with an intent sentence) and `compatibleHeroArchetypes` becomes `compatibleFamilies`. Runtime narrowing, semantic invariants, the untrusted-input rules and evals EI-01…EI-10 stand with that substitution. `docs/model-prompts/event-identity.system.md` carries the family catalog.
+
+## 4.5 Creative-understanding evaluation contract
+
+Everything else in this document measures whether output is **legal**. This measures whether it is
+**right**, which is the capability Phase 4 exists to deliver (`product-doctrine.md §3`). Phase 4 is
+not complete without it.
+
+**Corpus:** `docs/model-evals/creative-understanding.json` (`creative_understanding_v1`), fourteen
+cases. It is deliberately small and deliberately durable: vague and taste-heavy prompts, prompts
+carrying a negative constraint, prompts already clear enough that the right number of questions is
+zero, prompts carrying facts that must survive verbatim, one open delegation, and one genuinely
+ambiguous case where a question should earn its place. Each case declares its class, the facts the
+host actually supplied, whether clarification is expected, and what would count as an outright
+failure. It is data; **no runner exists yet, and this pass does not build one.**
+
+### The rubric
+
+Seven dimensions apply to `EventIdentity` alone and are gradeable as soon as the call exists. Three
+more become gradeable only when later stages do.
+
+| # | Dimension | Question | Method |
+| --- | --- | --- | --- |
+| 1 | Intent understanding | Did it capture the actual vibe and subtext rather than keyword-match? | **Qualitative** |
+| 2 | Creative vocabulary | Are the inferred associations coherent, specific, and useful to a designer? | **Qualitative** |
+| 3 | Taste / cliché avoidance | Where the prompt asked for restraint, did it avoid the obvious, cheesy or over-literal reading? | **Mixed** — `mustAvoid` is deterministic; whether the rest reads as cliché is not |
+| 4 | Fact discipline | Did it invent no venue, date, location, dress code or preference the host did not supply, while carrying supplied facts verbatim? | **Deterministic** — compare against the case's `facts` |
+| 5 | Clarification judgment | Did it ask only when ambiguity materially affects the creative identity, ask nothing when the prompt was sufficient, ask no logistics, stay within the ceiling, and always offer a `You decide` option? | **Mixed** — count, ceiling, logistics-freedom and the `You decide` option are deterministic; whether a question was *worth asking* is not |
+| 6 | Reference translation | Did a named reference become original visual language, with no logo, proprietary character or campaign artwork? | **Mixed** — `mustAvoid` terms are deterministic; genuine originality is not |
+| 7 | Downstream usefulness | Would a strong human designer know what assignment they had been given? | **Qualitative** |
+| 8 | Direction diversity | Are the three directions genuinely different creative expressions rather than palette or font swaps? | **Mixed** — the skeleton signature and planner distinctness (§5.3, `spec.md §11.9`) are deterministic and necessary; whether they *feel* like different ideas is not. Requires DesignIntent |
+| 9 | Intent fidelity | Do all three remain faithful to the interpreted identity? | **Qualitative.** Requires DesignIntent |
+| 10 | One-shot quality | Does the result need personalization, or rescue? | **Human gate.** Requires the full stack; judged at Human Test #2 |
+
+**Do not pretend all ten automate.** Four of the seven identity dimensions are wholly or partly
+deterministic — fact discipline fully, and cliché avoidance, clarification judgment and reference
+translation in their negative half, which is the half that catches outright failures. Intent
+understanding, creative vocabulary and downstream usefulness need a qualitative evaluator, and the
+one-shot bar needs humans. A mechanical pass on 3–6 is necessary and never sufficient.
+
+### What this does not become
+
+A benchmark project. Fourteen cases, one rubric, run against a real model when Phase 4 has one. Do
+not grow the corpus to chase coverage, do not build a scoring service, and do not gate ordinary
+code changes on it — it measures the creative stack, not the compiler.
+
+---
 
 ---
 
@@ -167,7 +222,16 @@ Re-prompts exist only for schema-invalid output, a token-cap violation and a sel
 - **CO-07 — collisions**: 0 sibling pairs at or above .70 after the selector.
 - **CO-08 — directives**: structure, surface, details and RSVP-intro compliance ≥ 90%; date and opening ≥ 70%.
 - **CO-09 — adversarial feedback**: feedback asking for CSS, images, a tenth section or free copy yields an ordinary tree.
-- **CO-10 — review**: reviewers rate ≥ 70% of model first screens designed on unlabeled grayscale sheets; model screens do not collapse into a small number of recurring template groups, and do not simply map onto the library groups.
+- **CO-10 — review**: model screens do not collapse into a small number of recurring template groups, and do not simply map onto the library groups, on unlabeled grayscale sheets. **The human design-quality rate is deliberately not a threshold here**: it is a launch gate rather than a confirmation-run metric, Human Test #1 established no pass/fail result, and Human Test #2 calibrates its own threshold (`spec.md §11.9`). The ≥ 70% figure in earlier revisions was provisional and never approved as settled.
+
+**What these evals do not cover.** CO-01…CO-11 measure whether output is *legal* — schema,
+structure, geometry, diversity, directive compliance. None measures whether it is *right* for the
+event the host described, and CO-10 cannot: unlabeled grayscale sheets remove the brief and the
+palette by construction. This document's own goal statement — "faithful user-intent capture" (§0) —
+is therefore asserted and not tested, and theme fidelity is first judged at Phase 10, the launch
+gate. `product-doctrine.md §3` explains why that gap is the expensive one. **§4.5 now defines the
+evaluation that closes it**, over `docs/model-evals/creative-understanding.json`; what remains is a
+runner, not a definition, and the Phase 4 exit criterion depends on it.
 
 Thresholds are those of `proof-b/RESULTS.md` and `proof-b/FINAL.md`; rerun them whenever prompt, schema, primitive set, compiler, renderer rules or planner change.
 
