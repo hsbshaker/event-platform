@@ -161,7 +161,7 @@ read a clean mechanical run as evidence on clarification.
 The middle row is the one most easily overstated, and `results/creative-understanding-v1/process-notes.md`
 records why, along with the one semantic axis inside it that is not novel.
 
-**Runner:** `npm run eval:regression` / `npm run eval:holdout` (`tests/eval/creative-understanding.eval.ts`),
+**Runner:** `npm run eval:regression` / `npm run eval:holdout` / `npm run eval:challenge` (`tests/eval/creative-understanding.eval.ts`),
 added in Phase 4A. It runs the cases **sequentially** against the live model — concurrent calls
 would report a latency no host will ever experience — records failures rather than retrying
 them away, and writes four files to the directory its `EVAL_SET` names — never the immutable baseline, which it refuses:
@@ -182,10 +182,31 @@ under a stamped name, never appended to and never deleted — so two runs can ne
 file. `run.json` is written only on a clean finish, so a journal with no `run.json` beside it is
 visibly an aborted run.
 
-Recovering a report from a journal is a manual job today: `readJournal` returns the intact entries
-and reports damaged lines, and nothing rebuilds `run.json` or the two reports from them. That is a
-known gap, recorded rather than implied — the journal guarantees the responses survive, not that
-the evidence rebuilds itself.
+**What the journal must contain, so that recovery is possible at all.** If deterministic
+evaluation or report generation crashes after a case has finished its provider interaction, that
+case's journal entry plus the frozen corpus and code must be enough to reconstruct it faithfully,
+with no second model call and nothing guessed. So each entry carries the case's identity and the
+corpus it indexes into (`caseId`, `evalSet`, `corpusVersion`), the run it came from
+(`runStartedAt`), and the fully-built telemetry the report itself records — `promptVersion` and
+`schemaVersion` among it, kept in one place rather than duplicated, because two copies of a
+version are two chances to disagree. A successful entry adds the raw provider text and the
+validated output; a failed one adds the error kind, message and validation issues, and every paid
+raw response. Fields the provider never returned stay absent: a zero token count would be a
+measurement nobody made. Every field is required, so a call site that forgets one does not
+compile.
+
+Recovering a *report* from a journal is still a manual job: `readJournal` returns the intact
+entries and reports damaged lines, and nothing rebuilds `run.json` or the two documents from them.
+That is a known tooling gap, recorded rather than implied — the journal guarantees the evidence is
+recoverable, not that it rebuilds itself.
+
+**The sealed challenge path is wired before its cases exist.** `EVAL_SET=challenge` names a corpus
+and an output directory that are fixed now; the corpus file is deliberately absent and is authored
+independently after the implementation freeze. A challenge invocation before it lands fails at
+module scope — before the API-key check, before a client is constructed, and with no provider call
+— and the runner refuses any set whose corpus is missing, uniformly. Adding the file must then be
+the entire change: no runner, checker, prompt, schema or model code may move, because moving any
+of it after seeing the cases is precisely what a sealed challenge exists to prevent.
 
 The deterministic checks live in `src/lib/ai/evals/creative-understanding.ts` and decide exactly
 one thing — whether an **outright failure** was committed. Two of them are derived from the host's

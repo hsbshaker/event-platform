@@ -32,6 +32,8 @@
 import { appendFileSync, existsSync, readFileSync, renameSync } from "node:fs";
 import path from "node:path";
 
+import type { CaseRun } from "./report";
+
 export const JOURNAL_FILENAME = "raw-responses.jsonl";
 
 /**
@@ -49,14 +51,58 @@ export const JOURNAL_FILENAME = "raw-responses.jsonl";
  */
 export type JournalStatus = "response" | "unvalidated_response" | "no_response";
 
+/**
+ * A case that completed its provider interaction, recorded completely enough to rebuild from.
+ *
+ * The recovery invariant: **if deterministic evaluation or report generation crashes after a
+ * case has finished talking to the provider, this entry plus the frozen corpus and code must be
+ * enough to reconstruct that case faithfully, with no second model call and nothing guessed.**
+ *
+ * So the entry carries what `run.json` carries and nothing is left in memory: the identity of
+ * the case (`caseId`) and of the corpus it belongs to (`evalSet`, `corpusVersion`), so a lone
+ * journal file says which prompts to join it against; the run it came from (`runStartedAt`); and
+ * a fully-built `telemetry` object rather than the raw provider `usage` it is derived from —
+ * including `promptVersion` and `schemaVersion`, which live there and are deliberately not
+ * duplicated at this level, because two copies of a version are two chances to disagree.
+ *
+ * Every field here is required, so `tsc` refuses a call site that forgets one. That is the point:
+ * the previous version of this file left `payload` as `unknown`, and what a recovery would have
+ * needed was whatever the caller happened to pass.
+ */
 export interface JournalEntry {
   caseId: string;
   status: JournalStatus;
   /** The `startedAt` of the run that produced this entry. Makes every line attributable. */
   runStartedAt: string;
   recordedAt: string;
-  payload: unknown;
+  /** Which corpus the `caseId` indexes into, and at which version. */
+  evalSet: string;
+  corpusVersion: string;
+  payload: JournalResponsePayload | JournalFailurePayload;
 }
+
+/** A response the provider returned and our validation accepted. */
+export interface JournalResponsePayload {
+  raw: string;
+  output: unknown;
+  telemetry: CaseTelemetry;
+}
+
+/**
+ * A case that produced no accepted output. `rawResponses` is every text the provider returned
+ * and we were billed for — empty only for a `no_response` entry.
+ *
+ * `telemetry` is what the runner recorded at failure time. `usage` fields the provider never
+ * returned stay absent rather than being filled with a placeholder: a zero token count would be
+ * a measurement we did not make.
+ */
+export interface JournalFailurePayload {
+  error: { kind: string; message: string; issues?: { path: string; message: string }[] };
+  rawResponses: string[];
+  telemetry: CaseTelemetry;
+}
+
+type CaseTelemetry = CaseRun["telemetry"];
 
 export interface JournalReadResult {
   entries: JournalEntry[];
@@ -85,6 +131,46 @@ export function rotateJournal(dir: string, runStartedAt: string): string | null 
   const rotated = path.join(dir, `${JOURNAL_FILENAME}.${runStartedAt.replace(/[:.]/g, "-")}`);
   renameSync(journal, rotated);
   return rotated;
+}
+
+/** What a case's entry shares regardless of how the call went. */
+export interface JournalCaseContext {
+  caseId: string;
+  runStartedAt: string;
+  evalSet: string;
+  corpusVersion: string;
+  recordedAt: string;
+}
+
+/**
+ * Build the entry for a response our validation accepted.
+ *
+ * `telemetry` is the same object the run report records, passed in rather than rebuilt here, so
+ * the journal and `run.json` cannot drift into describing the same case differently.
+ */
+export function responseEntry(
+  context: JournalCaseContext,
+  response: JournalResponsePayload,
+): JournalEntry {
+  return { ...context, status: "response", payload: response };
+}
+
+/**
+ * Build the entry for a case that produced no accepted output.
+ *
+ * The status is decided by what was actually returned, never by the error's `kind`: a provider
+ * failure on the repair attempt follows a first response that was returned and billed, and
+ * calling that `no_response` would assert the provider never answered.
+ */
+export function failureEntry(
+  context: JournalCaseContext,
+  failure: JournalFailurePayload,
+): JournalEntry {
+  return {
+    ...context,
+    status: failure.rawResponses.length > 0 ? "unvalidated_response" : "no_response",
+    payload: failure,
+  };
 }
 
 export function appendJournal(journalPath: string, entry: JournalEntry): void {

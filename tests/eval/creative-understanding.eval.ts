@@ -4,7 +4,8 @@
  * A case is one model call, or two when the single repair retry is spent (`§8`), plus any
  * transient HTTP retries underneath those.
  *
- * Run with `npm run eval:regression` or `npm run eval:holdout`. It is its own vitest project,
+ * Run with `npm run eval:regression`, `npm run eval:holdout` or `npm run eval:challenge`. It is
+ * its own vitest project,
  * excluded from `npm test`, because it costs money, takes minutes and talks to a live provider —
  * `docs/model-contracts.md §4.5`: "do not gate ordinary code changes on it — it measures
  * the creative stack, not the compiler."
@@ -34,8 +35,10 @@ import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understan
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
 import {
   appendJournal,
+  failureEntry,
   JOURNAL_FILENAME,
   recordThenEvaluate,
+  responseEntry,
   rotateJournal,
 } from "@/lib/ai/evals/journal";
 
@@ -43,8 +46,8 @@ const ROOT = new URL("../../", import.meta.url).pathname;
 /**
  * Which corpus runs, and where its evidence lands.
  *
- * There is no default — see the `EVAL_SET` check below. Neither set available here is fresh
- * generalization evidence, and the labels say so, because a report that overstates its own
+ * There is no default — see the `EVAL_SET` check below. Exactly one of these three is fresh
+ * generalization evidence, and the labels say which, because a report that overstates its own
  * evidence class is how a weak result gets read as a strong one:
  *
  * - **regression** — the original cases. Every output has been inspected and discussed
@@ -53,8 +56,9 @@ const ROOT = new URL("../../", import.meta.url).pathname;
  * - **holdout** — the pre-registered validation set. Frozen and independently reviewed before
  *   the remediation, but authored by the same person who then wrote the prompt, with knowledge
  *   of the cases. Useful validation; not the strongest evidence of generalization.
- *
- * The independently authored sealed challenge is what will provide that, and it is not here.
+ * - **challenge** — the sealed challenge, and the only fresh evidence of the three. Its corpus
+ *   does not exist yet, deliberately: this path was wired and frozen first so that revealing the
+ *   cases cannot be followed by an adjustment to the harness that grades them.
  *
  * The output directory is derived from the set, never shared. Hardcoding it meant pointing the
  * runner at a second corpus would have overwritten the immutable Phase 4A baseline in place,
@@ -74,6 +78,13 @@ const EVAL_SETS = {
       "implementation author; useful validation evidence, not the strongest evidence of " +
       "generalization",
   },
+  challenge: {
+    corpus: "docs/model-evals/creative-understanding-sealed-challenge.json",
+    out: "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
+    label:
+      "SEALED CHALLENGE — independently authored after the production implementation was " +
+      "frozen; strongest fresh/generalization evidence",
+  },
 } as const;
 
 /**
@@ -86,8 +97,8 @@ const SET = process.env.EVAL_SET as keyof typeof EVAL_SETS | undefined;
 if (!SET || !(SET in EVAL_SETS)) {
   throw new Error(
     `EVAL_SET must be set explicitly to one of ${Object.keys(EVAL_SETS).join(", ")}. ` +
-      "Use `npm run eval:regression` or `npm run eval:holdout`; this run costs money and " +
-      "writes evidence, so it never starts by accident.",
+      "Use `npm run eval:regression`, `npm run eval:holdout` or `npm run eval:challenge`; " +
+      "this run costs money and writes evidence, so it never starts by accident.",
   );
 }
 const CORPUS = path.join(ROOT, EVAL_SETS[SET].corpus);
@@ -100,8 +111,27 @@ if (OUT === BASELINE) {
 }
 
 /**
- * Evidence is written once. The validation set in particular is one-shot by construction — a
- * second `npm run eval:holdout` would destroy the first and only fresh evidence exactly as the
+ * The corpus has to exist before anything else happens.
+ *
+ * This is what makes the challenge path safely dormant: its corpus is deliberately absent until
+ * after the freeze, and `npm run eval:challenge` must fail here — at module scope, during
+ * collection, before the API-key check, before any client is constructed and a very long way
+ * before a request — rather than partway through a run. When the sealed cases do arrive, adding
+ * the file is the whole change: no runner, checker, prompt, schema or model code moves, because
+ * moving any of it after seeing the cases is the thing a sealed challenge exists to prevent.
+ */
+if (!existsSync(CORPUS)) {
+  throw new Error(
+    `${path.relative(ROOT, CORPUS)} does not exist, so EVAL_SET=${SET} cannot run. ` +
+      "No provider call is made. If this is the sealed challenge, its corpus is authored " +
+      "independently and added after the implementation freeze; nothing else needs to change.",
+  );
+}
+
+/**
+ * Evidence is written once. Both the validation set and the sealed challenge are one-shot by
+ * construction — a second `npm run eval:holdout` would destroy the pre-registered validation
+ * evidence, and a second `npm run eval:challenge` the generalization evidence, exactly as the
  * accidental run nearly did. `EVAL_OVERWRITE=1` is the deliberate override.
  */
 if (existsSync(OUT) && process.env.EVAL_OVERWRITE !== "1") {
@@ -147,6 +177,16 @@ describe("creative-understanding corpus", () => {
       const rotated = rotateJournal(OUT, startedAt);
       if (rotated) process.stdout.write(`kept the previous journal as ${path.basename(rotated)}\n`);
 
+      // Which corpus a `caseId` indexes into, and at what version, so a lone journal file names
+      // the prompts it should be joined against rather than leaving a recovery to infer them.
+      const caseContext = (caseId: string) => ({
+        caseId,
+        runStartedAt: startedAt,
+        evalSet: SET,
+        corpusVersion: corpus.version,
+        recordedAt: new Date().toISOString(),
+      });
+
       for (const caseData of corpus.cases) {
         process.stdout.write(`${caseData.id} … `);
         const startedCase = Date.now();
@@ -164,13 +204,16 @@ describe("creative-understanding corpus", () => {
           call = await generateEventIdentity({ prompt: caseData.prompt });
         } catch (error) {
           const failure = error as EventIdentityError;
-          runs.push({
-            caseData,
+          // Built once and journaled as well as reported, so the two records of this case cannot
+          // describe it differently. `failureEntry` decides the status from what was actually
+          // returned rather than from `kind`.
+          const payload = {
             error: {
               kind: failure.kind ?? "unknown",
               message: failure.message,
               issues: failure.issues,
             },
+            rawResponses: failure.rawResponses ?? [],
             telemetry: {
               model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol",
               promptVersion: EVENT_IDENTITY_PROMPT_VERSION,
@@ -180,55 +223,42 @@ describe("creative-understanding corpus", () => {
               repairRetries: failure.usage?.repairRetries ?? 0,
               schemaValidFirstCall: false,
             },
-          });
-          // `invalid_output` is not a call that produced nothing: the provider answered — twice,
-          // when the repair retry was spent — and our validation rejected the text. Recording
-          // that as a provider failure would claim the model never responded, and would hide
-          // paid text from anyone reading the journal back.
-          const rawResponses = failure.rawResponses ?? [];
-          appendJournal(journal, {
-            caseId: caseData.id,
-            status: rawResponses.length > 0 ? "unvalidated_response" : "no_response",
-            runStartedAt: startedAt,
-            recordedAt: new Date().toISOString(),
-            payload: { kind: failure.kind ?? "unknown", message: failure.message, rawResponses },
-          });
+          };
+          runs.push({ caseData, error: payload.error, telemetry: payload.telemetry });
+          appendJournal(journal, failureEntry(caseContext(caseData.id), payload));
           process.stdout.write(`FAILED (${failure.kind})\n`);
           continue;
         }
 
         {
           const succeeded = call;
+          // Built before the journal write and shared with `run.json`: a plain object literal
+          // over values already in hand, so nothing here can throw between the response arriving
+          // and it being on disk, and the two records cannot drift.
+          const telemetry = {
+            model: succeeded.usage.model,
+            promptVersion: succeeded.promptVersion,
+            schemaVersion: succeeded.schemaVersion,
+            latencyMs: succeeded.usage.latencyMs,
+            transientRetries: succeeded.usage.transientRetries,
+            repairRetries: succeeded.usage.repairRetries,
+            schemaValidFirstCall: succeeded.usage.schemaValidFirstCall,
+            inputTokens: succeeded.usage.inputTokens,
+            cachedInputTokens: succeeded.usage.cachedInputTokens,
+            outputTokens: succeeded.usage.outputTokens,
+            reasoningTokens: succeeded.usage.reasoningTokens,
+            providerRequestId: succeeded.usage.providerRequestId,
+          };
           const evaluation = recordThenEvaluate(
             journal,
-            {
-              caseId: caseData.id,
-              status: "response",
-              runStartedAt: startedAt,
-              recordedAt: new Date().toISOString(),
-              payload: { raw: succeeded.raw, output: succeeded.output, usage: succeeded.usage },
-            },
+            responseEntry(caseContext(caseData.id), {
+              raw: succeeded.raw,
+              output: succeeded.output,
+              telemetry,
+            }),
             () => evaluateCase(caseData, succeeded.output),
           );
-          runs.push({
-            caseData,
-            result: call.output,
-            evaluation,
-            telemetry: {
-              model: call.usage.model,
-              promptVersion: call.promptVersion,
-              schemaVersion: call.schemaVersion,
-              latencyMs: call.usage.latencyMs,
-              transientRetries: call.usage.transientRetries,
-              repairRetries: call.usage.repairRetries,
-              schemaValidFirstCall: call.usage.schemaValidFirstCall,
-              inputTokens: call.usage.inputTokens,
-              cachedInputTokens: call.usage.cachedInputTokens,
-              outputTokens: call.usage.outputTokens,
-              reasoningTokens: call.usage.reasoningTokens,
-              providerRequestId: call.usage.providerRequestId,
-            },
-          });
+          runs.push({ caseData, result: succeeded.output, evaluation, telemetry });
           const last = runs[runs.length - 1];
           process.stdout.write(
             `${last.telemetry.latencyMs}ms ${last.evaluation?.mechanicalPass ? "ok" : "MECHANICAL FAIL"}\n`,

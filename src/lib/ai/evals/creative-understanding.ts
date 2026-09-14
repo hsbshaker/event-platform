@@ -46,12 +46,14 @@ export interface HostPhrase {
 }
 
 /**
- * One evaluation case, covering both corpora.
+ * One evaluation case, covering every corpus.
  *
  * `creative-understanding.json` (the regression suite) carries `class`, `facts` and
- * `mustAvoid`; `creative-understanding-holdout.json` (fresh evidence) carries `hostPhrases`,
- * `expectedFacts` and `tests`. Every field is optional and each check reports `n/a` when its
- * input is absent, so one code path serves both without branching on which corpus it is.
+ * `mustAvoid`; `creative-understanding-holdout.json` (the pre-registered validation set — not
+ * fresh evidence, having been authored by the same person who then wrote the prompt) carries
+ * `hostPhrases`, `expectedFacts` and `tests`. Every field is optional and each check reports
+ * `n/a` when its input is absent, so one code path serves them all without branching on which
+ * corpus it is — which is also what lets the sealed challenge run on frozen code.
  */
 export interface CorpusCase {
   id: string;

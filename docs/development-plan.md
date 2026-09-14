@@ -77,9 +77,15 @@ verbatim honoree-context field; rewrite the prompt's originality section so soph
 property of execution rather than abstraction; and make the clarification rule decidable.
 
 **The original fourteen cases are now a regression suite, not fresh evidence** — every output has
-been inspected and discussed. Fresh evaluation runs against a new blinded holdout, authored and
-frozen *before* remediation. The gate to 4B remains: deterministic checks, independent engineering
-review, an independent qualitative read of a fresh blind artifact, then an explicit go/no-go.
+been inspected and discussed. Three evidence classes follow, and they are not interchangeable:
+the regression suite; the **pre-registered validation set** of twelve cases, authored and frozen
+*before* remediation and independently reviewed, but written by the same person who then wrote
+the prompt, so it is validation and not generalization; and the **sealed challenge**, authored
+independently after the implementation was frozen, which is the only fresh evidence of the three.
+Its runner path is wired and frozen ahead of its cases, so that seeing them cannot be followed by
+adjusting the harness that grades them. The gate to 4B remains: deterministic checks, independent
+engineering review, an independent qualitative read of a blind artifact, then an explicit
+go/no-go.
 
 ## Recorded deviations
 
