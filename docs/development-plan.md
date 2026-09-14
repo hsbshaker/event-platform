@@ -32,6 +32,30 @@
 | **9. Publish, payment boundary, live site, Management Mode** | $49 Stripe-shaped mock payment boundary, READY_TO_PUBLISH enforcement, publish, subdomain/live routing, public/private guest site, sharing, Passed state; management home: RSVP summary → Guests → Messages → Registry → Share → Edit site. No billing architecture beyond the stub. Payment state tables arrive here. | Live event reachable and manageable. |
 | **10. Messaging, hardening, launch** | SMS reminders and announcements, STOP handling, rate limits, observability, accessibility, security review, E2E coverage, responsive and visual regression, performance, failure-state QA. **Human design test #2** on the frozen production generation stack: the launch gate, and the only human design-quality gate. **Its protocol and pass threshold are frozen and recorded before the results are reviewed** — calibration against the library happens in the same session, but the bar is never chosen or moved after the outcome is known (`../spec.md §11.9`). It must cover design quality, diversity, theme fidelity, typography credibility, visual hierarchy, whether any imagery feels bespoke rather than generic, and whether image-free concepts still feel intentional (`human-test-1/qualitative-findings.md`). Messaging tables arrive here. | Launch checklist and human test #2 pass. |
 
+## Phase 4 sub-phases
+
+Phase 4 is gated rather than continuous. Each sub-phase gets its own branch, PR, validation,
+independent review and product-quality checkpoint, and the next does not begin until the
+previous one is judged good enough — because every stage after 4A consumes 4A's
+understanding, so shipping a weak interpreter compounds rather than shows up later.
+
+| | Core question | Scope |
+| --- | --- | --- |
+| **4A** | Does the AI actually understand what the host means? | The production `EventIdentity` call and its evaluation against `model-contracts.md §4.5`. No DesignIntent, no composition, no imagery, no generation UI |
+| **4B** | Does it know when it needs to ask something? | The 0–3 contextual creative-question loop, `You decide`, identity refinement after an answer, and the minimal surface (`spec.md §7.6b`) |
+| **4C** | Can it invent three excellent, genuinely different directions from one identity? | `DesignIntent × 3` through the sibling planner. Different creative interpretations, never palette or font swaps |
+| **4D** | Can it turn each direction into an excellent original composition? | Model-authored `CompositionTree`s onto the Phase 3/3.1 compiler, verifier, repair, RDS and renderer. The first real generated websites to judge |
+| **4E** | Can art-directed imagery raise the design ceiling? | `VisualArtIntent` and generated thematic artwork (`spec.md §7.6a`): image-model selection, transparent-background reliability, illustrative anchors, ambient art, composition-aware negative space, crop safety, asset persistence, failure fallback, originality. Artwork stays optional |
+| **4F** | Does creating the event feel like watching your idea come to life? | The real progress experience over actual pipeline artifacts (`spec.md §7.10`, `product-doctrine.md §8a`): interpreted vibe, palette territory, visual vocabulary, concept names, art direction, progressive and independent concept readiness, optional detail entry while generation continues. No fake reasoning, no fake percentages, no generic spinner |
+| **4G** | Does the whole thing deliver personalization rather than rescue? | End to end: prompt → identity → clarification if needed → three directions → compositions → artwork where appropriate → responsive verified sites → selection → send-ready. **Human Test #2's protocol and threshold are frozen and recorded here, before any HT2 result is seen** (`spec.md §11.9`) |
+
+**4A status: implementation complete, evaluation pending.** The contract, prompt `event_identity_v3`,
+the OpenAI call and the deterministic runner are on `main`'s branch history; the fourteen-case run
+against a live model has not been executed, so no claim about understanding is made yet. A clean
+mechanical run is necessary and never sufficient (`model-contracts.md §4.5`): the gate is
+deterministic checks, then independent engineering review, then an independent qualitative read of
+the blind artifact, then an explicit go/no-go before 4B.
+
 ## Recorded deviations
 
 - **`spec.md §31 — Prompt, auth, and generation`: "Required details are collected only when missing and while generation runs, and never block concepts from appearing."** Phase 2 satisfies every part of this except "while generation runs", which it cannot: generation is Phase 4 and the AI provider is deliberately unimplemented until then. Phase 2 collects the details anyway, exactly as the criterion intends, and the generation surface states plainly that no design has been generated yet rather than narrating work that is not happening. The bullet is checkable once Phase 4 lands; until then it is knowingly partial, not met. Recorded here so no later reader mistakes the Phase 2 screen's honesty for a regression, and so nobody papers over it with copy that implies generation is running.

@@ -1,0 +1,477 @@
+/**
+ * The deterministic half of the creative-understanding rubric —
+ * `docs/model-contracts.md §4.5`, corpus `docs/model-evals/creative-understanding.json`.
+ *
+ * §4.5 is explicit about how far this can go: "Four of the seven identity dimensions are
+ * wholly or partly deterministic — fact discipline fully, and cliché avoidance,
+ * clarification judgment and reference translation in their negative half, which is the
+ * half that catches outright failures. ... A mechanical pass on 3–6 is necessary and never
+ * sufficient."
+ *
+ * So this module decides one thing only: did the response commit an **outright failure**
+ * that can be established without judgement. It does not score taste, and a clean run here
+ * is not a Phase 4A pass — it is the precondition for a human being asked.
+ *
+ * Every check states its own verdict kind:
+ *
+ *   `pass` / `fail`   gating. The claim is established mechanically.
+ *   `advisory`        real evidence, not decidable mechanically. Reported, never gating.
+ *   `n/a`             the case does not exercise this check.
+ *
+ * Two checks are derived from the host's prompt rather than from the fixture
+ * (`hostNegationRespected`, `factsGrounded`), so they would work on any prompt and are not
+ * tuned to these fourteen.
+ */
+import type {
+  ClarificationQuestion,
+  EventIdentity,
+  EventIdentityResult,
+  SuppliedEventFacts,
+} from "@/lib/ai/event-identity/contract";
+import { CLARIFICATION_CEILING, SUPPLIED_FACT_FIELDS } from "@/lib/ai/event-identity/contract";
+
+export type CheckStatus = "pass" | "fail" | "advisory" | "n/a";
+
+export interface Check {
+  name: string;
+  status: CheckStatus;
+  detail: string;
+}
+
+export interface CorpusCase {
+  id: string;
+  prompt: string;
+  class: string[];
+  facts: Record<string, string>;
+  expectClarification: "no" | "likely" | "acceptable" | "expected";
+  mustAvoid: string[];
+  notes?: string;
+}
+
+export interface CaseEvaluation {
+  caseId: string;
+  checks: Check[];
+  /** True when no gating check failed. Necessary, never sufficient (`§4.5`). */
+  mechanicalPass: boolean;
+}
+
+/* ------------------------------------------------------------------ text utilities */
+
+/**
+ * Compare quotations the way a reader would, not the way a byte comparison would.
+ *
+ * Case is folded and internal whitespace collapsed, because "Baby shower" at the start of
+ * a sentence and "baby shower" in the middle are the same quotation. Punctuation is *not*
+ * folded: "Saturday, December 19 2026" and "Saturday, December 19, 2026" differ by a comma
+ * the host did not write, and that difference is precisely what CU-11 exists to catch.
+ */
+function fold(value: string): string {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function quotesFrom(prompt: string, value: string): boolean {
+  return fold(prompt).includes(fold(value));
+}
+
+/** Every string the identity exposes, for lexical scanning. */
+function identityText(identity: EventIdentity): string {
+  return JSON.stringify(identity);
+}
+
+function nonNullFacts(facts: SuppliedEventFacts): [string, string][] {
+  return SUPPLIED_FACT_FIELDS.flatMap((field) => {
+    const value = facts[field];
+    return value === null ? [] : [[field, value] as [string, string]];
+  });
+}
+
+/* ------------------------------------------------------------------ fact discipline */
+
+/**
+ * Rubric dimension 4, first half: supplied facts survive.
+ *
+ * Keyed by value rather than by field name. The corpus names facts as the case author saw
+ * them (`location`, `venueHint`, `monthHint`) while the contract has a fixed field set, and
+ * the requirement is that the host's words are *carried*, not that two vocabularies agree.
+ * Which field received a value is reported separately as advisory.
+ */
+export function checkFactsPreserved(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
+  const supplied = Object.entries(caseData.facts);
+  if (supplied.length === 0) {
+    return { name: "factsPreserved", status: "n/a", detail: "the case supplies no facts" };
+  }
+  const carried = nonNullFacts(facts).map(([, value]) => fold(value));
+  const missing = supplied.filter(([, value]) => !carried.includes(fold(value)));
+
+  if (missing.length === 0) {
+    return {
+      name: "factsPreserved",
+      status: "pass",
+      detail: `all ${supplied.length} supplied fact(s) carried verbatim`,
+    };
+  }
+  return {
+    name: "factsPreserved",
+    status: "fail",
+    detail: missing
+      .map(([key, value]) => `${key}="${value}" was not carried through verbatim`)
+      .join("; "),
+  };
+}
+
+/**
+ * Rubric dimension 4, second half: nothing was invented.
+ *
+ * Derived from the prompt, not the fixture: every non-null fact must be quotable from the
+ * host's own words. This is the check that catches both failure modes the doctrine names —
+ * a fabricated venue, and a real value rewritten into a form the host never used.
+ */
+export function checkFactsGrounded(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
+  const present = nonNullFacts(facts);
+  if (present.length === 0) {
+    return {
+      name: "factsGrounded",
+      status: "pass",
+      detail: "no facts claimed",
+    };
+  }
+  const ungrounded = present.filter(([, value]) => !quotesFrom(caseData.prompt, value));
+  if (ungrounded.length === 0) {
+    return {
+      name: "factsGrounded",
+      status: "pass",
+      detail: `all ${present.length} claimed fact(s) quotable from the prompt`,
+    };
+  }
+  return {
+    name: "factsGrounded",
+    status: "fail",
+    detail: ungrounded
+      .map(([field, value]) => `${field}="${value}" does not appear in the host's words`)
+      .join("; "),
+  };
+}
+
+/** Which contract field received each supplied fact. Reported for the reviewer, never gating. */
+export function reportFactFieldMapping(caseData: CorpusCase, facts: SuppliedEventFacts): Check {
+  const supplied = Object.entries(caseData.facts);
+  if (supplied.length === 0) {
+    return { name: "factFieldMapping", status: "n/a", detail: "the case supplies no facts" };
+  }
+  const byValue = new Map(nonNullFacts(facts).map(([field, value]) => [fold(value), field]));
+  const mapping = supplied.map(
+    ([key, value]) => `${key} -> ${byValue.get(fold(value)) ?? "(not carried)"}`,
+  );
+  return { name: "factFieldMapping", status: "advisory", detail: mapping.join("; ") };
+}
+
+/* ------------------------------------------------------------------ negative constraints */
+
+const NEGATION_PATTERNS = [
+  /\bno\s+([a-z][a-z-]{2,})\b/gi,
+  /\bnot\s+([a-z][a-z-]{3,})\b/gi,
+  /\bwithout\s+([a-z][a-z-]{2,})\b/gi,
+  /\bavoid(?:ing)?\s+([a-z][a-z-]{2,})\b/gi,
+];
+
+/** Words that follow a negation without being the thing negated. */
+const NEGATION_STOPWORDS = new Set([
+  "the",
+  "and",
+  "but",
+  "too",
+  "very",
+  "really",
+  "quite",
+  "sure",
+  "one",
+  "idea",
+  "more",
+  "less",
+  "just",
+  "only",
+]);
+
+export function negatedTerms(prompt: string): string[] {
+  const found = new Set<string>();
+  for (const pattern of NEGATION_PATTERNS) {
+    for (const match of prompt.matchAll(pattern)) {
+      const term = match[1].toLowerCase();
+      if (!NEGATION_STOPWORDS.has(term)) found.add(term);
+    }
+  }
+  return [...found];
+}
+
+/**
+ * Rubric dimension 3's negative half, derived from the prompt rather than the corpus.
+ *
+ * When the host negates something ("no pink", "not corny", "without balloons"), the
+ * negated term must not reappear as a positive part of the creative brief. It may appear
+ * in `avoidColors` or `designConstraints` — that is the brief recording the constraint,
+ * which is correct and expected — but anywhere else it is the identity proposing the thing
+ * the host excluded.
+ *
+ * `spec.md §7.6b` and the prompt both state the rule this enforces: an exclusion is
+ * absolute, and "no X" never means "less X".
+ */
+export function checkHostNegationRespected(caseData: CorpusCase, identity: EventIdentity): Check {
+  const terms = negatedTerms(caseData.prompt);
+  if (terms.length === 0) {
+    return { name: "hostNegationRespected", status: "n/a", detail: "no negation in the prompt" };
+  }
+
+  const positive = { ...identity, paletteIntent: { ...identity.paletteIntent } } as Partial<
+    EventIdentity & { paletteIntent: Partial<EventIdentity["paletteIntent"]> }
+  >;
+  // Where a constraint is *supposed* to be recorded.
+  delete (positive as { designConstraints?: unknown }).designConstraints;
+  delete (positive.paletteIntent as { avoidColors?: unknown }).avoidColors;
+  const haystack = fold(JSON.stringify(positive));
+
+  const violations = terms.filter((term) =>
+    new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(haystack),
+  );
+
+  if (violations.length === 0) {
+    return {
+      name: "hostNegationRespected",
+      status: "pass",
+      detail: `negated term(s) [${terms.join(", ")}] absent from the positive brief`,
+    };
+  }
+  return {
+    name: "hostNegationRespected",
+    status: "fail",
+    detail: `host negated [${violations.join(", ")}] but the positive brief still proposes it`,
+  };
+}
+
+/** An exclusion the model itself recorded must not also appear as a wanted color. */
+export function checkExclusionSelfConsistency(identity: EventIdentity): Check {
+  const { avoidColors, requiredColors, preferredColors } = identity.paletteIntent;
+  if (avoidColors.length === 0) {
+    return { name: "exclusionSelfConsistency", status: "n/a", detail: "no colors excluded" };
+  }
+  const wanted = [...requiredColors, ...preferredColors].map(fold);
+  const contradictions = avoidColors.filter((avoided) =>
+    wanted.some((want) => want.includes(fold(avoided)) || fold(avoided).includes(want)),
+  );
+  if (contradictions.length === 0) {
+    return {
+      name: "exclusionSelfConsistency",
+      status: "pass",
+      detail: `${avoidColors.length} exclusion(s), none contradicted`,
+    };
+  }
+  return {
+    name: "exclusionSelfConsistency",
+    status: "fail",
+    detail: `excluded and also wanted: ${contradictions.join(", ")}`,
+  };
+}
+
+/**
+ * Proper nouns inside a `mustAvoid` entry: "Polo Bear", "Ralph Lauren", "Disney",
+ * "Winnie-the-Pooh", "Positano", "Amalfi".
+ *
+ * Corpus entries are written as lowercase prose, so a capitalised token is a named thing
+ * rather than a sentence start — which makes this extraction deterministic and safe to gate
+ * on. An entry whose prohibition is a matter of taste ("cartoon or novelty treatments")
+ * yields no probes and is reported as not mechanically checkable, which is the honest
+ * answer rather than a guess.
+ */
+export function properNounProbes(mustAvoid: string): string[] {
+  const probes = new Set<string>();
+  for (const match of mustAvoid.matchAll(/\b([A-Z][\w'-]*(?:[- ][A-Z][\w'-]*)*)\b/g)) {
+    const sequence = match[1].trim();
+    if (sequence.length >= 3) probes.add(sequence);
+    // Each name on its own as well as the full run. "the Disney Winnie-the-Pooh character
+    // design" names two separate things, and an identity that reaches for just one of them
+    // has still done the forbidden thing — matching only the whole run would miss it.
+    for (const part of sequence.split(" ")) {
+      if (part.length >= 3) probes.add(part);
+    }
+  }
+  return [...probes];
+}
+
+/** Word-boundary containment, so "Bear" does not match "bearing". */
+function mentions(haystack: string, probe: string): boolean {
+  const escaped = fold(probe).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`).test(haystack);
+}
+
+export function checkMustAvoid(caseData: CorpusCase, identity: EventIdentity): Check[] {
+  if (caseData.mustAvoid.length === 0) {
+    return [{ name: "mustAvoid", status: "n/a", detail: "the case forbids nothing explicitly" }];
+  }
+  const haystack = fold(identityText(identity));
+  const hits: string[] = [];
+  const unprobeable: string[] = [];
+
+  for (const entry of caseData.mustAvoid) {
+    const probes = properNounProbes(entry);
+    if (probes.length === 0) {
+      unprobeable.push(entry);
+      continue;
+    }
+    for (const probe of probes) {
+      if (mentions(haystack, probe)) hits.push(`"${probe}" (from: ${entry})`);
+    }
+  }
+
+  const checks: Check[] = [
+    hits.length === 0
+      ? {
+          name: "mustAvoidNamedThings",
+          status: "pass",
+          detail: "no forbidden named thing appears in the identity",
+        }
+      : { name: "mustAvoidNamedThings", status: "fail", detail: hits.join("; ") },
+  ];
+
+  if (unprobeable.length > 0) {
+    checks.push({
+      name: "mustAvoidTasteJudgements",
+      status: "advisory",
+      detail: `not mechanically checkable, for the qualitative reviewer: ${unprobeable.join("; ")}`,
+    });
+  }
+  return checks;
+}
+
+/* ------------------------------------------------------------------ clarification */
+
+/**
+ * Logistics a clarification may never ask for (`spec.md §7.6b #6`).
+ *
+ * Phrases rather than bare words, so "where should the emphasis sit" is not mistaken for
+ * "where is the event". A miss here is caught by the qualitative reviewer; a false positive
+ * would wrongly condemn a good question, which is the worse error.
+ */
+const LOGISTICS_PATTERNS: [string, RegExp][] = [
+  ["date", /\b(what|which|the)\s+(date|day|month)\b|\bwhen\s+(is|will|are|does|do)\b/i],
+  // "what time of day should the palette evoke" is a question about light, not about the
+  // schedule, and it is a natural creative question. The logistics reading is excluded by
+  // lookahead rather than by adding "of day" as a category, because a false positive
+  // wrongly condemns a good question and a miss is caught by the qualitative reviewer.
+  ["time", /\b(what|which)\s+time\b(?!\s+of\s+day)|\bstart(ing)?\s+time\b/i],
+  ["venue", /\b(what|which|the)\s+(venue|location)\b|\bwhere\s+(is|will|are|does|do)\b/i],
+  ["address", /\baddress\b/i],
+  ["rsvp", /\brsvp\b|\bdeadline\b/i],
+  ["guests", /\bhow many\s+(people|guests|are coming)\b|\bguest (count|list)\b/i],
+  ["budget", /\bbudget\b/i],
+];
+
+export function logisticsCategories(question: string): string[] {
+  return LOGISTICS_PATTERNS.filter(([, pattern]) => pattern.test(question)).map(([name]) => name);
+}
+
+export function checkClarification(
+  caseData: CorpusCase,
+  questions: ClarificationQuestion[],
+  needed: boolean,
+): Check[] {
+  const checks: Check[] = [];
+  const count = questions.length;
+
+  checks.push(
+    count <= CLARIFICATION_CEILING
+      ? { name: "clarificationCeiling", status: "pass", detail: `${count} question(s)` }
+      : {
+          name: "clarificationCeiling",
+          status: "fail",
+          detail: `${count} question(s) exceeds the ceiling of ${CLARIFICATION_CEILING}`,
+        },
+  );
+
+  checks.push(
+    needed === count > 0
+      ? { name: "clarificationFlagAgrees", status: "pass", detail: `needed=${needed}, ${count}` }
+      : {
+          name: "clarificationFlagAgrees",
+          status: "fail",
+          detail: `needed=${needed} but ${count} question(s) returned`,
+        },
+  );
+
+  // Only `"no"` is a mechanical expectation. "likely", "acceptable" and "expected" are the
+  // corpus author's judgement about a judgement call, and gating on them would be scoring
+  // taste (`§4.5`) — except that "expected" with zero questions is worth surfacing.
+  if (caseData.expectClarification === "no") {
+    checks.push(
+      count === 0
+        ? { name: "clarificationExpectation", status: "pass", detail: "asked nothing, as required" }
+        : {
+            name: "clarificationExpectation",
+            status: "fail",
+            detail: `the prompt was sufficient; ${count} question(s) is over-asking`,
+          },
+    );
+  } else {
+    checks.push({
+      name: "clarificationExpectation",
+      status: "advisory",
+      detail: `corpus expects "${caseData.expectClarification}"; model asked ${count}. Whether the question earned its place is a qualitative judgement`,
+    });
+  }
+
+  if (count === 0) {
+    checks.push({ name: "clarificationNotLogistics", status: "n/a", detail: "no questions" });
+    checks.push({ name: "clarificationOffersDefer", status: "n/a", detail: "no questions" });
+    return checks;
+  }
+
+  const logistics = questions.flatMap((q) => {
+    const categories = logisticsCategories(q.question);
+    return categories.length > 0 ? [`"${q.question}" asks ${categories.join("/")}`] : [];
+  });
+  checks.push(
+    logistics.length === 0
+      ? {
+          name: "clarificationNotLogistics",
+          status: "pass",
+          detail: "no question asks for an operational field",
+        }
+      : { name: "clarificationNotLogistics", status: "fail", detail: logistics.join("; ") },
+  );
+
+  const missingDefer = questions.flatMap((q) =>
+    q.options.filter((o) => o.isDefer).length === 1 ? [] : [`"${q.question}"`],
+  );
+  checks.push(
+    missingDefer.length === 0
+      ? {
+          name: "clarificationOffersDefer",
+          status: "pass",
+          detail: "every question offers exactly one defer option",
+        }
+      : {
+          name: "clarificationOffersDefer",
+          status: "fail",
+          detail: `no single defer option on: ${missingDefer.join("; ")}`,
+        },
+  );
+
+  return checks;
+}
+
+/* ------------------------------------------------------------------ entry point */
+
+export function evaluateCase(caseData: CorpusCase, result: EventIdentityResult): CaseEvaluation {
+  const checks: Check[] = [
+    checkFactsPreserved(caseData, result.suppliedFacts),
+    checkFactsGrounded(caseData, result.suppliedFacts),
+    reportFactFieldMapping(caseData, result.suppliedFacts),
+    checkHostNegationRespected(caseData, result.identity),
+    checkExclusionSelfConsistency(result.identity),
+    ...checkMustAvoid(caseData, result.identity),
+    ...checkClarification(caseData, result.clarification.questions, result.clarification.needed),
+  ];
+  return {
+    caseId: caseData.id,
+    checks,
+    mechanicalPass: checks.every((c) => c.status !== "fail"),
+  };
+}

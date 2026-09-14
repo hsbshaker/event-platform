@@ -81,6 +81,36 @@ inferred; a date, a venue, a dress code or any other fact is quoted from the hos
 
 Unchanged from Revision 1 except the catalogs: `availableHeroArchetypes` becomes `availableFamilies` (`editorial`, `invitation`, `statement`, each with an intent sentence) and `compatibleHeroArchetypes` becomes `compatibleFamilies`. Runtime narrowing, semantic invariants, the untrusted-input rules and evals EI-01…EI-10 stand with that substitution. `docs/model-prompts/event-identity.system.md` carries the family catalog.
 
+### 4.1 The result envelope (`event_identity_schema_v3`, Phase 4A)
+
+`spec.md §7.5` left the supplied-fact mechanism to Phase 4 and named two options. Phase 4A took
+the second in schema terms and neither in call terms: **one call returns three siblings**, so the
+creative brief keeps `additionalProperties: false` and carries no operational field, exactly as its
+prompt has always promised.
+
+| | |
+| --- | --- |
+| `identity` | the creative brief. Shape unchanged from `v2`. Inference expected and generous |
+| `suppliedFacts` | nine `*Text` fields — hosts, honoree, type, date, time, venue, address, locality, RSVP deadline — each a **verbatim quotation from the host or `null`** |
+| `clarification` | `needed`, plus at most three taste questions (`spec.md §7.6b`) |
+
+Facts and identity share one round trip because a second call would roughly double latency
+(`spec.md §7.10`) to separate what the schema has already separated. Two details exist so that
+requirements are checkable rather than inferred from wording: the `You decide` option `§7.6b #4`
+requires is a structural `isDefer` boolean, not a phrase to pattern-match; and every fact field is
+named `*Text` and described as a quotation, because **normalization is the application's job, never
+the model's** — `1pm` stays `1pm`.
+
+Source of truth is `src/lib/ai/event-identity/contract.ts`. The three files under
+`model-schemas/` — the envelope, the brief nested inside it, and the reduced strict-mode projection
+actually sent to the provider — are generated from it and drift-tested, as the composition schema
+is (`§2`). Never hand-edit them.
+
+Provider: OpenAI `gpt-5.6-sol` via the Responses API with strict structured output
+(`docs/technology-decisions.md §8`). Strict mode guarantees shape and enum membership only; `§3`
+still applies and the application validator remains the authority for lengths, counts and the
+cross-field rules.
+
 ## 4.5 Creative-understanding evaluation contract
 
 Everything else in this document measures whether output is **legal**. This measures whether it is
@@ -93,7 +123,26 @@ carrying a negative constraint, prompts already clear enough that the right numb
 zero, prompts carrying facts that must survive verbatim, one open delegation, and one genuinely
 ambiguous case where a question should earn its place. Each case declares its class, the facts the
 host actually supplied, whether clarification is expected, and what would count as an outright
-failure. It is data; **no runner exists yet, and this pass does not build one.**
+failure.
+
+**Runner:** `npm run eval:creative-understanding` (`tests/eval/creative-understanding.eval.ts`),
+added in Phase 4A. It runs the cases **sequentially** against the live model — fourteen concurrent
+calls would report a latency no host will ever experience — records failures rather than retrying
+them away, and writes three artifacts to `docs/model-evals/results/creative-understanding-v1/`:
+`run.json` (every response and its telemetry), `mechanical-report.md` (for us), and
+`blind-review.md` (for an independent qualitative reviewer). It is excluded from `npm test`: it
+costs money and measures the creative stack, not the compiler.
+
+The deterministic checks live in `src/lib/ai/evals/creative-understanding.ts` and decide exactly
+one thing — whether an **outright failure** was committed. Two of them are derived from the host's
+prompt rather than from the corpus, so they would work on any prompt and are not tuned to these
+fourteen: every claimed fact must be quotable from the host's words, and a term the host negated
+must not reappear as a positive part of the brief.
+
+`blind-review.md` carries the prompt and the response and nothing else — no expected verdict, no
+`mustAvoid` list, no mechanical result, no notes. That blinding is asserted by test against every
+case in the corpus, because a reviewer shown our expectations is no longer evidence about the
+model.
 
 ### The rubric
 
