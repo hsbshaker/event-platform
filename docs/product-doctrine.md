@@ -215,6 +215,102 @@ restatement of another. `spec.md §7.7` and `§11.9` already enforce the mechani
 Mechanical distinctness is necessary and not sufficient: three trees can differ structurally and
 still feel like the same idea.
 
+## 8a. The generation experience
+
+Generation takes time because the work is real. That time is a **product surface**, not a loading
+state to hide.
+
+> The host should feel **"I'm watching my event come to life"**, not "I'm waiting for AI to finish."
+
+This is never an argument for slowing anything down. **The moment useful output is genuinely ready,
+reveal it.**
+
+### Show real artifacts, never theater
+
+The waiting experience surfaces **structured creative artifacts the pipeline actually produced**, as
+they become available: interpreted creative signals, palette territory, visual vocabulary, concept
+names, art direction, visual fragments, composition previews, concept readiness.
+
+After *"Ralph Lauren baby shower for a boy, classy not cheesy"*, that might surface — in order, as
+each is genuinely resolved — *heritage · heirloom · polished · understated · restrained whimsy*,
+then a palette, then visual-language cues, then the three directions.
+
+Two hard limits:
+
+- **No chain-of-thought and no hidden reasoning**, ever. What is shown is the *output* of a stage,
+  not how the model got there.
+- **No fabricated progress.** No invented percentages, no simulated model "thoughts", no stage that
+  claims work which has not happened. A spinner that lies is worse than a spinner.
+
+> Surface real structured creative artifacts produced by the pipeline, never simulated reasoning.
+
+The shell itself may gradually take on the event's creative world as `EventIdentity` and
+`DesignIntent` resolve — a citrus identity warming, a black-tie one staying restrained and minimal.
+That is a direction to explore, not a requirement that every generation screen be themed, and the
+shell stays usable and legible whatever it picks up.
+
+### Concepts arrive one at a time
+
+Concept 1 is not held hostage until Concept 3 is finished. Identity resolves, three directions
+begin, and **each concept becomes available the moment it is genuinely ready** — the host can start
+inspecting a finished one while the others are still compiling. The product wants concept-level
+readiness, not a single monolithic "generation complete". `spec.md §7.10` already requires each
+concept to render as soon as its resolved spec exists; this states the intent behind it.
+
+### Two equally good ways to spend the wait
+
+While generation runs, the host may **optionally** fill in facts only they know — honoree or event
+name, date, time, venue, address, RSVP deadline, host names. Conceptually: *"We're creating your
+event. Keep watching, or add the details while we work."*
+
+- **The magic path** — watch the identity and the concepts emerge.
+- **The productive path** — fill in the logistics while the AI does the creative work.
+
+Both are first-class and the host may switch freely. This is **not** a second onboarding wizard, and
+the distinction from §6 and §7 holds exactly: **missing logistics never block creative generation,
+are never asked during creative clarification, and are never invented.** Facts present in the prompt
+are extracted, preserved and pre-filled; facts absent from it are simply absent until the host
+supplies them, during generation or after choosing a concept.
+
+This is also why the wait can be offered as useful rather than merely tolerable: the work being
+asked of the host is work only the host can do.
+
+### A detail change is a content edit, not a new idea
+
+Changing a venue, adding a date, moving a start time, setting an RSVP deadline: these update the
+rendered content deterministically. They do **not** re-run `EventIdentity`, `DesignIntent` or the
+composition. That is the existing re-fit contract (`spec.md §7.9`, `§4.10`, `§32 #20`) and it is the
+right boundary — the host changed a fact, not their mind about the event.
+
+*"Make it more romantic and less preppy"* is a different thing entirely: a creative request, and
+redesign behaviour. The editing system is not designed here.
+
+### Latency, as a north star rather than an SLA
+
+The canonical p75 targets are `spec.md §7.10` and this document does not move them. Stated as
+product intent:
+
+| | |
+| --- | --- |
+| `EventIdentity` visible | near-immediate, ~≤ 5 s |
+| First useful concept | as soon as it is ready, ~≤ 15–20 s |
+| All three concepts | ~≤ 45 s |
+| Heavy cases once imagery exists | may initially reach 60–90 s |
+| Selection → send-ready realization | ~≤ 30 s |
+
+> **45 seconds for something exceptional beats 12 seconds for something mediocre.**
+
+Quality sets the ceiling first; then latency is optimised aggressively, because a minute is a long
+time to hold someone's attention even when the result is worth it. Two of these numbers do not yet
+reconcile with `spec.md §7.10` — see §14 conflict 9.
+
+### The wait is not a design surface
+
+Everything in §7 still applies. The generation experience may not become a mood-board picker, a
+font or palette chooser, a layout selector or a questionnaire. **The host supplies facts only they
+know; the AI keeps making the design decisions.** Reducing *perceived* latency is the goal; hiding
+*real* latency is not.
+
 ## 9. Theme-specific visual language — a Phase 4 direction, not an approved feature
 
 Human Test #1 recorded a finding this document treats as important:
@@ -359,6 +455,8 @@ the audit trail for decisions that changed.
 | 6 | Three sections cited Revisions absent from the repository | **Resolved where the requirement was recoverable.** `spec.md §11.11` now states the imagery boundary directly; `event-renderer-system.md §8`/`§9` cite it instead of the absent Revision 1. `model-contracts.md §4`/`§5.2` still defer to a Revision 1 for the EventIdentity field list and the DesignIntent input contract — see §14a |
 | 7 | `spec.md` header read "Revision 5" while `§0a`/`§0b` describe 6 and 6.1 | **Resolved.** The header reads Revision 6.1 |
 | 8 | `spec.md §32 #46`, "smallest implementation that satisfies the product" | **Wording only, unchanged.** It is a scope instruction; §2 names the misreading to avoid |
+
+| 9 | `spec.md §7.10`'s p75 targets — Event Identity ≤ 5 s, first concept ≤ 15 s, all three ≤ 45 s — predate the artwork decision (`§7.6a`) and budget nothing for image generation | **Open, and deliberately not overwritten.** Two mismatches: §8a's product intent says the first concept lands in ~15–20 s where §7.10 says ≤ 15 s, and §8a expects heavy imagery cases to reach 60–90 s where §7.10 says all three in ≤ 45 s. The canonical numbers stand unchanged; §7.10 now records that imagery is unbudgeted there. Re-set them deliberately when Phase 4 has measured a real imagery path — never by quietly widening a target to match what was built |
 
 ### 14a. Still unresolved
 

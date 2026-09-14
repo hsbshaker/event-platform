@@ -753,12 +753,20 @@ No model call is used for compiler validation, repair or re-fit.
 
 ### 7.10 The wait
 
-Generation must feel like progress:
+Generation is a product surface, not a loading state to hide. It must feel like progress:
+
 1. required details run while identity is being created and never block a concept from appearing;
 2. user-facing portions of Event Identity may stream;
 3. three DesignIntent calls, then three composition calls, run in parallel after the planner assigns siblings, using real details where present and provisional content elsewhere;
 4. compilation is deterministic/local;
-5. each concept renders as soon as its resolved spec exists.
+5. each concept renders as soon as its resolved spec exists — **concept-level readiness, not one monolithic "generation complete"**. The host may inspect a finished concept while the others are still compiling.
+
+Two approved behaviours of this surface:
+
+- **What is shown is real output, never theater.** Structured creative artifacts the pipeline actually produced — interpreted creative signals, palette territory, visual vocabulary, concept names, art direction, visual fragments, composition previews, concept readiness — surfaced as each genuinely resolves. **Never model reasoning or chain-of-thought, and never fabricated progress**: no invented percentages, no simulated "thoughts", no stage claiming work that has not happened.
+- **Optional detail entry during generation.** The host may fill in missing facts only they know — honoree/event name, date, time, venue, address, RSVP deadline, host names — while generation runs. Watching and filling in are equally valid and the host may switch freely. This is not a second onboarding: it is the §7.3 form, offered rather than demanded. Missing logistics still never block generation, are never asked during creative clarification (§7.6b), and are never invented (§7.5).
+
+The surface may reflect the event's resolving creative world, and remains subject to §4.1: it never becomes a mood-board picker, font or palette chooser, layout selector or questionnaire. Intent: `docs/product-doctrine.md §8a`.
 
 Latency targets remain p75 goals:
 
@@ -769,6 +777,8 @@ Latency targets remain p75 goals:
 | All three concepts rendered | ≤ 45 s |
 
 Measure reality; do not silently allow unbounded waits.
+
+**These targets predate §7.6a and budget nothing for image generation.** They are unchanged here. If Phase 4 ships thematic artwork a heavy case will exceed them, and they are then re-set deliberately against a measured imagery path — never widened quietly to match whatever was built. The open mismatch is recorded in `docs/product-doctrine.md §14` conflict 9.
 
 ### 7.11 Three concept previews
 
@@ -1168,7 +1178,7 @@ The sibling planner (§7.7) provides distinct intents, directives and token allo
 
 The proof harnesses in `proof-b/` are the regression suite. Any change to the language, validator, compiler, renderer rules or planner reruns: unit tests; the adversarial set (every fixture repairs to zero violations and renders with zero overflow; every schema-invalid payload is rejected); expressiveness (every library silhouette validates and renders); and a sibling-batch confirmation run with these thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes. Mobile convergence is expressed by the tree's mobile intents and is not a failure.
 
-**The human design-quality bar is deliberately not in that list.** It is a launch gate, not a regression threshold: a code change cannot re-run it, and it measures the product rather than the compiler. Its status is exactly this — **Human Test #1 was stopped early, produced qualitative calibration evidence only, and established no pass/fail result; no score is claimed from it. Human Test #2, on the frozen production creative stack, is the launch-quality human gate, and its threshold is calibrated against the library's score in the same session rather than assumed.** The ≥ 70% figure recorded in earlier revisions was provisional and was never approved as a settled number; treat it as the working expectation to calibrate against, not as a decided threshold. See `docs/CHANGELOG-v6.md` and `docs/human-test-1/qualitative-findings.md`.
+**The human design-quality bar is deliberately not in that list.** It is a launch gate, not a regression threshold: a code change cannot re-run it, and it measures the product rather than the compiler. Its status is exactly this — **Human Test #1 was stopped early, produced qualitative calibration evidence only, and established no pass/fail result; no score is claimed from it. Human Test #2, on the frozen production creative stack, is the launch-quality human gate, and its threshold is calibrated against the library's score in the same session rather than assumed.** Its protocol and pass threshold are **frozen and recorded before the production results are reviewed**: calibrating against the library happens in the same session, but the bar is never chosen or adjusted after the outcome is known. Moving the goalposts post-result voids the gate. The ≥ 70% figure recorded in earlier revisions was provisional and was never approved as a settled number; treat it as the working expectation to calibrate against, not as a decided threshold. See `docs/CHANGELOG-v6.md` and `docs/human-test-1/qualitative-findings.md`.
 
 ### 11.10 Guest-surface component system
 
@@ -2333,6 +2343,9 @@ The host should feel:
 - [ ] Venue-text timezone inference + validation + browser fallback works.
 - [ ] Adaptive creative clarification asks nothing in the common case, at most three questions ever, never a logistics field, and never gates concepts from appearing (§7.6b).
 - [ ] Every clarification offered is one whose answers would produce materially different creative identities, and every one offers a `You decide` option.
+- [ ] Each concept becomes available as soon as its resolved spec exists; no concept waits on its siblings (§7.10).
+- [ ] The generation surface shows only artifacts the pipeline produced — no model reasoning, no fabricated progress or completion percentages (§7.10).
+- [ ] Missing event facts may optionally be entered during generation, and doing so is never required to reach concepts (§7.10).
 
 ### Event Identity and diversity
 - [ ] Event Identity persists tone/color constraints and compatible family/tone/typography-category guidance.

@@ -286,6 +286,42 @@ invented: `model-contracts.md §4` and `§5.2` defer to a Revision 1 not in this
 EventIdentity field list and the DesignIntent input contract — the requirements survive in the
 committed schemas and `spec.md §7.5`, so nothing is lost, but the citations are dead pointers.
 
+## Revision 6.6 — the wait is a product surface
+
+Documentation only, and an addendum to Revision 6.5.
+
+**Generation is a product surface, not a loading state to hide** (`spec.md §7.10`, intent in
+`docs/product-doctrine.md §8a`). The host should feel "I'm watching my event come to life", not
+"I'm waiting for AI to finish" — which is never an argument for slowing anything down: the moment
+useful output is genuinely ready, it is revealed.
+
+Three behaviours are now approved:
+
+- **Concept-level readiness.** Each concept becomes available as soon as its resolved spec exists;
+  no concept waits on its siblings, and there is no single monolithic "generation complete".
+- **Real artifacts, never theater.** The surface may show structured creative output the pipeline
+  actually produced — interpreted signals, palette territory, visual vocabulary, concept names, art
+  direction, fragments, previews, readiness. **Never model reasoning or chain-of-thought, and never
+  fabricated progress**: no invented percentages, no simulated "thoughts", no stage claiming work
+  that has not happened.
+- **Optional detail entry during generation.** The host may fill in facts only they know while
+  generation runs — the §7.3 form offered rather than demanded. Watching and filling in are equally
+  valid. Missing logistics still never block generation, are never asked during creative
+  clarification (§7.6b), and are never invented (§7.5). §4.1 still governs: the wait never becomes a
+  mood-board picker, font or palette chooser, layout selector or questionnaire.
+
+**Human Test #2's protocol and pass threshold are frozen and recorded before the production results
+are reviewed** (`spec.md §11.9`, Phase 10). Calibration against the library happens in the same
+session; the bar is never chosen or adjusted after the outcome is known. Moving the goalposts
+post-result voids the gate.
+
+**One latency conflict is recorded rather than resolved.** `spec.md §7.10`'s p75 targets — identity
+≤ 5 s, first concept ≤ 15 s, all three ≤ 45 s — predate the artwork decision and budget nothing for
+image generation, while the product intent expects the first concept in ~15–20 s and heavy imagery
+cases at 60–90 s. **The canonical numbers are unchanged.** §7.10 now records that imagery is
+unbudgeted there, and they are re-set deliberately against a measured imagery path rather than
+widened quietly to match what gets built. `product-doctrine.md §14` conflict 9.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
