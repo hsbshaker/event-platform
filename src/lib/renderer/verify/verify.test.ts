@@ -168,6 +168,7 @@ function fakePage(
           // Enough words for `lines` never to imply a break inside one, and line boxes that agree
           // on their edge: this stand-in simulates the *old* defects, not the typographic ones.
           words: Math.max(lines, 1) + 1,
+          segments: Math.max(lines, 1) + 1,
           lines,
           fontPx: 16,
           lineHeightPx: 16,
@@ -282,6 +283,7 @@ function measurementWith(
     kind?: string;
     layout?: string;
     words?: number;
+    segments?: number;
     lineBoxes?: number;
     edgeSpread?: number;
   }[],
@@ -304,6 +306,7 @@ function measurementWith(
         layout: t.layout ?? null,
         // Defaults that assert nothing: enough words to hold the lines whole, and one shared edge.
         words: t.words ?? lineBoxes + 1,
+        segments: t.segments ?? t.words ?? lineBoxes + 1,
         lines: t.lines,
         fontPx: 16,
         lineHeightPx: 16,

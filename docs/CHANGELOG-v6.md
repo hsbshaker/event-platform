@@ -165,33 +165,55 @@ text overflow, all three containment tests. It now also asks whether the text is
 rendered line boxes (`Range.getClientRects()`) rather than from a bounding box divided by a line
 height. Three defects join the clean criterion, all of which must be zero:
 
-- `textWordBroken` — line boxes exceed the node's word count, which proves a break landed inside a
-  word. The minimum usable measure, stated without a threshold.
+- `textWordBroken` — line boxes exceed the node's count of unbreakable segments (runs with no
+  break opportunity inside them: whitespace, hyphens, dashes and slashes all end one), which
+  proves a break landed inside a segment. The minimum usable measure, stated without a threshold.
 - `textOverMetadataLimit` — an atomic metadata value (`Date`, `Time`, `Venue`, `Location`) at
   `secondary` or `caption` past `max(2 desktop / 3 mobile, ⌈words ÷ 3⌉)` line boxes. `FIT_LIMITS`
   covered `display` and `primary` only; this covers the emphases where §3.1 was silent.
 - `textEdgeIncoherent` — line boxes that do not share their aligned edge, with the two `EventTitle`
   treatments exempt.
 
-The first two are repaired by the existing ladder — demote one emphasis step, then relax the
-innermost `Frame`/`Surface`/`Rail` — so no new repair kind, override kind or relaxation was added.
-The third has no repair and is reported: a displaced line is not a narrow one.
+The first is repaired by the existing ladder — demote one emphasis step, then relax the innermost
+`Frame`/`Surface`/`Rail`. The second is relaxation-only, because its budget applies at and below
+the demotion floor. No new repair kind, override kind or relaxation was added. The third has no
+repair and is reported: a displaced line is not a narrow one.
 
 **`EventTitle.layout` is documented rather than implicit.** The 0–1 / 2–3 / rest word slice
 appeared in no document and was invisible to the model, the schema and the validator at once. The
 model chooses the treatment; **where the title breaks is the compiler's**, chosen deterministically
-by scoring the possible cuts. `stagger` and `cascade` displace by a bounded percentage of the
-title's own measure instead of flipping a line's alignment to the opposite margin.
+by scoring the possible cuts. `stagger` offsets the odd lines and `cascade` ramps from the second — different lines, so the two
+stay distinct on the two-line titles that are the majority — instead of flipping a line's
+alignment to the opposite margin. The offsets are lengths in `em`, not percentages: CSS resolves
+percentage padding to zero during intrinsic sizing, so a shrink-wrapped title was measured as
+though the indent were not there and then lost exactly the indent from its longest line. That,
+and not the size of the ramp, is the old `cascade` rule's real defect.
 
 No schema change, no new primitive, prop or token, no primitive-set version bump, no model call,
 and nothing new exposed to the model — so `spec.md §32` #15 and #19 are untouched and the Library
 Boundary Invariant is not involved.
 
-**Gates re-run** (`event-renderer-system.md §9`): the 72-tree frozen confirmation replay through
-production geometry, 72 of 72 clean; the full unit suite; `proof-b/test.js`; `proof-b/adv-run.js`,
-37 of 37 repair-valid with zero overflow at either width. Two of the 72 — frozen 32 and frozen 51
-— were clean on the old criterion and are not on the new one; both are repaired by a structural
-relaxation and come out clean, and both are pinned by name as regression cases.
+`COMPILER_VERSION` **is** bumped, to `compiler_phase3_1_0`. The clean criterion changed, the
+overrides produced for identical input changed, and `verified` carries three new counters, so a
+spec stamped `compiler_phase3_0_1` is not equivalent to one stamped after this. Such a spec was
+also verified against the old line breaking and the old heading wrap, so re-rendering it requires
+re-verification rather than a silent recompile (`CLAUDE.md §5`).
+
+**Gates re-run** (`event-renderer-system.md §9`): the full unit suite; the 72-tree frozen
+confirmation replay through production geometry, 72 of 72 clean; `proof-b/test.js`;
+`proof-b/adv-run.js`, 37 of 37 repair-valid with zero overflow at either width. Two of the 72 —
+frozen 32 and frozen 51 — were clean on the old criterion and are not on the new one; both are
+repaired by a structural relaxation and come out clean, and both are pinned by name as regression
+cases.
+
+Stated plainly, because the gate list can otherwise imply more than it delivers: **the two
+`proof-b` harnesses exercise none of the changed code.** `proof-b` carries its own renderer,
+stylesheet and verifier, including its own copy of the old word slice; the two runs prove the
+language and the repair rules are undisturbed, which is what they are for, and nothing about this
+change. §9's "sibling-batch confirmation run" is served here by the 72-tree replay **through
+production**, which is the stronger gate for a production-renderer change and the only one that
+can see it. The content sweep in `typography.test.ts` covers the axis all of these hold fixed:
+every fixture in the repository renders one title, and these checks are content-dependent.
 
 **F2 is deferred to Phase 4.** Its Phase 3.1 condition was that a safeguard be a small extension of
 existing infrastructure. It is not: the `Monogram` is exempt from the ornament budget by explicit

@@ -99,7 +99,9 @@ export const TimePrimitive = plainText("Time");
  */
 export const EventTitlePrimitive = primitive<TextNode>((node, ctx) => {
   const { title } = ctx.content;
-  if (!title) return null;
+  // `title.trim()`, not `title`: a whitespace-only title is truthy but breaks into no lines, and an
+  // empty `h1` would report geometry for text that is not there.
+  if (!title || !title.trim()) return null;
   const layout = node.layout ?? "block";
   let body: ReactNode = title;
   if (layout !== "block") {

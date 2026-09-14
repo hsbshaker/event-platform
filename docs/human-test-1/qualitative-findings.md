@@ -19,7 +19,10 @@ be read as a tally. Screen numbers refer to the frozen sheets. Naming a screen s
 which source it came from; the classification stays in `proof-b/human-test-key.txt` and was not
 consulted while writing this.
 
-Nothing in this document is implemented. It is a findings ledger and a sequence.
+The findings below are the record of what reviewers observed. They are not edited by later work:
+where a finding has since been answered, the response is recorded beside it as a clearly marked
+section ("F1 — what shipped", "F2 — scope decision") and the observation itself is left as it was
+written. This is a findings ledger and a sequence, not a status board.
 
 ---
 
@@ -194,20 +197,36 @@ the artifact the treatment exists to avoid. `"Baby Shaker is on the way"` now se
 
 **The treatments became bounded offsets** (`src/styles/event-tokens.css`). `stagger` no longer
 flips alternate lines to `text-align: right` (M2), which threw the weakest line to the far margin
-and fought a centred or end-aligned section outright (screen 01). Both treatments now displace by
-a bounded percentage of the title's own measure — `stagger` alternating, `cascade` ramping, and
-the ramp shallower than the 12%/24% it replaces, halved again at 390. Headings step from
-`overflow-wrap: anywhere` to `break-word` with `text-wrap: balance`, and body and metadata get
-`text-wrap: pretty`, so residual wrapping is even and orphan-averse (M3, M5).
+and fought a centred or end-aligned section outright (screen 01). `stagger` now indents the odd
+lines and `cascade` ramps from the second — different lines, so the two stay distinct on the
+two-line titles that are the majority rather than collapsing into one rendering.
+
+The offsets are **lengths, not percentages**, and that turned out to matter more than their size.
+CSS resolves percentage padding to zero during intrinsic sizing, and a title leaf shrink-wraps to
+its own content in a `start`-aligned Stack — so a percentage indent is computed out of a width
+measured as though the indent were not there, and the longest line then loses exactly the indent
+and breaks inside a word ("Quinceane" / "ra"). That is the old 12%/24% `cascade` ramp's real
+defect, and it is the mid-word chop F1 records; reducing the ramp would not have fixed it. The
+new checks caught it during development, on a title the fixtures did not contain.
+
+Headings step from `overflow-wrap: anywhere` to `break-word` with `text-wrap: balance`, and body
+and metadata get `text-wrap: pretty`, so residual wrapping is even and orphan-averse (M3, M5).
 
 **Verification learned to see composition, not only containment** (`verify/measure.ts`,
 `verify/verify.ts`; contract in `docs/event-renderer-system.md §3.1`). Rendered line boxes are
 measured with `Range.getClientRects()`, and three defects join the clean criterion: text broken
-inside its own words (the minimum usable measure, stated as `lines > words` so it needs no
-threshold — M4); atomic metadata past a line budget that scales with its own word count (blind
-spot 3); and line boxes that do not share their aligned edge, with the two title treatments
-exempt (blind spot 1). The first two feed the existing ladder — demote, then relax the innermost
-box — so no new repair kind was invented. The third has no repair and is reported.
+inside a run that offers no break (the minimum usable measure, stated as `lines > unbreakable
+segments` so it needs no threshold — M4); atomic metadata past a line budget that scales with its
+own word count (blind spot 3); and line boxes that do not share their aligned edge, with the two
+title treatments exempt (blind spot 1). The first feeds the existing ladder — demote, then relax
+the innermost box; the second is relaxation-only, since its budget applies at and below the
+demotion floor. No new repair kind was invented. The third has no repair and is reported.
+
+Segments rather than words, because a hyphen and a slash are break opportunities too:
+"Wells-next-the-Sea" on two lines is one word and four segments, and is not a defect. And the
+line boxes come from a range over each text node rather than one range over the element, because
+`Range.getClientRects()` also returns the border box of every element inside — which for a treated
+title spans the whole measure and starts at its edge, making an indented line read as flush.
 
 **Evidence.** Across the 72 frozen confirmation trees the new checks fire on exactly the
 compositions the finding describes and nowhere else: frozen 32 sets "Saturday, December 19, 2026"

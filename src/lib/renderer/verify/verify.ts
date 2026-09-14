@@ -299,23 +299,23 @@ export function demotionViolations(
       const overLimit = limit !== null && t.lines > limit;
       const demotable = t.emphasis === "display" || t.emphasis === "primary";
       const overflowing = t.overflow && demotable;
-      // The measure is too narrow for the node's own words. Demotion is a real remedy here: the
-      // box does not change, so smaller type puts more of a word on each line. A node already at
-      // `secondary` has nowhere to go and falls through to the structural pass, exactly as an
+      // The measure is too narrow for the node's own text. Demotion is a real remedy here: the
+      // box does not change, so smaller type puts more of a segment on each line. A node already
+      // at `secondary` has nowhere to go and falls through to the structural pass, exactly as an
       // overflowing one does.
+      //
+      // The metadata budget is deliberately not a demotion trigger: `metadataLineLimit` applies
+      // only at `secondary` and `caption`, which are already at or below the demotion floor, so
+      // relaxing the box is its only repair. Testing for it here would be unreachable code.
       const wordBreak = wordBroken(t) && demotable;
-      const metadataBudget = overMetadataBudget(bp, t) && demotable;
-      if (!overLimit && !overflowing && !wordBreak && !metadataBudget) continue;
+      if (!overLimit && !overflowing && !wordBreak) continue;
       const note = overLimit
         ? `${bp}: ${t.lines} lines at ${t.emphasis} (limit ${limit})`
         : wordBreak
-          ? `${bp}: ${t.lineGeometry.count} lines for ${t.words} words at ${t.emphasis} — ` +
-            "the measure cannot hold them whole"
-          : metadataBudget
-            ? `${bp}: ${t.kind} on ${t.lineGeometry.count} lines at ${t.emphasis} ` +
-              `(budget ${metadataLineLimit(bp, t.kind, t.emphasis, t.words)})`
-            : `${bp}: ${t.emphasis} overflows its container by ` +
-              `${round2(Math.max(t.box.right - t.containerBox.right, t.containerBox.left - t.box.left))}px`;
+          ? `${bp}: ${t.lineGeometry.count} lines for ${t.segments} unbreakable segments at ` +
+            `${t.emphasis} — the measure cannot hold them whole`
+          : `${bp}: ${t.emphasis} overflows its container by ` +
+            `${round2(Math.max(t.box.right - t.containerBox.right, t.containerBox.left - t.box.left))}px`;
       const list = evidence.get(t.id);
       if (list) list.push(note);
       else evidence.set(t.id, [note]);

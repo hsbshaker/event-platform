@@ -339,6 +339,120 @@ describe("F1: a measure too narrow for its words", () => {
   );
 });
 
+/**
+ * The content sweep.
+ *
+ * Every case above holds the title constant and varies the composition. This one does the
+ * opposite, because the checks are content-dependent and a fixture set that never changes the
+ * words cannot see it: a title of two long words breaks into two lines that are each a single
+ * unbreakable segment, which is the shape most likely to be judged unfairly.
+ */
+describe("F1: the titles a host actually types all verify", () => {
+  const TITLES = [
+    "Baby Shaker is on the way",
+    "Mariana's Quinceanera",
+    "Konstantinopoulos Celebration",
+    "Alexandra & Konstantin",
+    "Ruth's Eightieth Birthday",
+    "The Hastings Family Reunion",
+    // Hyphens are break opportunities, so these are one word but four and three segments.
+    "Wells-next-the-Sea Summer Fete",
+    "Stratford-upon-Avon Gathering",
+    "Maya & Tom",
+    "A Baby Shower for Our Little Boy",
+    "The Wedding of Alice and Robert Hastings",
+    "Marissa Aleksandrova and Erenhardt Kristoffersen are finally getting married",
+    "Celebrate",
+  ];
+
+  for (const layout of ["stagger", "cascade", "block"] as const) {
+    inBrowser(
+      `${layout}: all ${TITLES.length} verify clean at 390 and 1280`,
+      async () => {
+        const failures: string[] = [];
+        for (const title of TITLES) {
+          const result = await verifyGeometry({
+            spec: spec(tree(layout)),
+            content: { ...CONTENT, title },
+          });
+          if (!result.ok) failures.push(`${JSON.stringify(title)}: ${result.detail}`);
+        }
+        expect(failures).toEqual([]);
+      },
+      900_000,
+    );
+  }
+
+  inBrowser(
+    "a treated title's indent grows its box rather than eating its measure",
+    async () => {
+      // A percentage indent resolves to zero during intrinsic sizing, so a shrink-wrapped title
+      // computes its width without the indent and then loses exactly the indent from its longest
+      // line — breaking a word that fits. The offsets are lengths for this reason; this case is
+      // what fails if they go back to percentages.
+      const m = await measureRaw(tree("stagger"), { ...CONTENT, title: "Mariana's Quinceanera" });
+      for (const bp of BREAKPOINTS) {
+        const title = titleOf(m[bp]);
+        expect(title.segments, `${bp} segments`).toBe(2);
+        expect(title.lineGeometry.count, `${bp} line boxes`).toBe(2);
+      }
+    },
+    180_000,
+  );
+
+  inBrowser(
+    "a three-line title keeps its words whole and its lines distinct",
+    async () => {
+      const long = "Marissa Aleksandrova and Erenhardt Kristoffersen are finally getting married";
+      expect(titleLines(long)).toHaveLength(3);
+      const m = await measureRaw(tree("cascade"), { ...CONTENT, title: long });
+      for (const bp of BREAKPOINTS) {
+        const title = titleOf(m[bp]);
+        expect(title.lineGeometry.count, `${bp} no intra-word break`).toBeLessThanOrEqual(
+          title.segments,
+        );
+        expect(title.lineGeometry.edgeSpread, `${bp} the ramp is visible`).toBeGreaterThan(1);
+      }
+    },
+    180_000,
+  );
+
+  inBrowser(
+    "both treatments displace a line on a two-line title",
+    async () => {
+      const title = "Baby Shaker is on the way";
+      expect(titleLines(title)).toHaveLength(2);
+      for (const layout of ["stagger", "cascade"] as const) {
+        const m = await measureRaw(tree(layout), { ...CONTENT, title });
+        for (const bp of BREAKPOINTS) {
+          expect(titleOf(m[bp]).lineGeometry.edgeSpread, `${layout} at ${bp}`).toBeGreaterThan(1);
+        }
+      }
+    },
+    300_000,
+  );
+
+  it("stagger and cascade offset different lines, so two lines render two ways", () => {
+    // A rule-level guard, not a measurement: the rendered text of a two-line title is the same
+    // width whichever line carries the indent, so geometry cannot tell the treatments apart. What
+    // can is which child each rule selects. Offsetting the even lines in both — the obvious
+    // choice — would make `stagger` and `cascade` identical for the two-line titles that are the
+    // large majority, and quietly cost the model one of its three `layout` choices.
+    const css = readFileSync(
+      new URL("../../../styles/event-tokens.css", import.meta.url).pathname,
+      "utf8",
+    );
+    const selectors = [...css.matchAll(/ev-lay-(stagger|cascade) \.ev-line:(nth-child\([^)]*\))/g)];
+    const stagger = new Set(selectors.filter((m) => m[1] === "stagger").map((m) => m[2]));
+    const cascade = new Set(selectors.filter((m) => m[1] === "cascade").map((m) => m[2]));
+    expect(stagger.size, "stagger selects a line").toBeGreaterThan(0);
+    expect(cascade.size, "cascade selects a line").toBeGreaterThan(0);
+    for (const selector of stagger) {
+      expect(cascade.has(selector), `both treatments offset ${selector}`).toBe(false);
+    }
+  });
+});
+
 describe("F1: an expressive composition stays expressive", () => {
   inBrowser(
     "a pronounced, monumental, cascaded page verifies clean and keeps its asymmetry",

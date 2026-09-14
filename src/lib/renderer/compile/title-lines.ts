@@ -19,7 +19,8 @@
  * `k` lines and scoring each. Exhaustive search is the clearest correct implementation at this
  * size and removes any question of a heuristic going wrong on an unusual title.
  *
- * The score prefers lines of even length, and penalises the two shapes that read as accidents:
+ * The score prefers lines of even length that stay near the measure a display line wants, and
+ * penalises the shapes that read as accidents:
  *
  * - a line that is nothing but a short function word ("is on", "of the"), which is what made the
  *   old split look broken;
@@ -104,6 +105,11 @@ function score(lines: readonly string[]): number {
   const mean = lengths.reduce((a, b) => a + b, 0) / lengths.length;
   let s = lengths.reduce((acc, len) => acc + (len - mean) ** 2, 0);
 
+  // How far each line runs past the measure a display line wants. Without this the score rewards
+  // evenness alone, which any line count achieves, so the fewer-lines tiebreak would always win and
+  // a title would never take three lines however long it was.
+  s += lengths.reduce((acc, len) => acc + Math.max(0, len - TARGET_CHARS_PER_LINE) ** 2, 0);
+
   for (const [i, line] of lines.entries()) {
     const words = line.split(" ");
     // A line of nothing but function words: the "is on" case.
@@ -138,7 +144,9 @@ export function titleLines(title: string, maxLines: number = MAX_TITLE_LINES): s
   // renders without an offset.
   const wanted = Math.ceil(title.trim().length / TARGET_CHARS_PER_LINE);
   if (wanted < 2) return [words.join(" ")];
-  const k = Math.min(wanted, maxLines, words.length);
+  // `maxLines` is clamped by `MAX_TITLE_LINES` as well as by the caller: the search enumerates
+  // C(words-1, k-1) cuts, which is trivial at three lines and is not at eight.
+  const k = Math.min(wanted, maxLines, MAX_TITLE_LINES, words.length);
   if (k < 2) return [words.join(" ")];
 
   let best: string[] | null = null;

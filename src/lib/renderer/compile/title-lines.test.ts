@@ -49,20 +49,18 @@ describe("the title line breaker", () => {
     expect(titleLines("Celebrate")).toEqual(["Celebrate"]);
   });
 
-  it("never orphans a single short word on the last line", () => {
-    for (const title of [
-      "Baby Shaker is on the way",
-      "The Wedding of Alice and Robert Hastings",
-      "Join us for the Hanson Park Harvest Dinner",
-      "Marissa and Eren are getting married",
-      "A Baby Shower for Our Little Boy",
-    ]) {
-      const lines = titleLines(title);
-      if (lines.length < 2) continue;
-      const last = lines[lines.length - 1]!;
-      const mean = lines.reduce((a, l) => a + l.length, 0) / lines.length;
-      expect(last.split(" ").length > 1 || last.length >= mean * 0.55).toBe(true);
-    }
+  it("never orphans the tail of a title onto a line of its own", () => {
+    // Stated as the outcome, not as the penalty: each of these has a split that would strand its
+    // last word, and none of them is chosen.
+    expect(titleLines("Marissa and Eren are getting married")).toEqual([
+      "Marissa and Eren",
+      "are getting married",
+    ]);
+    expect(titleLines("Join us for the Hanson Park Harvest Dinner")).toEqual([
+      "Join us for the Hanson",
+      "Park Harvest Dinner",
+    ]);
+    expect(titleLines("The Hastings Family Reunion")).toEqual(["The Hastings", "Family Reunion"]);
   });
 
   it("stays within the §3.1 line limit and never emits an empty line", () => {
@@ -92,9 +90,17 @@ describe("the title line breaker", () => {
     }
   });
 
-  it("is deterministic and pure", () => {
-    const title = "The Wedding of Alice and Robert Hastings";
-    expect(titleLines(title)).toEqual(titleLines(title));
+  it("gives a long title three lines and a short one two", () => {
+    // Without a penalty for running past the measure, the score rewards evenness alone — which any
+    // line count achieves — so the fewer-lines tiebreak wins every time and `k = 3` is unreachable.
+    expect(
+      titleLines("Marissa Aleksandrova and Erenhardt Kristoffersen are finally getting married"),
+    ).toEqual([
+      "Marissa Aleksandrova",
+      "and Erenhardt Kristoffersen",
+      "are finally getting married",
+    ]);
+    expect(titleLines("Baby Shaker is on the way")).toHaveLength(2);
   });
 
   it("handles degenerate input without throwing", () => {

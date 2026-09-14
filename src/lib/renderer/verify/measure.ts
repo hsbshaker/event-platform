@@ -109,8 +109,13 @@ export interface MeasuredText {
   readonly kind: string | null;
   /** The title treatment in effect, read back off its `ev-lay-*` class, or `null` for none. */
   readonly layout: string | null;
-  /** Whitespace-separated tokens in the rendered text. The floor on how few lines it can take. */
+  /** Whitespace-separated words in the rendered text, for the metadata budget. */
   readonly words: number;
+  /**
+   * Runs of the rendered text with no break opportunity inside them — whitespace, hyphens, dashes
+   * and slashes all end one. The floor on how few lines the text can legally take.
+   */
+  readonly segments: number;
   readonly lines: number;
   readonly fontPx: number;
   readonly lineHeightPx: number;
@@ -213,10 +218,40 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
     return false;
   }
 
-  function wordsIn(el: Element): number {
-    const text = (el.textContent || "").trim();
+  /**
+   * The node's rendered text.
+   *
+   * `innerText`, not `textContent`. A treated title renders each of its lines as a sibling span
+   * with no whitespace between them in the markup, so `textContent` fuses the last word of one
+   * line with the first of the next — "Mariana's" + "Quinceanera" becomes one token, and the node
+   * then looks as though it were broken inside a word when it was not. `innerText` is the text as
+   * laid out, with a break between block-level children, which is the text these counts are about.
+   */
+  function renderedText(el: Element): string {
+    const html = el as HTMLElement;
+    const text = typeof html.innerText === "string" ? html.innerText : el.textContent || "";
+    return text.trim();
+  }
+
+  function wordsIn(text: string): number {
     if (text.length === 0) return 0;
     return text.split(/\s+/).length;
+  }
+
+  /**
+   * Runs of text with no break opportunity inside them.
+   *
+   * Whitespace is not the only place a browser may break. UAX #14 also allows a break after a
+   * hyphen, an en or em dash and (in Chromium) a slash, so "Wells-next-the-Sea" legitimately sets
+   * on two lines while being one word. Counting these segments rather than words is what keeps
+   * `breaksInsideWords` a proof rather than a heuristic.
+   */
+  function segmentsIn(text: string): number {
+    if (text.length === 0) return 0;
+    const parts = text.split(/[\s\u002D\u2010-\u2015\u2043/]+/);
+    let n = 0;
+    for (let i = 0; i < parts.length; i += 1) if (parts[i].length > 0) n += 1;
+    return n;
   }
 
   function escapes(inner: Box, outer: Box): boolean {
@@ -224,39 +259,56 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
   }
 
   /**
-   * Group a node's inline fragments into line boxes and describe them.
+   * Group a node's rendered text fragments into line boxes and describe them.
    *
-   * Fragments are grouped by vertical position rather than counted, because one visual line can
-   * produce several rects — a staggered title puts each line in its own span, and any inline run
-   * with mixed metrics splits too. Two fragments belong to the same line when their tops are
-   * within half a line height, which is unambiguous for stacked lines at any line height the
-   * stylesheet sets, including the 0.9 a display treatment uses.
+   * The rects come from a range over each **text node**, not from one range over the element's
+   * contents. `Range.getClientRects()` on an element's contents also returns the border box of
+   * every element fully inside it, and those boxes are the wrong shape for both questions asked
+   * here: a full-width `.ev-line` span reports a box spanning the whole measure however narrow its
+   * text is, and it starts at the box's edge however far the text inside is indented — so an
+   * indented line would look flush and a fragmented one would look wide.
+   *
+   * Fragments are then grouped by vertical position rather than counted, because one visual line
+   * can produce several rects: a staggered title puts each line in its own span, and any inline run
+   * with mixed metrics splits too. Two fragments belong to the same line when their tops are within
+   * half a line height, which is unambiguous for stacked lines at any line height the stylesheet
+   * sets, including the 0.9 a display treatment uses.
    */
-  function lineGeometryOf(el: Element, lineHeightPx: number, align: string): LineGeometry {
+  function lineGeometryOf(
+    el: Element,
+    lineHeightPx: number,
+    align: string,
+    direction: string,
+  ): LineGeometry {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     const range = document.createRange();
-    range.selectNodeContents(el);
-    const rects = range.getClientRects();
     const tops: number[] = [];
     const lefts: number[] = [];
     const rights: number[] = [];
-    for (let i = 0; i < rects.length; i += 1) {
-      const r = rects[i];
-      if (r.width <= 0 || r.height <= 0) continue;
-      let group = -1;
-      for (let j = 0; j < tops.length; j += 1) {
-        if (Math.abs(tops[j] - r.top) < lineHeightPx * 0.5) {
-          group = j;
-          break;
+    let node = walker.nextNode();
+    while (node) {
+      range.selectNodeContents(node);
+      const rects = range.getClientRects();
+      for (let i = 0; i < rects.length; i += 1) {
+        const r = rects[i];
+        if (r.width <= 0 || r.height <= 0) continue;
+        let group = -1;
+        for (let j = 0; j < tops.length; j += 1) {
+          if (Math.abs(tops[j] - r.top) < lineHeightPx * 0.5) {
+            group = j;
+            break;
+          }
+        }
+        if (group === -1) {
+          tops.push(r.top);
+          lefts.push(r.left);
+          rights.push(r.right);
+        } else {
+          if (r.left < lefts[group]) lefts[group] = r.left;
+          if (r.right > rights[group]) rights[group] = r.right;
         }
       }
-      if (group === -1) {
-        tops.push(r.top);
-        lefts.push(r.left);
-        rights.push(r.right);
-      } else {
-        if (r.left < lefts[group]) lefts[group] = r.left;
-        if (r.right > rights[group]) rights[group] = r.right;
-      }
+      node = walker.nextNode();
     }
     if (tops.length === 0) return { count: 0, maxWidth: 0, minWidth: 0, edgeSpread: 0 };
 
@@ -265,7 +317,12 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
     let minEdge = Infinity;
     let maxEdge = -Infinity;
     const centered = align === "center";
-    const toEnd = align === "right" || align === "end";
+    // `start` and `end` follow the writing direction; `left` and `right` do not. Nothing in the
+    // stylesheet sets `direction` today, but reading it costs nothing and a single `dir` attribute
+    // would otherwise make every line of an RTL block look displaced from every other.
+    const rtl = direction === "rtl";
+    const toEnd =
+      align === "right" || align === "end" || (rtl && (align === "start" || align === "left"));
     for (let i = 0; i < tops.length; i += 1) {
       const width = rights[i] - lefts[i];
       if (width > maxWidth) maxWidth = width;
@@ -299,6 +356,8 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
     const lineHeightPx = parseFloat(cs.lineHeight) || fontPx * 1.2 || 1;
     const b = box(el);
     const cb = containerBoxOf(el);
+    const text = renderedText(el);
+    const words = wordsIn(text);
     const emphasisMatch = /(?:^|\s)ev-em-([a-z]+)(?:\s|$)/.exec(el.className);
     const kindMatch = /(?:^|\s)ev-t-([A-Za-z]+)(?:\s|$)/.exec(el.className);
     const layoutMatch = /(?:^|\s)ev-lay-([a-z]+)(?:\s|$)/.exec(el.className);
@@ -307,13 +366,14 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
       emphasis: emphasisMatch ? emphasisMatch[1] : null,
       kind: kindMatch ? kindMatch[1] : null,
       layout: layoutMatch ? layoutMatch[1] : null,
-      words: wordsIn(el),
+      words,
+      segments: segmentsIn(text),
       lines: Math.max(1, Math.round(b.height / lineHeightPx)),
       fontPx,
       lineHeightPx,
       box: b,
       containerBox: cb,
-      lineGeometry: lineGeometryOf(el, lineHeightPx, cs.textAlign),
+      lineGeometry: lineGeometryOf(el, lineHeightPx, cs.textAlign, cs.direction),
       overflow: el.scrollWidth > el.clientWidth + tol || escapes(b, cb),
     });
   }
@@ -469,20 +529,23 @@ export function metadataLineLimit(
 }
 
 /**
- * Is this node being broken *inside* its words?
+ * Is this node being broken where the text offers no break?
  *
- * The minimum usable measure, stated so that it needs no threshold. Laying `w` words out on `n`
- * lines needs `n - 1` break points, and only `w - 1` of them fall between words; so `n > w` proves
- * at least one break landed inside a word. That is the column-too-narrow failure F1 describes
- * (mechanism M4) — "the zero-overflow floor converts would-be overflows into arbitrary wraps" —
- * caught without asking how many ems a line ought to be.
+ * The minimum usable measure, stated so that it needs no threshold. Laying `s` unbreakable
+ * segments out on `n` lines needs `n - 1` break points, and the text offers only `s - 1` of them;
+ * so `n > s` proves at least one break landed inside a segment. That is the column-too-narrow
+ * failure F1 describes (mechanism M4) — "the zero-overflow floor converts would-be overflows into
+ * arbitrary wraps" — caught without asking how many ems a line ought to be.
+ *
+ * Segments, not words, because a hyphen or a slash is a legal break too: "Wells-next-the-Sea" on
+ * two lines is one word and four segments, and is not a defect.
  *
  * A measure in ems was the obvious alternative and is the wrong instrument: display type gets few
  * ems per line by its nature, so any threshold strict enough to catch a title chopped across eight
  * lines also condemns a large, well-set one. This rule separates them exactly.
  */
 export function breaksInsideWords(text: MeasuredText): boolean {
-  return text.words > 0 && text.lineGeometry.count > text.words;
+  return text.segments > 0 && text.lineGeometry.count > text.segments;
 }
 
 /**
