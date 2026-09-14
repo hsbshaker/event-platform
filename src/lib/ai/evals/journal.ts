@@ -71,9 +71,11 @@ export interface JournalReadResult {
  * that difference would blend two runs' paid responses into one file beside a `run.json`
  * describing only one of them — evidence that misrepresents what was run.
  *
- * Rotate rather than append, and rotate rather than delete: the displaced file was paid for. It
- * lives in the eval runner's path, which only executes against a live provider, so it is here
- * instead — the mechanism that discharges that hazard should be asserted, not read.
+ * Rotate rather than append, and rotate rather than delete: the displaced file was paid for.
+ *
+ * This used to be four lines inside the eval runner, which only executes against a live
+ * provider — so the mechanism discharging that hazard could be read but never asserted. It is
+ * here so it can be tested.
  */
 export function rotateJournal(dir: string, runStartedAt: string): string | null {
   const journal = path.join(dir, JOURNAL_FILENAME);
