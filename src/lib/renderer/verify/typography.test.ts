@@ -323,6 +323,37 @@ describe("F1: a measure too narrow for its words", () => {
   }
 
   inBrowser(
+    "catches a word split when the line count alone cannot see it",
+    async () => {
+      // The counting rule is sound but not complete. "Konstantinopo" / "ulos ok" is two lines and
+      // two segments — the same arithmetic as the correct "Konstantinopoulos" / "ok" — so the
+      // split has to be measured on the segment itself, not inferred from totals.
+      const title = "Konstantinopoulos ok";
+      const m = await measureRaw(frozen("51"), { ...CONTENT, venue: title, title });
+      const split = BREAKPOINTS.map((bp) => m[bp].texts.filter((t) => t.segmentsSplit > 0)).flat();
+      expect(split.length, "a segment was measured across two lines").toBeGreaterThan(0);
+      for (const t of split) {
+        // Precisely the case the counting rule misses: it alone would report nothing.
+        expect(t.lineGeometry.count).toBeGreaterThan(1);
+      }
+    },
+    300_000,
+  );
+
+  inBrowser(
+    "does not report a split for text that breaks only where it may",
+    async () => {
+      // Every fixture title and every metadata value on a page with room to set them.
+      const m = await measureRaw(tree("block"));
+      for (const bp of BREAKPOINTS) {
+        const offenders = m[bp].texts.filter((t) => t.segmentsSplit > 0).map((t) => t.kind);
+        expect(offenders, `${bp} false positives`).toEqual([]);
+      }
+    },
+    180_000,
+  );
+
+  inBrowser(
     "leaves a legitimately long venue alone — length is not fragmentation",
     async () => {
       const wordy: EventContent = {

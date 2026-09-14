@@ -116,6 +116,12 @@ export interface MeasuredText {
    * and slashes all end one. The floor on how few lines the text can legally take.
    */
   readonly segments: number;
+  /**
+   * Of those, how many were laid out across more than one line box — each one a break the text
+   * did not offer. Direct evidence, where `segments` against `lineGeometry.count` is only an
+   * inequality; see `breaksInsideWords`.
+   */
+  readonly segmentsSplit: number;
   readonly lines: number;
   readonly fontPx: number;
   readonly lineHeightPx: number;
@@ -254,6 +260,93 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
     return n;
   }
 
+  /**
+   * Does this character end a segment — that is, may a line break there?
+   *
+   * Whitespace, and the dashes and slashes UAX #14 allows a break after. Kept as explicit code
+   * points rather than a regex so the same list is used here and by `segmentsIn`.
+   */
+  function isBreakChar(code: number): boolean {
+    if (code === 32 || code === 9 || code === 10 || code === 13 || code === 12) return true;
+    if (code === 45 || code === 47) return true; // hyphen-minus, solidus
+    if (code >= 0x2010 && code <= 0x2015) return true; // hyphen … horizontal bar
+    return code === 0x2043; // hyphen bullet
+  }
+
+  /**
+   * Does this character offer a break *inside* a run with no whitespace in it?
+   *
+   * Han, Hiragana, Katakana and Hangul do: a line of Japanese breaks between characters, so a run
+   * of them spanning two lines is correct typography rather than a chopped word. Such runs are
+   * excluded from the split test below, which is why that test cannot condemn them.
+   */
+  function isIdeographic(code: number): boolean {
+    return (
+      (code >= 0x1100 && code <= 0x11ff) ||
+      (code >= 0x2e80 && code <= 0x9fff) ||
+      (code >= 0xa960 && code <= 0xa97f) ||
+      (code >= 0xac00 && code <= 0xd7ff) ||
+      (code >= 0xf900 && code <= 0xfaff) ||
+      (code >= 0xff00 && code <= 0xff9f)
+    );
+  }
+
+  /**
+   * How many segments were laid out across more than one line box.
+   *
+   * `lineGeometry.count > segments` proves *that* some segment broke, by counting; it cannot prove
+   * that none did. Two lines and two segments is the same arithmetic whether the break fell
+   * between them or inside the first — "Konstantinopo" / "ulos ok" counts exactly like
+   * "Konstantinopoulos" / "ok". So each segment is measured on its own: a range over just its
+   * characters, and rects on two different lines means the browser broke where the text offered
+   * nothing.
+   */
+  function splitSegmentsIn(el: Element, lineHeightPx: number): number {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    let split = 0;
+    let node = walker.nextNode();
+    while (node) {
+      const data = node.nodeValue || "";
+      let start = -1;
+      let ideographic = false;
+      for (let i = 0; i <= data.length; i += 1) {
+        const ends = i === data.length || isBreakChar(data.charCodeAt(i));
+        if (!ends) {
+          if (start === -1) {
+            start = i;
+            ideographic = false;
+          }
+          if (isIdeographic(data.charCodeAt(i))) ideographic = true;
+          continue;
+        }
+        if (start === -1) continue;
+        if (!ideographic) {
+          range.setStart(node, start);
+          range.setEnd(node, i);
+          const rects = range.getClientRects();
+          let tops = 0;
+          let first = 0;
+          for (let j = 0; j < rects.length; j += 1) {
+            const r = rects[j];
+            if (r.width <= 0 || r.height <= 0) continue;
+            if (tops === 0) {
+              tops = 1;
+              first = r.top;
+            } else if (Math.abs(r.top - first) >= lineHeightPx * 0.5) {
+              tops = 2;
+              break;
+            }
+          }
+          if (tops > 1) split += 1;
+        }
+        start = -1;
+      }
+      node = walker.nextNode();
+    }
+    return split;
+  }
+
   function escapes(inner: Box, outer: Box): boolean {
     return inner.right > outer.right + tol || inner.left < outer.left - tol;
   }
@@ -368,6 +461,7 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
       layout: layoutMatch ? layoutMatch[1] : null,
       words,
       segments: segmentsIn(text),
+      segmentsSplit: splitSegmentsIn(el, lineHeightPx),
       lines: Math.max(1, Math.round(b.height / lineHeightPx)),
       fontPx,
       lineHeightPx,
@@ -537,6 +631,11 @@ export function metadataLineLimit(
  * failure F1 describes (mechanism M4) — "the zero-overflow floor converts would-be overflows into
  * arbitrary wraps" — caught without asking how many ems a line ought to be.
  *
+ * That inequality is sound but not complete: it proves a break happened, never that none did.
+ * "Konstantinopo" / "ulos ok" is two lines and two segments, exactly like the correct
+ * "Konstantinopoulos" / "ok". So the primary test is `segmentsSplit`, which measures each segment
+ * on its own and needs no inequality at all; the counting rule remains as a backstop.
+ *
  * Segments, not words, because a hyphen or a slash is a legal break too: "Wells-next-the-Sea" on
  * two lines is one word and four segments, and is not a defect.
  *
@@ -545,6 +644,10 @@ export function metadataLineLimit(
  * lines also condemns a large, well-set one. This rule separates them exactly.
  */
 export function breaksInsideWords(text: MeasuredText): boolean {
+  // Direct evidence first: a segment measured across two line boxes broke where nothing allowed
+  // it to. The counting rule stays as a backstop for the cases a per-segment range cannot see —
+  // text split across several nodes, or a segment excluded as ideographic.
+  if (text.segmentsSplit > 0) return true;
   return text.segments > 0 && text.lineGeometry.count > text.segments;
 }
 
