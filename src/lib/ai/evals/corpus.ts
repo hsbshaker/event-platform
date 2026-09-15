@@ -80,6 +80,39 @@ export const PROTECTED_RESULT_DIRS = [
 ] as const;
 
 /**
+ * The machine evidence in those directories — `run.json`, the journal, the two reports — is what
+ * is immutable. `process-notes.md` beside it is an **append-only incident log**: three accidental
+ * runs have now been recorded there, each appended and none rewritten. Stating the distinction
+ * because the repository was asserting one rule and practising another.
+ */
+
+/**
+ * Would writing here touch evidence that already exists?
+ *
+ * A pure function rather than a comparison inline in the runner, for the reason this project has
+ * now learned twice: a rule inside the eval runner cannot be tested without running the thing it
+ * guards. The previous version compared `OUT` to each directory with `===`, which no test could
+ * fail — simplifying it to a comparison that is always false would have disarmed the refusal
+ * silently.
+ *
+ * Containment in both directions: writing *into* a protected directory destroys evidence, and
+ * writing to an *ancestor* of one drops reports beside it where a reader would take them for the
+ * same run. Trailing and doubled slashes are normalized because `path.join` preserves them.
+ */
+export function isProtectedOutput(outRelativePath: string): boolean {
+  const normalize = (value: string) => value.replace(/\/{2,}/g, "/").replace(/\/+$/, "");
+  const out = normalize(outRelativePath);
+  return PROTECTED_RESULT_DIRS.some((dir) => {
+    const protectedDir = normalize(dir);
+    return (
+      out === protectedDir ||
+      out.startsWith(`${protectedDir}/`) ||
+      protectedDir.startsWith(`${out}/`)
+    );
+  });
+}
+
+/**
  * Which corpus each eval set runs, where its evidence lands, and what class that evidence is.
  *
  * Two sets share the `challenge` corpus and must never share an output directory: `challenge`

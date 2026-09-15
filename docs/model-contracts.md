@@ -197,10 +197,26 @@ read a clean mechanical run as evidence on clarification.
 The middle row is the one most easily overstated, and `results/creative-understanding-v1/process-notes.md`
 records why, along with the one semantic axis inside it that is not novel.
 
-**Runner:** `npm run eval:regression` / `npm run eval:holdout` / `npm run eval:challenge` (`tests/eval/creative-understanding.eval.ts`),
-added in Phase 4A. It runs the cases **sequentially** against the live model — concurrent calls
+**Runner:** `tests/eval/creative-understanding.eval.ts`, added in Phase 4A. The sets and their
+evidence classes are defined once in `src/lib/ai/evals/corpus.ts`, which both this runner and the
+leakage scan read, so they cannot disagree about which file a set means:
+
+| script | `EVAL_SET` | corpus | output | evidence class |
+| --- | --- | --- | --- | --- |
+| `eval:regression` | `regression` | the original 14 | `…-v1-regression` | known cases; catches regressions only |
+| `eval:holdout` | `holdout` | the 12 pre-registered | `…-holdout-v1` | validation against pre-registered invariants |
+| `eval:spent-challenge` | `spentChallenge` | `sealed_challenge_v1` | `…-sealed-challenge-v1-v5-regression` | diagnostic rerun of known cases; **not** fresh |
+| `eval:challenge2` | `challenge2` | `sealed_challenge_v2` *(not yet authored)* | `…-sealed-challenge-v2` | fresh generalization evidence for `v5` |
+| ~~`eval:challenge`~~ | `challenge` | `sealed_challenge_v1` | *(refused)* | historical; its first run is the immutable evidence |
+
+`eval:challenge` is kept and always refuses, naming the two paths that replace it, because the
+command is still printed in this document's history and in operators' shells; deleting it would
+turn a targeted refusal into a generic "unknown set".
+
+It runs the cases **sequentially** against the live model — concurrent calls
 would report a latency no host will ever experience — records failures rather than retrying
-them away, and writes four files to the directory its `EVAL_SET` names — never the immutable baseline, which it refuses:
+them away, and writes four files to the directory its `EVAL_SET` names — never a directory holding
+a completed run's evidence, which it refuses along with anything inside or above one:
 `raw-responses.jsonl` (below), `run.json` (every response and its telemetry),
 `mechanical-report.md` (for us), and `blind-review.md` (for an independent qualitative reviewer).
 It is excluded from `npm test`: it costs money and measures the creative stack, not the compiler.

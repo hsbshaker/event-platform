@@ -32,7 +32,7 @@ import { describe, expect, it } from "vitest";
 import { EventIdentityError, generateEventIdentity } from "@/lib/ai/openai/event-identity";
 import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understanding";
-import { EVAL_SETS, PROTECTED_RESULT_DIRS, validateCorpusShape } from "@/lib/ai/evals/corpus";
+import { EVAL_SETS, isProtectedOutput, validateCorpusShape } from "@/lib/ai/evals/corpus";
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
 import {
   appendJournal,
@@ -58,7 +58,7 @@ const ROOT = new URL("../../", import.meta.url).pathname;
  * is how you say you meant it.
  */
 const SET = process.env.EVAL_SET as keyof typeof EVAL_SETS | undefined;
-if (!SET || !(SET in EVAL_SETS)) {
+if (!SET || !Object.hasOwn(EVAL_SETS, SET)) {
   throw new Error(
     `EVAL_SET must be set explicitly to one of ${Object.keys(EVAL_SETS).join(", ")}. ` +
       "Use one of the `npm run eval:*` scripts; this run costs money and writes evidence, so " +
@@ -72,16 +72,15 @@ const OUT = path.join(ROOT, EVAL_SETS[SET].out);
  * Evidence that already exists. No run may write over it, whatever `EVAL_SET` says — and the
  * list lives beside the set definitions so adding a set cannot quietly aim at one of them.
  */
-for (const protectedDir of PROTECTED_RESULT_DIRS) {
-  if (OUT === path.join(ROOT, protectedDir)) {
-    throw new Error(
-      `refusing to write over ${protectedDir}: that directory holds a completed run's evidence. ` +
-        (SET === "challenge"
-          ? "The v1 sealed challenge is spent; `npm run eval:spent-challenge` reruns those cases " +
-            "into their own directory, and `npm run eval:challenge2` is the fresh v5 corpus."
-          : "Point the set at a directory of its own."),
-    );
-  }
+if (isProtectedOutput(EVAL_SETS[SET].out)) {
+  throw new Error(
+    `refusing to write over ${EVAL_SETS[SET].out}: that path holds, or sits above, a completed ` +
+      "run's evidence. " +
+      (SET === "challenge"
+        ? "The v1 sealed challenge is spent; `npm run eval:spent-challenge` reruns those cases " +
+          "into their own directory, and `npm run eval:challenge2` is the fresh v5 corpus."
+        : "Point the set at a directory of its own."),
+  );
 }
 
 /**

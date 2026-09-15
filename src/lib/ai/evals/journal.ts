@@ -76,7 +76,11 @@ export interface JournalEntry {
   /** The `startedAt` of the run that produced this entry. Makes every line attributable. */
   runStartedAt: string;
   recordedAt: string;
-  /** Which corpus the `caseId` indexes into, and at which version. */
+  /**
+   * Which eval set produced this, and the corpus version it read. The set names the corpus
+   * indirectly via `EVAL_SETS` — two sets share the v1 challenge corpus — so a recovery joins
+   * through that map rather than treating `evalSet` as a filename.
+   */
   evalSet: string;
   corpusVersion: string;
   payload: JournalResponsePayload | JournalFailurePayload;
