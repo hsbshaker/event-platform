@@ -441,6 +441,17 @@ export interface RerunRequest {
  * `rerunRunnerUnavailable` is the only implementation and it says why.
  */
 export type RerunCallRunner = (request: RerunRequest) => Promise<{
+  /**
+   * The provider's response text, exactly as it arrived.
+   *
+   * Part of the seam because the runner journals it the moment it returns, before any checking.
+   * A one-shot pre-registered set makes ≥2 paid calls per case, so a failure on the last case
+   * would otherwise destroy every response paid for in the run — the hazard the
+   * creative-understanding runner exists to avoid and `docs/model-evals/eval-incidents.md`
+   * records. Putting it in the frozen type is what makes durability possible at T13 without
+   * breaking the freeze it was frozen under: an implementation supplies it, nothing here moves.
+   */
+  raw: string;
   result: unknown;
   promptSent: string;
   assemblyVersion: string;

@@ -13,6 +13,7 @@
  * Acceptance criteria: N/A — benchmark integrity. `docs/model-contracts.md §4.5`;
  * `docs/phase-4b-plan.md` Part IV T4.
  */
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -72,6 +73,18 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     expect(RUNNER).toContain("rerunRunnerUnavailable");
   });
 
+  it("journals each paid response the moment it arrives", () => {
+    // A one-shot set making two calls per case must not lose the whole run to a failure on the
+    // last one. The append happens before any checking, and the seam carries `raw` precisely so
+    // this is possible without editing the frozen type at T13.
+    const append = RUNNER.indexOf("appendFileSync(");
+    const check = RUNNER.indexOf("checkRerunCase(");
+    expect(append).toBeGreaterThan(-1);
+    expect(append).toBeLessThan(check);
+    expect(RUNNER).toContain("raw: outcome.raw");
+    expect(RUNNER).toContain("JOURNAL_FILENAME");
+  });
+
   it("checks the corpus shape before it would spend anything", () => {
     const shape = RUNNER.indexOf("validateRerunCorpusShape");
     expect(shape).toBeGreaterThan(-1);
@@ -108,6 +121,27 @@ describe("paths and ownership are fixed before the cases are known", () => {
     // Both refusals precede any work.
     expect(other.indexOf('!== "creative-understanding"')).toBeLessThan(other.indexOf("describe("));
     expect(RUNNER.indexOf('!== "clarification-rerun"')).toBeLessThan(RUNNER.indexOf("describe("));
+  });
+
+  /**
+   * The freeze, enforced.
+   *
+   * The runner's header promises that exactly one line may change after T5 — the `run` binding
+   * that T9 fills. A promise nothing checks is the defect `process-notes.md` already records once
+   * ("a control asserted in evidence and absent from the tree"), so this hashes the file with that
+   * line normalised away.
+   *
+   * If this fails: it means something other than the `run` binding changed in a file that was
+   * frozen before the validation cases were authored. That is the situation the whole T4–T8
+   * ordering exists to prevent. Do not update the hash to make it pass unless the change is
+   * genuinely the permitted one and has been re-reviewed.
+   */
+  it("changes in exactly one place, or not at all", () => {
+    const SEAM = /^\s*const run = .*;$/m;
+    expect(SEAM.test(RUNNER)).toBe(true);
+    const frozen = RUNNER.replace(SEAM, "  const run = <THE ONE PERMITTED SEAM>;");
+    const digest = createHash("sha256").update(frozen, "utf8").digest("hex");
+    expect(digest).toBe("0a4d512ebc35daf05ff60d3b4d6177020764fc3c8c0db5877ea7a49a64060db4");
   });
 
   it("has an npm script, and it names the set explicitly", () => {

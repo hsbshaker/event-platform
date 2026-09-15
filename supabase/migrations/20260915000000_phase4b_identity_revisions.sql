@@ -103,7 +103,20 @@ create table public.event_identity_revisions (
   model text not null,
   provider_config jsonb,
   provider_request_id text,
-  generation_run_id uuid references public.generation_runs (id) on delete set null,
+  -- Which generation run produced this revision. Deliberately **not** a foreign key.
+  --
+  -- `on delete set null` would make the database rewrite this column when the run row goes, and
+  -- an immutable row cannot be rewritten: the protect trigger refuses the RI-driven UPDATE and
+  -- the deletion fails. That is not hypothetical — pruning a `generation_runs` row while its
+  -- event exists raised `identity revisions are immutable` before this change, and the
+  -- event-delete path only survived by an accident of RI trigger ordering.
+  --
+  -- The deeper reason is that nulling it is the wrong behaviour anyway. This revision is evidence,
+  -- and `docs/phase-4b-plan.md §G.4` makes the run part of what it must be attributable to;
+  -- telemetry retention should not reach in and erase an artifact's provenance. A plain uuid can
+  -- dangle once the run is pruned, exactly as `provider_request_id` can, and that is the honest
+  -- record: this revision came from that run, whether or not the run's telemetry still exists.
+  generation_run_id uuid,
 
   -- The ordered clarification answers actually assembled into this call. Not "the answers that
   -- exist for this event now", which is a different and larger set once a later round is
@@ -245,8 +258,14 @@ begin
 end;
 $$;
 
+-- Deliberately not scoped `update of authoritative_identity_revision_id`: that clause fires only
+-- when the column appears in the UPDATE's column list, so a future BEFORE trigger sorting after
+-- this one and assigning NEW.authoritative_identity_revision_id would bypass the check entirely.
+-- For an invariant this section claims is "enforced where it cannot be talked past", the scoping
+-- is the one thing that could talk past it. Unscoped costs a re-derivation per event update, and
+-- the null short-circuit makes that cheap.
 create trigger events_validate_authoritative_identity
-  before insert or update of authoritative_identity_revision_id on public.events
+  before insert or update on public.events
   for each row execute function public.validate_authoritative_identity();
 
 -- ---------------------------------------------------------------------------

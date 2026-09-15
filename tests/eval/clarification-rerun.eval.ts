@@ -13,10 +13,11 @@
  *
  * **The one permitted post-freeze edit to this file** is the single line binding `run` to T9's
  * implementation of `RerunCallRunner`, in place of `rerunRunnerUnavailable`. Nothing else here
- * moves — not a path, not a refusal, not a check, not a criterion — and `rerun-behaviour.test.ts`
- * asserts that the line is the only seam. Saying so plainly is better than claiming "adding the
- * corpus is the entire change" when one line of a frozen file must also change; a freeze whose
- * terms are slightly untrue is worse than one with a named exception.
+ * moves — not a path, not a refusal, not a check, not a criterion — and that is enforced, not
+ * merely asserted: `rerun-behaviour.test.ts` hashes this file with that one line normalised away
+ * and fails if anything else changes. Naming the exception is better than claiming "adding the
+ * corpus is the entire change" when one line must also move; a freeze whose terms are slightly
+ * untrue is worse than one with a named exception.
  *
  * It is never run to verify itself. `docs/model-evals/eval-incidents.md`: "Never execute the eval
  * runner to verify the harness. Not its paths, not its guards, not its schemas, not its reports,
@@ -27,7 +28,7 @@
  * shape/lifecycle — NOT fresh generalization evidence for EventIdentity v5 and NOT a replacement
  * for the spent v5 sealed challenge.**
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -80,13 +81,14 @@ if (isProtectedOutput(EVAL_SETS[SET].out)) {
 
 /**
  * The corpus has to exist. It deliberately does not yet: T4 froze this machinery, and only then
- * are the cases authored (T6–T8). Adding the file is the entire change.
+ * are the cases authored (T6–T8). Adding the corpus is the whole of *that* change; the one other
+ * permitted edit to this file is the `run` binding named in the header.
  */
 if (!existsSync(CORPUS)) {
   throw new Error(
     `${path.relative(ROOT, CORPUS)} does not exist, so EVAL_SET=${SET} cannot run. ` +
       "No provider call is made. Its cases are authored independently after this harness froze, " +
-      "and nothing else needs to change when they land.",
+      "and adding them changes nothing else in this file.",
   );
 }
 
@@ -118,6 +120,17 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
     // silently exercising a code path that does not exist.
     const run = rerunRunnerUnavailable;
 
+    /**
+     * A paid response is durable the moment it arrives.
+     *
+     * Appended per round, before any checking, for the reason `journal.ts` spells out: a bug in
+     * our own deterministic code must not be able to destroy responses already paid for. This set
+     * makes at least two calls per case and runs once, so the alternative is losing the whole run
+     * to a failure on the last one.
+     */
+    const journal = path.join(OUT, JOURNAL_FILENAME);
+    const runStartedAt = new Date().toISOString();
+
     const observations: RerunObservation[] = [];
     const rows: string[] = [];
 
@@ -133,6 +146,26 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
       };
       for (const round of testCase.rounds) {
         const outcome = await run({ prompt: testCase.prompt, answers: round.answers });
+        appendFileSync(
+          journal,
+          `${JSON.stringify({
+            caseId: testCase.id,
+            round: observed.results.length + 1,
+            runStartedAt,
+            recordedAt: new Date().toISOString(),
+            evalSet: SET,
+            corpusVersion: corpus.version,
+            payload: {
+              raw: outcome.raw,
+              output: outcome.result,
+              promptSent: outcome.promptSent,
+              assemblyVersion: outcome.assemblyVersion,
+              schemaVersion: outcome.schemaVersion,
+              answersAssembled: outcome.answersAssembled,
+            },
+          })}\n`,
+          "utf8",
+        );
         observed.promptsSent.push(outcome.promptSent);
         observed.assemblyVersions.push(outcome.assemblyVersion);
         observed.results.push(outcome.result);

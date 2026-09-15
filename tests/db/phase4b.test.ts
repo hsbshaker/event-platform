@@ -299,8 +299,8 @@ describe("a provisional identity can never become authoritative", () => {
         `alter table public.event_identity_revisions enable trigger event_identity_revisions_protect`,
       );
     }
-    // Restored in the finally below, so a failure above cannot leave every later test in this
-    // file running against a non-generated column.
+    // Restored in the `finally` below, so a failure in the assertion cannot leave every later
+    // test in this file running against a non-generated column.
   });
 
   it("refuses a pointer into another event's revision", async () => {
@@ -628,6 +628,66 @@ describe("append-only does not mean the event can never be deleted", () => {
     expect(rows[0]).toEqual({ events: "0", revisions: "0", answers: "0" });
   });
 
+  it("lets a generation run be pruned while the event lives, without rewriting the revision", async () => {
+    // `on delete set null` here would make the database UPDATE an immutable row, which the protect
+    // trigger refuses — so pruning telemetry used to fail with "identity revisions are immutable".
+    // The column is now a plain uuid: the run can go, and the revision keeps saying which run
+    // produced it, which is what an evidence row should do.
+    const { rows: run } = await db.query(
+      `insert into public.generation_runs
+         (event_id, provider, operation, model, latency_ms, success, prompt_version, schema_version)
+       values ($1, 'openai', 'event_identity', 'gpt-5.6-sol', 1, true, 'p', $2) returning id`,
+      [eventId, V5],
+    );
+    // Linked at insert: the revision is immutable, so there is no later moment to attach it.
+    const { rows: linked } = await db.query(
+      `insert into public.event_identity_revisions
+         (event_id, revision, result, prompt_version, schema_version, input_assembly_version,
+          provider, model, generation_run_id)
+       values ($1, 1, $2, 'event_identity_v5', $3, 'event_identity_input_v1', 'openai',
+               'gpt-5.6-sol', $4)
+       returning id, generation_run_id`,
+      [eventId, JSON.stringify(envelope([])), V5, run[0].id],
+    );
+    expect(linked[0].generation_run_id).toBe(run[0].id);
+
+    expect(
+      await errorCode(db.query(`delete from public.generation_runs where id = $1`, [run[0].id])),
+    ).toBeNull();
+    const { rows: after } = await db.query(
+      `select generation_run_id from public.event_identity_revisions where id = $1`,
+      [linked[0].id],
+    );
+    expect(after[0].generation_run_id).toBe(run[0].id);
+  });
+
+  it("lets the owner delete an event whose revision names a generation run", async () => {
+    const { rows: run } = await db.query(
+      `insert into public.generation_runs
+         (event_id, provider, operation, model, latency_ms, success, prompt_version, schema_version)
+       values ($1, 'openai', 'event_identity', 'gpt-5.6-sol', 1, true, 'p', $2) returning id`,
+      [eventId, V5],
+    );
+    await db.query(
+      `insert into public.event_identity_revisions
+         (event_id, revision, result, prompt_version, schema_version, input_assembly_version,
+          provider, model, generation_run_id)
+       values ($1, 1, $2, 'p', $3, 'a', 'openai', 'm', $4)`,
+      [eventId, JSON.stringify(envelope([])), V5, run[0].id],
+    );
+    const code = await asActor(
+      db,
+      { kind: "user", id: owner },
+      (q) => errorCode(q(`delete from public.events where id = $1`, [eventId])),
+      { commit: true },
+    );
+    expect(code).toBeNull();
+    const { rows } = await db.query(`select count(*) as n from public.events where id = $1`, [
+      eventId,
+    ]);
+    expect(rows[0].n).toBe("0");
+  });
+
   it("still refuses a direct delete while the event exists", async () => {
     const id = await insertRevision(eventId, 1, []);
     expect(
@@ -691,7 +751,14 @@ describe("anon reaches neither table", () => {
 
 describe("the SQL and TypeScript supported-version lists are the same list", () => {
   it("pairs the migration's literal with the module's constant", async () => {
-    expect([...SUPPORTED_IDENTITY_SCHEMA_VERSIONS]).toEqual([V5]);
+    // Reads the migration, rather than comparing the module's constant to this file's own copy of
+    // the same string — which would have passed while SQL accepted some third version.
+    const migration = readFileSync(
+      path.join(ROOT, "supabase/migrations/20260915000000_phase4b_identity_revisions.sql"),
+      "utf8",
+    );
+    const literals = [...migration.matchAll(/'(event_identity_schema_v\d+)'/g)].map((m) => m[1]);
+    expect([...new Set(literals)]).toEqual([...SUPPORTED_IDENTITY_SCHEMA_VERSIONS]);
     const { rows } = await db.query(`select public.identity_is_provisional($1::jsonb, $2) as v`, [
       JSON.stringify(envelope([])),
       V5,
