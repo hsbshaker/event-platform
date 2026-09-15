@@ -210,8 +210,14 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
               prompt: testCase.prompt,
               answers: round.answers,
               // The eval's stand-in for the immutable revision a locator resolves against, so the
-              // assembly can render the question it is answering without the corpus restating it.
+              // assembly can render the question it is answering without the corpus restating it —
+              // and every earlier round's answers, so a cumulative envelope is buildable at all.
+              // EventIdentity is stateless: what round N does not send, round N does not see.
               priorResults: [...observed.results],
+              // From the corpus, never from `observed.answersAssembled`: handing back the
+              // implementation's own report of what it assembled would close a loop the checks
+              // exist to open.
+              priorAnswers: testCase.rounds.slice(0, roundNumber - 1).map((r) => r.answers),
             });
           } catch (error) {
             const failure = (error ?? {}) as {

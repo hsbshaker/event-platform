@@ -1072,7 +1072,7 @@ can be waived by the other.
 
 # Canonical ambiguities raised, not resolved
 
-Four tensions live in canon rather than in this plan. A plan document orders work and defines no
+Five tensions live in canon rather than in this plan. A plan document orders work and defines no
 requirements, so neither is settled here; both are raised for an explicit product decision under
 `CLAUDE.md §12`.
 
@@ -1135,6 +1135,24 @@ So this is not blocking, and nothing about it is now unfixable. It still wants a
 T9 writes the assembly, because the answer determines whether the rendered envelope names the
 question. **Raised, not resolved.**
 
+### CA-5 — whether round N's envelope carries every earlier round's answers
+
+§B.3 (`"plus the answer as current host input"`, singular) is ambiguous between a per-round
+envelope and a cumulative one, and the question is not cosmetic: EventIdentity is a stateless
+call, so an answer absent from round N's request is absent from round N's input. The published
+dimension `multi_round_provenance` — *"with two rounds of answers, both are in scope and neither
+is lost"* — reads as cumulative, and a per-round envelope cannot deliver it from round 3 on.
+
+T5 froze the validation seam so that either reading stays available rather than guessing, the
+same move CA-4 got: `RerunRequest` carries `priorAnswers` alongside `priorResults`, and
+`answersAssembledAsGiven` accepts a round's own answers *or* every answer up to that round. An
+assembly that carries round 2 forward and drops round 3 matches neither and still fails, so
+admitting both shapes costs no strictness.
+
+It needs deciding before T9 writes the assembly — and if the answer is per-round, this plan's
+scope-limits paragraph must say that the set validates a per-round envelope only.
+**Raised, not resolved.**
+
 **Two scope limits to state before a clean T13 run is read as more than it is.** The eval's
 locator is narrower than production's: `RerunAnswerInput.questionIndex` addresses the *previous
 round's* question, and the assembly resolves it against the last of `priorResults`, whereas
@@ -1142,8 +1160,19 @@ production's `(identity_revision_id, question_index)` may address any revision o
 set therefore never exercises an answer to an older revision's question. And T9 owes the harness
 three things the frozen seam states but this plan should not leave only there: `requestText` is
 the assembled user message rather than an encoded request body, host free text reaches it
-unnormalised (trimming excepted), and on a repair retry it is the attempt whose response is
-returned.
+unnormalised (trimming excepted), and on a repair retry it is the **whole** assembled input for
+the attempt whose response is returned — the provider boundary appends a correction turn rather
+than replacing the user message, and returning the correction turn alone would fail two absolute
+checks on a correct implementation.
+
+**Three procedural notes that are not code.** (1) `src/lib/ai/evals/rerun-behaviour.ts` and
+`tests/eval/clarification-rerun.eval.ts` compile against `report.ts`, `journal.ts`,
+`lifecycle.ts` and `corpus.ts`; a signature change in any of those would force an edit to a file
+that must never change, so treat them as frozen-by-dependency until T14. (2) The T8 corpus-freeze
+commit should re-pin `corpusPath("rerunBehaviour")` and `RERUN_BEHAVIOUR_OUT` beside the corpus
+digest — the paths live in an editable file, and the T13 evidence is only as attributable as they
+are. (3) The T13 reviewer instruction must say that the artifact is given **alone**: blinding in
+`blind-review.md` is positional, and `mechanical-report.md` lists the case ids in the same order.
 
 ---
 

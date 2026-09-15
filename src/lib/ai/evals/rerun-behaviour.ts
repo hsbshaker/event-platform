@@ -72,7 +72,8 @@ export interface RerunCase {
   dimension: string;
   /**
    * What `suppliedFacts` must hold after the final round: each key's value compared for equality,
-   * or `null` to require the field absent. Equality, not substring — the schema's values are
+   * or `null` to require the field absent **or present and null** — the schema always emits the
+   * key, so those are the same claim here. Equality, not substring — the schema's values are
    * trimmed quotations of the host, so a partial match would accept a field that says more than
    * the host did.
    */
@@ -131,6 +132,13 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
 
     if (typeof testCase?.prompt !== "string" || testCase.prompt.trim().length === 0) {
       problems.push(`${where}: \`prompt\` must be a non-empty string`);
+    } else if (testCase.prompt !== testCase.prompt.trim()) {
+      // `promptByteIdentical` requires the untrimmed prompt verbatim inside the request, and
+      // essentially every host-derived string in `contract.ts` is trimmed somewhere. A padded
+      // prompt would fail an absolute check the first time an assembly trimmed the description —
+      // permanently, against a correct implementation. Refusing the padding here costs nothing
+      // and closes it; the same reasoning trimmed the `freeText` comparison.
+      problems.push(`${where}: \`prompt\` must not have leading or trailing whitespace`);
     }
 
     if (typeof testCase?.dimension !== "string" || !dimensions.has(testCase.dimension)) {
@@ -258,9 +266,14 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
   // assembled envelope T9's golden-envelope test pins.
   const distinctPrompts = [...new Set(observed.promptsSent)];
   const reportedOk = distinctPrompts.length === 1 && distinctPrompts[0] === testCase.prompt;
+  // `typeof` rather than a bare call: an `any`-typed T9 return can put `undefined` in here, and a
+  // frozen check that throws mid-run costs the whole one-shot set, where one that reports `fail`
+  // costs a line in the report.
   const transmittedOk =
     observed.requestTexts.length === observed.results.length &&
-    observed.requestTexts.every((text) => text.includes(testCase.prompt));
+    observed.requestTexts.every(
+      (text) => typeof text === "string" && text.includes(testCase.prompt),
+    );
   add(
     "promptByteIdentical",
     reportedOk && transmittedOk ? "pass" : "fail",
@@ -291,21 +304,33 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
     a.selectedOptionLabel === b.selectedOptionLabel &&
     a.freeText === b.freeText &&
     a.isDefer === b.isDefer;
+  const listMatches = (assembled: RerunAnswerInput[], expected: RerunAnswerInput[]) =>
+    assembled.length === expected.length &&
+    expected.every((answer, i) => sameAnswer(assembled[i], answer));
+  /**
+   * Either the round's own answers, or every answer up to and including this round.
+   *
+   * EventIdentity is a stateless call, so whatever round N's request omits is gone from the input.
+   * The published dimension `multi_round_provenance` says both rounds' answers stay in scope and
+   * neither is lost, which a per-round envelope cannot deliver on round 3 — so a cumulative
+   * envelope is legitimate and must not fail here. Accepting both is still decidable and still
+   * not tautological: the comparison is against the *corpus*, so an assembly that carries round 2
+   * forward and drops round 3 matches neither shape and fails, which is the defect this exists to
+   * catch. Which shape production builds is CA-5; this check does not decide it.
+   */
   const answersMatch = testCase.rounds.every((round, index) => {
     const assembled = observed.answersAssembled[index] ?? [];
-    return (
-      assembled.length === round.answers.length &&
-      round.answers.every((answer, i) => sameAnswer(assembled[i], answer))
-    );
+    const cumulative = testCase.rounds.slice(0, index + 1).flatMap((earlier) => earlier.answers);
+    return listMatches(assembled, round.answers) || listMatches(assembled, cumulative);
   });
   add(
     "answersAssembledAsGiven",
     answersMatch ? "pass" : "fail",
     answersMatch
       ? "each round assembled exactly the answers the case supplied — index, route, option, text " +
-          "and defer flag — in order"
-      : "a round assembled an answer differing from the case's in index, route, option, text, " +
-          "defer flag, count or order",
+          "and defer flag — in order, either for that round or cumulatively to that round"
+      : "a round assembled answers matching neither that round's nor every round up to it, in " +
+          "index, route, option, text, defer flag, count or order",
   );
 
   /**
@@ -323,7 +348,7 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
   testCase.rounds.forEach((round, index) => {
     if (round.answers.length === 0) return;
     const text = observed.requestTexts[index];
-    if (text === undefined) return;
+    if (typeof text !== "string") return;
     // Against round 1 *and* against the round before. Round 1 alone is not enough: a three-round
     // assembly that carries round 2's answers forward but drops round 3's transmits the same text
     // for rounds 2 and 3, which differs from round 1 and passes — silently, and on precisely the
@@ -367,6 +392,7 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
   const versions = [...new Set(observed.assemblyVersions)];
   const versionOk =
     versions.length === 1 &&
+    typeof versions[0] === "string" &&
     versions[0].length > 0 &&
     versions[0] !== ASSEMBLY_VERSION_BEFORE_ANSWERS;
   add(
@@ -454,8 +480,15 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
     // infer generously: a host who picks the option "Garden party" should see a garden-party
     // looseness in `creativeDirection` and `venueText` left null. Scanning the brief would fail
     // that case permanently — a correct implementation, on the dimension that wanted it.
+    // Values, not keys. The schema is strict and every field is always present with a nullable
+    // value, so stringifying the object would put `hostNames`, `venueText`, `dateText` and the
+    // rest into the blob on every response — and an author told only "terms an answer must not
+    // cause to be invented" who writes "venue", "date" or "host" would get a permanent fail on a
+    // perfectly clean envelope.
+    const supplied = ((observed.results[finalIndex] ?? {}) as { suppliedFacts?: unknown })
+      .suppliedFacts;
     const blob = JSON.stringify(
-      ((observed.results[finalIndex] ?? {}) as { suppliedFacts?: unknown }).suppliedFacts ?? {},
+      Object.values((supplied ?? {}) as Record<string, unknown>),
     ).toLowerCase();
     const found = mustNotInvent.filter((term) => blob.includes(term.toLowerCase()));
     add(
@@ -501,8 +534,11 @@ export const RERUN_ACCEPTANCE = {
     "for every case: did the answer reach the rerun as current host input rather than as a " +
     "rewrite of the original description; did the later round respect the answer where it " +
     "conflicted with the earlier description; and did the rerun avoid re-asking what had just " +
-    "been answered. The set passes qualitatively when every case is Yes on all three. A No on " +
-    "any case fails the set, and the reviewer cites the round and the text.",
+    "been answered. The second is conditional and is Yes where no conflict arises — most " +
+    "dimensions produce an answer that adds to the description rather than contradicting it, and " +
+    "a reviewer with nothing to cite there is reporting agreement, not withholding a verdict. " +
+    "The set passes qualitatively when every case is Yes on all three. A No on any case fails " +
+    "the set, and the reviewer cites the round and the text.",
   advisoryNeverCounts: "`advisory` and `n/a` are never folded into the pass count, in either half.",
 } as const;
 
@@ -605,6 +641,21 @@ export interface RerunRequest {
    * set would then exercise an envelope production never builds.
    */
   priorResults: unknown[];
+  /**
+   * Every earlier round's answers, in order and index-aligned with `priorResults`.
+   *
+   * Here for the same reason, and it is the sharper case. EventIdentity is a stateless call, so
+   * an answer that is not in round N's request is simply gone from round N's input — and the
+   * published dimension `multi_round_provenance` promises that with two rounds of answers "both
+   * are in scope and neither is lost". Passing only `answers` would have made a cumulative
+   * envelope unbuildable through this seam, so a corpus author's multi-round cases would be
+   * graded against an envelope T9 had been structurally forced to degrade. That is exactly the
+   * failure the paragraph above says this seam exists to avoid, one field along.
+   *
+   * Whether production's round-N envelope is cumulative is **CA-5**, raised and not resolved:
+   * this seam deliberately admits both, and `answersAssembledAsGiven` accepts either shape.
+   */
+  priorAnswers: RerunAnswerInput[][];
 }
 
 /**
@@ -673,9 +724,14 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
    *   that text verbatim;
    * - the host's typed words reach it unnormalised. Trimming is fine — the check compares on a
    *   trimmed value — but paraphrasing, truncating or re-encoding them is not;
-   * - on a repair retry, which sends a second and different text, return the attempt whose
-   *   response you are returning. Anything else makes the evidence describe a call that did not
-   *   produce the result beside it.
+   * - on a repair retry, return the **whole** assembled input for the attempt whose response you
+   *   are returning — the original user message plus whatever the retry appended, never the retry
+   *   turn alone. The provider boundary appends a correction turn rather than replacing the
+   *   user message, so the description and the answers are still in that input, and the checks
+   *   below look for them verbatim. Returning only the correction turn would fail two absolute
+   *   checks on a correct implementation, and hand the blind reviewer a schema complaint where
+   *   the host's words should be. Repairs are not rare: 2 of 12 calls in the v5 sealed challenge
+   *   consumed one.
    */
   requestText: string;
   assemblyVersion: string;

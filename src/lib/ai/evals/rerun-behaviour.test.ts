@@ -34,6 +34,7 @@ import {
   RERUN_CAPABILITY_DIMENSIONS,
   rerunRunnerUnavailable,
   validateRerunCorpusShape,
+  type RerunAnswerInput,
   type RerunCase,
   type RerunObservation,
 } from "./rerun-behaviour";
@@ -78,12 +79,12 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
   });
 
   it("has no implementation to call even if a corpus appeared", () => {
-    expect(() => rerunRunnerUnavailable({ prompt: "x", answers: [], priorResults: [] })).toThrow(
-      /does not exist yet/,
-    );
-    expect(() => rerunRunnerUnavailable({ prompt: "x", answers: [], priorResults: [] })).toThrow(
-      /T9/,
-    );
+    expect(() =>
+      rerunRunnerUnavailable({ prompt: "x", answers: [], priorResults: [], priorAnswers: [] }),
+    ).toThrow(/does not exist yet/);
+    expect(() =>
+      rerunRunnerUnavailable({ prompt: "x", answers: [], priorResults: [], priorAnswers: [] }),
+    ).toThrow(/T9/);
     // The runner binds through the seam module, which today resolves to the refusal above. That
     // indirection is what lets the runner itself be frozen with no exception: see below.
     expect(RUNNER).toContain('import { rerunRunner } from "@/lib/ai/evals/rerun-seam"');
@@ -170,11 +171,79 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     expect(read("src/lib/ai/evals/rerun-behaviour.ts")).toContain("requestText: string;");
   });
 
+  it("accepts a cumulative envelope as well as a per-round one", () => {
+    // EventIdentity is stateless, so a per-round envelope loses round 2's answer by round 3 — and
+    // `multi_round_provenance` promises it is not lost. Both shapes are legitimate; the check is
+    // against the corpus, so an assembly that drops a round still matches neither.
+    const threeRounds = validCase({
+      rounds: [
+        { answers: [] },
+        { answers: [answer({ selectedOptionLabel: "Warmer" })] },
+        { answers: [answer({ selectedOptionLabel: "Quieter" })] },
+      ],
+    });
+    const base = {
+      promptsSent: [PROMPT, PROMPT, PROMPT],
+      requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>> A2`, `<<<${PROMPT}>>> A2 A3`],
+      results: [{ suppliedFacts: {} }, { suppliedFacts: {} }, { suppliedFacts: {} }],
+      provisional: [false, false, false],
+      schemaVersions: Array(3).fill(EVENT_IDENTITY_SCHEMA_VERSION),
+      assemblyVersions: Array(3).fill("event_identity_input_v2"),
+    };
+    const cumulative = checkRerunCase(
+      threeRounds,
+      observation({
+        ...base,
+        answersAssembled: [
+          [],
+          threeRounds.rounds[1].answers,
+          [...threeRounds.rounds[1].answers, ...threeRounds.rounds[2].answers],
+        ],
+      }),
+    );
+    expect(status(cumulative, "answersAssembledAsGiven")).toBe("pass");
+
+    const perRound = checkRerunCase(
+      threeRounds,
+      observation({
+        ...base,
+        answersAssembled: [[], threeRounds.rounds[1].answers, threeRounds.rounds[2].answers],
+      }),
+    );
+    expect(status(perRound, "answersAssembledAsGiven")).toBe("pass");
+
+    // …and an assembly that carries round 2 forward while dropping round 3 matches neither.
+    const dropped = checkRerunCase(
+      threeRounds,
+      observation({
+        ...base,
+        answersAssembled: [[], threeRounds.rounds[1].answers, threeRounds.rounds[1].answers],
+      }),
+    );
+    expect(status(dropped, "answersAssembledAsGiven")).toBe("fail");
+  });
+
+  it("does not fail a clean envelope over a term that is also a field name", () => {
+    // Every `suppliedFacts` key is present on every response, so scanning the object would put
+    // "venueText" in the blob and fail an author who wrote `mustNotInvent: ["venue"]`.
+    const checks = checkRerunCase(
+      validCase({ mustNotInvent: ["venue"] }),
+      observation({
+        results: [{ suppliedFacts: {} }, { suppliedFacts: { venueText: null, dateText: null } }],
+      }),
+    );
+    expect(status(checks, "noInventedFacts")).toBe("pass");
+  });
+
   it("hands the assembly the rounds a locator resolves against", () => {
     // Production resolves (revision, question_index) against an immutable revision. There is none
     // here, so the prior results are passed — rather than restating the question in the corpus,
     // where it could disagree with what the model actually asked.
     expect(RUNNER).toContain("priorResults: [...observed.results]");
+    // …and the earlier rounds' answers, from the corpus rather than from the implementation's own
+    // report, so a cumulative envelope is buildable without closing a loop the checks exist to
+    // open.
+    expect(RUNNER).toContain("priorAnswers: testCase.rounds.slice(0, roundNumber - 1)");
   });
 
   it("records an unreadable envelope rather than losing the run to it", () => {
@@ -288,7 +357,7 @@ describe("paths and ownership are fixed before the cases are known", () => {
         "the mechanical checks, the acceptance criteria and the blind artifact, all frozen at T5 " +
         "before the validation cases existed. Changing a criterion after seeing the cases is the " +
         "thing this set exists not to do.",
-    ).toBe("0de70a869cf10ff85993aa85be73ad6fb37ea44eceb61f6ab3786f4c550f7b89");
+    ).toBe("660712a331509b1ee4366ea85be88e3f2e9a4cb31c4b2dba64e2f1689cac9d49");
   });
 
   it("does not change at all", () => {
@@ -298,7 +367,7 @@ describe("paths and ownership are fixed before the cases are known", () => {
       "tests/eval/clarification-rerun.eval.ts changed. It was frozen at T5, before the validation " +
         "cases were authored, and it has no permitted edit: T9 repoints " +
         "src/lib/ai/evals/rerun-seam.ts instead. Do not update this hash to silence the failure.",
-    ).toBe("c4ef62ee41ef32ecb0d0f5be1a8e35381d7d01f04649d88c848adb949b177a02");
+    ).toBe("f6f5a20053ab712d4b00fbc63b98e0498573d38f51a853ea695cc78f44f45ecd");
   });
 
   it("has an npm script, and it names the set explicitly", () => {
@@ -334,6 +403,7 @@ describe("the acceptance criteria are frozen, and say what class this evidence i
   it("carries both halves, and neither is a number chosen later", () => {
     expect(RERUN_ACCEPTANCE.mechanical).toMatch(/no check reports `fail`/);
     expect(RERUN_ACCEPTANCE.mechanical).toMatch(/promptByteIdentical/);
+    expect(RERUN_ACCEPTANCE.mechanical).toMatch(/answersReachedTheModel/);
     expect(RERUN_ACCEPTANCE.mechanical).toMatch(/answersAssembledAsGiven/);
     expect(RERUN_ACCEPTANCE.qualitative).toMatch(/every case is Yes on all three/);
     expect(RERUN_ACCEPTANCE.advisoryNeverCounts).toMatch(/never folded into the pass count/);
@@ -348,6 +418,15 @@ describe("the acceptance criteria are frozen, and say what class this evidence i
 });
 
 /* ------------------------------------------------------------------ the corpus contract */
+
+const answer = (over: Partial<RerunAnswerInput> = {}): RerunAnswerInput => ({
+  questionIndex: 0,
+  kind: "creative",
+  selectedOptionLabel: "Warmer",
+  freeText: null,
+  isDefer: false,
+  ...over,
+});
 
 const validCase = (over: Partial<RerunCase> = {}): RerunCase => ({
   id: "RB-01",
