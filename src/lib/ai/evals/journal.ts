@@ -65,10 +65,17 @@ export type JournalStatus = "response" | "unvalidated_response" | "no_response";
  * including `promptVersion` and `schemaVersion`, which live there and are deliberately not
  * duplicated at this level, because two copies of a version are two chances to disagree.
  *
- * Every field here is required — the optional ones inside `telemetry` excepted, where absence is
- * itself the record — so `tsc` refuses a call site that forgets one. That is the point: the
- * previous version of this file left `payload` as `unknown`, and what a recovery would have
+ * Every field here is required, so `tsc` refuses a call site that forgets one. That is the point:
+ * the previous version of this file left `payload` as `unknown`, and what a recovery would have
  * needed was whatever the caller happened to pass.
+ *
+ * Two exceptions, both stated rather than left for a reader to discover. The optional fields
+ * inside `telemetry`, where absence is itself the record — a zero token count would be a
+ * measurement nobody made. And `payload.input`, which is optional because whether it is needed
+ * depends on the set: for a set whose frozen corpus determines what was sent there is nothing to
+ * put there, and for one whose corpus does not, it is load-bearing and its runner is what makes
+ * it mandatory. `tsc` does not enforce that second one, so a new set that assembles its input
+ * must be reviewed for it.
  */
 export interface JournalEntry {
   caseId: string;
@@ -101,8 +108,12 @@ export interface JournalResponsePayload {
    * text that went to the provider is not recoverable from the corpus alone and has to be on the
    * line. Optional rather than required because a set whose corpus does determine its input has
    * nothing to put here, and an empty object would be a record of nothing.
+   *
+   * `Record<string, unknown>` rather than `unknown` so a value that cannot survive
+   * `JSON.stringify` is caught by the compiler rather than by the append that was supposed to
+   * make the response durable.
    */
-  input?: unknown;
+  input?: Record<string, unknown>;
 }
 
 /**
@@ -118,7 +129,7 @@ export interface JournalFailurePayload {
   rawResponses: string[];
   telemetry: CaseTelemetry;
   /** As on the response payload: what was sent, when the corpus does not determine it. */
-  input?: unknown;
+  input?: Record<string, unknown>;
 }
 
 type CaseTelemetry = CaseRun["telemetry"];
@@ -143,12 +154,25 @@ export interface JournalReadResult {
  * here so it can be tested.
  */
 export function rotateJournal(dir: string, runStartedAt: string): string | null {
-  const journal = path.join(dir, JOURNAL_FILENAME);
-  if (!existsSync(journal)) return null;
+  return rotateAside(dir, JOURNAL_FILENAME, runStartedAt);
+}
+
+/**
+ * The same move for any evidence file a run would otherwise leave standing.
+ *
+ * The journal is the one that must never be appended into, but it is not the only file whose
+ * survival can misrepresent a run. A runner that truncates its reports only at the end leaves the
+ * *previous* run's completed report beside the current run's partial journal if it aborts — a
+ * directory that reads as a finished run and is not one. Rotating them at the start, with the
+ * journal and under the same stamp, means an aborted run leaves exactly what it produced.
+ */
+export function rotateAside(dir: string, filename: string, runStartedAt: string): string | null {
+  const file = path.join(dir, filename);
+  if (!existsSync(file)) return null;
   // Stamped with the rotating run's `startedAt` — when it was displaced, not when it was
   // written. What produced each line is `runStartedAt`, inside the file.
-  const rotated = path.join(dir, `${JOURNAL_FILENAME}.${runStartedAt.replace(/[:.]/g, "-")}`);
-  renameSync(journal, rotated);
+  const rotated = path.join(dir, `${filename}.${runStartedAt.replace(/[:.]/g, "-")}`);
+  renameSync(file, rotated);
   return rotated;
 }
 

@@ -261,10 +261,12 @@ $$;
 -- Deliberately not scoped `update of authoritative_identity_revision_id`. That clause fires only
 -- when the column appears in the UPDATE's own column list, so a scoped trigger misses every
 -- assignment that does not come through the statement: NEW.authoritative_identity_revision_id set
--- by a BEFORE trigger sorting *earlier* than this one, which is the live configuration here
--- (PostgreSQL fires BEFORE ROW triggers in name order, and both
+-- by a BEFORE trigger sorting *earlier* than this one, which this table's trigger ordering would
+-- permit (PostgreSQL fires BEFORE ROW triggers in name order, and both
 -- `events_a_protect_server_columns` and `events_b_bump_row_version` sort ahead of
--- `events_validate_authoritative_identity`).
+-- `events_validate_authoritative_identity`). No trigger assigns this column today — the first
+-- raises rather than assigns and the second touches only `row_version` — so what exists now is the
+-- ordering, not an assignment path.
 --
 -- Stated precisely, because the obvious version of this claim is false: unscoping does NOT catch a
 -- trigger sorting *after* this one. Such a trigger assigns after the validation has already run,

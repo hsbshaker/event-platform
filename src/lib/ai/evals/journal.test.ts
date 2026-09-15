@@ -9,7 +9,7 @@
  *
  * Acceptance criteria: N/A — evidence durability. `docs/model-contracts.md §4.5`.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -21,6 +21,7 @@ import {
   readJournal,
   recordThenEvaluate,
   responseEntry,
+  rotateAside,
   rotateJournal,
   type JournalCaseContext,
   type JournalEntry,
@@ -350,6 +351,19 @@ describe("a new run never appends into the previous run's journal", () => {
 
     appendJournal(journal, response("A", "2026-09-15T12:30:00.000Z"));
     expect(readJournal(journal).entries.map((e) => e.caseId)).toEqual(["A"]);
+  });
+
+  it("moves any evidence file aside, not only the journal", () => {
+    // The reports are truncated at the end of a run, so a previous run's completed report would
+    // otherwise survive beside the current run's partial journal and make an aborted run read as
+    // a finished one.
+    const dir = mkdtempSync(path.join(tmpdir(), "journal-"));
+    writeFileSync(path.join(dir, "mechanical-report.md"), "run one", "utf8");
+    const rotated = rotateAside(dir, "mechanical-report.md", "2026-09-15T12:30:00.000Z");
+    expect(rotated).not.toBeNull();
+    expect(readFileSync(rotated as string, "utf8")).toBe("run one");
+    expect(existsSync(path.join(dir, "mechanical-report.md"))).toBe(false);
+    expect(rotateAside(dir, "mechanical-report.md", RUN)).toBeNull();
   });
 
   it("does nothing, and says so, when there is no journal to move", () => {

@@ -11,13 +11,15 @@
  * before an API key is read, before a client is constructed, and a very long way before a request:
  * the corpus does not exist, and neither does the T9 input assembly this set exercises.
  *
- * **The one permitted post-freeze edit to this file** is the single line binding `run` to T9's
- * implementation of `RerunCallRunner`, in place of `rerunRunnerUnavailable`. Nothing else here
- * moves — not a path, not a refusal, not a check, not a criterion — and that is enforced, not
- * merely asserted: `rerun-behaviour.test.ts` hashes this file with that one line normalised away
- * and fails if anything else changes. Naming the exception is better than claiming "adding the
- * corpus is the entire change" when one line must also move; a freeze whose terms are slightly
- * untrue is worse than one with a named exception.
+ * **Nothing in this file may change after T5 — not one line, and no exception.** That is enforced
+ * rather than asserted: `rerun-behaviour.test.ts` hashes the whole file and fails if a byte moves.
+ *
+ * An earlier version of this freeze named one exception, the line binding `run`. It could not be
+ * honoured: binding `run` to T9's implementation means importing it, and the import block is
+ * inside the hash, so the hash would have had to be updated at T9 — a freeze you edit when you
+ * mean to. The binding lives in `src/lib/ai/evals/rerun-seam.ts` instead, which is one line long
+ * and is the only thing T9 touches here. A freeze with no exception beats a freeze with a
+ * slightly untrue one.
  *
  * It is never run to verify itself. `docs/model-evals/eval-incidents.md`: "Never execute the eval
  * runner to verify the harness. Not its paths, not its guards, not its schemas, not its reports,
@@ -34,22 +36,23 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { EVAL_SETS, isProtectedOutput } from "@/lib/ai/evals/corpus";
-import { isProvisional } from "@/lib/ai/event-identity/lifecycle";
+import { isProvisional, UnreadableIdentityError } from "@/lib/ai/event-identity/lifecycle";
 import {
   appendJournal,
   failureEntry,
   JOURNAL_FILENAME,
   responseEntry,
+  rotateAside,
   rotateJournal,
   type JournalCaseContext,
 } from "@/lib/ai/evals/journal";
+import { rerunRunner } from "@/lib/ai/evals/rerun-seam";
 import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import {
   buildRerunReviewArtifact,
   checkRerunCase,
   mechanicalPass,
   RERUN_ACCEPTANCE,
-  rerunRunnerUnavailable,
   validateRerunCorpusShape,
   type RerunCase,
   type RerunCorpus,
@@ -126,9 +129,9 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
     async () => {
       mkdirSync(OUT, { recursive: true });
 
-      // T9 supplies the assembly. Until it does, this throws with an explanation rather than
-      // silently exercising a code path that does not exist.
-      const run = rerunRunnerUnavailable;
+      // T9 supplies the assembly, by repointing `rerun-seam.ts`. Until it does, this throws with
+      // an explanation rather than silently exercising a code path that does not exist.
+      const run = rerunRunner;
 
       /**
        * A paid response is durable the moment it arrives.
@@ -150,8 +153,19 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
        */
       const runStartedAt = new Date().toISOString();
       const journal = path.join(OUT, JOURNAL_FILENAME);
-      const rotated = rotateJournal(OUT, runStartedAt);
-      if (rotated) process.stdout.write(`kept the previous journal as ${path.basename(rotated)}\n`);
+      const rotated = [
+        rotateJournal(OUT, runStartedAt),
+        // The reports move too, and at the start rather than at the end. Written only after the
+        // last case, they would otherwise survive an abort: run 2 dying on case 9 would leave
+        // run 1's *complete* report beside run 2's partial journal, and the directory would read
+        // as a finished run. Rotating all three under one stamp means an aborted run leaves
+        // exactly what it produced.
+        rotateAside(OUT, "mechanical-report.md", runStartedAt),
+        rotateAside(OUT, "blind-review.md", runStartedAt),
+      ].filter((file): file is string => file !== null);
+      for (const file of rotated) {
+        process.stdout.write(`kept the previous ${path.basename(file)}\n`);
+      }
 
       /**
        * One journal line per round, so the id names the round: `<corpus case id>#<1-based round>`.
@@ -174,6 +188,7 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
         const observed: RerunObservation = {
           caseId: testCase.id,
           promptsSent: [],
+          requestTexts: [],
           assemblyVersions: [],
           results: [],
           provisional: [],
@@ -191,9 +206,15 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
           // failure still fails the run loudly.
           let outcome: Awaited<ReturnType<typeof run>>;
           try {
-            outcome = await run({ prompt: testCase.prompt, answers: round.answers });
+            outcome = await run({
+              prompt: testCase.prompt,
+              answers: round.answers,
+              // The eval's stand-in for the immutable revision a locator resolves against, so the
+              // assembly can render the question it is answering without the corpus restating it.
+              priorResults: [...observed.results],
+            });
           } catch (error) {
-            const failure = error as {
+            const failure = (error ?? {}) as {
               kind?: string;
               message?: string;
               issues?: { path: string; message: string }[];
@@ -212,6 +233,13 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
                 // this to decide between `unvalidated_response` and `no_response`, so a billed
                 // call is never recorded as one that produced nothing.
                 rawResponses: failure.rawResponses ?? [],
+                // Synthesized, because the call threw before returning one. Two fields here are
+                // weaker than they look and are recorded as such rather than trusted: `model` is
+                // this runner's copy of the provider module's default and would be wrong if that
+                // default moved, and `transientRetries`/`repairRetries` default to 0 — a count
+                // nobody measured, which `journal.ts` warns against for token counts. Both are
+                // non-optional on `CaseRun["telemetry"]`, so the shape forces a value; read a
+                // failure entry's retry counts as unknown, not as zero.
                 telemetry: {
                   model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol",
                   promptVersion: EVENT_IDENTITY_PROMPT_VERSION,
@@ -221,7 +249,7 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
                   repairRetries: failure.usage?.repairRetries ?? 0,
                   schemaValidFirstCall: false,
                 },
-                input: { prompt: testCase.prompt, answers: round.answers },
+                input: { requested: { prompt: testCase.prompt, answers: round.answers } },
               }),
             );
             throw error;
@@ -233,17 +261,23 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
               raw: outcome.raw,
               output: outcome.result,
               telemetry: outcome.telemetry,
+              // Named halves, because a reader of a lone line must be able to tell the case's own
+              // input from the implementation's account of what it did with it. `transmitted` is
+              // the only one of the three that is not self-reported.
               input: {
-                prompt: testCase.prompt,
-                answers: round.answers,
-                promptSent: outcome.promptSent,
-                assemblyVersion: outcome.assemblyVersion,
-                answersAssembled: outcome.answersAssembled,
+                requested: { prompt: testCase.prompt, answers: round.answers },
+                transmitted: outcome.requestText,
+                reported: {
+                  promptSent: outcome.promptSent,
+                  assemblyVersion: outcome.assemblyVersion,
+                  answersAssembled: outcome.answersAssembled,
+                },
               },
             }),
           );
 
           observed.promptsSent.push(outcome.promptSent);
+          observed.requestTexts.push(outcome.requestText);
           observed.assemblyVersions.push(outcome.assemblyVersion);
           observed.results.push(outcome.result);
           observed.schemaVersions.push(outcome.telemetry.schemaVersion);
@@ -252,7 +286,19 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
           // make `boundaryResolves` report "the final round is authoritative" about a round that
           // still carried a boundary question — the committed evidence asserting the opposite of
           // what happened, for the one dimension that check exists to measure.
-          observed.provisional.push(isProvisional(outcome.result, outcome.telemetry.schemaVersion));
+          //
+          // The reader fails closed, and this set is authorized exactly once: an unsupported
+          // schema version or a malformed clarification block throws, and letting that abort the
+          // loop would destroy the run in the very case `schemaVersionExpected` was frozen to
+          // record as a mechanical failure. So it is caught and recorded as a third state.
+          try {
+            observed.provisional.push(
+              isProvisional(outcome.result, outcome.telemetry.schemaVersion),
+            );
+          } catch (error) {
+            if (!(error instanceof UnreadableIdentityError)) throw error;
+            observed.provisional.push("unreadable");
+          }
         }
         const checks = checkRerunCase(testCase, observed);
         observations.push(observed);
@@ -267,6 +313,12 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
         path.join(OUT, "mechanical-report.md"),
         [
           "# Clarification rerun behaviour — mechanical report",
+          "",
+          // The run's own identity, so this file cannot be mistaken for another run's. It is
+          // written after the last case, which is what makes its presence the completion signal
+          // this set has in place of `run.json`; without the stamp, a reader could not tell which
+          // run it completed.
+          `Run started: \`${runStartedAt}\` · corpus \`${corpus.version}\` · set \`${SET}\``,
           "",
           `Evidence class: **${RERUN_ACCEPTANCE.evidenceClass}**`,
           ...RERUN_ACCEPTANCE.notes.map((note) => `- ${note}`),

@@ -78,11 +78,27 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
   });
 
   it("has no implementation to call even if a corpus appeared", () => {
-    expect(() => rerunRunnerUnavailable({ prompt: "x", answers: [] })).toThrow(
+    expect(() => rerunRunnerUnavailable({ prompt: "x", answers: [], priorResults: [] })).toThrow(
       /does not exist yet/,
     );
-    expect(() => rerunRunnerUnavailable({ prompt: "x", answers: [] })).toThrow(/T9/);
-    expect(RUNNER).toContain("rerunRunnerUnavailable");
+    expect(() => rerunRunnerUnavailable({ prompt: "x", answers: [], priorResults: [] })).toThrow(
+      /T9/,
+    );
+    // The runner binds through the seam module, which today resolves to the refusal above. That
+    // indirection is what lets the runner itself be frozen with no exception: see below.
+    expect(RUNNER).toContain('import { rerunRunner } from "@/lib/ai/evals/rerun-seam"');
+    expect(RUNNER).toContain("const run = rerunRunner;");
+    const seam = read("src/lib/ai/evals/rerun-seam.ts");
+    expect(seam).toContain(
+      'export { rerunRunnerUnavailable as rerunRunner } from "./rerun-behaviour"',
+    );
+    // One line of code, so what T9 changes here is reviewable at a glance.
+    const code = seam
+      .split("\n")
+      .filter(
+        (line) => line.trim() && !line.trim().startsWith("*") && !line.trim().startsWith("/*"),
+      );
+    expect(code).toHaveLength(1);
   });
 
   it("journals each paid response inside the round, not after the loop", () => {
@@ -92,7 +108,7 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     // exists to exclude — so the append is located inside the round body itself.
     const body = roundBody();
     const call = body.indexOf("await run(");
-    const append = body.indexOf("responseEntry(");
+    const append = body.indexOf("appendJournal(");
     const record = body.indexOf("observed.promptsSent.push");
     expect(call).toBeGreaterThan(-1);
     expect(append).toBeGreaterThan(call);
@@ -100,7 +116,8 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     expect(body).toContain("raw: outcome.raw");
     expect(RUNNER).toContain("JOURNAL_FILENAME");
     // …and before any checking, which happens once the rounds are done.
-    expect(RUNNER.indexOf("responseEntry(")).toBeLessThan(RUNNER.indexOf("checkRerunCase("));
+    expect(body.indexOf("responseEntry(")).toBeGreaterThan(call);
+    expect(RUNNER.indexOf("appendJournal(")).toBeLessThan(RUNNER.indexOf("checkRerunCase("));
   });
 
   it("journals a billed response that validation then rejected, and still fails loudly", () => {
@@ -121,14 +138,49 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     expect(flat(read("src/lib/ai/evals/rerun-behaviour.ts"))).toContain("rawResponses?: string[]");
   });
 
-  it("rotates a previous journal aside rather than appending into it", () => {
+  it("rotates every previous evidence file aside, before the first call", () => {
     // `EVAL_OVERWRITE=1` is the only way past the write-once refusal, and it does not truncate a
-    // JSONL append. Without rotation two runs' rounds interleave in one file beside a report
-    // describing only the second.
+    // JSONL append. Without rotation two runs' rounds interleave in one file.
     const rotate = RUNNER.indexOf("rotateJournal(OUT, runStartedAt)");
     expect(rotate).toBeGreaterThan(-1);
     expect(rotate).toBeLessThan(RUNNER.indexOf("for (const testCase of"));
-    expect(RUNNER).toContain("kept the previous journal as");
+    expect(RUNNER).toContain("kept the previous");
+    // The reports move too, and at the start. Written only after the last case, a surviving
+    // previous report would sit beside an aborted run's partial journal and make the directory
+    // read as a completed run — the same defect as the journal, one file along.
+    expect(RUNNER).toContain('rotateAside(OUT, "mechanical-report.md", runStartedAt)');
+    expect(RUNNER).toContain('rotateAside(OUT, "blind-review.md", runStartedAt)');
+  });
+
+  it("stamps the completion signal with the run it completed", () => {
+    // This set writes no `run.json`, so `mechanical-report.md` — written only after the last case
+    // — is its completion marker. A marker with no run identity cannot be told from another run's.
+    expect(RUNNER).toContain("Run started: ");
+    expect(RUNNER).toContain("${runStartedAt}");
+    expect(RUNNER).toContain("${corpus.version}");
+  });
+
+  it("records what was transmitted, not only what the implementation says it sent", () => {
+    // The two absolute criteria are otherwise satisfiable by an implementation that echoes its
+    // arguments. `requestText` is the field an echo cannot supply without also fabricating it.
+    expect(RUNNER).toContain("observed.requestTexts.push(outcome.requestText)");
+    expect(RUNNER).toContain("transmitted: outcome.requestText");
+    expect(read("src/lib/ai/evals/rerun-behaviour.ts")).toContain("requestText: string;");
+  });
+
+  it("hands the assembly the rounds a locator resolves against", () => {
+    // Production resolves (revision, question_index) against an immutable revision. There is none
+    // here, so the prior results are passed — rather than restating the question in the corpus,
+    // where it could disagree with what the model actually asked.
+    expect(RUNNER).toContain("priorResults: [...observed.results]");
+  });
+
+  it("records an unreadable envelope rather than losing the run to it", () => {
+    // `isProvisional` fails closed. Letting it throw would abort the one authorized run in exactly
+    // the case `schemaVersionExpected` was frozen to report.
+    expect(RUNNER).toContain("UnreadableIdentityError");
+    expect(RUNNER).toContain('observed.provisional.push("unreadable")');
+    expect(RUNNER).toContain("if (!(error instanceof UnreadableIdentityError)) throw error;");
   });
 
   it("writes real journal entries, under the journal's own filename", () => {
@@ -151,7 +203,7 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     const source = read("src/lib/ai/evals/rerun-behaviour.ts");
     expect(source).toContain("telemetry: RerunTelemetry;");
     // One copy of the version, for the reason `journal.ts` gives.
-    expect(source).not.toContain("  schemaVersion: string;");
+    expect(source).not.toMatch(/^\s*schemaVersion: string;$/m);
     expect(RUNNER).toContain("outcome.telemetry.schemaVersion");
   });
 
@@ -202,37 +254,26 @@ describe("paths and ownership are fixed before the cases are known", () => {
   });
 
   /**
-   * The freeze, enforced.
+   * The freeze, enforced — with no exception to argue about.
    *
-   * The runner's header promises that exactly one line may change after T5 — the `run` binding
-   * that T9 fills. A promise nothing checks is the defect `process-notes.md` already records once
-   * ("a control asserted in evidence and absent from the tree"), so this hashes the file with that
-   * line normalised away.
+   * An earlier version of this guard promised "nothing but one line", normalising the `run`
+   * binding away before hashing. That exception could not be honoured: binding `run` to T9's
+   * implementation also means importing it, and the import block is inside the hash, so the hash
+   * would have had to be updated at T9 — a freeze you edit when you mean to. The binding moved to
+   * `rerun-seam.ts`, which is not frozen, and this hashes the runner whole.
    *
-   * If this fails: it means something other than the `run` binding changed in a file that was
-   * frozen before the validation cases were authored. That is the situation the whole T4–T8
-   * ordering exists to prevent. Do not update the hash to make it pass unless the change is
-   * genuinely the permitted one and has been re-reviewed.
+   * If this fails: something changed in a file frozen before the validation cases were authored,
+   * which is the situation the whole T4–T8 ordering exists to prevent. There is no legitimate
+   * reason to update this constant at T9 or T13 — the change belongs in `rerun-seam.ts`.
    */
-  it("changes in exactly one place, or not at all", () => {
-    // The right-hand side is an identifier or a member expression and nothing else. A looser
-    // `.*` would let the permitted line smuggle a second statement past the hash —
-    // `const run = realRunner; process.env.EVAL_OVERWRITE = "1";` would normalise identically —
-    // which makes the header's "nothing else here moves" literally true rather than nearly so.
-    const SEAM = /^\s*const run = [A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*;$/m;
-    expect(
-      SEAM.test(RUNNER),
-      "the `run` binding must stay a single `const run = <identifier>;` line: that exact shape is " +
-        "what the freeze below can normalise away",
-    ).toBe(true);
-    const frozen = RUNNER.replace(SEAM, "  const run = <THE ONE PERMITTED SEAM>;");
-    const digest = createHash("sha256").update(frozen, "utf8").digest("hex");
+  it("does not change at all", () => {
+    const digest = createHash("sha256").update(RUNNER, "utf8").digest("hex");
     expect(
       digest,
-      "tests/eval/clarification-rerun.eval.ts changed somewhere other than the `run` binding. " +
-        "It was frozen before the validation cases were authored; do not update this hash unless " +
-        "the change is genuinely the permitted one and has been re-reviewed.",
-    ).toBe("ad34fb424ed5e21fd638cfc320debd8be5d0db074670c9886bd50eae7e74ac84");
+      "tests/eval/clarification-rerun.eval.ts changed. It was frozen at T5, before the validation " +
+        "cases were authored, and it has no permitted edit: T9 repoints " +
+        "src/lib/ai/evals/rerun-seam.ts instead. Do not update this hash to silence the failure.",
+    ).toBe("bc4d74aef2e753e5b41518b0e6867556fec08a9f9477469a1997996b6843bb48");
   });
 
   it("has an npm script, and it names the set explicitly", () => {
@@ -336,6 +377,8 @@ describe("the structural contract refuses a case that would waste a paid call", 
       ]),
     ],
     ["an unknown dimension", corpus([validCase({ dimension: "something_else" })])],
+    // The journal names rounds `<id>#<round>`, and a recovery joins on the part before the `#`.
+    ["an id containing #", corpus([validCase({ id: "RB-01#boundary" })])],
     ["a duplicate id", corpus([validCase(), validCase()])],
   ])("refuses %s", (_label, value) => {
     expect(validateRerunCorpusShape(value).length).toBeGreaterThan(0);
@@ -399,9 +442,14 @@ describe("the structural contract refuses a case that would waste a paid call", 
 
 /* ------------------------------------------------------------------ the mechanical checks */
 
+const PROMPT = "A retirement dinner for my mum";
+
 const observation = (over: Partial<RerunObservation> = {}): RerunObservation => ({
   caseId: "RB-01",
-  promptsSent: ["A retirement dinner for my mum", "A retirement dinner for my mum"],
+  promptsSent: [PROMPT, PROMPT],
+  // Distinct per round, and each containing the description verbatim: what a real assembly
+  // transmits. The default is the passing case; the tests below break it deliberately.
+  requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>> answer: Warmer`],
   assemblyVersions: ["event_identity_input_v2", "event_identity_input_v2"],
   results: [{ suppliedFacts: {} }, { suppliedFacts: {} }],
   provisional: [false, false],
@@ -437,6 +485,68 @@ describe("the mechanical checks decide what they can and refuse to guess the res
     );
     expect(status(checks, "promptByteIdentical")).toBe("fail");
     expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("fails an implementation that echoes its own prompt back without sending it", () => {
+    // The self-reported half is satisfied — `promptsSent` is the case's prompt on both rounds —
+    // but the text actually transmitted does not contain it. Without the transmitted anchor this
+    // case passes tautologically, which is what makes the criterion a measurement.
+    const checks = checkRerunCase(
+      validCase(),
+      observation({ requestTexts: ["a paraphrase of the description", "another paraphrase"] }),
+    );
+    expect(status(checks, "promptByteIdentical")).toBe("fail");
+    expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("fails when a round carrying answers transmitted the same text as round 1", () => {
+    // Answers that changed nothing about the request did not reach the model, whatever the
+    // implementation reports having assembled.
+    const checks = checkRerunCase(
+      validCase(),
+      observation({ requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>>`] }),
+    );
+    expect(status(checks, "answersReachedTheModel")).toBe("fail");
+    expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("fails when the host's own words were not transmitted", () => {
+    const withText = validCase({
+      rounds: [
+        { answers: [] },
+        {
+          answers: [
+            {
+              questionIndex: 0,
+              kind: "creative",
+              selectedOptionLabel: null,
+              freeText: "keep it black tie",
+              isDefer: false,
+            },
+          ],
+        },
+      ],
+    });
+    const checks = checkRerunCase(
+      withText,
+      observation({
+        requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>> the host answered something`],
+        answersAssembled: [[], withText.rounds[1].answers],
+      }),
+    );
+    expect(status(checks, "answersReachedTheModel")).toBe("fail");
+  });
+
+  it("passes when the answer text is transmitted, whatever the label rendering", () => {
+    // The option *label* is deliberately not required verbatim: how a chosen option is rendered is
+    // the assembly's business, and freezing a rendering would fail a legitimate implementation.
+    const checks = checkRerunCase(
+      validCase(),
+      observation({
+        requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>> the host asked for a warmer register`],
+      }),
+    );
+    expect(status(checks, "answersReachedTheModel")).toBe("pass");
   });
 
   it("fails when a round assembled answers the case did not supply", () => {

@@ -114,6 +114,12 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
       problems.push(`${where}: \`id\` must be a non-empty string`);
     } else if (seen.has(testCase.id)) {
       problems.push(`${where}: duplicate \`id\``);
+    } else if (testCase.id.includes("#")) {
+      // The journal writes one line per round as `<id>#<round>`, and a recovery joins back on the
+      // part before the `#`. An id containing one would make that join name a case that does not
+      // exist — and this validator and that runner freeze at the same moment, so the constraint
+      // belongs here rather than in a note the author never sees.
+      problems.push(`${where}: \`id\` must not contain "#" (the journal uses it to name rounds)`);
     } else {
       seen.add(testCase.id);
     }
@@ -200,12 +206,29 @@ export interface RerunObservation {
    * rather than pass quietly.
    */
   promptsSent: string[];
+  /**
+   * The exact text transmitted to the provider on each round.
+   *
+   * Separate from `promptsSent` because the two absolute checks are otherwise satisfiable by an
+   * implementation that echoes its own arguments: `promptSent: request.prompt` and
+   * `answersAssembled: request.answers` make both pass tautologically, for every case, forever.
+   * This is the one field the checker has that an echo cannot fabricate without also fabricating
+   * what it claims to have sent — so the checks below are anchored to it.
+   */
+  requestTexts: string[];
   /** The assembly version recorded for each round. */
   assemblyVersions: string[];
   /** The validated result envelope for each round. */
   results: unknown[];
-  /** Whether each round's result was provisional, as the lifecycle module judged it. */
-  provisional: boolean[];
+  /**
+   * Whether each round's result was provisional, as the lifecycle module judged it — or
+   * `"unreadable"` when the fail-closed reader refused the envelope outright.
+   *
+   * The third state exists so that a wrong schema version is *recorded* by
+   * `schemaVersionExpected` rather than aborting the loop before any check runs. This set is
+   * authorized exactly once; a deterministic throw partway through costs the whole run.
+   */
+  provisional: (boolean | "unreadable")[];
   /** The answers the runner reported as assembled into each round. */
   answersAssembled: RerunAnswerInput[][];
   schemaVersions: string[];
@@ -224,15 +247,25 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
   const add = (name: string, status: CheckStatus, detail: string) =>
     checks.push({ name, status, detail });
 
+  // Anchored to what was actually transmitted, not only to what the implementation says it sent.
+  // The self-reported half alone is satisfied by `promptSent: request.prompt`; requiring the
+  // description to appear verbatim inside the real request text is not, because that text is the
+  // assembled envelope T9's golden-envelope test pins.
   const distinctPrompts = [...new Set(observed.promptsSent)];
+  const reportedOk = distinctPrompts.length === 1 && distinctPrompts[0] === testCase.prompt;
+  const transmittedOk =
+    observed.requestTexts.length === observed.results.length &&
+    observed.requestTexts.every((text) => text.includes(testCase.prompt));
   add(
     "promptByteIdentical",
-    distinctPrompts.length === 1 && distinctPrompts[0] === testCase.prompt ? "pass" : "fail",
-    distinctPrompts.length === 1
-      ? distinctPrompts[0] === testCase.prompt
-        ? "the original description was sent unchanged on every round"
-        : "the prompt sent differs from the case's own prompt"
-      : `the prompt changed between rounds (${distinctPrompts.length} distinct values)`,
+    reportedOk && transmittedOk ? "pass" : "fail",
+    !reportedOk
+      ? distinctPrompts.length === 1
+        ? "the prompt sent differs from the case's own prompt"
+        : `the prompt changed between rounds (${distinctPrompts.length} distinct values)`
+      : transmittedOk
+        ? "the original description was sent unchanged, and appears verbatim in every request"
+        : "a round's transmitted request does not contain the original description verbatim",
   );
 
   const expectedRounds = testCase.rounds.length;
@@ -268,6 +301,43 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
           "and defer flag — in order"
       : "a round assembled an answer differing from the case's in index, route, option, text, " +
           "defer flag, count or order",
+  );
+
+  /**
+   * …and the answers reached the model, rather than only the implementation's report of them.
+   *
+   * Two properties an echo cannot satisfy. A round that supplies answers must transmit text that
+   * differs from round 1's — answers that changed nothing about the request did not reach the
+   * model, which is the one thing this whole set exists to establish. And the host's own typed
+   * words must appear verbatim: `freeText` is current host input, and an assembly that paraphrases
+   * or drops it has lost the input rather than relabelled it. The option *label* is deliberately
+   * not required verbatim — how a chosen option is rendered is the assembly's business, and the
+   * qualitative half reads it — so this never fails on a rendering choice.
+   */
+  const firstRequest = observed.requestTexts[0] ?? "";
+  const answerProblems: string[] = [];
+  testCase.rounds.forEach((round, index) => {
+    if (round.answers.length === 0) return;
+    const text = observed.requestTexts[index];
+    if (text === undefined) return;
+    if (text === firstRequest) {
+      answerProblems.push(`round ${index + 1} transmitted the same text as round 1`);
+    }
+    for (const answer of round.answers) {
+      if (answer.freeText !== null && !text.includes(answer.freeText)) {
+        answerProblems.push(
+          `round ${index + 1} did not transmit free text for q${answer.questionIndex}`,
+        );
+      }
+    }
+  });
+  const answersReached = answerProblems.length === 0;
+  add(
+    "answersReachedTheModel",
+    answersReached ? "pass" : "fail",
+    answersReached
+      ? "every round carrying answers transmitted different text, with the host's own words verbatim"
+      : answerProblems.join("; "),
   );
 
   // Recorded, consistent, and **not** the pre-answers value. A run that carried clarification
@@ -432,11 +502,31 @@ export function buildRerunReviewArtifact(
 export interface RerunRequest {
   prompt: string;
   answers: RerunAnswerInput[];
+  /**
+   * Every earlier round's validated result, in order — the eval's stand-in for the immutable
+   * identity revision that production resolves a locator against.
+   *
+   * `RerunAnswerInput` is a locator plus what the host said, exactly like a `clarification_answers`
+   * row, and for the same reason: an answer proves which question it answers by index into a
+   * revision that cannot change under it, never by restating the question. Production reads
+   * `question_text` and `options` from the row, which the trigger checked against the revision's
+   * own JSON; here there is no revision, so the results themselves are passed and the assembly
+   * resolves `questionIndex` against the last of them.
+   *
+   * The alternative — putting `questionText` and `options` in the corpus — would let the corpus
+   * disagree with what the model actually asked, which is precisely the drift check (4) of
+   * `validate_clarification_answer` exists to refuse. Without this field a T9 adapter driven
+   * through the seam could only fabricate the question or keep hidden cross-call state, and the
+   * set would then exercise an envelope production never builds.
+   */
+  priorResults: unknown[];
 }
 
 /**
  * What a round costs and which versions produced it, in the shape `run.json` and the journal
- * already use, so this set's evidence is not the one that cannot say what it spent.
+ * already use, so what this set spent is recorded somewhere rather than nowhere. Stated with its
+ * actual reach: the token and request-id fields are optional on this type, and this set's
+ * `mechanical-report.md` prints no telemetry at all, so cost lives in the journal only.
  *
  * `docs/model-contracts.md` requires a journal entry to carry "the fully-built telemetry the
  * report itself records", and the rule is written as universal. Rather than admit a scoped
@@ -476,7 +566,21 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
    */
   raw: string;
   result: unknown;
+  /**
+   * The host's original description as it went into this request — the raw description, not the
+   * envelope. Self-reported, and checked against `requestText` below precisely because it is.
+   */
   promptSent: string;
+  /**
+   * The exact text transmitted to the provider, verbatim.
+   *
+   * Required, and required *here*, because the two checks `RERUN_ACCEPTANCE` calls absolute are
+   * otherwise tautological: an implementation returning `promptSent: request.prompt` and
+   * `answersAssembled: request.answers` passes both for every case without having sent anything
+   * of the kind. This is the field that makes them measurements. Return what was sent — not a
+   * reconstruction of what should have been.
+   */
+  requestText: string;
   assemblyVersion: string;
   answersAssembled: RerunAnswerInput[];
   telemetry: RerunTelemetry;

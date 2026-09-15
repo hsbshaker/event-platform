@@ -1116,6 +1116,25 @@ The plan follows the four, per the source-of-truth order, and scopes `presentati
 §G.2, §3.8). The fix is a one-line clarification in `spec.md §7.8`, not a plan-side workaround.
 **Raised, not resolved.**
 
+### CA-4 — whether `event_identity_input_v2` renders the question alongside the answer
+
+§B.3 says the input assembly version identifies *"how each input is labelled to the model … and
+how an answer is represented"*, but not whether the rendered answer is accompanied by the question
+it answers. Production has the text either way: `clarification_answers` copies `question_text` and
+`options` onto the row, checked against the revision's own JSON by
+`validate_clarification_answer()` checks (4) and (5).
+
+T4 froze the validation seam so that either reading stays available: `RerunRequest` carries
+`priorResults`, every earlier round's validated result, and the assembly resolves `questionIndex`
+against it exactly as production resolves a locator against an immutable revision. The rejected
+alternative was putting `questionText` and `options` in the corpus, which would let a case's copy
+of a question disagree with what the model actually asked — the drift those two trigger checks
+exist to refuse.
+
+So this is not blocking, and nothing about it is now unfixable. It still wants a decision before
+T9 writes the assembly, because the answer determines whether the rendered envelope names the
+question. **Raised, not resolved.**
+
 ---
 
 *Nothing in this document changes production behaviour, and no part of it is approved for
