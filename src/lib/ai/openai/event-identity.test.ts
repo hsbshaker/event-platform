@@ -187,6 +187,143 @@ describe("the OpenAI event identity call", () => {
     expect(create).toHaveBeenCalledTimes(2);
   });
 
+  /* --------------------------------------------- the clarification rerun path (T9, v2) */
+
+  /** One prior revision, in the shape `event_identity_revisions.result` persists. */
+  const revisionAsking = (revision: number, ...questions: string[]) => ({
+    revision,
+    result: {
+      ...validBody,
+      clarification: {
+        needed: true,
+        questions: questions.map((question) => ({
+          kind: "creative" as const,
+          question,
+          whyItMatters: `rationale for r${revision} that must not be sent back`,
+          options: [
+            { label: "First option", isDefer: false },
+            { label: "Second option", isDefer: false },
+            { label: "Leave it with you", isDefer: true },
+          ],
+        })),
+      },
+    },
+  });
+
+  /** The user message actually handed to the SDK on a given attempt. */
+  const sentUserMessage = (attempt = 0) =>
+    (create.mock.calls[attempt][0] as { input: { role: string; content: string }[] }).input.find(
+      (m) => m.role === "user",
+    )!.content;
+
+  it("carries a two-round clarification history into the request, oldest first", async () => {
+    const { generateEventIdentity } = await import("./event-identity");
+    create.mockResolvedValueOnce(ok());
+    const call = await generateEventIdentity({
+      prompt: "a winter supper for twelve",
+      clarification: {
+        priorRevisions: [
+          revisionAsking(1, "Should this feel formal or easy?"),
+          revisionAsking(2, "How much should the season show?"),
+        ],
+        // Deliberately newest-first, to prove the assembly orders rather than the caller.
+        answers: [
+          {
+            revision: 2,
+            questionIndex: 0,
+            selectedOptionLabel: "Second option",
+            freeText: "quite a lot, it is the whole point",
+            isDefer: false,
+          },
+          {
+            revision: 1,
+            questionIndex: 0,
+            selectedOptionLabel: "First option",
+            freeText: null,
+            isDefer: false,
+          },
+        ],
+      },
+    });
+
+    const sent = sentUserMessage();
+    // The description survives untouched, and the answers are not merged into it.
+    expect(sent).toContain("a winter supper for twelve");
+    // Both questions are rendered, chronologically, each read out of its own revision.
+    expect(sent.indexOf("Should this feel formal or easy?")).toBeLessThan(
+      sent.indexOf("How much should the season show?"),
+    );
+    expect(sent).toContain("First option");
+    expect(sent).toContain("quite a lot, it is the whole point");
+    // Nothing the answer does not need: no unselected label, no model-authored rationale.
+    expect(sent).not.toContain("Leave it with you");
+    expect(sent).not.toContain("must not be sent back");
+    expect(call.inputAssemblyVersion).toBe("event_identity_input_v2");
+  });
+
+  it("sends exactly what v1 sent when there is no clarification to carry", async () => {
+    const { generateEventIdentity } = await import("./event-identity");
+    create.mockResolvedValueOnce(ok());
+    const call = await generateEventIdentity({ prompt: "a winter supper for twelve" });
+    expect(sentUserMessage()).toBe(call.requestText);
+    expect(call.requestText).not.toContain("ASKED:");
+    expect(call.inputAssemblyVersion).toBe("event_identity_input_v2");
+  });
+
+  it("reports requestText as the user message it sent, on both attempts of a repair", async () => {
+    // The seam promises `requestText` is the assembled user message and nothing else — not the
+    // correction turn, and not the assistant echo of the rejected response, which is raw model
+    // output. Nothing but this can check it: a reconstruction would look identical here.
+    const { generateEventIdentity } = await import("./event-identity");
+    create.mockResolvedValueOnce(ok({ ...validBody, identity: { broken: true } }));
+    create.mockResolvedValueOnce(ok());
+    const call = await generateEventIdentity({ prompt: "a winter supper for twelve" });
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(call.requestText).toBe(sentUserMessage(0));
+    expect(call.requestText).toBe(sentUserMessage(1));
+    expect(call.requestText).not.toContain("Your previous response did not satisfy the schema:");
+    expect(call.usage.repairRetries).toBe(1);
+  });
+
+  it("refuses before spending anything when an answer's question cannot be resolved", async () => {
+    // Fails closed rather than inventing a question: the locator is the only thing that makes the
+    // rendered question the one actually asked.
+    const { generateEventIdentity } = await import("./event-identity");
+    const answer = {
+      revision: 1,
+      questionIndex: 0,
+      selectedOptionLabel: "First option",
+      freeText: null,
+      isDefer: false,
+    };
+    await expect(
+      generateEventIdentity({
+        prompt: "a winter supper for twelve",
+        clarification: { priorRevisions: [], answers: [answer] },
+      }),
+    ).rejects.toThrow(/revision 1, which was not supplied/);
+    await expect(
+      generateEventIdentity({
+        prompt: "a winter supper for twelve",
+        clarification: {
+          priorRevisions: [{ revision: 1, result: { clarification: {} } }],
+          answers: [answer],
+        },
+      }),
+    ).rejects.toThrow(/no readable clarification questions/);
+    await expect(
+      generateEventIdentity({
+        prompt: "a winter supper for twelve",
+        clarification: {
+          priorRevisions: [revisionAsking(1, "Should this feel formal or easy?")],
+          answers: [{ ...answer, questionIndex: 4 }],
+        },
+      }),
+    ).rejects.toThrow(/asked no question at index 4/);
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it("carries both paid responses out on the invalid-output failure", async () => {
     // The provider answered twice and was billed twice; our validation refused both. Dropping
     // that text here would lose it for good — the eval journal can only record what it is

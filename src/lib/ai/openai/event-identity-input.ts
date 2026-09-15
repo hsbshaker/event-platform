@@ -29,9 +29,11 @@
  * - **Nothing the answer does not need.** No unselected option, no option menu, no
  *   `whyItMatters`, no earlier model commentary. A selected label is the exception: once the host
  *   picks it, it is what they said.
- * - **The host's words, unaltered.** Free text is emitted as given. No sentence-casing, no
- *   re-punctuation, no summarising. It is provenance-bearing input, and the one transformation
- *   allowed anywhere in this pipeline — trimming — has already happened before storage.
+ * - **The host's words, unaltered.** Free text is emitted exactly as stored. No sentence-casing,
+ *   no re-punctuation, no summarising, and no trimming of what is sent — it is provenance-bearing
+ *   input. The only judgement made about it is whether there is any: blank free text is not
+ *   rendered at all, because `clarification_answers` permits `''` alongside a selected option and
+ *   an empty delimited block would tell the model the host typed something they did not.
  *
  * Inspiration is deliberately not here. `spec.md §7.5` requires it and `versions.ts` records the
  * gap; adding a second model-visible input channel inside the change that is being evidenced for
@@ -190,7 +192,12 @@ export function assembleEventIdentityUserMessage(input: AssembleEventIdentityInp
       // renders for a defer too, alongside the marker below.
       lines.push(`${ASSEMBLY_TEXT.selected} ${answer.selectedOptionLabel}`);
     }
-    if (answer.freeText !== null) {
+    // Blank is not typed text. `clarification_answers` permits `free_text` to be `''` or spaces
+    // when an option was selected — the CHECK constraint only requires one of the two to be
+    // present — and rendering that would put an empty delimited block in front of the model,
+    // saying the host typed something when they did not. The value itself is still emitted
+    // unaltered; this only decides whether there is anything to emit.
+    if (answer.freeText !== null && answer.freeText.trim().length > 0) {
       // Delimited like the description, for the same reason: the host's words are data. Emitted
       // exactly as stored — the trim that canon permits happened before this.
       lines.push(

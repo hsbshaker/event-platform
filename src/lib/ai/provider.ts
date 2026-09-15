@@ -12,6 +12,8 @@
  * so no code path can call a model by accident (spec.md §32 #4).
  */
 
+import type { CarriedClarification, PriorRevision } from "@/lib/ai/openai/event-identity-input";
+
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Typed narrowly in Phase 4. */
 export type EventIdentity = Record<string, unknown>;
 export type DesignIntentResponse = Record<string, unknown>;
@@ -51,14 +53,8 @@ export interface GenerateEventIdentityInput {
    * trusting a question string from the caller.
    */
   clarification?: {
-    priorRevisions: { revision: number; result: unknown }[];
-    answers: {
-      revision: number;
-      questionIndex: number;
-      selectedOptionLabel: string | null;
-      freeText: string | null;
-      isDefer: boolean;
-    }[];
+    priorRevisions: PriorRevision[];
+    answers: CarriedClarification[];
   };
 }
 

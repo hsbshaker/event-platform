@@ -16,7 +16,7 @@
  * Acceptance criteria: `spec.md §31 — Event Identity and diversity`: "Event Identity is the
  * only stage receiving the raw prompt." Guardrail `§32 #12`.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -26,6 +26,17 @@ const SRC = new URL("../../", import.meta.url).pathname;
 
 /** The one module allowed to put host prose into a model request. */
 const INTERPRETER = path.join("lib", "ai", "openai", "event-identity.ts");
+
+/**
+ * The module that composes that request, since T9 split it out of the caller.
+ *
+ * The invariant below binds "reads host prose" to "calls a model", which was the whole boundary
+ * while one file did both. It no longer is: the assembly holds the host's description and their
+ * clarification answers and calls nothing, so a scan of model callers cannot see the place the
+ * composition actually happens. Naming it keeps the boundary a boundary — and the import check
+ * below keeps it a boundary of two files rather than however many come to depend on it.
+ */
+const COMPOSER = path.join("lib", "ai", "openai", "event-identity-input.ts");
 
 /** Every module that reaches a model, by any shape the SDK offers. */
 function modelCallers(): string[] {
@@ -70,6 +81,24 @@ describe("the raw-prompt boundary", () => {
       });
 
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps the composer reachable from the interpreter and nowhere else", () => {
+    // Host prose reaches a model through exactly two files, and only one of them may pull in the
+    // other. A 4C or 4D module importing the assembly would be putting itself on the path host
+    // words travel, which is the thing this file exists to make impossible to do quietly.
+    expect(existsSync(path.join(SRC, COMPOSER))).toBe(true);
+    const importers = sourceFiles(SRC)
+      .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
+      .filter((file) =>
+        /from "\.\/event-identity-input"|event-identity-input"/.test(readFileSync(file, "utf8")),
+      )
+      .map((file) => path.relative(SRC, file))
+      .filter((file) => file !== COMPOSER)
+      .sort();
+    // `provider.ts` imports the two answer *types* to avoid re-declaring them; that is a type-only
+    // import and composes nothing, which is why it is named here rather than silently allowed.
+    expect(importers).toEqual([INTERPRETER, path.join("lib", "ai", "provider.ts")].sort());
   });
 
   it("has exactly one model call site today, and says what adding another costs", () => {
