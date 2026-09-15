@@ -354,7 +354,7 @@ describe("paths and ownership are fixed before the cases are known", () => {
         "the mechanical checks, the acceptance criteria and the blind artifact, all frozen at T5 " +
         "before the validation cases existed. Changing a criterion after seeing the cases is the " +
         "thing this set exists not to do.",
-    ).toBe("2ca28e4cad8b3b581b8f901e559bb6d6402461135af470cc2b6fb320ee36aba6");
+    ).toBe("37c74b736f4139bb7a06def31f397286b727b7bd5ba8110baed9e4d06d81efa0");
   });
 
   it("does not change at all", () => {
@@ -852,6 +852,26 @@ describe("the structural contract refuses a case that would waste a paid call", 
     ).toMatch(/freeText` must not have leading or trailing whitespace/);
   });
 
+  it("refuses an answer that omits a key instead of stating it null", () => {
+    // An omitted key is not a null one downstream: it reaches the checks as `undefined`, where a
+    // `.length` on it would throw *after* the paid call, aborting a one-shot run outside the
+    // try/catch and losing every remaining case. It also renders as the literal "undefined" in the
+    // blind artifact. Refused at the gate, before money is spent.
+    const problems = validateRerunCorpusShape(
+      corpus([
+        validCase({
+          history: [
+            {
+              questions: [question()],
+              answers: [{ questionIndex: 0, freeText: "warmer, please" } as never],
+            },
+          ],
+        }),
+      ]),
+    );
+    expect(problems.join(" ")).toMatch(/must state both/);
+  });
+
   it("does not throw on junk", () => {
     for (const junk of [null, undefined, "a string", 3, [], { cases: "no" }]) {
       expect(() => validateRerunCorpusShape(junk)).not.toThrow();
@@ -1134,6 +1154,19 @@ describe("the mechanical checks decide what they can and refuse to guess the res
       testCase,
       observation({ requestText: correct, answersAssembled: cumulativeHistory(testCase) }),
     );
+    expect(mechanicalPass(checks)).toBe(true);
+  });
+
+  it("reports n/a, never pass, when one answer cannot cross anything", () => {
+    // With a single carried answer the window is the whole request, so this check can only fail
+    // where `historyDelivered` already has. Six of the seven dimensions produce one answer, so a
+    // `pass` here would print "rendered with the question it answers" over most of the corpus
+    // while deciding nothing.
+    const checks = checkRerunCase(validCase(), observation());
+    expect(status(checks, "answerBoundToItsQuestion")).toBe("n/a");
+    expect(detail(checks, "answerBoundToItsQuestion")).toMatch(/not decidable/);
+    const passes = checks.filter((check) => check.status === "pass").map((check) => check.name);
+    expect(passes).not.toContain("answerBoundToItsQuestion");
     expect(mechanicalPass(checks)).toBe(true);
   });
 

@@ -266,8 +266,11 @@ export function cumulativeHistory(testCase: RerunCase): RerunAnswerInput[] {
         }
         return kind;
       })(),
-      selectedOptionLabel: answer.selectedOptionLabel,
-      freeText: answer.freeText,
+      // `?? null` so `RerunAnswerInput`'s declared `string | null` is true of what this returns.
+      // The contract refuses an omitted key, so this is belt-and-braces for any other caller of
+      // this pure module — and the alternative is `undefined` reaching a `.length`.
+      selectedOptionLabel: answer.selectedOptionLabel ?? null,
+      freeText: answer.freeText ?? null,
       isDefer: answer.isDefer === true,
     })),
   );
@@ -479,6 +482,18 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
         ) {
           problems.push(`${aAt}: an answer must select an option or supply text`);
         }
+        // Both keys stated, `null` where one does not apply. An omitted key is not the same as a
+        // null one downstream: it reaches the checks as `undefined`, which the blind artifact
+        // renders to the reviewer as the literal string "undefined", and which a T9 that
+        // normalises to `null` — reasonable, since the seam declares `string | null` and the
+        // column is nullable — would then mismatch in `answersAssembledAsGiven`. Requiring both
+        // at the gate costs the author two characters and closes it before a call is made.
+        if (!("selectedOptionLabel" in (answer as object)) || !("freeText" in (answer as object))) {
+          problems.push(
+            `${aAt}: an answer must state both \`selectedOptionLabel\` and \`freeText\`, using ` +
+              "null where one does not apply",
+          );
+        }
         if (typeof answer.freeText === "string" && answer.freeText !== answer.freeText.trim()) {
           // The checks that look for free text in the request trim it, because an assembly that
           // renders `freeText.trim()` is correct. `answersAssembledAsGiven` compares the reported
@@ -552,8 +567,10 @@ export interface RerunObservation {
   /** The host's original description as the implementation reports having sent it. */
   promptSent: string;
   /**
-   * The assembled user message, verbatim as transmitted — and only that: no correction turn, and
-   * no assistant echo of a previous response, so no text the provider produced can reach a check.
+   * The assembled user message, verbatim as transmitted — and only that. T9 owes the harness that
+   * it excludes the correction turn and the assistant echo of a previous response; no check can
+   * verify that, which is why it is stated among the seam's obligations, where an implementer
+   * reads, rather than asserted here as though it were guaranteed.
    *
    * The checks are anchored here rather than to the self-reported fields, because those are
    * satisfiable by an implementation that echoes its arguments: `promptSent: request.prompt` and
@@ -626,6 +643,10 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
   const questionSpans: { start: number; end: number }[] = [];
   for (const round of testCase.history) {
     for (const seeded of round.questions) {
+      // The contract requires at least 8 characters, so this is unreachable through the runner —
+      // but `checkRerunCase` is exported, and `indexOf("")` never returns -1, so the loop would
+      // spin forever rather than throw. The helper below guards the same way.
+      if (seeded.question.length === 0) continue;
       for (let at = request.indexOf(seeded.question); at >= 0;) {
         questionSpans.push({ start: at, end: at + seeded.question.length });
         at = request.indexOf(seeded.question, at + 1);
@@ -758,10 +779,14 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
    * sailing through every absolute check, and `answersAssembledAsGiven` cannot catch it because it
    * is a self-report of the very thing in doubt.
    *
-   * The window is deliberately loose: an answer's text must occur somewhere between the *previous*
-   * question and the *next* one, so "We asked X. The host said Y" and "Y — we had asked X" both
-   * pass, and only a genuine crossing fails. Every occurrence is considered, not the first, so a
-   * label that also appears in a summary elsewhere cannot push a correct rendering out of range.
+   * The window is loose about order but not about grouping: an answer's own rendering must occur
+   * between the *previous* question and the *next* one, so "We asked X. The host said Y" and
+   * "Y — we had asked X" both pass. Two shapes it does refuse, stated as obligations on the seam
+   * rather than left to be discovered: an assembly that renders every question first and every
+   * answer afterwards, and one that repeats a question's text earlier in the message (the anchors
+   * are first occurrences, so a preamble listing the questions moves them). Occurrences falling
+   * inside a rendered question are discounted, so a label that is a word of its own question stem
+   * cannot satisfy this by accident.
    */
   const crossed: string[] = [];
   if (missingQuestions.length === 0 && ordered) {
@@ -780,14 +805,23 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
     });
   }
   const bound = crossed.length === 0;
+  // With one carried answer the window is the whole request, so this can only fail where
+  // `historyDelivered` already has. Reporting `pass` there would print "rendered with the question
+  // it answers" about a case where nothing was decided — and six of the seven dimensions produce a
+  // single answer, so that would be most of the corpus. `n/a` is never counted as a pass, which is
+  // the discipline `model-contracts.md §4.5` says a clean mechanical run must not blur.
+  const singleAnswer = history.length < 2 && missingQuestions.length === 0 && ordered;
+  const undecidable = missingQuestions.length > 0 || !ordered || history.length < 2;
   add(
     "answerBoundToItsQuestion",
-    missingQuestions.length > 0 || !ordered ? "n/a" : bound ? "pass" : "fail",
-    missingQuestions.length > 0 || !ordered
-      ? "not decidable: the carried questions are missing or out of order"
-      : bound
-        ? "each answer is rendered with the question it answers, not merely in the same request"
-        : `rendered away from its own question: ${crossed.join(", ")}`,
+    undecidable ? "n/a" : bound ? "pass" : "fail",
+    singleAnswer
+      ? "only one carried answer; a crossing is not decidable"
+      : undecidable
+        ? "not decidable: the carried questions are missing or out of order"
+        : bound
+          ? "each answer is rendered with the question it answers, not merely in the same request"
+          : `rendered away from its own question: ${crossed.join(", ")}`,
   );
 
   /* --- and the representation the implementation reports, matched against the frozen history - */
@@ -955,7 +989,7 @@ export const RERUN_ACCEPTANCE = {
     "because all five are correctness properties of the lifecycle rather than judgements, and " +
     "each is decided against the text actually transmitted. `answersAssembledAsGiven` gates too, " +
     "but it is a self-report of what the assembly believes it carried, cross-checked by the five " +
-    "rather than trusted alongside them. None of the checks depends on what the rerun chose to " +
+    "rather than trusted alongside them. None of the five depends on what the rerun chose to " +
     "ask, and none reads text the provider produced.",
   qualitative:
     "An independent reviewer, reading a blind artifact of each case, answers three questions: " +
@@ -1016,8 +1050,12 @@ export function buildRerunReviewArtifact(
         if (answer) {
           lines.push(
             `  - host answered: ` +
-              `${answer.selectedOptionLabel === null ? "—" : `“${answer.selectedOptionLabel}”`}` +
-              `${answer.freeText === null ? "" : ` · typed: “${answer.freeText}”`}` +
+              // `?? null`, not `=== null`: the contract refuses an omitted key, but an artifact
+              // that renders the literal string "undefined" to the blind reviewer corrupts the
+              // qualitative half without moving a single mechanical check, so it is not a place to
+              // rely on an upstream guard.
+              `${(answer.selectedOptionLabel ?? null) === null ? "—" : `“${answer.selectedOptionLabel}”`}` +
+              `${(answer.freeText ?? null) === null ? "" : ` · typed: “${answer.freeText}”`}` +
               `${answer.isDefer ? " · deferred to us" : ""}`,
           );
         }
@@ -1126,7 +1164,7 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
    * would pass them without having sent anything of the kind. Return what was sent — not a
    * reconstruction of what should have been.
    *
-   * Three obligations follow from the checks reading it, fixed here rather than discovered at T13:
+   * Four obligations follow from the checks reading it, fixed here rather than discovered at T13:
    *
    * - it is the assembled **user message**, not an encoded request body. A JSON body escapes the
    *   quotes and newlines of host text out of existence, and the checks look for that text
