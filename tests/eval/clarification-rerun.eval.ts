@@ -1,0 +1,335 @@
+/**
+ * The Phase 4B rerun-behaviour validation runner — prewired while its cases do not exist.
+ *
+ * This file is complete before the corpus is authored, which is the whole point. Its paths, its
+ * refusals, its checker, its report shape and its acceptance criteria are frozen at T5; the cases
+ * are written afterwards by someone who implemented none of it (T6), reviewed (T7) and frozen at
+ * their own input SHA (T8). A harness written after the cases would be one whose author knew what
+ * it had to grade.
+ *
+ * **`npm run eval:rerun-behaviour` refuses today**, twice over and both times at module scope,
+ * before an API key is read, before a client is constructed, and a very long way before a request:
+ * the corpus does not exist, and neither does the T9 input assembly this set exercises.
+ *
+ * **Nothing in this file may change after T5 — not one line, and no exception.** That is enforced
+ * rather than asserted: `rerun-behaviour.test.ts` hashes the whole file and fails if a byte moves.
+ * The binding T9 fills lives in `src/lib/ai/evals/rerun-seam.ts`, which is one line long and is
+ * the only thing T9 touches here. A freeze with no exception beats one with a slightly untrue one.
+ *
+ * **One paid call per case, and it is the rerun.** The prior clarification history is frozen
+ * fixture state authored with the case — see `rerun-behaviour.ts` for why a corpus that had to
+ * name a future model's question index was an invalid dependency rather than a strict one. Nothing
+ * here asks a provider to produce the setup, so no stochastic behaviour sits upstream of the thing
+ * being measured.
+ *
+ * It is never run to verify itself. `docs/model-evals/eval-incidents.md`: "Never execute the eval
+ * runner to verify the harness. Not its paths, not its guards, not its schemas, not its reports,
+ * not its refusals." `src/lib/ai/evals/rerun-behaviour.test.ts` asserts every property of this
+ * file statically, from its source text and from the pure module beside it.
+ *
+ * Evidence class: **pre-registered validation evidence for the clarification-answer input
+ * shape/lifecycle — NOT fresh generalization evidence for EventIdentity v5 and NOT a replacement
+ * for the spent v5 sealed challenge.**
+ */
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+import { EVAL_SETS, isProtectedOutput } from "@/lib/ai/evals/corpus";
+import {
+  appendJournal,
+  failureEntry,
+  JOURNAL_FILENAME,
+  responseEntry,
+  rotateAside,
+  rotateJournal,
+  type JournalCaseContext,
+} from "@/lib/ai/evals/journal";
+import { rerunRunner } from "@/lib/ai/evals/rerun-seam";
+import {
+  buildRerunReviewArtifact,
+  buildSeededRevision,
+  checkRerunCase,
+  cumulativeHistory,
+  mechanicalPass,
+  RERUN_ACCEPTANCE,
+  validateRerunCorpusShape,
+  type RerunCase,
+  type RerunCorpus,
+  type RerunObservation,
+} from "@/lib/ai/evals/rerun-behaviour";
+import { isProvisional, UnreadableIdentityError } from "@/lib/ai/event-identity/lifecycle";
+import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
+
+const ROOT = new URL("../../", import.meta.url).pathname;
+
+/** No default, for the same reason the creative-understanding runner has none. */
+const SET = process.env.EVAL_SET as keyof typeof EVAL_SETS | undefined;
+if (!SET || !Object.hasOwn(EVAL_SETS, SET)) {
+  throw new Error(
+    `EVAL_SET must be set explicitly to one of ${Object.keys(EVAL_SETS).join(", ")}. ` +
+      "Use one of the `npm run eval:*` scripts; this run costs money and writes evidence, so it " +
+      "never starts by accident.",
+  );
+}
+
+/** A set belongs to exactly one runner, declared beside the set. */
+if (EVAL_SETS[SET].runner !== "clarification-rerun") {
+  throw new Error(
+    `EVAL_SET=${SET} belongs to the ${EVAL_SETS[SET].runner} runner, not this one. ` +
+      "No provider call is made.",
+  );
+}
+
+const CORPUS = path.join(ROOT, EVAL_SETS[SET].corpus);
+const OUT = path.join(ROOT, EVAL_SETS[SET].out);
+
+/** Evidence that already exists is refused as an output, whatever `EVAL_SET` says. */
+if (isProtectedOutput(EVAL_SETS[SET].out)) {
+  throw new Error(
+    `refusing to write over ${EVAL_SETS[SET].out}: that path holds, or sits above, a completed ` +
+      "run's evidence. Point the set at a directory of its own.",
+  );
+}
+
+/**
+ * The corpus has to exist. It deliberately does not yet: T4 froze this machinery, and only then
+ * are the cases authored (T6–T8). Adding the corpus is the whole of that change, and this file has
+ * no permitted edit at all — T9 repoints `src/lib/ai/evals/rerun-seam.ts` instead.
+ */
+if (!existsSync(CORPUS)) {
+  throw new Error(
+    `${path.relative(ROOT, CORPUS)} does not exist, so EVAL_SET=${SET} cannot run. ` +
+      "No provider call is made. Its cases are authored independently after this harness froze, " +
+      "and adding them changes nothing else in this file.",
+  );
+}
+
+/** Evidence is written once. This set is one-shot by construction. */
+if (existsSync(OUT) && process.env.EVAL_OVERWRITE !== "1") {
+  throw new Error(
+    `${path.relative(ROOT, OUT)} already holds evidence from a previous run. ` +
+      `Move it aside — it may contain ${JOURNAL_FILENAME}, the paid provider responses, which ` +
+      "deleting destroys — or set EVAL_OVERWRITE=1 if replacing the reports is what you mean.",
+  );
+}
+
+const corpus = JSON.parse(readFileSync(CORPUS, "utf8")) as RerunCorpus;
+const shapeProblems = validateRerunCorpusShape(corpus);
+if (shapeProblems.length > 0) {
+  throw new Error(
+    `${path.relative(ROOT, CORPUS)} does not satisfy the frozen corpus contract:\n  ` +
+      shapeProblems.join("\n  ") +
+      "\n\nThe contract was frozen before these cases existed. Fix the corpus, never the " +
+      "contract (docs/phase-4b-plan.md §3.9).",
+  );
+}
+
+describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
+  it(
+    "reruns every case against its frozen history and records what happened",
+    async () => {
+      mkdirSync(OUT, { recursive: true });
+
+      // T9 supplies the assembly, by repointing `rerun-seam.ts`. Until it does, this throws with
+      // an explanation rather than silently exercising a code path that does not exist.
+      const run = rerunRunner;
+
+      /**
+       * A paid response is durable the moment it arrives.
+       *
+       * Appended per case, before any checking, for the reason `journal.ts` spells out: a bug in
+       * our own deterministic code must not be able to destroy responses already paid for.
+       *
+       * The journal is rotated, never appended into, and the two reports are rotated with it — at
+       * the start, not the end. `EVAL_OVERWRITE=1` is the only way past the refusal above, and
+       * without rotation a second run's entries would interleave with a first run's, while the
+       * previous run's completed reports sat beside the new run's partial journal and made an
+       * aborted run read as a finished one.
+       *
+       * This set writes no `run.json`, so `mechanical-report.md` — written only after every case
+       * has finished — is the completion signal: a journal with no report beside it is the
+       * aborted run.
+       */
+      const runStartedAt = new Date().toISOString();
+      const journal = path.join(OUT, JOURNAL_FILENAME);
+      const rotated = [
+        rotateJournal(OUT, runStartedAt),
+        rotateAside(OUT, "mechanical-report.md", runStartedAt),
+        rotateAside(OUT, "blind-review.md", runStartedAt),
+      ].filter((file): file is string => file !== null);
+      for (const file of rotated) {
+        process.stdout.write(`kept the previous ${path.basename(file)}\n`);
+      }
+
+      const caseContext = (caseId: string): JournalCaseContext => ({
+        caseId,
+        runStartedAt,
+        evalSet: SET,
+        corpusVersion: corpus.version,
+        recordedAt: new Date().toISOString(),
+      });
+
+      const observations: RerunObservation[] = [];
+      const rows: string[] = [];
+
+      for (const testCase of corpus.cases as RerunCase[]) {
+        /**
+         * The frozen setup, built here and sent as the prior state of the event.
+         *
+         * `buildSeededRevision` produces the same envelope shape `event_identity_revisions.result`
+         * persists, so T9 resolves `(revision, questionIndex)` against a real revision exactly as
+         * production does. The corpus author writes questions and answers; nobody has to know the
+         * wire schema, and no answer can name a question that does not exist in its own case.
+         */
+        const priorRevisions = testCase.history.map((round, index) => ({
+          revision: index + 1,
+          result: buildSeededRevision(round, index + 1),
+        }));
+        // Cumulative and chronological (CA-5). EventIdentity is stateless: an answer left out of
+        // this request is an answer the model no longer has.
+        const answers = cumulativeHistory(testCase);
+        const startedCase = Date.now();
+
+        // The call is the only statement inside the `try`, for the reason the
+        // creative-understanding runner gives: anything else here would be journaled as a provider
+        // failure, writing one of our own bugs into evidence as a claim about the model. The catch
+        // records what was already paid for and rethrows unchanged, so a failure still fails the
+        // run loudly.
+        let outcome: Awaited<ReturnType<typeof run>>;
+        try {
+          outcome = await run({ prompt: testCase.prompt, priorRevisions, answers });
+        } catch (error) {
+          const failure = (error ?? {}) as {
+            kind?: string;
+            message?: string;
+            issues?: { path: string; message: string }[];
+            rawResponses?: string[];
+            usage?: { latencyMs?: number; transientRetries?: number; repairRetries?: number };
+          };
+          appendJournal(
+            journal,
+            failureEntry(caseContext(testCase.id), {
+              error: {
+                kind: failure.kind ?? "unknown",
+                message: failure.message ?? String(error),
+                issues: failure.issues,
+              },
+              // Every text the provider returned and we were billed for. `failureEntry` reads this
+              // to decide between `unvalidated_response` and `no_response`, so a billed call is
+              // never recorded as one that produced nothing.
+              rawResponses: failure.rawResponses ?? [],
+              // Synthesized, because the call threw before returning telemetry. Two fields are
+              // weaker than they look: `model` is this runner's copy of the provider module's
+              // default and would be wrong if that default moved, and the retry counts default to
+              // 0 — a measurement nobody made, which `journal.ts` warns against for token counts.
+              // Both are non-optional on `CaseRun["telemetry"]`, so the shape forces a value; read
+              // a failure entry's retry counts as unknown, not as zero.
+              telemetry: {
+                model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol",
+                promptVersion: EVENT_IDENTITY_PROMPT_VERSION,
+                schemaVersion: EVENT_IDENTITY_SCHEMA_VERSION,
+                latencyMs: failure.usage?.latencyMs ?? Date.now() - startedCase,
+                transientRetries: failure.usage?.transientRetries ?? 0,
+                repairRetries: failure.usage?.repairRetries ?? 0,
+                schemaValidFirstCall: false,
+              },
+              input: { prompt: testCase.prompt, priorRevisions, answers },
+            }),
+          );
+          throw error;
+        }
+
+        appendJournal(
+          journal,
+          responseEntry(caseContext(testCase.id), {
+            raw: outcome.raw,
+            output: outcome.result,
+            telemetry: outcome.telemetry,
+            // Named halves, because a reader of a lone line must be able to tell the frozen setup
+            // from the implementation's account of what it did with it. `transmitted` is the only
+            // one of the three that is not self-reported.
+            input: {
+              setup: { prompt: testCase.prompt, priorRevisions, answers },
+              transmitted: outcome.requestText,
+              reported: {
+                promptSent: outcome.promptSent,
+                assemblyVersion: outcome.assemblyVersion,
+                answersAssembled: outcome.answersAssembled,
+              },
+            },
+          }),
+        );
+
+        // Asked of the lifecycle module, never assumed — and caught rather than allowed to abort.
+        // The reader fails closed, and this set is authorized exactly once: an unsupported schema
+        // version or a malformed clarification block would otherwise destroy the run in the very
+        // case `schemaVersionExpected` and `envelopeReadable` were frozen to record.
+        let provisional: boolean | "unreadable";
+        try {
+          provisional = isProvisional(outcome.result, outcome.telemetry.schemaVersion);
+        } catch (error) {
+          if (!(error instanceof UnreadableIdentityError)) throw error;
+          provisional = "unreadable";
+        }
+
+        const observed: RerunObservation = {
+          caseId: testCase.id,
+          promptSent: outcome.promptSent,
+          requestText: outcome.requestText,
+          result: outcome.result,
+          provisional,
+          answersAssembled: outcome.answersAssembled,
+          assemblyVersion: outcome.assemblyVersion,
+          schemaVersion: outcome.telemetry.schemaVersion,
+        };
+        const checks = checkRerunCase(testCase, observed);
+        observations.push(observed);
+        rows.push(
+          `| ${testCase.id} | ${mechanicalPass(checks) ? "pass" : "FAIL"} | ` +
+            checks.map((c) => `${c.name}:${c.status}`).join(", ") +
+            " |",
+        );
+      }
+
+      // The artifact first, the report second. `mechanical-report.md` is this set's completion
+      // signal — this set has no `run.json` — so writing it first leaves a window in which a throw
+      // produces a directory that reads as complete with no artifact in it.
+      writeFileSync(
+        path.join(OUT, "blind-review.md"),
+        buildRerunReviewArtifact(observations, corpus.cases as RerunCase[]),
+        "utf8",
+      );
+
+      writeFileSync(
+        path.join(OUT, "mechanical-report.md"),
+        [
+          "# Clarification rerun behaviour — mechanical report",
+          "",
+          // The run's own identity, so this file cannot be mistaken for another run's.
+          `Run started: \`${runStartedAt}\` · corpus \`${corpus.version}\` · set \`${SET}\``,
+          "",
+          `Evidence class: **${RERUN_ACCEPTANCE.evidenceClass}**`,
+          ...RERUN_ACCEPTANCE.notes.map((note) => `- ${note}`),
+          "",
+          "| Case | Mechanical | Checks |",
+          "| --- | --- | --- |",
+          ...rows,
+          "",
+          `Mechanical criterion: ${RERUN_ACCEPTANCE.mechanical}`,
+          "",
+          `Qualitative criterion: ${RERUN_ACCEPTANCE.qualitative}`,
+        ].join("\n"),
+        "utf8",
+      );
+
+      expect(observations).toHaveLength(corpus.cases.length);
+    },
+    // Explicit, and generous, because the inherited 15-minute project budget was sized for a
+    // twelve-call set. This one makes one call per case at the ~23 s/call mean of the holdout run;
+    // a timeout aborts a one-shot set mid-flight, which then needs `EVAL_OVERWRITE=1` to resume —
+    // the exact path rotation exists to make safe, and not one to walk down for the sake of a
+    // number chosen for a different set.
+    45 * 60 * 1000,
+  );
+});

@@ -38,6 +38,19 @@ export default defineConfig({
           fileParallelism: false,
         },
       },
+      {
+        // Real model calls against a live provider. Never part of `npm test`: it costs
+        // money and measures the creative stack rather than the compiler
+        // (docs/model-contracts.md §4.5). Run it deliberately.
+        extends: true,
+        test: {
+          name: "eval",
+          include: ["tests/eval/**/*.eval.ts"],
+          testTimeout: 15 * 60_000,
+          hookTimeout: 60_000,
+          fileParallelism: false,
+        },
+      },
     ],
   },
 });

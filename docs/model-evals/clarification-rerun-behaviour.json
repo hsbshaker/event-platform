@@ -1,0 +1,385 @@
+{
+  "version": "clarification_rerun_v1",
+  "cases": [
+    {
+      "id": "RB-01",
+      "prompt": "my dad is turning 70 in november and we're doing dinner at my brother's place, he hates a fuss but i still want it to feel like something",
+      "dimension": "answer_is_current_input: a clarification answer reaches the rerun as the host's current input, not as a rewrite of the original description",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "what should the evening feel like when someone walks in — dignified, or full of noise and grandchildren?",
+              "options": [
+                { "label": "Understated and formal" },
+                { "label": "Loud family energy" },
+                { "label": "You pick for me", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Understated and formal",
+              "freeText": null,
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "rationale": "The simplest carry: one picked option must arrive in the rerun as something the host just said, not as an edit stitched into the original sentence."
+    },
+    {
+      "id": "RB-02",
+      "prompt": "we're throwing a surprise 40th for my wife in march, she's an ER nurse and never gets a night where everything is about her, about 50 people at a rented loft downtown",
+      "dimension": "original_description_survives: the original event description is unchanged, and the answers are not flattened into it",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "which way should the invitation lean — a wink, or something polished and dressed up?",
+              "options": [
+                { "label": "Cheeky and light" },
+                { "label": "Black tie energy" },
+                { "label": "I'll trust your instinct here", "isDefer": true }
+              ]
+            },
+            {
+              "kind": "creative",
+              "question": "how much should the raw brick and steel of that room show through in the look?",
+              "options": [
+                { "label": "Let the industrial bones lead" },
+                { "label": "Soften it completely" },
+                { "label": "Either is fine with me", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Cheeky and light",
+              "freeText": null,
+              "isDefer": false
+            },
+            {
+              "questionIndex": 1,
+              "selectedOptionLabel": "Let the industrial bones lead",
+              "freeText": null,
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "rationale": "Two answers in one round are the easiest thing to quietly fold back into the host's paragraph, so this case exists to catch that flattening."
+    },
+    {
+      "id": "RB-03",
+      "prompt": "small backyard graduation party for my daughter in june, maybe 25 people, super casual, burgers and lawn games",
+      "dimension": "answer_precedence: where an answer conflicts with the earlier description, the answer governs",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "you're picturing something loose and daytime — should the look match that, or dress it up?",
+              "options": [
+                { "label": "Match the loose feeling" },
+                { "label": "Dress it right up" },
+                { "label": "I don't mind", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Dress it right up",
+              "freeText": "we moved it indoors and everyone's dressing up now so the yard thing is off",
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "mustNotInvent": ["banquet hall", "ballroom", "country club", "black tie"],
+      "rationale": "The answer flatly contradicts the casual backyard framing, so the rerun has to let the newer statement win without importing a fancier venue nobody named."
+    },
+    {
+      "id": "RB-04",
+      "prompt": "retirement do for our head teacher, she's been at the school 31 years and is mortified by attention, staff room on a friday afternoon, tea and speeches",
+      "dimension": "defer_is_an_answer: a deferred creative question is answered, and the rerun commits rather than re-asking the same thing",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "should this look like the school's own world, or something with nothing to do with classrooms at all?",
+              "options": [
+                { "label": "Keep it school-ish" },
+                { "label": "Somewhere far from school" },
+                { "label": "Honestly you choose", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Honestly you choose",
+              "freeText": null,
+              "isDefer": true
+            }
+          ]
+        }
+      ],
+      "rationale": "Handing the decision back is still a decision, and the rerun should commit to a direction instead of putting the same choice to her again."
+    },
+    {
+      "id": "RB-05",
+      "prompt": "baby shower for my sister in law in may, she's due in august, we want something pretty but not babyish, at my mum's house",
+      "dimension": "boundary_resolution: once a boundary question is answered, the rerun may produce an authoritative identity",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "boundary",
+              "question": "is the pregnancy something everyone on the list already knows about, or would some people be finding out from this?",
+              "options": [
+                { "label": "Everyone knows already" },
+                { "label": "Some would be finding out" }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Everyone knows already",
+              "freeText": null,
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "rationale": "The one thing the system could not decide for her has now been decided by her, so the rerun is free to be open about what the event is."
+    },
+    {
+      "id": "RB-06",
+      "prompt": "my grandmother died in february and we're finally doing the memorial lunch, she was hungarian, came over in 56, about 40 of us, i want it to feel like her and not like a funeral",
+      "dimension": "no_fact_invention: an answer never becomes a supplied fact the host did not state",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "should the day carry her hungarian side visibly, or stay quiet about where she came from?",
+              "options": [
+                { "label": "Let it show" },
+                { "label": "Keep it unspoken" },
+                { "label": "I'll leave that to you", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": null,
+              "freeText": "let it show a bit, she was proud of it, but nothing that turns into a folk costume situation",
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "mustNotInvent": ["budapest", "goulash", "paprika", "church"],
+      "expectedFacts": { "venueText": null, "addressText": null },
+      "rationale": "A typed answer about heritage invites the system to fill in a city, a menu or a church, none of which the host ever said, and no place has been named at all."
+    },
+    {
+      "id": "RB-07",
+      "prompt": "we're having a small wedding in october, second marriage for both of us, 30 guests, a long lunch at a restaurant we love, no dance floor no speeches",
+      "dimension": "multi_round_provenance: with two rounds of answers, both are carried and neither is lost",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "at this size, does the day want any ceremony to it, or is it purely the best lunch of the year?",
+              "options": [
+                { "label": "A little ceremony" },
+                { "label": "Just the lunch" },
+                { "label": "Go with your gut on it", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Just the lunch",
+              "freeText": null,
+              "isDefer": false
+            }
+          ]
+        },
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "how much should the site say about this being a second time around for you both?",
+              "options": [
+                { "label": "Say it plainly" },
+                { "label": "Leave that out" },
+                { "label": "Whichever you think", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Leave that out",
+              "freeText": "the kids know, everyone knows, it just doesn't need to be the headline",
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "rationale": "Two rounds a week apart, and the later round is the one most likely to shove the earlier one out of the rerun."
+    },
+    {
+      "id": "RB-08",
+      "prompt": "50th anniversary party for my parents, they got married in 1976 at a tiny town hall in ohio and are still like that, we're doing a big afternoon thing at the lake house in july",
+      "dimension": "answer_is_current_input: a clarification answer reaches the rerun as the host's current input, not as a rewrite of the original description",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "do you want the 1976 of it all visible, or should this look like now?",
+              "options": [
+                { "label": "Lean into the period" },
+                { "label": "Make it contemporary" },
+                { "label": "Up to you", "isDefer": true }
+              ]
+            },
+            {
+              "kind": "creative",
+              "question": "how dressed up should guests read this as being?",
+              "options": [
+                { "label": "Sundresses and shorts" },
+                { "label": "Jackets, no tie" },
+                { "label": "You judge it", "isDefer": true }
+              ]
+            },
+            {
+              "kind": "creative",
+              "question": "should the water do the heavy lifting in the design, or sit in the background?",
+              "options": [
+                { "label": "Water and pines front and centre" },
+                { "label": "Barely mention the setting" },
+                { "label": "Either works", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Lean into the period",
+              "freeText": null,
+              "isDefer": false
+            },
+            {
+              "questionIndex": 1,
+              "selectedOptionLabel": "Sundresses and shorts",
+              "freeText": null,
+              "isDefer": false
+            },
+            {
+              "questionIndex": 2,
+              "selectedOptionLabel": "Either works",
+              "freeText": null,
+              "isDefer": true
+            }
+          ]
+        }
+      ],
+      "mustNotInvent": ["disco", "bicentennial", "gazebo"],
+      "rationale": "Three answers at once, one of them a deferral, is where a rerun is most tempted to summarise the host back to herself and decorate the gaps."
+    },
+    {
+      "id": "RB-09",
+      "prompt": "my best friend finishes chemo on the 3rd and i want to throw her something, she's exhausted and doesn't want a party about being sick, maybe 15 people at my flat",
+      "dimension": "no_fact_invention: an answer never becomes a supplied fact the host did not state",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "boundary",
+              "question": "is her treatment something she's open about with everyone you'd be inviting, or do some of them not know?",
+              "options": [
+                { "label": "She's open about it" },
+                { "label": "Some don't know" }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "Some don't know",
+              "freeText": "her work friends have no idea and she wants it kept that way",
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "mustNotInvent": ["cancer", "remission", "diagnosis", "hospital"],
+      "rationale": "An answer that draws a line around what may be said must not itself become a recorded medical fact about the honoree."
+    },
+    {
+      "id": "RB-10",
+      "prompt": "engagement party we're hosting for my son and his fiancé in september, her family is coming over from lagos, about 80 people at a community hall",
+      "dimension": "multi_round_provenance: with two rounds of answers, both are carried and neither is lost",
+      "history": [
+        {
+          "questions": [
+            {
+              "kind": "boundary",
+              "question": "have both families formally met yet, or would this be the first time they're named together in public?",
+              "options": [
+                { "label": "They've met, name them both" },
+                { "label": "First time, keep it general" }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": "They've met, name them both",
+              "freeText": null,
+              "isDefer": false
+            }
+          ]
+        },
+        {
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "should the design hold both sides evenly, or follow one family's traditions more closely?",
+              "options": [
+                { "label": "Even on both sides" },
+                { "label": "Lead with one" },
+                { "label": "You work that out", "isDefer": true }
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "questionIndex": 0,
+              "selectedOptionLabel": null,
+              "freeText": "even, but the nigerian side shouldn't feel like decoration, they're doing the ceremony parts",
+              "isDefer": false
+            }
+          ]
+        }
+      ],
+      "expectedFacts": { "timeText": null, "rsvpDeadlineText": null },
+      "rationale": "A boundary permission in the first round and a typed creative answer in the second both have to survive into one rerun, with no time or deadline conjured from thin air."
+    }
+  ]
+}

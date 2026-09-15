@@ -111,8 +111,9 @@ reaches a generic generator. The intended flow is:
 ```text
 raw prompt + optional inspiration
   → EventIdentity
-  → optional adaptive creative clarification (§6)
+  → optional adaptive clarification, creative or boundary (§6)
   → refined EventIdentity
+     (a boundary question makes the identity provisional and holds the rest)
   → DesignIntent ×3
   → CompositionTree ×3  (+ optional VisualArtIntent, §9)
   → deterministic compiler → ResolvedDesignSpec → renderer
@@ -136,7 +137,8 @@ The bar for `EventIdentity`'s output: **a strong human designer reading it shoul
 assignment they have been given.** The current schema
 (`model-schemas/event-identity.schema.json`, `spec.md §7.5`) already carries most of this shape —
 `creativeDirection`, `toneKeywords`, `paletteIntent`, `visualMotifs`, `textureDirection`,
-`typographyDirection`, `copyTone`, `designConstraints`, `inspirationSummary`. Whether it is
+`typographyDirection`, `copyTone`, `hostConstraints`, `creativeGuidance`,
+`inspirationSummary`. Whether it is
 *sufficient* is a Phase 4 question. This document proposes no schema change.
 
 ## 5. Grounded facts vs creative interpretation
@@ -156,14 +158,20 @@ The same prompt must **not** yield the claim that the event is in Positano, or o
 black-tie, or any other statement of fact the host did not make. Aesthetic implication is
 inference. A date, a place or a dress code is a fact, and facts are quoted, never inferred.
 
-## 6. Adaptive creative clarification
+## 6. Adaptive clarification
 
 **Approved**, and canonical as `spec.md §7.6b`. `EventIdentity` may decide it needs one thing
 clarified. This must never become a setup wizard — a wizard is a fixed, sequential, gating intake
-of information the product needs; this is a small number of questions, generated from an ambiguity
-actually present in this prompt, about taste only.
+of information the product needs; this is a small number of questions, generated from something
+actually present in this prompt.
+
+Two things can be unresolved, and they are not the same kind of thing. **A creative choice is
+ours** — the host came here to be relieved of it. **A human boundary is not**: a decision that
+belongs to the host because it affects a real person. Capability is not authority.
 
 > **Understand aggressively. Infer creatively. Ask selectively.**
+
+### Creative clarification
 
 **The preferred number of questions is zero.** Ask only when several plausible creative readings
 exist *and* choosing wrong would materially change whether the host likes the result. Usually none;
@@ -178,13 +186,41 @@ of that look are you drawn to?"* — heritage/equestrian, heirloom teddy, countr
 *"How playful should it feel?"* — mostly sophisticated, sophisticated with a little whimsy, more
 playful/storybook.
 
-Every such question always offers **"You decide"** or **"Surprise me"**. A host should never need
-design vocabulary to use a design product, and a host who has none must not get a worse result than
-one who does.
+Every **creative** question always offers **"You decide"** or **"Surprise me"**. A host should never
+need design vocabulary to use a design product, and a host who has none must not get a worse result
+than one who does. That escape is also why a creative question never holds anything up: the host can
+always hand the call back, so concepts are never waiting on taste.
+
+### Boundary clarification
+
+Rare, and a different thing entirely. Sometimes the brief cannot be written without taking a
+position on behalf of a real person that the host never settled — what may be said about them, what
+may be shown of them, who is spoken for, what someone has agreed to. We may be perfectly capable of
+choosing. We are not the one who gets to choose.
+
+Asked only when all of it holds: the position is genuinely consequential and unsettled; it is not a
+matter of taste; the brief cannot do its job while declining to take it; and one focused question
+resolves it. Never triggered by a subject merely being sensitive, emotional, cultural, familial,
+personal or medical — that is ordinary material and we handle it. Never for missing logistics, never
+for missing aesthetic preference, and creative delegation does not reach it, because nobody can hand
+over permission that was never theirs to give.
+
+It asks the host to state the boundary they can **legitimately affirm as settled** — never treating
+their preference as authority over someone else. It offers **no** "You decide": offering to make the
+decision would contradict the only reason for asking. Exactly one such question per response, asked
+alone.
+
+**It is the one thing that may hold concepts.** The identity returned beside it is *provisional* and
+does not flow downstream; the host answers, `EventIdentity` runs again, and only a result with no
+boundary question becomes the real brief. This is not a wizard: it is one question, asked because
+the alternative is deciding something that was never ours.
 
 ## 7. What must never be asked before concepts
 
 Two categories, for two different reasons.
+
+Neither is relaxed by §6's boundary route. That route is a narrow, separately defined exception for
+an authority question — never a way to ask for a fact or a design decision.
 
 **Logistics — never a gate on design.** The creative stage must not demand date, time, venue,
 address, RSVP deadline or any other operational field before generating concepts. Extract them if
@@ -268,7 +304,7 @@ event. Keep watching, or add the details while we work."*
 
 Both are first-class and the host may switch freely. This is **not** a second onboarding wizard, and
 the distinction from §6 and §7 holds exactly: **missing logistics never block creative generation,
-are never asked during creative clarification, and are never invented.** Facts present in the prompt
+are never asked during clarification on either route, and are never invented.** Facts present in the prompt
 are extracted, preserved and pre-filled; facts absent from it are simply absent until the host
 supplies them, during generation or after choosing a concept.
 
@@ -423,7 +459,8 @@ Two consequences:
   the guest site is not merely an event utility. `spec.md §2.3` already says the guest experience
   "must be as polished as the concept preview."
 - **Priority order for Phase 4**, which cost and latency work must not invert: understand the host
-  correctly → establish a strong `EventIdentity` → ask only genuinely necessary clarification →
+  correctly → establish a strong `EventIdentity` → ask only genuinely necessary clarification,
+  creative or boundary →
   generate genuinely compelling directions → compose them intentionally → create or integrate
   theme-specific art where appropriate → render safely and responsively → make setup and publishing
   easy. Establish the quality ceiling first; optimise cost and latency aggressively afterwards.
@@ -448,8 +485,8 @@ the audit trail for decisions that changed.
 | # | What it was | Resolution |
 | --- | --- | --- |
 | 1 | AI-generated decorative site imagery was an explicit MVP non-goal (`spec.md §5.2`, `§32 #32`, `design-system.md §15.11`) while this document argued for thematic artwork | **Resolved by decision.** Optional AI-generated thematic artwork is approved for Phase 4 as `spec.md §7.6a`. `§5.2` now excludes host, stock, mandatory and model-placed imagery instead of generated artwork; `§32 #32` and `design-system.md §15.11` restate it; `§11.11` states the boundary directly; `§33` no longer defers it. Host photography remains excluded |
-| 2 | No clarification loop existed anywhere, and `spec.md` forbids questionnaires and wizards | **Resolved by decision.** Adaptive creative clarification is approved as `spec.md §7.6b`, bounded to taste, capped at three, never logistics, never a gate. `§32 #9` now names it as the one permitted pre-concept question. The question schema, model contract and surface are still undesigned |
-| 3 | `model-contracts.md §0` promised "faithful user-intent capture" and nothing tested it | **Resolved.** `model-contracts.md §4.5` defines the creative-understanding evaluation contract over `docs/model-evals/creative-understanding.json`, with each dimension labelled deterministic, mixed or qualitative. No runner exists yet |
+| 2 | No clarification loop existed anywhere, and `spec.md` forbids questionnaires and wizards | **Resolved by decision, then expanded by a second.** *Original (v4):* adaptive creative clarification approved as `spec.md §7.6b`, bounded to taste, capped at three, never logistics, never a gate; `§32 #9` names it the one permitted pre-concept question. *Expanded (v5, approved after the first sealed challenge):* clarification runs on **two** routes. Route A is that creative gate, unchanged. Route B is a rare authority question about a decision the system may not make — no `You decide` option, asked alone, and the **one** thing permitted to hold concepts, behind which the identity is provisional. So "bounded to taste" and "never a gate" now describe Route A, not all clarification. §6 carries both |
+| 3 | `model-contracts.md §0` promised "faithful user-intent capture" and nothing tested it | **Resolved, and since exercised.** *Original:* `model-contracts.md §4.5` defined the creative-understanding evaluation contract over `docs/model-evals/creative-understanding.json`, each dimension labelled deterministic, mixed or qualitative; no runner existed yet. *Since:* the runner exists, four evidence classes are defined and kept apart — known regression, pre-registered validation, a spent sealed challenge used only diagnostically, and a fresh sealed challenge — and all four have now been run at `v5`, the fresh one exactly once. The promise is tested, and what the testing said is §15 |
 | 4 | Phase 4's exit condition was operational only | **Resolved.** The Phase 4 row now carries a creative exit criterion requiring evidence against §4.5 — understanding, fact discipline, selective clarification, distinct directions, intent fidelity, and *personalization rather than rescue*. Thresholds are calibrated on first real run, not invented |
 | 5 | `spec.md §11.9` stated the ≥ 70% bar flatly; `CHANGELOG-v6.md` called it provisional | **Resolved by removing the number from both regression-threshold lists.** It is a launch gate, not a regression threshold: a code change cannot re-run it. Human Test #1 was stopped early, produced calibration evidence only, and established no pass/fail result; Human Test #2 is the launch gate and calibrates its own threshold. `spec.md §11.9` and `event-renderer-system.md §9` now say so |
 | 6 | Three sections cited Revisions absent from the repository | **Resolved where the requirement was recoverable.** `spec.md §11.11` now states the imagery boundary directly; `event-renderer-system.md §8`/`§9` cite it instead of the absent Revision 1. `model-contracts.md §4`/`§5.2` still defer to a Revision 1 for the EventIdentity field list and the DesignIntent input contract — see §14a |
@@ -468,19 +505,47 @@ and `spec_v1`–`v4`. The requirement survives in artifacts that *are* present �
 `docs/model-schemas/design-intent.schema.json` — so nothing is lost, but the citation is a dead
 pointer. Inline both at their citing sections when Phase 4 touches those contracts.
 
-## 15. Where Phase 4 starts
+## 15. Where Phase 4 stands
 
-The readiness pass closed the measurement gap on paper: `model-contracts.md §4.5` and
-`docs/model-evals/creative-understanding.json` define how creative understanding will be judged, and
-the Phase 4 plan row now requires that evidence to exit.
+The measurement gap is closed and the rubric has been run. `generateEventIdentity` exists and is
+the real creative interpreter; `model-contracts.md §4.5` defines how its output is judged.
 
-What remains is to run it. The first implementation slice is the one that makes the rubric
-executable end to end at the smallest possible scope: the real `generateEventIdentity` call against
-the fourteen-case corpus, with the deterministic half of the rubric checked mechanically — facts
-supplied versus facts returned, the `mustAvoid` terms, the question count and ceiling, the absence
-of logistics questions — and the qualitative half read by a person. That produces the first honest
-answer to *does it understand?*, and the thresholds the exit criterion currently leaves open.
+Six evidence runs have happened, and the first two are why the other four were needed. **`v3`** was
+evaluated against the fourteen-case regression suite — 13/14 mechanical, the one failure since
+established as an evaluator false positive — and failed its independent qualitative gate. Its
+remediation **`v4`** was then evaluated against an independently authored sealed challenge: 11/12
+mechanical, and it failed that gate too.
+
+The sealed challenge was the sharper result. It asked **zero** questions on all twelve cases, and
+one of those could not be answered without the system settling a matter it had no authority to
+settle — which the mechanical rubric cannot see, and a human reviewer did. Its one mechanical
+failure was a second defect: a term the host had called a nickname, stored as the person's name.
+
+`v5` is the remediation. Clarification runs on two routes — the unchanged creative gate, and a rare
+authority question the system may not answer for the host (§6) — and `suppliedFacts` distinguishes a
+name someone goes by from a label attached to them.
+
+**Phase 4A passed.** The eight-step sequence this section used to set out as future work was carried
+out in order, and those steps are the remaining four runs: the known regression suite; the
+pre-registered validation set; the spent challenge, re-run into its own directory as a diagnostic;
+then an **independently authored sealed challenge v2**, with adding that corpus file, and nothing
+else, as the whole change; one shot at it; a blind qualitative review; and an explicit **GO / NO-GO**
+that returned **GO** on 2026-09-15. The six
+SHAs and the numbers are in `model-contracts.md §4.6`. The decisive evidence: 11/12 mechanical on
+the fresh corpus, both clarification routes firing where the frozen labels expected them and
+nowhere else, and a blind review of 7 Excellent, 5 Good, 0 Borderline, 0 Fail.
+
+**What the GO does not settle, in this document's terms.** §2 says design quality is core
+functionality, not polish, and §7 says the product exists to remove decisions rather than to be
+merely competent. Against that bar, 7 of 12 Excellent is a pass and not an arrival. Four habits
+recurred in the blind review — unsupported anti-sentimental and anti-theatrical restriction,
+reusable finishing language, a verbal identity thinner than the visual idea, and a standing
+preference for polish and emotional moderation. They are watched through DesignIntent, Composition
+and rendered concepts rather than fixed in the interpreter now, because where the leverage lies is
+not yet known. Every eval set is spent, and the rule that follows from this whole episode is the
+one worth carrying: a benchmark score is only evidence while nobody has tuned against it.
 
 Everything else in Phase 4 — sibling planning against a real identity, DesignIntent, composition,
-spend controls, and any artwork at all — comes after that answer, because it is the answer that
-decides whether the rest is worth building on the identity we have.
+spend controls, and any artwork at all — came after that answer, because it is the answer that
+decided whether the rest was worth building on the identity we have. It was, and
+`development-plan.md` and `phase-4b-plan.md` carry what happens next.

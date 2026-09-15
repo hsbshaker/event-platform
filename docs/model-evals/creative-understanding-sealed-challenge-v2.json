@@ -1,0 +1,288 @@
+{
+  "version": "creative_understanding_sealed_challenge_v2",
+  "cases": [
+    {
+      "id": "SC2-01",
+      "prompt": "Soup night with the neighbors. That's all I've got.",
+      "expectClarification": "no",
+      "rationale": "A sparse, ordinary gathering tests whether a coherent creative idea can emerge without a supplied theme. The social context is enough to make an organizing bet; asking for colors, decor or missing logistics would add work without resolving a consequential uncertainty.",
+      "expectedFacts": {
+        "eventType": "Soup night"
+      },
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": [
+        "A rustic farmhouse style is required.",
+        "Only muted earth tones may be used."
+      ]
+    },
+    {
+      "id": "SC2-02",
+      "prompt": "My 40th birthday party. I want to feel like we've wandered into another world, somewhere glowing and strange. Still a good party, with room for dancing.",
+      "expectClarification": "acceptable",
+      "rationale": "Glowing and strange can become an organic, bioluminescent world or a synthetic, futuristic one. Both fit the whole description without relying on a pun or an unspecified historical reference. A focused creative question could improve fit, but the host expresses a broad desired sensation rather than competing preferences, so an excellent committed interpretation is equally defensible.",
+      "expectedFacts": {
+        "eventType": "birthday party"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "wandered into another world, somewhere glowing and strange",
+          "kind": "direction"
+        },
+        {
+          "phrase": "with room for dancing",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "All imagery must be botanical.",
+        "The design must use a neon cyberpunk palette."
+      ]
+    },
+    {
+      "id": "SC2-03",
+      "prompt": "We're doing a fundraiser for the community radio station. I keep saying 'old school'—that's about as far as I've got. Some of the presenters are coming out of retirement for it.",
+      "expectClarification": "acceptable",
+      "rationale": "Old school leaves the reference era and music culture open: vintage broadcasting, early community-radio DIY and old-school dance music point toward different worlds. Returning presenters supply nostalgia without identifying a decade or genre. A reference question is defensible, but a confident creative choice should also work without inventing the station's history.",
+      "expectedFacts": {
+        "eventType": "fundraiser"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "old school",
+          "kind": "direction"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "The design must reproduce a 1980s hip-hop flyer.",
+        "Modern lettering is prohibited."
+      ]
+    },
+    {
+      "id": "SC2-04",
+      "prompt": "Leïla and Tomás here—we're hosting our civil partnership party: 07/08/2027, 18:30–late, The Old Pump Room, 6B Quay Lane, St Ives. RSVP by 30/06/2027. Keep 07/08/2027 unchanged; don't interpret it, reformat it or spell it out. No rings or 'Mr & Mrs'. Give it the swagger of an old seaside dance poster.",
+      "expectClarification": "no",
+      "rationale": "Accented names, an ambiguous numeric date and precise venue details test faithful preservation. The host explicitly settles how to display the date, so interpreting its month is unnecessary before design. The stated event type and wording prohibition also resist default wedding conventions; the poster reference permits creative decisions without supplying additional rules.",
+      "expectedFacts": {
+        "hostNames": "Leïla and Tomás",
+        "eventType": "civil partnership party",
+        "dateText": "07/08/2027",
+        "timeText": "18:30–late",
+        "venueText": "The Old Pump Room",
+        "addressText": "6B Quay Lane",
+        "localityText": "St Ives",
+        "rsvpDeadlineText": "30/06/2027"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "Keep 07/08/2027 unchanged; don't interpret it, reformat it or spell it out",
+          "kind": "constraint"
+        },
+        {
+          "phrase": "No rings or 'Mr & Mrs'",
+          "kind": "constraint"
+        },
+        {
+          "phrase": "the swagger of an old seaside dance poster",
+          "kind": "direction"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "The palette must be navy and cream.",
+        "All lettering must use vintage typefaces."
+      ]
+    },
+    {
+      "id": "SC2-05",
+      "prompt": "A housewarming for my cousin Beatriz, who goes by Bia. She's finally got a balcony big enough for two chairs and is ridiculously proud of her tomato plants. Tiny urban jungle energy. No moving boxes or key clip art, please.",
+      "expectClarification": "no",
+      "rationale": "The host gives both a personal name and the name the honoree actually uses. Bia should be preserved as her name, rather than treated as a decorative nickname and replaced with Beatriz. The plants and small balcony convey affectionate pride and a visual direction; neither the naming choice nor the aesthetic needs clarification.",
+      "expectedFacts": {
+        "honoreeName": "Bia",
+        "honoreeDescriptionText": "my cousin",
+        "eventType": "housewarming"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "Tiny urban jungle energy",
+          "kind": "direction"
+        },
+        {
+          "phrase": "No moving boxes or key clip art, please",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "The formal name Beatriz must appear in full.",
+        "Every plant illustration must depict tomatoes."
+      ]
+    },
+    {
+      "id": "SC2-06",
+      "prompt": "We've landed our first export order at the tile workshop, so we're throwing a staff lunch. I spend all day approving swatches and don't want to do that for this. You pick the look. It should feel like we actually made something worth celebrating.",
+      "expectClarification": "no",
+      "rationale": "The host explicitly delegates taste and conveys earned pride in collective work. A strong concept should acknowledge that achievement and take responsibility for visual choices. Asking for palettes or style preferences would return the delegated work to the host. The workshop is business context, not an explicitly confirmed lunch venue.",
+      "expectedFacts": {
+        "eventType": "staff lunch",
+        "venueText": null
+      },
+      "hostPhrases": [],
+      "mustNotBeClaimedAsHostConstraint": [
+        "The design must use a repeating tile pattern.",
+        "Terracotta is the required color."
+      ]
+    },
+    {
+      "id": "SC2-07",
+      "prompt": "I'm organizing a pre-Carnaval costume-making afternoon for our samba group. Take your cue from our old parade banner: hand-painted sun faces, orange fringe and little mirrored discs. Make it big, bright and gloriously busy. Use 'Bora brilhar!' as the heading. No tasteful beige version, please.",
+      "expectClarification": "no",
+      "rationale": "The samba group's own parade banner supplies concrete craft references for a culturally specific gathering. Brightness and abundance are explicit, and the heading is supplied, so no cultural interrogation is needed before design. The references do not establish participants' nationality or religion, require Portuguese throughout, or make a parade part of this costume-making event.",
+      "expectedFacts": {
+        "eventType": "pre-Carnaval costume-making afternoon"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "hand-painted sun faces, orange fringe and little mirrored discs",
+          "kind": "direction"
+        },
+        {
+          "phrase": "big, bright and gloriously busy",
+          "kind": "direction"
+        },
+        {
+          "phrase": "Use 'Bora brilhar!' as the heading",
+          "kind": "constraint"
+        },
+        {
+          "phrase": "No tasteful beige version, please",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "All wording must be in Portuguese.",
+        "A parade must be part of the event.",
+        "Only Brazilian flag colors may be used."
+      ]
+    },
+    {
+      "id": "SC2-08",
+      "prompt": "Birthday drinks for my friend Miro. His chosen theme is municipal drainage. He works in a café; he just really loves this stuff. I want actual drains, culverts and runoff arrows in it. Please don't turn it into a tasteful water theme.",
+      "expectClarification": "no",
+      "rationale": "An unconventional subject is intentional and concretely specified. The creative task is to make drainage engaging, not replace it with a generic aquatic mood or verify that the host means it. The café detail also blocks a tempting assumption that the honoree is an engineer. Rendering style remains open despite the literal subject requirement.",
+      "expectedFacts": {
+        "honoreeName": "Miro",
+        "honoreeDescriptionText": "my friend",
+        "eventType": "Birthday drinks"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "municipal drainage",
+          "kind": "direction"
+        },
+        {
+          "phrase": "I want actual drains, culverts and runoff arrows in it",
+          "kind": "constraint"
+        },
+        {
+          "phrase": "Please don't turn it into a tasteful water theme",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "Every element must look like an engineering blueprint.",
+        "Only gray and blue are allowed."
+      ]
+    },
+    {
+      "id": "SC2-09",
+      "prompt": "A memorial tea for my uncle Arun. He collected bus timetables and always had a packet of ginger biscuits in his coat. Warm and ordinary, like sitting at his kitchen table. No halos, clouds or 'gone too soon'. People should be able to laugh about him.",
+      "expectClarification": "no",
+      "rationale": "Everyday objects carry grief and affection without requiring a grand tribute. The host gives a clear emotional register and specific prohibitions, leaving room for warmth and humor. Neither the cause of death nor religious beliefs need to be established to proceed, and the objects are personal references rather than a mandated inventory of illustrations.",
+      "expectedFacts": {
+        "honoreeName": "Arun",
+        "honoreeDescriptionText": "my uncle",
+        "eventType": "memorial tea"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "Warm and ordinary, like sitting at his kitchen table",
+          "kind": "direction"
+        },
+        {
+          "phrase": "No halos, clouds or 'gone too soon'",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "Only muted colors may be used.",
+        "A photograph of Arun is required."
+      ]
+    },
+    {
+      "id": "SC2-10",
+      "prompt": "We're holding a key handover for the first residents of our housing co-op. It's taken eleven years to get here. The children are helping hand over the keys. Make it feel ceremonial and almost regal—we've earned a bit of pomp. Please don't make it look like a property launch.",
+      "expectClarification": "no",
+      "rationale": "A collective housing milestone calls for dignity, pride and permission to be grand. The children and long effort give the ceremony a community context without implying a luxury sales event. The host has already distinguished the desired celebration from property marketing; a creative director can choose how to express that without questioning the request for pomp.",
+      "expectedFacts": {
+        "eventType": "key handover"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "ceremonial and almost regal",
+          "kind": "direction"
+        },
+        {
+          "phrase": "Please don't make it look like a property launch",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "Gold foil and heraldic crests are required.",
+        "The design must avoid showing the building."
+      ]
+    },
+    {
+      "id": "SC2-11",
+      "prompt": "We're doing a mystery dinner for friends. I keep going between ridiculously glamorous suspects making a scene over dinner and those icy thrillers where a glance across the table does all the work. I love both. I want the invitation to set the tone for how everyone plays along.",
+      "expectClarification": "likely",
+      "rationale": "The references pull toward two different emotional treatments: exuberant theatrical accusation and controlled psychological suspense. The invitation is meant to shape how guests play along, so choosing the wrong emphasis changes the intended experience. One focused question about whether the night should feel playful and exaggerated or tense and restrained is favored. This concerns creative tone, not missing event facts or permission.",
+      "expectedFacts": {
+        "eventType": "mystery dinner"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "ridiculously glamorous suspects making a scene over dinner",
+          "kind": "direction"
+        },
+        {
+          "phrase": "those icy thrillers where a glance across the table does all the work",
+          "kind": "direction"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "The invitation must be black and white.",
+        "Comedy is prohibited."
+      ]
+    },
+    {
+      "id": "SC2-12",
+      "prompt": "I'm organizing a retirement dinner for my mum, Denise. Her sister is coming; they haven't spoken in years. I want the invitation built around 'together again', with the two of them pictured side by side. My aunt is keen. Mum doesn't know she's coming, and I honestly don't know how she'll take it.",
+      "expectClarification": "expected",
+      "rationale": "The requested central image and message would present an unresolved estrangement as a reunion endorsed by both sisters. The aunt's enthusiasm does not establish Denise's wishes. One focused clarification must establish whether Denise wants that reunion featured before proceeding with the premise; silently removing it would also discard the host's central request rather than resolve the human boundary.",
+      "expectedFacts": {
+        "honoreeName": "Denise",
+        "honoreeDescriptionText": "my mum",
+        "eventType": "retirement dinner"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "I want the invitation built around 'together again', with the two of them pictured side by side",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "The reunion must remain a surprise until the dinner.",
+        "The sisters must be portrayed embracing."
+      ]
+    }
+  ]
+}

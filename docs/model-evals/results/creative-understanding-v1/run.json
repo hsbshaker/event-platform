@@ -1,0 +1,2495 @@
+{
+  "corpusVersion": "creative_understanding_v1",
+  "startedAt": "2026-09-14T14:02:55.333Z",
+  "runs": [
+    {
+      "caseData": {
+        "id": "CU-01",
+        "prompt": "Ralph Lauren but baby",
+        "class": [
+          "taste-heavy",
+          "genuinely-ambiguous"
+        ],
+        "facts": {},
+        "expectClarification": "likely",
+        "mustAvoid": [
+          "Polo Bear",
+          "any Ralph Lauren logo, wordmark or crest",
+          "copied campaign imagery"
+        ],
+        "notes": "The canonical reference-translation case (spec.md §7.6). Heritage prep, equestrian detail, tartan, navy and cream, leather and brass. Ambiguity worth one question: heritage/equestrian vs heirloom-nursery vs country-club prep."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Heirloom preppy Americana softened for a baby celebration: tailored, warm, and quietly playful, with the feeling of a miniature country-house wardrobe rather than a conventional nursery theme. Heritage polish should lead, while gentle scale and tender details keep it sweet and welcoming.",
+          "toneKeywords": [
+            "heirloom",
+            "tailored",
+            "preppy",
+            "tender",
+            "understated",
+            "warmly nostalgic"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm cream and ivory",
+              "heritage navy",
+              "camel and cognac brown",
+              "soft muted blue or sage accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let warm, gentle neutrals dominate; use deeper heritage colors as tailored anchors and muted accents sparingly."
+          },
+          "tonalIntent": "A light-to-mid tonal world with soft warmth and enough deeper contrast to preserve a polished heritage character.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "oldstyle",
+            "transitional",
+            "soft_serif"
+          ],
+          "visualMotifs": [
+            "restrained windowpane plaid",
+            "delicate equestrian-inspired linework",
+            "small heirloom crest forms",
+            "ribbon and stitched-detail accents",
+            "subtle rocking-horse references"
+          ],
+          "textureDirection": "Tactile and heirloom-like, suggesting fine stationery, linen, brushed cotton, and soft wool with restrained grain.",
+          "typographyDirection": "Classic heritage typography with a poised serif-led hierarchy, softened by intimate scale and quietly playful accents.",
+          "copyTone": "Warm, affectionate, and polished with gentle charm; celebratory without becoming sugary or cutesy.",
+          "designConstraints": [
+            "Translate the named fashion reference into original heritage and preppy qualities without using logos or proprietary graphics.",
+            "Keep baby references refined and subtle rather than overtly nursery-themed.",
+            "Balance tailored formality with softness and warmth.",
+            "Avoid generic stock baby imagery and excessively cute styling."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-01",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "no facts claimed"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: copied campaign imagery"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"likely\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 26453,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4635,
+        "cachedInputTokens": 0,
+        "outputTokens": 992,
+        "reasoningTokens": 516,
+        "providerRequestId": "resp_0c21ba65fc21802a006aa7fe9082b487d19f3b42dcc8a39511"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-02",
+        "prompt": "Ralph Lauren baby shower for a boy, classy not cheesy",
+        "class": [
+          "taste-heavy",
+          "negative-constraint"
+        ],
+        "facts": {
+          "eventType": "baby shower"
+        },
+        "expectClarification": "no",
+        "mustAvoid": [
+          "Polo Bear",
+          "any Ralph Lauren logo or crest",
+          "cartoon or novelty treatments",
+          "primary-blue nursery clichés"
+        ],
+        "notes": "Same reference as CU-01 but the host has already resolved the register. Asking anything here is over-asking."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Tailored heritage elegance with a polished country-club sensibility: warm, composed, and quietly celebratory rather than overtly themed. Let the baby-shower context appear through gentleness and intimacy, not novelty graphics or childish styling.",
+          "toneKeywords": [
+            "tailored",
+            "heritage-inspired",
+            "understated luxury",
+            "warm",
+            "polished",
+            "gently celebratory"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "deep navy",
+              "warm cream",
+              "camel and cognac neutrals",
+              "restrained forest green"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Ground the palette in warm neutrals and deep heritage tones, with any lighter or sweeter notes kept subtle."
+          },
+          "tonalIntent": "A composed mid-to-deep tonal world with warm contrast; rich and inviting rather than dark or severe.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "transitional",
+            "oldstyle",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "restrained windowpane or tartan-inspired checks",
+            "fine pinstripes",
+            "subtle crest-like framing without logos",
+            "minimal sporting-club linework",
+            "small-scale heritage botanical accents"
+          ],
+          "textureDirection": "Tactile woven-textile character balanced with refined, substantial paper texture and crisp printed detail.",
+          "typographyDirection": "Confident heritage serif hierarchy with disciplined, understated supporting type; formal enough to feel special but never ornate or precious.",
+          "copyTone": "Warm, concise, polished, and affectionate without cutesy phrasing.",
+          "designConstraints": [
+            "Keep the baby-shower expression classy rather than cheesy.",
+            "Avoid cartoonish, novelty, or stereotypically babyish graphics.",
+            "Do not rely on an obvious gender-coded baby-blue palette.",
+            "Translate the named fashion reference into original heritage qualities without logos or proprietary brand elements.",
+            "Keep checks, crests, and sporting references restrained rather than costume-like."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "baby shower",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-02",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "pass",
+            "detail": "all 1 supplied fact(s) carried verbatim"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "advisory",
+            "detail": "eventType -> eventType"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [cheesy] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: cartoon or novelty treatments; primary-blue nursery clichés"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 31793,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4642,
+        "cachedInputTokens": 4575,
+        "outputTokens": 1001,
+        "reasoningTokens": 516,
+        "providerRequestId": "resp_07a71ae901bea003006aa7feaa00b887d1aca57bb259afe97c"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-03",
+        "prompt": "lemons in Italy but classy",
+        "class": [
+          "taste-heavy",
+          "negative-constraint"
+        ],
+        "facts": {},
+        "expectClarification": "no",
+        "mustAvoid": [
+          "cartoon citrus",
+          "novelty or kitsch treatments",
+          "inferring Positano, the Amalfi coast or any named place as a fact",
+          "inferring the event is outdoors"
+        ],
+        "notes": "The fact-discipline case. Mediterranean warmth, citrus leaves, linen, ceramic detail, refined still life, ivory / muted lemon / olive are legitimate inferences. A location is not."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Refined Italian citrus elegance: sun-warmed, convivial, and polished, with lemons treated as a sophisticated Mediterranean botanical rather than a novelty theme. Evoke an intimate Italian summer through natural materials, classical restraint, and fresh graphic clarity.",
+          "toneKeywords": [
+            "sun-warmed",
+            "refined",
+            "Mediterranean",
+            "fresh",
+            "convivial",
+            "understated"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "ripe citrus yellow",
+              "olive and lemon-leaf green",
+              "warm limestone neutrals",
+              "soft ceramic white"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Warm neutrals should provide an elegant foundation, with citrus yellow and leafy green used as fresh, controlled accents."
+          },
+          "tonalIntent": "Luminous and warm with gentle contrast, avoiding both washed-out pastels and heavy dramatic darkness.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "transitional",
+            "high_contrast_editorial",
+            "oldstyle"
+          ],
+          "visualMotifs": [
+            "elegant lemon branches with leaves",
+            "restrained Mediterranean botanical linework",
+            "subtle hand-painted ceramic references",
+            "sunlit Italian garden details",
+            "classically proportioned ornamental flourishes"
+          ],
+          "textureDirection": "Tactile, sun-warmed surfaces inspired by fine paper, natural linen, limewashed plaster, and subtly glazed ceramics; polished but not glossy.",
+          "typographyDirection": "Graceful, classically rooted display typography balanced by a crisp, restrained supporting hierarchy; sophisticated rather than rustic or whimsical.",
+          "copyTone": "Warm, welcoming, and effortlessly polished, with a hint of Italian conviviality and no themed catchphrases.",
+          "designConstraints": [
+            "Keep the lemon theme classy rather than kitschy.",
+            "Avoid cartoonish, novelty, or overly literal lemon graphics.",
+            "Use Italian references evocatively rather than creating a tourist-postcard aesthetic.",
+            "Maintain freshness and warmth without becoming rustic or overly ornate."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-03",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "no facts claimed"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: cartoon citrus; novelty or kitsch treatments; inferring Positano, the Amalfi coast or any named place as a fact [fact discipline — see factsGrounded]; inferring the event is outdoors [fact discipline — see factsGrounded]"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 23215,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4636,
+        "cachedInputTokens": 4575,
+        "outputTokens": 694,
+        "reasoningTokens": 214,
+        "providerRequestId": "resp_05d2ee3fe3f6b73e006aa7fec9e5e087d194685e0c18831ac8"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-04",
+        "prompt": "Winnie the Pooh but not corny",
+        "class": [
+          "taste-heavy",
+          "negative-constraint",
+          "genuinely-ambiguous"
+        ],
+        "facts": {},
+        "expectClarification": "acceptable",
+        "mustAvoid": [
+          "the Disney Winnie-the-Pooh character design",
+          "any Disney trademark or character likeness",
+          "primary red and yellow cartoon palette"
+        ],
+        "notes": "Reference translation against a protected character. Classic English storybook illustration, honey and moss, hand-lettered restraint, Hundred Acre Wood as a mood rather than a cast."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An understated woodland storybook world with gentle nostalgia, pastoral warmth, and literary charm. Evoke the tenderness and quiet humor associated with a beloved childhood tale without relying on literal characters, branded imagery, or novelty-theme styling.",
+          "toneKeywords": [
+            "gentle nostalgia",
+            "woodland warmth",
+            "literary",
+            "understated",
+            "whimsical, not twee",
+            "tender"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "muted honey",
+              "warm parchment",
+              "soft moss",
+              "weathered brown"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let warm, softened natural tones lead, with honeyed color appearing as a restrained accent rather than a loud theme cue."
+          },
+          "tonalIntent": "A softly luminous light-to-mid tonal world with mellow contrast and an aged-storybook warmth.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "oldstyle",
+            "soft_serif",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "delicate woodland linework",
+            "small honeybee accents",
+            "restrained honeycomb geometry",
+            "old-book botanical flourishes",
+            "meandering hand-drawn paths"
+          ],
+          "textureDirection": "Soft paper grain, lightly weathered ink, and subtle dry-brush tactility with a refined handmade character.",
+          "typographyDirection": "Warm literary serif hierarchy with a lightly hand-touched sensibility; charming and readable rather than overtly childish or theatrical.",
+          "copyTone": "Affectionate, gently witty, and concise, with storybook warmth but no forced puns or saccharine phrasing.",
+          "designConstraints": [
+            "Do not feel corny.",
+            "Avoid literal character depictions, logos, or proprietary branded imagery.",
+            "Keep references subtle rather than turning the event into a novelty theme.",
+            "Avoid cartoonish, overly childish, or saccharine styling."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-04",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "no facts claimed"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [corny] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: primary red and yellow cartoon palette"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"acceptable\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 25528,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4638,
+        "cachedInputTokens": 4575,
+        "outputTokens": 865,
+        "reasoningTokens": 405,
+        "providerRequestId": "resp_0e99bd18f9ec502c006aa7fee10d6487d1b8f781718a7f121c"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-05",
+        "prompt": "girly but no pink",
+        "class": [
+          "negative-constraint"
+        ],
+        "facts": {},
+        "expectClarification": "no",
+        "mustAvoid": [
+          "pink in any role",
+          "blush, rose or dusty-pink as a workaround"
+        ],
+        "notes": "The instruction-following case. A palette containing pink is an outright failure, and so is reading 'no pink' as 'less pink'."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An unapologetically feminine, playful design world that achieves its girly character without relying on pink. Use fashion-led sweetness, graceful forms, and charming details in fresh non-pink hues rather than childish clichés.",
+          "toneKeywords": [
+            "feminine",
+            "playful",
+            "fashion-forward",
+            "charming",
+            "confident",
+            "fresh"
+          ],
+          "colorsExplicitlyConstrained": true,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "lavender",
+              "butter yellow",
+              "powder blue",
+              "cream",
+              "fresh green"
+            ],
+            "avoidColors": [
+              "pink, blush, rose, fuchsia, dusty rose, and near-pinks"
+            ],
+            "dominanceNotes": "Pink must be entirely absent; femininity should come through non-pink color, form, and detail."
+          },
+          "tonalIntent": "Fresh light-to-mid tones with crisp contrast and occasional deeper accents for definition.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "high_contrast_editorial",
+            "soft_serif",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "sculptural bows and flowing ribbons",
+            "stylized non-pink florals",
+            "delicate pearl-like accents",
+            "graceful scalloped forms",
+            "small sparkling details"
+          ],
+          "textureDirection": "Smooth satin-like softness balanced with crisp paper character and restrained luminous accents.",
+          "typographyDirection": "Expressive, fashion-aware display lettering balanced by a polished and highly legible supporting hierarchy.",
+          "copyTone": "Playful, upbeat, affectionate, and confidently feminine with a light wink.",
+          "designConstraints": [
+            "Use no pink or near-pink shades.",
+            "The identity must still feel distinctly girly and feminine without depending on pink.",
+            "Favor stylish charm over generic or overly childish feminine clichés."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-05",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "no facts claimed"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "fail",
+            "detail": "host negated [pink] but the positive brief still proposes it"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "pass",
+            "detail": "1 exclusion(s), none contradicted"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: pink in any role; blush, rose or dusty-pink as a workaround"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": false
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 46372,
+        "transientRetries": 0,
+        "repairRetries": 1,
+        "schemaValidFirstCall": false,
+        "inputTokens": 5129,
+        "cachedInputTokens": 4632,
+        "outputTokens": 488,
+        "reasoningTokens": 50,
+        "providerRequestId": "resp_0b36393d2dd60841006aa7ff1e803087d19f7c8007352e90d6"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-06",
+        "prompt": "old money garden party",
+        "class": [
+          "taste-heavy"
+        ],
+        "facts": {
+          "eventType": "garden party"
+        },
+        "expectClarification": "no",
+        "mustAvoid": [
+          "overt luxury signalling",
+          "gold-on-black 'elegance' clichés",
+          "inferring a venue"
+        ],
+        "notes": "Restraint is the whole signal. Inherited rather than purchased: worn linen, box hedge, silver, faded chintz, engraved type."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A cultivated garden-party world rooted in inherited elegance, quiet leisure, and impeccable restraint. The atmosphere should feel established rather than showy, balancing manicured natural beauty with understated heritage formality.",
+          "toneKeywords": [
+            "quietly luxurious",
+            "heritage",
+            "cultivated",
+            "gracious",
+            "understated",
+            "summery"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm ivory",
+              "garden green",
+              "soft sage",
+              "muted sky blue",
+              "weathered stone neutrals"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Natural greens and warm neutrals should lead, with any cooler or richer accents used sparingly."
+          },
+          "tonalIntent": "Airy to softly mid-toned, with gentle contrast and enough depth to feel established rather than delicate.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "transitional",
+            "oldstyle",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "manicured topiary silhouettes",
+            "delicate botanical engraving",
+            "restrained trellis geometry",
+            "subtle lawn-stripe patterning",
+            "small heraldic-inspired flourishes without literal crests"
+          ],
+          "textureDirection": "Fine cotton paper, pressed linen, and restrained natural grain with a softly aged, well-kept character.",
+          "typographyDirection": "Cultivated serif-led hierarchy with classical proportions, measured spacing, and restrained supporting type.",
+          "copyTone": "Gracious, polished, and concise, with an effortless sense of hospitality and no overt display of status.",
+          "designConstraints": [
+            "Express luxury through restraint and quality rather than conspicuous glamour.",
+            "Avoid flashy metallic excess or trend-driven opulence.",
+            "Keep garden references manicured and refined rather than rustic or whimsical.",
+            "Avoid literal aristocratic branding, copied crests, or proprietary heritage symbols."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "garden party",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-06",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "pass",
+            "detail": "all 1 supplied fact(s) carried verbatim"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "advisory",
+            "detail": "eventType -> eventType"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: overt luxury signalling; gold-on-black 'elegance' clichés; inferring a venue [fact discipline — see factsGrounded]"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 26536,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4634,
+        "cachedInputTokens": 4575,
+        "outputTokens": 898,
+        "reasoningTokens": 438,
+        "providerRequestId": "resp_03c3b3ca5b2179a4006aa7ff28f34c87d18a48105f15c0bb7a"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-07",
+        "prompt": "modern Indian baby shower but subtle",
+        "class": [
+          "taste-heavy",
+          "negative-constraint"
+        ],
+        "facts": {
+          "eventType": "baby shower"
+        },
+        "expectClarification": "acceptable",
+        "mustAvoid": [
+          "saturated wedding-palette defaults",
+          "generic mandala or paisley wallpaper",
+          "religious iconography the host did not ask for"
+        ],
+        "notes": "Cultural specificity without cliché, and 'subtle' governs. A godh bharai register handled with restraint; marigold and turmeric as accents rather than as a theme."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A contemporary Indian celebratory world expressed through refined craft references, warm hospitality, and restrained cultural detail. Keep the baby-shower mood joyful and tender without becoming ornate, literal, or conventionally cutesy.",
+          "toneKeywords": [
+            "contemporary Indian",
+            "subtly celebratory",
+            "warm",
+            "refined",
+            "culturally grounded",
+            "gentle"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm ivory and soft mineral neutrals",
+              "muted marigold or saffron accents",
+              "subdued botanical greens",
+              "sparingly used jewel-toned details"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let warm neutrals lead, with culturally resonant color appearing as measured accents rather than a saturated festival palette."
+          },
+          "tonalIntent": "Light-to-mid in overall feeling, with soft warmth and enough contrast to remain polished and modern.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "high_contrast_editorial",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "simplified Indian floral geometry",
+            "restrained arch silhouettes",
+            "delicate botanical linework",
+            "abstract rangoli-inspired symmetry",
+            "small handcrafted ornamental accents"
+          ],
+          "textureDirection": "Clean, tactile paper character with subtle natural grain and occasional craft-like detail; polished rather than opulent.",
+          "typographyDirection": "A clean contemporary hierarchy balanced by an elegant serif accent, with cultural character conveyed through proportion and rhythm rather than decorative imitation.",
+          "copyTone": "Warm, gracious, celebratory, and concise; affectionate without sounding precious or overly formal.",
+          "designConstraints": [
+            "Keep the Indian influence subtle and contemporary.",
+            "Avoid dense ornament or an overtly traditional wedding aesthetic.",
+            "Do not rely on stereotypical baby graphics or excessively cutesy styling.",
+            "Use cultural motifs selectively rather than turning the event into a literal theme.",
+            "Maintain a gentle celebratory quality without visual excess."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "baby shower",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-07",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "pass",
+            "detail": "all 1 supplied fact(s) carried verbatim"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "advisory",
+            "detail": "eventType -> eventType"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: saturated wedding-palette defaults; generic mandala or paisley wallpaper; religious iconography the host did not ask for"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"acceptable\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 22311,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4636,
+        "cachedInputTokens": 4575,
+        "outputTokens": 773,
+        "reasoningTokens": 292,
+        "providerRequestId": "resp_05b7b36993e8b9c8006aa7ff4382b887d1af1408901152dd81"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-08",
+        "prompt": "luxury safari",
+        "class": [
+          "taste-heavy"
+        ],
+        "facts": {},
+        "expectClarification": "no",
+        "mustAvoid": [
+          "cartoon animals",
+          "zoo or jungle-nursery treatments",
+          "animal-print maximalism"
+        ],
+        "notes": "Tented-camp restraint: canvas, brass, leather, acacia silhouettes, sun-bleached neutrals. The distance between this and a jungle nursery is the whole test."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An elevated safari world balancing untamed landscape with tailored hospitality: sun-warmed, tactile, adventurous, and quietly opulent rather than overtly themed. The luxury should come through restraint, craftsmanship, and atmosphere—not excess or novelty.",
+          "toneKeywords": [
+            "adventurous refinement",
+            "tailored",
+            "earthy",
+            "transportive",
+            "tactile",
+            "quietly opulent"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "sun-baked earth tones",
+              "warm sand and parchment",
+              "deep olive",
+              "weathered khaki",
+              "charcoal accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Natural, sun-warmed neutrals should lead, with deeper landscape tones providing controlled contrast."
+          },
+          "tonalIntent": "Layered mid-tones with warm highlights and selective dusk-like depth; rich and atmospheric without becoming heavy.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "high_contrast_editorial",
+            "transitional",
+            "grotesk_led"
+          ],
+          "visualMotifs": [
+            "abstract savanna horizon lines",
+            "topographic contours",
+            "restrained field-journal markings",
+            "silhouettes of grasses and acacia forms",
+            "subtle animal-pattern geometry",
+            "expedition-inspired cartographic details"
+          ],
+          "textureDirection": "Tactile natural surfaces with the character of woven canvas, pressed paper, dry grain, and softly weathered materials, kept polished rather than rustic.",
+          "typographyDirection": "Confident, cultivated display typography with an understated expedition-era character, balanced by crisp and highly legible supporting text.",
+          "copyTone": "Warm, assured, and transportive, with a sense of discovery; polished rather than theatrical.",
+          "designConstraints": [
+            "Keep the safari theme sophisticated rather than kitschy.",
+            "Avoid cartoon-like or juvenile animal imagery.",
+            "Use animal patterns only as restrained abstractions, not dominant decoration.",
+            "Express luxury through craft, restraint, and atmosphere rather than generic metallic excess."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "luxury safari",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-08",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"luxury safari\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: cartoon animals; zoo or jungle-nursery treatments; animal-print maximalism"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 30077,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4633,
+        "cachedInputTokens": 4575,
+        "outputTokens": 1105,
+        "reasoningTokens": 615,
+        "providerRequestId": "resp_010d2141499e3bdc006aa7ff59d24087d19f8715e763e3d78e"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-09",
+        "prompt": "cute but not childish",
+        "class": [
+          "negative-constraint",
+          "genuinely-ambiguous"
+        ],
+        "facts": {},
+        "expectClarification": "likely",
+        "mustAvoid": [
+          "balloons, clouds, rattles and similar baby-graphic defaults",
+          "script fonts as the sole 'cute' signal"
+        ],
+        "notes": "The spec's own trap (model-prompts/event-identity.system.md §7). Charm carried by material and craft rather than by juvenile motifs."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Grown-up charm with a light sense of play: sweet, polished, and characterful without relying on juvenile imagery or novelty styling. Keep the whimsy refined through graceful forms, restrained details, and an approachable sense of warmth.",
+          "toneKeywords": [
+            "charming",
+            "playful restraint",
+            "softly polished",
+            "warm",
+            "fresh",
+            "grown-up"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "soft, sophisticated color accents",
+              "warm neutrals"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let calm neutrals provide maturity, with selective gentle color adding charm rather than dominating."
+          },
+          "tonalIntent": "A fresh light-to-mid tonal range with gentle contrast and enough definition to feel polished rather than sugary.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "soft_serif",
+            "oldstyle",
+            "grotesk_led"
+          ],
+          "visualMotifs": [
+            "small hand-drawn flourishes",
+            "simplified botanical or nature-inspired forms",
+            "subtle scalloped rhythms",
+            "tiny confetti-like accents"
+          ],
+          "textureDirection": "Soft paper-like tactility with clean surfaces and restrained handcrafted warmth; avoid anything overly glossy or toy-like.",
+          "typographyDirection": "Friendly, graceful display typography balanced by a clean, composed supporting hierarchy; expressive without becoming cartoonish.",
+          "copyTone": "Warm, cheerful, and concise with gentle wit; celebratory but never cutesy or babyish.",
+          "designConstraints": [
+            "Keep the overall character cute but not childish.",
+            "Avoid cartoonish, toy-like, or overtly juvenile imagery.",
+            "Use playful details sparingly so the result remains polished and grown-up."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-09",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "no facts claimed"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [childish] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: balloons, clouds, rattles and similar baby-graphic defaults; script fonts as the sole 'cute' signal"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"likely\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 18329,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4634,
+        "cachedInputTokens": 4575,
+        "outputTokens": 572,
+        "reasoningTokens": 144,
+        "providerRequestId": "resp_0b36ebe3a4ab2054006aa7ff77f8a087d19942bd6bd1a2e2ef"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-10",
+        "prompt": "something unique, idk surprise me",
+        "class": [
+          "open"
+        ],
+        "facts": {},
+        "expectClarification": "no",
+        "mustAvoid": [
+          "asking the host to supply the taste they just delegated",
+          "defaulting to a generic house style"
+        ],
+        "notes": "Delegation is an answer. A confident, specific identity is required; a question here fails the case."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An artful, contemporary event identity built around unexpected contrasts and a sense of discovery. It should feel genuinely distinctive yet welcoming, with originality coming from expressive form, rhythm, and wit rather than novelty for its own sake.",
+          "toneKeywords": [
+            "unexpected",
+            "artful",
+            "contemporary",
+            "confident",
+            "playful restraint",
+            "intriguing"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "nuanced mineral tones",
+              "soft neutral ground",
+              "one surprising vivid accent"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let nuanced, quieter colors establish sophistication while a single energetic accent creates surprise."
+          },
+          "tonalIntent": "A balanced mid-tone world with crisp contrast and selective moments of brightness; open to lighter or deeper interpretations if they retain clarity and energy.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "high_contrast_editorial",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "abstract cut-paper forms",
+            "offbeat geometric gestures",
+            "surreal botanical fragments",
+            "expressive asymmetry",
+            "small moments of visual wit"
+          ],
+          "textureDirection": "A refined mix of crisp color fields and subtle tactile grain, with occasional handmade irregularity to keep the identity from feeling sterile.",
+          "typographyDirection": "A confident, characterful hierarchy that balances bold contemporary expression with polished, highly readable supporting text.",
+          "copyTone": "Concise, warm, clever, and lightly intriguing without becoming cryptic or gimmicky.",
+          "designConstraints": [
+            "Make the identity feel meaningfully distinctive rather than generically festive.",
+            "Avoid stock event clichés and overly literal themed graphics.",
+            "Keep experimental choices polished, welcoming, and legible.",
+            "Use surprise with restraint rather than layering unrelated novelty."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-10",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "no facts claimed"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: asking the host to supply the taste they just delegated; defaulting to a generic house style"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 23879,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4637,
+        "cachedInputTokens": 4575,
+        "outputTokens": 763,
+        "reasoningTokens": 316,
+        "providerRequestId": "resp_03765aedbfc70dde006aa7ff8a56c087d19973720ff13aabd3"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-11",
+        "prompt": "Baby shower for our son on Saturday, December 19 2026 at 1pm, The Lodge at Hanson Park in Aldie, Virginia. Navy, cream and forest green, preppy and warm, a bit equestrian, not cheesy.",
+        "class": [
+          "clear",
+          "fact-bearing"
+        ],
+        "facts": {
+          "eventType": "baby shower",
+          "date": "Saturday, December 19 2026",
+          "time": "1pm",
+          "venue": "The Lodge at Hanson Park",
+          "location": "Aldie, Virginia"
+        },
+        "expectClarification": "no",
+        "mustAvoid": [
+          "asking for any supplied field",
+          "altering or paraphrasing a supplied fact"
+        ],
+        "notes": "Fully specified in both taste and logistics. The facts are the host's literal strings, not normalized forms: a correct extractor preserves \"Saturday, December 19 2026\" and \"1pm\" exactly. Normalizing a date or a time is the application's job, never the model's, and a returned \"1:00 PM\" is a paraphrase of the host — the thing this case exists to catch. Question count must be zero."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Tailored lodge warmth with classic preppy restraint: an intimate, polished baby shower world shaped by heritage sporting cues rather than novelty baby imagery. Equestrian influence should feel subtle and atmospheric, never literal or themed.",
+          "toneKeywords": [
+            "preppy",
+            "warm",
+            "tailored",
+            "heritage-inspired",
+            "understated",
+            "welcoming",
+            "non-cutesy"
+          ],
+          "colorsExplicitlyConstrained": true,
+          "paletteIntent": {
+            "requiredColors": [
+              "Navy",
+              "cream",
+              "forest green"
+            ],
+            "preferredColors": [],
+            "avoidColors": [],
+            "dominanceNotes": "Balance deep navy and forest green with generous cream so the palette feels warm and grounded rather than heavy."
+          },
+          "tonalIntent": "A warm, grounded mid-depth palette with rich dark anchors, softened by cream and comfortable contrast.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "oldstyle",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "restrained equestrian linework",
+            "subtle bridle and saddle-stitch references",
+            "understated windowpane checks",
+            "heritage lodge emblems without literal branding",
+            "small evergreen accents"
+          ],
+          "textureDirection": "Tactile and refined, drawing on warm paper, woven wool, saddle leather, and subtle natural grain without becoming rustic.",
+          "typographyDirection": "A composed heritage-led hierarchy with stately serif character, clear supporting text, and minimal decorative flourish.",
+          "copyTone": "Warm, polished, welcoming, and lightly celebratory without sentimentality or baby-talk.",
+          "designConstraints": [
+            "Keep the equestrian influence subtle rather than overtly themed.",
+            "Avoid cheesy or novelty baby-shower styling.",
+            "Do not rely on stereotypical baby motifs or cutesy illustrations.",
+            "Maintain a warm, preppy sensibility throughout."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "Baby shower",
+          "dateText": "Saturday, December 19 2026",
+          "timeText": "1pm",
+          "venueText": "The Lodge at Hanson Park",
+          "addressText": null,
+          "localityText": "Aldie, Virginia",
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-11",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "pass",
+            "detail": "all 5 supplied fact(s) carried verbatim"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 5 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "advisory",
+            "detail": "eventType -> eventType; date -> dateText; time -> timeText; venue -> venueText; location -> localityText"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [cheesy] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: asking for any supplied field; altering or paraphrasing a supplied fact"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 24575,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4679,
+        "cachedInputTokens": 4575,
+        "outputTokens": 901,
+        "reasoningTokens": 435,
+        "providerRequestId": "resp_0028a6bac25e012f006aa7ffa21a9087d183c0472b5a57ccb7"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-12",
+        "prompt": "bridal shower, tea party vibes, at my mum's house in June",
+        "class": [
+          "fact-bearing",
+          "clear"
+        ],
+        "facts": {
+          "eventType": "bridal shower",
+          "venueHint": "my mum's house",
+          "monthHint": "June"
+        },
+        "expectClarification": "no",
+        "mustAvoid": [
+          "inventing a date from 'June'",
+          "inventing an address from 'my mum's house'",
+          "inferring a dress code"
+        ],
+        "notes": "Partial facts. A month is not a date and a description is not an address; both are carried as given and completed later, never fabricated and never asked for before concepts."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An intimate June tea-party world with relaxed domestic charm and quietly refined bridal celebration. Draw on delicate table linens, vintage china, and garden botanicals without slipping into fussy or overly themed territory.",
+          "toneKeywords": [
+            "intimate",
+            "graceful",
+            "fresh",
+            "romantic",
+            "relaxed",
+            "lightly nostalgic"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "tea-stained ivory",
+              "soft botanical greens",
+              "muted floral accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "A naturally luminous, gentle palette with soft contrast and enough definition to feel polished rather than washed out.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "soft_serif",
+            "oldstyle",
+            "high_contrast_editorial",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "delicate tea botanicals",
+            "vintage china-inspired florals",
+            "scalloped linen forms",
+            "small ribbon details",
+            "refined teacup linework"
+          ],
+          "textureDirection": "Soft linen and lightly toothy paper character with restrained, timeworn delicacy.",
+          "typographyDirection": "Graceful serif-led hierarchy with a lightly traditional character and restrained romantic accents.",
+          "copyTone": "Warm, gracious, celebratory, and gently playful without becoming precious.",
+          "designConstraints": [
+            "Keep the tea-party theme refined rather than literal or novelty-driven.",
+            "Avoid generic bridal-shower clichés and excessive ornament.",
+            "Balance romantic detail with the ease of an at-home gathering."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "bridal shower",
+          "dateText": "June",
+          "timeText": null,
+          "venueText": "my mum's house",
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-12",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "pass",
+            "detail": "all 3 supplied fact(s) carried verbatim"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 3 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "advisory",
+            "detail": "eventType -> eventType; venueHint -> venueText; monthHint -> dateText"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidNameEchoes",
+            "status": "advisory",
+            "detail": "a word from a forbidden name appears; translation or reproduction is a judgement: \"June\" (from: inventing a date from 'June')"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: inventing an address from 'my mum's house'; inferring a dress code [fact discipline — see factsGrounded]"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 16634,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4645,
+        "cachedInputTokens": 4575,
+        "outputTokens": 600,
+        "reasoningTokens": 196,
+        "providerRequestId": "resp_0426fe029dc8c060006aa7ffbaab6087d19c0a7cf8d3b76ba2"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-13",
+        "prompt": "60th birthday for my dad, he likes jazz and old maps",
+        "class": [
+          "taste-heavy",
+          "fact-bearing"
+        ],
+        "facts": {
+          "eventType": "60th birthday"
+        },
+        "expectClarification": "no",
+        "mustAvoid": [
+          "generic milestone-birthday confetti",
+          "literal saxophone or globe clip-art"
+        ],
+        "notes": "Taste arrives through the guest of honour rather than a style name. Cartography line work, foxed paper, brass, a late-night blue — interests translated, not illustrated."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A cultured milestone celebration blending the intimate atmosphere of a classic jazz room with the exploratory romance of antique cartography. Mature, warm, and quietly distinctive, with both interests treated as refined visual languages rather than literal party themes.",
+          "toneKeywords": [
+            "cultured",
+            "warm",
+            "rhythmic",
+            "storied",
+            "intimate",
+            "understated"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "parchment neutrals",
+              "ink navy",
+              "tobacco brown",
+              "muted brass accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let aged-paper and deep ink tones establish the world, with metallic warmth used sparingly."
+          },
+          "tonalIntent": "A warm mid-to-deep tonal range with enough contrast for atmosphere, balanced by parchment-like breathing space.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "editorial",
+            "invitation",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "oldstyle",
+            "high_contrast_editorial",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "abstract cartographic linework",
+            "latitude and longitude grids",
+            "subtle compass geometry",
+            "syncopated linear rhythms",
+            "meandering route lines",
+            "restrained archival numerals"
+          ],
+          "textureDirection": "Tactile archival-paper character with subtle grain, softened ink, and restrained aged patina rather than distressed vintage effects.",
+          "typographyDirection": "A composed, bookish serif-led hierarchy with confident milestone numerals and understated rhythmic contrast.",
+          "copyTone": "Warm, concise, and celebratory with cultivated charm; affectionate without becoming sentimental or overly formal.",
+          "designConstraints": [
+            "Treat jazz and old maps as sophisticated references, not a literal combined theme.",
+            "Avoid novelty saxophone graphics and music-note clichés.",
+            "Avoid pirate-map or adventure-party styling.",
+            "Keep the milestone prominent without making the age feel gimmicky.",
+            "Use vintage character with restraint; the result should not feel distressed or costume-like."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "60th birthday",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-13",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "pass",
+            "detail": "all 1 supplied fact(s) carried verbatim"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "advisory",
+            "detail": "eventType -> eventType"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: generic milestone-birthday confetti; literal saxophone or globe clip-art"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 22276,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4643,
+        "cachedInputTokens": 4575,
+        "outputTokens": 723,
+        "reasoningTokens": 248,
+        "providerRequestId": "resp_07ebdd636283238d006aa7ffcb538487d1ae1e79c1dbd2bb2c"
+      }
+    },
+    {
+      "caseData": {
+        "id": "CU-14",
+        "prompt": "engagement party, beachy",
+        "class": [
+          "genuinely-ambiguous"
+        ],
+        "facts": {
+          "eventType": "engagement party"
+        },
+        "expectClarification": "expected",
+        "mustAvoid": [
+          "inferring a beach as the venue",
+          "asking where or when the event is"
+        ],
+        "notes": "The clearest case for one question: 'beachy' spans barefoot-coastal, Hamptons-nautical and Mediterranean-resort, and the three produce genuinely different identities. The question must be about register, never about the venue."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An effortlessly celebratory engagement party shaped by the quiet beauty of the coast: sun-washed, breezy, natural, and polished without becoming nautical or themed. The atmosphere should feel like sea air, open horizons, and relaxed gathering elevated with refined restraint.",
+          "toneKeywords": [
+            "breezy",
+            "sun-washed",
+            "relaxed elegance",
+            "coastal",
+            "romantic",
+            "natural"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "sandy neutrals",
+              "soft sea-glass hues",
+              "weathered blue",
+              "warm off-white"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let sun-bleached neutrals lead, with coastal color used as a gentle accent rather than a saturated theme."
+          },
+          "tonalIntent": "Airy and softly luminous, with gentle contrast and enough warmth to feel celebratory rather than stark.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "soft_serif",
+            "transitional",
+            "oldstyle",
+            "grotesk_led"
+          ],
+          "visualMotifs": [
+            "abstract shoreline contours",
+            "subtle tide-line curves",
+            "windswept dune grass",
+            "open-horizon geometry",
+            "small shell-like organic forms"
+          ],
+          "textureDirection": "Sun-bleached paper, fine sand-like grain, and soft natural-fiber tactility used with restraint.",
+          "typographyDirection": "Graceful, relaxed serif-led typography with clear contemporary hierarchy and an unfussy supporting voice.",
+          "copyTone": "Warm, joyful, and easygoing with a polished romantic note; concise rather than ceremonious.",
+          "designConstraints": [
+            "Keep the beach reference atmospheric rather than overtly nautical.",
+            "Avoid turning the concept into a novelty beach theme.",
+            "Balance casual coastal ease with the significance of an engagement celebration."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "eventType": "engagement party",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "CU-14",
+        "checks": [
+          {
+            "name": "factsPreserved",
+            "status": "pass",
+            "detail": "all 1 supplied fact(s) carried verbatim"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "advisory",
+            "detail": "eventType -> eventType"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoidNamedThings",
+            "status": "pass",
+            "detail": "no forbidden named thing appears in the identity"
+          },
+          {
+            "name": "mustAvoidTasteJudgements",
+            "status": "advisory",
+            "detail": "not mechanically checkable, for the qualitative reviewer: inferring a beach as the venue [fact discipline — see factsGrounded]; asking where or when the event is"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"expected\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v3",
+        "schemaVersion": "event_identity_schema_v3",
+        "latencyMs": 22572,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 4636,
+        "cachedInputTokens": 4575,
+        "outputTokens": 759,
+        "reasoningTokens": 310,
+        "providerRequestId": "resp_0bf242f4d89cd67f006aa7ffe198a087d1a4aa284cc54060d8"
+      }
+    }
+  ]
+}

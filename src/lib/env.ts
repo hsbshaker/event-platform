@@ -124,6 +124,36 @@ export function humanTest1TestSecret(): string | undefined {
   return parsed.data;
 }
 
+/**
+ * OpenAI credentials for the Phase 4A Event Identity call (docs/model-contracts.md §4).
+ *
+ * Server-only and validated lazily, like every other secret here, so builds, unit tests and
+ * every code path that does not call a model run without a key present. The model id is
+ * configurable but defaulted, so a deployment cannot silently drift onto a different model
+ * than the one a generation was recorded against (docs/model-contracts.md §2).
+ */
+const openAiSchema = z.object({
+  OPENAI_API_KEY: z.string().min(20),
+  OPENAI_MODEL: z.string().min(1).default("gpt-5.6-sol"),
+  /** Reasoning effort for the identity call. Quality first; latency is measured, not traded. */
+  OPENAI_REASONING_EFFORT: z.enum(["low", "medium", "high"]).default("high"),
+});
+
+export type OpenAiEnv = z.infer<typeof openAiSchema>;
+
+export function openAiEnv(): OpenAiEnv {
+  if (typeof window !== "undefined") {
+    throw new Error("openAiEnv() must not be called from client code.");
+  }
+  const parsed = openAiSchema.safeParse({
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENAI_MODEL: process.env.OPENAI_MODEL || undefined,
+    OPENAI_REASONING_EFFORT: process.env.OPENAI_REASONING_EFFORT || undefined,
+  });
+  if (!parsed.success) fail("OpenAI", parsed.error);
+  return parsed.data;
+}
+
 /** Test seam: clear cached values after mutating process.env. */
 export function resetEnvCache(): void {
   cachedPublic = undefined;

@@ -1,0 +1,430 @@
+/**
+ * The Event Identity contract — `docs/model-contracts.md §4`, `spec.md §7.5`, `§7.6b`.
+ *
+ * One model call returns three siblings, and the separation between them is the whole
+ * point of this file:
+ *
+ *   identity        the creative brief. Inference is expected and generous (`spec.md §7.5`).
+ *   suppliedFacts   what the host actually said. Quoted verbatim or null. Never inferred.
+ *   clarification   whether a creative question would materially improve understanding.
+ *
+ * `spec.md §7.5` left the fact mechanism to Phase 4 and named two options: extend the
+ * identity schema with an operational block, or extract on a separate channel. This is
+ * the second in schema terms and neither in call terms — facts are a sibling object, so
+ * the creative brief keeps `additionalProperties: false` and carries no operational
+ * field, exactly as its prompt promises. They share one round trip because a second call
+ * would roughly double latency (`spec.md §7.10`) to separate things the schema has
+ * already separated.
+ *
+ * This module is the source of truth. `docs/model-schemas/event-identity-result.schema.json`
+ * and the strict wire schema are generated from it and drift-tested, following the
+ * composition schema's precedent (`docs/model-contracts.md §2`).
+ */
+import { z } from "zod";
+
+/** Ranked catalogs. Runtime may narrow these to currently enabled values (`§4`). */
+export const TONAL_DIRECTIONS = ["light", "mid", "dark"] as const;
+export const FAMILIES = ["editorial", "invitation", "statement"] as const;
+export const TYPOGRAPHY_CATEGORIES = [
+  "heritage",
+  "high_contrast_editorial",
+  "oldstyle",
+  "grotesk_led",
+  "soft_serif",
+  "transitional",
+] as const;
+
+/** `spec.md §7.6b #1` — "a hard working ceiling of 3 before concept generation". */
+export const CLARIFICATION_CEILING = 3;
+
+const shortText = z.string().trim().min(2).max(48);
+
+/**
+ * The creative brief.
+ *
+ * `hostConstraints` and `creativeGuidance` exist because the baseline run proved that one
+ * field for "things that must be respected" is one field too few. About 39 of the 55
+ * constraints it produced were the model's own taste wearing host authority — a brief that
+ * told downstream stages the client had prohibited baby blue when the host had said only
+ * "for a boy". Every later stage reads this object and cannot tell a fabricated prohibition
+ * from a real one, which makes it a correctness failure of the same kind as inventing a fact.
+ *
+ * The invariant: **only the host can create a host constraint.** Inference is welcome
+ * everywhere else here and is the point of the call; it is barred from exactly one field.
+ * Authority is carried by the field *name* rather than by a property, because the failure
+ * being prevented is downstream code misreading authority, and a name cannot be skipped.
+ *
+ * Platform rules — no logos, no proprietary characters, no campaign artwork (`spec.md §7.6`)
+ * — belong in neither field. They are always true, they are not the host's instruction, and
+ * the platform enforces them regardless.
+ *
+ * Operational data never appears in here at all; it lives in the `suppliedFacts` sibling.
+ */
+export const eventIdentitySchema = z
+  .object({
+    creativeDirection: z
+      .string()
+      .trim()
+      .min(20)
+      .max(420)
+      .describe("Concise 1-3 sentence creative thesis. No renderer implementation choices."),
+    toneKeywords: z
+      .array(shortText)
+      .min(3)
+      .max(7)
+      .describe("Ranked/curated tone adjectives or short phrases with minimal synonym redundancy."),
+    colorsExplicitlyConstrained: z
+      .boolean()
+      .describe("True only when the host explicitly narrows/requires/excludes palette families."),
+    paletteIntent: z
+      .object({
+        requiredColors: z
+          .array(z.string().trim().min(2).max(60))
+          .max(5)
+          .describe(
+            "Hard color requirements in short natural language; preserve exact user hex strings.",
+          ),
+        preferredColors: z
+          .array(z.string().trim().min(2).max(60))
+          .max(7)
+          .describe("Softer palette preferences."),
+        avoidColors: z
+          .array(z.string().trim().min(2).max(60))
+          .max(7)
+          .describe(
+            "Explicit color exclusions. An exclusion is absolute and covers near neighbours.",
+          ),
+        dominanceNotes: z
+          .string()
+          .max(300)
+          .describe("How palette families should dominate/recede; empty string when unspecified."),
+      })
+      .strict(),
+    tonalIntent: z
+      .string()
+      .trim()
+      .min(5)
+      .max(320)
+      .describe("Natural-language brightness/depth/contrast intent."),
+    toneExplicitlyConstrained: z
+      .boolean()
+      .describe("True only when the host explicitly constrains light/mid/dark tonal space."),
+    compatibleTonalDirections: z
+      .array(z.enum(TONAL_DIRECTIONS))
+      .min(1)
+      .max(3)
+      .describe(
+        "Ranked best-first compatible tonal directions. Do not pad with incompatible values.",
+      ),
+    compatibleFamilies: z
+      .array(z.enum(FAMILIES))
+      .min(1)
+      .max(3)
+      .describe(
+        "Ranked best-first compatible design families. A family is a compositional character.",
+      ),
+    compatibleTypographyCategories: z
+      .array(z.enum(TYPOGRAPHY_CATEGORIES))
+      .min(1)
+      .max(6)
+      .describe("Ranked compatible broad typography categories, not a font choice."),
+    visualMotifs: z
+      .array(z.string().trim().min(3).max(90))
+      .max(8)
+      .describe("Natural-language motif ideas, not renderer motif IDs."),
+    textureDirection: z
+      .string()
+      .trim()
+      .min(3)
+      .max(300)
+      .describe("Tactile/visual texture character. Never an image asset."),
+    typographyDirection: z
+      .string()
+      .trim()
+      .min(5)
+      .max(300)
+      .describe("Typographic character/hierarchy, not a raw font-family choice."),
+    copyTone: z.string().trim().min(3).max(260).describe("Voice of guest-facing event copy."),
+    hostConstraints: z
+      .array(z.string().trim().min(3).max(180))
+      .max(10)
+      .describe(
+        "AUTHORITATIVE, and narrow. A prohibition, an explicit requirement of a specific thing, " +
+          "or a correction the host made — grounded in an explicit phrase from their own words " +
+          "and kept verbatim or near-verbatim. Positive style direction is NOT a constraint: " +
+          "a named aesthetic or a tone adjective the host wants shapes the brief itself " +
+          "(creativeDirection, toneKeywords, palette), which is where later stages read it. " +
+          "If interpretation was needed to get here it is creativeGuidance. Empty is the " +
+          "common and correct answer.",
+      ),
+    creativeGuidance: z
+      .array(z.string().trim().min(3).max(180))
+      .max(10)
+      .describe(
+        "ADVISORY. Your own creative recommendations. Later design stages may reconsider, " +
+          "override or evolve any of these when they find something better. This is where your " +
+          "taste belongs — never in hostConstraints.",
+      ),
+    inspirationSummary: z
+      .string()
+      .trim()
+      .min(5)
+      .max(700)
+      .describe(
+        "Compact summary of inspiration evidence; exactly 'No visual inspiration supplied.' " +
+          "when none exists.",
+      ),
+  })
+  .strict();
+
+/**
+ * Facts the host supplied, as the host wrote them.
+ *
+ * Every field is the host's literal substring or `null`. The `Text` suffix is the
+ * contract: these are quotations, not parsed values. `spec.md §7.5` — "whatever the
+ * prompt supplies is carried forward; where the prompt is silent, the field is absent".
+ *
+ * Normalization is deterministic application work downstream and is never asked of the
+ * model: rewriting `1pm` as `1:00 PM` is a paraphrase of the host
+ * (`docs/model-evals/creative-understanding.json` CU-11).
+ */
+export const suppliedEventFactsSchema = z
+  .object({
+    hostNames: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .nullable()
+      .describe(
+        "Who is hosting, as written. Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    honoreeName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .nullable()
+      .describe(
+        "The NAME of whoever the event is for, as written — their name, or the personal name " +
+          "they actually go by. A relationship is not a name. A nickname, title, rank, role, " +
+          "handle or joke is not a name either WHEN the host presents it as a label attached to " +
+          "the person rather than the name they go by; a nickname someone actually goes by is " +
+          "their name. The lexical category of the term decides nothing, and neither does " +
+          "whether a word looks name-like — what decides is the role the host gives it. " +
+          "Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    honoreeDescriptionText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .nullable()
+      .describe(
+        "How the host DESCRIBED who the event is for — 'my nephew', 'our neighbour', 'for the " +
+          "twins'. Populate this even when honoreeName is also present: 'my nephew Arthur' gives " +
+          "honoreeName 'Arthur' and honoreeDescriptionText 'my nephew'. Quoted from the host " +
+          "verbatim, or null. Never inferred, and never a reason to impose a stereotyped palette.",
+      ),
+    eventType: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .nullable()
+      .describe(
+        "The kind of GATHERING the host named — a dinner, a shower, a birthday. A theme, an " +
+          "aesthetic or a mood is never an event type, however literally the host stated it. " +
+          "Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    dateText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .nullable()
+      .describe(
+        "The date exactly as written, however partial. Never expanded into a fuller date. Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    timeText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .nullable()
+      .describe(
+        "The time exactly as written. Do not reformat: '1pm' stays '1pm'. Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    venueText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .nullable()
+      .describe(
+        "The venue as named or described. Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    addressText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(300)
+      .nullable()
+      .describe(
+        "A street address, only if the host gave one. Never derived from a described place. Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    localityText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .nullable()
+      .describe(
+        "Town/city/region as written. A city named as aesthetic flavour is not a location. Quoted from the host verbatim, or null. Never inferred.",
+      ),
+    rsvpDeadlineText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .nullable()
+      .describe(
+        "The RSVP deadline as written. Quoted from the host verbatim, or null. Never inferred.",
+      ),
+  })
+  .strict();
+
+export const SUPPLIED_FACT_FIELDS = Object.keys(
+  suppliedEventFactsSchema.shape,
+) as (keyof SuppliedEventFacts)[];
+
+/**
+ * One answer option. `isDefer` marks the `You decide` / `Surprise me` option that
+ * `spec.md §7.6b #4` requires on a **creative** question — structural rather than textual, so
+ * the requirement is mechanically checkable instead of guessed at from wording.
+ *
+ * A **boundary** question carries none. Route B exists because the decision is not the system's
+ * to make; offering to make it anyway would contradict the reason for asking.
+ */
+export const clarificationOptionSchema = z
+  .object({
+    label: z.string().trim().min(1).max(80).describe("The option as the host would read it."),
+    isDefer: z
+      .boolean()
+      .describe(
+        "True on the single 'You decide' / 'Surprise me' option a creative question must offer. " +
+          "Always false on a boundary question: that decision is the host's, and you may not " +
+          "offer to take it. A conservative option the host picks (leaving the matter out, " +
+          "keeping it unspecified) is a real choice, not a defer.",
+      ),
+  })
+  .strict();
+
+export const clarificationQuestionSchema = z
+  .object({
+    /**
+     * Which route this question came from. Required, so a question cannot be asked without
+     * declaring the authority it rests on — and so the two routes stay separable in evidence.
+     */
+    kind: z
+      .enum(["creative", "boundary"])
+      .describe(
+        "'creative' for a question of taste, governed by the five conditions. 'boundary' for a " +
+          "decision that is not yours to make. Every question declares which; a question that " +
+          "fits neither must not be asked.",
+      ),
+    question: z
+      .string()
+      .trim()
+      .min(8)
+      .max(240)
+      .describe(
+        "For 'creative': a question about taste. For 'boundary': ask the host to state the " +
+          "boundary they can legitimately affirm as settled — never to authorize something on " +
+          "another person's behalf, and never offering to decide it yourself. Never logistics " +
+          "— never a date, time, venue, address, guest count or budget — and never a low-level " +
+          "design choice.",
+      ),
+    /** `§7.6b #3` — why different answers would produce meaningfully different identities. */
+    whyItMatters: z
+      .string()
+      .trim()
+      .min(10)
+      .max(300)
+      .describe(
+        "For 'creative': how the answers would diverge creatively. For 'boundary': the position " +
+          "the brief would otherwise take on someone's behalf, and why it is not yours to take. " +
+          "Not shown to the host as written.",
+      ),
+    options: z
+      .array(clarificationOptionSchema)
+      .min(2)
+      .max(5)
+      .describe(
+        "Answer options. A creative question has exactly one isDefer: true; a boundary question " +
+          "has none, because that decision is the host's.",
+      ),
+  })
+  .strict()
+  .refine((q) => q.options.filter((o) => o.isDefer).length === (q.kind === "creative" ? 1 : 0), {
+    message:
+      "a creative question needs exactly one defer option and a boundary question none " +
+      "(spec.md §7.6b #4)",
+  });
+
+export const clarificationDecisionSchema = z
+  .object({
+    needed: z
+      .boolean()
+      .describe("True when and only when `questions` is non-empty. Prefer zero questions."),
+    questions: z
+      .array(clarificationQuestionSchema)
+      .max(CLARIFICATION_CEILING)
+      .describe(
+        "Usually none. Either up to three creative questions, or exactly one boundary question " +
+          "and nothing else — a boundary must be settled before the brief is authoritative, and " +
+          "asking taste questions alongside it turns one question into an intake form.",
+      ),
+  })
+  .strict()
+  .refine((c) => c.needed === c.questions.length > 0, {
+    message: "`needed` must agree with whether questions were asked",
+  })
+  /**
+   * Exclusivity and the per-response boundary limit in one predicate: two boundary questions
+   * fail, and a boundary alongside anything else fails. There is deliberately no lifetime cap —
+   * a later call may raise a new boundary, because a spent quota is not authority.
+   */
+  .refine(
+    (c) => {
+      const boundaries = c.questions.filter((q) => q.kind === "boundary").length;
+      return boundaries === 0 || (boundaries === 1 && c.questions.length === 1);
+    },
+    {
+      message:
+        "a boundary question must be the only question in the response, and there may be at " +
+        "most one (spec.md §7.6b)",
+    },
+  );
+
+export const eventIdentityResultSchema = z
+  .object({
+    identity: eventIdentitySchema.describe(
+      "The creative brief. Inference is expected and generous. Carries no operational data.",
+    ),
+    suppliedFacts: suppliedEventFactsSchema.describe(
+      "What the host actually said. Every value is a quotation or null.",
+    ),
+    clarification: clarificationDecisionSchema.describe(
+      "Whether a question must be put to the host before designing. Usually not — zero is the " +
+        "normal and most common answer.",
+    ),
+  })
+  .strict();
+
+export type EventIdentity = z.infer<typeof eventIdentitySchema>;
+export type SuppliedEventFacts = z.infer<typeof suppliedEventFactsSchema>;
+export type ClarificationOption = z.infer<typeof clarificationOptionSchema>;
+export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>;
+export type ClarificationDecision = z.infer<typeof clarificationDecisionSchema>;
+export type EventIdentityResult = z.infer<typeof eventIdentityResultSchema>;
