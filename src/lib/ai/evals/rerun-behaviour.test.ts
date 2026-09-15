@@ -64,10 +64,36 @@ const caseBody = () => {
 /* ------------------------------------------------------------------ absence and refusal */
 
 describe("the corpus does not exist, and the slot refuses without it", () => {
-  it("names the corpus while it is still unwritten", () => {
+  it("names the corpus, wherever it is in its life", () => {
     expect(CORPUS_FILES.rerunBehaviour).toBe("clarification-rerun-behaviour.json");
-    expect(existsSync(`${ROOT}${corpusPath("rerunBehaviour")}`)).toBe(false);
   });
+
+  /**
+   * Self-retiring, the way `prompt-leakage.test.ts`'s unscanned-corpus test already is.
+   *
+   * Written before the cases were authored and before anything about them was known, so that T8
+   * can be a commit that adds the corpus file and changes nothing else. An absence assertion that
+   * had to be edited by hand at T8 would put a source edit inside the freeze commit and make
+   * "adding the corpus is the whole change" untrue — the same class of slightly-false claim the
+   * runner's own freeze exception turned out to be.
+   */
+  it.runIf(!existsSync(`${ROOT}${corpusPath("rerunBehaviour")}`))(
+    "does not exist yet, so the slot cannot run",
+    () => {
+      expect(existsSync(`${ROOT}${corpusPath("rerunBehaviour")}`)).toBe(false);
+    },
+  );
+
+  it.runIf(existsSync(`${ROOT}${corpusPath("rerunBehaviour")}`))(
+    "satisfies the contract that was frozen before it was written",
+    () => {
+      // The other half, armed by the same arrival. The runner checks this at module scope before
+      // spending anything; asserting it here means a corpus that drifts out of contract fails the
+      // ordinary suite rather than the one authorized paid run.
+      const corpus = JSON.parse(read(corpusPath("rerunBehaviour")));
+      expect(validateRerunCorpusShape(corpus)).toEqual([]);
+    },
+  );
 
   it("refuses at module scope, before any provider client could exist", () => {
     // Asserted from the source, never by importing it: importing the runner with an API key
