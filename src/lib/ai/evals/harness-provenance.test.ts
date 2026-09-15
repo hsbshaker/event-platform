@@ -236,15 +236,31 @@ describe("incidents are logged outside the evidence they are about", () => {
   });
 
   it("carries all three incidents in order, with their distinctions intact", () => {
+    const at = (heading: string) => ledger.indexOf(heading);
     for (const heading of ["## Incident 1", "## Incident 2", "## Incident 3"]) {
-      expect(ledger).toContain(heading);
+      expect(at(heading)).toBeGreaterThan(-1);
     }
-    expect(ledger.indexOf("## Incident 1")).toBeLessThan(ledger.indexOf("## Incident 2"));
-    expect(ledger.indexOf("## Incident 2")).toBeLessThan(ledger.indexOf("## Incident 3"));
-    // The distinctions that matter: which corpus each one spent, and that none was inspected.
-    expect(ledger).toContain("no pre-registered case was spent");
-    expect(ledger).toContain("no unseen case was consumed");
-    expect(flat(ledger)).toContain("Outputs never inspected");
+    expect(at("## Incident 1")).toBeLessThan(at("## Incident 2"));
+    expect(at("## Incident 2")).toBeLessThan(at("## Incident 3"));
+
+    // Scoped per incident, not file-global: a `toContain` over the whole ledger stays green
+    // when a claim is deleted from one section and still present in another, which is the
+    // guard-that-cannot-fail-its-own-mutation shape this project keeps producing.
+    const section = (heading: string) => {
+      const start = at(heading);
+      const next = [at("## Incident 2"), at("## Incident 3"), ledger.length].find(
+        (i) => i > start,
+      ) as number;
+      return flat(ledger.slice(start, next));
+    };
+    // Each incident says its outputs were never looked at, in its own words.
+    expect(section("## Incident 1")).toContain("Outputs never inspected");
+    expect(section("## Incident 2")).toContain("Outputs never inspected");
+    expect(section("## Incident 3")).toContain("without a file being opened");
+    // And which corpus it spent, which is what bounds the damage.
+    expect(section("## Incident 1")).toContain("no pre-registered case was spent");
+    expect(section("## Incident 2")).toContain("no pre-registered case was spent");
+    expect(section("## Incident 3")).toContain("no unseen case was consumed");
   });
 
   it("states the operational rule the incidents produced", () => {
@@ -252,6 +268,18 @@ describe("incidents are logged outside the evidence they are about", () => {
     expect(flat(ledger)).toContain(
       "A live eval command runs only after explicit authorization for that exact evidence run",
     );
+  });
+
+  it("records that the frozen file was corrected in place, not only appended", () => {
+    // `process-notes.md` carries its own "A correction to this document" section. Claiming the
+    // file was only ever appended would soften the integrity record at the exact point the
+    // ledger is explaining why it had to be closed.
+    expect(read("docs/model-evals/results/creative-understanding-v1/process-notes.md")).toContain(
+      "**A correction to this document.**",
+    );
+    expect(flat(ledger)).toContain("**corrected once in place**");
+    expect(flat(ledger)).not.toContain("Nothing was rewritten");
+    expect(flat(ledger)).not.toContain("and never rewritten");
   });
 
   it("names the old notes as frozen history rather than a current append target", () => {
@@ -296,6 +324,28 @@ describe("doctrine status claims are current", () => {
     expect(doctrineFlat).not.toContain("## 15. Where Phase 4 starts");
     expect(doctrineFlat).toContain("**Phase 4A has not passed.**");
     expect(doctrineFlat).toContain("can never again be evidence of generalization");
+  });
+
+  it("attributes each live run to the version that actually produced it", () => {
+    // Both claims were wrong in the first draft, and both in the flattering direction: the
+    // fourteen-case run was `v3`, not `v4`, and neither run cleared the mechanical half.
+    const baseline = read(
+      "docs/model-evals/results/creative-understanding-v1/mechanical-report.md",
+    );
+    const challenge = read(
+      "docs/model-evals/results/creative-understanding-sealed-challenge-v1/mechanical-report.md",
+    );
+    expect(baseline).toContain("Prompt version: `event_identity_v3`");
+    expect(baseline).toContain("| Mechanical pass | 13 / 14 |");
+    expect(challenge).toContain("| Mechanical pass | 11 / 12 |");
+
+    // Doctrine must say the same thing the evidence does.
+    expect(doctrineFlat).toContain("**`v3`** was evaluated against the fourteen-case regression");
+    expect(doctrineFlat).toContain("13/14 mechanical");
+    expect(doctrineFlat).toContain("remediation **`v4`** was then evaluated");
+    expect(doctrineFlat).toContain("11/12 mechanical");
+    expect(doctrineFlat).not.toContain("evaluated twice");
+    expect(doctrineFlat).not.toContain("Both cleared the mechanical half");
   });
 
   it("states the evidence sequence that ends in an explicit go/no-go", () => {

@@ -197,8 +197,11 @@ read a clean mechanical run as evidence on clarification.
 The middle row is the one most easily overstated, and `results/creative-understanding-v1/process-notes.md`
 records why, along with the one semantic axis inside it that is not novel.
 
-**Where evidence and incidents live.** Every `results/*/` directory is immutable in full — the
-machine evidence and the narrative files beside it. `process-notes.md` under
+**Where evidence and incidents live.** A `results/*/` directory holding a completed run is
+immutable in full — the machine evidence and the narrative files beside it. Two such directories
+exist, and `PROTECTED_RESULT_DIRS` refuses both as an output path; the result directories no run
+has written yet are protected instead by the write-once check, which `EVAL_OVERWRITE=1` can
+deliberately override. `process-notes.md` under
 `creative-understanding-v1/` is a **frozen historical record**, not a current append target.
 Operational incidents from here on are recorded only in `docs/model-evals/eval-incidents.md`,
 which sits outside every protected directory and carries the rule those incidents produced:

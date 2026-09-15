@@ -49,10 +49,11 @@ understanding, so shipping a weak interpreter compounds rather than shows up lat
 | **4F** | Does creating the event feel like watching your idea come to life? | The real progress experience over actual pipeline artifacts (`spec.md §7.10`, `product-doctrine.md §8a`): interpreted vibe, palette territory, visual vocabulary, concept names, art direction, progressive and independent concept readiness, optional detail entry while generation continues. No fake reasoning, no fake percentages, no generic spinner |
 | **4G** | Does the whole thing deliver personalization rather than rescue? | End to end: prompt → identity → clarification if needed → three directions → compositions → artwork where appropriate → responsive verified sites → selection → send-ready. **Human Test #2's protocol and threshold are frozen and recorded here, before any HT2 result is seen** (`spec.md §11.9`) |
 
-**4A status: two live runs complete — the fourteen-case regression suite at `v4`, and the first
-sealed challenge at `v4`. Both failed their independent qualitative gate. `v5` remediation is
-implemented and awaiting fresh evidence; Phase 4B remains blocked, and a Phase 4A GO now requires
-a new independently authored sealed corpus, because `sealed_challenge_v1` is spent.**
+**4A status: two live runs complete — the fourteen-case regression suite at `v3` (13/14
+mechanical), and the first sealed challenge at its remediation `v4` (11/12 mechanical). Both
+failed their independent qualitative gate. `v5` remediation is implemented and awaiting fresh
+evidence; Phase 4B remains blocked, and a Phase 4A GO now requires a new independently authored
+sealed corpus, because `sealed_challenge_v1` is spent.**
 
 The fourteen-case run against `gpt-5.6-sol` was executed on 2026-09-14 at implementation `ba34c5e`.
 Mechanical evidence was collected and is preserved unchanged in

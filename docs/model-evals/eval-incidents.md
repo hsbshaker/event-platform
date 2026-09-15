@@ -11,15 +11,17 @@ evidence directories and in the qualitative reviews.
 
 | | |
 | --- | --- |
-| `results/*/` — `run.json`, `raw-responses.jsonl`, `mechanical-report.md`, `blind-review.md` | **Immutable in full.** Written once by the run that produced them and never edited, whatever anyone asks for. `PROTECTED_RESULT_DIRS` in `src/lib/ai/evals/corpus.ts` refuses them as an output path |
+| `results/*/` — `run.json`, `mechanical-report.md`, `blind-review.md`, and `raw-responses.jsonl` where the run predates the journal or not | **Immutable in full**, narrative files included. The two directories holding completed runs — the Phase 4A baseline and the sealed-challenge v1 evidence — are refused as an output path by `PROTECTED_RESULT_DIRS` in `src/lib/ai/evals/corpus.ts`. The other result directories are not yet written; they are protected by the runner's write-once check, which `EVAL_OVERWRITE=1` can deliberately override |
 | `results/creative-understanding-v1/process-notes.md` | **Frozen historical record.** It holds the Phase 4A evidence-class notes, the leakage history and the first three incidents as they were written at the time. It is no longer appended to and is not a current target for anything |
 | `results/creative-understanding-v1/astra-qualitative-review.md` | Historical. The independent qualitative review of the Phase 4A baseline |
 | **this file** | Every incident from here on |
 
-The old `process-notes.md` was appended three times while it sat inside a directory the code
-declares immutable. Nothing was rewritten and every account in it is accurate — but the
-repository was stating one rule and practising another, so the practice moved out rather than the
-rule bending. Facts recorded there remain citable; the file is simply closed.
+The old `process-notes.md` was appended three times, and **corrected once in place** — the
+correction is recorded in the file itself, where an earlier claim that a leakage scan "now runs"
+turned out to have been false when written. Every account in it is accurate as it now stands. But
+a file being edited inside a directory the code declares immutable is the repository stating one
+rule and practising another, so the practice moved out rather than the rule bending. Facts
+recorded there remain citable; the file is simply closed.
 
 ## The operational rule these incidents produced
 
