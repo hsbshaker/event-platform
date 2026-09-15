@@ -1,7 +1,11 @@
 # Phase 4B and 4C plan — clarification lifecycle, then planner and DesignIntent × 3
 
-**Status:** plan only, revised after review. No production code, prompt, schema, migration or corpus
-exists for any of it.
+**Status:** in implementation. Phase 4B **T1–T9 have shipped** — the identity-revision and
+clarification-answer migrations, the frozen T4/T5 validation machinery, the T8 corpus frozen at its
+own SHA, and `event_identity_input_v2`. T10 onward, and the whole of Phase 4C, are still plan only.
+The original header read *"plan only … no production code, prompt, schema, migration or corpus
+exists for any of it"*; that stopped being true at T1 and is corrected here rather than left to
+mislead a reader deciding what 4B still owes.
 **Written at:** `7c84ae67b4828e4b5c0638d8b231feddfd301a2b`, after Phase 4A closed **GO**
 (`model-contracts.md §4.6`).
 
@@ -390,7 +394,7 @@ One batch in flight per event (§H) means the late answer cannot start a second 
 first settles.
 
 **Who proves which half.** The behaviour above is a single product guarantee, but it is not provable
-in one phase, because `generation_batches` (§H) does not exist until **T16, in Phase 4C**. The proof
+in one phase, because `generation_batches` (defined in §G.5, constrained by §H) does not exist until **T16, in Phase 4C**. The proof
 is therefore split, and the split is a division of responsibility — not a relaxation of the
 behaviour, which is stated here in full and unchanged.
 
@@ -399,17 +403,28 @@ behaviour, which is stated here in full and unchanged.
   asked the question; `events.prompt` is unchanged; the authoritative revision that launched the
   downstream handoff is neither mutated nor silently rebased onto a newly rerun identity; no second
   downstream generation is started merely because the answer arrived; the answer is offered as input
-  to a new round. Where proving the handoff points needs a downstream port, that port is production
-  orchestration — never a fake batch object or a test double — and the test claims only what it
-  actually observes through it.
+  to a new round. **One caveat, so that nothing is recorded as a pass it did not earn:** when T10
+  lands there is no downstream generation stage in production at all — the planner is T15 and the
+  batch T16 — so "no second downstream generation is started" has no observable subject yet. T10
+  records that clause as **`n/a` — not observable in 4B, owned by T16**, following the same evidence
+  discipline §3.2 states for undecidable mechanical cases: `n/a` or advisory, never a silent pass.
+  T10 does **not** build a downstream port in order to make it observable — that would be a
+  future-proof abstraction with no present requirement (`CLAUDE.md §10`) and exactly the phase
+  erosion this correction exists to prevent. If production happens to have such a port by the time
+  T10 lands, for its own reasons, the test may use it: production orchestration only, never a fake
+  batch object or a test double, claiming only what it actually observes through it.
 - **Phase 4C proves, at T16, the persisted half**, against a real `planned` or `running`
   `generation_batches` row: that the row's `identity_revision_id`, planner version, assignment and
   persisted inputs are unchanged by the late answer; that the row is neither cancelled nor rebased;
   that a second in-flight batch for the same event cannot be created; that the answer remains
   attached to the earlier asking revision; and that a new round may begin only through the canonical
-  new-round path, once the current batch no longer blocks it. The same split applies to gate item 9:
-  4B proves one identity revision per redundant refresh, 4C proves one in-flight batch and colliding
-  idempotency keys.
+  new-round path, once the current batch no longer blocks it. **Row 3 of the table above splits the
+  same way:** that an answer landing *before* a batch starts yields a batch planned from the new
+  authoritative revision is also a T16 proof, for the same reason — 4B proves only that the rerun
+  produces the new authoritative revision. So does gate item 9: 4B proves one identity revision per
+  redundant refresh, 4C proves one in-flight batch and the colliding **batch and sibling**
+  idempotency keys. The `generation_runs.idempotency_key` collision is *not* deferred — that column
+  has existed since Phase 1 and its refusal is already proven in the Phase 1 suite.
 
 Phase 4B does not claim the persisted half, and Phase 4C inherits it as a named obligation — the
 T16 row and the Phase 4C exit gate both carry it — rather than as a courtesy. `generation_batches`
@@ -1000,7 +1015,7 @@ graded. Fixed by ordering, not by a promise.
 | **T7** | **Independent fairness and leakage review of the corpus.** A collision with pre-existing production or model-visible text is fixed **at the corpus**, by its author — never by relaxing the scanner or the checker (§3.5) | — | T6 | leakage scan against the frozen prompt and wire schema; fairness read; the four authoring hazards checked case by case, dimension coverage included | `model-contracts.md §4.5` | no | **yes** | no |
 | **T8** | **Freeze the corpus at its own input SHA**, in a commit that adds the corpus file and nothing else | the corpus file alone | T7 | the T4 suite still green; the absence test retires without a source edit | `model-contracts.md §4.5` | no | **yes** | no |
 | **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts`, `src/lib/ai/openai/event-identity-input.ts`, **`src/lib/ai/evals/rerun-seam.ts`** (the one file in the frozen validation harness T9 may touch) | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds; **leakage scan clean — the assembly's static text against the frozen corpus** | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
-| **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh; and, for a late Route A answer, that it is appended, stays bound to the asking revision, leaves `events.prompt` and the authoritative revision untouched, does not rebase the event onto a newly rerun identity, and starts no second downstream handoff. If proving the last point needs a downstream-handoff port, that port is **production orchestration** — not a benchmark-only fake — and the test claims only what it observes through it | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
+| **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh; and, for a late Route A answer, that it is appended, stays bound to the asking revision, leaves `events.prompt` and the authoritative revision untouched, does not rebase the event onto a newly rerun identity, and starts no second downstream handoff. **That last clause has no observable subject at T10** — the planner is T15 and the batch T16 — so it is recorded `n/a`, owned by T16, and T10 builds no downstream port to make it observable (see the proof-ownership note at the end of §C) | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
 | **T11** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T10 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
 | **T12** | Independent engineering review of the integrated change, then **implementation freeze** | — | T11 | gate items 1–12 all green at the freeze SHA, **PostgreSQL 17 included** | §4B gate | no | **yes** | no |
 | | **▶ 4B GATE — STOP. Explicit authorization required before the one validation run** | | | | | | | |
@@ -1035,7 +1050,7 @@ case exists.**
 | # | Task | Files / modules | Depends on | Tests | Acceptance criteria | Model-visible? | Senior review? | Live call? |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **T15** | Sibling planner as a pure function + `PLANNER_VERSION` | `src/lib/generation/planner.ts`; reference `proof-b/planner.js` | 4B gate | unit: determinism, distinctness, allotment, tone-constrained fallback, `creativeGuidance` never binding; parity with the proof reference | `§31 — Event Identity and diversity`; `spec.md §7.7`; `CLAUDE.md §5.1` | no | **yes** | no |
-| **T16** | `generation_batches` + spend, caps, idempotency. **Inherits the persisted half of the late-Route-A invariant from the 4B gate** (items 8 and 9), which could not be proven before this table existed | migration; `src/lib/generation/batch.ts`; `rate_limits` wiring | T15 | db: one in-flight batch enforced by index; caps refuse; duplicate keys collide; partial-failure resumption. **Plus, against a real `planned` or `running` row and not a mock:** a late Route A answer leaves that batch's `identity_revision_id`, planner version, assignment and persisted inputs unchanged; does not cancel or rebase it; cannot create a second in-flight batch for the same event; leaves the answer attached to the earlier asking revision; and a new round may begin only through the canonical new-round path, once the current batch no longer blocks it | `development-plan.md` principle 4; `spec.md §10`, `§27` | no | **yes** | no |
+| **T16** | `generation_batches` + spend, caps, idempotency. **Inherits the persisted half of the late-Route-A invariant from the 4B gate** (items 8 and 9), which could not be proven before this table existed | migration; `src/lib/generation/batch.ts`; `rate_limits` wiring | T15 | db: one in-flight batch enforced by index; caps refuse; duplicate keys collide; partial-failure resumption. **Plus, against a real `planned` or `running` row and not a mock:** a late Route A answer leaves that batch's `identity_revision_id`, planner version, assignment and persisted inputs unchanged; does not cancel or rebase it; cannot create a second in-flight batch for the same event; leaves the answer attached to the earlier asking revision; a new round may begin only through the canonical new-round path, once the current batch no longer blocks it; and, for §C row 3, an answer landing **before** a batch starts yields a batch planned from the new authoritative revision | `development-plan.md` principle 4; `spec.md §10`, `§27` | no | **yes** | no |
 | **T17** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T16 | db: updates refused; equality check refuses a mismatched snapshot on every enumerated column; FK required | `spec.md §31 — DesignIntent, composition and compiler` (persistence); `§9.4`; `CLAUDE.md §2` | no | **yes** | no |
 | **T18** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T17 | unit: semantic invariants, narrowing, repair rules, schema-drift | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `§32 #12`, `#21` | **schema descriptions ship** | **yes** | no |
 | **T19** | **Prewire the 4C evidence harness and freeze the gate, while no cases exist.** Paths, evidence-class labels, structural contract, runner slots, protection behaviour, leakage-scan coverage, the per-batch and corpus-wide mechanical checks (§3.2), the blind-artifact contract (§3.8), and **the whole of §3.7** — bands, distribution rule, corpus size, same-type composition requirement, S1–S8 and the class thresholds — written into canon | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts`, `model-contracts.md`, this document | T18 | unit/static only; absence tests for both corpora | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | **no — never run to verify itself** |
@@ -1056,8 +1071,10 @@ case exists.**
 
 ## The Phase 4B exit gate
 
-Phase 4B passes when all twelve hold. Items 1–11 are proven offline; item 12 requires the one
-authorized live run.
+Phase 4B passes when all **thirteen** hold. Items 1–12 are proven offline — item 12 being the
+PostgreSQL 17 requirement, run before the T12 implementation freeze — and item 13 requires the one
+authorized live run. (An earlier version of this sentence said "twelve", and named item 12 as the
+live run; it contradicted the table below it and the `T12` and `T13` rows.)
 
 | | Requirement | How it is proven |
 | --- | --- | --- |
@@ -1069,7 +1086,7 @@ authorized live run.
 | 6 | Multiple boundary rounds are possible with no lifetime cap | orchestration test driving ≥ 3 boundary rounds; no cap constant exists anywhere (asserted by scan) |
 | 7 | Route A never blocks generation | test: an unanswered and a deferred creative question both proceed |
 | 8 | Late Route A input never retroactively changes the identity or the downstream handoff already in progress | orchestration + db: the answer is appended and stays bound to the revision that asked it; `events.prompt` is unchanged; the authoritative revision that launched the handoff is neither mutated nor silently rebased onto a newly rerun identity; no second downstream generation is started merely because the answer arrived; the answer is offered as input to a **new** round. **The persisted-batch half of this invariant is proven at T16**, where `generation_batches` exists — see the proof-ownership note at the end of §C |
-| 9 | Identity refresh and retry are idempotent | orchestration + db: repeated requests observe **one identity revision**, not a second; a redundant refresh starts no additional downstream handoff. **Batch idempotency — one in-flight batch per event, and colliding idempotency keys — is proven at T16**, for the same reason as item 8 |
+| 9 | Identity refresh and retry are idempotent | orchestration + db: repeated requests observe **one identity revision**, not a second; a redundant refresh starts no additional downstream handoff. **Batch idempotency — one in-flight batch per event, and the colliding batch and sibling idempotency keys — is proven at T16**, for the same reason as item 8. The `generation_runs.idempotency_key` collision is not deferred: that column predates Phase 4B and its refusal is proven in the Phase 1 suite |
 | 10 | The database cannot mark a boundary-bearing identity authoritative via a stale or false flag | db tests: an `INSERT` naming `is_provisional` is rejected (`428C9`); the pointer trigger still refuses when the column is tampered with directly; an unrecognised `schema_version` and a malformed `clarification.questions` are **refused rather than read as authoritative** (§A.3) |
 | 11 | Host/co-host authorization and RLS for answers and revisions are correct | db tests per the existing permission matrix, including negative cases: a non-member cannot answer; a co-host cannot attribute an answer to the owner (`answered_by = auth.uid()`); and **a member cannot move the event's authoritative-identity pointer**, which requires that column to be in `protect_event_server_columns()` (§A.3 property 4) |
 | 12 | **The migrations and the whole database suite pass against PostgreSQL 17**, the version `supabase/config.toml` pins | run before the T12 implementation freeze, on 17 rather than a local 16 substitute. Phase 4B does not close on the substitute: `ALTER TABLE … SET EXPRESSION` is 17-only and was worked around locally, and a generated column plus deferrable-FK design is exactly where a version difference would surface |
@@ -1085,15 +1102,16 @@ exists and before the sealed corpus is authored, with the reviewer protocol of �
 can be waived by the other.
 
 **Plus one requirement inherited from Phase 4B, which could not be proven there.** The persisted
-half of the late-Route-A invariant (4B gate items 8 and 9, §C) closes only at this gate, because
-`generation_batches` is created at T16. Against a real `planned` or `running` row — never a mock,
+half of the late-Route-A invariant (4B gate items 8 and 9, §C) is **proven at T16 and verified
+here**, because `generation_batches` is created at T16. Against a real `planned` or `running` row — never a mock,
 a fake batch object or a test double — it must be proven that a late concrete Route A answer leaves
 that batch's `identity_revision_id`, planner version, assignment and persisted inputs unchanged;
 does not cancel it and does not rebase it onto a newly rerun identity; cannot create a second
 in-flight batch for the same event; leaves the answer attached to the earlier asking revision; and
 that a new round may begin only through the canonical new-round path, once the current batch no
-longer blocks it. Idempotency's persisted half closes here too: one in-flight batch per event, and
-colliding idempotency keys. Phase 4C does not pass its gate with this item open, and it is not
+longer blocks it. Two companions close here for the same reason: §C row 3 — an answer landing
+*before* a batch starts yields a batch planned from the new authoritative revision — and
+idempotency's persisted half, one in-flight batch per event with colliding batch and sibling keys. Phase 4C does not pass its gate with this item open, and it is not
 satisfied by re-citing the 4B orchestration test, which by construction never saw a batch row.
 
 ---
