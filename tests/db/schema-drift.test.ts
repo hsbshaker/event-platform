@@ -14,6 +14,8 @@
  *
  * Acceptance criteria: N/A — internal contract integrity. `docs/technology-decisions.md §3`.
  */
+import { readFileSync } from "node:fs";
+
 import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -112,4 +114,81 @@ describe("the database contract matches the applied migrations", () => {
     );
     expect(rows.map((r) => r.proname)).toEqual(["identity_is_provisional", "identity_questions"]);
   });
+});
+
+/**
+ * Nullability, read out of the contract itself rather than a second hand-written list.
+ *
+ * The column-name check above is only half the drift that matters. A column typed `string` that
+ * the database allows to be null is exactly the bug T10 would hit — reading a row and trusting a
+ * value that is not there — and no amount of name-matching finds it.
+ *
+ * The expectation is parsed from `database.types.ts`, deliberately, because that file *is* the
+ * claim under test. A third artifact listing nullable columns by hand would be one more thing to
+ * get wrong, and getting it wrong would make this pass. The parse is held honest by comparing the
+ * columns it found against the manifest: a parse that silently matched nothing fails loudly
+ * instead of reporting agreement.
+ */
+describe("the contract's nullability matches the database's", () => {
+  const CONTRACT = readFileSync(
+    new URL("../../src/lib/supabase/database.types.ts", import.meta.url).pathname,
+    "utf8",
+  );
+
+  /** `{ column: isNullable }` for one `type XRow = { … }` block. */
+  function declaredNullability(rowType: string): Record<string, boolean> {
+    const block = new RegExp(`^type ${rowType} = \\{([\\s\\S]*?)^\\};`, "m").exec(CONTRACT);
+    expect(block, `no ${rowType} in the contract`).not.toBeNull();
+    const body = block![1].replace(/\/\*\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    const out: Record<string, boolean> = {};
+    for (const line of body.split("\n")) {
+      const m = /^\s{2}([a-z_0-9]+)\??:\s*(.+);\s*$/.exec(line);
+      if (m) out[m[1]] = /\bnull\b/.test(m[2]);
+    }
+    return out;
+  }
+
+  const ROW_TYPES: Record<keyof typeof SCHEMA_MANIFEST, string> = {
+    profiles: "ProfileRow",
+    events: "EventRow",
+    event_members: "EventMemberRow",
+    pre_auth_event_drafts: "PreAuthEventDraftRow",
+    inspiration_assets: "InspirationAssetRow",
+    event_identities: "EventIdentityRow",
+    design_concepts: "DesignConceptRow",
+    resolved_design_specs: "ResolvedDesignSpecRow",
+    event_identity_revisions: "EventIdentityRevisionRow",
+    clarification_answers: "ClarificationAnswerRow",
+    generation_runs: "GenerationRunRow",
+    rate_limits: "RateLimitRow",
+    human_test_1_responses: "HumanTest1ResponseRow",
+    human_test_1_test_responses: "HumanTest1ResponseRow",
+  };
+
+  it.each(Object.keys(SCHEMA_MANIFEST))(
+    "agrees about which of %s's columns can be null",
+    async (table) => {
+      const declared = declaredNullability(ROW_TYPES[table as keyof typeof ROW_TYPES]);
+      // The parse is checked before it is trusted.
+      expect(Object.keys(declared).sort()).toEqual(
+        [...SCHEMA_MANIFEST[table as keyof typeof SCHEMA_MANIFEST]].sort(),
+      );
+
+      const { rows } = await db.query<{ column_name: string; is_nullable: string }>(
+        `select column_name, is_nullable from information_schema.columns
+       where table_schema = 'public' and table_name = $1`,
+        [table],
+      );
+      const live = Object.fromEntries(rows.map((r) => [r.column_name, r.is_nullable === "YES"]));
+      const disagreements = Object.keys(live)
+        .filter((column) => live[column] !== declared[column])
+        .map((column) => `${column}: database ${live[column]}, contract ${declared[column]}`);
+      expect(
+        disagreements,
+        `${table}'s nullability has drifted. A column the database can leave null but the contract ` +
+          "types as non-null is the bug this exists to prevent: code reads it and trusts a value " +
+          "that is not there.",
+      ).toEqual([]);
+    },
+  );
 });

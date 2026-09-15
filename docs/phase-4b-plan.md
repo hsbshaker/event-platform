@@ -1325,6 +1325,28 @@ been seen and found none — style, vocabulary and structure all diverge from th
 but that is evidence, not proof, and this must not be upgraded to a claim of technically guaranteed
 blindness.
 
+### Why the database contract is hand-authored, and what stands in for generation
+
+`npm run db:types` is `supabase gen types typescript --local`, and it could not be run here. Not
+for want of a credential: the CLI is reachable, but `gen types` executes its introspection inside a
+Docker container whatever `--db-url` it is given, and this sandbox has no reachable Docker daemon.
+There is also no linked hosted project — no access token, no project ref, and the only configured
+Supabase URL points at localhost. A token would not have unblocked it.
+
+So the contract is hand-authored, as its own header has always said, and derived by introspecting
+`information_schema` on a freshly migrated database rather than by reading SQL. **No PostgreSQL 17
+generation is claimed**, and gate item 12 — the migration and DB suite passing on 17 before the T12
+freeze — is unchanged and is where that gap actually closes.
+
+What stands in for the generator is `tests/db/schema-drift.test.ts`, which checks the contract
+against the applied schema in both directions: the column sets, the generated columns, the
+callable functions, and — parsed out of `database.types.ts` itself rather than a third
+hand-written list — the nullability of every column of every table. A column the database can
+leave null while the contract types it non-null is precisely the bug T10 would hit, and it is the
+one thing a name-only comparison cannot see. All three failure modes are mutation-verified: a
+contract that under-states nullability, one that over-states it, and a parse that silently stops
+matching.
+
 ### A third provenance fact: `prompt-leakage.test.ts` changed at T9
 
 The T9 authorization said *"do not weaken or edit the leakage checker"*, and the file changed
