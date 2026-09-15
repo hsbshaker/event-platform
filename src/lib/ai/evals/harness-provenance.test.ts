@@ -28,6 +28,11 @@ import {
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 const read = (rel: string) => readFileSync(`${ROOT}${rel}`, "utf8");
+/**
+ * Prose wraps; these guards assert content, not line breaks. Blockquote markers are dropped
+ * first, because a wrapped `>` line otherwise lands a marker in the middle of a sentence.
+ */
+const flat = (text: string) => text.replace(/^\s*>\s?/gm, "").replace(/\s+/g, " ");
 const RUNNER = read("tests/eval/creative-understanding.eval.ts");
 const SCRIPTS = JSON.parse(read("package.json")).scripts as Record<string, string>;
 
@@ -216,5 +221,94 @@ describe("no set claims the spent v1 challenge is fresh", () => {
     // The v1 corpus must not still be described as the pending, not-yet-authored one.
     expect(contracts).toContain("when `sealed_challenge_v1` was written the corpus file was");
     expect(contracts).not.toMatch(/`sealed_challenge_v1`[^`]{0,120}is deliberately absent/i);
+  });
+});
+
+describe("incidents are logged outside the evidence they are about", () => {
+  const LEDGER = "docs/model-evals/eval-incidents.md";
+  const ledger = read(LEDGER);
+
+  it("keeps the ledger outside every protected result directory", () => {
+    // The point of the move: three incidents were appended to a file inside a directory the
+    // code calls immutable. The rule did not bend; the practice moved.
+    expect(isProtectedOutput(LEDGER)).toBe(false);
+    for (const dir of PROTECTED_RESULT_DIRS) expect(LEDGER.startsWith(`${dir}/`)).toBe(false);
+  });
+
+  it("carries all three incidents in order, with their distinctions intact", () => {
+    for (const heading of ["## Incident 1", "## Incident 2", "## Incident 3"]) {
+      expect(ledger).toContain(heading);
+    }
+    expect(ledger.indexOf("## Incident 1")).toBeLessThan(ledger.indexOf("## Incident 2"));
+    expect(ledger.indexOf("## Incident 2")).toBeLessThan(ledger.indexOf("## Incident 3"));
+    // The distinctions that matter: which corpus each one spent, and that none was inspected.
+    expect(ledger).toContain("no pre-registered case was spent");
+    expect(ledger).toContain("no unseen case was consumed");
+    expect(flat(ledger)).toContain("Outputs never inspected");
+  });
+
+  it("states the operational rule the incidents produced", () => {
+    expect(flat(ledger)).toContain("Never execute the eval runner to verify the harness");
+    expect(flat(ledger)).toContain(
+      "A live eval command runs only after explicit authorization for that exact evidence run",
+    );
+  });
+
+  it("names the old notes as frozen history rather than a current append target", () => {
+    expect(flat(ledger)).toContain("**Frozen historical record.**");
+    expect(flat(ledger)).toContain("no longer appended to");
+    const contracts = flat(read("docs/model-contracts.md"));
+    expect(contracts).toContain("immutable in full");
+    expect(contracts).toContain("**frozen historical record**");
+    expect(contracts).toContain(
+      "Operational incidents from here on are recorded only in `docs/model-evals/eval-incidents.md`",
+    );
+    // The retired exception must not survive anywhere that governs behaviour.
+    expect(flat(read("src/lib/ai/evals/corpus.ts"))).not.toContain("append-only incident log");
+    expect(flat(read("src/lib/ai/evals/corpus.ts"))).toContain("immutable **in full**");
+  });
+
+  it("adds no arming token, secret or two-key mechanism", () => {
+    // A deliberate decision: the three incidents were procedural, and the remedy is that there
+    // is no longer a reason to run the thing to check it.
+    const scripts = JSON.parse(read("package.json")).scripts as Record<string, string>;
+    for (const [name, body] of Object.entries(scripts)) {
+      if (!name.startsWith("eval:")) continue;
+      expect(body).toMatch(/^EVAL_SET=\w+ vitest run --project eval$/);
+    }
+    expect(RUNNER).not.toMatch(/EVAL_CONFIRM|EVAL_ARM|ARMING|CONFIRM_TOKEN/i);
+    expect(flat(ledger)).toContain("no arming token, confirmation secret or two-key execution");
+  });
+});
+
+describe("doctrine status claims are current", () => {
+  const doctrine = read("docs/product-doctrine.md");
+  const doctrineFlat = flat(doctrine);
+
+  it("no longer says the runner does not exist", () => {
+    expect(doctrineFlat).not.toContain("No runner exists yet");
+    expect(doctrineFlat).toContain("**Resolved, and since exercised.**");
+    expect(doctrineFlat).toContain("*Original:*");
+  });
+
+  it("describes where Phase 4 stands, without claiming 4A passed", () => {
+    expect(doctrine).toContain("## 15. Where Phase 4 stands");
+    expect(doctrineFlat).not.toContain("## 15. Where Phase 4 starts");
+    expect(doctrineFlat).toContain("**Phase 4A has not passed.**");
+    expect(doctrineFlat).toContain("can never again be evidence of generalization");
+  });
+
+  it("states the evidence sequence that ends in an explicit go/no-go", () => {
+    for (const step of [
+      "the known regression suite",
+      "the pre-registered validation set",
+      "re-run into its own directory as a diagnostic",
+      "independently authored sealed challenge v2",
+      "adding that corpus file, and nothing else",
+      "a blind qualitative review",
+    ]) {
+      expect(doctrineFlat).toContain(step);
+    }
+    expect(doctrineFlat).toContain("**GO / NO-GO**");
   });
 });

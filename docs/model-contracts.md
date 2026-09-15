@@ -197,6 +197,15 @@ read a clean mechanical run as evidence on clarification.
 The middle row is the one most easily overstated, and `results/creative-understanding-v1/process-notes.md`
 records why, along with the one semantic axis inside it that is not novel.
 
+**Where evidence and incidents live.** Every `results/*/` directory is immutable in full — the
+machine evidence and the narrative files beside it. `process-notes.md` under
+`creative-understanding-v1/` is a **frozen historical record**, not a current append target.
+Operational incidents from here on are recorded only in `docs/model-evals/eval-incidents.md`,
+which sits outside every protected directory and carries the rule those incidents produced:
+**never execute the eval runner to verify the harness** — its paths, guards, schemas, reports and
+refusals are verified by pure, unit and static checks, and a live eval command runs only after
+explicit authorization for that exact evidence run.
+
 **Runner:** `tests/eval/creative-understanding.eval.ts`, added in Phase 4A. The sets and their
 evidence classes are defined once in `src/lib/ai/evals/corpus.ts`, which both this runner and the
 leakage scan read, so they cannot disagree about which file a set means:

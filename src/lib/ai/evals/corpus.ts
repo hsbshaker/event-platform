@@ -80,10 +80,12 @@ export const PROTECTED_RESULT_DIRS = [
 ] as const;
 
 /**
- * The machine evidence in those directories — `run.json`, the journal, the two reports — is what
- * is immutable. `process-notes.md` beside it is an **append-only incident log**: three accidental
- * runs have now been recorded there, each appended and none rewritten. Stating the distinction
- * because the repository was asserting one rule and practising another.
+ * These directories are immutable **in full**, narrative files included. The historical
+ * `process-notes.md` inside the Phase 4A baseline is a frozen record of what was known at the
+ * time and is never appended to again; future eval-process incidents go to
+ * `docs/model-evals/eval-incidents.md`, which sits outside every protected directory. The
+ * exception that used to live here — that one file was append-only in place — is gone, because a
+ * rule the repository states and does not practise is worse than the inconvenience of moving.
  */
 
 /**
