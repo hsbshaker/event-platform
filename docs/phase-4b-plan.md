@@ -973,7 +973,7 @@ graded. Fixed by ordering, not by a promise.
 | **T6** | **An independent author writes the pre-registered rerun-behaviour cases**, working from the published capability and contract dimensions only — not this repository, not T4's checker source, and not the assembly they will exercise. Not the implementer of T4 or T9 (§3.9). The file lands in the repository at T8, not here | the corpus file, authored outside the repository | T5 | the frozen T4 structural contract accepts it | `model-contracts.md §4.5` | no | n/a — authored, not implemented | no |
 | **T7** | **Independent fairness and leakage review of the corpus.** A collision with pre-existing production or model-visible text is fixed **at the corpus**, by its author — never by relaxing the scanner or the checker (§3.5) | — | T6 | leakage scan against the frozen prompt and wire schema; fairness read | `model-contracts.md §4.5` | no | **yes** | no |
 | **T8** | **Freeze the corpus at its own input SHA**, in a commit that adds the corpus file and nothing else | the corpus file alone | T7 | the T4 suite still green; the absence test retires without a source edit | `model-contracts.md §4.5` | no | **yes** | no |
-| **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds; **leakage scan clean — the assembly's static text against the frozen corpus** | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
+| **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts`, `src/lib/ai/openai/event-identity-input.ts`, **`src/lib/ai/evals/rerun-seam.ts`** (the one file in the frozen validation harness T9 may touch) | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds; **leakage scan clean — the assembly's static text against the frozen corpus** | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
 | **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh; a late Route A answer leaves an in-flight batch untouched | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
 | **T11** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T10 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
 | **T12** | Independent engineering review of the integrated change, then **implementation freeze** | — | T11 | gate items 1–11 all green at the freeze SHA | §4B gate | no | **yes** | no |
@@ -1072,7 +1072,7 @@ can be waived by the other.
 
 # Canonical ambiguities raised, not resolved
 
-Two tensions live in canon rather than in this plan. A plan document orders work and defines no
+Four tensions live in canon rather than in this plan. A plan document orders work and defines no
 requirements, so neither is settled here; both are raised for an explicit product decision under
 `CLAUDE.md §12`.
 
@@ -1134,6 +1134,16 @@ exist to refuse.
 So this is not blocking, and nothing about it is now unfixable. It still wants a decision before
 T9 writes the assembly, because the answer determines whether the rendered envelope names the
 question. **Raised, not resolved.**
+
+**Two scope limits to state before a clean T13 run is read as more than it is.** The eval's
+locator is narrower than production's: `RerunAnswerInput.questionIndex` addresses the *previous
+round's* question, and the assembly resolves it against the last of `priorResults`, whereas
+production's `(identity_revision_id, question_index)` may address any revision of the event. The
+set therefore never exercises an answer to an older revision's question. And T9 owes the harness
+three things the frozen seam states but this plan should not leave only there: `requestText` is
+the assembled user message rather than an encoded request body, host free text reaches it
+unnormalised (trimming excepted), and on a repair retry it is the attempt whose response is
+returned.
 
 ---
 

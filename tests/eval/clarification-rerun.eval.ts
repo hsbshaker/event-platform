@@ -92,8 +92,8 @@ if (isProtectedOutput(EVAL_SETS[SET].out)) {
 
 /**
  * The corpus has to exist. It deliberately does not yet: T4 froze this machinery, and only then
- * are the cases authored (T6–T8). Adding the corpus is the whole of *that* change; the one other
- * permitted edit to this file is the `run` binding named in the header.
+ * are the cases authored (T6–T8). Adding the corpus is the whole of that change, and this file has
+ * no permitted edit at all — T9 repoints `src/lib/ai/evals/rerun-seam.ts` instead.
  */
 if (!existsSync(CORPUS)) {
   throw new Error(
@@ -309,6 +309,15 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
         );
       }
 
+      // The artifact first, the report second. `mechanical-report.md` is this set's completion
+      // signal — this set has no `run.json` — so writing it first leaves a window in which a throw
+      // produces a directory that reads as complete with no artifact in it.
+      writeFileSync(
+        path.join(OUT, "blind-review.md"),
+        buildRerunReviewArtifact(observations),
+        "utf8",
+      );
+
       writeFileSync(
         path.join(OUT, "mechanical-report.md"),
         [
@@ -331,12 +340,6 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
           "",
           `Qualitative criterion: ${RERUN_ACCEPTANCE.qualitative}`,
         ].join("\n"),
-        "utf8",
-      );
-
-      writeFileSync(
-        path.join(OUT, "blind-review.md"),
-        buildRerunReviewArtifact(observations),
         "utf8",
       );
 

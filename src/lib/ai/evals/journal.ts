@@ -143,9 +143,11 @@ export interface JournalReadResult {
 /**
  * Move an existing journal out of the way before a run starts, and return where it went.
  *
- * The three reports are truncated on each run; the journal is appended. Under `EVAL_OVERWRITE=1`
- * that difference would blend two runs' paid responses into one file beside a `run.json`
- * describing only one of them — evidence that misrepresents what was run.
+ * A run's reports are truncated when it writes them; the journal is appended. Under
+ * `EVAL_OVERWRITE=1` that difference would blend two runs' paid responses into one file beside
+ * reports describing only one of them — evidence that misrepresents what was run. (A runner that
+ * writes its reports only at the end has the second half of the same problem, which is what
+ * `rotateAside` below is for.)
  *
  * Rotate rather than append, and rotate rather than delete: the displaced file was paid for.
  *

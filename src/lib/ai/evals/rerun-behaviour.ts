@@ -70,7 +70,12 @@ export interface RerunCase {
   rounds: RerunRound[];
   /** Which published dimension this case exercises. */
   dimension: string;
-  /** Text that must appear verbatim in `suppliedFacts` after the final round, or be absent. */
+  /**
+   * What `suppliedFacts` must hold after the final round: each key's value compared for equality,
+   * or `null` to require the field absent. Equality, not substring — the schema's values are
+   * trimmed quotations of the host, so a partial match would accept a field that says more than
+   * the host did.
+   */
   expectedFacts?: Record<string, string | null>;
   /** Terms an answer must not cause to be invented. */
   mustNotInvent?: string[];
@@ -314,17 +319,31 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
    * not required verbatim — how a chosen option is rendered is the assembly's business, and the
    * qualitative half reads it — so this never fails on a rendering choice.
    */
-  const firstRequest = observed.requestTexts[0] ?? "";
   const answerProblems: string[] = [];
   testCase.rounds.forEach((round, index) => {
     if (round.answers.length === 0) return;
     const text = observed.requestTexts[index];
     if (text === undefined) return;
-    if (text === firstRequest) {
-      answerProblems.push(`round ${index + 1} transmitted the same text as round 1`);
+    // Against round 1 *and* against the round before. Round 1 alone is not enough: a three-round
+    // assembly that carries round 2's answers forward but drops round 3's transmits the same text
+    // for rounds 2 and 3, which differs from round 1 and passes — silently, and on precisely the
+    // `multi_round_provenance` dimension this set is least allowed to miss. A legitimate
+    // cumulative assembly always differs from its predecessor; a non-cumulative one collides only
+    // when two consecutive rounds render byte-identical answers, which is suspicious either way.
+    for (const [label, earlier] of [
+      ["round 1", observed.requestTexts[0]],
+      ["the previous round", index > 0 ? observed.requestTexts[index - 1] : undefined],
+    ] as const) {
+      if (earlier !== undefined && text === earlier) {
+        answerProblems.push(`round ${index + 1} transmitted the same text as ${label}`);
+      }
     }
     for (const answer of round.answers) {
-      if (answer.freeText !== null && !text.includes(answer.freeText)) {
+      // Trimmed, because the corpus contract accepts padded free text and the database stores it
+      // untrimmed, so an assembly that renders `freeText.trim()` is correct. Requiring the raw
+      // string would fail it permanently over whitespace.
+      const said = answer.freeText?.trim();
+      if (said && !text.includes(said)) {
         answerProblems.push(
           `round ${index + 1} did not transmit free text for q${answer.questionIndex}`,
         );
@@ -366,6 +385,27 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
     `schema version(s): ${schemas.join(", ") || "none"}`,
   );
 
+  /**
+   * The envelope was readable at all.
+   *
+   * Gating, and separate from `schemaVersionExpected`, because the two causes of `"unreadable"`
+   * do not both surface there. An unsupported schema version fails that check; a malformed
+   * `clarification` block — T9 returning the brief rather than the envelope, which
+   * `assertAuthoritative` returns and is an easy mistake — moves no check at all. Without this,
+   * such a case reports a mechanical pass while the committed evidence holds no clarification
+   * data whatsoever.
+   */
+  const unreadableRounds = observed.provisional
+    .map((state, index) => (state === "unreadable" ? index + 1 : 0))
+    .filter((round) => round > 0);
+  add(
+    "envelopeReadable",
+    unreadableRounds.length === 0 ? "pass" : "fail",
+    unreadableRounds.length === 0
+      ? "every round's result was a readable identity envelope"
+      : `the lifecycle reader refused the envelope on round(s) ${unreadableRounds.join(", ")}`,
+  );
+
   const finalIndex = observed.results.length - 1;
   const finalProvisional = observed.provisional[finalIndex];
   const boundaryAnswered = testCase.rounds
@@ -377,7 +417,11 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
       finalProvisional === false ? "pass" : "advisory",
       finalProvisional === false
         ? "the final round is authoritative after the boundary answer"
-        : "the final round is still provisional; whether a further question is warranted is a judgement",
+        : finalProvisional === "unreadable"
+          ? // Never "still provisional": that would assert something about the model on a round
+            // whose envelope was never read. `envelopeReadable` above is where this fails.
+            "the final round's envelope was unreadable, so provisional state is unknown"
+          : "the final round is still provisional; whether a further question is warranted is a judgement",
     );
   } else {
     add("boundaryResolves", "n/a", "no boundary question was answered in this case");
@@ -405,7 +449,14 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
   if (mustNotInvent.length === 0) {
     add("noInventedFacts", "n/a", "the case names nothing that must not be invented");
   } else {
-    const blob = JSON.stringify(observed.results[finalIndex] ?? {}).toLowerCase();
+    // `suppliedFacts` only, never the whole envelope. The dimension is "an answer never becomes a
+    // **supplied fact** the host did not state", and `spec.md §7.5` requires the creative brief to
+    // infer generously: a host who picks the option "Garden party" should see a garden-party
+    // looseness in `creativeDirection` and `venueText` left null. Scanning the brief would fail
+    // that case permanently — a correct implementation, on the dimension that wanted it.
+    const blob = JSON.stringify(
+      ((observed.results[finalIndex] ?? {}) as { suppliedFacts?: unknown }).suppliedFacts ?? {},
+    ).toLowerCase();
     const found = mustNotInvent.filter((term) => blob.includes(term.toLowerCase()));
     add(
       "noInventedFacts",
@@ -441,9 +492,10 @@ export const RERUN_ACCEPTANCE = {
     "validates the input shape and lifecycle, not the interpreter's creative quality",
   ],
   mechanical:
-    "Every case passes mechanically: no check reports `fail`. `promptByteIdentical` and " +
-    "`answersAssembledAsGiven` are absolute — a single failure of either fails the set, because " +
-    "both are correctness properties of the lifecycle rather than judgements.",
+    "Every case passes mechanically: no check reports `fail`. `promptByteIdentical`, " +
+    "`answersAssembledAsGiven` and `answersReachedTheModel` are absolute — a single failure of " +
+    "any of them fails the set, because all three are correctness properties of the lifecycle " +
+    "rather than judgements.",
   qualitative:
     "An independent reviewer, reading a blind artifact of the rounds, answers three questions " +
     "for every case: did the answer reach the rerun as current host input rather than as a " +
@@ -463,7 +515,12 @@ export const RERUN_ACCEPTANCE = {
  * what to find.
  */
 export function buildRerunReviewArtifact(
-  observations: { caseId: string; promptsSent: string[]; results: unknown[] }[],
+  observations: {
+    caseId: string;
+    requestTexts: string[];
+    answersAssembled: RerunAnswerInput[][];
+    results: unknown[];
+  }[],
 ): string {
   const lines = [
     "# Clarification rerun — blind review artifact",
@@ -482,13 +539,41 @@ export function buildRerunReviewArtifact(
   ];
   observations.forEach((observation, index) => {
     lines.push(`## Case ${index + 1}`, "");
-    observation.promptsSent.forEach((prompt, round) => {
-      lines.push(`### Round ${round + 1} — input`, "", "> " + prompt.replace(/\n/g, "\n> "), "");
+    observation.results.forEach((result, round) => {
+      /**
+       * What was actually transmitted, not the description the implementation said it sent.
+       *
+       * Questions 1 and 2 above cannot be answered without it. `promptsSent` is byte-identical on
+       * every round by construction — `promptByteIdentical` requires exactly that — so an artifact
+       * built from it shows the reviewer the same paragraph N times and never shows them the
+       * answer they are being asked about. It is also the one field here that is not self-reported.
+       */
+      lines.push(
+        `### Round ${round + 1} — what was sent`,
+        "",
+        "> " + (observation.requestTexts[round] ?? "(not recorded)").replace(/\n/g, "\n> "),
+        "",
+      );
+      const answers = observation.answersAssembled[round] ?? [];
+      if (answers.length > 0) {
+        lines.push(
+          `### Round ${round + 1} — answers carried in`,
+          "",
+          ...answers.map(
+            (answer) =>
+              `- q${answer.questionIndex} (${answer.kind}): ` +
+              `${answer.selectedOptionLabel === null ? "—" : `“${answer.selectedOptionLabel}”`}` +
+              `${answer.freeText === null ? "" : ` · typed: “${answer.freeText}”`}` +
+              `${answer.isDefer ? " · deferred" : ""}`,
+          ),
+          "",
+        );
+      }
       lines.push(
         `### Round ${round + 1} — interpretation`,
         "",
         "```json",
-        JSON.stringify(observation.results[round] ?? null, null, 2),
+        JSON.stringify(result ?? null, null, 2),
         "```",
         "",
       );
@@ -574,11 +659,23 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
   /**
    * The exact text transmitted to the provider, verbatim.
    *
-   * Required, and required *here*, because the two checks `RERUN_ACCEPTANCE` calls absolute are
+   * Required, and required *here*, because the checks `RERUN_ACCEPTANCE` calls absolute are
    * otherwise tautological: an implementation returning `promptSent: request.prompt` and
-   * `answersAssembled: request.answers` passes both for every case without having sent anything
+   * `answersAssembled: request.answers` passes them for every case without having sent anything
    * of the kind. This is the field that makes them measurements. Return what was sent — not a
    * reconstruction of what should have been.
+   *
+   * Three obligations on T9 follow from the checks reading it, all fixed here rather than
+   * discovered at T13:
+   *
+   * - it is the assembled **user message**, not an encoded request body. A JSON body escapes the
+   *   quotes and newlines of host text out of existence, and `answersReachedTheModel` looks for
+   *   that text verbatim;
+   * - the host's typed words reach it unnormalised. Trimming is fine — the check compares on a
+   *   trimmed value — but paraphrasing, truncating or re-encoding them is not;
+   * - on a repair retry, which sends a second and different text, return the attempt whose
+   *   response you are returning. Anything else makes the evidence describe a call that did not
+   *   produce the result beside it.
    */
   requestText: string;
   assemblyVersion: string;

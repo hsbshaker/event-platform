@@ -88,17 +88,19 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     // indirection is what lets the runner itself be frozen with no exception: see below.
     expect(RUNNER).toContain('import { rerunRunner } from "@/lib/ai/evals/rerun-seam"');
     expect(RUNNER).toContain("const run = rerunRunner;");
+    // The seam is typed, not a bare re-export, and stays typed after T9 fills it. Both assertions
+    // below are written to survive that: they pin the shape, not today's right-hand side.
     const seam = read("src/lib/ai/evals/rerun-seam.ts");
-    expect(seam).toContain(
-      'export { rerunRunnerUnavailable as rerunRunner } from "./rerun-behaviour"',
-    );
-    // One line of code, so what T9 changes here is reviewable at a glance.
+    expect(seam).toMatch(/export const rerunRunner: RerunCallRunner =/);
+    // Small enough that what T9 changes here is reviewable at a glance.
     const code = seam
       .split("\n")
       .filter(
         (line) => line.trim() && !line.trim().startsWith("*") && !line.trim().startsWith("/*"),
       );
-    expect(code).toHaveLength(1);
+    expect(code.length).toBeLessThanOrEqual(3);
+    // …and today it resolves to the refusal.
+    expect(seam).toContain("rerunRunnerUnavailable");
   });
 
   it("journals each paid response inside the round, not after the loop", () => {
@@ -266,6 +268,29 @@ describe("paths and ownership are fixed before the cases are known", () => {
    * which is the situation the whole T4–T8 ordering exists to prevent. There is no legitimate
    * reason to update this constant at T9 or T13 — the change belongs in `rerun-seam.ts`.
    */
+  /**
+   * …and so does the module that holds the criteria.
+   *
+   * The runner is plumbing; `rerun-behaviour.ts` is the pre-registration itself — the published
+   * dimensions, the structural contract, every mechanical check, `RERUN_ACCEPTANCE` and the blind
+   * artifact. Its own header says nothing below it may change once T5 freezes it, and until now
+   * nothing enforced that: the check *logic* was pinned only by behavioural tests living in this
+   * same editable file, so at T13 softening a check and adjusting its test was a green build. The
+   * file bearing the pre-registration was the one without the tripwire.
+   */
+  it("neither does the module holding the criteria", () => {
+    const digest = createHash("sha256")
+      .update(read("src/lib/ai/evals/rerun-behaviour.ts"), "utf8")
+      .digest("hex");
+    expect(
+      digest,
+      "src/lib/ai/evals/rerun-behaviour.ts changed. It holds the dimensions, the corpus contract, " +
+        "the mechanical checks, the acceptance criteria and the blind artifact, all frozen at T5 " +
+        "before the validation cases existed. Changing a criterion after seeing the cases is the " +
+        "thing this set exists not to do.",
+    ).toBe("0de70a869cf10ff85993aa85be73ad6fb37ea44eceb61f6ab3786f4c550f7b89");
+  });
+
   it("does not change at all", () => {
     const digest = createHash("sha256").update(RUNNER, "utf8").digest("hex");
     expect(
@@ -273,7 +298,7 @@ describe("paths and ownership are fixed before the cases are known", () => {
       "tests/eval/clarification-rerun.eval.ts changed. It was frozen at T5, before the validation " +
         "cases were authored, and it has no permitted edit: T9 repoints " +
         "src/lib/ai/evals/rerun-seam.ts instead. Do not update this hash to silence the failure.",
-    ).toBe("bc4d74aef2e753e5b41518b0e6867556fec08a9f9477469a1997996b6843bb48");
+    ).toBe("c4ef62ee41ef32ecb0d0f5be1a8e35381d7d01f04649d88c848adb949b177a02");
   });
 
   it("has an npm script, and it names the set explicitly", () => {
@@ -472,6 +497,9 @@ const observation = (over: Partial<RerunObservation> = {}): RerunObservation => 
 const status = (checks: ReturnType<typeof checkRerunCase>, name: string) =>
   checks.find((check) => check.name === name)?.status;
 
+const detail = (checks: ReturnType<typeof checkRerunCase>, name: string) =>
+  checks.find((check) => check.name === name)?.detail ?? "";
+
 describe("the mechanical checks decide what they can and refuse to guess the rest", () => {
   it("passes a clean observation", () => {
     const checks = checkRerunCase(validCase(), observation());
@@ -570,6 +598,156 @@ describe("the mechanical checks decide what they can and refuse to guess the res
     expect(status(checks, "expectedFacts")).toBe("fail");
   });
 
+  it("fails, and says which rounds, when the lifecycle reader refused an envelope", () => {
+    // The gating check exists because one of the two causes moves nothing else: a malformed
+    // clarification block leaves the schema version fine, `boundaryResolves` n/a or advisory, and
+    // the fact checks n/a — a mechanical pass over evidence holding no clarification data at all.
+    const checks = checkRerunCase(validCase(), observation({ provisional: [false, "unreadable"] }));
+    expect(status(checks, "envelopeReadable")).toBe("fail");
+    expect(detail(checks, "envelopeReadable")).toContain("round(s) 2");
+    expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("never calls an unreadable final round 'still provisional'", () => {
+    const withBoundary = validCase({
+      rounds: [
+        { answers: [] },
+        {
+          answers: [
+            {
+              questionIndex: 0,
+              kind: "boundary",
+              selectedOptionLabel: "It is a surprise",
+              freeText: null,
+              isDefer: false,
+            },
+          ],
+        },
+      ],
+    });
+    const checks = checkRerunCase(
+      withBoundary,
+      observation({
+        provisional: [false, "unreadable"],
+        answersAssembled: [[], withBoundary.rounds[1].answers],
+      }),
+    );
+    // Saying "still provisional" would assert something about the model on a round whose envelope
+    // was never read — the defect the runner's own comment says it exists to prevent.
+    expect(detail(checks, "boundaryResolves")).toContain("unknown");
+    expect(status(checks, "boundaryResolves")).toBe("advisory");
+  });
+
+  it("does not fail an inference the brief is required to make", () => {
+    // `spec.md §7.5` wants generous inference. A host picking "Garden party" should see a
+    // garden-party looseness in the creative direction and `venueText` left null; scanning the
+    // whole envelope would fail that correct case permanently.
+    const checks = checkRerunCase(
+      validCase({ mustNotInvent: ["garden"] }),
+      observation({
+        results: [
+          { suppliedFacts: {} },
+          {
+            suppliedFacts: { venueText: null },
+            identity: { creativeDirection: "garden-party ease" },
+          },
+        ],
+      }),
+    );
+    expect(status(checks, "noInventedFacts")).toBe("pass");
+  });
+
+  it("still fails an answer that became a supplied fact", () => {
+    const checks = checkRerunCase(
+      validCase({ mustNotInvent: ["garden"] }),
+      observation({
+        results: [{ suppliedFacts: {} }, { suppliedFacts: { venueText: "the garden" } }],
+      }),
+    );
+    expect(status(checks, "noInventedFacts")).toBe("fail");
+  });
+
+  it("fails when a later round repeats the previous round's request", () => {
+    // Three rounds; the assembly carries round 2's answers forward and drops round 3's. Round 3
+    // differs from round 1, so a round-1-only comparison passes it — on `multi_round_provenance`.
+    const threeRounds = validCase({
+      rounds: [
+        { answers: [] },
+        {
+          answers: [
+            {
+              questionIndex: 0,
+              kind: "creative",
+              selectedOptionLabel: "Warmer",
+              freeText: null,
+              isDefer: false,
+            },
+          ],
+        },
+        {
+          answers: [
+            {
+              questionIndex: 0,
+              kind: "creative",
+              selectedOptionLabel: "Quieter",
+              freeText: null,
+              isDefer: false,
+            },
+          ],
+        },
+      ],
+    });
+    const checks = checkRerunCase(
+      threeRounds,
+      observation({
+        promptsSent: [PROMPT, PROMPT, PROMPT],
+        requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>> A2`, `<<<${PROMPT}>>> A2`],
+        results: [{ suppliedFacts: {} }, { suppliedFacts: {} }, { suppliedFacts: {} }],
+        provisional: [false, false, false],
+        schemaVersions: [
+          EVENT_IDENTITY_SCHEMA_VERSION,
+          EVENT_IDENTITY_SCHEMA_VERSION,
+          EVENT_IDENTITY_SCHEMA_VERSION,
+        ],
+        assemblyVersions: [
+          "event_identity_input_v2",
+          "event_identity_input_v2",
+          "event_identity_input_v2",
+        ],
+        answersAssembled: [[], threeRounds.rounds[1].answers, threeRounds.rounds[2].answers],
+      }),
+    );
+    expect(status(checks, "answersReachedTheModel")).toBe("fail");
+    expect(detail(checks, "answersReachedTheModel")).toContain("the previous round");
+  });
+
+  it("accepts padded free text an assembly legitimately trims", () => {
+    const padded = validCase({
+      rounds: [
+        { answers: [] },
+        {
+          answers: [
+            {
+              questionIndex: 0,
+              kind: "creative",
+              selectedOptionLabel: null,
+              freeText: "  black tie  ",
+              isDefer: false,
+            },
+          ],
+        },
+      ],
+    });
+    const checks = checkRerunCase(
+      padded,
+      observation({
+        requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>> the host typed: black tie`],
+        answersAssembled: [[], padded.rounds[1].answers],
+      }),
+    );
+    expect(status(checks, "answersReachedTheModel")).toBe("pass");
+  });
+
   it("reports n/a rather than passing when a case asserts nothing", () => {
     const checks = checkRerunCase(validCase(), observation());
     expect(status(checks, "expectedFacts")).toBe("n/a");
@@ -632,10 +810,38 @@ describe("the blind artifact tells the reviewer what to look for, and nothing el
   const artifact = buildRerunReviewArtifact([
     {
       caseId: "RB-01",
-      promptsSent: ["A retirement dinner for my mum", "A retirement dinner for my mum"],
+      requestTexts: [`<<<${PROMPT}>>>`, `<<<${PROMPT}>>> the host asked for a warmer register`],
+      answersAssembled: [
+        [],
+        [
+          {
+            questionIndex: 0,
+            kind: "creative",
+            selectedOptionLabel: "Warmer",
+            freeText: "keep it black tie",
+            isDefer: false,
+          },
+        ],
+      ],
       results: [{ identity: { copyTone: "warm" } }, { identity: { copyTone: "warmer" } }],
     },
   ]);
+
+  it("shows the reviewer the answer they are being asked about", () => {
+    // Questions 1 and 2 are unanswerable without it, and `promptsSent` cannot supply it: it is
+    // byte-identical on every round by construction, so an artifact built from it shows the same
+    // paragraph twice and never shows the answer.
+    expect(artifact).toContain("the host asked for a warmer register");
+    expect(artifact).toContain("answers carried in");
+    expect(artifact).toContain("q0 (creative)");
+    expect(artifact).toContain("Warmer");
+    expect(artifact).toContain("keep it black tie");
+  });
+
+  it("shows what was transmitted, which is the one field that is not self-reported", () => {
+    expect(artifact).toContain("what was sent");
+    expect(artifact).toContain(PROMPT);
+  });
 
   it("asks the three frozen questions", () => {
     expect(flat(artifact)).toContain("current input, rather than as a rewrite");

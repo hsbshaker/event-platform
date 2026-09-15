@@ -13,6 +13,11 @@
  * export below points at the real assembly rather than at the refusal.
  *
  * What must remain true when it does: the export keeps its name and its `RerunCallRunner` type,
- * and nothing else is added to this file. It exists to be one line.
+ * and nothing else is added to this file. The annotation is what makes the second half of that a
+ * compiler rule rather than a promise — a bare re-export would let a loosely typed T9 module make
+ * `outcome.requestText` an `any`, and then `answersReachedTheModel` throws mid-run on a set that
+ * runs once, or journals `undefined` as what was transmitted.
  */
-export { rerunRunnerUnavailable as rerunRunner } from "./rerun-behaviour";
+import { rerunRunnerUnavailable, type RerunCallRunner } from "./rerun-behaviour";
+
+export const rerunRunner: RerunCallRunner = rerunRunnerUnavailable;
