@@ -207,3 +207,36 @@ export const SCHEMA_MANIFEST = {
 export const GENERATED_COLUMNS = {
   event_identity_revisions: ["is_provisional"],
 } as const satisfies Partial<{ [K in keyof Tables]: readonly (keyof Tables[K]["Row"])[] }>;
+
+/* ------------------------------------------------------------------ compile-time completeness */
+
+/**
+ * `satisfies` above requires every listed name to be a real `Row` key. It does **not** require the
+ * manifest to list every `Row` key — so a phantom field added to a `Row` and to neither the
+ * manifest nor the database would pass the compiler *and* the drift test, and T10 would read it
+ * typed `string` and get `undefined`. This closes that direction.
+ */
+type Unlisted<K extends keyof Tables> = Exclude<
+  keyof Tables[K]["Row"],
+  (typeof SCHEMA_MANIFEST)[K][number]
+>;
+type AssertNever<T extends never> = T;
+export type _EveryRowKeyIsListed = AssertNever<{ [K in keyof Tables]: Unlisted<K> }[keyof Tables]>;
+
+/**
+ * …and that a generated column really is absent from its table's `Insert`.
+ *
+ * `GENERATED_COLUMNS` claimed this was asserted and nothing asserted it: the database half was
+ * checked by the drift test, the type half only by a hand-written `@ts-expect-error` for the one
+ * column somebody remembered. This makes it structural, so a second generated column cannot be
+ * added to `Insert` by accident.
+ */
+type GeneratedButInsertable<K extends keyof typeof GENERATED_COLUMNS> = Extract<
+  (typeof GENERATED_COLUMNS)[K][number],
+  keyof Tables[K]["Insert"]
+>;
+export type _NoGeneratedColumnIsInsertable = AssertNever<
+  {
+    [K in keyof typeof GENERATED_COLUMNS]: GeneratedButInsertable<K>;
+  }[keyof typeof GENERATED_COLUMNS]
+>;

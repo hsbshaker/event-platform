@@ -2,6 +2,15 @@
  * Database contract for the Supabase client.
  *
  * Hand-authored for the Phase 1 migration (supabase/migrations/20260912000000_phase1_core.sql).
+ *
+ * **How a server-controlled column is classified here**, so the next one is treated the same way.
+ * If the database *raises* for every caller, the column is omitted from `Insert` entirely, so the
+ * compiler refuses it before Postgres does — `event_identity_revisions.is_provisional` is
+ * `GENERATED ALWAYS` and rejected with SQLSTATE 428C9. If the database *silently overwrites*, the
+ * column stays insert-optional, because supplying it is legal and simply has no effect —
+ * `events.row_version`. And if some callers may legitimately write it, it stays insert-optional
+ * too — `events.authoritative_identity_revision_id`, which service-role code sets and end users
+ * cannot. A whole table that refuses every UPDATE is `AppendOnlyTable` rather than `Table`.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -61,11 +70,13 @@ type EventRow = {
   /**
    * The identity revision this event's design work reads (20260915000000_phase4b_identity_revisions).
    *
-   * Server-controlled, like `row_version`: `protect_event_server_columns` refuses an end-user
-   * update on both its branches, and `validate_authoritative_identity` re-derives provisional
-   * state from the revision's own JSON before allowing it to move — so a caller can read it and
-   * service-role code can set it, but it is never something application code sets on behalf of a
-   * signed-in user.
+   * Server-controlled, and by a different mechanism from `row_version`:
+   * `protect_event_server_columns` enumerates this column and refuses an end-user update on both
+   * its branches, where `row_version` is not enumerated there at all and is instead overwritten
+   * silently by `bump_event_row_version`. `validate_authoritative_identity` additionally
+   * re-derives provisional state from the revision's own JSON before allowing it to move. So a
+   * caller can read it and service-role code can set it, but it is never something application
+   * code sets on behalf of a signed-in user.
    */
   authoritative_identity_revision_id: string | null;
   /**
@@ -307,8 +318,14 @@ type Table<Row, Ins> = {
  *
  * `Update: Record<string, never>` makes any field passed to `.update()` an excess property, so an
  * append-only table's immutability is a compile error rather than a trigger firing in production.
- * The two Phase 4B evidence tables are the only ones today; both have a protect trigger that
- * raises on every UPDATE.
+ *
+ * Three tables today. The two Phase 4B evidence tables carve out only the DELETE that arrives
+ * inside an event's cascade, and `resolved_design_specs` is stricter still: `reject_update()`
+ * raises on every UPDATE with no carve-out at all. That one is the immutability `spec.md §32 #18`
+ * and `CLAUDE.md §2` make load-bearing — "generated design data is immutable" — and it was typed
+ * `Table` here, so `.update()` on it compiled and would have failed only in production.
+ * `design_concepts` is deliberately not in this set: its protect trigger permits
+ * `active_resolved_spec_id` and `selected_at`.
  */
 type AppendOnlyTable<Row, Ins> = {
   Row: Row;
@@ -397,7 +414,7 @@ export type Database = {
           | "created_at"
         >
       >;
-      resolved_design_specs: Table<
+      resolved_design_specs: AppendOnlyTable<
         ResolvedDesignSpecRow,
         Insert<ResolvedDesignSpecRow, "id" | "supersedes_spec_id" | "created_at">
       >;
@@ -506,6 +523,17 @@ export type Database = {
         Returns: number;
       };
       purge_stale_rate_limits: { Args: Record<string, never>; Returns: number };
+      /**
+       * Phase 2's locked claim path (20260913030000_phase2_email_claim.sql), granted to
+       * `service_role`. Live since Phase 2 and undeclared until the Phase 4B contract sync, like
+       * `pre_auth_event_drafts.claim_email`.
+       */
+      claim_draft_locked: {
+        Args: { p_draft_id: string; p_user_id: string };
+        Returns: { outcome: ClaimOutcome; event_id: string | null }[];
+      };
+      /** Whether the current request carries an end-user JWT rather than the service role. */
+      is_end_user_request: { Args: Record<string, never>; Returns: boolean };
       /**
        * The fail-closed reader (20260915000000_phase4b_identity_revisions.sql). Raises rather than
        * returning empty for an unsupported `schema_version` or a malformed clarification block, so

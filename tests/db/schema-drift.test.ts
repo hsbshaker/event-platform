@@ -19,9 +19,36 @@ import { readFileSync } from "node:fs";
 import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { Database } from "@/lib/supabase/database.types";
 import { GENERATED_COLUMNS, SCHEMA_MANIFEST } from "@/lib/supabase/schema-manifest";
 
 import { connect, resetDatabase } from "./harness";
+
+/**
+ * The contract's own function surface, as a runtime value.
+ *
+ * Declared here rather than imported because `Database` is types only. A key added or removed in
+ * `database.types.ts` and not here fails the compile below, so this cannot drift from it silently.
+ */
+const DECLARED_FUNCTIONS = {
+  attach_inspiration_asset: true,
+  bind_draft_claim_email: true,
+  claim_draft_locked: true,
+  claim_pre_auth_draft: true,
+  claim_pre_auth_draft_by_email: true,
+  consume_rate_limit: true,
+  event_role: true,
+  expired_pre_auth_draft_batch: true,
+  expired_pre_auth_storage_keys: true,
+  identity_is_provisional: true,
+  identity_questions: true,
+  is_end_user_request: true,
+  is_event_member: true,
+  is_event_owner: true,
+  purge_expired_pre_auth_state: true,
+  purge_pre_auth_drafts: true,
+  purge_stale_rate_limits: true,
+} satisfies Record<keyof Database["public"]["Functions"], true>;
 
 let db: Client;
 
@@ -102,9 +129,29 @@ describe("the database contract matches the applied migrations", () => {
     ).rejects.toMatchObject({ code: "428C9" });
   });
 
+  it("declares every callable public function, or names it as a deliberate omission", async () => {
+    // The direction the first version of this test missed. `claim_draft_locked` and
+    // `is_end_user_request` had been live and undeclared since Phase 2 — the same class of gap as
+    // `pre_auth_event_drafts.claim_email`, and found the same way once the check ran both ways.
+    // Trigger functions are not callable and are not part of the contract's surface.
+    const { rows } = await db.query<{ proname: string }>(
+      `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and pg_get_function_result(p.oid) <> 'trigger'
+       order by p.proname`,
+    );
+    const live = [...new Set(rows.map((r) => r.proname))].sort();
+    const declared = Object.keys(DECLARED_FUNCTIONS).sort();
+    expect(
+      live,
+      'a callable public function is missing from Database["public"]["Functions"] in ' +
+        "src/lib/supabase/database.types.ts, or one is declared that no longer exists.",
+    ).toEqual(declared);
+  });
+
   it("declares the Phase 4B functions the contract exposes", async () => {
-    // Trigger functions are not part of the callable surface and are deliberately not declared;
-    // these two are ordinary functions that application code and RLS both read through.
+    // Trigger functions are not part of the callable surface and are deliberately not declared.
+    // These two are ordinary functions; nothing in RLS references them — their callers are the
+    // generated column and the triggers that guard the authority pointer and the answers.
     const { rows } = await db.query<{ proname: string }>(
       `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public'

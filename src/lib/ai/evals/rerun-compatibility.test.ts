@@ -8,8 +8,16 @@
  * match T7's inventory (42). The corpus has 42 labels, all distinct, so one was omitted.
  *
  * So the check is computed here instead of eyeballed, and kept: it runs the production assembly
- * over every frozen case and applies the frozen checker's own text predicates to the result.
- * Nothing is mocked, nothing is a provider call, and neither the corpus nor the checker moves.
+ * over every frozen case and hands the result to `checkRerunCase` itself — the frozen checker,
+ * unmodified, rather than a paraphrase of it. An earlier version re-implemented `menuNotResent`'s
+ * predicates by hand, which graded the assembly against a copy and left `historyDelivered`'s
+ * question-span masking and `answerBoundToItsQuestion` unexercised. Nothing is mocked, nothing is
+ * a provider call, and neither the corpus nor the checker moves.
+ *
+ * What it cannot decide is the half that needs a live response: `envelopeReadable`,
+ * `schemaVersionExpected`, `expectedFacts`, `noInventedFacts` and `boundaryResolves` are graded at
+ * T13 against what the model returns. This asserts only that none of the five **absolute** checks
+ * — the ones decided entirely from the transmitted text and the frozen case — reports `fail`.
  *
  * This is a compatibility test, not an implementation. The assembly branches on nothing in the
  * corpus; this file is where the two are allowed to meet.
@@ -20,12 +28,16 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { assembleEventIdentityUserMessage } from "@/lib/ai/openai/event-identity-input";
+import {
+  EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION,
+  EVENT_IDENTITY_SCHEMA_VERSION,
+} from "@/lib/ai/versions";
 
 import { corpusPath } from "./corpus";
 import {
   buildSeededRevision,
+  checkRerunCase,
   cumulativeHistory,
-  seededWhyItMatters,
   type RerunCase,
   type RerunCorpus,
 } from "./rerun-behaviour";
@@ -68,55 +80,35 @@ describe("the T9 assembly against the frozen corpus", () => {
   });
 
   it.each(corpus.cases.map((c) => [c.id, c] as const))(
-    "%s: sends no unselected option and no model-authored rationale",
+    "%s: passes every absolute check of the frozen checker",
     (_id, testCase) => {
       const request = requestFor(testCase);
-      const history = cumulativeHistory(testCase);
-      // The checker's own allowlist: a label the host or a question already used is never counted
-      // against the assembly, because its presence has a legitimate source.
-      const legitimate = [
-        testCase.prompt,
-        ...testCase.history.flatMap((round) => [
-          ...round.questions.map((q) => q.question),
-          ...round.answers.flatMap((a) => [a.selectedOptionLabel ?? "", a.freeText ?? ""]),
-        ]),
+      const answers = cumulativeHistory(testCase);
+      const checks = checkRerunCase(testCase, {
+        caseId: testCase.id,
+        promptSent: testCase.prompt,
+        requestText: request,
+        // The five absolute checks read none of these; they are the shape the checker requires,
+        // filled with what a clean run would carry so the response-dependent checks do not throw.
+        result: { suppliedFacts: {}, clarification: { needed: false, questions: [] } },
+        provisional: false,
+        answersAssembled: answers,
+        assemblyVersion: EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION,
+        schemaVersion: EVENT_IDENTITY_SCHEMA_VERSION,
+      });
+      const absolute = [
+        "promptByteIdentical",
+        "questionRenderedWithAnswer",
+        "menuNotResent",
+        "historyDelivered",
+        "answerBoundToItsQuestion",
       ];
-      const resent: string[] = [];
-      testCase.history.forEach((round, roundIndex) => {
-        round.questions.forEach((question, questionIndex) => {
-          if (request.includes(seededWhyItMatters(roundIndex + 1, questionIndex))) {
-            resent.push(`r${roundIndex + 1}q${questionIndex} whyItMatters`);
-          }
-          for (const option of question.options) {
-            if (legitimate.some((text) => text.includes(option.label))) continue;
-            if (request.includes(option.label)) resent.push(`"${option.label}"`);
-          }
-        });
-      });
-      expect(resent).toEqual([]);
-      // …and every carried answer does arrive, which is the other half of the same question.
-      for (const answer of history) {
-        if (answer.selectedOptionLabel !== null) {
-          expect(request).toContain(answer.selectedOptionLabel);
-        }
-        const typed = answer.freeText?.trim();
-        if (typed) expect(request).toContain(typed);
-      }
-    },
-  );
-
-  it.each(corpus.cases.map((c) => [c.id, c] as const))(
-    "%s: renders every question verbatim, chronologically, with the description untouched",
-    (_id, testCase) => {
-      const request = requestFor(testCase);
-      expect(request).toContain(testCase.prompt);
-      const positions = cumulativeHistory(testCase).map((answer) => {
-        const question =
-          testCase.history[answer.revision - 1].questions[answer.questionIndex].question;
-        return request.indexOf(question);
-      });
-      expect(positions.every((at) => at >= 0)).toBe(true);
-      expect(positions.every((at, i) => i === 0 || at > positions[i - 1])).toBe(true);
+      const failed = checks
+        .filter((check) => absolute.includes(check.name) && check.status === "fail")
+        .map((check) => `${check.name}: ${check.detail}`);
+      expect(failed).toEqual([]);
+      // And nothing else the checker can decide from the text alone is failing either.
+      expect(checks.filter((c) => c.status === "fail").map((c) => c.name)).toEqual([]);
     },
   );
 });

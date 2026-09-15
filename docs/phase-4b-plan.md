@@ -1275,7 +1275,9 @@ afterwards and is now computed rather than eyeballed: `src/lib/ai/evals/rerun-co
 runs the production assembly over every frozen case and applies the frozen checker's own predicates
 to the result. **No collision, on any of the 42.** Neither the corpus nor the checker was touched.
 That test also keeps the property covered from here on, which matters because the frozen leakage
-scan reads neither option labels nor question texts.
+scan reads neither option labels nor question texts. That test now grades against
+`checkRerunCase` itself rather than a re-implementation of its predicates, so what it proves is the
+frozen checker's own verdict: on all ten cases, none of the five absolute checks fails.
 
 **Two notes for the T9 packet.** The harness deliberately withholds the `question_text` and
 `options` copies that `clarification_answers` carries, so the assembly must resolve the question out
@@ -1370,7 +1372,8 @@ anyway. Recorded plainly rather than argued away:
 
 **Two scan-scope facts to record rather than leave looking like coverage.** The frozen
 `prompt-leakage.test.ts` scans a case's `prompt`, `mustAvoid`, `hostPhrases`, `expectedFacts` string
-values, `notes` and `rationale` — it never scans question texts or option labels. T7 found two defer
+values, `notes` and `rationale` — it never scans question texts, option labels or `mustNotInvent`
+terms. T7 found two defer
 labels colliding verbatim with model-visible text that the scan therefore could not see; they were
 reworded at the corpus, as §3.5 requires, but the gap is real until T14 and a future corpus author
 should not assume the scanner covers everything a case contains. Separately, `menuNotResent`'s

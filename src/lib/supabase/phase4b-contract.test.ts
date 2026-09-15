@@ -13,6 +13,8 @@
  */
 import { describe, expect, it } from "vitest";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import type { Database } from "./database.types";
 
 type Tables = Database["public"]["Tables"];
@@ -100,6 +102,50 @@ describe("the Phase 4B contract is usable without casts", () => {
       kind: "logistics",
     };
     expect(wrongRoute.round).toBe(1);
+  });
+
+  it("type-checks through the typed client, not only as a bare shape", () => {
+    // Shape assignability is weaker than the claim in this file's header. What T10 actually writes
+    // is a builder chain on `SupabaseClient<Database>`, and `AppendOnlyTable`'s
+    // `Update: Record<string, never>` is an unusual shape for postgrest-js's `GenericTable` — so
+    // the chain is written out here and left unexecuted. The compiler is the assertion; the
+    // runtime expectation below only keeps the test honest about not calling a database.
+    const db = null as unknown as SupabaseClient<Database>;
+    const persist = () =>
+      db
+        .from("event_identity_revisions")
+        .insert({
+          event_id: "e",
+          revision: 1,
+          result: {},
+          prompt_version: "event_identity_v5",
+          schema_version: "event_identity_schema_v5",
+          input_assembly_version: "event_identity_input_v2",
+          provider: "openai",
+          model: "gpt-5.6-sol",
+        })
+        .select("id, is_provisional")
+        .single();
+    const record = () =>
+      db
+        .from("clarification_answers")
+        .insert({
+          event_id: "e",
+          identity_revision_id: "r",
+          question_index: 0,
+          round: 1,
+          kind: "boundary",
+          question_text: "Is it public yet?",
+          options: [{ label: "Yes" }],
+          selected_option_label: "Yes",
+          free_text: null,
+          answered_by: "u",
+        })
+        .select("id")
+        .single();
+    const point = () =>
+      db.from("events").update({ authoritative_identity_revision_id: "r" }).eq("id", "e");
+    expect([persist, record, point].every((f) => typeof f === "function")).toBe(true);
   });
 
   it("types the event pointer and the run's assembly version", () => {
