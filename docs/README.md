@@ -13,7 +13,7 @@ This folder is the reconciled documentation set after the creation-UX pressure t
 6. **`e2e-workflow.md`** — canonical journey reference.
 7. **`screen-spec.md`** — screen/surface-level behavior.
 8. **`CHANGELOG-v6.md`** — what Revision 6 changed; `CHANGELOG-v5.md` for the prior revision.
-9. **`development-plan.md`** — the locked Phase 0–10 build sequence and its exit conditions; orders the work, defines no requirements. **`phase-4b-plan.md`** decomposes the phase now in front of us — the clarification lifecycle, the sibling planner and `DesignIntent × 3` — on the same terms.
+9. **`development-plan.md`** — the locked Phase 0–10 build sequence and its exit conditions; orders the work, defines no requirements. **`phase-4b-plan.md`** decomposes the two phases now in front of us — Phase 4B, the clarification lifecycle, and Phase 4C, the sibling planner and `DesignIntent × 3` — on the same terms, with a separate gate for each.
 10. **`prototypes/creation-flow.html`** — behavioral prototype; not architectural truth.
 11. **`../proof-b/`** — reference implementation and regression suite of the composition language (source subset on `main`; full evidence on branch `proof/phase-b` at `b74ccab`); **`../proof-a1/`** — the recipe library it depends on (`sites.js`, `vocab.js`, fonts); **`renderer-tests/`** — older renderer evidence; none is product requirements.
 

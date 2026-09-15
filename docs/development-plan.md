@@ -111,10 +111,14 @@ That corpus is `sealed_challenge_v2`: authored after the harness froze at `19f1e
 as written — deterministic checks, independent engineering review, an independent qualitative read
 of a blind artifact, then an explicit go/no-go — and it returned **GO**.
 
-**The plan for what follows is `phase-4b-plan.md`**, which decomposes the clarification lifecycle,
-the deterministic sibling planner and `DesignIntent × 3` into auditable tasks, fixes the point at
-which approval is required before the first live DesignIntent call, and designs that phase's
-evidence strategy before its prompt is written. It orders work and defines no requirements.
+**The plan for what follows is `phase-4b-plan.md`.** It decomposes **4B** (the clarification
+lifecycle, answer provenance and the minimal surface) and **4C** (the deterministic sibling planner
+and `DesignIntent × 3`) into auditable tasks, and keeps the letters above exactly as they are: the
+two may be built as one workstream but are judged separately, and **4C does not begin until 4B has
+independently passed its gate**. It fixes the point at which approval is required before the first
+live DesignIntent call, states both exit gates — including a systemic-veto rule for 4C that fails
+the phase regardless of rating distribution — and designs each phase's evidence strategy before its
+prompt is written. It orders work and defines no requirements.
 
 ## Recorded deviations
 
