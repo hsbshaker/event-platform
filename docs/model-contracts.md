@@ -241,9 +241,12 @@ constant written only on a clean finish, so a report rebuilt from an aborted run
 not carry it. And `corpusVersion` is a version string the corpus declares about itself, not a
 hash — a corpus edited without bumping it defeats the join, which is why the corpora are frozen.
 
-**The sealed challenge path is wired before its cases exist.** `EVAL_SET=challenge` names a corpus
-and an output directory that are fixed now; the corpus file is deliberately absent and is authored
-independently after the implementation freeze. A challenge invocation before it lands fails at
+**The sealed challenge path is wired before its cases exist, and stays that way.**
+`EVAL_SET=challenge` names a corpus and an output directory fixed once and never since; when
+`sealed_challenge_v1` was written the corpus file was deliberately absent, authored independently
+after the implementation froze, and dropped in unchanged. The same arrangement holds for the
+corpus a `v5` GO requires: the path is already wired, so that corpus is added and nothing else
+moves. A challenge invocation before a corpus lands fails at
 module scope — before the API-key check, before a client is constructed, and with no provider call
 — and the runner refuses any set whose corpus is missing, uniformly. `prompt-leakage.test.ts`
 already names the challenge filename behind an existence check, so the independently authored

@@ -320,7 +320,9 @@ describe("blocking is Route B's alone, and its identity is provisional", () => {
     for (const line of SPEC.split("\n")) {
       if (!/You decide/.test(line)) continue;
       if (/every one offers|always offers|must offer/i.test(line)) {
-        expect(line).toMatch(/creative/i);
+        // The qualifier must attach to the subject. A bare /creative/i would have passed the
+        // defective bullet this guard exists for — §31 lines mention "creative" routinely.
+        expect(line).toMatch(/every creative|a creative question|creative clarification/i);
       }
     }
     expect(SPEC_FLAT).toContain("Every creative clarification offered");

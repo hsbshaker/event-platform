@@ -103,7 +103,33 @@ const run: CaseRun = {
 };
 
 describe("the blind artifact", () => {
-  const artifact = buildBlindArtifact([run]);
+  /**
+   * A boundary-route case, so the route assertions below can actually fail. With only the
+   * creative fixture, `\bboundary\b` could never appear whatever the renderer did — the guard
+   * named a mutation it was structurally incapable of catching.
+   */
+  const boundaryRun: CaseRun = {
+    ...run,
+    caseData: { ...run.caseData, id: "TEST-02" },
+    result: {
+      ...(run.result as NonNullable<CaseRun["result"]>),
+      clarification: {
+        needed: true,
+        questions: [
+          {
+            kind: "boundary" as const,
+            question: "What has been settled about mentioning this?",
+            whyItMatters: "the brief would otherwise take a position that is not ours to take",
+            options: [
+              { label: "Say it plainly", isDefer: false },
+              { label: "Leave it out", isDefer: false },
+            ],
+          },
+        ],
+      },
+    },
+  };
+  const artifact = buildBlindArtifact([run, boundaryRun]);
 
   it("carries the prompt and the response", () => {
     expect(artifact).toContain("Ralph Lauren but baby");
@@ -134,7 +160,20 @@ describe("the blind artifact", () => {
     expect(artifact).not.toMatch(/taste-heavy|genuinely-ambiguous/);
     expect(artifact).not.toMatch(/schema|isDefer|suppliedFacts/);
     // A reviewer told which route a question came from is no longer blind to our expectations.
-    expect(artifact).not.toMatch(/whyItMatters|"kind"|\bboundary\b/);
+    // Asserted over the case bodies rather than the whole file — the fixed framing describes a
+    // "creative brief", which is not a route label — and against a run of each route, because a
+    // creative-only fixture could never fail this.
+    const cases = artifact.slice(artifact.indexOf("## TEST-01"));
+    // "boundary" has no other reason to appear in a brief; "creative" does — the artifact
+    // legitimately renders a creative direction — so the route is caught by the shapes a label
+    // would take rather than by the bare word.
+    expect(cases).not.toMatch(/\bboundary\b/i);
+    expect(cases).not.toMatch(/\bkind\b/i);
+    expect(cases).not.toMatch(/\broute\b/i);
+    expect(cases).not.toMatch(/\(creative\)|: creative|- creative\b/i);
+    // Both routes really are present in the input, so the assertions above have something to
+    // catch if `buildBlindArtifact` ever renders the route.
+    expect(cases).toContain("What has been settled about mentioning this?");
   });
 
   it("does not tell the reviewer what to conclude", () => {
