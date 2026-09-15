@@ -1275,6 +1275,46 @@ tested path is not the production path. And a case cannot represent a revision t
 every history round carries at least one question, so a "revision 2 asked nothing, revision 3 asked"
 shape is outside this set's fidelity. Neither affects a check; both should be known before T9.
 
+### The T8 freeze record
+
+| | |
+| --- | --- |
+| input-freeze commit | `943699547454f147b9beb2608622eece00765f3e` |
+| corpus | `docs/model-evals/clarification-rerun-behaviour.json` |
+| sha256 | `f637494fee567487e8b09d0fa405e3a014e5fc3565f8b464c53fdf85bc019394` |
+| bytes | 15677 |
+| output directory | `docs/model-evals/results/clarification-rerun-behaviour-v1` |
+| cases | 10 (`RB-01`–`RB-10`) |
+
+Dimension distribution: `answer_is_current_input` 2 (RB-01, RB-08);
+`original_description_survives` 1 (RB-02); `answer_precedence` 1 (RB-03); `defer_is_an_answer` 1
+(RB-04); `boundary_resolution` 1 (RB-05); `no_fact_invention` 2 (RB-06, RB-09);
+`multi_round_provenance` 2 (RB-07, RB-10).
+
+All six of those are pinned executably in `src/lib/ai/evals/corpus-provenance.test.ts`, which is an
+integrity guard and nothing else: it reads no case content, grades nothing, and touches no criterion.
+A commit SHA freezes the bytes for anyone who goes looking; it does not fail a build, and
+`corpus.ts` — which decides where the set reads and writes — is not frozen. The guard fails on a
+one-byte corpus edit, on a corpus-path redirect and on an output-path redirect, each verified by
+mutation.
+
+### Two provenance facts, recorded rather than smoothed over
+
+**The presence tripwire (`c5e4abc`) was committed before the corpus entered the repository, but
+after the independently authored cases had been returned and were known to this session.** It
+changed only the non-scoring corpus-presence tripwire; it changed neither frozen scoring file,
+no acceptance criterion, and used no case-specific content. It is therefore a **disclosed process
+deviation**, not a claim that the edit predated case authoring, and it must not be described as
+"written before the cases existed" or "before the cases were known". What it does buy is real and
+narrower than that: T8 adds the corpus file and changes nothing else.
+
+**The T6 author's isolation was instructed, not enforced.** They were told not to access the
+repository, the checker, the prompt or the schema, and were given a self-contained packet instead.
+The tooling did not prevent access. T7 was asked to look for artifact-level evidence that more had
+been seen and found none — style, vocabulary and structure all diverge from the existing corpora —
+but that is evidence, not proof, and this must not be upgraded to a claim of technically guaranteed
+blindness.
+
 **Two scan-scope facts to record rather than leave looking like coverage.** The frozen
 `prompt-leakage.test.ts` scans a case's `prompt`, `mustAvoid`, `hostPhrases`, `expectedFacts` string
 values, `notes` and `rationale` — it never scans question texts or option labels. T7 found two defer
