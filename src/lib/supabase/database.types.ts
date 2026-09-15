@@ -59,6 +59,16 @@ type EventRow = {
   published_at: string | null;
   paid_at: string | null;
   /**
+   * The identity revision this event's design work reads (20260915000000_phase4b_identity_revisions).
+   *
+   * Server-controlled, like `row_version`: `protect_event_server_columns` refuses an end-user
+   * update on both its branches, and `validate_authoritative_identity` re-derives provisional
+   * state from the revision's own JSON before allowing it to move — so a caller can read it and
+   * service-role code can set it, but it is never something application code sets on behalf of a
+   * signed-in user.
+   */
+  authoritative_identity_revision_id: string | null;
+  /**
    * Optimistic concurrency token (20260913040000_phase2_event_row_version.sql). A trigger
    * increments it on every update and overwrites anything the caller supplies, so it is
    * readable and usable as an update filter but never written by application code.
@@ -80,6 +90,15 @@ type PreAuthEventDraftRow = {
   draft_token_hash: string;
   prompt: string;
   composer_state: Json | null;
+  /**
+   * Lowercased address a sign-in link was requested for
+   * (20260913030000_phase2_email_claim.sql), so the callback can restore this draft when the link
+   * is opened in another browser.
+   *
+   * Absent from this contract until the Phase 4B sync found it: a real column, live since Phase 2,
+   * that no type described. It is exactly what the drift test now exists to catch.
+   */
+  claim_email: string | null;
   claimed_by: string | null;
   claimed_event_id: string | null;
   claimed_at: string | null;
@@ -165,6 +184,14 @@ type GenerationRunRow = {
   success: boolean;
   error_code: string | null;
   prompt_version: string;
+  /**
+   * Which input assembly produced the request (20260915000000_phase4b_identity_revisions).
+   *
+   * Nullable with no default: rows written before Phase 4B have none, and the column moves
+   * independently of `prompt_version` and `schema_version` — `event_identity_input_v2` changed
+   * what the model saw while both of those stayed still.
+   */
+  input_assembly_version: string | null;
   schema_version: string;
   primitive_set_version: string | null;
   compiler_version: string | null;
@@ -201,6 +228,70 @@ type HumanTest1ResponseRow = {
   created_at: string;
 };
 
+/**
+ * One persisted EventIdentity result (20260915000000_phase4b_identity_revisions.sql).
+ *
+ * Immutable: `protect_identity_revision` refuses every UPDATE, carving out only the DELETE that
+ * arrives inside an event's cascade. That is why its table below is `AppendOnlyTable` rather than
+ * `Table` — a `.update()` here is not a runtime error to discover, it is a shape the contract
+ * should refuse to describe.
+ */
+type EventIdentityRevisionRow = {
+  id: string;
+  event_id: string;
+  revision: number;
+  result: Json;
+  prompt_version: string;
+  schema_version: string;
+  input_assembly_version: string;
+  provider: string;
+  model: string;
+  provider_config: Json | null;
+  provider_request_id: string | null;
+  /**
+   * Deliberately not a foreign key (see the migration): `on delete set null` would make the
+   * referential-integrity system UPDATE this immutable row, so pruning telemetry would fail.
+   */
+  generation_run_id: string | null;
+  /** The answers this revision was generated from, validated against `clarification_answers`. */
+  clarification_answer_ids: string[];
+  /**
+   * `GENERATED ALWAYS AS (identity_is_provisional(result, schema_version)) STORED`.
+   *
+   * Readable, never writable — Postgres rejects an insert that supplies it with SQLSTATE 428C9.
+   * It is omitted from `Insert` below rather than made optional, so the compiler refuses the
+   * mistake instead of the database refusing it at runtime.
+   */
+  is_provisional: boolean | null;
+  created_at: string;
+};
+
+/**
+ * One clarification answer, bound to the question it answers
+ * (20260915010000_phase4b_clarification_answers.sql).
+ *
+ * Append-only for the same reason as the revisions: `protect_clarification_answer` refuses every
+ * UPDATE, and there is no RLS policy for one either. A correction is not in scope — the host
+ * answers again by answering the next round's question.
+ */
+type ClarificationAnswerRow = {
+  id: string;
+  event_id: string;
+  identity_revision_id: string;
+  /** The ordinal in that revision's `clarification.questions`. Half of the locator. */
+  question_index: number;
+  round: number;
+  kind: "creative" | "boundary";
+  /** Copied from the question and checked against it by the insert trigger. */
+  question_text: string;
+  options: Json;
+  selected_option_label: string | null;
+  free_text: string | null;
+  is_defer: boolean;
+  answered_by: string;
+  answered_at: string;
+};
+
 /** Columns with defaults or generated values are optional on insert. */
 type Insert<Row, Optional extends keyof Row> = Omit<Row, Optional> & Partial<Pick<Row, Optional>>;
 
@@ -208,6 +299,21 @@ type Table<Row, Ins> = {
   Row: Row;
   Insert: Ins;
   Update: Partial<Ins>;
+  Relationships: [];
+};
+
+/**
+ * A table the database refuses to update.
+ *
+ * `Update: Record<string, never>` makes any field passed to `.update()` an excess property, so an
+ * append-only table's immutability is a compile error rather than a trigger firing in production.
+ * The two Phase 4B evidence tables are the only ones today; both have a protect trigger that
+ * raises on every UPDATE.
+ */
+type AppendOnlyTable<Row, Ins> = {
+  Row: Row;
+  Insert: Ins;
+  Update: Record<string, never>;
   Relationships: [];
 };
 
@@ -246,6 +352,7 @@ export type Database = {
           | "message_sends_used"
           | "published_at"
           | "paid_at"
+          | "authoritative_identity_revision_id"
           | "row_version"
           | "created_at"
           | "updated_at"
@@ -258,6 +365,7 @@ export type Database = {
           PreAuthEventDraftRow,
           | "id"
           | "composer_state"
+          | "claim_email"
           | "claimed_by"
           | "claimed_event_id"
           | "claimed_at"
@@ -293,6 +401,27 @@ export type Database = {
         ResolvedDesignSpecRow,
         Insert<ResolvedDesignSpecRow, "id" | "supersedes_spec_id" | "created_at">
       >;
+      event_identity_revisions: AppendOnlyTable<
+        EventIdentityRevisionRow,
+        Insert<
+          // `is_provisional` is generated by the database and rejected on insert (428C9), so it is
+          // not part of the insert shape at all.
+          Omit<EventIdentityRevisionRow, "is_provisional">,
+          | "id"
+          | "provider_config"
+          | "provider_request_id"
+          | "generation_run_id"
+          | "clarification_answer_ids"
+          | "created_at"
+        >
+      >;
+      clarification_answers: AppendOnlyTable<
+        ClarificationAnswerRow,
+        Insert<
+          ClarificationAnswerRow,
+          "id" | "selected_option_label" | "free_text" | "is_defer" | "answered_at"
+        >
+      >;
       generation_runs: Table<
         GenerationRunRow,
         Insert<
@@ -308,6 +437,7 @@ export type Database = {
           | "reasoning_tokens"
           | "cost_estimate_usd"
           | "error_code"
+          | "input_assembly_version"
           | "primitive_set_version"
           | "compiler_version"
           | "diversity_assignment"
@@ -376,6 +506,17 @@ export type Database = {
         Returns: number;
       };
       purge_stale_rate_limits: { Args: Record<string, never>; Returns: number };
+      /**
+       * The fail-closed reader (20260915000000_phase4b_identity_revisions.sql). Raises rather than
+       * returning empty for an unsupported `schema_version` or a malformed clarification block, so
+       * an unreadable envelope can never be mistaken for one that asked nothing.
+       */
+      identity_questions: { Args: { result: Json; schema_version: string }; Returns: Json };
+      /** Whether a boundary question makes that identity non-consumable (`spec.md §7.6b`). */
+      identity_is_provisional: {
+        Args: { result: Json; schema_version: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       event_status: EventStatus;
