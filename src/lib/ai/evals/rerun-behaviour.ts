@@ -25,6 +25,7 @@
 import { EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 
 import { ASSEMBLY_VERSION_BEFORE_ANSWERS } from "./corpus";
+import type { CaseRun } from "./report";
 
 /* ------------------------------------------------------------------ published dimensions */
 
@@ -434,11 +435,33 @@ export interface RerunRequest {
 }
 
 /**
+ * What a round costs and which versions produced it, in the shape `run.json` and the journal
+ * already use, so this set's evidence is not the one that cannot say what it spent.
+ *
+ * `docs/model-contracts.md` requires a journal entry to carry "the fully-built telemetry the
+ * report itself records", and the rule is written as universal. Rather than admit a scoped
+ * exception for this set, the seam supplies it — which is possible only while the seam is still
+ * unfrozen, and impossible afterwards.
+ *
+ * `schemaVersion` lives here and nowhere else in the outcome, for the reason `journal.ts` gives:
+ * two copies of a version are two chances to disagree.
+ */
+export type RerunTelemetry = CaseRun["telemetry"];
+
+/**
  * What T9's assembly must provide for this set to run.
  *
  * Declared here, at T4, so the runner below is complete before the implementation exists and the
  * implementation cannot quietly change what the runner expects. T9 supplies it; until then
  * `rerunRunnerUnavailable` is the only implementation and it says why.
+ *
+ * **On failure**, an implementation throws — the run must fail loudly, not degrade — and the
+ * thrown value carries what was already paid for, in `EventIdentityError`'s shape:
+ * `rawResponses?: string[]` (every text the provider returned, including the repair retry's) and
+ * `usage?: { latencyMs?, transientRetries?, repairRetries? }`. The runner journals that before
+ * rethrowing. Text the provider returned and our validation then rejected is a call that was
+ * answered and billed; an implementation that swallows it makes this set the one place where a
+ * paid response can vanish.
  */
 export type RerunCallRunner = (request: RerunRequest) => Promise<{
   /**
@@ -455,8 +478,8 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
   result: unknown;
   promptSent: string;
   assemblyVersion: string;
-  schemaVersion: string;
   answersAssembled: RerunAnswerInput[];
+  telemetry: RerunTelemetry;
 }>;
 
 export const rerunRunnerUnavailable: RerunCallRunner = () => {

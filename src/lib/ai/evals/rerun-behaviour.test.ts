@@ -44,6 +44,18 @@ const read = (rel: string) => readFileSync(`${ROOT}${rel}`, "utf8");
 const RUNNER = read("tests/eval/clarification-rerun.eval.ts");
 const flat = (text: string) => text.replace(/\s+/g, " ");
 
+/**
+ * The body of the per-round loop, so ordering claims are about the round rather than about where
+ * two strings happen to fall in the file.
+ */
+const roundBody = () => {
+  const from = RUNNER.indexOf("for (const round of testCase.rounds) {");
+  const to = RUNNER.indexOf("const checks = checkRerunCase(");
+  expect(from).toBeGreaterThan(-1);
+  expect(to).toBeGreaterThan(from);
+  return RUNNER.slice(from, to);
+};
+
 /* ------------------------------------------------------------------ absence and refusal */
 
 describe("the corpus does not exist, and the slot refuses without it", () => {
@@ -73,16 +85,82 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
     expect(RUNNER).toContain("rerunRunnerUnavailable");
   });
 
-  it("journals each paid response the moment it arrives", () => {
+  it("journals each paid response inside the round, not after the loop", () => {
     // A one-shot set making two calls per case must not lose the whole run to a failure on the
-    // last one. The append happens before any checking, and the seam carries `raw` precisely so
-    // this is possible without editing the frozen type at T13.
-    const append = RUNNER.indexOf("appendFileSync(");
-    const check = RUNNER.indexOf("checkRerunCase(");
-    expect(append).toBeGreaterThan(-1);
-    expect(append).toBeLessThan(check);
-    expect(RUNNER).toContain("raw: outcome.raw");
+    // last one. Asserting only "append appears before checkRerunCase in the file" would pass a
+    // runner that buffered every round and wrote once at the end, which is the failure mode this
+    // exists to exclude — so the append is located inside the round body itself.
+    const body = roundBody();
+    const call = body.indexOf("await run(");
+    const append = body.indexOf("responseEntry(");
+    const record = body.indexOf("observed.promptsSent.push");
+    expect(call).toBeGreaterThan(-1);
+    expect(append).toBeGreaterThan(call);
+    expect(record).toBeGreaterThan(append);
+    expect(body).toContain("raw: outcome.raw");
     expect(RUNNER).toContain("JOURNAL_FILENAME");
+    // …and before any checking, which happens once the rounds are done.
+    expect(RUNNER.indexOf("responseEntry(")).toBeLessThan(RUNNER.indexOf("checkRerunCase("));
+  });
+
+  it("journals a billed response that validation then rejected, and still fails loudly", () => {
+    // `docs/model-contracts.md`: text the provider returned and our validation rejected "is a call
+    // that was answered and billed, not one that produced nothing". Without this, a rejection on
+    // round 2 of case 5 destroys every paid response of a one-shot set — the same loss as the
+    // success path, on the branch nobody rehearses.
+    const body = roundBody();
+    expect(body).toContain("try {");
+    expect(body).toContain("} catch (error) {");
+    const journalled = body.indexOf("failureEntry(");
+    const rethrow = body.indexOf("throw error;");
+    expect(journalled).toBeGreaterThan(-1);
+    // Journalled first, rethrown unchanged second: the run still fails, with the text kept.
+    expect(rethrow).toBeGreaterThan(journalled);
+    expect(body).toContain("rawResponses: failure.rawResponses ?? []");
+    // The seam says what a thrower must carry, so T9 cannot discover this requirement late.
+    expect(flat(read("src/lib/ai/evals/rerun-behaviour.ts"))).toContain("rawResponses?: string[]");
+  });
+
+  it("rotates a previous journal aside rather than appending into it", () => {
+    // `EVAL_OVERWRITE=1` is the only way past the write-once refusal, and it does not truncate a
+    // JSONL append. Without rotation two runs' rounds interleave in one file beside a report
+    // describing only the second.
+    const rotate = RUNNER.indexOf("rotateJournal(OUT, runStartedAt)");
+    expect(rotate).toBeGreaterThan(-1);
+    expect(rotate).toBeLessThan(RUNNER.indexOf("for (const testCase of"));
+    expect(RUNNER).toContain("kept the previous journal as");
+  });
+
+  it("writes real journal entries, under the journal's own filename", () => {
+    // An inline literal under `raw-responses.jsonl` is not a `JournalEntry`: `readJournal` types
+    // every line as one, so a recovery filtering on `status === "response"` would silently drop
+    // this set's responses. Building them through the constructors is what makes the status, and
+    // the required telemetry, non-optional at the call site.
+    expect(RUNNER).toContain("responseEntry(");
+    expect(RUNNER).toContain("failureEntry(");
+    expect(RUNNER).toContain("appendJournal(");
+    expect(RUNNER).not.toContain("appendFileSync(");
+    expect(RUNNER).toContain("telemetry: outcome.telemetry");
+    // The corpus does not determine what was sent — that is this set's whole subject — so the
+    // assembled input travels on the line.
+    expect(RUNNER).toContain("promptSent: outcome.promptSent");
+    expect(RUNNER).toContain("answersAssembled: outcome.answersAssembled");
+  });
+
+  it("carries telemetry on the seam, so this set's evidence can say what it cost", () => {
+    const source = read("src/lib/ai/evals/rerun-behaviour.ts");
+    expect(source).toContain("telemetry: RerunTelemetry;");
+    // One copy of the version, for the reason `journal.ts` gives.
+    expect(source).not.toContain("  schemaVersion: string;");
+    expect(RUNNER).toContain("outcome.telemetry.schemaVersion");
+  });
+
+  it("sets its own timeout, rather than inheriting one sized for another set", () => {
+    // The eval project's 15 minutes was chosen for a twelve-call set. This one makes at least two
+    // calls per case and `validateRerunCorpusShape` caps neither cases nor rounds; aborting a
+    // one-shot set mid-flight forces the `EVAL_OVERWRITE=1` path.
+    expect(RUNNER).toContain("45 * 60 * 1000");
+    expect(Number(/(\d+) \* 60 \* 1000/.exec(RUNNER)?.[1])).toBeGreaterThan(15);
   });
 
   it("checks the corpus shape before it would spend anything", () => {
@@ -137,11 +215,24 @@ describe("paths and ownership are fixed before the cases are known", () => {
    * genuinely the permitted one and has been re-reviewed.
    */
   it("changes in exactly one place, or not at all", () => {
-    const SEAM = /^\s*const run = .*;$/m;
-    expect(SEAM.test(RUNNER)).toBe(true);
+    // The right-hand side is an identifier or a member expression and nothing else. A looser
+    // `.*` would let the permitted line smuggle a second statement past the hash —
+    // `const run = realRunner; process.env.EVAL_OVERWRITE = "1";` would normalise identically —
+    // which makes the header's "nothing else here moves" literally true rather than nearly so.
+    const SEAM = /^\s*const run = [A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*;$/m;
+    expect(
+      SEAM.test(RUNNER),
+      "the `run` binding must stay a single `const run = <identifier>;` line: that exact shape is " +
+        "what the freeze below can normalise away",
+    ).toBe(true);
     const frozen = RUNNER.replace(SEAM, "  const run = <THE ONE PERMITTED SEAM>;");
     const digest = createHash("sha256").update(frozen, "utf8").digest("hex");
-    expect(digest).toBe("0a4d512ebc35daf05ff60d3b4d6177020764fc3c8c0db5877ea7a49a64060db4");
+    expect(
+      digest,
+      "tests/eval/clarification-rerun.eval.ts changed somewhere other than the `run` binding. " +
+        "It was frozen before the validation cases were authored; do not update this hash unless " +
+        "the change is genuinely the permitted one and has been re-reviewed.",
+    ).toBe("ad34fb424ed5e21fd638cfc320debd8be5d0db074670c9886bd50eae7e74ac84");
   });
 
   it("has an npm script, and it names the set explicitly", () => {

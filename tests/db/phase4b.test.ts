@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
@@ -605,9 +605,14 @@ describe("append-only does not mean the event can never be deleted", () => {
     const question = creativeQuestion();
     const revisionId = await insertRevision(eventId, 1, [question]);
     await answer(revisionId, 0, question);
+    // Resolved, not null: the pointer's FK is `on delete set null` and deferrable, so leaving it
+    // null would skip the interesting path — the deferred constraint firing at commit against an
+    // `events` row the cascade has already removed. A previous version of this test set it to
+    // null here, which was a no-op that read like a precondition.
+    const authoritative = await insertRevision(eventId, 2, []);
     await db.query(
-      `update public.events set authoritative_identity_revision_id = null where id = $1`,
-      [eventId],
+      `update public.events set authoritative_identity_revision_id = $2 where id = $1`,
+      [eventId, authoritative],
     );
 
     const code = await asActor(
@@ -758,7 +763,23 @@ describe("the SQL and TypeScript supported-version lists are the same list", () 
       "utf8",
     );
     const literals = [...migration.matchAll(/'(event_identity_schema_v\d+)'/g)].map((m) => m[1]);
-    expect([...new Set(literals)]).toEqual([...SUPPORTED_IDENTITY_SCHEMA_VERSIONS]);
+    // Sorted: which order the versions happen to appear in is not the property being asserted,
+    // and an order-sensitive comparison would fail spuriously the first time a second version is
+    // added to either side.
+    expect([...new Set(literals)].sort()).toEqual([...SUPPORTED_IDENTITY_SCHEMA_VERSIONS].sort());
+
+    // …and this is the only migration that defines the reader, so reading one file is reading all
+    // of them. A later `create or replace function public.identity_questions` elsewhere would
+    // change what SQL accepts while leaving the pairing above untouched.
+    const migrations = readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) =>
+      f.endsWith(".sql"),
+    );
+    const definers = migrations.filter((f) =>
+      readFileSync(path.join(ROOT, "supabase/migrations", f), "utf8").includes(
+        "function public.identity_questions",
+      ),
+    );
+    expect(definers).toEqual(["20260915000000_phase4b_identity_revisions.sql"]);
     const { rows } = await db.query(`select public.identity_is_provisional($1::jsonb, $2) as v`, [
       JSON.stringify(envelope([])),
       V5,

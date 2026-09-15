@@ -91,6 +91,18 @@ export interface JournalResponsePayload {
   raw: string;
   output: unknown;
   telemetry: CaseTelemetry;
+  /**
+   * What was actually sent, for a set whose frozen corpus does not fully determine it.
+   *
+   * The recovery invariant above says this entry *plus the frozen corpus and code* must be enough
+   * to reconstruct the case. For `creative-understanding` that holds with nothing here: `caseId`
+   * names a prompt in the corpus and that prompt is what was sent. The clarification-rerun set
+   * **assembles** its input — the case prompt plus the answers given in earlier rounds — so the
+   * text that went to the provider is not recoverable from the corpus alone and has to be on the
+   * line. Optional rather than required because a set whose corpus does determine its input has
+   * nothing to put here, and an empty object would be a record of nothing.
+   */
+  input?: unknown;
 }
 
 /**
@@ -105,6 +117,8 @@ export interface JournalFailurePayload {
   error: { kind: string; message: string; issues?: { path: string; message: string }[] };
   rawResponses: string[];
   telemetry: CaseTelemetry;
+  /** As on the response payload: what was sent, when the corpus does not determine it. */
+  input?: unknown;
 }
 
 type CaseTelemetry = CaseRun["telemetry"];

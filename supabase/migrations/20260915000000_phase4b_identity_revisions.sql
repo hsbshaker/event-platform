@@ -258,12 +258,28 @@ begin
 end;
 $$;
 
--- Deliberately not scoped `update of authoritative_identity_revision_id`: that clause fires only
--- when the column appears in the UPDATE's column list, so a future BEFORE trigger sorting after
--- this one and assigning NEW.authoritative_identity_revision_id would bypass the check entirely.
--- For an invariant this section claims is "enforced where it cannot be talked past", the scoping
--- is the one thing that could talk past it. Unscoped costs a re-derivation per event update, and
--- the null short-circuit makes that cheap.
+-- Deliberately not scoped `update of authoritative_identity_revision_id`. That clause fires only
+-- when the column appears in the UPDATE's own column list, so a scoped trigger misses every
+-- assignment that does not come through the statement: NEW.authoritative_identity_revision_id set
+-- by a BEFORE trigger sorting *earlier* than this one, which is the live configuration here
+-- (PostgreSQL fires BEFORE ROW triggers in name order, and both
+-- `events_a_protect_server_columns` and `events_b_bump_row_version` sort ahead of
+-- `events_validate_authoritative_identity`).
+--
+-- Stated precisely, because the obvious version of this claim is false: unscoping does NOT catch a
+-- trigger sorting *after* this one. Such a trigger assigns after the validation has already run,
+-- scoped or not. Anyone adding an `events_z_*` trigger that touches this column must validate it
+-- there; do not read this comment as cover for that case.
+--
+-- What it costs: once an identity is resolved the pointer is non-null, so every `events` UPDATE —
+-- every autosave — pays a PK lookup plus one `jsonb_array_elements` scan of that revision's
+-- questions. There is no hot loop on this table, so that is acceptable; the null short-circuit
+-- only makes it free *before* an identity exists, which is not the steady state.
+--
+-- And what it widens: if `identity_questions` ever raised for a stored row (the "extend, never
+-- narrow" rule above broken, or a restore under a changed reader), every UPDATE to that event
+-- would fail, not only pointer updates. That is fail-closed and intended, but it is a larger
+-- blast radius than the scoped version and should be recognised as such rather than discovered.
 create trigger events_validate_authoritative_identity
   before insert or update on public.events
   for each row execute function public.validate_authoritative_identity();

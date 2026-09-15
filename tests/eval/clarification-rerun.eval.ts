@@ -28,14 +28,22 @@
  * shape/lifecycle — NOT fresh generalization evidence for EventIdentity v5 and NOT a replacement
  * for the spent v5 sealed challenge.**
  */
-import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { EVAL_SETS, isProtectedOutput } from "@/lib/ai/evals/corpus";
 import { isProvisional } from "@/lib/ai/event-identity/lifecycle";
-import { JOURNAL_FILENAME } from "@/lib/ai/evals/journal";
+import {
+  appendJournal,
+  failureEntry,
+  JOURNAL_FILENAME,
+  responseEntry,
+  rotateJournal,
+  type JournalCaseContext,
+} from "@/lib/ai/evals/journal";
+import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import {
   buildRerunReviewArtifact,
   checkRerunCase,
@@ -113,104 +121,181 @@ if (shapeProblems.length > 0) {
 }
 
 describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
-  it("runs every case and records what happened", async () => {
-    mkdirSync(OUT, { recursive: true });
+  it(
+    "runs every case and records what happened",
+    async () => {
+      mkdirSync(OUT, { recursive: true });
 
-    // T9 supplies the assembly. Until it does, this throws with an explanation rather than
-    // silently exercising a code path that does not exist.
-    const run = rerunRunnerUnavailable;
+      // T9 supplies the assembly. Until it does, this throws with an explanation rather than
+      // silently exercising a code path that does not exist.
+      const run = rerunRunnerUnavailable;
 
-    /**
-     * A paid response is durable the moment it arrives.
-     *
-     * Appended per round, before any checking, for the reason `journal.ts` spells out: a bug in
-     * our own deterministic code must not be able to destroy responses already paid for. This set
-     * makes at least two calls per case and runs once, so the alternative is losing the whole run
-     * to a failure on the last one.
-     */
-    const journal = path.join(OUT, JOURNAL_FILENAME);
-    const runStartedAt = new Date().toISOString();
+      /**
+       * A paid response is durable the moment it arrives.
+       *
+       * Appended per round, before any checking, for the reason `journal.ts` spells out: a bug in
+       * our own deterministic code must not be able to destroy responses already paid for. This
+       * set makes at least two calls per case and runs once, so the alternative is losing the
+       * whole run to a failure on the last one.
+       *
+       * The journal is rotated, never appended into. `EVAL_OVERWRITE=1` is the only way past the
+       * refusal above, and without rotation a second run's rounds would interleave with a first
+       * run's in one file beside a `mechanical-report.md` describing only the second.
+       * `runStartedAt` on every line makes that attributable, which is the fallback, not the
+       * control.
+       *
+       * This set writes no `run.json`, so the "journal with no `run.json` beside it is visibly an
+       * aborted run" signal takes a different form here: `mechanical-report.md` is written only
+       * after every case has finished, so a journal with no report beside it is the aborted run.
+       */
+      const runStartedAt = new Date().toISOString();
+      const journal = path.join(OUT, JOURNAL_FILENAME);
+      const rotated = rotateJournal(OUT, runStartedAt);
+      if (rotated) process.stdout.write(`kept the previous journal as ${path.basename(rotated)}\n`);
 
-    const observations: RerunObservation[] = [];
-    const rows: string[] = [];
+      /**
+       * One journal line per round, so the id names the round: `<corpus case id>#<1-based round>`.
+       * A recovery joins back to the corpus on the part before `#`. The corpus alone does not
+       * determine what was sent — that is the whole subject of this set — so the assembled input
+       * travels on the line, in `payload.input`.
+       */
+      const caseContext = (caseId: string, round: number): JournalCaseContext => ({
+        caseId: `${caseId}#${round}`,
+        runStartedAt,
+        evalSet: SET,
+        corpusVersion: corpus.version,
+        recordedAt: new Date().toISOString(),
+      });
 
-    for (const testCase of corpus.cases as RerunCase[]) {
-      const observed: RerunObservation = {
-        caseId: testCase.id,
-        promptsSent: [],
-        assemblyVersions: [],
-        results: [],
-        provisional: [],
-        answersAssembled: [],
-        schemaVersions: [],
-      };
-      for (const round of testCase.rounds) {
-        const outcome = await run({ prompt: testCase.prompt, answers: round.answers });
-        appendFileSync(
-          journal,
-          `${JSON.stringify({
-            caseId: testCase.id,
-            round: observed.results.length + 1,
-            runStartedAt,
-            recordedAt: new Date().toISOString(),
-            evalSet: SET,
-            corpusVersion: corpus.version,
-            payload: {
+      const observations: RerunObservation[] = [];
+      const rows: string[] = [];
+
+      for (const testCase of corpus.cases as RerunCase[]) {
+        const observed: RerunObservation = {
+          caseId: testCase.id,
+          promptsSent: [],
+          assemblyVersions: [],
+          results: [],
+          provisional: [],
+          answersAssembled: [],
+          schemaVersions: [],
+        };
+        for (const round of testCase.rounds) {
+          const roundNumber = observed.results.length + 1;
+          const startedRound = Date.now();
+
+          // The call is the only statement inside the `try`, for the reason the
+          // creative-understanding runner gives: anything else in here would be journaled as a
+          // provider failure, writing one of our own bugs into evidence as a claim about the
+          // model. The catch records what was already paid for and rethrows unchanged, so a
+          // failure still fails the run loudly.
+          let outcome: Awaited<ReturnType<typeof run>>;
+          try {
+            outcome = await run({ prompt: testCase.prompt, answers: round.answers });
+          } catch (error) {
+            const failure = error as {
+              kind?: string;
+              message?: string;
+              issues?: { path: string; message: string }[];
+              rawResponses?: string[];
+              usage?: { latencyMs?: number; transientRetries?: number; repairRetries?: number };
+            };
+            appendJournal(
+              journal,
+              failureEntry(caseContext(testCase.id, roundNumber), {
+                error: {
+                  kind: failure.kind ?? "unknown",
+                  message: failure.message ?? String(error),
+                  issues: failure.issues,
+                },
+                // Every text the provider returned and we were billed for. `failureEntry` reads
+                // this to decide between `unvalidated_response` and `no_response`, so a billed
+                // call is never recorded as one that produced nothing.
+                rawResponses: failure.rawResponses ?? [],
+                telemetry: {
+                  model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol",
+                  promptVersion: EVENT_IDENTITY_PROMPT_VERSION,
+                  schemaVersion: EVENT_IDENTITY_SCHEMA_VERSION,
+                  latencyMs: failure.usage?.latencyMs ?? Date.now() - startedRound,
+                  transientRetries: failure.usage?.transientRetries ?? 0,
+                  repairRetries: failure.usage?.repairRetries ?? 0,
+                  schemaValidFirstCall: false,
+                },
+                input: { prompt: testCase.prompt, answers: round.answers },
+              }),
+            );
+            throw error;
+          }
+
+          appendJournal(
+            journal,
+            responseEntry(caseContext(testCase.id, roundNumber), {
               raw: outcome.raw,
               output: outcome.result,
-              promptSent: outcome.promptSent,
-              assemblyVersion: outcome.assemblyVersion,
-              schemaVersion: outcome.schemaVersion,
-              answersAssembled: outcome.answersAssembled,
-            },
-          })}\n`,
-          "utf8",
+              telemetry: outcome.telemetry,
+              input: {
+                prompt: testCase.prompt,
+                answers: round.answers,
+                promptSent: outcome.promptSent,
+                assemblyVersion: outcome.assemblyVersion,
+                answersAssembled: outcome.answersAssembled,
+              },
+            }),
+          );
+
+          observed.promptsSent.push(outcome.promptSent);
+          observed.assemblyVersions.push(outcome.assemblyVersion);
+          observed.results.push(outcome.result);
+          observed.schemaVersions.push(outcome.telemetry.schemaVersion);
+          observed.answersAssembled.push(outcome.answersAssembled);
+          // Asked of the lifecycle module, never assumed. Pushing a literal `false` here would
+          // make `boundaryResolves` report "the final round is authoritative" about a round that
+          // still carried a boundary question — the committed evidence asserting the opposite of
+          // what happened, for the one dimension that check exists to measure.
+          observed.provisional.push(isProvisional(outcome.result, outcome.telemetry.schemaVersion));
+        }
+        const checks = checkRerunCase(testCase, observed);
+        observations.push(observed);
+        rows.push(
+          `| ${testCase.id} | ${mechanicalPass(checks) ? "pass" : "FAIL"} | ` +
+            checks.map((c) => `${c.name}:${c.status}`).join(", ") +
+            " |",
         );
-        observed.promptsSent.push(outcome.promptSent);
-        observed.assemblyVersions.push(outcome.assemblyVersion);
-        observed.results.push(outcome.result);
-        observed.schemaVersions.push(outcome.schemaVersion);
-        observed.answersAssembled.push(outcome.answersAssembled);
-        // Asked of the lifecycle module, never assumed. Pushing a literal `false` here would make
-        // `boundaryResolves` report "the final round is authoritative" about a round that still
-        // carried a boundary question — the committed evidence asserting the opposite of what
-        // happened, for the one dimension that check exists to measure.
-        observed.provisional.push(isProvisional(outcome.result, outcome.schemaVersion));
       }
-      const checks = checkRerunCase(testCase, observed);
-      observations.push(observed);
-      rows.push(
-        `| ${testCase.id} | ${mechanicalPass(checks) ? "pass" : "FAIL"} | ` +
-          checks.map((c) => `${c.name}:${c.status}`).join(", ") +
-          " |",
+
+      writeFileSync(
+        path.join(OUT, "mechanical-report.md"),
+        [
+          "# Clarification rerun behaviour — mechanical report",
+          "",
+          `Evidence class: **${RERUN_ACCEPTANCE.evidenceClass}**`,
+          ...RERUN_ACCEPTANCE.notes.map((note) => `- ${note}`),
+          "",
+          "| Case | Mechanical | Checks |",
+          "| --- | --- | --- |",
+          ...rows,
+          "",
+          `Mechanical criterion: ${RERUN_ACCEPTANCE.mechanical}`,
+          "",
+          `Qualitative criterion: ${RERUN_ACCEPTANCE.qualitative}`,
+        ].join("\n"),
+        "utf8",
       );
-    }
 
-    writeFileSync(
-      path.join(OUT, "mechanical-report.md"),
-      [
-        "# Clarification rerun behaviour — mechanical report",
-        "",
-        `Evidence class: **${RERUN_ACCEPTANCE.evidenceClass}**`,
-        ...RERUN_ACCEPTANCE.notes.map((note) => `- ${note}`),
-        "",
-        "| Case | Mechanical | Checks |",
-        "| --- | --- | --- |",
-        ...rows,
-        "",
-        `Mechanical criterion: ${RERUN_ACCEPTANCE.mechanical}`,
-        "",
-        `Qualitative criterion: ${RERUN_ACCEPTANCE.qualitative}`,
-      ].join("\n"),
-      "utf8",
-    );
+      writeFileSync(
+        path.join(OUT, "blind-review.md"),
+        buildRerunReviewArtifact(observations),
+        "utf8",
+      );
 
-    writeFileSync(
-      path.join(OUT, "blind-review.md"),
-      buildRerunReviewArtifact(observations),
-      "utf8",
-    );
-
-    expect(observations).toHaveLength(corpus.cases.length);
-  });
+      expect(observations).toHaveLength(corpus.cases.length);
+    },
+    // Explicit, and generous, because the inherited 15-minute project budget was sized for a
+    // twelve-call set. This one makes at least two calls per case and the corpus caps neither
+    // count; at the ~23 s/call mean of the holdout run, fifteen cases of three rounds is ~17
+    // minutes. A timeout here aborts a one-shot set mid-flight, which then needs
+    // `EVAL_OVERWRITE=1` to resume — the exact path rotation exists to make safe, and not one to
+    // walk down for the sake of a number chosen for a different set.
+    45 * 60 * 1000,
+  );
 });

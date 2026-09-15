@@ -549,6 +549,16 @@ phase:
 | payload | `design_intent` jsonb and `presentation` jsonb (`name`, `description`) — the validated output, immutable. `presentation` is persisted here rather than waiting for `design_concepts`, which does not exist until composition |
 | | `created_at`; `unique (batch_id, concept_index)`; a protect trigger refusing every `UPDATE` |
 
+**`generation_run_id` here takes no foreign key, for the reason 4B learned the expensive way.**
+A `references public.generation_runs (id) on delete set null` on a table whose protect trigger
+refuses every `UPDATE` is a contradiction the database resolves at the worst moment: pruning a
+telemetry row makes the referential-integrity system issue `UPDATE … SET generation_run_id = NULL`
+against the immutable row, which the trigger refuses, so the prune fails with "artifacts are
+immutable". 4B hit exactly this on `event_identity_revisions` and settled it by dropping the
+referential action: the artifact is evidence, and telemetry retention should never be able to
+rewrite or block it. `on delete restrict` is not the alternative — it makes telemetry unprunable
+instead. Apply the same rule to any other column added to an append-only evidence table.
+
 ### G.3 Relationship to `design_concepts` — settled now, to avoid known migration debt
 
 1. **4D inserts `design_concepts` only after composition exists.** It already cannot do otherwise;
