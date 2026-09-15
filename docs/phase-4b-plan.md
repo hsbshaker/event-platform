@@ -909,8 +909,17 @@ What it is, stated so nobody upgrades it later:
 - it does **not** reopen, replace or substitute for the spent `v5` sealed challenge;
 - it validates the input shape and lifecycle, not the interpreter's creative quality.
 
-Its mechanical and qualitative criteria are frozen with the corpus, before the run. Its slot is
-wired while its cases are unknown, and its cases are **not authored in this task**.
+Its mechanical and qualitative criteria are frozen at **T5**, strictly before the corpus exists,
+and are applied to the run unchanged — not co-frozen with the corpus, which is the arrangement this
+sequencing exists to replace. Its slot is wired while its cases are unknown, and its cases are
+**not authored in this task**.
+
+**A note on how §3.4's class definition applies here.** That definition says pre-registered
+validation is *authored and frozen before the prompt is written*. `v5`'s prompt was frozen long
+ago, so what this set must precede is the **assembly** it exercises — T9 — and that is the
+substitution being made. T7 still scans the corpus against the frozen prompt and wire schema, so
+the original protection is kept as well as adapted, and nothing about the class is relaxed by the
+substitution.
 
 ---
 
@@ -924,8 +933,8 @@ permitted until the gate that names one.
 **The causal order is the point, not the numbering.** The evaluation machinery and every acceptance
 criterion are frozen **before any validation case exists**, and the cases are authored by someone
 who did not build that machinery and does not build the assembly it tests. An earlier draft of this
-table had the corpus frozen before T4 while letting the harness follow it, which is the same
-contamination one level along: a harness implementer who has read the cases can decide how they are
+table had the corpus frozen before the assembly task — now T9 — while letting the harness follow it,
+which is the same contamination one level along: a harness implementer who has read the cases can decide how they are
 graded. Fixed by ordering, not by a promise.
 
 | # | Task | Files / modules | Depends on | Tests | Acceptance criteria | Model-visible? | Senior review? | Live call? |
@@ -933,18 +942,31 @@ graded. Fixed by ordering, not by a promise.
 | **T1** | `isProvisional`, `assertAuthoritative`, branded type | `src/lib/ai/event-identity/lifecycle.ts` | — | unit over all valid shapes; brand cannot be cast away | `spec.md §31 — Event Identity and diversity`; `§7.6b`, `§7.7` | no | no | no |
 | **T2** | Identity revisions: table, `identity_questions` + `identity_is_provisional`, generated column, pointer trigger, protect trigger, RLS. **Record in the migration that `pg_dump` does not dump generated-column data and a restore recomputes it, so the supported-schema-version list may be extended but never narrowed** — narrowing it would fail every restore and branch clone on historical rows. That fails loudly, which is the right direction, but it makes "extend, never narrow" a rule rather than a preference | `supabase/migrations/…_phase4b_identity_revisions.sql` | T1 | db: a supplied `is_provisional` is rejected; a provisional revision cannot become authoritative even with the column tampered; cross-event pointer refused; updates refused; **TS/SQL parity over the four `v5` journals** | `§7.6b`, `§7.7`, `§9.4` | no | **yes** | no |
 | **T3** | `clarification_answers`: table, binding trigger, append-only trigger, RLS; unconditional `events.prompt` immutability trigger | migration; `src/lib/events/clarification.ts` | T2 | db: wrong event, wrong index, wrong `kind`, drifted copy, boundary-defer, duplicate answer, non-member and mis-attributed `answered_by` all refused; `events.prompt` unwritable even by service role | `development-plan.md` 4B (c); `spec.md §31 — Prompt, auth, and generation` | no | **yes** | no |
-| **T4** | **Prewire the rerun-behaviour validation machinery, while no cases exist.** Fixed corpus path and filename; fixed output directory; the evidence-class label (§3.9); the corpus structural contract the cases must satisfy; the runner slot; write-once and `PROTECTED_RESULT_DIRS` behaviour; leakage-scan coverage of the new corpus path; the generic mechanical checks; the qualitative artifact and review contract; and **the mechanical and qualitative acceptance criteria themselves** | `src/lib/ai/evals/*`, runner slot | T3 | unit/static only, per the operational rule. **A named test asserts the corpus is absent and the slot refuses**, so the prewiring is verified without a case existing — the `challenge2` arrangement, reused | `model-contracts.md §4.5` | no | **yes** | no |
+| **T4** | **Prewire the rerun-behaviour validation machinery, while no cases exist.** Fixed corpus path and filename; fixed output directory; the evidence-class label (§3.9); the corpus structural contract the cases must satisfy; the runner slot; write-once and `PROTECTED_RESULT_DIRS` behaviour; the generic mechanical checks; the qualitative artifact and review contract; **the mechanical and qualitative acceptance criteria themselves**; and **leakage-scan coverage of two surfaces, not one** — the new corpus path, *and* the assembly's own static model-visible text as a third scanned surface beside the prompt and wire schema (see below, and note that `prompt-leakage.test.ts` hardcodes `SURFACES` today, so this is a T4 edit or it is never a legal one) | `src/lib/ai/evals/*`, runner slot | T3 | unit/static only, per the operational rule. **A named test asserts the corpus is absent and the slot refuses**, so the prewiring is verified without a case existing — the `challenge2` arrangement, reused | `model-contracts.md §4.5` | no | **yes** | no |
 | **T5** | **Freeze and independently review the validation tooling.** Nothing below may change T4's paths, checks or criteria | — | T4 | the T4 suite, green at the freeze SHA | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | no |
-| **T6** | **An independent author writes the pre-registered rerun-behaviour cases**, working from the published capability and contract dimensions only — not this repository, not T4's checker source, and not the assembly they will exercise. Not the implementer of T4 or T9 (§3.9) | the corpus file alone | T5 | the frozen T4 structural contract accepts it | `model-contracts.md §4.5` | no | n/a — authored, not implemented | no |
+| **T6** | **An independent author writes the pre-registered rerun-behaviour cases**, working from the published capability and contract dimensions only — not this repository, not T4's checker source, and not the assembly they will exercise. Not the implementer of T4 or T9 (§3.9). The file lands in the repository at T8, not here | the corpus file, authored outside the repository | T5 | the frozen T4 structural contract accepts it | `model-contracts.md §4.5` | no | n/a — authored, not implemented | no |
 | **T7** | **Independent fairness and leakage review of the corpus.** A collision with pre-existing production or model-visible text is fixed **at the corpus**, by its author — never by relaxing the scanner or the checker (§3.5) | — | T6 | leakage scan against the frozen prompt and wire schema; fairness read | `model-contracts.md §4.5` | no | **yes** | no |
 | **T8** | **Freeze the corpus at its own input SHA**, in a commit that adds the corpus file and nothing else | the corpus file alone | T7 | the T4 suite still green; the absence test retires without a source edit | `model-contracts.md §4.5` | no | **yes** | no |
-| **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
+| **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds; **leakage scan clean — the assembly's static text against the frozen corpus** | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
 | **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh; a late Route A answer leaves an in-flight batch untouched | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
 | **T11** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T10 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
 | **T12** | Independent engineering review of the integrated change, then **implementation freeze** | — | T11 | gate items 1–11 all green at the freeze SHA | §4B gate | no | **yes** | no |
 | | **▶ 4B GATE — STOP. Explicit authorization required before the one validation run** | | | | | | | |
 | **T13** | Run the frozen pre-registered set **exactly once** | — | T12 + authorization | the frozen T4 criteria, applied unchanged | §4B gate item 12 | no | **yes** | **yes — one run** |
 | **T14** | Commit the evidence unchanged **and protect its directory in the same change** | `src/lib/ai/evals/corpus.ts`, evidence dir | T13 | offline only; protection verified by pure/unit/static checks, never by running an eval | `model-contracts.md §4.5` | no | **yes** | no |
+
+**Why T4 must name the assembly as a scan surface, and why it is the last chance to.** T9 is
+model-visible: §B.3 says the assembly version identifies *how each input is labelled to the model,
+in what order they appear, how precedence between them is expressed*. Those are static strings that
+ship on every production request, and T9 may legitimately read the frozen cases — so a label or
+precedence phrase could echo a case, on a path nothing currently scans. T7's scan is bounded to
+text that exists at T7, §3.5's remedy is to fix the collision **at the corpus** and the corpus is
+frozen at T8, and the scanner itself cannot be changed after T5. Every escape closes in sequence, so
+the surface has to be declared at T4 or the gap is permanent. It is the one finding in this
+restructuring with a deadline inside the plan.
+
+(Phase 4C does not have this hole: T21 writes the prompt after the corpora are frozen and is scanned
+against them.)
 
 **What T5 freezing before T6 buys.** After the cases are revealed, none of T4's paths, structural
 contract, mechanical checks, qualitative contract or acceptance criteria may change to accommodate
