@@ -122,7 +122,11 @@ describe("the corpus does not exist, and the slot refuses without it", () => {
         (line) => line.trim() && !line.trim().startsWith("*") && !line.trim().startsWith("/*"),
       );
     expect(code.length).toBeLessThanOrEqual(3);
-    expect(seam).toContain("rerunRunnerUnavailable");
+    // T9 repointed it at the production path. The refusal above is still the only other
+    // implementation of the type, and the seam is still one binding — which is what this guard
+    // was built to keep true across the bump, rather than being deleted by it.
+    expect(seam).toContain("rerun-runner");
+    expect(read("src/lib/ai/evals/rerun-runner.ts")).toContain("generateEventIdentity");
   });
 
   it("journals the paid response inside the case, not after the loop", () => {
@@ -1591,11 +1595,13 @@ describe("the blind artifact tells the reviewer what to look for, and nothing el
 /* ------------------------------------------------------------------ the leakage surface */
 
 describe("T9 cannot introduce unscanned model-visible text", () => {
-  it("declares the assembly surface before it exists", () => {
+  it("scans the assembly surface it declared before that file existed", () => {
+    // Declared at T4 while absent, so the scanner could not be widened after the corpus froze.
+    // T9 created it, and the declaration is why every string it added is scanned.
     expect(MODEL_VISIBLE_SURFACES["input assembly"]).toBe(
       "src/lib/ai/openai/event-identity-input.ts",
     );
-    expect(existsSync(`${ROOT}${MODEL_VISIBLE_SURFACES["input assembly"]}`)).toBe(false);
+    expect(existsSync(`${ROOT}${MODEL_VISIBLE_SURFACES["input assembly"]}`)).toBe(true);
   });
 
   it("scans the provider boundary, which carries model-visible text today", () => {
@@ -1607,9 +1613,16 @@ describe("T9 cannot introduce unscanned model-visible text", () => {
     const boundary = MODEL_VISIBLE_SURFACES["provider boundary"];
     expect(boundary).toBe("src/lib/ai/openai/event-identity.ts");
     expect(existsSync(`${ROOT}${boundary}`)).toBe(true);
+    // T9 moved the description markers and the no-inspiration line into the assembly module, so
+    // that every model-visible string the call sends lives in the one declared surface. The
+    // boundary still carries its own: the repair correction turn is model-visible text that no
+    // other surface covers, and it is the reason this file stays scanned.
     const source = read(boundary);
-    expect(source).toContain("HOST_EVENT_DESCRIPTION");
-    expect(source).toContain("There is no visual inspiration supplied with this request.");
+    expect(source).toContain("Your previous response did not satisfy the schema:");
+    expect(source).not.toContain("HOST_EVENT_DESCRIPTION");
+    const assembly = read(MODEL_VISIBLE_SURFACES["input assembly"]);
+    expect(assembly).toContain("HOST_EVENT_DESCRIPTION");
+    expect(assembly).toContain("There is no visual inspiration supplied with this request.");
     // And the scan reads the shared declaration rather than a list of its own.
     expect(read("src/lib/ai/evals/prompt-leakage.test.ts")).toContain("MODEL_VISIBLE_SURFACES");
   });
@@ -1622,15 +1635,22 @@ describe("T9 cannot introduce unscanned model-visible text", () => {
     const versions = read("src/lib/ai/versions.ts");
     expect(versions).toContain("the original prompt only");
     expect(versions).not.toContain("prompt plus inspiration");
-    const boundary = read("src/lib/ai/openai/event-identity.ts");
-    expect(boundary).toContain("There is no visual inspiration supplied with this request.");
+    // Still true of v2: T9 added the clarification channel and deliberately not the inspiration
+    // one, so the line declaring inspiration absent is still what goes to the model.
+    const assembly = read(MODEL_VISIBLE_SURFACES["input assembly"]);
+    expect(assembly).toContain("There is no visual inspiration supplied with this request.");
+    expect(assembly).not.toMatch(/inspiration.*(image|photo|attach|upload)/i);
   });
 
   it("holds the assembly version and that file inseparable", () => {
     // Today: v1, file absent, consistent. The leakage scan fails the moment the version moves off
     // v1 without the file appearing — which is the only window in which a collision could be
     // introduced, because by then the corpus is frozen and the scanner cannot change.
-    expect(EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION).toBe(ASSEMBLY_VERSION_BEFORE_ANSWERS);
+    // Bumped at T9, and the file the declaration names now exists. Before the bump the scan
+    // required the opposite pairing; either way the version and the scannable file move together,
+    // which is the property that made a collision introduced at T9 impossible to hide.
+    expect(EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION).not.toBe(ASSEMBLY_VERSION_BEFORE_ANSWERS);
+    expect(existsSync(`${ROOT}${MODEL_VISIBLE_SURFACES["input assembly"]}`)).toBe(true);
     const scan = read("src/lib/ai/evals/prompt-leakage.test.ts");
     expect(scan).toContain("ASSEMBLY_VERSION_BEFORE_ANSWERS");
     expect(scan).toContain("MODEL_VISIBLE_SURFACES");

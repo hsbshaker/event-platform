@@ -1,0 +1,185 @@
+{
+  "note": "Inputs for the version-named input-assembly goldens. Generic by construction: nothing here is drawn from the frozen validation corpus, and the wording is deliberately unlike it.",
+  "cases": {
+    "prompt-only": {
+      "prompt": "a quiet supper for eight to mark my sister finishing her doctorate"
+    },
+    "one-answer-selected": {
+      "prompt": "a quiet supper for eight to mark my sister finishing her doctorate",
+      "questions": [
+        [
+          {
+            "question": "Should the evening read as a celebration or as a thank-you?",
+            "options": ["A celebration", "A thank-you", "Leave it to us"]
+          }
+        ]
+      ],
+      "answers": [
+        {
+          "revision": 1,
+          "questionIndex": 0,
+          "selectedOptionLabel": "A thank-you",
+          "freeText": null,
+          "isDefer": false
+        }
+      ]
+    },
+    "one-answer-typed": {
+      "prompt": "a quiet supper for eight to mark my sister finishing her doctorate",
+      "questions": [
+        [
+          {
+            "question": "Should the evening read as a celebration or as a thank-you?",
+            "options": ["A celebration", "A thank-you", "Leave it to us"]
+          }
+        ]
+      ],
+      "answers": [
+        {
+          "revision": 1,
+          "questionIndex": 0,
+          "selectedOptionLabel": null,
+          "freeText": "neither really — she'd hate either of those, keep it plain",
+          "isDefer": false
+        }
+      ]
+    },
+    "one-answer-both": {
+      "prompt": "a quiet supper for eight to mark my sister finishing her doctorate",
+      "questions": [
+        [
+          {
+            "question": "Should the evening read as a celebration or as a thank-you?",
+            "options": ["A celebration", "A thank-you", "Leave it to us"]
+          }
+        ]
+      ],
+      "answers": [
+        {
+          "revision": 1,
+          "questionIndex": 0,
+          "selectedOptionLabel": "A thank-you",
+          "freeText": "a thank-you, but a dry one",
+          "isDefer": false
+        }
+      ]
+    },
+    "defer": {
+      "prompt": "a quiet supper for eight to mark my sister finishing her doctorate",
+      "questions": [
+        [
+          {
+            "question": "Should the evening read as a celebration or as a thank-you?",
+            "options": ["A celebration", "A thank-you", "Leave it to us"]
+          }
+        ]
+      ],
+      "answers": [
+        {
+          "revision": 1,
+          "questionIndex": 0,
+          "selectedOptionLabel": "Leave it to us",
+          "freeText": null,
+          "isDefer": true
+        }
+      ]
+    },
+    "two-answers-one-revision": {
+      "prompt": "a quiet supper for eight to mark my sister finishing her doctorate",
+      "questions": [
+        [
+          {
+            "question": "Should the evening read as a celebration or as a thank-you?",
+            "options": ["A celebration", "A thank-you", "Leave it to us"]
+          },
+          {
+            "question": "How much of the university should be visible in the look?",
+            "options": ["Plenty of it", "None at all", "Your call"]
+          }
+        ]
+      ],
+      "answers": [
+        {
+          "revision": 1,
+          "questionIndex": 0,
+          "selectedOptionLabel": "A thank-you",
+          "freeText": null,
+          "isDefer": false
+        },
+        {
+          "revision": 1,
+          "questionIndex": 1,
+          "selectedOptionLabel": "None at all",
+          "freeText": null,
+          "isDefer": false
+        }
+      ]
+    },
+    "cumulative-two-revisions": {
+      "prompt": "a quiet supper for eight to mark my sister finishing her doctorate",
+      "questions": [
+        [
+          {
+            "question": "Should the evening read as a celebration or as a thank-you?",
+            "options": ["A celebration", "A thank-you", "Leave it to us"]
+          }
+        ],
+        [
+          {
+            "question": "How much of the university should be visible in the look?",
+            "options": ["Plenty of it", "None at all", "Your call"]
+          }
+        ]
+      ],
+      "answers": [
+        {
+          "revision": 2,
+          "questionIndex": 0,
+          "selectedOptionLabel": "None at all",
+          "freeText": null,
+          "isDefer": false
+        },
+        {
+          "revision": 1,
+          "questionIndex": 0,
+          "selectedOptionLabel": "A thank-you",
+          "freeText": null,
+          "isDefer": false
+        }
+      ]
+    },
+    "later-answer-conflicts": {
+      "prompt": "a loud garden party in july, forty people, nothing formal about it",
+      "questions": [
+        [
+          {
+            "question": "Should the evening read as a celebration or as a thank-you?",
+            "options": ["A celebration", "A thank-you", "Leave it to us"]
+          }
+        ],
+        [
+          {
+            "question": "How much of the university should be visible in the look?",
+            "options": ["Plenty of it", "None at all", "Your call"]
+          }
+        ]
+      ],
+      "answers": [
+        {
+          "revision": 1,
+          "questionIndex": 0,
+          "selectedOptionLabel": "A celebration",
+          "freeText": null,
+          "isDefer": false
+        },
+        {
+          "revision": 2,
+          "questionIndex": 0,
+          "selectedOptionLabel": "Plenty of it",
+          "freeText": "scrap the garden, we booked the faculty hall and it's black tie now",
+          "isDefer": false
+        }
+      ]
+    }
+  }
+}

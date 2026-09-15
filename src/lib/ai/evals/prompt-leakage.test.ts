@@ -62,7 +62,9 @@ describe("which model-visible surfaces this scan covers", () => {
    * the file the declaration names, and the suite fails.
    */
   it("requires the input-assembly surface to exist once the assembly carries answers", () => {
-    if (EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION === ASSEMBLY_VERSION_BEFORE_ANSWERS) {
+    // Compared as `string`: the constants are literal types, so after a bump TypeScript would
+    // call this branch unreachable and refuse to compile the guard that has to survive the bump.
+    if ((EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION as string) === ASSEMBLY_VERSION_BEFORE_ANSWERS) {
       expect(ABSENT_SURFACES).toEqual(["input assembly"]);
       return;
     }

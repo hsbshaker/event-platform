@@ -75,14 +75,20 @@
  * Phase 4A shipped and every piece of `v5` evidence was produced under. `spec.md §7.5` requires
  * inspiration assets to reach this call, so adding that channel is a real gap to close — and,
  * under the bump rule below, it is its own version bump rather than something `v1` already covers.
- * Phase 4B T9 introduces `event_identity_input_v2` for clarification answers.
+ * **`v2` is `v1` plus the clarification block** that Phase 4B T9 introduced: a rerun carries every
+ * clarification answer still in scope, oldest first, each rendered with the exact question it
+ * answers, under a stated precedence rule. With nothing to carry it is byte-identical to `v1`, so
+ * a first call is not a different request than it was — `assembly.golden.test.ts` pins that
+ * against the `v1` fixture rather than asserting it in prose. The inspiration channel is still
+ * absent and still owes its own bump; putting two model-visible channels in one version would
+ * leave the evidence unable to say which one moved the result.
  *
  * It bumps for any change to precedence, labelling, ordering or representation of clarification
  * answers, for adding or removing an input channel, and for changing how the original prompt is
  * delimited. It does not bump for a prompt-file edit or a schema change; those have versions of
  * their own and the three are independent.
  */
-export const EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION = "event_identity_input_v1";
+export const EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION = "event_identity_input_v2";
 
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5";
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5";
