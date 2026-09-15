@@ -461,13 +461,17 @@ describe("the version says the model is seeing different text", () => {
     );
   });
 
-  it("records that the first sealed corpus is spent, in both places that claim otherwise", () => {
+  it("records that both sealed corpora are spent, in every place that claims otherwise", () => {
     expect(flat(CONTRACTS)).toContain("Never generalization evidence again");
     expect(flat(PLAN)).toContain("new independently authored sealed corpus");
-    // Two independent sites assert it — the evidence-class paragraph and the 4A status block —
-    // and a guard that accepted either one alone would survive deleting the other.
+    // Several independent sites assert it — the evidence-class paragraph and the 4A status block
+    // in each document — and a guard that accepted any one alone would survive deleting the rest.
     expect(flat(PLAN)).toContain("**`sealed_challenge_v1` is spent.**");
-    expect(flat(PLAN)).toContain("because `sealed_challenge_v1` is spent");
+    expect(flat(PLAN)).toContain("`sealed_challenge_v1` was already spent at `v4`");
+    // `v2` spent itself by being run. Canon must not leave it looking available.
+    expect(flat(PLAN)).toContain("`sealed_challenge_v2` is spent by the run that carried the GO");
+    expect(flat(CONTRACTS)).toContain("A new corpus and a new slot must be authored");
+    expect(flat(CONTRACTS)).not.toContain("not yet authored");
   });
 
   it("bumps both prompt and schema versions together", () => {

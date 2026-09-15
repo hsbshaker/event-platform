@@ -49,11 +49,24 @@ understanding, so shipping a weak interpreter compounds rather than shows up lat
 | **4F** | Does creating the event feel like watching your idea come to life? | The real progress experience over actual pipeline artifacts (`spec.md §7.10`, `product-doctrine.md §8a`): interpreted vibe, palette territory, visual vocabulary, concept names, art direction, progressive and independent concept readiness, optional detail entry while generation continues. No fake reasoning, no fake percentages, no generic spinner |
 | **4G** | Does the whole thing deliver personalization rather than rescue? | End to end: prompt → identity → clarification if needed → three directions → compositions → artwork where appropriate → responsive verified sites → selection → send-ready. **Human Test #2's protocol and threshold are frozen and recorded here, before any HT2 result is seen** (`spec.md §11.9`) |
 
-**4A status: two live runs complete — the fourteen-case regression suite at `v3` (13/14
-mechanical), and the first sealed challenge at its remediation `v4` (11/12 mechanical). Both
-failed their independent qualitative gate. `v5` remediation is implemented and awaiting fresh
-evidence; Phase 4B remains blocked, and a Phase 4A GO now requires a new independently authored
-sealed corpus, because `sealed_challenge_v1` is spent.**
+**4A status: CLOSED — GO (2026-09-15).** `event_identity_v5` / `event_identity_schema_v5` is the
+accepted production interpretation contract. Six live runs happened in all: `v3` against the
+fourteen-case regression suite (13/14 mechanical) and `v4` against the first sealed challenge
+(11/12), both of which **failed** their independent qualitative gate and produced the `v4` and `v5`
+remediations; then four at `v5` — regression 14/14, the spent-challenge diagnostic 11/12, the
+pre-registered holdout 12/12, and the fresh sealed challenge `sealed_challenge_v2` 11/12 with a
+blind review of 7 Excellent, 5 Good, 0 Borderline, 0 Fail. The go/no-go record and its six SHAs are
+in `model-contracts.md §4.6`. **Phase 4B is unblocked. No `v5` remediation precedes it.** Every eval
+set is now spent — `sealed_challenge_v1` was already spent at `v4`, and `sealed_challenge_v2` is
+spent by the run that carried the GO — so a future prompt version needs a newly authored sealed
+corpus and its own slot; no existing set can stand in.
+
+The four qualities the blind review kept noticing are carried as **excellence watch** items through
+DesignIntent, Composition and rendered-concept evaluation (`model-contracts.md §4.6`), not as `v5`
+defects. `v5`'s ~30 s median is recorded as **latency debt**, addressed after the creative pipeline
+is proven (`spec.md §7.10`). Neither is authorization to reopen `v5`.
+
+The history below is preserved as written. It records what was true when each run happened.
 
 The fourteen-case run against `gpt-5.6-sol` was executed on 2026-09-14 at implementation `ba34c5e`.
 Mechanical evidence was collected and is preserved unchanged in
@@ -92,9 +105,16 @@ be followed by adjusting the harness that grades them.
 (`175eefd`), and failed its independent qualitative gate. `v5` was written with those cases known,
 so from `v5` onward that corpus is a **regression set and never generalization evidence again** —
 a clean re-run of it says only that `v5` did not break what `v4` did. Fresh generalization evidence
-for `v5` requires a **new independently authored sealed corpus**, unseen while `v5` was written. The gate to 4B remains: deterministic checks, independent
-engineering review, an independent qualitative read of a blind artifact, then an explicit
-go/no-go.
+for `v5` required a **new independently authored sealed corpus**, unseen while `v5` was written.
+That corpus is `sealed_challenge_v2`: authored after the harness froze at `19f1ec8`, input-frozen at
+`9053b6d` in a commit that changed one file, run once, and now spent in turn. The gate was applied
+as written — deterministic checks, independent engineering review, an independent qualitative read
+of a blind artifact, then an explicit go/no-go — and it returned **GO**.
+
+**The plan for what follows is `phase-4b-plan.md`**, which decomposes the clarification lifecycle,
+the deterministic sibling planner and `DesignIntent × 3` into auditable tasks, fixes the point at
+which approval is required before the first live DesignIntent call, and designs that phase's
+evidence strategy before its prompt is written. It orders work and defines no requirements.
 
 ## Recorded deviations
 

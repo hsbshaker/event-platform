@@ -242,7 +242,11 @@ describe("no set claims the spent v1 challenge is fresh", () => {
       expect(contracts).toContain(`\`${script}\``);
     }
     expect(contracts).toContain("~~`eval:challenge`~~");
-    expect(contracts).toMatch(/`eval:challenge` is kept and always refuses/);
+    expect(contracts).toMatch(/`eval:challenge` was kept and always refused/);
+    // Every set refuses now, and canon must say which of the two reasons applies to each: a path
+    // that was always wrong, or a run that is done. Collapsing them would lose why.
+    expect(contracts).toMatch(/All five now stop at the protected-path refusal/);
+    expect(contracts).toMatch(/not that its path was always wrong, but that\s+its run is done/);
     // The refusal is plural over the protected directories, not "the immutable baseline".
     expect(contracts).not.toMatch(/never the immutable baseline, which it refuses/);
   });
@@ -354,11 +358,16 @@ describe("doctrine status claims are current", () => {
     expect(doctrineFlat).toContain("*Original:*");
   });
 
-  it("describes where Phase 4 stands, without claiming 4A passed", () => {
+  it("describes where Phase 4 stands, and claims 4A passed only with the GO beside it", () => {
     expect(doctrine).toContain("## 15. Where Phase 4 stands");
     expect(doctrineFlat).not.toContain("## 15. Where Phase 4 starts");
-    expect(doctrineFlat).toContain("**Phase 4A has not passed.**");
-    expect(doctrineFlat).toContain("can never again be evidence of generalization");
+    // This assertion was `not.toContain("**Phase 4A has not passed.**")`'s opposite until the GO,
+    // and it is allowed to flip only in company: a doctrine that claims the pass must also carry
+    // what the pass cost and what it did not settle, or it is a slogan.
+    expect(doctrineFlat).toContain("**Phase 4A passed.**");
+    expect(doctrineFlat).not.toContain("**Phase 4A has not passed.**");
+    expect(doctrineFlat).toContain("7 of 12 Excellent is a pass and not an arrival");
+    expect(doctrineFlat).toContain("only evidence while nobody has tuned against it");
   });
 
   it("attributes each live run to the version that actually produced it", () => {
@@ -373,18 +382,39 @@ describe("doctrine status claims are current", () => {
     expect(baseline).toContain("Prompt version: `event_identity_v3`");
     expect(baseline).toContain("| Mechanical pass | 13 / 14 |");
     expect(challenge).toContain("| Mechanical pass | 11 / 12 |");
+    // The run that carried the GO, pinned to its own report rather than to anyone's summary.
+    const fresh = read(
+      "docs/model-evals/results/creative-understanding-sealed-challenge-v2/mechanical-report.md",
+    );
+    expect(fresh).toContain("Prompt version: `event_identity_v5`");
+    expect(fresh).toContain("| Mechanical pass | 11 / 12 |");
 
     // Doctrine must say the same thing the evidence does.
-    expect(doctrineFlat).toContain("Two evidence runs have happened");
+    expect(doctrineFlat).toContain("Six evidence runs have happened");
     expect(doctrineFlat).toContain("**`v3`** was evaluated against the fourteen-case regression");
     expect(doctrineFlat).toContain("13/14 mechanical");
     expect(doctrineFlat).toContain("remediation **`v4`** was then evaluated");
     expect(doctrineFlat).toContain("11/12 mechanical");
     expect(doctrineFlat).not.toContain("evaluated twice");
     expect(doctrineFlat).not.toContain("Both cleared the mechanical half");
+    // The GO record cites six SHAs; a count that drifts from the list is the defect to catch.
+    const contracts = flat(read("docs/model-contracts.md"));
+    expect(contracts).toContain("## 4.6 Phase 4A close");
+    for (const sha of [
+      "19f1ec8ee6b7634592fa248cc4a44d24f973c470",
+      "20a7490bf89fdbc089bf405986a83732f2f300e7",
+      "6822ef727ce139b68e11ad95d81dc8498345ccbd",
+      "15d7ed871f70ed3e20c4ed83b0917d06b655a5c1",
+      "9053b6d5f7f670d9444e900b20bee676108de72b",
+      "acc9846e27cd234f7fbc8d33591b489e4ed77484",
+    ]) {
+      expect(contracts).toContain(sha);
+    }
+    // SC2-04 stays recorded as a failure. Softening it in prose is the one edit forbidden here.
+    expect(contracts).toContain("SC2-04 stands at 11/12 and is not to be rewritten");
   });
 
-  it("states the evidence sequence that ends in an explicit go/no-go", () => {
+  it("states the evidence sequence that ended in an explicit go/no-go", () => {
     for (const step of [
       "the known regression suite",
       "the pre-registered validation set",
@@ -396,5 +426,7 @@ describe("doctrine status claims are current", () => {
       expect(doctrineFlat).toContain(step);
     }
     expect(doctrineFlat).toContain("**GO / NO-GO**");
+    // The sequence is now history, so doctrine must also say which way it went.
+    expect(doctrineFlat).toContain("returned **GO** on 2026-09-15");
   });
 });

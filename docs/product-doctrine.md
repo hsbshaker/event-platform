@@ -486,7 +486,7 @@ the audit trail for decisions that changed.
 | --- | --- | --- |
 | 1 | AI-generated decorative site imagery was an explicit MVP non-goal (`spec.md §5.2`, `§32 #32`, `design-system.md §15.11`) while this document argued for thematic artwork | **Resolved by decision.** Optional AI-generated thematic artwork is approved for Phase 4 as `spec.md §7.6a`. `§5.2` now excludes host, stock, mandatory and model-placed imagery instead of generated artwork; `§32 #32` and `design-system.md §15.11` restate it; `§11.11` states the boundary directly; `§33` no longer defers it. Host photography remains excluded |
 | 2 | No clarification loop existed anywhere, and `spec.md` forbids questionnaires and wizards | **Resolved by decision, then expanded by a second.** *Original (v4):* adaptive creative clarification approved as `spec.md §7.6b`, bounded to taste, capped at three, never logistics, never a gate; `§32 #9` names it the one permitted pre-concept question. *Expanded (v5, approved after the first sealed challenge):* clarification runs on **two** routes. Route A is that creative gate, unchanged. Route B is a rare authority question about a decision the system may not make — no `You decide` option, asked alone, and the **one** thing permitted to hold concepts, behind which the identity is provisional. So "bounded to taste" and "never a gate" now describe Route A, not all clarification. §6 carries both |
-| 3 | `model-contracts.md §0` promised "faithful user-intent capture" and nothing tested it | **Resolved, and since exercised.** *Original:* `model-contracts.md §4.5` defined the creative-understanding evaluation contract over `docs/model-evals/creative-understanding.json`, each dimension labelled deterministic, mixed or qualitative; no runner existed yet. *Since:* the runner exists, four evidence classes are defined and kept apart — known regression, pre-registered validation, the spent sealed challenge now used only diagnostically, and a dormant fresh sealed challenge — and Phase 4A has produced real evidence against the first and third — the pre-registered validation set has never been run, and the fresh challenge is dormant by construction. What that evidence says is §15; it is not a pass |
+| 3 | `model-contracts.md §0` promised "faithful user-intent capture" and nothing tested it | **Resolved, and since exercised.** *Original:* `model-contracts.md §4.5` defined the creative-understanding evaluation contract over `docs/model-evals/creative-understanding.json`, each dimension labelled deterministic, mixed or qualitative; no runner existed yet. *Since:* the runner exists, four evidence classes are defined and kept apart — known regression, pre-registered validation, a spent sealed challenge used only diagnostically, and a fresh sealed challenge — and all four have now been run at `v5`, the fresh one exactly once. The promise is tested, and what the testing said is §15 |
 | 4 | Phase 4's exit condition was operational only | **Resolved.** The Phase 4 row now carries a creative exit criterion requiring evidence against §4.5 — understanding, fact discipline, selective clarification, distinct directions, intent fidelity, and *personalization rather than rescue*. Thresholds are calibrated on first real run, not invented |
 | 5 | `spec.md §11.9` stated the ≥ 70% bar flatly; `CHANGELOG-v6.md` called it provisional | **Resolved by removing the number from both regression-threshold lists.** It is a launch gate, not a regression threshold: a code change cannot re-run it. Human Test #1 was stopped early, produced calibration evidence only, and established no pass/fail result; Human Test #2 is the launch gate and calibrates its own threshold. `spec.md §11.9` and `event-renderer-system.md §9` now say so |
 | 6 | Three sections cited Revisions absent from the repository | **Resolved where the requirement was recoverable.** `spec.md §11.11` now states the imagery boundary directly; `event-renderer-system.md §8`/`§9` cite it instead of the absent Revision 1. `model-contracts.md §4`/`§5.2` still defer to a Revision 1 for the EventIdentity field list and the DesignIntent input contract — see §14a |
@@ -510,33 +510,42 @@ pointer. Inline both at their citing sections when Phase 4 touches those contrac
 The measurement gap is closed and the rubric has been run. `generateEventIdentity` exists and is
 the real creative interpreter; `model-contracts.md §4.5` defines how its output is judged.
 
-Two evidence runs have happened. **`v3`** was evaluated against the fourteen-case regression suite —
-13/14 mechanical, the one failure since established as an evaluator false positive — and failed
-its independent qualitative gate. Its remediation **`v4`** was then evaluated against an
-independently authored sealed challenge: 11/12 mechanical, and it failed that gate too.
+Six evidence runs have happened, and the first two are why the other four were needed. **`v3`** was
+evaluated against the fourteen-case regression suite — 13/14 mechanical, the one failure since
+established as an evaluator false positive — and failed its independent qualitative gate. Its
+remediation **`v4`** was then evaluated against an independently authored sealed challenge: 11/12
+mechanical, and it failed that gate too.
 
 The sealed challenge was the sharper result. It asked **zero** questions on all twelve cases, and
 one of those could not be answered without the system settling a matter it had no authority to
 settle — which the mechanical rubric cannot see, and a human reviewer did. Its one mechanical
 failure was a second defect: a term the host had called a nickname, stored as the person's name.
 
-`v5` is the remediation, implemented and independently reviewed. Clarification now runs on two
-routes — the unchanged creative gate, and a rare authority question the system may not answer for
-the host (§6) — and `suppliedFacts` distinguishes a name someone goes by from a label attached to
-them. **Phase 4A has not passed.** The first sealed challenge is spent: `v5` was written knowing
-those cases, so re-running them is diagnostic and can never again be evidence of generalization.
+`v5` is the remediation. Clarification runs on two routes — the unchanged creative gate, and a rare
+authority question the system may not answer for the host (§6) — and `suppliedFacts` distinguishes a
+name someone goes by from a label attached to them.
 
-The sequence from here, after the harness is frozen:
+**Phase 4A passed.** The eight-step sequence this section used to set out as future work was carried
+out in order, and those steps are the remaining four runs: the known regression suite; the
+pre-registered validation set; the spent challenge, re-run into its own directory as a diagnostic;
+then an **independently authored sealed challenge v2**, with adding that corpus file, and nothing
+else, as the whole change; one shot at it; a blind qualitative review; and an explicit **GO / NO-GO**
+that returned **GO** on 2026-09-15. The six
+SHAs and the numbers are in `model-contracts.md §4.6`. The decisive evidence: 11/12 mechanical on
+the fresh corpus, both clarification routes firing where the frozen labels expected them and
+nowhere else, and a blind review of 7 Excellent, 5 Good, 0 Borderline, 0 Fail.
 
-1. the known regression suite;
-2. the pre-registered validation set;
-3. the spent challenge, re-run into its own directory as a diagnostic;
-4. if those need no further remediation, an **independently authored sealed challenge v2**;
-5. adding that corpus file, and nothing else;
-6. one shot at it;
-7. a blind qualitative review;
-8. an explicit Phase 4A **GO / NO-GO**.
+**What the GO does not settle, in this document's terms.** §2 says design quality is core
+functionality, not polish, and §7 says the product exists to remove decisions rather than to be
+merely competent. Against that bar, 7 of 12 Excellent is a pass and not an arrival. Four habits
+recurred in the blind review — unsupported anti-sentimental and anti-theatrical restriction,
+reusable finishing language, a verbal identity thinner than the visual idea, and a standing
+preference for polish and emotional moderation. They are watched through DesignIntent, Composition
+and rendered concepts rather than fixed in the interpreter now, because where the leverage lies is
+not yet known. Every eval set is spent, and the rule that follows from this whole episode is the
+one worth carrying: a benchmark score is only evidence while nobody has tuned against it.
 
 Everything else in Phase 4 — sibling planning against a real identity, DesignIntent, composition,
-spend controls, and any artwork at all — still comes after that answer, because it is the answer
-that decides whether the rest is worth building on the identity we have.
+spend controls, and any artwork at all — came after that answer, because it is the answer that
+decided whether the rest was worth building on the identity we have. It was, and
+`development-plan.md` and `phase-4b-plan.md` carry what happens next.
