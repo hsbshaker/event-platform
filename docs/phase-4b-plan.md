@@ -976,9 +976,9 @@ graded. Fixed by ordering, not by a promise.
 | **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts`, `src/lib/ai/openai/event-identity-input.ts`, **`src/lib/ai/evals/rerun-seam.ts`** (the one file in the frozen validation harness T9 may touch) | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds; **leakage scan clean — the assembly's static text against the frozen corpus** | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
 | **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh; a late Route A answer leaves an in-flight batch untouched | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
 | **T11** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T10 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
-| **T12** | Independent engineering review of the integrated change, then **implementation freeze** | — | T11 | gate items 1–11 all green at the freeze SHA | §4B gate | no | **yes** | no |
+| **T12** | Independent engineering review of the integrated change, then **implementation freeze** | — | T11 | gate items 1–12 all green at the freeze SHA, **PostgreSQL 17 included** | §4B gate | no | **yes** | no |
 | | **▶ 4B GATE — STOP. Explicit authorization required before the one validation run** | | | | | | | |
-| **T13** | Run the frozen pre-registered set **exactly once** | — | T12 + authorization | the frozen T4 criteria, applied unchanged | §4B gate item 12 | no | **yes** | **yes — one run** |
+| **T13** | Run the frozen pre-registered set **exactly once** | — | T12 + authorization | the frozen T4 criteria, applied unchanged | §4B gate item 13 | no | **yes** | **yes — one run** |
 | **T14** | Commit the evidence unchanged **and protect its directory in the same change** | `src/lib/ai/evals/corpus.ts`, evidence dir | T13 | offline only; protection verified by pure/unit/static checks, never by running an eval | `model-contracts.md §4.5` | no | **yes** | no |
 
 **Why T4 must name the assembly as a scan surface, and why it is the last chance to.** T9 is
@@ -1046,7 +1046,8 @@ authorized live run.
 | 9 | Refresh and retry are idempotent | test: repeated requests observe one batch and one revision; keys collide |
 | 10 | The database cannot mark a boundary-bearing identity authoritative via a stale or false flag | db tests: an `INSERT` naming `is_provisional` is rejected (`428C9`); the pointer trigger still refuses when the column is tampered with directly; an unrecognised `schema_version` and a malformed `clarification.questions` are **refused rather than read as authoritative** (§A.3) |
 | 11 | Host/co-host authorization and RLS for answers and revisions are correct | db tests per the existing permission matrix, including negative cases: a non-member cannot answer; a co-host cannot attribute an answer to the owner (`answered_by = auth.uid()`); and **a member cannot move the event's authoritative-identity pointer**, which requires that column to be in `protect_event_server_columns()` (§A.3 property 4) |
-| 12 | The pre-registered rerun-behaviour set passes its frozen mechanical and qualitative criteria | T13: one authorized live run after the T12 implementation freeze, graded against the criteria frozen at T5 — **before the cases existed** — and classed per §3.9. Evidence protected at T14, in the same change |
+| 12 | **The migrations and the whole database suite pass against PostgreSQL 17**, the version `supabase/config.toml` pins | run before the T12 implementation freeze, on 17 rather than a local 16 substitute. Phase 4B does not close on the substitute: `ALTER TABLE … SET EXPRESSION` is 17-only and was worked around locally, and a generated column plus deferrable-FK design is exactly where a version difference would surface |
+| 13 | The pre-registered rerun-behaviour set passes its frozen mechanical and qualitative criteria | T13: one authorized live run after the T12 implementation freeze, graded against the criteria frozen at T5 — **before the cases existed** — and classed per §3.9. Evidence protected at T14, in the same change |
 
 Plus the standing gate: deterministic checks green, independent engineering review, and an explicit
 go/no-go recorded with its SHA chain.
@@ -1072,7 +1073,7 @@ can be waived by the other.
 
 # Canonical ambiguities raised, not resolved
 
-Five tensions live in canon rather than in this plan. A plan document orders work and defines no
+Three tensions live in canon rather than in this plan. A plan document orders work and defines no
 requirements, so neither is settled here; both are raised for an explicit product decision under
 `CLAUDE.md §12`.
 
@@ -1116,82 +1117,123 @@ The plan follows the four, per the source-of-truth order, and scopes `presentati
 §G.2, §3.8). The fix is a one-line clarification in `spec.md §7.8`, not a plan-side workaround.
 **Raised, not resolved.**
 
-### CA-4 — whether `event_identity_input_v2` renders the question alongside the answer
+### CA-4 — RESOLVED: the question is rendered with the answer
 
-§B.3 says the input assembly version identifies *"how each input is labelled to the model … and
-how an answer is represented"*, but not whether the rendered answer is accompanied by the question
-it answers. Production has the text either way: `clarification_answers` copies `question_text` and
-`options` onto the row, checked against the revision's own JSON by
-`validate_clarification_answer()` checks (4) and (5).
+`event_identity_input_v2` gives the model the exact prior clarification question together with the
+host's answer. For each carried clarification it renders the question text, the selected option
+label when the host selected one, the host's typed text when supplied, and the defer state when
+that was the host's choice.
 
-T4 froze the validation seam so that either reading stays available: `RerunRequest` carries
-`priorResults`, every earlier round's validated result, and the assembly resolves `questionIndex`
-against it exactly as production resolves a locator against an immutable revision. The rejected
-alternative was putting `questionText` and `options` in the corpus, which would let a case's copy
-of a question disagree with what the model actually asked — the drift those two trigger checks
-exist to refuse.
+It does **not** resend the unselected option menu for context, `whyItMatters`, or any other
+model-generated rationale that is not needed to interpret the answer. The point is attribution —
+*previous system question → host's current answer* — rather than presenting model-authored question
+text to the model as though the host had written it.
 
-So this is not blocking, and nothing about it is now unfixable. It still wants a decision before
-T9 writes the assembly, because the answer determines whether the rendered envelope names the
-question. **Raised, not resolved.**
+Encoded in the frozen machinery, not only here. `questionRenderedWithAnswer` requires every carried
+question's exact text in the transmitted request, in chronological order, and fails an assembly
+that sends the answer alone. `menuNotResent` fails one that sends back an unselected label or the
+revision's `whyItMatters`; a label the host or the question itself already used is never counted
+against the assembly.
 
-### CA-5 — whether round N's envelope carries every earlier round's answers
+### CA-5 — RESOLVED: clarification history is cumulative
 
-§B.3 (`"plus the answer as current host input"`, singular) is ambiguous between a per-round
-envelope and a cumulative one, and the question is not cosmetic: EventIdentity is a stateless
-call, so an answer absent from round N's request is absent from round N's input. The published
-dimension `multi_round_provenance` — *"with two rounds of answers, both are in scope and neither
-is lost"* — reads as cumulative, and a per-round envelope cannot deliver it from round 3 on.
+Round N carries every prior clarification answer still relevant to that rerun, in chronological
+order. EventIdentity is a stateless call, so an earlier answer omitted from round N is no longer
+available to the model at all, which contradicts `multi_round_provenance`.
 
-T5 froze the validation seam so that either reading stays available rather than guessing, the
-same move CA-4 got: `RerunRequest` carries `priorAnswers` alongside `priorResults`, and
-`answersAssembledAsGiven` accepts a round's own answers *or* every answer up to that round. An
-assembly that carries round 2 forward and drops round 3 matches neither and still fails, so
-admitting both shapes costs no strictness.
+With it: the latest clarification takes precedence where it directly conflicts with earlier host
+input; `events.prompt` stays byte-identical and separate; history is never flattened into the
+prompt; and provenance stays per answer, per question, per revision.
 
-It needs deciding before T9 writes the assembly — and if the answer is per-round, this plan's
-scope-limits paragraph must say that the set validates a per-round envelope only.
-**Raised, not resolved.**
+Encoded in the frozen machinery. `historyDelivered` requires every carried answer's option label
+and typed text in the transmitted request, so an assembly that sends answer 1 in one round and
+silently drops it when sending answer 2 fails mechanically. `answersAssembledAsGiven` no longer
+accepts "either this round's answers or the cumulative set": it requires the cumulative history for
+that rerun, in order, field for field.
 
-**Two scope limits to state before a clean T13 run is read as more than it is.** The eval's
-locator is narrower than production's: `RerunAnswerInput.questionIndex` addresses the *previous
-round's* question, and the assembly resolves it against the last of `priorResults`, whereas
-production's `(identity_revision_id, question_index)` may address any revision of the event. The
-set therefore never exercises an answer to an older revision's question. And T9 owes the harness
-three things the frozen seam states but this plan should not leave only there: `requestText` is
-the assembled user message rather than an encoded request body, host free text reaches it
-unnormalised (trimming excepted), and on a repair retry it is the **whole** assembled input for
-the attempt whose response is returned — the provider boundary appends a correction turn rather
-than replacing the user message, and returning the correction turn alone would fail two absolute
-checks on a correct implementation.
+### The setup dependency, and how it was removed
 
-**What the T6 author brief must publish, and T7 must check.** The frozen validator checks shape,
-and cannot check these — and each one is a way a *correct* T9 implementation fails the one paid
-run permanently. All are fixable at the corpus, which is what T7 is for (§3.5); none is a reason
-to reopen the freeze.
+The first version of this contract asked the T6 author to predeclare `questionIndex`, `kind`, an
+option label and a defer state — for a question that would not exist until a live model call
+produced it, during the very run those answers were meant to drive. The corpus referred *forward*
+to a stochastic output its author could not observe, which had two failure modes and no good one:
+either the live setup call asked no question, or a different route, index or labels, and a correct
+assembly failed permanently for a reason unrelated to assembly; or the harness answered a question
+nobody had asked, and stopped exercising production's clarification semantics. `defer_is_an_answer`
+made it plainest — a corpus cannot truthfully name the model's single defer option before that
+option exists.
 
-1. **The `suppliedFacts` field names, verbatim.** `expectedFacts` keys are unvalidated and
-   compared by exact equality, so a key the schema does not have reads as `null` and fails a clean
-   run. The list is `hostNames`, `honoreeName`, `honoreeDescriptionText`, `eventType`, `dateText`,
-   `timeText`, `venueText`, `addressText`, `localityText`, `rsvpDeadlineText`. Values are trimmed
-   verbatim quotations, so an expectation must be lexically present in that case's own prompt, and
-   `null` means the field was not supplied.
-2. **`mustNotInvent` is a case-insensitive substring match over the final round's fact *values*.**
-   A term must not be a substring of anything the host legitimately said in that case.
-3. **No two rounds of a case may carry field-identical answers, and no two consecutive rounds may
-   be expected to render identically.** The first defeats `answersAssembledAsGiven`'s value
-   comparison; the second false-fails `answersReachedTheModel` on a legitimate per-round assembly.
-4. **Dimension coverage is T7's to check**, since nothing frozen requires it — in particular that
-   at least one case has three rounds, without which `multi_round_provenance` is never exercised.
+**The prior clarification history is now frozen setup state, authored with the case.** A case
+carries the host's original prompt and a `history` of rounds; each round holds the questions that
+were asked and the host's answers to them. `buildSeededRevision` turns each round into a
+schema-valid `EventIdentityResult` — the same shape `event_identity_revisions.result` persists,
+parsed by the real schema in a static test — and the runner sends those as `priorRevisions`, so T9
+resolves `(revision, questionIndex)` exactly as production resolves `(identity_revision_id,
+question_index)` against an immutable revision. The **one** paid call per case is the rerun.
+
+Nothing was loosened to achieve it:
+
+- an answer still cannot name a question that does not exist — the contract refuses an out-of-range
+  `questionIndex`, an option the question did not offer, a defer that is not the question's own
+  defer option, and a boundary answer marked deferred;
+- `kind` is derived from the question rather than declared by the author, so an answer's route can
+  never disagree with the question it answers;
+- the answer carries no question text through the seam, so an assembly cannot render a question the
+  host was never asked; it must read the question out of the revision envelope;
+- a missing or mismatched live question is not turned into an advisory result — there is no live
+  setup question to mismatch;
+- the evidence claim is unchanged and does not expand to question-generation quality. No frozen
+  check asks whether the rerun chose to ask anything.
+
+The setup is fixture state and says so where it can be misread: the placeholder brief names itself
+a fixture in its own text, and the blind artifact labels the setup **"written by hand, not
+generated"** and tells the reviewer only the final interpretation came from a live call.
+
+**One scope limit to state before a clean T13 run is read as more than it is.** This set exercises
+the rerun's assembly, not the production path that *creates* a clarification question: no frozen
+check observes, and no evidence here supports a claim about, whether EventIdentity asks well or at
+all. That remains the spent v5 sealed challenge's territory. And T9 owes the harness three things
+the frozen seam states but this plan should not leave only there: `requestText` is the assembled
+user message rather than an encoded request body, host free text reaches it unnormalised (trimming
+excepted), and on a repair retry it is the **whole** assembled input for the attempt whose response
+is returned — the provider boundary appends a correction turn rather than replacing the user
+message, and returning the correction turn alone would fail absolute checks on a correct
+implementation.
+
+**What the T6 author brief must publish, and T7 must check.** The frozen validator now checks far
+more than it did — an answer's locator, its option, its defer semantics, duplicate question text,
+multi-round coverage for the multi-round dimension, and `expectedFacts` keys against the real
+schema. These are what it still cannot check, and each is a way a *correct* T9 implementation could
+fail the one paid run permanently. All are fixable at the corpus, which is what T7 is for (§3.5).
+
+1. **`expectedFacts` values are trimmed verbatim quotations of the host**, compared for equality.
+   An expectation must be lexically present in that case's own prompt or answers; `null` means the
+   field was not supplied. (The *keys* are now refused mechanically against
+   `SUPPLIED_FACT_FIELDS`, so the largest silent hazard is closed in code.)
+2. **`mustNotInvent` is a case-insensitive substring match over the rerun's fact *values*.** A term
+   must not be a substring of anything the host legitimately said in that case.
+3. **A question's text must not appear inside the case's own prompt or an answer's free text**, or
+   `questionRenderedWithAnswer` cannot distinguish a rendered question from an echo of the
+   description, and `menuNotResent`'s carve-out would mask a resent label.
+4. **Dimension coverage is T7's to check**, since nothing frozen requires the corpus to span all
+   seven — only that a `multi_round_provenance` case carries at least two rounds, which the
+   validator does enforce.
 
 **Three procedural notes that are not code.** (1) `src/lib/ai/evals/rerun-behaviour.ts` and
-`tests/eval/clarification-rerun.eval.ts` compile against `report.ts`, `journal.ts`,
-`lifecycle.ts` and `corpus.ts`; a signature change in any of those would force an edit to a file
-that must never change, so treat them as frozen-by-dependency until T14. (2) The T8 corpus-freeze
-commit should re-pin `corpusPath("rerunBehaviour")` and `RERUN_BEHAVIOUR_OUT` beside the corpus
-digest — the paths live in an editable file, and the T13 evidence is only as attributable as they
-are. (3) The T13 reviewer instruction must say that the artifact is given **alone**: blinding in
-`blind-review.md` is positional, and `mechanical-report.md` lists the case ids in the same order.
+`tests/eval/clarification-rerun.eval.ts` compile against `report.ts`, `journal.ts`, `lifecycle.ts`,
+`corpus.ts` and `event-identity/contract.ts`; a signature change in any of those would force an edit
+to a file that must never change, so treat them as frozen-by-dependency until T14. (2) The T8
+corpus-freeze commit should re-pin `corpusPath("rerunBehaviour")` and `RERUN_BEHAVIOUR_OUT` beside
+the corpus digest — the paths live in an editable file, and the T13 evidence is only as attributable
+as they are. (3) The T13 reviewer instruction must say that the artifact is given **alone**:
+blinding in `blind-review.md` is positional, and `mechanical-report.md` lists the case ids in the
+same order.
+
+**The inspiration channel is not T9's to add.** `event_identity_input_v2` is being validated for
+clarification-answer assembly. Phase 4A's v1 input did not send inspiration even though canon
+ultimately requires it, and that gap is recorded as debt. Adding it in the same model-visible change
+would introduce a second untested input channel into the one run that grades the first, so it stays
+a separate assembly-version change unless canon explicitly schedules it elsewhere.
 
 ---
 
