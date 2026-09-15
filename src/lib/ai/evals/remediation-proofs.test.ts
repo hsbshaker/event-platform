@@ -245,8 +245,8 @@ describe("proof 4 — creative delegation yields a bet, not a question", () => {
     expect(checks.every((c) => c.status !== "fail")).toBe(true);
   });
 
-  it("holds the contract to a defer option whenever a question is asked at all", () => {
-    // §7.6b #4 is structural, so a host with no design vocabulary always has a way through.
+  it("holds a creative question to its defer option", () => {
+    // §7.6b #4 is structural, so a host with no design vocabulary always has a way through a creative question. A boundary question is the deliberate exception and is covered in v5-proofs.
     const bare = question("Warm or cool?");
     bare.options = bare.options.filter((o) => !o.isDefer);
     const parsed = eventIdentityResultSchema.safeParse({

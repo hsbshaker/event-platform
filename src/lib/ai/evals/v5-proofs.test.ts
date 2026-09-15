@@ -123,7 +123,7 @@ describe("Route B exists as its own gate and cannot be read as Route A", () => {
     expect(PROMPT.indexOf("all five")).toBeLessThan(PROMPT.indexOf("all four"));
   });
 
-  it("names every anti-trigger, and enumerates no specific sensitive domain", () => {
+  it("names every anti-trigger as a de-trigger, never as a domain that warrants asking", () => {
     expect(PROMPT_FLAT).toContain("sensitive, emotional, cultural, familial, personal, medical");
     expect(PROMPT).toContain("A missing logistical fact is never a trigger");
     expect(PROMPT).toContain("A missing aesthetic preference is");
@@ -306,10 +306,31 @@ describe("every model-visible clarification instruction supports both routes", (
 describe("blocking is Route B's alone, and its identity is provisional", () => {
   it("qualifies the never-gates rule to Route A in both canonical places", () => {
     const acceptance = SPEC.split("\n").filter((l) => l.includes("never gates concepts"));
-    expect(acceptance.length).toBeGreaterThan(0);
+    expect(acceptance).toHaveLength(1);
     for (const line of acceptance) expect(line).toMatch(/Route A/);
+    // Guarded on count too: deleting the phrase outright would otherwise pass an empty loop.
     const guardrail = SPEC.split("\n").filter((l) => l.includes("never a gate on concepts"));
+    expect(guardrail).toHaveLength(1);
     for (const line of guardrail) expect(line).toMatch(/Route A/);
+  });
+
+  it("leaves no unconditional defer rule anywhere in the canonical spec", () => {
+    // The review found one surviving in §31 after three adjacent bullets were fixed — the exact
+    // failure this remediation exists to eliminate, so `spec.md` gets its own scan.
+    for (const line of SPEC.split("\n")) {
+      if (!/You decide/.test(line)) continue;
+      if (/every one offers|always offers|must offer/i.test(line)) {
+        expect(line).toMatch(/creative/i);
+      }
+    }
+    expect(SPEC_FLAT).toContain("Every creative clarification offered");
+  });
+
+  it("scopes §7.6b's per-question test by route", () => {
+    expect(SPEC_FLAT).toContain("which test depends on its route");
+    expect(SPEC_FLAT).not.toContain(
+      "**Every question must pass:** *would different answers produce meaningfully different creative identities?*",
+    );
   });
 
   it("states the provisional rule in spec, contracts and the acceptance criteria", () => {
@@ -341,7 +362,7 @@ describe("blocking is Route B's alone, and its identity is provisional", () => {
     expect(PLAN).toMatch(/no lifetime cap/i);
   });
 
-  it("leaves no statement that a boundary identity may flow downstream", () => {
+  it("drops the plan's old unconditional clarification summary", () => {
     expect(PLAN).not.toMatch(/taste-only, never logistics, never a gate on concepts appearing/);
   });
 });
@@ -378,6 +399,8 @@ describe("honoree names distinguish a name-in-use from an attached label", () =>
 });
 
 describe("the specificity rule demands material, never restraint", () => {
+  // From §9.1 to the end of the file: deliberately wider than the new rule, so restraint
+  // vocabulary cannot be smuggled into the closing self-check either.
   const section = PROMPT.slice(PROMPT.indexOf("### 9.1"));
 
   it("states the rule", () => {
@@ -416,6 +439,33 @@ describe("the specificity rule demands material, never restraint", () => {
 /* ------------------------------------------------------------------ versioning */
 
 describe("the version says the model is seeing different text", () => {
+  it("declares the same version in the prompt the model actually reads", () => {
+    // The whole file is the system prompt, so a stale header tells the model it is running a
+    // version that no longer exists — and the evidence would cite one artifact for another.
+    expect(PROMPT.split("\n")[1]).toContain(`\`${EVENT_IDENTITY_PROMPT_VERSION}\``);
+  });
+
+  it("preserves the superseded prompt and schema that produced the sealed evidence", () => {
+    // `run.json` for the spent sealed challenge cites v4 on every case; that artifact must
+    // remain readable (`CLAUDE.md §12`).
+    expect(() => read("docs/model-prompts/history/event-identity.system.v4.md")).not.toThrow();
+    expect(() =>
+      read("docs/model-schemas/history/event-identity-result.schema.v4.json"),
+    ).not.toThrow();
+    expect(read("docs/model-prompts/history/event-identity.system.v4.md")).toContain(
+      "`event_identity_v4`",
+    );
+  });
+
+  it("records that the first sealed corpus is spent, in both places that claim otherwise", () => {
+    expect(flat(CONTRACTS)).toContain("Never generalization evidence again");
+    expect(flat(PLAN)).toContain("new independently authored sealed corpus");
+    // Two independent sites assert it — the evidence-class paragraph and the 4A status block —
+    // and a guard that accepted either one alone would survive deleting the other.
+    expect(flat(PLAN)).toContain("**`sealed_challenge_v1` is spent.**");
+    expect(flat(PLAN)).toContain("because `sealed_challenge_v1` is spent");
+  });
+
   it("bumps both prompt and schema versions together", () => {
     expect(EVENT_IDENTITY_PROMPT_VERSION).toBe("event_identity_v5");
     expect(EVENT_IDENTITY_SCHEMA_VERSION).toBe("event_identity_schema_v5");

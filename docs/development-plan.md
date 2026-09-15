@@ -49,8 +49,10 @@ understanding, so shipping a weak interpreter compounds rather than shows up lat
 | **4F** | Does creating the event feel like watching your idea come to life? | The real progress experience over actual pipeline artifacts (`spec.md §7.10`, `product-doctrine.md §8a`): interpreted vibe, palette territory, visual vocabulary, concept names, art direction, progressive and independent concept readiness, optional detail entry while generation continues. No fake reasoning, no fake percentages, no generic spinner |
 | **4G** | Does the whole thing deliver personalization rather than rescue? | End to end: prompt → identity → clarification if needed → three directions → compositions → artwork where appropriate → responsive verified sites → selection → send-ready. **Human Test #2's protocol and threshold are frozen and recorded here, before any HT2 result is seen** (`spec.md §11.9`) |
 
-**4A status: first live run complete; the independent qualitative gate did NOT pass; remediation is
-in progress; Phase 4B is blocked.**
+**4A status: two live runs complete — the fourteen-case regression suite at `v4`, and the first
+sealed challenge at `v4`. Both failed their independent qualitative gate. `v5` remediation is
+implemented and awaiting fresh evidence; Phase 4B remains blocked, and a Phase 4A GO now requires
+a new independently authored sealed corpus, because `sealed_challenge_v1` is spent.**
 
 The fourteen-case run against `gpt-5.6-sol` was executed on 2026-09-14 at implementation `ba34c5e`.
 Mechanical evidence was collected and is preserved unchanged in
@@ -81,9 +83,15 @@ been inspected and discussed. Three evidence classes follow, and they are not in
 the regression suite; the **pre-registered validation set** of twelve cases, authored and frozen
 *before* remediation and independently reviewed, but written by the same person who then wrote
 the prompt, so it is validation and not generalization; and the **sealed challenge**, authored
-independently after the implementation was frozen, which is the only fresh evidence of the three.
-Its runner path is wired and frozen ahead of its cases, so that seeing them cannot be followed by
-adjusting the harness that grades them. The gate to 4B remains: deterministic checks, independent
+independently after the implementation was frozen, which is the only class that can carry
+generalization. Its runner path is wired and frozen ahead of its cases, so that seeing them cannot
+be followed by adjusting the harness that grades them.
+
+**`sealed_challenge_v1` is spent.** The first sealed corpus was run once, at `v4`, on 2026-09-15
+(`175eefd`), and failed its independent qualitative gate. `v5` was written with those cases known,
+so from `v5` onward that corpus is a **regression set and never generalization evidence again** —
+a clean re-run of it says only that `v5` did not break what `v4` did. Fresh generalization evidence
+for `v5` requires a **new independently authored sealed corpus**, unseen while `v5` was written. The gate to 4B remains: deterministic checks, independent
 engineering review, an independent qualitative read of a blind artifact, then an explicit
 go/no-go.
 

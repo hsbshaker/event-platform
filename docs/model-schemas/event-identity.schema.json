@@ -202,5 +202,5 @@
     "inspirationSummary"
   ],
   "additionalProperties": false,
-  "$comment": "The creative brief as of event_identity_schema_v4. Operational event data is never carried here; it lives in the result envelope's `suppliedFacts` sibling (spec.md §7.5)."
+  "$comment": "The creative brief as of event_identity_schema_v5. Operational event data is never carried here; it lives in the result envelope's `suppliedFacts` sibling (spec.md §7.5)."
 }

@@ -183,7 +183,8 @@ failure.
 | --- | --- | --- |
 | `creative-understanding.json`, 14 cases | **regression suite** — every output inspected and discussed | catching regressions; never fresh evidence again |
 | `creative-understanding-holdout.json`, 12 cases | **pre-registered validation set** — frozen and independently reviewed before the remediation, but authored by the same person who then wrote the prompt | validation against pre-registered invariants; not the strongest evidence of generalization |
-| sealed challenge corpus | **sealed challenge** — authored independently, unseen while the prompt was written | generalization |
+| `creative-understanding-sealed-challenge.json`, 12 cases (`sealed_challenge_v1`) | **spent.** It was a sealed challenge — authored independently, unseen while `v4` was written — and it was run once at `v4`, where it failed its human gate. `v5` was written knowing these cases | regression from `v5` onward. **Never generalization evidence again** |
+| *(pending)* a new independently authored corpus | **sealed challenge** for `v5` — unseen while `v5` was written | generalization |
 
 **A limit the go/no-go record must carry, not just the blind reviewer.** The clarification
 check gates only against *over*-asking: `expectClarification: "no"` fails a question that

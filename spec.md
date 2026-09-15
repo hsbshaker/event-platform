@@ -702,7 +702,7 @@ Binding constraints, which do not wait for the schema:
 Neither the image model nor the artwork schema is selected here. Transparent-background reliability
 varies by model and is an input to that selection rather than something a prompt adds afterwards.
 
-### 7.6b Adaptive creative clarification
+### 7.6b Adaptive clarification
 
 **Approved decision.** Event Identity **may** ask the host a clarifying question before concepts
 are generated, on one of exactly two routes, and only when that materially improves the brief.
@@ -748,8 +748,10 @@ Canonical rules:
    strongly toward committing, and what is owed then is a concrete organizing premise a
    designer could visualize — not adjectives about originality or surprise.
 2. **Dynamically generated** from the actual ambiguity. There is no fixed question list.
-3. **Every question must pass:** *would different answers produce meaningfully different creative
-   identities?* If no, it is not asked.
+3. **Every question must pass a test, and which test depends on its route.** A creative question:
+   *would different answers produce meaningfully different creative identities?* A boundary
+   question: *would producing the brief otherwise take a position on a person's behalf that the
+   host never settled, and can the brief not simply decline to take it?* If no, it is not asked.
 4. **A creative question always offers `You decide` / `Surprise me`** or equivalent — exactly
    one such option. A host must never need design vocabulary to use this product, and one who has
    none must not get a worse result. **A boundary question offers none.** A conservative option
@@ -2447,7 +2449,7 @@ The host should feel:
 - [ ] Adaptive clarification asks nothing in the common case, never a logistics field, and declares a `kind` on every question (§7.6b).
 - [ ] Creative clarification (Route A) stays within the ceiling of three, offers exactly one `You decide` option per question, and never gates concepts from appearing (§7.6b).
 - [ ] Authority clarification (Route B) is asked alone and at most once per response, offers no `You decide` option, and may block concept generation until answered; the identity returned beside it is provisional and is not consumed by the sibling planner or any downstream creative stage (§7.6b, §7.7).
-- [ ] Every clarification offered is one whose answers would produce materially different creative identities, and every one offers a `You decide` option.
+- [ ] Every creative clarification offered is one whose answers would produce materially different creative identities, and every one offers a `You decide` option; a boundary clarification is judged against §7.6b #1a instead and offers none.
 - [ ] Each concept becomes available as soon as its resolved spec exists; no concept waits on its siblings (§7.10).
 - [ ] The generation surface shows only artifacts the pipeline produced — no model reasoning, no fabricated progress or completion percentages (§7.10).
 - [ ] Missing event facts may optionally be entered during generation, and doing so is never required to reach concepts (§7.10).

@@ -131,7 +131,7 @@ describe("event identity validation", () => {
     expect(outcome.ok).toBe(true);
   });
 
-  it("rejects a question with no defer option", () => {
+  it("rejects a creative question with no defer option", () => {
     const bare = question();
     bare.options = bare.options.filter((o) => !o.isDefer);
     const outcome = validateEventIdentityResult(
@@ -140,7 +140,7 @@ describe("event identity validation", () => {
     expect(outcome.ok).toBe(false);
   });
 
-  it("rejects a question with two defer options", () => {
+  it("rejects a creative question with two defer options", () => {
     const doubled = question();
     doubled.options.push({ label: "Surprise me", isDefer: true });
     const outcome = validateEventIdentityResult(

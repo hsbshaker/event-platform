@@ -4,6 +4,28 @@
  * keeping the same version.
  */
 /**
+ * `v5` is the second Phase 4A remediation, after the first sealed challenge failed its
+ * independent qualitative gate. A `v4` response is not a valid `v5` response.
+ *
+ * That run asked zero questions on all twelve cases, and one of them required the system to
+ * settle a matter it had no authority to settle. The cause was structural rather than
+ * dispositional: every model-visible instruction scoped clarification to taste — including two
+ * inside the wire schema, where a prompt-only fix would never have reached them — so the
+ * correct behaviour was unreachable however the model reasoned.
+ *
+ * Clarification therefore splits into two routes, declared per question in a new required
+ * `kind`. Route A is the unchanged five-condition creative gate, with its one defer option and
+ * its guarantee of never blocking. Route B is rare and asks about a decision that is not the
+ * system's to make; it offers no defer option, is asked alone, and makes the identity beside it
+ * provisional. `suppliedFacts.honoreeName` also gains the name-in-use rule, after the run stored
+ * a term the host had called a nickname as the person's name.
+ *
+ * `v4` is preserved in `docs/model-prompts/history/`; the sealed-challenge evidence it produced
+ * is immutable in `docs/model-evals/results/creative-understanding-sealed-challenge-v1/`, and
+ * that corpus is spent — a regression set from `v5` onward, never generalization evidence again.
+ */
+
+/**
  * `v4` is the Phase 4A remediation, after the first live run failed its independent
  * qualitative gate. A `v3` response is not a valid `v4` response.
  *

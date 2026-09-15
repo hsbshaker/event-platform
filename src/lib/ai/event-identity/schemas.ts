@@ -32,10 +32,12 @@ export function buildSchemaFiles(): Record<keyof typeof SCHEMA_FILES, JsonSchema
         "Canonical structured output for the Event Identity call. Generated from " +
         "src/lib/ai/event-identity/contract.ts — do not hand-edit. `identity` is the creative " +
         "brief, `suppliedFacts` quotes the host verbatim or is null, `clarification` carries " +
-        "at most three taste questions. spec.md §7.5, §7.6b; docs/model-contracts.md §4.",
+        "either up to three creative questions or one boundary question. spec.md §7.5, §7.6b; " +
+        "docs/model-contracts.md §4.",
       ...stripMeta(canonical),
       $comment:
-        "event_identity_schema_v4: `designConstraints` splits into `hostConstraints` " +
+        "event_identity_schema_v5: each clarification question declares a `kind` — `creative` or " +
+        "`boundary` — and defer semantics follow it. v4: `designConstraints` splits into `hostConstraints` " +
         "(authoritative, host-grounded) and `creativeGuidance` (advisory), and `suppliedFacts` " +
         "gains `honoreeDescriptionText`. v3 introduced the envelope: `identity` plus " +
         "`suppliedFacts` (quoted or null, never inferred) and `clarification`. " +
@@ -53,7 +55,7 @@ export function buildSchemaFiles(): Record<keyof typeof SCHEMA_FILES, JsonSchema
         "src/lib/ai/event-identity/contract.ts — do not hand-edit.",
       ...properties.identity,
       $comment:
-        "The creative brief as of event_identity_schema_v4. Operational event data is never " +
+        "The creative brief as of event_identity_schema_v5. Operational event data is never " +
         "carried here; it lives in the result envelope's `suppliedFacts` sibling " +
         "(spec.md §7.5).",
     },

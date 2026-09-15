@@ -133,6 +133,8 @@ describe("the blind artifact", () => {
     expect(artifact).not.toContain("whyItMatters");
     expect(artifact).not.toMatch(/taste-heavy|genuinely-ambiguous/);
     expect(artifact).not.toMatch(/schema|isDefer|suppliedFacts/);
+    // A reviewer told which route a question came from is no longer blind to our expectations.
+    expect(artifact).not.toMatch(/whyItMatters|"kind"|\bboundary\b/);
   });
 
   it("does not tell the reviewer what to conclude", () => {

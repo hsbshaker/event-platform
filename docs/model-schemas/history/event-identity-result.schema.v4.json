@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/event-identity-result.schema.json",
   "title": "EventIdentityResult",
-  "description": "Canonical structured output for the Event Identity call. Generated from src/lib/ai/event-identity/contract.ts — do not hand-edit. `identity` is the creative brief, `suppliedFacts` quotes the host verbatim or is null, `clarification` carries either up to three creative questions or one boundary question. spec.md §7.5, §7.6b; docs/model-contracts.md §4.",
+  "description": "Canonical structured output for the Event Identity call. Generated from src/lib/ai/event-identity/contract.ts — do not hand-edit. `identity` is the creative brief, `suppliedFacts` quotes the host verbatim or is null, `clarification` carries at most three taste questions. spec.md §7.5, §7.6b; docs/model-contracts.md §4.",
   "type": "object",
   "properties": {
     "identity": {
@@ -234,7 +234,7 @@
               "type": "null"
             }
           ],
-          "description": "The NAME of whoever the event is for, as written — their name, or the personal name they actually go by. A relationship is not a name. A nickname, title, rank, role, handle or joke is not a name either WHEN the host presents it as a label attached to the person rather than the name they go by; a nickname someone actually goes by is their name. The lexical category of the term decides nothing, and neither does whether a word looks name-like — what decides is the role the host gives it. Quoted from the host verbatim, or null. Never inferred."
+          "description": "The NAME of whoever the event is for, as written. A relationship is not a name. Quoted from the host verbatim, or null. Never inferred."
         },
         "honoreeDescriptionText": {
           "anyOf": [
@@ -369,25 +369,17 @@
           "items": {
             "type": "object",
             "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "creative",
-                  "boundary"
-                ],
-                "description": "'creative' for a question of taste, governed by the five conditions. 'boundary' for a decision that is not yours to make. Every question declares which; a question that fits neither must not be asked."
-              },
               "question": {
                 "type": "string",
                 "minLength": 8,
                 "maxLength": 240,
-                "description": "For 'creative': a question about taste. For 'boundary': ask the host to state the boundary they can legitimately affirm as settled — never to authorize something on another person's behalf, and never offering to decide it yourself. Never logistics — never a date, time, venue, address, guest count or budget — and never a low-level design choice."
+                "description": "A question about taste only. Never logistics, never a low-level design choice."
               },
               "whyItMatters": {
                 "type": "string",
                 "minLength": 10,
                 "maxLength": 300,
-                "description": "For 'creative': how the answers would diverge creatively. For 'boundary': the position the brief would otherwise take on someone's behalf, and why it is not yours to take. Not shown to the host as written."
+                "description": "How the answers would diverge creatively. Not shown to the host as written."
               },
               "options": {
                 "minItems": 2,
@@ -404,7 +396,7 @@
                     },
                     "isDefer": {
                       "type": "boolean",
-                      "description": "True on the single 'You decide' / 'Surprise me' option a creative question must offer. Always false on a boundary question: that decision is the host's, and you may not offer to take it. A conservative option the host picks (leaving the matter out, keeping it unspecified) is a real choice, not a defer."
+                      "description": "True on the single 'You decide' / 'Surprise me' option every question must offer."
                     }
                   },
                   "required": [
@@ -413,18 +405,17 @@
                   ],
                   "additionalProperties": false
                 },
-                "description": "Answer options. A creative question has exactly one isDefer: true; a boundary question has none, because that decision is the host's."
+                "description": "Answer options. Exactly one must have isDefer: true."
               }
             },
             "required": [
-              "kind",
               "question",
               "whyItMatters",
               "options"
             ],
             "additionalProperties": false
           },
-          "description": "Usually none. Either up to three creative questions, or exactly one boundary question and nothing else — a boundary must be settled before the brief is authoritative, and asking taste questions alongside it turns one question into an intake form."
+          "description": "At most three, and usually none. Ask only when different answers would produce meaningfully different creative identities."
         }
       },
       "required": [
@@ -432,7 +423,7 @@
         "questions"
       ],
       "additionalProperties": false,
-      "description": "Whether a question must be put to the host before designing. Usually not — zero is the normal and most common answer."
+      "description": "Whether a creative question would materially improve understanding. Usually not."
     }
   },
   "required": [
@@ -441,5 +432,5 @@
     "clarification"
   ],
   "additionalProperties": false,
-  "$comment": "event_identity_schema_v5: each clarification question declares a `kind` — `creative` or `boundary` — and defer semantics follow it. v4: `designConstraints` splits into `hostConstraints` (authoritative, host-grounded) and `creativeGuidance` (advisory), and `suppliedFacts` gains `honoreeDescriptionText`. v3 introduced the envelope: `identity` plus `suppliedFacts` (quoted or null, never inferred) and `clarification`. Provider strict mode receives the reduced projection in event-identity-result.wire.schema.json; the application always runs the full contract (docs/model-contracts.md §3)."
+  "$comment": "event_identity_schema_v4: `designConstraints` splits into `hostConstraints` (authoritative, host-grounded) and `creativeGuidance` (advisory), and `suppliedFacts` gains `honoreeDescriptionText`. v3 introduced the envelope: `identity` plus `suppliedFacts` (quoted or null, never inferred) and `clarification`. Provider strict mode receives the reduced projection in event-identity-result.wire.schema.json; the application always runs the full contract (docs/model-contracts.md §3)."
 }
