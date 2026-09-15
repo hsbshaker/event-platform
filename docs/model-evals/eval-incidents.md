@@ -11,7 +11,7 @@ evidence directories and in the qualitative reviews.
 
 | | |
 | --- | --- |
-| `results/*/` — `run.json`, `mechanical-report.md`, `blind-review.md`, and `raw-responses.jsonl` where the run predates the journal or not | **Immutable in full**, narrative files included. The two directories holding completed runs — the Phase 4A baseline and the sealed-challenge v1 evidence — are refused as an output path by `PROTECTED_RESULT_DIRS` in `src/lib/ai/evals/corpus.ts`. The other result directories are not yet written; they are protected by the runner's write-once check, which `EVAL_OVERWRITE=1` can deliberately override |
+| `results/*/` — `run.json`, `mechanical-report.md`, `blind-review.md`, and `raw-responses.jsonl` for runs made after the journal existed; the v1 baseline predates it and has none | **Immutable in full**, narrative files included. The two directories holding completed runs — the Phase 4A baseline and the sealed-challenge v1 evidence — are refused as an output path by `PROTECTED_RESULT_DIRS` in `src/lib/ai/evals/corpus.ts`. The other result directories are not yet written; they are protected by the runner's write-once check, which `EVAL_OVERWRITE=1` can deliberately override |
 | `results/creative-understanding-v1/process-notes.md` | **Frozen historical record.** It holds the Phase 4A evidence-class notes, the leakage history and the first three incidents as they were written at the time. It is no longer appended to and is not a current target for anything |
 | `results/creative-understanding-v1/astra-qualitative-review.md` | Historical. The independent qualitative review of the Phase 4A baseline |
 | **this file** | Every incident from here on |
@@ -29,6 +29,12 @@ recorded there remain citable; the file is simply closed.
 > schemas, not its reports, not its refusals. Every one of those properties is verified by pure,
 > unit or static checks instead. A live eval command runs only after explicit authorization for
 > that exact evidence run.
+
+**Protecting a finished run is part of finishing it.** The moment an evidence run completes, its
+directory joins `PROTECTED_RESULT_DIRS` — in the same change, not as a follow-up. Until it does,
+that directory is guarded only by the write-once check, which `EVAL_OVERWRITE=1` overrides on
+purpose, and the claim that a completed run's evidence is immutable outruns the code by exactly
+that margin.
 
 The runner is the one module in this repository that cannot be run to find anything out: importing
 it with an API key present starts paying a provider. `src/lib/ai/evals/corpus.ts` and

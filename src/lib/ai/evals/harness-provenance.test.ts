@@ -246,12 +246,13 @@ describe("incidents are logged outside the evidence they are about", () => {
     // Scoped per incident, not file-global: a `toContain` over the whole ledger stays green
     // when a claim is deleted from one section and still present in another, which is the
     // guard-that-cannot-fail-its-own-mutation shape this project keeps producing.
+    // Boundaries derived, not listed: the ledger is append-only, so a hardcoded list would make
+    // the last incident's section swallow the next one added, and a claim deleted from it but
+    // present in its successor would stay green — the decay this scoping exists to prevent.
+    const headings = [...ledger.matchAll(/^## Incident \d+/gm)].map((m) => m.index as number);
     const section = (heading: string) => {
       const start = at(heading);
-      const next = [at("## Incident 2"), at("## Incident 3"), ledger.length].find(
-        (i) => i > start,
-      ) as number;
-      return flat(ledger.slice(start, next));
+      return flat(ledger.slice(start, headings.find((i) => i > start) ?? ledger.length));
     };
     // Each incident says its outputs were never looked at, in its own words.
     expect(section("## Incident 1")).toContain("Outputs never inspected");
@@ -340,6 +341,7 @@ describe("doctrine status claims are current", () => {
     expect(challenge).toContain("| Mechanical pass | 11 / 12 |");
 
     // Doctrine must say the same thing the evidence does.
+    expect(doctrineFlat).toContain("Two evidence runs have happened");
     expect(doctrineFlat).toContain("**`v3`** was evaluated against the fourteen-case regression");
     expect(doctrineFlat).toContain("13/14 mechanical");
     expect(doctrineFlat).toContain("remediation **`v4`** was then evaluated");

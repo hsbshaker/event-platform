@@ -510,7 +510,7 @@ pointer. Inline both at their citing sections when Phase 4 touches those contrac
 The measurement gap is closed and the rubric has been run. `generateEventIdentity` exists and is
 the real creative interpreter; `model-contracts.md §4.5` defines how its output is judged.
 
-Two live runs have happened. **`v3`** was evaluated against the fourteen-case regression suite —
+Two evidence runs have happened. **`v3`** was evaluated against the fourteen-case regression suite —
 13/14 mechanical, the one failure since established as an evaluator false positive — and failed
 its independent qualitative gate. Its remediation **`v4`** was then evaluated against an
 independently authored sealed challenge: 11/12 mechanical, and it failed that gate too.
