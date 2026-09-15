@@ -494,6 +494,22 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
               "null where one does not apply",
           );
         }
+        // Null, or real text — never a non-string and never empty. Neither is caught by anything
+        // above once an option is selected, and both are permanent: a non-string reaches
+        // `answer.freeText?.trim()` in `historyDelivered` (`?.` guards nullish, not type) and
+        // throws from `checkRerunCase`, which is called outside the runner's try/catch *after* the
+        // paid call — the same crash B1 closed, one value type along. An empty string does not
+        // crash but makes two correct assemblies contradict: a T9 that reads "typed nothing" as
+        // `null` reports `null`, and the gating `answersAssembledAsGiven` compares with `===`.
+        if (
+          answer.freeText !== null &&
+          answer.freeText !== undefined &&
+          !nonEmpty(answer.freeText)
+        ) {
+          problems.push(
+            `${aAt}: \`freeText\` must be null when the host typed nothing, or non-empty text`,
+          );
+        }
         if (typeof answer.freeText === "string" && answer.freeText !== answer.freeText.trim()) {
           // The checks that look for free text in the request trim it, because an assembly that
           // renders `freeText.trim()` is correct. `answersAssembledAsGiven` compares the reported

@@ -354,7 +354,7 @@ describe("paths and ownership are fixed before the cases are known", () => {
         "the mechanical checks, the acceptance criteria and the blind artifact, all frozen at T5 " +
         "before the validation cases existed. Changing a criterion after seeing the cases is the " +
         "thing this set exists not to do.",
-    ).toBe("37c74b736f4139bb7a06def31f397286b727b7bd5ba8110baed9e4d06d81efa0");
+    ).toBe("d8e0f95f415f44a8051ef284050a5b1adf4ddcc6a6a985a0dea0eb6d8fc36969");
   });
 
   it("does not change at all", () => {
@@ -870,6 +870,36 @@ describe("the structural contract refuses a case that would waste a paid call", 
       ]),
     );
     expect(problems.join(" ")).toMatch(/must state both/);
+  });
+
+  it("refuses a freeText that is neither null nor real text", () => {
+    // The last reachable instance of B1's class: with an option selected, nothing above this rule
+    // looks at `freeText`, so a non-string reaches `answer.freeText?.trim()` — `?.` guards nullish,
+    // not type — and throws from `checkRerunCase`, outside the runner's try/catch, after the call
+    // is paid for. An empty string does not crash but makes a T9 that reads it as `null` fail the
+    // gating self-report comparison against a correct assembly.
+    for (const freeText of [0, false, [], {}, ""]) {
+      const problems = validateRerunCorpusShape(
+        corpus([
+          validCase({
+            history: [
+              {
+                questions: [question()],
+                answers: [
+                  { questionIndex: 0, selectedOptionLabel: "Black tie", freeText } as never,
+                ],
+              },
+            ],
+          }),
+        ]),
+      );
+      expect({ freeText, problems: problems.join(" ") }).toEqual({
+        freeText,
+        problems: expect.stringMatching(/must be null when the host typed nothing/),
+      });
+    }
+    // …and null, or real text, still validates.
+    expect(validateRerunCorpusShape(corpus([validCase()]))).toEqual([]);
   });
 
   it("does not throw on junk", () => {

@@ -1229,6 +1229,12 @@ fail the one paid run permanently. All are fixable at the corpus, which is what 
 3. **Dimension coverage is T7's to check**, since nothing frozen requires the corpus to span all
    seven — only that a `multi_round_provenance` case carries at least two rounds, which the
    validator does enforce.
+4. **At least one case must carry two or more answers**, or `answerBoundToItsQuestion` reports
+   `n/a` for the whole run and attribution — the point of CA-4 — is never decided by this set. With
+   a single carried answer the window is the whole request, so the check can only fail where
+   `historyDelivered` already has; it reports `n/a` rather than a `pass` that would claim more than
+   it measured. The validator enforces dimension *validity*, never *coverage*, so this one is a
+   review obligation and cannot be moved into the frozen file.
 
 The hazards an earlier draft listed here are now refused in code instead, which is the right place
 for anything a reviewer would have to catch by eye in a corpus written by someone who cannot see
