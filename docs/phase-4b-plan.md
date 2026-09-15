@@ -970,8 +970,8 @@ graded. Fixed by ordering, not by a promise.
 | **T3** | `clarification_answers`: table, binding trigger, append-only trigger, RLS; unconditional `events.prompt` immutability trigger | migration; `src/lib/events/clarification.ts` | T2 | db: wrong event, wrong index, wrong `kind`, drifted copy, boundary-defer, duplicate answer, non-member and mis-attributed `answered_by` all refused; `events.prompt` unwritable even by service role | `development-plan.md` 4B (c); `spec.md §31 — Prompt, auth, and generation` | no | **yes** | no |
 | **T4** | **Prewire the rerun-behaviour validation machinery, while no cases exist.** Fixed corpus path and filename; fixed output directory; the evidence-class label (§3.9); the corpus structural contract the cases must satisfy; the runner slot; write-once and `PROTECTED_RESULT_DIRS` behaviour; the generic mechanical checks; the qualitative artifact and review contract; **the mechanical and qualitative acceptance criteria themselves**; and **leakage-scan coverage of two surfaces, not one** — the new corpus path, *and* the assembly's own static model-visible text as a third scanned surface beside the prompt and wire schema (see below, and note that `prompt-leakage.test.ts` hardcodes `SURFACES` today, so this is a T4 edit or it is never a legal one) | `src/lib/ai/evals/*`, runner slot | T3 | unit/static only, per the operational rule. **A named test asserts the corpus is absent and the slot refuses**, so the prewiring is verified without a case existing — the `challenge2` arrangement, reused | `model-contracts.md §4.5` | no | **yes** | no |
 | **T5** | **Freeze and independently review the validation tooling.** Nothing below may change T4's paths, checks or criteria | — | T4 | the T4 suite, green at the freeze SHA | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | no |
-| **T6** | **An independent author writes the pre-registered rerun-behaviour cases**, working from the published capability and contract dimensions only — not this repository, not T4's checker source, and not the assembly they will exercise. Not the implementer of T4 or T9 (§3.9). The file lands in the repository at T8, not here | the corpus file, authored outside the repository | T5 | the frozen T4 structural contract accepts it | `model-contracts.md §4.5` | no | n/a — authored, not implemented | no |
-| **T7** | **Independent fairness and leakage review of the corpus.** A collision with pre-existing production or model-visible text is fixed **at the corpus**, by its author — never by relaxing the scanner or the checker (§3.5) | — | T6 | leakage scan against the frozen prompt and wire schema; fairness read | `model-contracts.md §4.5` | no | **yes** | no |
+| **T6** | **An independent author writes the pre-registered rerun-behaviour cases**, working from the published capability and contract dimensions only — not this repository, not T4's checker source, and not the assembly they will exercise. Not the implementer of T4 or T9 (§3.9). The file lands in the repository at T8, not here | the corpus file, authored outside the repository | T5 | the frozen T4 structural contract accepts it; the brief publishes the four authoring hazards the validator cannot catch (§B.3) | `model-contracts.md §4.5` | no | n/a — authored, not implemented | no |
+| **T7** | **Independent fairness and leakage review of the corpus.** A collision with pre-existing production or model-visible text is fixed **at the corpus**, by its author — never by relaxing the scanner or the checker (§3.5) | — | T6 | leakage scan against the frozen prompt and wire schema; fairness read; the four authoring hazards checked case by case, dimension coverage included | `model-contracts.md §4.5` | no | **yes** | no |
 | **T8** | **Freeze the corpus at its own input SHA**, in a commit that adds the corpus file and nothing else | the corpus file alone | T7 | the T4 suite still green; the absence test retires without a source edit | `model-contracts.md §4.5` | no | **yes** | no |
 | **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts`, `src/lib/ai/openai/event-identity-input.ts`, **`src/lib/ai/evals/rerun-seam.ts`** (the one file in the frozen validation harness T9 may touch) | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds; **leakage scan clean — the assembly's static text against the frozen corpus** | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
 | **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh; a late Route A answer leaves an in-flight batch untouched | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
@@ -1164,6 +1164,25 @@ unnormalised (trimming excepted), and on a repair retry it is the **whole** asse
 the attempt whose response is returned — the provider boundary appends a correction turn rather
 than replacing the user message, and returning the correction turn alone would fail two absolute
 checks on a correct implementation.
+
+**What the T6 author brief must publish, and T7 must check.** The frozen validator checks shape,
+and cannot check these — and each one is a way a *correct* T9 implementation fails the one paid
+run permanently. All are fixable at the corpus, which is what T7 is for (§3.5); none is a reason
+to reopen the freeze.
+
+1. **The `suppliedFacts` field names, verbatim.** `expectedFacts` keys are unvalidated and
+   compared by exact equality, so a key the schema does not have reads as `null` and fails a clean
+   run. The list is `hostNames`, `honoreeName`, `honoreeDescriptionText`, `eventType`, `dateText`,
+   `timeText`, `venueText`, `addressText`, `localityText`, `rsvpDeadlineText`. Values are trimmed
+   verbatim quotations, so an expectation must be lexically present in that case's own prompt, and
+   `null` means the field was not supplied.
+2. **`mustNotInvent` is a case-insensitive substring match over the final round's fact *values*.**
+   A term must not be a substring of anything the host legitimately said in that case.
+3. **No two rounds of a case may carry field-identical answers, and no two consecutive rounds may
+   be expected to render identically.** The first defeats `answersAssembledAsGiven`'s value
+   comparison; the second false-fails `answersReachedTheModel` on a legitimate per-round assembly.
+4. **Dimension coverage is T7's to check**, since nothing frozen requires it — in particular that
+   at least one case has three rounds, without which `multi_round_provenance` is never exercised.
 
 **Three procedural notes that are not code.** (1) `src/lib/ai/evals/rerun-behaviour.ts` and
 `tests/eval/clarification-rerun.eval.ts` compile against `report.ts`, `journal.ts`,
