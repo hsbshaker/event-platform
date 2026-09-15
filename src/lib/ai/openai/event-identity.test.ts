@@ -134,7 +134,7 @@ describe("the OpenAI event identity call", () => {
     expect(result.usage.repairRetries).toBe(0);
     expect(result.usage.transientRetries).toBe(0);
     expect(result.usage.reasoningTokens).toBe(50);
-    expect(result.promptVersion).toBe("event_identity_v4");
+    expect(result.promptVersion).toBe("event_identity_v5");
     expect(create).toHaveBeenCalledTimes(1);
   });
 

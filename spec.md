@@ -704,22 +704,45 @@ varies by model and is an input to that selection rather than something a prompt
 
 ### 7.6b Adaptive creative clarification
 
-**Approved decision.** Event Identity **may** ask the host a creative clarifying question before
-concepts are generated, and only when that materially improves understanding of the requested
-creative identity.
+**Approved decision.** Event Identity **may** ask the host a clarifying question before concepts
+are generated, on one of exactly two routes, and only when that materially improves the brief.
+
+**Route A — creative clarification.** A question of taste, when the creative call is genuinely
+open. Non-blocking: every creative question carries a `You decide` option, so the host can always
+hand the call back and concepts proceed.
+
+**Route B — authority clarification.** A question about a decision the system does not have the
+authority to make. Rare. It carries no `You decide` option, because offering to decide it would
+contradict the reason for asking, and it may block concept generation until answered.
 
 This is not the setup wizard §4.7 forbids, and the distinction is precise: a wizard is a fixed,
 sequential, gating intake of information the product needs; this is at most a small number of
-questions, generated from an ambiguity actually present in this prompt, about *taste only*.
+questions, generated from something actually present in this prompt — a creative ambiguity, or a
+position the brief cannot take on a person's behalf.
 
 Canonical rules:
 
 1. **The preferred number of questions is zero.** Typically 0; sometimes 1–2; a hard working
-   ceiling of 3 before concept generation. A question is warranted only when **all five** hold:
-   two or more materially different creative worlds are plausible; the host has not delegated
-   the choice; choosing wrong would substantially alter the experience rather than an execution
-   detail; the distinction is creative rather than logistical; and asking is more valuable than
-   making a reasonable creative bet. Otherwise decide.
+   ceiling of 3 before concept generation. A **creative** question (Route A) is warranted only
+   when **all five** hold: two or more materially different creative worlds are plausible; the
+   host has not delegated the choice; choosing wrong would substantially alter the experience
+   rather than an execution detail; the distinction is creative rather than logistical; and
+   asking is more valuable than making a reasonable creative bet. Otherwise decide.
+
+   **1a. Route B — authority clarification.** A **boundary** question is warranted only when
+   **all four** hold: writing the brief would otherwise take a consequential position on behalf
+   of a real person that the host never settled; that position is not a matter of taste; the
+   brief cannot do its job while declining to take the position; and one focused question
+   resolves it. Sensitivity, emotion, culture, family or personal history, missing logistics and
+   missing aesthetic preference are never triggers on their own, and creative delegation does not
+   reach it. The question asks the host to state or confirm the boundary they can legitimately
+   affirm as settled; it never treats the host's preference as authority over another person.
+
+   **1b. Exclusivity and per-response limit.** A clarification decision is valid only when it
+   holds zero questions, or 1–3 questions that are all creative, or exactly one question that is
+   a boundary question. A boundary question is asked alone. **There is no lifetime cap:** a later
+   Event Identity call may return a new boundary question if all four conditions independently
+   hold again, because a spent quota is not authority.
 
    **Explicit delegation is an answer.** "Surprise me", "you decide" or equivalent biases
    strongly toward committing, and what is owed then is a concrete organizing premise a
@@ -727,8 +750,11 @@ Canonical rules:
 2. **Dynamically generated** from the actual ambiguity. There is no fixed question list.
 3. **Every question must pass:** *would different answers produce meaningfully different creative
    identities?* If no, it is not asked.
-4. **Always offer `You decide` / `Surprise me`** or equivalent. A host must never need design
-   vocabulary to use this product, and one who has none must not get a worse result.
+4. **A creative question always offers `You decide` / `Surprise me`** or equivalent — exactly
+   one such option. A host must never need design vocabulary to use this product, and one who has
+   none must not get a worse result. **A boundary question offers none.** A conservative option
+   the host selects — leaving the matter out, keeping it unspecified — is a real choice, not a
+   defer.
 5. **Never low-level design choices.** Not fonts, grids, hero side, heading treatment or hex
    values — §4.1 stands unchanged. Clarification establishes the creative identity; it never
    outsources the design.
@@ -737,15 +763,26 @@ Canonical rules:
    are publish requirements collected after the host chooses a concept (§7.3, §23.1). Concept
    creation is not an event-information intake form.
 
-The flow is therefore: prompt → creative understanding → optional creative clarification →
-concepts → choose → complete the operational details.
+The flow is therefore: prompt → creative understanding → optional clarification → concepts →
+choose → complete the operational details. A Route A question never interrupts it.
+
+**Provisional identity.** When a returned clarification contains a question with
+`kind: "boundary"`, the `identity` returned with it is **provisional**: Route B fires only when
+the brief could not do its job without settling the position, so the brief beside the question is
+a working interpretation and not an authoritative one. A provisional identity **must not be
+consumed** by the sibling planner (§7.7), DesignIntent, composition generation or any downstream
+creative stage, and concept generation is blocked until the host answers. The host answers,
+**Event Identity runs again** with that answer as current host input, and only a result carrying
+no boundary question becomes the authoritative creative identity. If the rerun returns another
+boundary question, that result is provisional and blocked in turn. No output field marks this —
+the presence of a boundary-kind question is the machine-readable signal.
 
 Neither the question schema, the model contract change nor the surface that presents a question is
 designed here; see `docs/model-contracts.md §4` and `docs/product-doctrine.md §6`.
 
 ### 7.7 Diversity planning before concept model calls
 
-Once Event Identity is valid, the deterministic **sibling planner** plans three concept assignments. Each sibling receives:
+Once Event Identity is valid **and not provisional** — that is, its clarification carries no `kind: "boundary"` question (§7.6b) — the deterministic **sibling planner** plans three concept assignments. Each sibling receives:
 
 1. a distinct compatible **family** whenever possible, then distinct **tonal direction** when the brief allows, then distinct **typography category** and **hierarchy**;
 2. a distinct **structural directive**: one value per independent dimension (opening object, primary structure, date treatment, motif use, hero surface, details folded or own, RSVP intro placement, registry layout), assembled into one sentence; siblings differ at least on structure and opening;
@@ -2407,7 +2444,9 @@ The host should feel:
 - [ ] Abandoned pre-auth draft/assets expire and remain private.
 - [ ] Required details are collected only when missing and while generation runs, and never block concepts from appearing.
 - [ ] Venue-text timezone inference + validation + browser fallback works.
-- [ ] Adaptive creative clarification asks nothing in the common case, at most three questions ever, never a logistics field, and never gates concepts from appearing (§7.6b).
+- [ ] Adaptive clarification asks nothing in the common case, never a logistics field, and declares a `kind` on every question (§7.6b).
+- [ ] Creative clarification (Route A) stays within the ceiling of three, offers exactly one `You decide` option per question, and never gates concepts from appearing (§7.6b).
+- [ ] Authority clarification (Route B) is asked alone and at most once per response, offers no `You decide` option, and may block concept generation until answered; the identity returned beside it is provisional and is not consumed by the sibling planner or any downstream creative stage (§7.6b, §7.7).
 - [ ] Every clarification offered is one whose answers would produce materially different creative identities, and every one offers a `You decide` option.
 - [ ] Each concept becomes available as soon as its resolved spec exists; no concept waits on its siblings (§7.10).
 - [ ] The generation surface shows only artifacts the pipeline produced — no model reasoning, no fabricated progress or completion percentages (§7.10).
@@ -2544,7 +2583,7 @@ The host should feel:
 6. Do not add a template gallery.
 7. Do not send concept selection to a generic pre-publish dashboard.
 8. Creation Mode is the actual event with contextual collaborator controls.
-9. Do not turn readiness into a wizard. Adaptive creative clarification (§7.6b) is the one permitted pre-concept question and is bounded: taste only, never logistics, never a gate on concepts appearing.
+9. Do not turn readiness into a wizard. Adaptive clarification (§7.6b) is the one permitted pre-concept question and is bounded on both of its routes. Route A: taste only, never logistics, always a `You decide` option, never a gate on concepts appearing. Route B: only a decision the system has no authority to make, never triggered by sensitivity/emotion/culture/family/logistics/missing taste alone, asked alone and at most once per response, no `You decide` option, and the only route permitted to block concepts — behind which the identity is provisional and must not flow downstream (§7.7).
 10. Do not count optional Guests/Registry as publish blockers.
 11. Do not build token/chat-level AI editing.
 12. Strong model returns a six-field DesignIntent (`family`, `composition`, no `heroArchetype`) plus non-design presentation metadata, and a `CompositionTree` of trusted primitives; nothing else.

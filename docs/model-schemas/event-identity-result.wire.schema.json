@@ -189,7 +189,7 @@
               "type": "null"
             }
           ],
-          "description": "The NAME of whoever the event is for, as written. A relationship is not a name. Quoted from the host verbatim, or null. Never inferred."
+          "description": "The NAME of whoever the event is for, as written — their name, or the personal name they actually go by. A relationship is not a name. A nickname, title, rank, role, handle or joke is not a name either WHEN the host presents it as a label attached to the person rather than the name they go by; a nickname someone actually goes by is their name. The lexical category of the term decides nothing, and neither does whether a word looks name-like — what decides is the role the host gives it. Quoted from the host verbatim, or null. Never inferred."
         },
         "honoreeDescriptionText": {
           "anyOf": [
@@ -307,13 +307,21 @@
           "items": {
             "type": "object",
             "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "creative",
+                  "boundary"
+                ],
+                "description": "'creative' for a question of taste, governed by the five conditions. 'boundary' for a decision that is not yours to make. Every question declares which; a question that fits neither must not be asked."
+              },
               "question": {
                 "type": "string",
-                "description": "A question about taste only. Never logistics, never a low-level design choice."
+                "description": "For 'creative': a question about taste. For 'boundary': ask the host to state the boundary they can legitimately affirm as settled — never to authorize something on another person's behalf, and never offering to decide it yourself. Never logistics — never a date, time, venue, address, guest count or budget — and never a low-level design choice."
               },
               "whyItMatters": {
                 "type": "string",
-                "description": "How the answers would diverge creatively. Not shown to the host as written."
+                "description": "For 'creative': how the answers would diverge creatively. For 'boundary': the position the brief would otherwise take on someone's behalf, and why it is not yours to take. Not shown to the host as written."
               },
               "options": {
                 "type": "array",
@@ -326,7 +334,7 @@
                     },
                     "isDefer": {
                       "type": "boolean",
-                      "description": "True on the single 'You decide' / 'Surprise me' option every question must offer."
+                      "description": "True on the single 'You decide' / 'Surprise me' option a creative question must offer. Always false on a boundary question: that decision is the host's, and you may not offer to take it. A conservative option the host picks (leaving the matter out, keeping it unspecified) is a real choice, not a defer."
                     }
                   },
                   "required": [
@@ -335,17 +343,18 @@
                   ],
                   "additionalProperties": false
                 },
-                "description": "Answer options. Exactly one must have isDefer: true."
+                "description": "Answer options. A creative question has exactly one isDefer: true; a boundary question has none, because that decision is the host's."
               }
             },
             "required": [
+              "kind",
               "question",
               "whyItMatters",
               "options"
             ],
             "additionalProperties": false
           },
-          "description": "At most three, and usually none. Ask only when different answers would produce meaningfully different creative identities."
+          "description": "Usually none. Either up to three creative questions, or exactly one boundary question and nothing else — a boundary must be settled before the brief is authoritative, and asking taste questions alongside it turns one question into an intake form."
         }
       },
       "required": [
@@ -353,7 +362,7 @@
         "questions"
       ],
       "additionalProperties": false,
-      "description": "Whether a creative question would materially improve understanding. Usually not."
+      "description": "Whether a question must be put to the host before designing. Usually not — zero is the normal and most common answer."
     }
   },
   "required": [

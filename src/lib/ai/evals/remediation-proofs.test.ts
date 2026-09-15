@@ -68,6 +68,7 @@ const testCase = (overrides: Partial<CorpusCase> = {}): CorpusCase => ({
 });
 
 const question = (text: string) => ({
+  kind: "creative" as const,
   question: text,
   whyItMatters: "the answers lead somewhere materially different",
   options: [

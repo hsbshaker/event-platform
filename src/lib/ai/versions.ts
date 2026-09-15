@@ -37,8 +37,8 @@
  * (`docs/model-evals/creative-understanding.json` CU-01, CU-02), so keeping it would have
  * scored the prompt on a question it had been shown.
  */
-export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v4";
-export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v4";
+export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5";
+export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5";
 export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v4";
 export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v4";
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";

@@ -428,6 +428,7 @@ describe("mustAvoid probing", () => {
 
 describe("clarification judgement", () => {
   const question = (text: string, defers = 1) => ({
+    kind: "creative" as const,
     question: text,
     whyItMatters: "different answers would produce materially different identities",
     options: [

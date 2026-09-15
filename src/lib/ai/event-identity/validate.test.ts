@@ -52,6 +52,7 @@ const suppliedFacts = {
 };
 
 const question = (label = "You decide") => ({
+  kind: "creative",
   question: "Should this lean heritage or contemporary?",
   whyItMatters: "The two produce genuinely different identities.",
   options: [

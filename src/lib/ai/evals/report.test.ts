@@ -71,6 +71,7 @@ const run: CaseRun = {
       needed: true,
       questions: [
         {
+          kind: "creative" as const,
           question: "Should this lean heritage-equestrian or heirloom-nursery?",
           whyItMatters: "The two produce materially different identities.",
           options: [

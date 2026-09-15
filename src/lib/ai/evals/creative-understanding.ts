@@ -805,6 +805,7 @@ export function checkClarification(
   if (count === 0) {
     checks.push({ name: "clarificationNotLogistics", status: "n/a", detail: "no questions" });
     checks.push({ name: "clarificationOffersDefer", status: "n/a", detail: "no questions" });
+    checks.push({ name: "clarificationRouteExclusivity", status: "n/a", detail: "no questions" });
     return checks;
   }
 
@@ -822,20 +823,41 @@ export function checkClarification(
       : { name: "clarificationNotLogistics", status: "fail", detail: logistics.join("; ") },
   );
 
-  const missingDefer = questions.flatMap((q) =>
-    q.options.filter((o) => o.isDefer).length === 1 ? [] : [`"${q.question}"`],
-  );
+  // Route-aware, because the old rule — one defer on every question — would reject every
+  // correct boundary question. Route B exists precisely because the decision is not the
+  // system's to make, so offering "you decide" on one would contradict the reason for asking.
+  const wrongDefer = questions.flatMap((q) => {
+    const want = q.kind === "creative" ? 1 : 0;
+    const got = q.options.filter((o) => o.isDefer).length;
+    return got === want ? [] : [`${q.kind} "${q.question}" has ${got}, needs ${want}`];
+  });
   checks.push(
-    missingDefer.length === 0
+    wrongDefer.length === 0
       ? {
           name: "clarificationOffersDefer",
           status: "pass",
-          detail: "every question offers exactly one defer option",
+          detail: "creative questions offer exactly one defer; boundary questions offer none",
         }
       : {
           name: "clarificationOffersDefer",
           status: "fail",
-          detail: `no single defer option on: ${missingDefer.join("; ")}`,
+          detail: `wrong defer count: ${wrongDefer.join("; ")}`,
+        },
+  );
+
+  // Exclusivity, reported rather than scored as taste: a boundary question must stand alone.
+  const boundaries = questions.filter((q) => q.kind === "boundary").length;
+  checks.push(
+    boundaries === 0 || (boundaries === 1 && questions.length === 1)
+      ? {
+          name: "clarificationRouteExclusivity",
+          status: "pass",
+          detail: boundaries === 0 ? "creative only" : "one boundary question, asked alone",
+        }
+      : {
+          name: "clarificationRouteExclusivity",
+          status: "fail",
+          detail: `${boundaries} boundary question(s) among ${questions.length} — a boundary must be the only question asked`,
         },
   );
 

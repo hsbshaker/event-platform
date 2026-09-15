@@ -92,7 +92,7 @@ prompt has always promised.
 | --- | --- |
 | `identity` | the creative brief. Inference expected and generous — except in `hostConstraints` |
 | `suppliedFacts` | ten `*Text` fields — hosts, honoree, type, date, time, venue, address, locality, RSVP deadline — each a **verbatim quotation from the host or `null`** |
-| `clarification` | `needed`, plus at most three taste questions (`spec.md §7.6b`) |
+| `clarification` | `needed`, plus questions on one of two routes: up to three **creative** questions, or exactly one **boundary** question (`spec.md §7.6b`) |
 
 Facts and identity share one round trip because a second call would roughly double latency
 (`spec.md §7.10`) to separate what the schema has already separated. Two details exist so that
@@ -100,6 +100,41 @@ requirements are checkable rather than inferred from wording: the `You decide` o
 requires is a structural `isDefer` boolean, not a phrase to pattern-match; and every fact field is
 named `*Text` and described as a quotation, because **normalization is the application's job, never
 the model's** — `1pm` stays `1pm`.
+
+### The clarification routes (`v5`)
+
+The first sealed challenge returned zero questions on all twelve cases, and a human reviewer found
+one where proceeding required the system to settle a matter it had no authority to settle. The
+cause was structural rather than dispositional: every model-visible instruction scoped clarification
+to taste, so the correct behaviour was unreachable. `v5` splits the routes.
+
+| | |
+| --- | --- |
+| **Route A — creative** (`kind: "creative"`) | a taste call that is genuinely open. Up to three, governed by the five conditions. **Exactly one `isDefer` option each**, which is why it never blocks: the host can always hand the call back |
+| **Route B — boundary** (`kind: "boundary"`) | a decision the system has no authority to make — a consequential position on behalf of a real person that the host never settled. Governed by four conditions. **Zero `isDefer` options**, because offering to decide it would contradict the reason for asking |
+
+`kind` is required on every question, so a question cannot be asked without declaring the authority
+it rests on, and the two routes stay separable in evidence. **Exclusivity:** a decision holds zero
+questions, or 1–3 creative questions, or exactly one boundary question asked alone. There is **no
+lifetime cap** on boundary questions — a later call may raise a new one if all four conditions hold
+again, because a spent quota is not authority.
+
+Two rules live only in runtime validation, not in the wire schema, because the strict
+structured-output subset admits no conditionals and no length keywords: the per-`kind` defer count,
+and exclusivity. The model therefore learns them from the field descriptions, and a violation is
+caught by the single repair retry (`§8`).
+
+**Provisional identity.** When a response carries a boundary question, the `identity` beside it is
+**provisional**: Route B fires only when the brief could not do its job without settling the
+position, so that brief is a working interpretation, not an authoritative one. It must not be
+consumed by the sibling planner (`spec.md §7.7`), DesignIntent, composition generation or any
+downstream creative stage, and concept generation is blocked until the host answers. Event Identity
+then **runs again** with the answer as current host input; only a result with no boundary question
+becomes authoritative, and a rerun that raises another boundary question is provisional in turn. No
+field marks this — the presence of a boundary-kind question is the signal. Phase 4A implements none
+of this orchestration, which does not exist yet; it is a binding Phase 4B obligation recorded in
+`development-plan.md`, along with the requirement that a clarification answer be carried as
+first-class host input rather than concatenated into the original prompt.
 
 ### The authority boundary (`v4`)
 

@@ -206,7 +206,12 @@ export const suppliedEventFactsSchema = z
       .max(200)
       .nullable()
       .describe(
-        "The NAME of whoever the event is for, as written. A relationship is not a name. " +
+        "The NAME of whoever the event is for, as written — their name, or the personal name " +
+          "they actually go by. A relationship is not a name. A nickname, title, rank, role, " +
+          "handle or joke is not a name either WHEN the host presents it as a label attached to " +
+          "the person rather than the name they go by; a nickname someone actually goes by is " +
+          "their name. The lexical category of the term decides nothing, and neither does " +
+          "whether a word looks name-like — what decides is the role the host gives it. " +
           "Quoted from the host verbatim, or null. Never inferred.",
       ),
     honoreeDescriptionText: z
@@ -295,8 +300,11 @@ export const SUPPLIED_FACT_FIELDS = Object.keys(
 
 /**
  * One answer option. `isDefer` marks the `You decide` / `Surprise me` option that
- * `spec.md §7.6b #4` requires on every question — structural rather than textual, so the
- * requirement is mechanically checkable instead of guessed at from wording.
+ * `spec.md §7.6b #4` requires on a **creative** question — structural rather than textual, so
+ * the requirement is mechanically checkable instead of guessed at from wording.
+ *
+ * A **boundary** question carries none. Route B exists because the decision is not the system's
+ * to make; offering to make it anyway would contradict the reason for asking.
  */
 export const clarificationOptionSchema = z
   .object({
@@ -304,35 +312,64 @@ export const clarificationOptionSchema = z
     isDefer: z
       .boolean()
       .describe(
-        "True on the single 'You decide' / 'Surprise me' option every question must offer.",
+        "True on the single 'You decide' / 'Surprise me' option a creative question must offer. " +
+          "Always false on a boundary question: that decision is the host's, and you may not " +
+          "offer to take it. A conservative option the host picks (leaving the matter out, " +
+          "keeping it unspecified) is a real choice, not a defer.",
       ),
   })
   .strict();
 
 export const clarificationQuestionSchema = z
   .object({
+    /**
+     * Which route this question came from. Required, so a question cannot be asked without
+     * declaring the authority it rests on — and so the two routes stay separable in evidence.
+     */
+    kind: z
+      .enum(["creative", "boundary"])
+      .describe(
+        "'creative' for a question of taste, governed by the five conditions. 'boundary' for a " +
+          "decision that is not yours to make. Every question declares which; a question that " +
+          "fits neither must not be asked.",
+      ),
     question: z
       .string()
       .trim()
       .min(8)
       .max(240)
-      .describe("A question about taste only. Never logistics, never a low-level design choice."),
+      .describe(
+        "For 'creative': a question about taste. For 'boundary': ask the host to state the " +
+          "boundary they can legitimately affirm as settled — never to authorize something on " +
+          "another person's behalf, and never offering to decide it yourself. Never logistics " +
+          "— never a date, time, venue, address, guest count or budget — and never a low-level " +
+          "design choice.",
+      ),
     /** `§7.6b #3` — why different answers would produce meaningfully different identities. */
     whyItMatters: z
       .string()
       .trim()
       .min(10)
       .max(300)
-      .describe("How the answers would diverge creatively. Not shown to the host as written."),
+      .describe(
+        "For 'creative': how the answers would diverge creatively. For 'boundary': the position " +
+          "the brief would otherwise take on someone's behalf, and why it is not yours to take. " +
+          "Not shown to the host as written.",
+      ),
     options: z
       .array(clarificationOptionSchema)
       .min(2)
       .max(5)
-      .describe("Answer options. Exactly one must have isDefer: true."),
+      .describe(
+        "Answer options. A creative question has exactly one isDefer: true; a boundary question " +
+          "has none, because that decision is the host's.",
+      ),
   })
   .strict()
-  .refine((q) => q.options.filter((o) => o.isDefer).length === 1, {
-    message: "exactly one option must be the defer option (spec.md §7.6b #4)",
+  .refine((q) => q.options.filter((o) => o.isDefer).length === (q.kind === "creative" ? 1 : 0), {
+    message:
+      "a creative question needs exactly one defer option and a boundary question none " +
+      "(spec.md §7.6b #4)",
   });
 
 export const clarificationDecisionSchema = z
@@ -344,14 +381,31 @@ export const clarificationDecisionSchema = z
       .array(clarificationQuestionSchema)
       .max(CLARIFICATION_CEILING)
       .describe(
-        "At most three, and usually none. Ask only when different answers would produce " +
-          "meaningfully different creative identities.",
+        "Usually none. Either up to three creative questions, or exactly one boundary question " +
+          "and nothing else — a boundary must be settled before the brief is authoritative, and " +
+          "asking taste questions alongside it turns one question into an intake form.",
       ),
   })
   .strict()
   .refine((c) => c.needed === c.questions.length > 0, {
     message: "`needed` must agree with whether questions were asked",
-  });
+  })
+  /**
+   * Exclusivity and the per-response boundary limit in one predicate: two boundary questions
+   * fail, and a boundary alongside anything else fails. There is deliberately no lifetime cap —
+   * a later call may raise a new boundary, because a spent quota is not authority.
+   */
+  .refine(
+    (c) => {
+      const boundaries = c.questions.filter((q) => q.kind === "boundary").length;
+      return boundaries === 0 || (boundaries === 1 && c.questions.length === 1);
+    },
+    {
+      message:
+        "a boundary question must be the only question in the response, and there may be at " +
+        "most one (spec.md §7.6b)",
+    },
+  );
 
 export const eventIdentityResultSchema = z
   .object({
@@ -362,7 +416,8 @@ export const eventIdentityResultSchema = z
       "What the host actually said. Every value is a quotation or null.",
     ),
     clarification: clarificationDecisionSchema.describe(
-      "Whether a creative question would materially improve understanding. Usually not.",
+      "Whether a question must be put to the host before designing. Usually not — zero is the " +
+        "normal and most common answer.",
     ),
   })
   .strict();
