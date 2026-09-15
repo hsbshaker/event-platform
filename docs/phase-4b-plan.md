@@ -109,6 +109,15 @@ Phase 4B adds append-only identity **revisions**, one row per `generateEventIden
 - no `updated_at`, and a protect trigger refusing every `UPDATE` to the result, the version set or
   the answer-id list, in the style of `protect_design_concept()`.
 
+**Append-only, and still deletable with the event.** These rows sit under `events` with
+`on delete cascade`, and `spec.md §11` makes deleting an event an owner capability a co-host does
+not have. A protect trigger that refused `DELETE` unconditionally would fire inside that cascade
+and abort it, so an event with one revision could never be deleted — by its owner or by any
+account-erasure path. The refusal is therefore carved out for the cascade: it applies while the
+parent event still exists, which is exactly what `protect_owner_membership()` already does in the
+phase-1 migration. The same applies to clarification answers (§B.2). This is a decision, not an
+omission: the alternative is soft-deleting events, which nothing else in the schema does.
+
 A pointer on the event names the **authoritative** revision. Whether the new table supersedes
 `event_identities` or replaces it is an implementation call for the task packet; the constraints
 are that no row is ever mutated, the old shape does not survive as a second source of truth, and no
@@ -316,7 +325,7 @@ precedence between them is expressed, and how an answer is represented.
 
 | Value | Assembly |
 | --- | --- |
-| `event_identity_input_v1` | what Phase 4A shipped and evidenced: original prompt + inspiration assets. No clarification answers |
+| `event_identity_input_v1` | what Phase 4A shipped and evidenced: **the original prompt only**, with inspiration explicitly declared absent — the request ends with the literal line *"There is no visual inspiration supplied with this request"*, and the provider boundary's own input type carries no inspiration field. No clarification answers |
 | `event_identity_input_v2` | adds clarification answers as labelled current host input with stated precedence. Introduced by **T9** |
 
 **No backfill onto finished evidence; an explicit sentinel in the database.** Completed evidence
@@ -506,6 +515,13 @@ uploads stay private model inputs and never become site imagery (`§32 #32`).
 
 One additive guard: extend `raw-prompt-boundary.test.ts` so the DesignIntent call site is refused
 raw inspiration bytes as well as raw prompt text — the same boundary, the other input.
+
+**A gap between this requirement and the shipped code, recorded rather than assumed closed.**
+`spec.md §7.5` requires inspiration assets to reach Event Identity, and `provider.ts` types an
+optional `inspiration` on the input — but the implementation sends the prompt only and tells the
+model no inspiration was supplied. Every `v5` evidence run was produced that way. Closing that gap
+adds an input channel, which under §B.3's bump rule is its own `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION`
+bump and its own validation; it is **not** covered by `v1`, and it is not Phase 4B's work.
 
 ## G. Persistence, attribution and the immutable DesignIntent artifact
 

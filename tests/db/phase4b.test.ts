@@ -4,7 +4,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { asActor, connect, createAuthUser, errorCode, resetDatabase } from "./harness";
 
-import { isProvisional } from "../../src/lib/ai/event-identity/lifecycle";
+import {
+  isProvisional,
+  SUPPORTED_IDENTITY_SCHEMA_VERSIONS,
+} from "../../src/lib/ai/event-identity/lifecycle";
 
 /**
  * Phase 4B T2/T3 — identity revisions, the authority invariant, and answer provenance.
@@ -266,9 +269,6 @@ describe("a provisional identity can never become authoritative", () => {
       `update public.event_identity_revisions set is_provisional = false where id = $1`,
       [id],
     );
-    await db.query(
-      `alter table public.event_identity_revisions enable trigger event_identity_revisions_protect`,
-    );
     expect(
       (
         await db.query(`select is_provisional from public.event_identity_revisions where id = $1`, [
@@ -276,23 +276,31 @@ describe("a provisional identity can never become authoritative", () => {
         ])
       ).rows[0].is_provisional,
     ).toBe(false);
-    // The decision does not read that column, so the lie buys nothing.
-    expect(
-      await errorCode(
-        db.query(`update public.events set authoritative_identity_revision_id = $1 where id = $2`, [
-          id,
-          eventId,
-        ]),
-      ),
-    ).toBe("23514");
-    // Restore the generation. `ALTER COLUMN … SET EXPRESSION` would be the direct form but is
-    // PostgreSQL 17+; this suite runs against 16 locally while supabase/config.toml pins 17, so
-    // the portable drop-and-re-add is used here.
-    await db.query(`alter table public.event_identity_revisions drop column is_provisional`);
-    await db.query(
-      `alter table public.event_identity_revisions add column is_provisional boolean
-         generated always as (public.identity_is_provisional(result, schema_version)) stored`,
-    );
+    try {
+      // The decision does not read that column, so the lie buys nothing.
+      expect(
+        await errorCode(
+          db.query(
+            `update public.events set authoritative_identity_revision_id = $1 where id = $2`,
+            [id, eventId],
+          ),
+        ),
+      ).toBe("23514");
+    } finally {
+      // `ALTER COLUMN … SET EXPRESSION` would be the direct form but is PostgreSQL 17+; this
+      // suite runs against 16 locally while supabase/config.toml pins 17, so the portable
+      // drop-and-re-add is used.
+      await db.query(`alter table public.event_identity_revisions drop column is_provisional`);
+      await db.query(
+        `alter table public.event_identity_revisions add column is_provisional boolean
+           generated always as (public.identity_is_provisional(result, schema_version)) stored`,
+      );
+      await db.query(
+        `alter table public.event_identity_revisions enable trigger event_identity_revisions_protect`,
+      );
+    }
+    // Restored in the finally below, so a failure above cannot leave every later test in this
+    // file running against a non-generated column.
   });
 
   it("refuses a pointer into another event's revision", async () => {
@@ -585,6 +593,121 @@ describe("a revision records the answers it was actually built from", () => {
     expect(
       await errorCode(insertRevision(eventId, 2, [], { answerIds: [rows[0].id, rows[0].id] })),
     ).toBe("23514");
+  });
+});
+
+describe("append-only does not mean the event can never be deleted", () => {
+  // An unconditional DELETE refusal fires inside the `on delete cascade` from `events` and aborts
+  // it, so an event with one revision could never be deleted — by its owner, whom spec.md grants
+  // exactly that capability, or by any account-erasure path. The refusal is carved out for the
+  // cascade only, in the shape `protect_owner_membership` already uses.
+  it("lets the owner delete an event that has revisions and answers", async () => {
+    const question = creativeQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    await answer(revisionId, 0, question);
+    await db.query(
+      `update public.events set authoritative_identity_revision_id = null where id = $1`,
+      [eventId],
+    );
+
+    const code = await asActor(
+      db,
+      { kind: "user", id: owner },
+      (q) => errorCode(q(`delete from public.events where id = $1`, [eventId])),
+      { commit: true },
+    );
+    expect(code).toBeNull();
+
+    const { rows } = await db.query(
+      `select
+         (select count(*) from public.events where id = $1) as events,
+         (select count(*) from public.event_identity_revisions where event_id = $1) as revisions,
+         (select count(*) from public.clarification_answers where event_id = $1) as answers`,
+      [eventId],
+    );
+    expect(rows[0]).toEqual({ events: "0", revisions: "0", answers: "0" });
+  });
+
+  it("still refuses a direct delete while the event exists", async () => {
+    const id = await insertRevision(eventId, 1, []);
+    expect(
+      await errorCode(db.query(`delete from public.event_identity_revisions where id = $1`, [id])),
+    ).toBe("42501");
+  });
+});
+
+describe("an answer can only select an option the question offered", () => {
+  it("refuses a label that was never on the question", async () => {
+    const question = creativeQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    // Bound to a real question, with a byte-exact copy of it — and still refused, because T9's
+    // assembly would otherwise send this to the model as host input with stated precedence.
+    expect(
+      await errorCode(answer(revisionId, 0, question, { selected: "Something nobody offered" })),
+    ).toBe("23514");
+  });
+
+  it("still accepts free text with no option selected", async () => {
+    const question = creativeQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    const { rows } = await answer(revisionId, 0, question, {
+      selected: null,
+      freeText: "Somewhere between the two, closer to the first",
+    });
+    expect(rows[0].id).toBeTruthy();
+  });
+});
+
+describe("anon reaches neither table", () => {
+  it.each([
+    ["event_identity_revisions", "select * from public.event_identity_revisions"],
+    ["clarification_answers", "select * from public.clarification_answers"],
+  ])("cannot read %s", async (_label, sql) => {
+    // A hard permission denial, not an empty result. `revoke all` leaves anon without the table
+    // privilege at all, so the refusal does not depend on RLS having a policy that excludes it —
+    // which is the whole point of following the phase-1 grant pattern rather than the narrower
+    // `revoke insert, update, delete`.
+    const code = await asActor(db, { kind: "anon" }, (q) => errorCode(q(sql)));
+    expect(code).toBe("42501");
+  });
+
+  it("cannot insert an answer", async () => {
+    const question = creativeQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    const code = await asActor(db, { kind: "anon" }, (q) =>
+      errorCode(
+        q(
+          `insert into public.clarification_answers
+             (event_id, identity_revision_id, question_index, round, kind, question_text, options,
+              selected_option_label, is_defer, answered_by)
+           values ($1, $2, 0, 1, 'creative', $3, $4, 'Warmer', false, $5)`,
+          [eventId, revisionId, question.question, JSON.stringify(question.options), owner],
+        ),
+      ),
+    );
+    expect(code).toBe("42501");
+  });
+});
+
+describe("the SQL and TypeScript supported-version lists are the same list", () => {
+  it("pairs the migration's literal with the module's constant", async () => {
+    expect([...SUPPORTED_IDENTITY_SCHEMA_VERSIONS]).toEqual([V5]);
+    const { rows } = await db.query(`select public.identity_is_provisional($1::jsonb, $2) as v`, [
+      JSON.stringify(envelope([])),
+      V5,
+    ]);
+    expect(rows[0].v).toBe(false);
+  });
+});
+
+describe("telemetry carries the same attribution as the artifact", () => {
+  it("records the input assembly version on a generation run", async () => {
+    const { rows } = await db.query(
+      `select column_name from information_schema.columns
+       where table_schema = 'public' and table_name = 'generation_runs'
+         and column_name = 'input_assembly_version'`,
+    );
+    expect(rows).toHaveLength(1);
   });
 });
 

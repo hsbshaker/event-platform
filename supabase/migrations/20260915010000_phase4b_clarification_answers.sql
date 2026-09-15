@@ -117,7 +117,21 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  -- (6) Defer semantics follow the route. Route B offers no defer option at all
+  -- (6) A selected option must be one the question actually offered. Without this a member can
+  -- record an answer the host could not have given — bound to a real question, with a byte-exact
+  -- copy of it — and T9's assembly then sends it to the model as current host input with stated
+  -- precedence over the original description. That is manufactured host authority, which is the
+  -- failure the whole binding exists to prevent.
+  if new.selected_option_label is not null
+     and not exists (
+       select 1 from jsonb_array_elements(coalesce(question -> 'options', '[]'::jsonb)) as o
+       where o ->> 'label' = new.selected_option_label
+     ) then
+    raise exception 'selected_option_label is not one of the options offered'
+      using errcode = 'check_violation';
+  end if;
+
+  -- (7) Defer semantics follow the route. Route B offers no defer option at all
   -- (spec.md §7.6b #4), so a boundary answer can never be one; a creative defer must name the
   -- question's single isDefer option rather than being asserted by the caller.
   select array_agg(o ->> 'label') into defer_labels
@@ -142,14 +156,14 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  -- (7) The round is the revision's own number.
+  -- (8) The round is the revision's own number.
   if new.round is distinct from rev.revision then
     raise exception 'clarification answer round % does not match revision %',
       new.round, rev.revision
       using errcode = 'check_violation';
   end if;
 
-  -- (8) The answer is attributable to someone who can actually speak for this event.
+  -- (9) The answer is attributable to someone who can actually speak for this event.
   if not exists (
     select 1 from public.events e
     where e.id = new.event_id
@@ -161,9 +175,9 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  -- (9) …and for an end-user request, it is the person making it. Without this a co-host could
+  -- (10) …and for an end-user request, it is the person making it. Without this a co-host could
   -- record an answer as the owner's, which defeats "attributable to the host" outright. Service
-  -- role is exempt from (9) and never from (8).
+  -- role is exempt from (10) and never from (9).
   if public.is_end_user_request() and new.answered_by is distinct from auth.uid() then
     raise exception 'answered_by must be the authenticated user'
       using errcode = 'insufficient_privilege';
@@ -177,13 +191,20 @@ create trigger clarification_answers_validate
   before insert on public.clarification_answers
   for each row execute function public.validate_clarification_answer();
 
--- Append-only in the database, not by application habit.
+-- Append-only in the database, not by application habit — with the cascade carved out, for the
+-- same reason as the identity revisions: `events` is `on delete cascade` here and the owner may
+-- delete their event, so an unconditional DELETE refusal would fire inside that cascade and make
+-- any event with an answer permanently undeletable.
 create or replace function public.protect_clarification_answer()
 returns trigger
 language plpgsql
 set search_path = pg_catalog, public
 as $$
 begin
+  if tg_op = 'DELETE'
+     and not exists (select 1 from public.events e where e.id = old.event_id) then
+    return old;
+  end if;
   raise exception 'clarification answers are append-only'
     using errcode = 'insufficient_privilege';
 end;
@@ -258,8 +279,12 @@ begin
 end;
 $$;
 
+-- Deliberately not scoped `before update of prompt`: that clause fires only when `prompt` is in
+-- the UPDATE's column list, so a future BEFORE trigger sorting after this one that assigned
+-- NEW.prompt would bypass it entirely. Unscoped costs nothing — the `is distinct from` check
+-- already makes it a no-op for every update that leaves the prompt alone.
 create trigger events_protect_prompt
-  before update of prompt on public.events
+  before update on public.events
   for each row execute function public.protect_event_prompt();
 
 -- ---------------------------------------------------------------------------
@@ -275,5 +300,9 @@ create policy clarification_answers_insert_member on public.clarification_answer
   for insert to authenticated
   with check (public.is_event_member(event_id) and answered_by = auth.uid());
 
-revoke update, delete on table public.clarification_answers from anon, authenticated;
+-- As with the revisions table: revoke everything from both roles, then grant back only what a
+-- member needs. The narrower revoke would leave `anon` holding SELECT and INSERT by default
+-- privilege — closed by RLS, since no policy names `anon`, but the pattern exists so that a
+-- future policy change cannot quietly open it.
+revoke all on table public.clarification_answers from anon, authenticated;
 grant select, insert on table public.clarification_answers to authenticated;

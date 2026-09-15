@@ -24,6 +24,8 @@
  */
 import { EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 
+import { ASSEMBLY_VERSION_BEFORE_ANSWERS } from "./corpus";
+
 /* ------------------------------------------------------------------ published dimensions */
 
 /**
@@ -190,7 +192,12 @@ export interface RerunCheck {
 /** What one case produced, as the runner will hand it to the checker at T13. */
 export interface RerunObservation {
   caseId: string;
-  /** The exact prompt string sent on each round, in order. */
+  /**
+   * The host's original description as it went into each round's request, in order — the raw
+   * description, not the assembled envelope around it. `promptByteIdentical` compares it with the
+   * case's own prompt, so a T9 implementation that reported the whole envelope here would fail
+   * rather than pass quietly.
+   */
   promptsSent: string[];
   /** The assembly version recorded for each round. */
   assemblyVersions: string[];
@@ -234,26 +241,51 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
     `${observed.results.length} of ${expectedRounds} rounds completed`,
   );
 
+  // Every field, not just the index. This set exists to validate *how an answer is represented*,
+  // so an assembly that sent the right questionIndex with the wrong option, a dropped freeText or
+  // isDefer flipped is exactly the failure it is here to catch — and this is one of the two checks
+  // `RERUN_ACCEPTANCE.mechanical` calls absolute.
+  const sameAnswer = (a: RerunAnswerInput | undefined, b: RerunAnswerInput) =>
+    a !== undefined &&
+    a.questionIndex === b.questionIndex &&
+    a.kind === b.kind &&
+    a.selectedOptionLabel === b.selectedOptionLabel &&
+    a.freeText === b.freeText &&
+    a.isDefer === b.isDefer;
   const answersMatch = testCase.rounds.every((round, index) => {
     const assembled = observed.answersAssembled[index] ?? [];
     return (
       assembled.length === round.answers.length &&
-      round.answers.every((answer, i) => assembled[i]?.questionIndex === answer.questionIndex)
+      round.answers.every((answer, i) => sameAnswer(assembled[i], answer))
     );
   });
   add(
     "answersAssembledAsGiven",
     answersMatch ? "pass" : "fail",
     answersMatch
-      ? "each round assembled exactly the answers the case supplied, in order"
-      : "a round assembled a different set or order of answers than the case supplied",
+      ? "each round assembled exactly the answers the case supplied — index, route, option, text " +
+          "and defer flag — in order"
+      : "a round assembled an answer differing from the case's in index, route, option, text, " +
+          "defer flag, count or order",
   );
 
+  // Recorded, consistent, and **not** the pre-answers value. A run that carried clarification
+  // answers while still stamping `event_identity_input_v1` would be an assembly change under an
+  // unchanged label, which is the exact failure the version exists to make visible — and the
+  // check immediately below already compares against a constant, so anything weaker here would be
+  // an asymmetry with no justification.
   const versions = [...new Set(observed.assemblyVersions)];
+  const versionOk =
+    versions.length === 1 &&
+    versions[0].length > 0 &&
+    versions[0] !== ASSEMBLY_VERSION_BEFORE_ANSWERS;
   add(
     "assemblyVersionRecorded",
-    versions.length === 1 && versions[0].length > 0 ? "pass" : "fail",
-    `input assembly version(s) recorded: ${versions.join(", ") || "none"}`,
+    versionOk ? "pass" : "fail",
+    versionOk
+      ? `input assembly version recorded: ${versions[0]}`
+      : `expected one recorded version other than ${ASSEMBLY_VERSION_BEFORE_ANSWERS}, got: ` +
+          `${versions.join(", ") || "none"}`,
   );
 
   const schemas = [...new Set(observed.schemaVersions)];

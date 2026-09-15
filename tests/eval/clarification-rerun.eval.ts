@@ -9,8 +9,14 @@
  *
  * **`npm run eval:rerun-behaviour` refuses today**, twice over and both times at module scope,
  * before an API key is read, before a client is constructed, and a very long way before a request:
- * the corpus does not exist, and neither does the T9 input assembly this set exercises. When both
- * land, nothing here moves.
+ * the corpus does not exist, and neither does the T9 input assembly this set exercises.
+ *
+ * **The one permitted post-freeze edit to this file** is the single line binding `run` to T9's
+ * implementation of `RerunCallRunner`, in place of `rerunRunnerUnavailable`. Nothing else here
+ * moves — not a path, not a refusal, not a check, not a criterion — and `rerun-behaviour.test.ts`
+ * asserts that the line is the only seam. Saying so plainly is better than claiming "adding the
+ * corpus is the entire change" when one line of a frozen file must also change; a freeze whose
+ * terms are slightly untrue is worse than one with a named exception.
  *
  * It is never run to verify itself. `docs/model-evals/eval-incidents.md`: "Never execute the eval
  * runner to verify the harness. Not its paths, not its guards, not its schemas, not its reports,
@@ -27,6 +33,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { EVAL_SETS, isProtectedOutput } from "@/lib/ai/evals/corpus";
+import { isProvisional } from "@/lib/ai/event-identity/lifecycle";
 import { JOURNAL_FILENAME } from "@/lib/ai/evals/journal";
 import {
   buildRerunReviewArtifact,
@@ -131,7 +138,11 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
         observed.results.push(outcome.result);
         observed.schemaVersions.push(outcome.schemaVersion);
         observed.answersAssembled.push(outcome.answersAssembled);
-        observed.provisional.push(false);
+        // Asked of the lifecycle module, never assumed. Pushing a literal `false` here would make
+        // `boundaryResolves` report "the final round is authoritative" about a round that still
+        // carried a boundary question — the committed evidence asserting the opposite of what
+        // happened, for the one dimension that check exists to measure.
+        observed.provisional.push(isProvisional(outcome.result, outcome.schemaVersion));
       }
       const checks = checkRerunCase(testCase, observed);
       observations.push(observed);

@@ -67,8 +67,15 @@
  * Separate from the prompt version on purpose. `event_identity_v5` is the accepted contract and
  * its file does not change when clarification answers are introduced — but the *effective model
  * input* does, and hiding a behaviour change under an unchanged label is what this project has
- * already paid for once. `v1` is what Phase 4A shipped and evidenced: prompt plus inspiration, no
- * answers. Phase 4B T9 introduces `event_identity_input_v2`.
+ * already paid for once.
+ *
+ * **`v1` is the original prompt only**, with inspiration explicitly declared absent — the request
+ * ends with the literal line "There is no visual inspiration supplied with this request", and
+ * `GenerateEventIdentityInput` at the provider boundary carries no inspiration field. That is what
+ * Phase 4A shipped and every piece of `v5` evidence was produced under. `spec.md §7.5` requires
+ * inspiration assets to reach this call, so adding that channel is a real gap to close — and,
+ * under the bump rule below, it is its own version bump rather than something `v1` already covers.
+ * Phase 4B T9 introduces `event_identity_input_v2` for clarification answers.
  *
  * It bumps for any change to precedence, labelling, ordering or representation of clarification
  * answers, for adding or removing an input channel, and for changing how the original prompt is

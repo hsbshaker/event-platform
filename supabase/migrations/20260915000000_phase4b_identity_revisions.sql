@@ -42,6 +42,9 @@ begin
   -- restore recomputes it, so removing a version here would fail every restore and branch clone
   -- that contains a row stamped with it. That fails loudly rather than open, which is the right
   -- direction, but it makes "extend, never narrow" a rule rather than a preference.
+  -- Kept equal to `SUPPORTED_IDENTITY_SCHEMA_VERSIONS` in
+  -- src/lib/ai/event-identity/lifecycle.ts; tests/db/phase4b.test.ts asserts the pairing, and
+  -- drift fails closed either way because the generated column would refuse the insert.
   if schema_version is distinct from 'event_identity_schema_v5' then
     raise exception 'identity_questions: unsupported schema version %', schema_version
       using errcode = 'feature_not_supported';
@@ -150,12 +153,25 @@ create trigger event_identity_revisions_validate
 -- Generated identity data is immutable. There is no column worth changing after the fact: the
 -- envelope, its versions, its provenance and the answers that produced it are what the artifact
 -- is. A correction is a new revision.
+--
+-- The DELETE branch carves out the cascade, and must. `events` is `on delete cascade` here, and
+-- `events_delete_owner` grants the owner DELETE on their own event (`spec.md §11` — deleting is an
+-- owner-only capability a co-host does not have). An unconditional DELETE refusal would fire
+-- inside that cascade and abort it, making any event with an identity revision permanently
+-- undeletable, by the owner and by every account-erasure path. `protect_owner_membership()` in the
+-- phase-1 migration already solves this exact problem the same way: refuse only while the parent
+-- still exists.
 create or replace function public.protect_identity_revision()
 returns trigger
 language plpgsql
 set search_path = pg_catalog, public
 as $$
 begin
+  if tg_op = 'DELETE'
+     and not exists (select 1 from public.events e where e.id = old.event_id) then
+    -- The event is going; its revisions go with it.
+    return old;
+  end if;
   raise exception 'identity revisions are immutable'
     using errcode = 'insufficient_privilege';
 end;
@@ -164,6 +180,17 @@ $$;
 create trigger event_identity_revisions_protect
   before update or delete on public.event_identity_revisions
   for each row execute function public.protect_identity_revision();
+
+-- ---------------------------------------------------------------------------
+-- Telemetry carries the same attribution as the artifact.
+--
+-- `docs/phase-4b-plan.md §B.3`: the input-assembly version is stored on every identity revision
+-- *and* on `generation_runs` for `operation = 'event_identity'`. A run row that names the prompt
+-- and schema versions but not how the request was assembled cannot be joined to the behaviour it
+-- produced.
+-- ---------------------------------------------------------------------------
+alter table public.generation_runs
+  add column input_assembly_version text;
 
 -- ---------------------------------------------------------------------------
 -- The event's authoritative identity.
@@ -287,5 +314,9 @@ alter table public.event_identity_revisions enable row level security;
 create policy event_identity_revisions_select_member on public.event_identity_revisions
   for select to authenticated using (public.is_event_member(event_id));
 
-revoke insert, update, delete on table public.event_identity_revisions from anon, authenticated;
+-- The phase-1 pattern for a member-scoped table: revoke everything from both roles, then grant
+-- back only what a member needs. The narrower `revoke insert, update, delete` would leave `anon`
+-- holding SELECT by Supabase's default privileges — closed by RLS today, since no policy names
+-- `anon`, but defence in depth is the point of the pattern.
+revoke all on table public.event_identity_revisions from anon, authenticated;
 grant select on table public.event_identity_revisions to authenticated;

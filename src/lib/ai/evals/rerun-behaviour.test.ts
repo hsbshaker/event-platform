@@ -431,6 +431,34 @@ describe("T9 cannot introduce unscanned model-visible text", () => {
     expect(existsSync(`${ROOT}${MODEL_VISIBLE_SURFACES["input assembly"]}`)).toBe(false);
   });
 
+  it("scans the provider boundary, which carries model-visible text today", () => {
+    // Naming a future file is not enough on its own. `userMessage()` in this file already builds
+    // the delimiters, the markers, the untrusted-data instruction and the no-inspiration line, and
+    // the repair retry adds more — none of it scanned until now. Without this, a T9 implementer
+    // could satisfy the version guard by creating an empty `event-identity-input.ts` and writing
+    // the real labels here, leaving them unscanned with the corpus frozen and the scanner frozen.
+    const boundary = MODEL_VISIBLE_SURFACES["provider boundary"];
+    expect(boundary).toBe("src/lib/ai/openai/event-identity.ts");
+    expect(existsSync(`${ROOT}${boundary}`)).toBe(true);
+    const source = read(boundary);
+    expect(source).toContain("HOST_EVENT_DESCRIPTION");
+    expect(source).toContain("There is no visual inspiration supplied with this request.");
+    // And the scan reads the shared declaration rather than a list of its own.
+    expect(read("src/lib/ai/evals/prompt-leakage.test.ts")).toContain("MODEL_VISIBLE_SURFACES");
+  });
+
+  it("describes v1 truthfully, because the bump rule depends on it", () => {
+    // Phase 4A sent the prompt only and told the model no inspiration was supplied. Describing v1
+    // as "prompt plus inspiration" would mean a later implementer adding that channel could
+    // reasonably conclude v1 already covers it and not bump — under a rule that says adding a
+    // channel bumps.
+    const versions = read("src/lib/ai/versions.ts");
+    expect(versions).toContain("the original prompt only");
+    expect(versions).not.toContain("prompt plus inspiration");
+    const boundary = read("src/lib/ai/openai/event-identity.ts");
+    expect(boundary).toContain("There is no visual inspiration supplied with this request.");
+  });
+
   it("holds the assembly version and that file inseparable", () => {
     // Today: v1, file absent, consistent. The leakage scan fails the moment the version moves off
     // v1 without the file appearing — which is the only window in which a collision could be
