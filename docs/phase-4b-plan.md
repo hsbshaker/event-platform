@@ -53,8 +53,13 @@ test rather than by care:
 
 | Runtime | Implementation | Role |
 | --- | --- | --- |
-| TypeScript | `isProvisional(result)` in `src/lib/ai/event-identity/lifecycle.ts` (new, pure, no I/O) | the canonical semantic for ordinary application code |
+| TypeScript | `isProvisional(result, schemaVersion)` in `src/lib/ai/event-identity/lifecycle.ts` (new, pure, no I/O) | the canonical semantic for ordinary application code |
 | SQL | `public.identity_is_provisional(result jsonb, schema_version text)`, `immutable` | the authority at the persistence boundary (§A.3) |
+
+**Both take the schema version, and both refuse rather than answer** on an unrecognised version or a
+malformed `clarification.questions` path. The TypeScript side **throws**; it never returns `false`,
+because returning `false` is the fail-open answer §A.3 exists to remove. Matched signatures are what
+make "identical answers" a meaningful claim on exactly the cases that matter.
 
 `assertAuthoritative(result)` returns a branded `AuthoritativeIdentity`. **The planner, the
 DesignIntent call and every downstream creative stage accept only the branded type**, so "a
@@ -71,10 +76,12 @@ diagnostic and SC2-12 in the fresh challenge. If any two implementations disagre
 before either is trusted.
 
 **"Every implementation" means three, not two.** The answer-binding trigger in §B.2 also reads this
-JSON — it inspects `kind` on a question — so it is a third site that knows the envelope's shape.
-It is held to the same fixtures and reads `kind` through the same SQL helper rather than
-open-coding a path, because a third reader with no parity test is how the two carefully-matched
-ones drift.
+JSON — `kind`, the question text, option labels and `isDefer` — so it is a third site that knows the
+envelope's shape. It does not open-code a path: §A.3 defines **`public.identity_questions(result
+jsonb, schema_version text) returns jsonb`**, which performs the same two refusals and returns the
+validated questions array, and both `identity_is_provisional` and the §B.2 trigger read through it.
+One accessor, one refusal policy, one fixture set — because a third reader with its own path is how
+two carefully-matched ones drift.
 
 ### A.2 Persistence — identity revisions
 
@@ -88,9 +95,10 @@ Phase 4B adds append-only identity **revisions**, one row per `generateEventIden
   today's `event_identities.identity` holds the *brief* only, which is why legacy rows are not
   migrated into this column (§A.3);
 - `prompt_version`, `schema_version`, **`input_assembly_version`** (§B.3) — all three `NOT NULL`,
-  with rows created before a version existed stamped with an explicit sentinel such as
-  `event_identity_input_pre_versioning` rather than left null, so "not recorded" and "the writer
-  forgot" are never the same value;
+  with any row created before a version existed stamped `event_identity_pre_versioning` rather than
+  left null, so "not recorded" and "the writer forgot" are never the same value. §A.3 forbids
+  migrating legacy briefs into this table at all, so the sentinel should never be reachable — it is
+  defence in depth against a future import path, not a planned value;
 - `model`, provider configuration, `provider_request_id`, `generation_run_id`;
 - **`clarification_answer_ids`** — the ordered ids of the answers actually assembled into this
   request, written in the same transaction. Without it, "which answers were in scope" is
@@ -120,27 +128,36 @@ JSON shape, so a shape that is not recognised is not evidence of absence — it 
 function has no right to judge.
 
 ```sql
--- Pure JSON inspection, so it qualifies as IMMUTABLE and can back a generated column.
--- Takes the schema version because the shape it reads is the shape that version defines.
-create function public.identity_is_provisional(result jsonb, schema_version text)
-  returns boolean language plpgsql immutable
+-- The one reader of the envelope's question array. Every other SQL site goes through it.
+create function public.identity_questions(result jsonb, schema_version text)
+  returns jsonb language plpgsql immutable
+  set search_path = pg_catalog
 as $$
 begin
   -- An unrecognised schema version is a shape this function cannot read. Refuse.
   if schema_version is distinct from 'event_identity_schema_v5' then
-    raise exception 'identity_is_provisional: unsupported schema version %', schema_version
+    raise exception 'identity_questions: unsupported schema version %', schema_version
       using errcode = 'feature_not_supported';
   end if;
   -- A missing or non-array questions path is malformed, never "no questions". Refuse.
   if jsonb_typeof(result -> 'clarification' -> 'questions') is distinct from 'array' then
-    raise exception 'identity_is_provisional: clarification.questions is not an array'
+    raise exception 'identity_questions: clarification.questions is not an array'
       using errcode = 'check_violation';
   end if;
-  return exists (
-    select 1 from jsonb_array_elements(result -> 'clarification' -> 'questions') q
+  return result -> 'clarification' -> 'questions';
+end;
+$$;
+
+-- Pure JSON inspection, so it qualifies as IMMUTABLE and can back a generated column.
+create function public.identity_is_provisional(result jsonb, schema_version text)
+  returns boolean language sql immutable
+  set search_path = pg_catalog
+as $$
+  select exists (
+    select 1
+    from jsonb_array_elements(public.identity_questions(result, schema_version)) q
     where q ->> 'kind' = 'boundary'
   );
-end;
 $$;
 ```
 
@@ -415,8 +432,19 @@ four excellence-watch items from `model-contracts.md §4.6` are watched here fir
 the first stage where "reusable finishing language" and "a preference for polish and emotional
 moderation" become visible as three outputs that converge.
 
-**Blind and parallel — resolved.** Each call receives the same authoritative identity (including
-`inspirationSummary`) plus **only its own sibling assignment** — and nothing else.
+**Blind and parallel — resolved.** Each call receives the **creative brief** from the same
+authoritative identity — the `identity` sibling of the envelope, including `inspirationSummary` —
+plus **only its own sibling assignment**, and nothing else.
+
+**The brief, not the envelope.** `assertAuthoritative` brands the whole result, because that is what
+carries the boundary signal; what *travels* from it is the `identity` sibling alone.
+`suppliedFacts` and `clarification` do not leave the identity layer. `provider.ts` types the field
+as `eventIdentity: EventIdentity`, which `model-contracts.md §6.1` glosses as the design brief — and
+§D already closes the same door for the planner (*"Not `suppliedFacts` … facts belong to content
+fit"*). Passing the envelope would smuggle the host's verbatim names, date, venue and address into
+the creative call, which is the content profile this section excludes two paragraphs below and
+which CA-1 records as unresolved. Admitting them would be a canonical change under `CLAUDE.md §12`,
+not a plan edit.
 
 That is `spec.md §7.7` exactly: *"The assignment is passed to the DesignIntent call; the directive,
 allotment and DesignIntent are passed to the composition call."* `src/lib/ai/provider.ts` already
@@ -427,9 +455,19 @@ which contradicted all three.** Withdrawn. `capabilities` reaching DesignIntent 
 breach `CLAUDE.md §2` — capabilities are enabled features and none of them recomposes a page — by
 letting the enabled feature set shape the creative direction.
 
-It never receives the raw host prompt (`spec.md §7.5`, `§32 #12`), raw inspiration assets (§F), the
-directive or token allotment (which are composition's), capabilities or content profile,
-**another sibling's output**, or any library recipe or silhouette identifier (`CLAUDE.md §5.1`).
+**What it returns includes `presentation`.** `model-contracts.md §5.1`, `spec.md §31` and `§32 #12`
+and `#21` all place a non-design `presentation { name, description }` object on the DesignIntent
+response — host-facing concept metadata the compiler never reads. It is part of 4C's output, is
+persisted on the artifact (§G.2), and is in the reviewer's artifact (§3.8), because the verbal
+identity it carries is what §3.3, §3.7's `Good` band and excellence-watch items 2 and 3 ask about.
+Without it those questions are unanswerable and §3.2's finishing-language measurement has no field
+to measure. (`spec.md §7.8`'s prose reads as though `presentation` arrives with the composition
+response; four other canonical statements place it here. Recorded as **CA-3**.)
+
+It never receives the raw host prompt (`spec.md §7.5`, `§31 — Event Identity and diversity`), raw
+inspiration assets (§F), `suppliedFacts` or `clarification`, the directive or token allotment
+(which are composition's), capabilities or content profile, **another sibling's output**, or any
+library recipe or silhouette identifier (`CLAUDE.md §5.1`, `§32 #9` on the provisional flow).
 The three calls run in parallel (`spec.md §7.10 #3`). A canonical tension this plan does **not**
 resolve is recorded in §Canonical ambiguities raised.
 **No convergence-triggered re-prompt exists in the first implementation.** Convergence and
@@ -492,7 +530,7 @@ phase:
 | identity | `id`, `event_id`, `batch_id`, `identity_revision_id`, `concept_index` (0–2), `round` |
 | planner | `planner_version`, `assignment` (family, tone, typography category, hierarchy), `directive`, `token_allotment` |
 | model | `design_intent_prompt_version`, `design_intent_schema_version`, **`design_intent_input_assembly_version`** — the DesignIntent envelope carries the identity and the assignment and is exposed to exactly the drift §B.3 spends a page refusing to tolerate for EventIdentity, so it is versioned on the same terms, not "if it gains one" — `model`, provider configuration, `provider_request_id`, `generation_run_id` |
-| payload | `design_intent` jsonb — the validated output, immutable |
+| payload | `design_intent` jsonb and `presentation` jsonb (`name`, `description`) — the validated output, immutable. `presentation` is persisted here rather than waiting for `design_concepts`, which does not exist until composition |
 | | `created_at`; `unique (batch_id, concept_index)`; a protect trigger refusing every `UPDATE` |
 
 ### G.3 Relationship to `design_concepts` — settled now, to avoid known migration debt
@@ -511,8 +549,12 @@ phase:
    not replaced. It is `NOT NULL` today, the protect trigger already forbids changing it, and
    relaxing a NOT NULL to avoid duplication would weaken the very invariant this decision exists to
    preserve. An insert-time check requires the concept to agree with its artifact on **everything
-   they both carry**, not only the payload: `design_intent`, `event_id`, `round`, `concept_index`,
-   `design_intent_prompt_version` and `design_intent_schema_version`. Payload-only equality would
+   they both carry**, and the enumeration is exhaustive rather than illustrative: `design_intent`,
+   `event_id`, `round`, `concept_index`, `design_intent_prompt_version`,
+   `design_intent_schema_version`, and — because `design_concepts` carries them too, nullably, and
+   §G.2 records them on the artifact — `directive` and `token_allotment`. An enumeration that let
+   those two drift would be the same stale-list defect as an unprotected column. Payload-only
+   equality would
    let a concept claim schema `v5` while its artifact records `v4`, or sit at `(round 2, index 0)`
    pointing at an artifact from `(round 1, index 2)` — which would make §G.4's DesignIntent
    attribution invariant false by the concept path. **Two copies of the same immutable values are
@@ -654,6 +696,9 @@ block is frozen alongside the per-batch one:
 
 - pairwise distance between **same-index siblings across different batches**, which should be no
   smaller than within-batch distance;
+- the same distance restricted to **batches sharing an event type but carrying materially different
+  identities** — the measurement that exposes per-type templating, and the reason the frozen corpus
+  must contain at least two such pairs (below);
 - corpus-wide frequency of palette families, typography pairings and motif sets — a long tail is
   expected, a short one is the finding;
 - recurrence of finishing language: n-gram frequency across all `DesignIntent` prose fields,
@@ -712,10 +757,16 @@ it; incidents go to `docs/model-evals/eval-incidents.md`.
 **Both halves are frozen in canon before the sealed corpus is authored, and before any DesignIntent
 prompt is written.** Moving either after results voids the gate (`spec.md §11.9` discipline).
 
-**The corpus size is fixed in the same freeze.** A distribution rule is meaningless without `N`:
-with a four-case corpus, `E=2, G=1, B=1` passes and "at least two batches" is half the evidence.
-**The sealed corpus is twelve batches**, matching the 4A precedent, and that number is frozen at
-T13 — before the corpus is authored, so it cannot be chosen to suit a result.
+**The corpus size and composition are fixed in the same freeze.** A distribution rule is meaningless
+without `N`: with a four-case corpus, `E=2, G=1, B=1` passes and "at least two batches" is half the
+evidence. **The sealed corpus is twelve batches**, matching the 4A precedent, frozen at T13 before
+the corpus is authored so it cannot be chosen to suit a result.
+
+**And it must contain at least two pairs of batches sharing an event type with materially different
+identities.** Twelve distinct event types would leave §3.2's same-type measurement with nothing to
+compare and S8's same-type clause unevidenced — the gate would carry a category no run could ever
+fire. This is a requirement on the corpus author, frozen with the rest, and it is the kind of thing
+that is free now and impossible after T13 without voiding the gate.
 
 **Half one — distribution.** Per-batch bands, **defined here rather than asserted to exist
 elsewhere**, and frozen at T13 before any batch is reviewed:
@@ -751,7 +802,7 @@ systemic pattern.**
 | S5 | generic-premium treatment overwhelming event-specific personality |
 | S6 | unsupported emotional moderation / anti-sentimentality / anti-theatricality across siblings |
 | S7 | another recurring pattern that directly defeats the core 4C question — **which the reviewer must name and define in the same terms as the others** |
-| **S8** | **the same creative worlds recurring across different events** — organizing idea, palette family, typographic voice, motif set or finishing language repeating from batch to batch regardless of what the event is. S1 and S2 are both *within*-batch; without S8 a system producing three excellent, genuinely distinct worlds and roughly the *same* three every time passes every category and every within-batch metric. §3.2's corpus-wide block exists to give the reviewer evidence for this one |
+| **S8** | **the same creative worlds recurring across events — including across different instances of the same event type.** Organizing idea, palette family, typographic voice, motif set, finishing language or `presentation` voice repeating from batch to batch, whether the batches share an event type or not. S1 and S2 are both *within*-batch; without S8 a system producing three excellent, genuinely distinct worlds and roughly the *same* three every time passes every category and every within-batch metric. **The same-type clause is not a refinement, it is the case that matters:** a system with a "quinceañera set" and a "christening set" that differ from each other and barely differ within a type is a template gallery at the granularity a template gallery actually has, and a reviewer reading S8 as *different* event types only would decline it because the worlds do track the event. §3.2's corpus-wide block gives the reviewer evidence for both readings |
 
 *What counts as systemic*, so it is neither a discretionary escape hatch nor invocable only by
 hindsight. A pattern is systemic when the reviewer:
@@ -786,6 +837,13 @@ the corpus-wide measurements of §3.2**, which the reviewer receives alongside t
 than from recollection of the ratings just given — an anchoring effect is answered with evidence,
 not with an instruction not to be anchored.
 
+One residual no protocol removes: a reviewer who *senses* a cross-batch pattern but cannot
+articulate it may mark every category absent in good faith. So the go/no-go author has one duty
+here — **if the reviewer's prose describes a cross-batch pattern that is not filed under any of
+S1–S8, the review is returned for that pattern to be filed or explicitly declined**, before any
+decision is recorded. That is a completeness check on the artifact, not a second opinion on the
+outcome.
+
 *How the go/no-go records it.* The decision states the band distribution **and** the systemic
 verdict per category. A veto is a **NO-GO** with the category and the reviewer's citations recorded
 verbatim. A pass records that all **eight** were assessed and found absent. **Neither half can be
@@ -799,10 +857,13 @@ gate is the floor that protects generalization, never a license to settle for Go
 
 The 4A shape, with the 4C artifact defined rather than assumed.
 
-**What the artifact contains**, per batch: the **authoritative EventIdentity** and the **three
-DesignIntents** generated from it. Plus, once, the corpus-wide measurements of §3.2. Nothing else —
-no case metadata, no expectations, no clarification labels, no band definitions, no thresholds, no
-corpus size, no prior evidence.
+**What the artifact contains**, per batch: the **authoritative EventIdentity brief** and the **three
+DesignIntents** generated from it, **each with its `presentation` object** — without which the
+verbal-identity questions in §3.3 and the `Good` band cannot be answered. Plus, once, the
+corpus-wide measurements of §3.2. Nothing else — no case metadata, no expectations, no
+clarification labels, no band definitions, no thresholds, no prior evidence. (The reviewer
+necessarily learns the corpus size by rating every batch; what is withheld is the *threshold*,
+which is why §3.8 excludes `model-contracts.md`.)
 
 The identity is included deliberately. §3.3 asks whether each direction is rooted in *this* event,
 S5 and S6 ask whether a treatment is supported by the identity, and systemic condition 4 asks
@@ -855,12 +916,12 @@ permitted until the gate that names one.
 | # | Task | Files / modules | Depends on | Tests | Acceptance criteria | Model-visible? | Senior review? | Live call? |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **T1** | `isProvisional`, `assertAuthoritative`, branded type | `src/lib/ai/event-identity/lifecycle.ts` | — | unit over all valid shapes; brand cannot be cast away | `spec.md §31 — Event Identity and diversity`; `§7.6b`, `§7.7` | no | no | no |
-| **T2** | Identity revisions: table, `identity_is_provisional`, generated column, pointer trigger, protect trigger, RLS | `supabase/migrations/…_phase4b_identity_revisions.sql` | T1 | db: a supplied `is_provisional` is rejected; a provisional revision cannot become authoritative even with the column tampered; cross-event pointer refused; updates refused; **TS/SQL parity over the four `v5` journals** | `§7.6b`, `§7.7`, `§9.4` | no | **yes** | no |
+| **T2** | Identity revisions: table, `identity_questions` + `identity_is_provisional`, generated column, pointer trigger, protect trigger, RLS. **Record in the migration that `pg_dump` does not dump generated-column data and a restore recomputes it, so the supported-schema-version list may be extended but never narrowed** — narrowing it would fail every restore and branch clone on historical rows. That fails loudly, which is the right direction, but it makes "extend, never narrow" a rule rather than a preference | `supabase/migrations/…_phase4b_identity_revisions.sql` | T1 | db: a supplied `is_provisional` is rejected; a provisional revision cannot become authoritative even with the column tampered; cross-event pointer refused; updates refused; **TS/SQL parity over the four `v5` journals** | `§7.6b`, `§7.7`, `§9.4` | no | **yes** | no |
 | **T3** | `clarification_answers`: table, binding trigger, append-only trigger, RLS | migration; `src/lib/events/clarification.ts` | T2 | db: wrong event, wrong index, wrong `kind`, drifted copy, boundary-defer and duplicate answer all refused; `events.prompt` never written | `development-plan.md` 4B (c) | no | **yes** | no |
-| **T4** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2` | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3 | `input-assembly-drift.test.ts` golden snapshots; snapshot change without a version bump fails; `prompt` byte-identical across rounds | `§7.6b`; guardrail `§32 #12` | **yes** | **yes** | no |
+| **T4** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2` | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3, T7's corpus | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
 | **T5** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T4 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
 | **T6** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T5 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
-| **T7** | Rerun-behaviour validation corpus + harness slot. **Cases authored and frozen at a SHA preceding T4's implementation**, by someone other than T4's implementer (§3.9) | `src/lib/ai/evals/*`, runner slot | **T3** | unit/static only; leakage scan covers it | `model-contracts.md §4.5` | no | **yes** | no |
+| **T7** | Rerun-behaviour validation corpus + harness slot. **The corpus is authored and frozen at a SHA preceding T4's implementation**, by someone other than T4's implementer (§3.9); the harness slot may follow T4. Listed last for readability, sequenced between T3 and T4 | `src/lib/ai/evals/*`, runner slot | **T3** (corpus); T4 (harness) | unit/static only; leakage scan covers it | `model-contracts.md §4.5`; `spec.md §31 — Prompt, auth, and generation` | no | **yes** | no |
 | | **▶ 4B GATE — approval required before the single authorized validation run** | | | | | | | |
 
 ## Phase 4C — begins only after the 4B gate passes
@@ -869,11 +930,11 @@ permitted until the gate that names one.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **T8** | Sibling planner as a pure function + `PLANNER_VERSION` | `src/lib/generation/planner.ts`; reference `proof-b/planner.js` | 4B gate | unit: determinism, distinctness, allotment, tone-constrained fallback, `creativeGuidance` never binding; parity with the proof reference | `§31 — Event Identity and diversity`; `spec.md §7.7`; `CLAUDE.md §5.1` | no | **yes** | no |
 | **T9** | `generation_batches` + spend, caps, idempotency | migration; `src/lib/generation/batch.ts`; `rate_limits` wiring | T8 | db: one in-flight batch enforced by index; caps refuse; duplicate keys collide; partial-failure resumption | `development-plan.md` principle 4; `spec.md §10`, `§27` | no | **yes** | no |
-| **T10** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T9 | db: updates refused; equality check refuses a mismatched snapshot; FK required | `spec.md §9.4`; `CLAUDE.md §2` | no | **yes** | no |
-| **T11** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T10 | unit: semantic invariants, narrowing, repair rules, schema-drift | `model-contracts.md §5`; `§32 #12`–`#31` | **schema descriptions ship** | **yes** | no |
+| **T10** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T9 | db: updates refused; equality check refuses a mismatched snapshot on every enumerated column; FK required | `spec.md §31 — DesignIntent, composition and compiler` (persistence); `§9.4`; `CLAUDE.md §2` | no | **yes** | no |
+| **T11** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T10 | unit: semantic invariants, narrowing, repair rules, schema-drift | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `§32 #12`, `#21` | **schema descriptions ship** | **yes** | no |
 | **T12** | Evidence harness + regression and pre-registered corpora. **The pre-registered cases are frozen at a SHA preceding T11**, because T11 ships `.describe()` strings to the model and §3.5 is explicit that those *are* prompt text — an author who has read them has read model-visible instruction | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts` | **T10** (harness may follow T11; the corpus may not) | unit/static only, per the operational rule; leakage scan extended | `model-contracts.md §4.5` | no | **yes** | **no — never run to verify itself** |
 | **T13** | Freeze the 4C gate (§3.7) in canon | `model-contracts.md`, this document | T12 | doc guards | `spec.md §11.9` discipline | no | **yes** | no |
-| **T14** | The DesignIntent prompt | `docs/model-prompts/design-intent.system.md` | T11–T13 | leakage scan; independent engineering read | `model-contracts.md §5`; `product-doctrine.md` | **yes** | **yes** | no |
+| **T14** | The DesignIntent prompt | `docs/model-prompts/design-intent.system.md` | T11–T13 | leakage scan; independent engineering read | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `product-doctrine.md` | **yes** | **yes** | no |
 | | **▶ STOP — APPROVAL REQUIRED BEFORE THE FIRST LIVE DesignIntent CALL** | | | | | | | |
 | **T15** | Freeze; author the sealed challenge; one run; blind review | — | T14 | the 4A protocol exactly | `model-contracts.md §4.5` | no | **yes** | **yes — one authorized run per set** |
 
@@ -959,6 +1020,20 @@ shapes it does not recognise (which is what §A.3 now does).
 A durable fix would be canonical — a stable marker on the envelope, or a versioned reader contract
 — not a SQL patch. It is not needed for Phase 4B, because refusing unknown shapes is safe. It will
 be needed the first time the envelope's schema version changes. **Raised, not resolved.**
+
+### CA-3 — where the `presentation` object arrives
+
+Four canonical statements put the non-design `presentation { name, description }` object on the
+**DesignIntent** response: `model-contracts.md §5.1`'s contract block, `spec.md §31 — Model design
+output` (*"a six-field `DesignIntent` plus a non-design `presentation` object"*), `§31`'s
+DesignIntent acceptance bullet, and `§32 #12` and `#21`.
+
+`spec.md §7.8`'s prose reads the other way — *"The same response also carries a `presentation`
+object"* follows the CompositionTree paragraph, which makes it sound like composition's.
+
+The plan follows the four, per the source-of-truth order, and scopes `presentation` into 4C (§E,
+§G.2, §3.8). The fix is a one-line clarification in `spec.md §7.8`, not a plan-side workaround.
+**Raised, not resolved.**
 
 ---
 
