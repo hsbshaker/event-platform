@@ -59,6 +59,24 @@
  * (`docs/model-evals/creative-understanding.json` CU-01, CU-02), so keeping it would have
  * scored the prompt on a question it had been shown.
  */
+/**
+ * How the request envelope is built from the host's inputs: which channels are present (original
+ * prompt, inspiration assets, clarification answers), how each is labelled to the model, in what
+ * order they appear, how precedence between them is expressed, and how an answer is represented.
+ *
+ * Separate from the prompt version on purpose. `event_identity_v5` is the accepted contract and
+ * its file does not change when clarification answers are introduced — but the *effective model
+ * input* does, and hiding a behaviour change under an unchanged label is what this project has
+ * already paid for once. `v1` is what Phase 4A shipped and evidenced: prompt plus inspiration, no
+ * answers. Phase 4B T9 introduces `event_identity_input_v2`.
+ *
+ * It bumps for any change to precedence, labelling, ordering or representation of clarification
+ * answers, for adding or removing an input channel, and for changing how the original prompt is
+ * delimited. It does not bump for a prompt-file edit or a schema change; those have versions of
+ * their own and the three are independent.
+ */
+export const EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION = "event_identity_input_v1";
+
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5";
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5";
 export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v4";

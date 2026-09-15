@@ -58,6 +58,12 @@ export const CORPUS_FILES = {
   challenge: "creative-understanding-sealed-challenge.json",
   /** The fresh corpus a `v5` GO needs. Deliberately absent: it is authored after this freeze. */
   challenge2: "creative-understanding-sealed-challenge-v2.json",
+  /**
+   * Phase 4B's rerun-behaviour validation set. **Deliberately absent**: its machinery and every
+   * acceptance criterion are frozen at T5, and only then does an independent author write the
+   * cases (T6–T8). Naming the file here now is what makes adding it later the entire change.
+   */
+  rerunBehaviour: "clarification-rerun-behaviour.json",
 } as const;
 
 export type CorpusSet = keyof typeof CORPUS_FILES;
@@ -98,6 +104,15 @@ export const PROTECTED_RESULT_DIRS = [
 ] as const;
 
 /**
+ * Where the Phase 4B rerun-behaviour run will write, fixed before its cases exist.
+ *
+ * It is **not** in `PROTECTED_RESULT_DIRS` yet, and that is the point: it is the one directory an
+ * eval may still write to, exactly as `challenge2`'s was until its run happened. It joins the
+ * protected list in the same change that commits its evidence (T14), never as a follow-up.
+ */
+export const RERUN_BEHAVIOUR_OUT = "docs/model-evals/results/clarification-rerun-behaviour-v1";
+
+/**
  * These directories are immutable **in full**, narrative files included. The historical
  * `process-notes.md` inside the Phase 4A baseline is a frozen record of what was known at the
  * time and is never appended to again; future eval-process incidents go to
@@ -133,6 +148,28 @@ export function isProtectedOutput(outRelativePath: string): boolean {
 }
 
 /**
+ * Every file whose text reaches the model, and is therefore scannable for benchmark leakage.
+ *
+ * The prompt and the wire schema exist today — the schema counts because every `.describe()`
+ * string ships, which is how leak 4 reached production in Phase 4A. The third does not exist yet
+ * and is declared anyway: **Phase 4B T9's input assembly introduces static model-visible strings**
+ * — the labels, the precedence wording, the delimiters — and by the time it lands the
+ * rerun-behaviour corpus is frozen (T8) and this scanner cannot be changed (T5). Every escape
+ * closes in sequence, so the surface is named now or the gap is permanent.
+ *
+ * `prompt-leakage.test.ts` scans each surface that exists and, for the one that does not, fails
+ * the moment the assembly version moves off `event_identity_input_v1` without the file appearing.
+ */
+export const MODEL_VISIBLE_SURFACES = {
+  prompt: "docs/model-prompts/event-identity.system.md",
+  "wire schema": "docs/model-schemas/event-identity-result.wire.schema.json",
+  "input assembly": "src/lib/ai/openai/event-identity-input.ts",
+} as const;
+
+/** The assembly version at which the third surface above is still legitimately absent. */
+export const ASSEMBLY_VERSION_BEFORE_ANSWERS = "event_identity_input_v1";
+
+/**
  * Which corpus each eval set runs, where its evidence lands, and what class that evidence is.
  *
  * Two sets share the `challenge` corpus and must never share an output directory: `challenge`
@@ -142,11 +179,13 @@ export function isProtectedOutput(outRelativePath: string): boolean {
  */
 export const EVAL_SETS = {
   regression: {
+    runner: "creative-understanding",
     corpus: corpusPath("regression"),
     out: "docs/model-evals/results/creative-understanding-v1-regression",
     label: "REGRESSION RE-RUN — known cases, not fresh evidence",
   },
   holdout: {
+    runner: "creative-understanding",
     corpus: corpusPath("holdout"),
     out: "docs/model-evals/results/creative-understanding-holdout-v1",
     label:
@@ -155,6 +194,7 @@ export const EVAL_SETS = {
       "generalization",
   },
   challenge: {
+    runner: "creative-understanding",
     corpus: corpusPath("challenge"),
     out: "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
     label:
@@ -163,6 +203,7 @@ export const EVAL_SETS = {
       "diagnostic rerun",
   },
   spentChallenge: {
+    runner: "creative-understanding",
     corpus: corpusPath("challenge"),
     out: "docs/model-evals/results/creative-understanding-sealed-challenge-v1-v5-regression",
     label:
@@ -170,7 +211,19 @@ export const EVAL_SETS = {
       "diagnostic evidence only. These cases were known while v5 was written. NOT fresh " +
       "generalization evidence",
   },
+  rerunBehaviour: {
+    runner: "clarification-rerun",
+    corpus: corpusPath("rerunBehaviour"),
+    out: RERUN_BEHAVIOUR_OUT,
+    label:
+      "PRE-REGISTERED VALIDATION SET (clarification rerun behaviour) — its machinery and " +
+      "acceptance criteria were frozen before its cases were authored, and its cases were " +
+      "written by someone who implemented neither. Pre-registered validation evidence for the " +
+      "clarification-answer input shape/lifecycle; NOT fresh generalization evidence for " +
+      "EventIdentity v5, and NOT a replacement for the spent v5 sealed challenge",
+  },
   challenge2: {
+    runner: "creative-understanding",
     corpus: corpusPath("challenge2"),
     out: "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
     label:

@@ -22,17 +22,53 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { CORPUS_FILES, corpusPath, type CorpusSet } from "./corpus";
+import {
+  ASSEMBLY_VERSION_BEFORE_ANSWERS,
+  CORPUS_FILES,
+  corpusPath,
+  MODEL_VISIBLE_SURFACES,
+  type CorpusSet,
+} from "./corpus";
+import { EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION } from "@/lib/ai/versions";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 
-const PROMPT = readFileSync(`${ROOT}docs/model-prompts/event-identity.system.md`, "utf8");
-/** The wire schema carries every `.describe()` string to the model, so it leaks too. */
-const WIRE = readFileSync(
-  `${ROOT}docs/model-schemas/event-identity-result.wire.schema.json`,
-  "utf8",
+/**
+ * Every model-visible surface that exists, read from the shared declaration rather than listed
+ * here — so a surface added there is scanned without editing this file, which matters because
+ * this file is frozen before the Phase 4B corpus is authored.
+ */
+const SURFACES = Object.fromEntries(
+  Object.entries(MODEL_VISIBLE_SURFACES)
+    .filter(([, rel]) => existsSync(`${ROOT}${rel}`))
+    .map(([name, rel]) => [name, readFileSync(`${ROOT}${rel}`, "utf8")]),
 );
-const SURFACES = { prompt: PROMPT, "wire schema": WIRE };
+const ABSENT_SURFACES = Object.entries(MODEL_VISIBLE_SURFACES)
+  .filter(([, rel]) => !existsSync(`${ROOT}${rel}`))
+  .map(([name]) => name);
+
+describe("which model-visible surfaces this scan covers", () => {
+  it("scans the prompt and the wire schema, always", () => {
+    expect(Object.keys(SURFACES)).toEqual(expect.arrayContaining(["prompt", "wire schema"]));
+  });
+
+  /**
+   * The fail-closed half, and the reason the surface is declared before it exists.
+   *
+   * Phase 4B T9 introduces static model-visible strings in the input assembly. By then the
+   * rerun-behaviour corpus is frozen and this scanner cannot change, so a collision introduced
+   * then could be fixed neither at the corpus nor at the scanner. This test makes the version
+   * bump and the scannable file inseparable: move off `event_identity_input_v1` without creating
+   * the file the declaration names, and the suite fails.
+   */
+  it("requires the input-assembly surface to exist once the assembly carries answers", () => {
+    if (EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION === ASSEMBLY_VERSION_BEFORE_ANSWERS) {
+      expect(ABSENT_SURFACES).toEqual(["input assembly"]);
+      return;
+    }
+    expect(ABSENT_SURFACES).toEqual([]);
+  });
+});
 
 interface EvalCase {
   id: string;
@@ -79,10 +115,11 @@ describe("which corpora this scan covers", () => {
   // Prints the unscanned corpus by name. When the sealed challenge lands this test reports an
   // empty list, and the three `describe`s below start covering it with no edit here.
   it.runIf(ABSENT.length > 0)("names any corpus that does not exist yet, as unscanned", () => {
-    // Read from the shared map rather than written out, so this stays true when the fresh v5
-    // corpus lands: `ABSENT` empties, this test stops running, and the three scans below start
-    // covering it — with no edit here, which is the property the seal depends on.
-    expect(ABSENT).toEqual([CORPUS_FILES.challenge2]);
+    // Read from the shared map rather than written out. `challenge2` landed and this test
+    // retired; Phase 4B's rerun-behaviour corpus re-armed it, which is the mechanism working in
+    // both directions. When those cases land, `ABSENT` empties again and the three scans below
+    // start covering them with no edit here — the property both freezes depend on.
+    expect(ABSENT).toEqual([CORPUS_FILES.rerunBehaviour]);
   });
 });
 

@@ -115,7 +115,7 @@ describe("the spent v1 corpus can be re-run without touching its first-run evide
 });
 
 describe("no set can write over evidence that already exists", () => {
-  it("protects every run that has happened, which is now all five of them", () => {
+  it("protects every run that has happened, and the one that has not stays writable", () => {
     expect([...PROTECTED_RESULT_DIRS]).toEqual([
       "docs/model-evals/results/creative-understanding-v1",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
@@ -124,11 +124,12 @@ describe("no set can write over evidence that already exists", () => {
       "docs/model-evals/results/creative-understanding-holdout-v1",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
     ]);
-    // No set has a writable output path any more. Until `sealed_challenge_v2` ran there was
-    // always one, and the list carried an assertion that it stayed writable; that assertion is
-    // gone because the set it protected is spent, not because the rule relaxed. Fresh evidence
-    // for a future prompt version needs a new corpus and a new slot.
-    expect(sets.every((set) => isProtectedOutput(EVAL_SETS[set].out))).toBe(true);
+    // Every creative-understanding set is spent and protected. Phase 4B's rerun-behaviour set is
+    // the one exception and must stay writable until its own run happens, at which point its
+    // directory joins the list in the same change that commits its evidence (T14) — the rule the
+    // eval ledger states, applied again rather than remembered.
+    const writable = sets.filter((set) => !isProtectedOutput(EVAL_SETS[set].out));
+    expect(writable).toEqual(["rerunBehaviour"]);
   });
 
   it("protects every directory that already holds a completed run's evidence", () => {
@@ -214,11 +215,28 @@ describe("the runner and the leakage scan cannot disagree about a corpus", () =>
     for (const set of sets) expect(known).toContain(EVAL_SETS[set].corpus);
   });
 
-  it("gives the leakage scan the same four corpora", () => {
+  it("gives the leakage scan every corpus, including the ones not yet written", () => {
     const scan = read("src/lib/ai/evals/prompt-leakage.test.ts");
     expect(scan).toContain("CORPUS_FILES");
     expect(scan).toContain("corpusPath");
-    expect(Object.keys(CORPUS_FILES)).toEqual(["regression", "holdout", "challenge", "challenge2"]);
+    expect(Object.keys(CORPUS_FILES)).toEqual([
+      "regression",
+      "holdout",
+      "challenge",
+      "challenge2",
+      "rerunBehaviour",
+    ]);
+  });
+
+  it("gives every set a runner, and only one runner each", () => {
+    // A set graded by the wrong checker is a paid run judged against criteria that were never
+    // frozen for it. Ownership lives beside the set so neither runner can pick it up by accident.
+    for (const set of sets) {
+      expect(["creative-understanding", "clarification-rerun"]).toContain(EVAL_SETS[set].runner);
+    }
+    expect(sets.filter((set) => EVAL_SETS[set].runner === "clarification-rerun")).toEqual([
+      "rerunBehaviour",
+    ]);
   });
 });
 

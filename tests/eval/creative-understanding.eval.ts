@@ -65,6 +65,19 @@ if (!SET || !Object.hasOwn(EVAL_SETS, SET)) {
       "it never starts by accident.",
   );
 }
+/**
+ * A set belongs to exactly one runner. `rerunBehaviour` exercises a clarification rerun and is
+ * graded by its own frozen checker (`src/lib/ai/evals/rerun-behaviour.ts`); grading it here would
+ * apply the wrong criteria to a paid run. Ownership is declared beside the set so this cannot be
+ * got wrong by reading the wrong table.
+ */
+if (EVAL_SETS[SET].runner !== "creative-understanding") {
+  throw new Error(
+    `EVAL_SET=${SET} belongs to the ${EVAL_SETS[SET].runner} runner, not this one. ` +
+      "No provider call is made.",
+  );
+}
+
 const CORPUS = path.join(ROOT, EVAL_SETS[SET].corpus);
 const OUT = path.join(ROOT, EVAL_SETS[SET].out);
 
