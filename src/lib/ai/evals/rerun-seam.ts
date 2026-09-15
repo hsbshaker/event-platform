@@ -15,7 +15,7 @@
  * What must remain true when it does: the export keeps its name and its `RerunCallRunner` type,
  * and nothing else is added to this file. The annotation is what makes the second half of that a
  * compiler rule rather than a promise — a bare re-export would let a loosely typed T9 module make
- * `outcome.requestText` an `any`, and then `answersReachedTheModel` throws mid-run on a set that
+ * `outcome.requestText` an `any`, and then `answerBoundToItsQuestion` throws mid-run on a set that
  * runs once, or journals `undefined` as what was transmitted.
  */
 import { rerunRunnerUnavailable, type RerunCallRunner } from "./rerun-behaviour";

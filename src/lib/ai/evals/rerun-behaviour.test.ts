@@ -43,7 +43,7 @@ import {
   type RerunHistoryRound,
   type RerunObservation,
 } from "./rerun-behaviour";
-import { eventIdentityResultSchema } from "../event-identity/contract";
+import { clarificationQuestionSchema, eventIdentityResultSchema } from "../event-identity/contract";
 import { EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "../versions";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
@@ -354,7 +354,7 @@ describe("paths and ownership are fixed before the cases are known", () => {
         "the mechanical checks, the acceptance criteria and the blind artifact, all frozen at T5 " +
         "before the validation cases existed. Changing a criterion after seeing the cases is the " +
         "thing this set exists not to do.",
-    ).toBe("540ff24256ebd6d1345f468dd33fc89cc579e8ac310782da84265284bb0e9132");
+    ).toBe("2ca28e4cad8b3b581b8f901e559bb6d6402461135af470cc2b6fb320ee36aba6");
   });
 
   it("does not change at all", () => {
@@ -406,7 +406,7 @@ describe("the acceptance criteria are frozen, and say what class this evidence i
       "questionRenderedWithAnswer",
       "menuNotResent",
       "historyDelivered",
-      "answersAssembledAsGiven",
+      "answerBoundToItsQuestion",
     ]) {
       expect(RERUN_ACCEPTANCE.mechanical).toContain(name);
     }
@@ -770,6 +770,88 @@ describe("the structural contract refuses a case that would waste a paid call", 
     ).toEqual([]);
   });
 
+  it("mirrors the real schema's bounds, and breaks here if the schema moves", () => {
+    // The ceiling is imported, but the length bounds are literals inside a sha-frozen file. If
+    // `clarificationQuestionSchema` ever tightened one, the validator would admit a corpus whose
+    // seeded envelope the real schema rejects — and T9's fail-closed parse would throw inside the
+    // paid call. This file is not frozen, so the drift breaks the build here instead of at T13.
+    const withQuestion = (text: string) =>
+      validateRerunCorpusShape(
+        corpus([
+          validCase({
+            history: [
+              {
+                questions: [question({ question: text })],
+                answers: [{ questionIndex: 0, selectedOptionLabel: "Black tie", freeText: null }],
+              },
+            ],
+          }),
+        ]),
+      );
+    const at240 = "Q".repeat(239) + "?";
+    const at241 = "Q".repeat(240) + "?";
+    // Against the real schema, with the `whyItMatters` the builder supplies.
+    const asSchema = (text: string) => ({
+      kind: "creative" as const,
+      question: text,
+      whyItMatters: seededWhyItMatters(1, 0),
+      options: [
+        { label: "Black tie", isDefer: false },
+        { label: "Relaxed", isDefer: false },
+        { label: "You choose", isDefer: true },
+      ],
+    });
+    expect(clarificationQuestionSchema.safeParse(asSchema(at240)).success).toBe(true);
+    expect(clarificationQuestionSchema.safeParse(asSchema(at241)).success).toBe(false);
+    expect(withQuestion(at240)).toEqual([]);
+    expect(withQuestion(at241).join(" ")).toMatch(/at most 240 characters/);
+
+    const label = (text: string) =>
+      validateRerunCorpusShape(
+        corpus([
+          validCase({
+            history: [
+              {
+                questions: [
+                  question({
+                    options: [
+                      { label: text },
+                      { label: "Relaxed" },
+                      { label: "You choose", isDefer: true },
+                    ],
+                  }),
+                ],
+                answers: [{ questionIndex: 0, selectedOptionLabel: text, freeText: null }],
+              },
+            ],
+          }),
+        ]),
+      );
+    expect(label("L".repeat(80))).toEqual([]);
+    expect(label("L".repeat(81)).join(" ")).toMatch(/at most 80 characters/);
+  });
+
+  it("refuses padded free text, so the checks and the self-report cannot contradict", () => {
+    // `historyDelivered` trims; `answersAssembledAsGiven` compares with `===`. A padded corpus
+    // value would make the same assembly pass one and fail the other.
+    expect(
+      validateRerunCorpusShape(
+        corpus([
+          validCase({
+            history: [
+              {
+                questions: [question()],
+                answers: [
+                  { questionIndex: 0, selectedOptionLabel: null, freeText: "  black tie  " },
+                ],
+              },
+            ],
+          }),
+        ]),
+      ).join(" "),
+    ).toMatch(/freeText` must not have leading or trailing whitespace/);
+  });
+
   it("does not throw on junk", () => {
     for (const junk of [null, undefined, "a string", 3, [], { cases: "no" }]) {
       expect(() => validateRerunCorpusShape(junk)).not.toThrow();
@@ -969,6 +1051,90 @@ describe("the mechanical checks decide what they can and refuse to guess the res
     );
     expect(status(checks, "menuNotResent")).toBe("fail");
     expect(detail(checks, "menuNotResent")).toContain("r1q1 whyItMatters");
+  });
+
+  /** The natural binary taste question, whose option labels are words of its own stem. */
+  const stemCase = () =>
+    validCase({
+      dimension: MULTI_ROUND_DIMENSION,
+      history: [
+        {
+          questions: [
+            question({
+              question: "Warm or cool in feel?",
+              options: [
+                { label: "Warm" },
+                { label: "Cool" },
+                { label: "You decide", isDefer: true },
+              ],
+            }),
+          ],
+          answers: [{ questionIndex: 0, selectedOptionLabel: "Warm", freeText: null }],
+        },
+        {
+          questions: [
+            question({
+              question: "Quiet or celebratory in voice?",
+              options: [
+                { label: "Quiet" },
+                { label: "Celebratory" },
+                { label: "You decide", isDefer: true },
+              ],
+            }),
+          ],
+          answers: [{ questionIndex: 0, selectedOptionLabel: "Quiet", freeText: null }],
+        },
+      ],
+    });
+
+  it("does not let a question's own text stand in for the answer it was asked", () => {
+    // "Warm or cool in feel?" with options "Warm"/"Cool" is the most natural way to write a binary
+    // taste question, and the author is given no rule against it. `questionRenderedWithAnswer`
+    // requires the question verbatim, so a bare substring test would find "Warm" inside it and
+    // report `pass` on an assembly that never rendered the answer at all.
+    const testCase = stemCase();
+    expect(validateRerunCorpusShape(corpus([testCase]))).toEqual([]);
+    const questionsOnly = [
+      PROMPT,
+      "We asked: Warm or cool in feel?",
+      "We asked: Quiet or celebratory in voice?",
+    ].join("\n");
+    const checks = checkRerunCase(
+      testCase,
+      observation({ requestText: questionsOnly, answersAssembled: cumulativeHistory(testCase) }),
+    );
+    expect(status(checks, "questionRenderedWithAnswer")).toBe("pass");
+    expect(status(checks, "historyDelivered")).toBe("fail");
+    expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("still detects a crossing when the labels are words of their own questions", () => {
+    const testCase = stemCase();
+    const crossed = [
+      PROMPT,
+      "We asked: Warm or cool in feel? The host answered: Quiet",
+      "We asked: Quiet or celebratory in voice? The host answered: Warm",
+    ].join("\n");
+    const checks = checkRerunCase(
+      testCase,
+      observation({ requestText: crossed, answersAssembled: cumulativeHistory(testCase) }),
+    );
+    expect(status(checks, "answerBoundToItsQuestion")).toBe("fail");
+    expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("passes the same corpus when each answer is rendered with its own question", () => {
+    const testCase = stemCase();
+    const correct = [
+      PROMPT,
+      "We asked: Warm or cool in feel? The host answered: Warm",
+      "We asked: Quiet or celebratory in voice? The host answered: Quiet",
+    ].join("\n");
+    const checks = checkRerunCase(
+      testCase,
+      observation({ requestText: correct, answersAssembled: cumulativeHistory(testCase) }),
+    );
+    expect(mechanicalPass(checks)).toBe(true);
   });
 
   it("fails an assembly that renders each question with the other one's answer", () => {

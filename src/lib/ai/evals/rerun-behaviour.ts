@@ -479,6 +479,14 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
         ) {
           problems.push(`${aAt}: an answer must select an option or supply text`);
         }
+        if (typeof answer.freeText === "string" && answer.freeText !== answer.freeText.trim()) {
+          // The checks that look for free text in the request trim it, because an assembly that
+          // renders `freeText.trim()` is correct. `answersAssembledAsGiven` compares the reported
+          // value with `===`, so a padded corpus value would make those two blessings contradict:
+          // the same assembly would pass one check and fail the other. Refusing the padding is the
+          // only resolution that does not require guessing which one the implementer meant.
+          problems.push(`${aAt}: \`freeText\` must not have leading or trailing whitespace`);
+        }
       });
     });
 
@@ -604,6 +612,39 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
 
   /* --- CA-4: every carried answer arrives attributed to the question it answers ------------- */
 
+  /**
+   * Every occurrence of every seeded question text, as spans.
+   *
+   * `questionRenderedWithAnswer` *requires* each carried question verbatim in the request, so a
+   * bare `request.includes(label)` is satisfied by the question alone whenever the label is a word
+   * from its own stem — and "Warm or cool in feel?" with options "Warm"/"Cool" is the most natural
+   * way to write a binary taste question. Left unmasked, an assembly that renders both questions
+   * and silently drops an answer passes `historyDelivered`, and a crossed rendering passes
+   * `answerBoundToItsQuestion`: two absolute checks printing `pass` while deciding nothing, which
+   * is the exact blur `model-contracts.md §4.5` and this module's own header forbid.
+   */
+  const questionSpans: { start: number; end: number }[] = [];
+  for (const round of testCase.history) {
+    for (const seeded of round.questions) {
+      for (let at = request.indexOf(seeded.question); at >= 0;) {
+        questionSpans.push({ start: at, end: at + seeded.question.length });
+        at = request.indexOf(seeded.question, at + 1);
+      }
+    }
+  }
+  /** Occurrences of `needle` that are the assembly's own rendering, not part of a question. */
+  const answerOccurrences = (needle: string): number[] => {
+    if (needle.length === 0) return [];
+    const found: number[] = [];
+    for (let at = request.indexOf(needle); at >= 0; at = request.indexOf(needle, at + 1)) {
+      const inside = questionSpans.some(
+        (span) => at >= span.start && at + needle.length <= span.end,
+      );
+      if (!inside) found.push(at);
+    }
+    return found;
+  };
+
   const missingQuestions: string[] = [];
   const positions: number[] = [];
   for (const answer of history) {
@@ -684,13 +725,16 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
   const lost: string[] = [];
   for (const answer of history) {
     const at = `r${answer.revision}q${answer.questionIndex}`;
-    if (answer.selectedOptionLabel !== null && !request.includes(answer.selectedOptionLabel)) {
+    if (
+      answer.selectedOptionLabel !== null &&
+      answerOccurrences(answer.selectedOptionLabel).length === 0
+    ) {
       lost.push(`${at} option`);
     }
     // Trimmed: the corpus accepts padded free text and the database stores it untrimmed, so an
     // assembly rendering `freeText.trim()` is correct and must not fail here.
     const typed = answer.freeText?.trim();
-    if (typed && !request.includes(typed)) {
+    if (typed && answerOccurrences(typed).length === 0) {
       lost.push(`${at} text`);
     }
   }
@@ -719,14 +763,6 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
    * pass, and only a genuine crossing fails. Every occurrence is considered, not the first, so a
    * label that also appears in a summary elsewhere cannot push a correct rendering out of range.
    */
-  const occurrences = (needle: string): number[] => {
-    if (needle.length === 0) return [];
-    const found: number[] = [];
-    for (let at = request.indexOf(needle); at >= 0; at = request.indexOf(needle, at + 1)) {
-      found.push(at);
-    }
-    return found;
-  };
   const crossed: string[] = [];
   if (missingQuestions.length === 0 && ordered) {
     history.forEach((answer, i) => {
@@ -735,7 +771,9 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
       const said = [answer.selectedOptionLabel, answer.freeText?.trim()].filter(
         (text): text is string => typeof text === "string" && text.length > 0,
       );
-      const inWindow = said.some((text) => occurrences(text).some((at) => at > from && at < to));
+      const inWindow = said.some((text) =>
+        answerOccurrences(text).some((at) => at > from && at < to),
+      );
       if (said.length > 0 && !inWindow) {
         crossed.push(`r${answer.revision}q${answer.questionIndex}`);
       }
@@ -1095,6 +1133,12 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
    *   verbatim;
    * - the host's typed words reach it unnormalised. Trimming is fine — the comparison is on a
    *   trimmed value — but paraphrasing, truncating or re-encoding them is not;
+   * - render each carried answer **adjacent to its own question** — between that question and the
+   *   next one — rather than grouping every question into one block and every answer into another,
+   *   and do not repeat a question's text earlier in the message.
+   *   `answerBoundToItsQuestion` is what distinguishes attribution from mere co-presence, and it
+   *   locates a question by its first occurrence; neither shape is wrong in itself, and both would
+   *   fail it;
    * - it is **your assembled user message and nothing else**. Not the correction turn a repair
    *   retry appends, and — the part that matters — not the assistant echo of the model's previous,
    *   schema-invalid response that the provider boundary puts between them. That echo is raw model

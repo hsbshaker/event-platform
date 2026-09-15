@@ -1132,8 +1132,17 @@ text to the model as though the host had written it.
 Encoded in the frozen machinery, not only here. `questionRenderedWithAnswer` requires every carried
 question's exact text in the transmitted request, in chronological order, and fails an assembly
 that sends the answer alone. `menuNotResent` fails one that sends back an unselected label or the
-revision's `whyItMatters`; a label the host or the question itself already used is never counted
-against the assembly.
+revision's `whyItMatters`; a label the host or a question already used is never counted against the
+assembly. And `answerBoundToItsQuestion` is what makes this attribution rather than co-presence: an
+assembly that renders question 1 with answer 2 and question 2 with answer 1 satisfies both of the
+above and fails this one. Occurrences falling inside a rendered question are discounted, so an
+option label that is a word of its own question stem — "Warm or cool in feel?" with options
+"Warm"/"Cool" — cannot satisfy a check by accident.
+
+It carries one obligation for T9, stated in the seam because no check can verify it: render each
+answer adjacent to its own question, and do not repeat a question's text earlier in the message.
+Grouping every question into one block and every answer into another is not wrong in itself, but it
+is indistinguishable from a crossing by any local rule, so the harness refuses it.
 
 ### CA-5 — RESOLVED: clarification history is cumulative
 
@@ -1146,8 +1155,10 @@ input; `events.prompt` stays byte-identical and separate; history is never flatt
 prompt; and provenance stays per answer, per question, per revision.
 
 Encoded in the frozen machinery. `historyDelivered` requires every carried answer's option label
-and typed text in the transmitted request, so an assembly that sends answer 1 in one round and
-silently drops it when sending answer 2 fails mechanically. `answersAssembledAsGiven` no longer
+and typed text in the transmitted request — discounting occurrences inside a rendered question, so
+a label that is a word of its own question stem cannot stand in for the answer — which means an
+assembly that sends answer 1 in one round and silently drops it when sending answer 2 fails
+mechanically. `answersAssembledAsGiven` no longer
 accepts "either this round's answers or the cumulative set": it requires the cumulative history for
 that rerun, in order, field for field.
 
