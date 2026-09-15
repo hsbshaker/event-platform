@@ -14,7 +14,8 @@
  * Acceptance criteria: N/A — benchmark integrity and evidence provenance.
  * `docs/model-contracts.md §4.5`.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -114,11 +115,24 @@ describe("the spent v1 corpus can be re-run without touching its first-run evide
 });
 
 describe("no set can write over evidence that already exists", () => {
-  it("protects the baseline and the v1 sealed challenge", () => {
+  it("protects the baseline, the v1 sealed challenge and the v5 regression run", () => {
     expect([...PROTECTED_RESULT_DIRS]).toEqual([
       "docs/model-evals/results/creative-understanding-v1",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
+      "docs/model-evals/results/creative-understanding-v1-regression",
     ]);
+  });
+
+  it("protects every directory that already holds a completed run's evidence", () => {
+    // The list is the mechanism; this is the rule it is meant to express. A run whose four
+    // artifacts are on disk is finished, and finishing it includes protecting it — so a result
+    // directory holding a `run.json` and not named here is the lag the ledger warns about.
+    const results = "docs/model-evals/results";
+    const completed = readdirSync(join(ROOT, results), { withFileTypes: true })
+      .filter((e) => e.isDirectory() && existsSync(join(ROOT, results, e.name, "run.json")))
+      .map((e) => `${results}/${e.name}`);
+    expect(completed.length).toBeGreaterThan(0);
+    for (const dir of completed) expect(isProtectedOutput(dir)).toBe(true);
   });
 
   it("refuses the protected directories themselves", () => {
@@ -139,9 +153,11 @@ describe("no set can write over evidence that already exists", () => {
 
   it("permits the sibling directories the other sets actually use", () => {
     // The `-v5-regression` sibling shares a prefix with the protected v1 directory and must not
-    // be caught by it; a check that refused it would make the safe rerun slot unusable.
+    // be caught by it; a check that refused it would make the safe rerun slot unusable. The two
+    // sets that are refused are refused because their runs are done, not because of a prefix.
+    const spent = ["challenge", "regression"];
     for (const set of sets) {
-      expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(set === "challenge");
+      expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(spent.includes(set));
     }
   });
 
@@ -164,11 +180,14 @@ describe("no set can write over evidence that already exists", () => {
     expect(new Set(outs).size).toBe(outs.length);
   });
 
-  it("aims only the historical set at protected evidence, and that set is refused", () => {
+  it("aims only already-run sets at protected evidence, and refuses each of them", () => {
+    // `regression` joined this list when its v5 run finished. Both sets named here can still be
+    // invoked from npm; both now stop at the refusal rather than writing, which is the point.
     const aimed = sets.filter((s) =>
       (PROTECTED_RESULT_DIRS as readonly string[]).includes(EVAL_SETS[s].out),
     );
-    expect(aimed).toEqual(["challenge"]);
+    expect(aimed).toEqual(["regression", "challenge"]);
+    for (const set of aimed) expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(true);
     expect(EVAL_SETS.challenge.label).toMatch(/SPENT/);
     expect(EVAL_SETS.challenge.label).toMatch(/immutable and this path is refused/i);
   });

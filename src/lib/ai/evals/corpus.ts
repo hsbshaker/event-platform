@@ -70,13 +70,19 @@ export function corpusPath(set: CorpusSet): string {
 /**
  * Evidence that may never be written again, whatever anyone asks for.
  *
- * Both were produced by runs that are now part of the record: the Phase 4A baseline, and the
- * first sealed challenge's one and only run. An eval set pointing at either would not overwrite
- * a report — it would overwrite the thing the report is evidence *of*.
+ * Each was produced by a run that is now part of the record: the Phase 4A baseline, the first
+ * sealed challenge's one and only run, and the `v5` regression run. An eval set pointing at any
+ * of them would not overwrite a report — it would overwrite the thing the report is evidence *of*.
+ *
+ * A directory is added here as part of finishing the run that produced it, never as a follow-up:
+ * until it is, the only guard is the write-once check, which `EVAL_OVERWRITE=1` overrides on
+ * purpose. The cost is that the set which wrote it can no longer run at that path — that is what
+ * protection means, and `spentChallenge` is the precedent for what a later rerun needs instead.
  */
 export const PROTECTED_RESULT_DIRS = [
   "docs/model-evals/results/creative-understanding-v1",
   "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
+  "docs/model-evals/results/creative-understanding-v1-regression",
 ] as const;
 
 /**
