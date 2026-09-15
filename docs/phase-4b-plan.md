@@ -48,13 +48,13 @@ with `kind: "boundary"` — zero questions, or only Route A creative questions. 
 when it contains one (at most one per response, asked alone, `§7.6b #1b`).
 
 `spec.md §7.6b`: *"No output field marks this — the presence of a boundary-kind question is the
-machine-readable signal."* The rule therefore has exactly **two** implementations, one per runtime,
-and they are held equal by test rather than by care:
+machine-readable signal."* The rule therefore has implementations in two runtimes, held equal by
+test rather than by care:
 
 | Runtime | Implementation | Role |
 | --- | --- | --- |
 | TypeScript | `isProvisional(result)` in `src/lib/ai/event-identity/lifecycle.ts` (new, pure, no I/O) | the canonical semantic for ordinary application code |
-| SQL | `public.identity_is_provisional(result jsonb) returns boolean`, `immutable` | the authority at the persistence boundary (§A.3) |
+| SQL | `public.identity_is_provisional(result jsonb, schema_version text)`, `immutable` | the authority at the persistence boundary (§A.3) |
 
 `assertAuthoritative(result)` returns a branded `AuthoritativeIdentity`. **The planner, the
 DesignIntent call and every downstream creative stage accept only the branded type**, so "a
@@ -62,12 +62,19 @@ provisional identity must not be consumed" is a compile error rather than a revi
 the same problem the raw-prompt boundary solves with a test, solved here by the type system, with a
 test asserting the brand is never cast away.
 
-**Parity is proven, not assumed.** A test evaluates both implementations over the same fixture set
-and requires identical answers on every case: zero questions; one, two and three creative
-questions; one boundary question; and — the cheap and honest part — **every response already
-persisted in the four `v5` evidence journals**, read-only, which is 50 real provider outputs
-including the one boundary question SC2-12 produced. If the two implementations ever disagree, that
-test fails before either is trusted.
+**Parity is proven, not assumed.** A test evaluates **every** implementation of this rule over one
+fixture set and requires identical answers on each case: zero questions; one, two and three
+creative questions; one boundary question; malformed and absent shapes (§A.3); and — the cheap and
+honest part — **every response already persisted in the four `v5` evidence journals**, read-only,
+which is 50 real provider outputs carrying **two** boundary questions, SC-06 in the spent-challenge
+diagnostic and SC2-12 in the fresh challenge. If any two implementations disagree, the test fails
+before either is trusted.
+
+**"Every implementation" means three, not two.** The answer-binding trigger in §B.2 also reads this
+JSON — it inspects `kind` on a question — so it is a third site that knows the envelope's shape.
+It is held to the same fixtures and reads `kind` through the same SQL helper rather than
+open-coding a path, because a third reader with no parity test is how the two carefully-matched
+ones drift.
 
 ### A.2 Persistence — identity revisions
 
@@ -77,16 +84,27 @@ and cannot support the attribution invariant in §G.
 
 Phase 4B adds append-only identity **revisions**, one row per `generateEventIdentity` result:
 
-- `event_id`, `revision` (monotonic per event), the full result envelope as `jsonb`;
-- `prompt_version`, `schema_version`, **`input_assembly_version`** (§B.3), `model`, provider
-  configuration, `provider_request_id`, `generation_run_id`;
+- `event_id`, `revision` (monotonic per event), **the full result envelope** as `jsonb` — note that
+  today's `event_identities.identity` holds the *brief* only, which is why legacy rows are not
+  migrated into this column (§A.3);
+- `prompt_version`, `schema_version`, **`input_assembly_version`** (§B.3) — all three `NOT NULL`,
+  with rows created before a version existed stamped with an explicit sentinel such as
+  `event_identity_input_pre_versioning` rather than left null, so "not recorded" and "the writer
+  forgot" are never the same value;
+- `model`, provider configuration, `provider_request_id`, `generation_run_id`;
+- **`clarification_answer_ids`** — the ordered ids of the answers actually assembled into this
+  request, written in the same transaction. Without it, "which answers were in scope" is
+  reconstructible only by comparing `answered_at` with `created_at`, which is inference, not
+  attribution: §B.2 does not require an answer to be inserted against the *latest* revision, so an
+  answer to revision 1 may legitimately arrive after revision 5 exists;
 - `is_provisional` — **a generated column, not a supplied one** (§A.3);
-- no `updated_at`, and a protect trigger refusing every `UPDATE` to the result or the version set,
-  in the style of `protect_design_concept()`.
+- no `updated_at`, and a protect trigger refusing every `UPDATE` to the result, the version set or
+  the answer-id list, in the style of `protect_design_concept()`.
 
 A pointer on the event names the **authoritative** revision. Whether the new table supersedes
-`event_identities` or replaces it is an implementation call for the task packet; the constraint is
-that no row is ever mutated and the old shape does not survive as a second source of truth.
+`event_identities` or replaces it is an implementation call for the task packet; the constraints
+are that no row is ever mutated, the old shape does not survive as a second source of truth, and no
+legacy brief is carried across as though it were an envelope.
 
 ### A.3 The provisional-state invariant — **the caller cannot lie**
 
@@ -94,37 +112,81 @@ The earlier draft had application code derive `is_provisional` and store it. Tha
 safety-critical truth in a place a buggy or malicious caller controls, and the whole point of the
 flag is that nothing downstream may consume a provisional identity. Revised:
 
+**It must fail closed.** The obvious implementation `coalesce(result -> 'clarification' ->
+'questions', '[]')` turns *"this path is missing"* into *"authoritative"*, which is the worst
+available default: a schema version that renames `kind` or moves `clarification`, or any row whose
+JSON is not the envelope, silently reads as consumable. `spec.md §7.6b` derives this signal from
+JSON shape, so a shape that is not recognised is not evidence of absence — it is a state the
+function has no right to judge.
+
 ```sql
 -- Pure JSON inspection, so it qualifies as IMMUTABLE and can back a generated column.
-create function public.identity_is_provisional(result jsonb) returns boolean
-  language sql immutable
+-- Takes the schema version because the shape it reads is the shape that version defines.
+create function public.identity_is_provisional(result jsonb, schema_version text)
+  returns boolean language plpgsql immutable
 as $$
-  select exists (
-    select 1
-    from jsonb_array_elements(coalesce(result -> 'clarification' -> 'questions', '[]'::jsonb)) q
+begin
+  -- An unrecognised schema version is a shape this function cannot read. Refuse.
+  if schema_version is distinct from 'event_identity_schema_v5' then
+    raise exception 'identity_is_provisional: unsupported schema version %', schema_version
+      using errcode = 'feature_not_supported';
+  end if;
+  -- A missing or non-array questions path is malformed, never "no questions". Refuse.
+  if jsonb_typeof(result -> 'clarification' -> 'questions') is distinct from 'array' then
+    raise exception 'identity_is_provisional: clarification.questions is not an array'
+      using errcode = 'check_violation';
+  end if;
+  return exists (
+    select 1 from jsonb_array_elements(result -> 'clarification' -> 'questions') q
     where q ->> 'kind' = 'boundary'
   );
+end;
 $$;
 ```
 
+Adding a future schema version means extending this function deliberately, in the migration that
+introduces it — which is the point. A row it cannot read cannot be inserted at all, so there is no
+state in which a boundary-bearing identity is quietly classed authoritative.
+
+**Nothing in `event_identities` is migrated into this column.** Today's `event_identities.identity`
+is `jsonb not null` holding **the creative brief, not the result envelope** — it has no
+`clarification` key, so the function above would (correctly) refuse it. A migration that carried
+those rows across as envelopes would be exactly the fail-open path this design exists to remove.
+Legacy rows are either left where they are or migrated into a column that is explicitly *not* an
+envelope, and never become identity revisions.
+
 Three properties follow, and together they are the invariant:
 
-1. **`is_provisional` is `generated always as (public.identity_is_provisional(result)) stored`.**
-   A caller cannot supply it at all — an `INSERT` naming the column is rejected by Postgres. It is a
-   convenience for reads and indexes, derived by definition, never independently authoritative.
+1. **`is_provisional` is `generated always as (public.identity_is_provisional(result,
+   schema_version)) stored`.** A caller cannot supply it at all — an `INSERT` naming the column is
+   rejected by Postgres (`428C9`). It is a convenience for reads and indexes, derived by
+   definition, never independently authoritative.
 2. **The authoritative-pointer trigger reads the JSON, not the column.** Setting the event's
    authoritative pointer re-derives from the referenced revision's `result` via the same function
-   and raises if it is provisional. So even a future migration that dropped or corrupted the column
-   could not let a boundary-bearing identity become authoritative.
+   and raises if it is provisional. So even a dropped or corrupted column could not let a
+   boundary-bearing identity become authoritative.
 3. **The pointer must reference a revision of the same event.** Modelled on
    `validate_active_concept()`.
+4. **The pointer column is server-managed.** It joins the enumerated list in
+   `protect_event_server_columns()`, on **both** the insert and the update branch. That function
+   protects only the columns it names, and `events_update_member` grants `UPDATE` on
+   `public.events` to any member — so a new column is writable by a co-host until it is named
+   there. Without this, a co-host could repoint the event at an earlier authoritative revision and
+   silently change the creative interpretation everything downstream reads. Gate item 11 carries
+   the negative test.
 
-**A caveat recorded rather than discovered later.** Changing `identity_is_provisional` re-derives
-every historical row, because a stored generated column is recomputed on rewrite and the trigger
-reads the function live. The derivation rule is therefore versioned data semantics, not a
-refactor: changing it requires the same deliberation as a schema version bump, and the plan states
-that here so nobody treats it as a tidy-up. The rule itself is fixed by `spec.md §7.6b` and is not
-expected to change.
+**A caveat recorded correctly, because the first draft of it was wrong.** A `STORED` generated
+column is computed on `INSERT` and `UPDATE` **only**. `CREATE OR REPLACE FUNCTION` does not rewrite
+the table and does not recompute anything — the same hazard Postgres documents for functional
+indexes. So changing `identity_is_provisional` leaves every existing `is_provisional` value **stale
+and silently disagreeing** with the live function the pointer trigger evaluates: precisely the
+DB/application divergence this section exists to eliminate, introduced inside it.
+
+Therefore: changing the derivation function requires, **in the same migration**, an explicit
+rewrite of the column (`ALTER TABLE … ALTER COLUMN is_provisional SET EXPRESSION …`, or drop and
+re-add), plus a test asserting that no stored row disagrees with a live re-derivation. The rule
+itself is fixed by `spec.md §7.6b` and is not expected to change; adding a schema version to the
+function is, and is governed by the same requirement.
 
 ### A.4 The loop
 
@@ -153,7 +215,7 @@ think to write.
 | --- | --- |
 | distinct from the original description | concatenation into `prompt` |
 | attributable to the host | storing it as system or model text |
-| original description preserved unchanged | any mutation of `events.prompt` |
+| original description preserved unchanged | any mutation of `events.prompt`, **including by service role** |
 | takes precedence over conflicting earlier input | dropping it, or leaving precedence to position |
 | available to EventIdentity on rerun | keeping it in request scope or UI state |
 | not `redesignFeedback` | overloading a field whose semantics are post-concept |
@@ -186,11 +248,31 @@ A **BEFORE INSERT trigger** verifies, against the referenced revision's JSON, th
    can never drift from what was asked;
 5. `is_defer` is consistent with the route: a `boundary` answer can never be a defer, because Route
    B offers no defer option (`spec.md §7.6b #4`), and a `creative` answer marked as a defer must
-   name the question's one `isDefer` option.
+   name the question's one `isDefer` option;
+6. **`round` equals the referenced revision's round** — a denormalised field held to the same
+   standard as the copied text, rather than a lower one;
+7. **`answered_by` is a member of `event_id`** — otherwise any `profiles` id in the system can be
+   recorded as the answering host;
+8. **for an end-user request, `answered_by = auth.uid()`** — otherwise a co-host can attribute an
+   answer to the owner, which defeats *"attributable to the host"* outright. Service-role writes are
+   exempt from (8) and never from (7).
 
 Plus `unique (identity_revision_id, question_index)` — one answer per question — and a protect
 trigger refusing `UPDATE` and `DELETE`, so the record is append-only in the database and not merely
 by application habit.
+
+**Who writes, so gate item 11 is designable.** Answers are written by the host or co-host as an
+**end-user request under RLS** — they are host input, and routing them through service role would
+discard `auth.uid()`, which check (8) depends on. The orchestrator reads them server-side. The
+permission matrix follows the existing member model: a member of the event may insert an answer for
+themselves; nobody may update or delete one.
+
+**And `events.prompt` is made immutable in the database, not by habit.** §B.1's strongest
+requirement is that the original description is never mutated, and today
+`protect_event_server_columns()` blocks only *end-user* updates to `prompt` — every write in this
+pipeline is service role, so the guard that matters is absent. Phase 4B adds an unconditional
+trigger refusing any change to `events.prompt` after insert, regardless of caller. Gate item 3 then
+rests on a database refusal rather than on a source scan.
 
 This is deliberately **not** a conversation system: no thread, no roles, no arbitrary turns, no
 free-form chat. It is a set of (question asked, answer given) rows, bounded by the rounds that
@@ -220,22 +302,40 @@ precedence between them is expressed, and how an answer is represented.
 | `event_identity_input_v1` | what Phase 4A shipped and evidenced: original prompt + inspiration assets. No clarification answers |
 | `event_identity_input_v2` | adds clarification answers as labelled current host input with stated precedence. Introduced by **T4** |
 
-**No backfill.** Existing persisted rows and every completed evidence artifact predate the column
-and carry nothing. Absence means *"produced before this was recorded"*, on the same principle as
-the eval journal's rule that a measurement nobody made is left absent rather than filled with a
-zero. Canon says so rather than retrofitting a label onto finished evidence.
+**No backfill onto finished evidence; an explicit sentinel in the database.** Completed evidence
+artifacts predate the column and are never rewritten — retrofitting a label onto frozen evidence is
+not something this project does. In the **database**, absence is ambiguous in a way that matters: a
+legacy row and a future row whose writer forgot the column would look identical. So
+`input_assembly_version` is `NOT NULL` on the new table, and any row carried across from before
+versioning is stamped `event_identity_pre_versioning` — a value that says *"produced before this
+was recorded"* out loud, rather than a null that could equally mean *"a bug"*.
 
 **When it bumps.** Any change to precedence, labelling, ordering or representation of clarification
 answers; adding or removing an input channel; changing how the original prompt is delimited. It
 does **not** bump for a prompt-file edit (that is the prompt version) or a schema change (that is
 the schema version), and the three are independent.
 
-**How it is enforced.** `input-assembly-drift.test.ts`, modelled on the existing
-`schema-drift.test.ts`: a golden snapshot of the assembled envelope for a fixed set of fixture
-inputs — no prompt, with answers, with inspiration, multi-round — checked in. Changing the assembly
-changes the snapshot; the test refuses a changed snapshot unless
-`EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` changed in the same commit. **The version cannot drift from
-the behaviour it names**, which is the property `event_identity_v5`'s history shows we need.
+**How it is enforced — and not the way the first draft said.** A test process has no view of the
+commit, so "the version must change in the same commit" is not implementable, and the cited model
+does not have the property either: `schema-drift.test.ts` can be greened by `UPDATE_SCHEMAS=1`
+(`npm run schemas:event-identity`), which rewrites the files in place with the version untouched.
+An implementer following that precedent would build a guard a developer clears with one environment
+variable — and Resolved Decision 2 rests entirely on this guard.
+
+`input-assembly-drift.test.ts` therefore uses **version-named golden files** and never regenerates
+in place:
+
+- fixture envelopes live at `__fixtures__/envelope.<assembly-version>.json` — one set per declared
+  value, over fixed inputs (no answers; with answers; with inspiration; multi-round);
+- the test loads the file named by the **current** `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` and
+  requires an exact match;
+- a second test asserts one checked-in fixture set exists for **every** declared value, so an old
+  one cannot be deleted to make room;
+- there is no in-place update path and no environment-variable escape.
+
+An assembly change under an unchanged version then fails against its own golden file, and a bump
+requires adding a new file while the old one stays. **The version cannot drift from the behaviour
+it names**, which is the property `event_identity_v5`'s history shows we need.
 
 **Persistence.** `input_assembly_version` is stored on **every identity revision** (§A.2) and on
 `generation_runs` for `operation = 'event_identity'`.
@@ -316,10 +416,22 @@ the first stage where "reusable finishing language" and "a preference for polish
 moderation" become visible as three outputs that converge.
 
 **Blind and parallel — resolved.** Each call receives the same authoritative identity (including
-`inspirationSummary`) plus **only its own** assignment, directive and token allotment, and the
-event's capabilities and content profile. It never receives the raw host prompt (`spec.md §7.5`,
-`§32 #12`), raw inspiration assets (§F), **another sibling's output**, or any library recipe or
-silhouette identifier (`CLAUDE.md §5.1`). The three calls run in parallel (`spec.md §7.10 #3`).
+`inspirationSummary`) plus **only its own sibling assignment** — and nothing else.
+
+That is `spec.md §7.7` exactly: *"The assignment is passed to the DesignIntent call; the directive,
+allotment and DesignIntent are passed to the composition call."* `src/lib/ai/provider.ts` already
+encodes the same split — `GenerateDesignIntentInput` is `{ eventIdentity, diversityAssignment }`,
+while `capabilities` and `directive` belong to `GenerateCompositionInput`. **An earlier draft of
+this plan sent the directive, the token allotment and the event's capabilities to DesignIntent,
+which contradicted all three.** Withdrawn. `capabilities` reaching DesignIntent would additionally
+breach `CLAUDE.md §2` — capabilities are enabled features and none of them recomposes a page — by
+letting the enabled feature set shape the creative direction.
+
+It never receives the raw host prompt (`spec.md §7.5`, `§32 #12`), raw inspiration assets (§F), the
+directive or token allotment (which are composition's), capabilities or content profile,
+**another sibling's output**, or any library recipe or silhouette identifier (`CLAUDE.md §5.1`).
+The three calls run in parallel (`spec.md §7.10 #3`). A canonical tension this plan does **not**
+resolve is recorded in §Canonical ambiguities raised.
 **No convergence-triggered re-prompt exists in the first implementation.** Convergence and
 distinctness are first-class telemetry, checked mechanically where honest and judged qualitatively
 where not; if fresh evidence shows blind siblings converge despite planner separation, that is a
@@ -379,7 +491,7 @@ phase:
 | --- | --- |
 | identity | `id`, `event_id`, `batch_id`, `identity_revision_id`, `concept_index` (0–2), `round` |
 | planner | `planner_version`, `assignment` (family, tone, typography category, hierarchy), `directive`, `token_allotment` |
-| model | `design_intent_prompt_version`, `design_intent_schema_version`, `input_assembly_version` if the DesignIntent envelope gains one, `model`, provider configuration, `provider_request_id`, `generation_run_id` |
+| model | `design_intent_prompt_version`, `design_intent_schema_version`, **`design_intent_input_assembly_version`** — the DesignIntent envelope carries the identity and the assignment and is exposed to exactly the drift §B.3 spends a page refusing to tolerate for EventIdentity, so it is versioned on the same terms, not "if it gains one" — `model`, provider configuration, `provider_request_id`, `generation_run_id` |
 | payload | `design_intent` jsonb — the validated output, immutable |
 | | `created_at`; `unique (batch_id, concept_index)`; a protect trigger refusing every `UPDATE` |
 
@@ -388,16 +500,25 @@ phase:
 1. **4D inserts `design_concepts` only after composition exists.** It already cannot do otherwise;
    this makes the constraint intentional rather than incidental. A concept is a *composed* thing.
 2. **`design_concepts` gains `design_intent_artifact_id`**, a `NOT NULL` FK for concepts created
-   from 4C onward. The table has never been written in production — Phase 4 has not run — so this
-   is a cheap migration now and an expensive one later. (Verify emptiness at implementation time
+   from 4C onward, **and that column joins `protect_design_concept()`'s immutability list.** The
+   trigger raises only for the columns it enumerates, so an unlisted column is the one generated-
+   design column an `UPDATE` may change — and it would be the column carrying the lineage. A
+   concept could be silently re-pointed at a different sibling's artifact after insert, defeating
+   point 4 below. The table has never been written in production — Phase 4 has not run — so this is
+   a cheap migration now and an expensive one later. (Verify emptiness at implementation time
    rather than assuming it.)
 3. **The existing inline `design_intent` column is retained as a deliberate immutable snapshot**,
    not replaced. It is `NOT NULL` today, the protect trigger already forbids changing it, and
    relaxing a NOT NULL to avoid duplication would weaken the very invariant this decision exists to
-   preserve. An insert-time check requires `design_concepts.design_intent` to equal the referenced
-   artifact's `design_intent`. **Two copies of the same immutable value are not two sources of
-   truth**: neither can be updated, and equality is enforced where they meet. The artifact is the
-   origin of record; the column is a denormalised read that cannot drift.
+   preserve. An insert-time check requires the concept to agree with its artifact on **everything
+   they both carry**, not only the payload: `design_intent`, `event_id`, `round`, `concept_index`,
+   `design_intent_prompt_version` and `design_intent_schema_version`. Payload-only equality would
+   let a concept claim schema `v5` while its artifact records `v4`, or sit at `(round 2, index 0)`
+   pointing at an artifact from `(round 1, index 2)` — which would make §G.4's DesignIntent
+   attribution invariant false by the concept path. **Two copies of the same immutable values are
+   not two sources of truth**: neither side can be updated, and equality across every shared column
+   is enforced where they meet. The artifact is the origin of record; the concept's columns are a
+   denormalised read that cannot drift.
 4. **One stable identity per lifecycle stage, and lineage by FK.** Before composition, a sibling is
    identified by `(batch_id, concept_index)` on its artifact. From composition onward the concept is
    identified by `design_concepts.id`, which is what `resolved_design_specs` and
@@ -409,12 +530,15 @@ phase:
 
 > **Identity.** Every persisted identity revision names, and is reproducible from, exactly one
 > `(prompt_version, schema_version, input_assembly_version, model, provider configuration)` tuple,
-> plus the ordered clarification answers that were in scope for it — which are themselves bound to
-> the revision that asked (§B.2).
+> plus **the ordered clarification answers recorded on the revision itself** (`clarification_answer_ids`,
+> §A.2) — not the answers that happen to exist for the event now, which is a different and larger
+> set once a later round has been answered.
 
 > **DesignIntent.** Every persisted DesignIntent artifact names, and is reproducible from, exactly
-> one `(identity_revision_id, planner_version, assignment, directive, token_allotment,
-> design_intent_prompt_version, design_intent_schema_version, model, provider configuration)` tuple.
+> one `(identity_revision_id, planner_version, assignment, design_intent_prompt_version,
+> design_intent_schema_version, design_intent_input_assembly_version, model, provider
+> configuration)` tuple. The directive and token allotment are recorded on the artifact for
+> lineage but are **not** inputs to this call (§E) — they are composition's.
 
 Both follow the established rule: generated design data is immutable; nothing persisted is mutated;
 a change produces a new row (`CLAUDE.md §2`).
@@ -434,7 +558,7 @@ to reason about.
 ## H. Spend and concurrency controls
 
 Binding source: `development-plan.md` principle 4 — *"Spend controls ship with the first production
-model call, not in hardening"* — and `spec.md §1178`. The proof phase hit an organisation spend
+model call, not in hardening"* — and `spec.md §9.6` (global/project spend ceiling and alerts). The proof phase hit an organisation spend
 ceiling mid-run; this is not theoretical.
 
 | Control | Mechanism |
@@ -515,11 +639,30 @@ satisfiable by a rule the prompt could be taught directly.
 
 ## 3.2 Mechanical invariants (4C)
 
-Per batch of three: assignment conformance; palette separation above a floor; typography
+**Within a batch of three:** assignment conformance; palette separation above a floor; typography
 distinctness; composition-vector distinctness; motif overlap below a ceiling; token allotment
 respected; every `hostConstraint` traceable into all three; no `suppliedFacts` value invented or
 altered; no `creativeGuidance` string appearing as a constraint; schema validity and first-call
 success; repair and transient retry counts.
+
+**Across batches — and this block is not optional.** Every metric above is within-batch, and a
+system that produces three vivid, distinct, assignment-conforming worlds for *every* event, and
+approximately the **same three** for a christening, a 60th birthday and a quinceañera, would pass
+all of them. That is a three-template gallery arrived at without a library, and it is the
+`CLAUDE.md §5.1` regression the Library Boundary Invariant exists to prevent. So the corpus-wide
+block is frozen alongside the per-batch one:
+
+- pairwise distance between **same-index siblings across different batches**, which should be no
+  smaller than within-batch distance;
+- corpus-wide frequency of palette families, typography pairings and motif sets — a long tail is
+  expected, a short one is the finding;
+- recurrence of finishing language: n-gram frequency across all `DesignIntent` prose fields,
+  corpus-wide;
+- how often the same organizing idea appears against materially different event types.
+
+These are reported as measurements, not pass/fail thresholds invented in advance — with one
+exception: they are the evidence the reviewer needs for category **S8** (§3.7), and a corpus-wide
+recurrence they surface is a finding the reviewer must address.
 
 A mechanical pass is **necessary and never sufficient** — three outputs can satisfy every distance
 metric and still be one idea. Undecidable cases report `n/a` or **advisory**, never a silent pass,
@@ -569,13 +712,29 @@ it; incidents go to `docs/model-evals/eval-incidents.md`.
 **Both halves are frozen in canon before the sealed corpus is authored, and before any DesignIntent
 prompt is written.** Moving either after results voids the gate (`spec.md §11.9` discipline).
 
-**Half one — distribution.** Per-batch bands **Excellent / Good / Borderline / Fail**, defined in
-writing before any batch is reviewed:
+**The corpus size is fixed in the same freeze.** A distribution rule is meaningless without `N`:
+with a four-case corpus, `E=2, G=1, B=1` passes and "at least two batches" is half the evidence.
+**The sealed corpus is twelve batches**, matching the 4A precedent, and that number is frozen at
+T13 — before the corpus is authored, so it cannot be chosen to suit a result.
+
+**Half one — distribution.** Per-batch bands, **defined here rather than asserted to exist
+elsewhere**, and frozen at T13 before any batch is reviewed:
+
+| Band | Definition |
+| --- | --- |
+| **Excellent** | Three distinct creative worlds, each rooted in *this* event, each suggesting a different experience rather than a different look. A designer handed any one of them would know what to build, and would not confuse it with the other two. Nothing fabricated, nothing generic |
+| **Good** | Three genuinely different directions, faithful and usable, but one or more is thinner than the others — a look rather than a world, or a world whose verbal identity does not carry its visual idea. No correctness defect |
+| **Borderline** | The three are faithful and defensible, but the distinctness is largely parametric, or one sibling is a weak variant of another, or the set reads as competent premium work that this event did not specifically ask for. No correctness defect |
+| **Fail** | Any correctness defect — an invented host fact, a `creativeGuidance` recommendation promoted to host law, a `hostConstraint` eroded or contradicted — **or** siblings that are not materially different directions at all |
+
+**The rule:**
 
 > **No `Fail`. At most one `Borderline`. `Excellent` strictly outnumbers `Good`.**
 
 Stronger than 4A's outcome (7/5 passes; 6/6 does not), not satisfiable by one lucky case, and not a
-literal 12/12 that would invite tuning against spent cases.
+literal 12/12 that would invite tuning against spent cases. Note that the `Fail` definition makes
+any single-batch correctness defect fatal on its own — which is deliberate, and is what stops the
+"one catastrophic batch rated Borderline" path through the gate.
 
 **Half two — the systemic veto.** A high distribution must not mask a systemic creative failure.
 **The 4C gate fails regardless of distribution if the independent reviewer finds any predeclared
@@ -591,25 +750,45 @@ systemic pattern.**
 | S4 | host constraints eroded or contradicted |
 | S5 | generic-premium treatment overwhelming event-specific personality |
 | S6 | unsupported emotional moderation / anti-sentimentality / anti-theatricality across siblings |
-| S7 | another recurring pattern that directly defeats the core 4C question — **and which the reviewer must name and define in the same terms as S1–S6** |
+| S7 | another recurring pattern that directly defeats the core 4C question — **which the reviewer must name and define in the same terms as the others** |
+| **S8** | **the same creative worlds recurring across different events** — organizing idea, palette family, typographic voice, motif set or finishing language repeating from batch to batch regardless of what the event is. S1 and S2 are both *within*-batch; without S8 a system producing three excellent, genuinely distinct worlds and roughly the *same* three every time passes every category and every within-batch metric. §3.2's corpus-wide block exists to give the reviewer evidence for this one |
 
-*What counts as systemic*, so it is neither a discretionary escape hatch nor a rule that can only be
-invoked by hindsight: a pattern is systemic when the reviewer finds it **present in at least two
-distinct batches**, cites **each batch by id and at least one specific sibling within it**, quotes
-the **specific output text** that exhibits it, and judges it a property of the system's output
-rather than of the input cases. All four conditions, stated in the review artifact.
+*What counts as systemic*, so it is neither a discretionary escape hatch nor invocable only by
+hindsight. A pattern is systemic when the reviewer:
 
-*The reviewer protocol.* The reviewer is **not** asked "should this pass?" and is not told the
-distribution rule or the threshold. They produce:
+1. finds it present in **at least the threshold number of batches for its class** (below);
+2. cites **each batch by id and at least one specific sibling within it**;
+3. quotes the **specific output text** that exhibits it;
+4. judges it a property of the system's output rather than an artefact of one unusual input — a
+   judgement they must be *able* to make, which is why §3.8 gives them the identity alongside the
+   three DesignIntents. A condition the blinding makes unanswerable would let every veto be declined
+   on it.
 
-1. **per-batch ratings** on the four bands, with reasons, completed before any cross-batch work;
-2. **an explicit cross-batch systemic assessment**, answering **every** category S1–S7 as
+*The threshold differs by class, because the categories are not the same kind of thing.*
+
+| Class | Categories | Threshold |
+| --- | --- | --- |
+| **Correctness** | S3 (`creativeGuidance` promoted to host law), S4 (host constraints eroded or contradicted) | **one batch.** These are the failure `v4` already paid for; an 8% rate of fabricated host authority is not a quality wobble, and any occurrence also forces that batch to `Fail` under §3.7's band definitions |
+| **Taste / convergence** | S1, S2, S5, S6, S7, S8 | **two batches** |
+
+*The reviewer protocol.* The reviewer is **not** asked "should this pass?", is not told the
+distribution rule, the band thresholds or the corpus size, and works from a repository they have no
+access to (§3.8). They produce:
+
+1. **per-batch ratings** on the four bands, with reasons;
+2. **an explicit cross-batch systemic assessment**, answering **every** category S1–S8 as
    present/absent with citations — including the absent ones, so the veto is a checklist completed
    in every review rather than a finding volunteered only sometimes.
 
+The per-batch ratings come first, which risks anchoring: twelve Excellents make a systemic finding
+feel contradictory. The protocol therefore requires the systemic assessment to be written **against
+the corpus-wide measurements of §3.2**, which the reviewer receives alongside the batches, rather
+than from recollection of the ratings just given — an anchoring effect is answered with evidence,
+not with an instruction not to be anchored.
+
 *How the go/no-go records it.* The decision states the band distribution **and** the systemic
 verdict per category. A veto is a **NO-GO** with the category and the reviewer's citations recorded
-verbatim. A pass records that all seven were assessed and found absent. **Neither half can be
+verbatim. A pass records that all **eight** were assessed and found absent. **Neither half can be
 waived by the other**: an excellent distribution does not override a veto, and an absent veto does
 not rescue a failing distribution.
 
@@ -618,10 +797,26 @@ gate is the floor that protects generalization, never a license to settle for Go
 
 ## 3.8 Independent qualitative review process
 
-Unchanged from 4A because it worked: a blind artifact generated by the runner containing outputs
-and no case metadata, expectations or route labels; a **fresh** reviewer session with no access to
-this repository's prompts, prior evidence or failure history; band judgements plus the systemic
-checklist plus prose; the go/no-go recorded with its SHA chain.
+The 4A shape, with the 4C artifact defined rather than assumed.
+
+**What the artifact contains**, per batch: the **authoritative EventIdentity** and the **three
+DesignIntents** generated from it. Plus, once, the corpus-wide measurements of §3.2. Nothing else —
+no case metadata, no expectations, no clarification labels, no band definitions, no thresholds, no
+corpus size, no prior evidence.
+
+The identity is included deliberately. §3.3 asks whether each direction is rooted in *this* event,
+S5 and S6 ask whether a treatment is supported by the identity, and systemic condition 4 asks
+whether a pattern belongs to the system or to the input — **none of which is answerable from
+outputs alone.** A blinding that withheld the identity would make the veto structurally
+undeclinable-but-unprovable, which is worse than no veto.
+
+**What the reviewer does not have:** access to this repository, in full. Not the prompts, not prior
+evidence, not the failure history, and specifically **not `model-contracts.md`**, where T13 freezes
+the distribution rule — a blinding phrased as "no prompts or prior evidence" would leave the
+threshold readable in canon, which defeats §3.7's claim that the reviewer does not know it.
+
+They return band judgements, the S1–S8 checklist with citations, and prose. The go/no-go is
+recorded with its SHA chain.
 
 ## 3.9 The Phase 4B rerun-behaviour validation set — classed honestly
 
@@ -629,6 +824,13 @@ Introducing clarification answers changes the effective model input (§B.3), and
 with no answer ever present. A small **pre-registered validation set** exercising a rerun with
 answers present is authored and frozen **before T4 is implemented**, and run exactly once after the
 implementation is frozen and an explicit live-run authorization is given.
+
+**It is authored to its class, or it is not that class.** §3.4 defines pre-registered validation
+as *authored and frozen before the prompt is written, and independently reviewed for fairness* —
+so this set is authored by someone **other than the implementer of T4**, and receives the same
+independent fairness and leakage review the `v5` holdout did. A set that skipped either would be
+the implementer's own expectations, and calling it validation would be the label doing work the
+process did not.
 
 What it is, stated so nobody upgrades it later:
 
@@ -658,7 +860,7 @@ permitted until the gate that names one.
 | **T4** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2` | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3 | `input-assembly-drift.test.ts` golden snapshots; snapshot change without a version bump fails; `prompt` byte-identical across rounds | `§7.6b`; guardrail `§32 #12` | **yes** | **yes** | no |
 | **T5** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T4 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
 | **T6** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T5 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
-| **T7** | Rerun-behaviour validation corpus + harness slot — **cases authored separately, before T4 ships** | `src/lib/ai/evals/*`, runner slot | T4 | unit/static only; leakage scan covers it | `model-contracts.md §4.5` | no | **yes** | no |
+| **T7** | Rerun-behaviour validation corpus + harness slot. **Cases authored and frozen at a SHA preceding T4's implementation**, by someone other than T4's implementer (§3.9) | `src/lib/ai/evals/*`, runner slot | **T3** | unit/static only; leakage scan covers it | `model-contracts.md §4.5` | no | **yes** | no |
 | | **▶ 4B GATE — approval required before the single authorized validation run** | | | | | | | |
 
 ## Phase 4C — begins only after the 4B gate passes
@@ -669,7 +871,7 @@ permitted until the gate that names one.
 | **T9** | `generation_batches` + spend, caps, idempotency | migration; `src/lib/generation/batch.ts`; `rate_limits` wiring | T8 | db: one in-flight batch enforced by index; caps refuse; duplicate keys collide; partial-failure resumption | `development-plan.md` principle 4; `spec.md §10`, `§27` | no | **yes** | no |
 | **T10** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T9 | db: updates refused; equality check refuses a mismatched snapshot; FK required | `spec.md §9.4`; `CLAUDE.md §2` | no | **yes** | no |
 | **T11** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T10 | unit: semantic invariants, narrowing, repair rules, schema-drift | `model-contracts.md §5`; `§32 #12`–`#31` | **schema descriptions ship** | **yes** | no |
-| **T12** | Evidence harness + regression and pre-registered corpora | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts` | T11 | unit/static only, per the operational rule; leakage scan extended | `model-contracts.md §4.5` | no | **yes** | **no — never run to verify itself** |
+| **T12** | Evidence harness + regression and pre-registered corpora. **The pre-registered cases are frozen at a SHA preceding T11**, because T11 ships `.describe()` strings to the model and §3.5 is explicit that those *are* prompt text — an author who has read them has read model-visible instruction | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts` | **T10** (harness may follow T11; the corpus may not) | unit/static only, per the operational rule; leakage scan extended | `model-contracts.md §4.5` | no | **yes** | **no — never run to verify itself** |
 | **T13** | Freeze the 4C gate (§3.7) in canon | `model-contracts.md`, this document | T12 | doc guards | `spec.md §11.9` discipline | no | **yes** | no |
 | **T14** | The DesignIntent prompt | `docs/model-prompts/design-intent.system.md` | T11–T13 | leakage scan; independent engineering read | `model-contracts.md §5`; `product-doctrine.md` | **yes** | **yes** | no |
 | | **▶ STOP — APPROVAL REQUIRED BEFORE THE FIRST LIVE DesignIntent CALL** | | | | | | | |
@@ -693,15 +895,15 @@ authorized live run.
 | --- | --- | --- |
 | 1 | A Route B identity is provisional and cannot flow downstream | type-level (branded `AuthoritativeIdentity`) plus a db test that the authoritative pointer refuses it |
 | 2 | A zero-question or Route-A-only identity is authoritative | TS/SQL parity tests over constructed shapes and the four `v5` journals |
-| 3 | The original event prompt is byte-identical across rounds | assembly test comparing the prompt string sent on round *n* with round 1; `events.prompt` never written |
+| 3 | The original event prompt is byte-identical across rounds | version-named assembly golden files (§B.3) comparing the prompt string sent on round *n* with round 1; **plus a db test that `events.prompt` cannot be updated even by service role** (§B.2) — a refusal, not a source scan |
 | 4 | Clarification answers are first-class durable host input with provenance | the §B.2 binding triggers: wrong event, wrong index, wrong `kind`, drifted copy and duplicate all refused |
 | 5 | Newer clarification input takes the intended precedence without mutating history | assembly golden snapshots show labelling and precedence; answer rows are append-only; earlier rounds unchanged |
 | 6 | Multiple boundary rounds are possible with no lifetime cap | orchestration test driving ≥ 3 boundary rounds; no cap constant exists anywhere (asserted by scan) |
 | 7 | Route A never blocks generation | test: an unanswered and a deferred creative question both proceed |
 | 8 | A late Route A answer never mutates an in-flight batch | test: batch inputs unchanged; the answer binds to the asking revision; a new round is offered |
 | 9 | Refresh and retry are idempotent | test: repeated requests observe one batch and one revision; keys collide |
-| 10 | The database cannot mark a boundary-bearing identity authoritative via a stale or false flag | db test: the generated column rejects a supplied value, and the pointer trigger still refuses when the column is tampered with directly |
-| 11 | Host/co-host authorization and RLS for answers and revisions are correct | db tests per the existing permission matrix, including negative cases |
+| 10 | The database cannot mark a boundary-bearing identity authoritative via a stale or false flag | db tests: an `INSERT` naming `is_provisional` is rejected (`428C9`); the pointer trigger still refuses when the column is tampered with directly; an unrecognised `schema_version` and a malformed `clarification.questions` are **refused rather than read as authoritative** (§A.3) |
+| 11 | Host/co-host authorization and RLS for answers and revisions are correct | db tests per the existing permission matrix, including negative cases: a non-member cannot answer; a co-host cannot attribute an answer to the owner (`answered_by = auth.uid()`); and **a member cannot move the event's authoritative-identity pointer**, which requires that column to be in `protect_event_server_columns()` (§A.3 property 4) |
 | 12 | The pre-registered rerun-behaviour set passes its frozen mechanical and qualitative criteria | one authorized live run after the implementation freeze, classed per §3.9 |
 
 Plus the standing gate: deterministic checks green, independent engineering review, and an explicit
@@ -721,8 +923,42 @@ can be waived by the other.
 | --- | --- | --- |
 | **1** | Phase letters | **Canonical split kept.** 4B = clarification; 4C = planner + DesignIntent. No letters renamed or shifted. Continuous workstream permitted, separate gates required, and 4C does not begin until 4B passes |
 | **2** | Does `v5` need prompt prose about clarification answers? | **No — and the input layer gets its own version.** `event_identity_v5` stays; answers are carried in the request envelope; `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` identifies the envelope, is persisted on every revision and run, bumps on any precedence/labelling/ordering/representation change, and is drift-tested against a golden snapshot. A pre-registered rerun-behaviour set is authored before T4 and run once, later, under explicit authorization |
-| **3** | Do siblings see each other? | **Blind and parallel.** No convergence-triggered re-prompt in the first implementation. Convergence and distinctness are first-class telemetry, mechanical where honest and qualitative where not; a later mechanism is a deliberate spec decision argued from evidence |
+| **3** | Do siblings see each other? | **Blind and parallel.** No convergence-triggered re-prompt in the first implementation. Convergence and distinctness are first-class telemetry, mechanical where honest and qualitative where not; a later mechanism is a deliberate spec decision argued from evidence. **A DesignIntent call receives the identity and its assignment only** — the directive, token allotment and capabilities belong to composition (`spec.md §7.7`, `provider.ts`), and an earlier draft of this plan wrongly sent them here |
 | **4** | Where do DesignIntent-only artifacts live? | **A dedicated immutable `design_intent_artifacts` table.** The earlier nullable-then-fill recommendation is withdrawn: it contradicted `protect_design_concept()`. `design_concepts` is inserted only after composition, gains a `NOT NULL` FK to the artifact, keeps its inline `design_intent` as an immutable snapshot with insert-time equality enforced, and remains the stable concept identity from composition onward |
+
+---
+
+# Canonical ambiguities raised, not resolved
+
+Two tensions live in canon rather than in this plan. A plan document orders work and defines no
+requirements, so neither is settled here; both are raised for an explicit product decision under
+`CLAUDE.md §12`.
+
+### CA-1 — what reaches the DesignIntent call
+
+`spec.md §7.7` is unambiguous: *"The assignment is passed to the DesignIntent call; the directive,
+allotment and DesignIntent are passed to the composition call."* `provider.ts` encodes it, and §E
+follows it.
+
+But `spec.md §7.10 #3` says the three DesignIntent calls run *"using real details where present and
+provisional content elsewhere"*, which reads as event content reaching DesignIntent — content that
+`§7.7` does not give it and `GenerateDesignIntentInput` has no field for.
+
+The plan follows `§7.7`, the more specific and more recently exercised statement. If content or
+capabilities genuinely must reach DesignIntent, that is a change to `spec.md §7.7`,
+`model-contracts.md §5.2` and `provider.ts` requiring explicit product approval — not a line in an
+ordering document. **Raised, not resolved.**
+
+### CA-2 — provisional state is defined by JSON shape
+
+`spec.md §7.6b`: *"No output field marks this — the presence of a boundary-kind question is the
+machine-readable signal."* That is the root of §A.3's difficulty: a safety-critical signal derived
+by path-matching has no schema-version-proof reading, and the best a database can do is refuse
+shapes it does not recognise (which is what §A.3 now does).
+
+A durable fix would be canonical — a stable marker on the envelope, or a versioned reader contract
+— not a SQL patch. It is not needed for Phase 4B, because refusing unknown shapes is safe. It will
+be needed the first time the envelope's schema version changes. **Raised, not resolved.**
 
 ---
 
