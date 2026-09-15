@@ -71,9 +71,11 @@ export function corpusPath(set: CorpusSet): string {
  * Evidence that may never be written again, whatever anyone asks for.
  *
  * Each was produced by a run that is now part of the record: the Phase 4A baseline, the first
- * sealed challenge's one and only run, the `v5` regression run, and the `v5` diagnostic re-run of
- * the spent challenge. An eval set pointing at any of them would not overwrite a report — it would
- * overwrite the thing the report is evidence *of*.
+ * sealed challenge's one and only run, the `v5` regression run, the `v5` diagnostic re-run of the
+ * spent challenge, and the one run of the pre-registered validation set. An eval set pointing at
+ * any of them would not overwrite a report — it would overwrite the thing the report is evidence
+ * *of*. The holdout matters most here: pre-registered means run once, so a second run over that
+ * directory would not just lose evidence, it would destroy the property that made it evidence.
  *
  * A directory is added here as part of finishing the run that produced it, never as a follow-up:
  * until it is, the only guard is the write-once check, which `EVAL_OVERWRITE=1` overrides on
@@ -85,6 +87,7 @@ export const PROTECTED_RESULT_DIRS = [
   "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
   "docs/model-evals/results/creative-understanding-v1-regression",
   "docs/model-evals/results/creative-understanding-sealed-challenge-v1-v5-regression",
+  "docs/model-evals/results/creative-understanding-holdout-v1",
 ] as const;
 
 /**
