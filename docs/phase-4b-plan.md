@@ -317,7 +317,7 @@ precedence between them is expressed, and how an answer is represented.
 | Value | Assembly |
 | --- | --- |
 | `event_identity_input_v1` | what Phase 4A shipped and evidenced: original prompt + inspiration assets. No clarification answers |
-| `event_identity_input_v2` | adds clarification answers as labelled current host input with stated precedence. Introduced by **T4** |
+| `event_identity_input_v2` | adds clarification answers as labelled current host input with stated precedence. Introduced by **T9** |
 
 **No backfill onto finished evidence; an explicit sentinel in the database.** Completed evidence
 artifacts predate the column and are never rewritten — retrofitting a label onto frozen evidence is
@@ -357,7 +357,7 @@ it names**, which is the property `event_identity_v5`'s history shows we need.
 **Persistence.** `input_assembly_version` is stored on **every identity revision** (§A.2) and on
 `generation_runs` for `operation = 'event_identity'`.
 
-**Model-visible consequence.** T4 changes what the model sees, so it is model-visible work
+**Model-visible consequence.** T9 changes what the model sees, so it is model-visible work
 requiring independent review, and it is validated by the pre-registered rerun-behaviour set (§3.9)
 — not by reopening the `v5` sealed challenge, which is spent.
 
@@ -754,22 +754,22 @@ it; incidents go to `docs/model-evals/eval-incidents.md`.
 
 ## 3.7 The 4C gate — distribution **and** systemic veto, both frozen beforehand
 
-**Both halves are frozen in canon before the sealed corpus is authored, and before any DesignIntent
+**Both halves are frozen in canon at T19 — before any corpus is authored and before any DesignIntent
 prompt is written.** Moving either after results voids the gate (`spec.md §11.9` discipline).
 
 **The corpus size and composition are fixed in the same freeze.** A distribution rule is meaningless
 without `N`: with a four-case corpus, `E=2, G=1, B=1` passes and "at least two batches" is half the
-evidence. **The sealed corpus is twelve batches**, matching the 4A precedent, frozen at T13 before
+evidence. **The sealed corpus is twelve batches**, matching the 4A precedent, frozen at T19 before
 the corpus is authored so it cannot be chosen to suit a result.
 
 **And it must contain at least two pairs of batches sharing an event type with materially different
 identities.** Twelve distinct event types would leave §3.2's same-type measurement with nothing to
 compare and S8's same-type clause unevidenced — the gate would carry a category no run could ever
 fire. This is a requirement on the corpus author, frozen with the rest, and it is the kind of thing
-that is free now and impossible after T13 without voiding the gate.
+that is free now and impossible after T19 without voiding the gate.
 
 **Half one — distribution.** Per-batch bands, **defined here rather than asserted to exist
-elsewhere**, and frozen at T13 before any batch is reviewed:
+elsewhere**, and frozen at T19 before any batch is reviewed:
 
 | Band | Definition |
 | --- | --- |
@@ -872,7 +872,7 @@ outputs alone.** A blinding that withheld the identity would make the veto struc
 undeclinable-but-unprovable, which is worse than no veto.
 
 **What the reviewer does not have:** access to this repository, in full. Not the prompts, not prior
-evidence, not the failure history, and specifically **not `model-contracts.md`**, where T13 freezes
+evidence, not the failure history, and specifically **not `model-contracts.md`**, where T19 freezes
 the distribution rule — a blinding phrased as "no prompts or prior evidence" would leave the
 threshold readable in canon, which defeats §3.7's claim that the reviewer does not know it.
 
@@ -883,15 +883,23 @@ recorded with its SHA chain.
 
 Introducing clarification answers changes the effective model input (§B.3), and `v5` was evidenced
 with no answer ever present. A small **pre-registered validation set** exercising a rerun with
-answers present is authored and frozen **before T4 is implemented**, and run exactly once after the
-implementation is frozen and an explicit live-run authorization is given.
+answers present is run exactly once, after the implementation is frozen and an explicit live-run
+authorization is given.
+
+**The sequence is what makes it pre-registered**, and it is fixed in Part IV rather than promised
+here. In order: the **machinery and every acceptance criterion are built and frozen while no case
+exists** (T4, reviewed and frozen at T5); an **independent author** who built none of it writes the
+cases from the published dimensions (T6); they are **independently reviewed for fairness and
+leakage** (T7) and frozen at their own input SHA (T8); only then is the assembly they exercise
+implemented (T9). A harness written after the cases would be a harness whose author knew what it
+had to grade — which is the same defect as a prompt written after a corpus, one level along.
 
 **It is authored to its class, or it is not that class.** §3.4 defines pre-registered validation
 as *authored and frozen before the prompt is written, and independently reviewed for fairness* —
-so this set is authored by someone **other than the implementer of T4**, and receives the same
-independent fairness and leakage review the `v5` holdout did. A set that skipped either would be
-the implementer's own expectations, and calling it validation would be the label doing work the
-process did not.
+so this set is authored by someone who implements **neither T4's machinery nor T9's assembly**, and
+receives the same independent fairness and leakage review the `v5` holdout did. A set that skipped
+either would be the implementer's own expectations, and calling it validation would be the label
+doing work the process did not.
 
 What it is, stated so nobody upgrades it later:
 
@@ -913,35 +921,60 @@ permitted until the gate that names one.
 
 ## Phase 4B
 
+**The causal order is the point, not the numbering.** The evaluation machinery and every acceptance
+criterion are frozen **before any validation case exists**, and the cases are authored by someone
+who did not build that machinery and does not build the assembly it tests. An earlier draft of this
+table had the corpus frozen before T4 while letting the harness follow it, which is the same
+contamination one level along: a harness implementer who has read the cases can decide how they are
+graded. Fixed by ordering, not by a promise.
+
 | # | Task | Files / modules | Depends on | Tests | Acceptance criteria | Model-visible? | Senior review? | Live call? |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **T1** | `isProvisional`, `assertAuthoritative`, branded type | `src/lib/ai/event-identity/lifecycle.ts` | — | unit over all valid shapes; brand cannot be cast away | `spec.md §31 — Event Identity and diversity`; `§7.6b`, `§7.7` | no | no | no |
 | **T2** | Identity revisions: table, `identity_questions` + `identity_is_provisional`, generated column, pointer trigger, protect trigger, RLS. **Record in the migration that `pg_dump` does not dump generated-column data and a restore recomputes it, so the supported-schema-version list may be extended but never narrowed** — narrowing it would fail every restore and branch clone on historical rows. That fails loudly, which is the right direction, but it makes "extend, never narrow" a rule rather than a preference | `supabase/migrations/…_phase4b_identity_revisions.sql` | T1 | db: a supplied `is_provisional` is rejected; a provisional revision cannot become authoritative even with the column tampered; cross-event pointer refused; updates refused; **TS/SQL parity over the four `v5` journals** | `§7.6b`, `§7.7`, `§9.4` | no | **yes** | no |
-| **T3** | `clarification_answers`: table, binding trigger, append-only trigger, RLS | migration; `src/lib/events/clarification.ts` | T2 | db: wrong event, wrong index, wrong `kind`, drifted copy, boundary-defer and duplicate answer all refused; `events.prompt` never written | `development-plan.md` 4B (c) | no | **yes** | no |
-| **T4** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2` | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3, T7's corpus | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
-| **T5** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T4 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
-| **T6** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T5 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
-| **T7** | Rerun-behaviour validation corpus + harness slot. **The corpus is authored and frozen at a SHA preceding T4's implementation**, by someone other than T4's implementer (§3.9); the harness slot may follow T4. Listed last for readability, sequenced between T3 and T4 | `src/lib/ai/evals/*`, runner slot | **T3** (corpus); T4 (harness) | unit/static only; leakage scan covers it | `model-contracts.md §4.5`; `spec.md §31 — Prompt, auth, and generation` | no | **yes** | no |
-| | **▶ 4B GATE — approval required before the single authorized validation run** | | | | | | | |
+| **T3** | `clarification_answers`: table, binding trigger, append-only trigger, RLS; unconditional `events.prompt` immutability trigger | migration; `src/lib/events/clarification.ts` | T2 | db: wrong event, wrong index, wrong `kind`, drifted copy, boundary-defer, duplicate answer, non-member and mis-attributed `answered_by` all refused; `events.prompt` unwritable even by service role | `development-plan.md` 4B (c); `spec.md §31 — Prompt, auth, and generation` | no | **yes** | no |
+| **T4** | **Prewire the rerun-behaviour validation machinery, while no cases exist.** Fixed corpus path and filename; fixed output directory; the evidence-class label (§3.9); the corpus structural contract the cases must satisfy; the runner slot; write-once and `PROTECTED_RESULT_DIRS` behaviour; leakage-scan coverage of the new corpus path; the generic mechanical checks; the qualitative artifact and review contract; and **the mechanical and qualitative acceptance criteria themselves** | `src/lib/ai/evals/*`, runner slot | T3 | unit/static only, per the operational rule. **A named test asserts the corpus is absent and the slot refuses**, so the prewiring is verified without a case existing — the `challenge2` arrangement, reused | `model-contracts.md §4.5` | no | **yes** | no |
+| **T5** | **Freeze and independently review the validation tooling.** Nothing below may change T4's paths, checks or criteria | — | T4 | the T4 suite, green at the freeze SHA | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | no |
+| **T6** | **An independent author writes the pre-registered rerun-behaviour cases**, working from the published capability and contract dimensions only — not this repository, not T4's checker source, and not the assembly they will exercise. Not the implementer of T4 or T9 (§3.9) | the corpus file alone | T5 | the frozen T4 structural contract accepts it | `model-contracts.md §4.5` | no | n/a — authored, not implemented | no |
+| **T7** | **Independent fairness and leakage review of the corpus.** A collision with pre-existing production or model-visible text is fixed **at the corpus**, by its author — never by relaxing the scanner or the checker (§3.5) | — | T6 | leakage scan against the frozen prompt and wire schema; fairness read | `model-contracts.md §4.5` | no | **yes** | no |
+| **T8** | **Freeze the corpus at its own input SHA**, in a commit that adds the corpus file and nothing else | the corpus file alone | T7 | the T4 suite still green; the absence test retires without a source edit | `model-contracts.md §4.5` | no | **yes** | no |
+| **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts` | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
+| **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9 | unit + db: provisional blocks; rerun creates a revision; repeated boundary rounds; no cap; idempotent refresh; a late Route A answer leaves an in-flight batch untouched | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
+| **T11** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T10 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
+| **T12** | Independent engineering review of the integrated change, then **implementation freeze** | — | T11 | gate items 1–11 all green at the freeze SHA | §4B gate | no | **yes** | no |
+| | **▶ 4B GATE — STOP. Explicit authorization required before the one validation run** | | | | | | | |
+| **T13** | Run the frozen pre-registered set **exactly once** | — | T12 + authorization | the frozen T4 criteria, applied unchanged | §4B gate item 12 | no | **yes** | **yes — one run** |
+| **T14** | Commit the evidence unchanged **and protect its directory in the same change** | `src/lib/ai/evals/corpus.ts`, evidence dir | T13 | offline only; protection verified by pure/unit/static checks, never by running an eval | `model-contracts.md §4.5` | no | **yes** | no |
+
+**What T5 freezing before T6 buys.** After the cases are revealed, none of T4's paths, structural
+contract, mechanical checks, qualitative contract or acceptance criteria may change to accommodate
+them, and the harness is not adjusted because a case is awkward. A corpus that collides with
+existing model-visible text, or violates the frozen structural contract, is fixed by its author.
+T9 may read the frozen cases — that is what makes this *validation* rather than a sealed challenge,
+and the plan says so out loud rather than claiming a blinding it does not have (§3.9).
 
 ## Phase 4C — begins only after the 4B gate passes
 
+The same rule holds here, and for the same reason: **the harness and the gate are frozen before any
+case exists.**
+
 | # | Task | Files / modules | Depends on | Tests | Acceptance criteria | Model-visible? | Senior review? | Live call? |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **T8** | Sibling planner as a pure function + `PLANNER_VERSION` | `src/lib/generation/planner.ts`; reference `proof-b/planner.js` | 4B gate | unit: determinism, distinctness, allotment, tone-constrained fallback, `creativeGuidance` never binding; parity with the proof reference | `§31 — Event Identity and diversity`; `spec.md §7.7`; `CLAUDE.md §5.1` | no | **yes** | no |
-| **T9** | `generation_batches` + spend, caps, idempotency | migration; `src/lib/generation/batch.ts`; `rate_limits` wiring | T8 | db: one in-flight batch enforced by index; caps refuse; duplicate keys collide; partial-failure resumption | `development-plan.md` principle 4; `spec.md §10`, `§27` | no | **yes** | no |
-| **T10** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T9 | db: updates refused; equality check refuses a mismatched snapshot on every enumerated column; FK required | `spec.md §31 — DesignIntent, composition and compiler` (persistence); `§9.4`; `CLAUDE.md §2` | no | **yes** | no |
-| **T11** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T10 | unit: semantic invariants, narrowing, repair rules, schema-drift | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `§32 #12`, `#21` | **schema descriptions ship** | **yes** | no |
-| **T12** | Evidence harness + regression and pre-registered corpora. **The pre-registered cases are frozen at a SHA preceding T11**, because T11 ships `.describe()` strings to the model and §3.5 is explicit that those *are* prompt text — an author who has read them has read model-visible instruction | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts` | **T10** (harness may follow T11; the corpus may not) | unit/static only, per the operational rule; leakage scan extended | `model-contracts.md §4.5` | no | **yes** | **no — never run to verify itself** |
-| **T13** | Freeze the 4C gate (§3.7) in canon | `model-contracts.md`, this document | T12 | doc guards | `spec.md §11.9` discipline | no | **yes** | no |
-| **T14** | The DesignIntent prompt | `docs/model-prompts/design-intent.system.md` | T11–T13 | leakage scan; independent engineering read | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `product-doctrine.md` | **yes** | **yes** | no |
+| **T15** | Sibling planner as a pure function + `PLANNER_VERSION` | `src/lib/generation/planner.ts`; reference `proof-b/planner.js` | 4B gate | unit: determinism, distinctness, allotment, tone-constrained fallback, `creativeGuidance` never binding; parity with the proof reference | `§31 — Event Identity and diversity`; `spec.md §7.7`; `CLAUDE.md §5.1` | no | **yes** | no |
+| **T16** | `generation_batches` + spend, caps, idempotency | migration; `src/lib/generation/batch.ts`; `rate_limits` wiring | T15 | db: one in-flight batch enforced by index; caps refuse; duplicate keys collide; partial-failure resumption | `development-plan.md` principle 4; `spec.md §10`, `§27` | no | **yes** | no |
+| **T17** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T16 | db: updates refused; equality check refuses a mismatched snapshot on every enumerated column; FK required | `spec.md §31 — DesignIntent, composition and compiler` (persistence); `§9.4`; `CLAUDE.md §2` | no | **yes** | no |
+| **T18** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T17 | unit: semantic invariants, narrowing, repair rules, schema-drift | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `§32 #12`, `#21` | **schema descriptions ship** | **yes** | no |
+| **T19** | **Prewire the 4C evidence harness and freeze the gate, while no cases exist.** Paths, evidence-class labels, structural contract, runner slots, protection behaviour, leakage-scan coverage, the per-batch and corpus-wide mechanical checks (§3.2), the blind-artifact contract (§3.8), and **the whole of §3.7** — bands, distribution rule, corpus size, same-type composition requirement, S1–S8 and the class thresholds — written into canon | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts`, `model-contracts.md`, this document | T18 | unit/static only; absence tests for both corpora | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | **no — never run to verify itself** |
+| **T20** | **Independent authors write the regression and pre-registered corpora**, from the published dimensions only — not this repository, and specifically not T18's `.describe()` strings, which ship to the model and are prompt text under §3.5. Independent fairness and leakage review, then freeze each at its own input SHA | the corpus files alone | T19 | the frozen T19 structural contract accepts them; leakage scan clean | `model-contracts.md §4.5` | no | **yes** | no |
+| **T21** | The DesignIntent prompt | `docs/model-prompts/design-intent.system.md` | T19, T20 | leakage scan; independent engineering read for benchmark integrity | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `product-doctrine.md` | **yes** | **yes** | no |
 | | **▶ STOP — APPROVAL REQUIRED BEFORE THE FIRST LIVE DesignIntent CALL** | | | | | | | |
-| **T15** | Freeze; author the sealed challenge; one run; blind review | — | T14 | the 4A protocol exactly | `model-contracts.md §4.5` | no | **yes** | **yes — one authorized run per set** |
+| **T22** | Freeze; an independent author writes the **sealed** challenge, unseen while T21 was written; one run; blind review; evidence protected in the same change | — | T21 + authorization | the 4A protocol exactly | `model-contracts.md §4.5`; §3.7 | no | **yes** | **yes — one authorized run per set** |
 
-> **The stop point.** No live DesignIntent provider call may happen before T14 is complete, frozen,
-> independently reviewed and explicitly approved — and the gate (§3.7) is frozen at T13, *before*
-> the prompt is written and before the sealed corpus is authored. Every set is run at most once per
-> authorization, and each completed run's directory is protected in the same commit as its evidence.
+> **The stop point.** No live DesignIntent provider call may happen before T21 is complete, frozen,
+> independently reviewed and explicitly approved — and the gate (§3.7) is frozen at **T19**, before
+> the prompt is written and before any corpus is authored. Every set is run at most once per
+> authorization, and each completed run's directory is protected in the same commit as its
+> evidence.
 
 ---
 
@@ -965,14 +998,14 @@ authorized live run.
 | 9 | Refresh and retry are idempotent | test: repeated requests observe one batch and one revision; keys collide |
 | 10 | The database cannot mark a boundary-bearing identity authoritative via a stale or false flag | db tests: an `INSERT` naming `is_provisional` is rejected (`428C9`); the pointer trigger still refuses when the column is tampered with directly; an unrecognised `schema_version` and a malformed `clarification.questions` are **refused rather than read as authoritative** (§A.3) |
 | 11 | Host/co-host authorization and RLS for answers and revisions are correct | db tests per the existing permission matrix, including negative cases: a non-member cannot answer; a co-host cannot attribute an answer to the owner (`answered_by = auth.uid()`); and **a member cannot move the event's authoritative-identity pointer**, which requires that column to be in `protect_event_server_columns()` (§A.3 property 4) |
-| 12 | The pre-registered rerun-behaviour set passes its frozen mechanical and qualitative criteria | one authorized live run after the implementation freeze, classed per §3.9 |
+| 12 | The pre-registered rerun-behaviour set passes its frozen mechanical and qualitative criteria | T13: one authorized live run after the T12 implementation freeze, graded against the criteria frozen at T5 — **before the cases existed** — and classed per §3.9. Evidence protected at T14, in the same change |
 
 Plus the standing gate: deterministic checks green, independent engineering review, and an explicit
 go/no-go recorded with its SHA chain.
 
 ## The Phase 4C exit gate
 
-§3.7 in full — the distribution rule **and** the systemic veto, both frozen at T13 before the prompt
+§3.7 in full — the distribution rule **and** the systemic veto, both frozen at T19 before the prompt
 exists and before the sealed corpus is authored, with the reviewer protocol of §3.8. Neither half
 can be waived by the other.
 
@@ -983,7 +1016,7 @@ can be waived by the other.
 | | Decision | Resolution |
 | --- | --- | --- |
 | **1** | Phase letters | **Canonical split kept.** 4B = clarification; 4C = planner + DesignIntent. No letters renamed or shifted. Continuous workstream permitted, separate gates required, and 4C does not begin until 4B passes |
-| **2** | Does `v5` need prompt prose about clarification answers? | **No — and the input layer gets its own version.** `event_identity_v5` stays; answers are carried in the request envelope; `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` identifies the envelope, is persisted on every revision and run, bumps on any precedence/labelling/ordering/representation change, and is drift-tested against a golden snapshot. A pre-registered rerun-behaviour set is authored before T4 and run once, later, under explicit authorization |
+| **2** | Does `v5` need prompt prose about clarification answers? | **No — and the input layer gets its own version.** `event_identity_v5` stays; answers are carried in the request envelope; `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` identifies the envelope, is persisted on every revision and run, bumps on any precedence/labelling/ordering/representation change, and is drift-tested against version-named golden files. A pre-registered rerun-behaviour set is run once, later, under explicit authorization — with its machinery and criteria frozen before its cases exist, and its cases written by someone who implemented neither (Part IV, T4–T9) |
 | **3** | Do siblings see each other? | **Blind and parallel.** No convergence-triggered re-prompt in the first implementation. Convergence and distinctness are first-class telemetry, mechanical where honest and qualitative where not; a later mechanism is a deliberate spec decision argued from evidence. **A DesignIntent call receives the identity and its assignment only** — the directive, token allotment and capabilities belong to composition (`spec.md §7.7`, `provider.ts`), and an earlier draft of this plan wrongly sent them here |
 | **4** | Where do DesignIntent-only artifacts live? | **A dedicated immutable `design_intent_artifacts` table.** The earlier nullable-then-fill recommendation is withdrawn: it contradicted `protect_design_concept()`. `design_concepts` is inserted only after composition, gains a `NOT NULL` FK to the artifact, keeps its inline `design_intent` as an immutable snapshot with insert-time equality enforced, and remains the stable concept identity from composition onward |
 
