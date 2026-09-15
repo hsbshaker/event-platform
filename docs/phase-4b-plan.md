@@ -1252,6 +1252,21 @@ as they are. (3) The T13 reviewer instruction must say that the artifact is give
 blinding in `blind-review.md` is positional, and `mechanical-report.md` lists the case ids in the
 same order.
 
+**What T9 must render, spelled out because T7 found both readings available.** Two obligations the
+frozen seam implies but does not say in so many words, each of which would fail an absolute check on
+an otherwise-correct assembly:
+
+1. **A deferred answer's own selected label is rendered verbatim, alongside the defer state.**
+   `historyDelivered` checks `selectedOptionLabel` unconditionally, including when `isDefer` is
+   true, and the corpus contract *forces* a deferred answer to name its question's own defer
+   option — so a defer case cannot be written any other way. An implementer who reads CA-4's "do
+   not resend the menu" as covering the defer label, and renders only a defer marker, fails two
+   cases. "Do not resend the menu" means the options the host did **not** pick.
+2. **Host free text reaches the request unnormalised**, trimming excepted — no sentence-casing, no
+   re-punctuation. `menuNotResent`'s allowlist and `historyDelivered` are case-sensitive, so an
+   assembly that capitalised a host's lowercase phrase could both lose it from `historyDelivered`
+   and trip `menuNotResent` against an unselected label it now matches.
+
 **Two notes for the T9 packet.** The harness deliberately withholds the `question_text` and
 `options` copies that `clarification_answers` carries, so the assembly must resolve the question out
 of the revision envelope. That is stronger than production's minimum, and it means T9 must be
@@ -1259,6 +1274,16 @@ written to accept revision envelopes rather than growing a harness-only adapter 
 tested path is not the production path. And a case cannot represent a revision that asked nothing:
 every history round carries at least one question, so a "revision 2 asked nothing, revision 3 asked"
 shape is outside this set's fidelity. Neither affects a check; both should be known before T9.
+
+**Two scan-scope facts to record rather than leave looking like coverage.** The frozen
+`prompt-leakage.test.ts` scans a case's `prompt`, `mustAvoid`, `hostPhrases`, `expectedFacts` string
+values, `notes` and `rationale` — it never scans question texts or option labels. T7 found two defer
+labels colliding verbatim with model-visible text that the scan therefore could not see; they were
+reworded at the corpus, as §3.5 requires, but the gap is real until T14 and a future corpus author
+should not assume the scanner covers everything a case contains. Separately, `menuNotResent`'s
+allowlist and `historyDelivered` compare case-**sensitively** while `noInventedFacts` compares
+case-**insensitively**. Both are correct on this corpus and both are frozen; the asymmetry belongs in
+the T13 evidence note so nobody reads a clean run as evidence about the other comparison.
 
 **The inspiration channel is not T9's to add.** `event_identity_input_v2` is being validated for
 clarification-answer assembly. Phase 4A's v1 input did not send inspiration even though canon
