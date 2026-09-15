@@ -1,0 +1,2479 @@
+{
+  "evalSet": "challenge2",
+  "label": "FRESH SEALED CHALLENGE (sealed_challenge_v2) — independently authored after the v5 implementation and harness froze, and unseen while they were written; the fresh generalization evidence for v5",
+  "corpusVersion": "creative_understanding_sealed_challenge_v2",
+  "startedAt": "2026-09-15T10:12:45.772Z",
+  "complete": true,
+  "runs": [
+    {
+      "caseData": {
+        "id": "SC2-01",
+        "prompt": "Soup night with the neighbors. That's all I've got.",
+        "expectClarification": "no",
+        "rationale": "A sparse, ordinary gathering tests whether a coherent creative idea can emerge without a supplied theme. The social context is enough to make an organizing bet; asking for colors, decor or missing logistics would add work without resolving a consequential uncertainty.",
+        "expectedFacts": {
+          "eventType": "Soup night"
+        },
+        "hostPhrases": [],
+        "mustNotBeClaimedAsHostConstraint": [
+          "A rustic farmhouse style is required.",
+          "Only muted earth tones may be used."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A convivial kitchen-table identity built around the sensory ritual of shared soup: rising steam, earthenware, handwritten recipes, and generous warmth. Casual and neighborly, yet crafted enough to make a simple gathering feel like a local tradition.",
+          "toneKeywords": [
+            "cozy",
+            "neighborly",
+            "unpretentious",
+            "tactile",
+            "generous",
+            "lightly rustic"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "broth amber",
+              "tomato red",
+              "warm cream",
+              "herb green",
+              "earthenware brown"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Warm, food-rich hues should lead, grounded by creamy neutrals and small herbal accents."
+          },
+          "tonalIntent": "A warm mid-tone world with gentle contrast and enough evening depth to feel cozy rather than dim.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "oldstyle",
+            "soft_serif",
+            "grotesk_led"
+          ],
+          "visualMotifs": [
+            "curling steam lines",
+            "mismatched soup bowls",
+            "ladles and serving spoons",
+            "loosely illustrated herbs and vegetables",
+            "recipe-note marks",
+            "simple kitchen checks"
+          ],
+          "textureDirection": "Matte, touchable surfaces recalling uncoated paper, washed linen, glazed pottery, and a trace of handmade grain.",
+          "typographyDirection": "A warm, characterful serif hierarchy with straightforward supporting type; informal and familiar without becoming folksy or novelty-driven.",
+          "copyTone": "Welcoming, concise, neighborly, and gently playful—more come-as-you-are than formal invitation.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Treat the gathering as the beginning of a neighborhood ritual rather than a novelty food theme.",
+            "Let warmth come from appetite, materiality, and communal abundance while keeping the overall expression clear and unfussy."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "Soup night",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-01",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "n/a",
+            "detail": "the case declares no phrases"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"Soup night\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 23780,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7624,
+        "cachedInputTokens": 0,
+        "outputTokens": 1133,
+        "reasoningTokens": 661,
+        "providerRequestId": "resp_04875946199c5f85006aa91a1eb08887d1a0afaf3b2b6d3644"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-02",
+        "prompt": "My 40th birthday party. I want to feel like we've wandered into another world, somewhere glowing and strange. Still a good party, with room for dancing.",
+        "expectClarification": "acceptable",
+        "rationale": "Glowing and strange can become an organic, bioluminescent world or a synthetic, futuristic one. Both fit the whole description without relying on a pun or an unspecified historical reference. A focused creative question could improve fit, but the host expresses a broad desired sensation rather than competing preferences, so an excellent committed interpretation is equally defensible.",
+        "expectedFacts": {
+          "eventType": "birthday party"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "wandered into another world, somewhere glowing and strange",
+            "kind": "direction"
+          },
+          {
+            "phrase": "with room for dancing",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "All imagery must be botanical.",
+          "The design must use a neon cyberpunk palette."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A nocturnal bioluminescent dreamscape that feels like crossing a threshold into an unfamiliar living world. Surreal glow, organic strangeness and kinetic energy should create an immersive atmosphere that remains celebratory and dance-ready.",
+          "toneKeywords": [
+            "otherworldly",
+            "bioluminescent",
+            "surreal",
+            "immersive",
+            "kinetic",
+            "grown-up",
+            "celebratory"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "inky indigo and blue-black",
+              "electric violet",
+              "bioluminescent cyan and chartreuse",
+              "small hot coral accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Deep nocturnal hues should establish the world, with concentrated luminous colors appearing as vivid energy rather than an even rainbow."
+          },
+          "tonalIntent": "Atmospheric depth with pronounced contrast between velvety shadows and radiant, almost phosphorescent highlights.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "dark",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "high_contrast_editorial",
+            "grotesk_led",
+            "soft_serif"
+          ],
+          "visualMotifs": [
+            "bioluminescent flora and fungi",
+            "surreal portal and threshold forms",
+            "drifting luminous particles",
+            "fluid nocturnal contours",
+            "strange celestial orbs"
+          ],
+          "textureDirection": "Velvety depth, luminous haze and subtle iridescent or mineral-like surfaces, balanced with crisp areas that keep the energy vivid.",
+          "typographyDirection": "Expressive, sophisticated display typography with an uncanny edge, supported by a clear contemporary hierarchy that keeps the celebration approachable.",
+          "copyTone": "Magnetic, playful and mysterious without becoming cryptic; confident about the milestone and inviting guests into the experience.",
+          "hostConstraints": [
+            "with room for dancing"
+          ],
+          "creativeGuidance": [
+            "Treat the setting as a coherent bioluminescent ecosystem rather than a generic space or galaxy theme.",
+            "Keep the surrealism sensorial and celebratory so the experience feels transporting without becoming solemn or theatrical.",
+            "Let concentrated moments of brightness create the sense of glow while preserving enough clarity and rhythm for a lively party atmosphere."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "40th birthday party",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-02",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "2 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"40th birthday party\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"acceptable\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 27514,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7646,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1402,
+        "reasoningTokens": 880,
+        "providerRequestId": "resp_03cf193caf1babeb006aa91a35c4c087d188110f846ae93e52"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-03",
+        "prompt": "We're doing a fundraiser for the community radio station. I keep saying 'old school'—that's about as far as I've got. Some of the presenters are coming out of retirement for it.",
+        "expectClarification": "acceptable",
+        "rationale": "Old school leaves the reference era and music culture open: vintage broadcasting, early community-radio DIY and old-school dance music point toward different worlds. Returning presenters supply nostalgia without identifying a decade or genre. A reference question is defensible, but a confident creative choice should also work without inventing the station's history.",
+        "expectedFacts": {
+          "eventType": "fundraiser"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "old school",
+            "kind": "direction"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "The design must reproduce a 1980s hip-hop flyer.",
+          "Modern lettering is prohibited."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A living archive of community broadcasting: warm civic nostalgia shaped by analog-radio precision, grassroots ephemera, and the energy of familiar voices returning to the air. “Old school” should feel authentic and communal rather than like generic retro décor.",
+          "toneKeywords": [
+            "nostalgic",
+            "grassroots",
+            "civic-minded",
+            "analog",
+            "convivial",
+            "slightly timeworn"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm paper neutrals",
+              "inky charcoal",
+              "signal red accents",
+              "muted brass tones"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "Medium-depth and warmly aged, with clear contrast and occasional brighter signal-like accents.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "editorial",
+            "statement",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "grotesk_led",
+            "oldstyle"
+          ],
+          "visualMotifs": [
+            "analog tuning-dial markings",
+            "radio frequency numerals",
+            "reel-to-reel forms",
+            "archival station schedules and broadcast ephemera",
+            "on-air signal language",
+            "restrained waveform graphics"
+          ],
+          "textureDirection": "Tactile, slightly worn paper character with the practical immediacy of printed station handbills and archived program guides.",
+          "typographyDirection": "Characterful heritage display typography balanced by direct, utilitarian broadcast-style information hierarchy.",
+          "copyTone": "Welcoming, civic-minded, fondly nostalgic, and lightly wry; celebratory about familiar voices returning without becoming sentimental.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Build the nostalgia around the material culture of community broadcasting rather than a generic retro decade.",
+            "Treat the returning presenters as part of the event’s narrative energy: respected voices coming back together for the station.",
+            "Keep the finish spirited and grassroots while maintaining the clarity and confidence of a real broadcast identity."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "fundraiser",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-03",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"fundraiser\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"acceptable\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 27343,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7651,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1423,
+        "reasoningTokens": 952,
+        "providerRequestId": "resp_0d2e5492ee44de00006aa91a514b4887d1a323e7bdb873264a"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-04",
+        "prompt": "Leïla and Tomás here—we're hosting our civil partnership party: 07/08/2027, 18:30–late, The Old Pump Room, 6B Quay Lane, St Ives. RSVP by 30/06/2027. Keep 07/08/2027 unchanged; don't interpret it, reformat it or spell it out. No rings or 'Mr & Mrs'. Give it the swagger of an old seaside dance poster.",
+        "expectClarification": "no",
+        "rationale": "Accented names, an ambiguous numeric date and precise venue details test faithful preservation. The host explicitly settles how to display the date, so interpreting its month is unnecessary before design. The stated event type and wording prohibition also resist default wedding conventions; the poster reference permits creative decisions without supplying additional rules.",
+        "expectedFacts": {
+          "hostNames": "Leïla and Tomás",
+          "eventType": "civil partnership party",
+          "dateText": "07/08/2027",
+          "timeText": "18:30–late",
+          "venueText": "The Old Pump Room",
+          "addressText": "6B Quay Lane",
+          "localityText": "St Ives",
+          "rsvpDeadlineText": "30/06/2027"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "Keep 07/08/2027 unchanged; don't interpret it, reformat it or spell it out",
+            "kind": "constraint"
+          },
+          {
+            "phrase": "No rings or 'Mr & Mrs'",
+            "kind": "constraint"
+          },
+          {
+            "phrase": "the swagger of an old seaside dance poster",
+            "kind": "direction"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "The palette must be navy and cream.",
+          "All lettering must use vintage typefaces."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A bold, original evocation of old seaside dance-hall posters: salt-air nostalgia, rhythmic energy and confident celebratory swagger. It should feel like lively coastal entertainment ephemera rather than conventional partnership or wedding stationery.",
+          "toneKeywords": [
+            "swaggering",
+            "festive",
+            "salt-air nostalgic",
+            "rhythmic",
+            "wryly theatrical",
+            "confident"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "sun-faded marine blue",
+              "warm poster-paper cream",
+              "weathered vermilion",
+              "faded seaside aqua",
+              "muted ochre"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "Punchy, legible poster contrast with sun-faded warmth; tonal treatments may range from paper-light to inky evening depth while retaining vivid energy.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "light",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "grotesk_led",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "rhythmic wave lines",
+            "seaside pavilion geometry",
+            "stylized sun rays",
+            "musical motion marks",
+            "vintage dance-hall ephemera"
+          ],
+          "textureDirection": "Weathered poster paper, tactile ink grain and characterful print imperfections, balanced with enough crispness to feel intentional rather than distressed.",
+          "typographyDirection": "Commanding period-poster display lettering with buoyant rhythm, strong hierarchy and compact supporting type; theatrical and characterful without becoming kitsch.",
+          "copyTone": "Jaunty, affectionate and concise, with inclusive celebratory warmth and a touch of dance-hall wit.",
+          "hostConstraints": [
+            "Keep 07/08/2027 unchanged; don't interpret it, reformat it or spell it out.",
+            "No rings.",
+            "No 'Mr & Mrs'."
+          ],
+          "creativeGuidance": [
+            "Anchor the nostalgia in coastal dance-hall and entertainment ephemera rather than conventional wedding imagery.",
+            "Let the swagger come through scale, rhythm, contrast and print-era wit rather than luxury clichés.",
+            "Keep the period influence spirited and polished, avoiding generic nautical theming."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": "Leïla and Tomás",
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "civil partnership party",
+          "dateText": "07/08/2027",
+          "timeText": "18:30–late",
+          "venueText": "The Old Pump Room",
+          "addressText": "6B Quay Lane",
+          "localityText": "St Ives",
+          "rsvpDeadlineText": "30/06/2027"
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-04",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "fail",
+            "detail": "\"No rings.\" is not something the host said — it is the model's own recommendation; \"No 'Mr & Mrs'.\" is not something the host said — it is the model's own recommendation"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "fail",
+            "detail": "\"No rings or 'Mr & Mrs'\" is a host constraint and was not carried as one"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "8 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 8 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: hostNames=\"Leïla and Tomás\"; eventType=\"civil partnership party\"; dateText=\"07/08/2027\"; timeText=\"18:30–late\"; venueText=\"The Old Pump Room\"; addressText=\"6B Quay Lane\"; localityText=\"St Ives\"; rsvpDeadlineText=\"30/06/2027\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [rings] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": false
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 33260,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7710,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1822,
+        "reasoningTokens": 1269,
+        "providerRequestId": "resp_0a59ae631913a00b006aa91a6ca5d487d18f3ccc2db9e31fe6"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-05",
+        "prompt": "A housewarming for my cousin Beatriz, who goes by Bia. She's finally got a balcony big enough for two chairs and is ridiculously proud of her tomato plants. Tiny urban jungle energy. No moving boxes or key clip art, please.",
+        "expectClarification": "no",
+        "rationale": "The host gives both a personal name and the name the honoree actually uses. Bia should be preserved as her name, rather than treated as a decorative nickname and replaced with Beatriz. The plants and small balcony convey affectionate pride and a visual direction; neither the naming choice nor the aesthetic needs clarification.",
+        "expectedFacts": {
+          "honoreeName": "Bia",
+          "honoreeDescriptionText": "my cousin",
+          "eventType": "housewarming"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "Tiny urban jungle energy",
+            "kind": "direction"
+          },
+          {
+            "phrase": "No moving boxes or key clip art, please",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "The formal name Beatriz must appear in full.",
+          "Every plant illustration must depict tomatoes."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An intimate urban-balcony celebration built around Bia’s proudly cultivated tomato plants: sun-warmed, leafy, architectural, and gently witty. Let the specificity of a tiny edible garden make the housewarming feel personal rather than conventionally home-themed.",
+          "toneKeywords": [
+            "sun-warmed",
+            "botanical",
+            "urban",
+            "intimate",
+            "proudly playful",
+            "unfussy"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "tomato red",
+              "leafy green",
+              "terracotta",
+              "warm concrete neutrals"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "Fresh light-to-mid tones with sunlit warmth, grounded natural depth, and enough contrast to feel lively rather than delicate.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "soft_serif",
+            "oldstyle",
+            "grotesk_led"
+          ],
+          "visualMotifs": [
+            "ripe tomatoes on the vine",
+            "expressive tomato leaves",
+            "two balcony chairs",
+            "compact planters",
+            "urban balcony geometry",
+            "small-scale hand-drawn horticultural details"
+          ],
+          "textureDirection": "Tactile garden textures balanced by clean metropolitan surfaces, with a lightly handmade, sun-baked character.",
+          "typographyDirection": "Warm, characterful display typography paired with a clear, compact supporting hierarchy; personable and cultivated without formality.",
+          "copyTone": "Affectionate, concise, and lightly teasing, celebrating Bia’s pride in her new space and tomato plants.",
+          "hostConstraints": [
+            "No moving boxes or key clip art, please."
+          ],
+          "creativeGuidance": [
+            "Use the tomato plants as the specific organizing idea rather than relying on generic housewarming symbolism.",
+            "Keep the visual scale intimate and abundant, reflecting a tiny balcony garden rather than a sprawling tropical setting.",
+            "Allow recognizable tomatoes and balcony details to feel joyful and polished rather than reducing them to overly subtle botanical references."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": "Bia",
+          "honoreeDescriptionText": "my cousin",
+          "eventType": "housewarming",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-05",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "2 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "3 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 3 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeName=\"Bia\"; honoreeDescriptionText=\"my cousin\"; eventType=\"housewarming\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [moving] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 23531,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7662,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1165,
+        "reasoningTokens": 679,
+        "providerRequestId": "resp_05b7d7b83bf9123a006aa91a8deab487d1a17f70b71d615b99"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-06",
+        "prompt": "We've landed our first export order at the tile workshop, so we're throwing a staff lunch. I spend all day approving swatches and don't want to do that for this. You pick the look. It should feel like we actually made something worth celebrating.",
+        "expectClarification": "no",
+        "rationale": "The host explicitly delegates taste and conveys earned pride in collective work. A strong concept should acknowledge that achievement and take responsibility for visual choices. Asking for palettes or style preferences would return the delegated work to the host. The workshop is business context, not an explicitly confirmed lunch venue.",
+        "expectedFacts": {
+          "eventType": "staff lunch",
+          "venueText": null
+        },
+        "hostPhrases": [],
+        "mustNotBeClaimedAsHostConstraint": [
+          "The design must use a repeating tile pattern.",
+          "Terracotta is the required color."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A celebratory maker’s identity shaped by kiln-fired colour, modular tile geometry and workshop-mark energy—proud, tactile and unmistakably earned rather than corporate. Frame the first export order as a threshold moment for the whole team and the craft they share.",
+          "toneKeywords": [
+            "maker-proud",
+            "boldly celebratory",
+            "tactile",
+            "collective",
+            "graphic",
+            "hard-won"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "saturated cobalt",
+              "kiln red",
+              "glaze green",
+              "warm ceramic cream",
+              "deep workshop ink"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let vivid glaze-like colours lead, grounded by warm ceramic neutrals and a dark utilitarian accent."
+          },
+          "tonalIntent": "A confident mid-toned palette with lively colour, grounded neutrals and crisp contrast; energetic enough to mark a milestone while retaining workshop warmth.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "heritage",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "modular handmade tile geometry",
+            "subtle glaze variation",
+            "maker’s stamps and kiln marks",
+            "abstract crate and dispatch notation",
+            "repeating forms suggesting a production run"
+          ],
+          "textureDirection": "A tactile contrast of glossy ceramic glaze, chalky clay and lightly imperfect workshop surfaces, expressed with confident craft rather than rustic nostalgia.",
+          "typographyDirection": "A strong utilitarian display voice with clear industrial rhythm, balanced by a more ceremonial secondary register that gives the achievement weight.",
+          "copyTone": "Collective, warm and straightforward—genuinely proud of the work without slipping into corporate language or inflated ceremony.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Make the celebration feel rooted in what the team physically produces, using material character and crafted variation rather than generic party symbolism.",
+            "Give the export milestone a sense of forward motion through production, packing and dispatch references, while keeping the emphasis on shared achievement.",
+            "Use boldness and finish to signal that the work matters; avoid treating a staff lunch as visually minor or disposable."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "staff lunch",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-06",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "n/a",
+            "detail": "the case declares no phrases"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "2 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"staff lunch\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 24992,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7663,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1199,
+        "reasoningTokens": 674,
+        "providerRequestId": "resp_090a2bace5364624006aa91aa56c7c87d19a76e0315817043d"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-07",
+        "prompt": "I'm organizing a pre-Carnaval costume-making afternoon for our samba group. Take your cue from our old parade banner: hand-painted sun faces, orange fringe and little mirrored discs. Make it big, bright and gloriously busy. Use 'Bora brilhar!' as the heading. No tasteful beige version, please.",
+        "expectClarification": "no",
+        "rationale": "The samba group's own parade banner supplies concrete craft references for a culturally specific gathering. Brightness and abundance are explicit, and the heading is supplied, so no cultural interrogation is needed before design. The references do not establish participants' nationality or religion, require Portuguese throughout, or make a parade part of this costume-making event.",
+        "expectedFacts": {
+          "eventType": "pre-Carnaval costume-making afternoon"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "hand-painted sun faces, orange fringe and little mirrored discs",
+            "kind": "direction"
+          },
+          {
+            "phrase": "big, bright and gloriously busy",
+            "kind": "direction"
+          },
+          {
+            "phrase": "Use 'Bora brilhar!' as the heading",
+            "kind": "constraint"
+          },
+          {
+            "phrase": "No tasteful beige version, please",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "All wording must be in Portuguese.",
+          "A parade must be part of the event.",
+          "Only Brazilian flag colors may be used."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Exuberant parade-banner maximalism for a communal pre-Carnaval making session: hand-painted suns, flashing mirror details and kinetic fringe should create a joyful sense of movement, craft and collective energy. The world should feel boldly handmade rather than polished into restraint.",
+          "toneKeywords": [
+            "exuberant",
+            "maximalist",
+            "sunny",
+            "kinetic",
+            "handmade",
+            "communal",
+            "playfully theatrical"
+          ],
+          "colorsExplicitlyConstrained": true,
+          "paletteIntent": {
+            "requiredColors": [
+              "orange"
+            ],
+            "preferredColors": [
+              "saturated parade-bright colors",
+              "reflective silver accents"
+            ],
+            "avoidColors": [
+              "beige"
+            ],
+            "dominanceNotes": "Vivid orange and saturated festive color should dominate, with mirrored silver appearing as sharp, sparkling highlights; quiet neutrals should recede."
+          },
+          "tonalIntent": "Unmistakably bright, high-energy and high-contrast, with clear visual punch rather than muted or subdued tonal restraint.",
+          "toneExplicitlyConstrained": true,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "heritage"
+          ],
+          "visualMotifs": [
+            "expressive hand-painted sun faces",
+            "swinging orange fringe",
+            "small mirrored discs",
+            "parade-banner lettering",
+            "layered costume-making shapes",
+            "radiating solar marks"
+          ],
+          "textureDirection": "Tactile painted-cloth character with visible brush energy, layered fabric edges, fringe movement and crisp flashes of reflected light.",
+          "typographyDirection": "Oversized, spirited display lettering with a handmade parade-sign character, supported by robust, highly legible text that can hold its own amid the visual abundance.",
+          "copyTone": "Rallying, joyful and collective, with the immediacy of an invitation to make, move and shine together.",
+          "hostConstraints": [
+            "Use 'Bora brilhar!' as the heading.",
+            "No tasteful beige version, please."
+          ],
+          "creativeGuidance": [
+            "Let abundance feel intentional through bold scale changes and rhythmic repetition rather than evenly distributed clutter.",
+            "Keep the sun faces recognizably hand-painted and full of personality instead of reducing them to generic geometric icons.",
+            "Use mirrored silver as concentrated flashes so the design feels sparkling and kinetic without losing the dominance of saturated color."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": "our samba group",
+          "eventType": "pre-Carnaval costume-making afternoon",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-07",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 2 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "4 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 2 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeDescriptionText=\"our samba group\"; eventType=\"pre-Carnaval costume-making afternoon\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [tasteful] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "pass",
+            "detail": "1 exclusion(s), none contradicted"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 33730,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7677,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1575,
+        "reasoningTokens": 1034,
+        "providerRequestId": "resp_01dcd513b9f81880006aa91abe792487d1a574e307157c85bb"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-08",
+        "prompt": "Birthday drinks for my friend Miro. His chosen theme is municipal drainage. He works in a café; he just really loves this stuff. I want actual drains, culverts and runoff arrows in it. Please don't turn it into a tasteful water theme.",
+        "expectClarification": "no",
+        "rationale": "An unconventional subject is intentional and concretely specified. The creative task is to make drainage engaging, not replace it with a generic aquatic mood or verify that the host means it. The café detail also blocks a tempting assumption that the honoree is an engineer. Rendering style remains open despite the literal subject requirement.",
+        "expectedFacts": {
+          "honoreeName": "Miro",
+          "honoreeDescriptionText": "my friend",
+          "eventType": "Birthday drinks"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "municipal drainage",
+            "kind": "direction"
+          },
+          {
+            "phrase": "I want actual drains, culverts and runoff arrows in it",
+            "kind": "constraint"
+          },
+          {
+            "phrase": "Please don't turn it into a tasteful water theme",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "Every element must look like an engineering blueprint.",
+          "Only gray and blue are allowed."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An unapologetically literal celebration of municipal drainage, treated as a vivid world of civic engineering rather than softened into generic aquatic elegance. Combine the visual authority of public-works diagrams and street infrastructure with affectionate, deadpan birthday humor.",
+          "toneKeywords": [
+            "civic-industrial",
+            "deadpan",
+            "technical",
+            "literal",
+            "enthusiastically niche",
+            "playful",
+            "unpolished-in-spirit"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "concrete and asphalt neutrals",
+              "high-visibility utility accents",
+              "infrastructure-signage colors"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let utilitarian municipal tones dominate, energized by bold marking-paint and safety-signage accents rather than a serene aquatic palette."
+          },
+          "tonalIntent": "Medium-depth, sturdy and high-contrast, with the visual weight of streets, concrete and public-works graphics rather than an airy or delicate mood.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "heritage"
+          ],
+          "visualMotifs": [
+            "recognizable storm-drain grates",
+            "culvert cross-sections",
+            "bold runoff-direction arrows",
+            "municipal drainage schematics",
+            "roadside channel profiles",
+            "utility survey marks",
+            "public-works map symbols"
+          ],
+          "textureDirection": "Concrete, asphalt, galvanized metal and technical-plan paper character; robust, workmanlike and tactile rather than watery or polished.",
+          "typographyDirection": "Direct municipal-signage and engineering-document typography with a bureaucratic, utilitarian hierarchy and enough scale to make the niche subject celebratory.",
+          "copyTone": "Dry, concise and knowingly official, using public-works seriousness to deliver affectionate birthday humor without mocking Miro’s genuine enthusiasm.",
+          "hostConstraints": [
+            "actual drains, culverts and runoff arrows",
+            "Please don't turn it into a tasteful water theme."
+          ],
+          "creativeGuidance": [
+            "Keep the infrastructure recognizable and specific; refinement should come from excellent drawing and composition, not from abstracting the subject away.",
+            "Let the humor arise from treating the birthday with the solemn authority of a municipal drainage project.",
+            "Avoid forcing café references into the identity unless they support a particularly strong drainage-related idea."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": "Miro",
+          "honoreeDescriptionText": "my friend",
+          "eventType": "Birthday drinks",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-08",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 2 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "3 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "3 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 3 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeName=\"Miro\"; honoreeDescriptionText=\"my friend\"; eventType=\"Birthday drinks\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 22295,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7664,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1063,
+        "reasoningTokens": 516,
+        "providerRequestId": "resp_0f0e509c12f7a128006aa91ae02d0487d19773bc883c671f42"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-09",
+        "prompt": "A memorial tea for my uncle Arun. He collected bus timetables and always had a packet of ginger biscuits in his coat. Warm and ordinary, like sitting at his kitchen table. No halos, clouds or 'gone too soon'. People should be able to laugh about him.",
+        "expectClarification": "no",
+        "rationale": "Everyday objects carry grief and affection without requiring a grand tribute. The host gives a clear emotional register and specific prohibitions, leaving room for warmth and humor. Neither the cause of death nor religious beliefs need to be established to proceed, and the objects are personal references rather than a mandated inventory of illustrations.",
+        "expectedFacts": {
+          "honoreeName": "Arun",
+          "honoreeDescriptionText": "my uncle",
+          "eventType": "memorial tea"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "Warm and ordinary, like sitting at his kitchen table",
+            "kind": "direction"
+          },
+          {
+            "phrase": "No halos, clouds or 'gone too soon'",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "Only muted colors may be used.",
+          "A photograph of Arun is required."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An affectionate memorial world built from Arun’s everyday rituals: the graphic order of bus timetables, the comfort of ginger biscuits, and the familiarity of a kitchen-table conversation. Warm and unceremonious, it should celebrate his particular character without solemn clichés or saintly symbolism.",
+          "toneKeywords": [
+            "warm",
+            "affectionate",
+            "matter-of-fact",
+            "familiar",
+            "gently humorous",
+            "unfussy"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm paper neutrals",
+              "ginger-biscuit brown",
+              "muted public-transport ink colors"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Warm, domestic paper tones should dominate, with restrained transit-inspired color accents adding character."
+          },
+          "tonalIntent": "A welcoming mid-tone world with soft warmth and enough contrast for the timetable references to feel crisp rather than nostalgic or gloomy.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "oldstyle",
+            "soft_serif"
+          ],
+          "visualMotifs": [
+            "bus timetable columns and route-number language",
+            "punched-ticket geometry",
+            "ginger biscuits and their familiar packet",
+            "teacup rings and worn tabletop traces",
+            "small details drawn from everyday public-transport ephemera"
+          ],
+          "textureDirection": "Uncoated, softly handled paper character with faint print wear and a subtle domestic tabletop patina; tactile and familiar rather than polished.",
+          "typographyDirection": "Matter-of-fact transport-ephemera structure softened by a humane, conversational serif voice; clear numerals and practical information hierarchy should coexist with warmth.",
+          "copyTone": "Plainspoken, affectionate and gently funny, encouraging specific memories and shared laughter without euphemism or inflated sentiment.",
+          "hostConstraints": [
+            "No halos, clouds or 'gone too soon'."
+          ],
+          "creativeGuidance": [
+            "Let the order and visual language of bus timetables provide the central organizing idea rather than relying on generic memorial symbolism.",
+            "Use the ginger biscuits and kitchen-table atmosphere as recognizable, affectionate details—not merely abstract hints.",
+            "Allow warmth to come from specificity, familiarity and human stories rather than conventional solemnity."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": "Arun",
+          "honoreeDescriptionText": "my uncle",
+          "eventType": "memorial tea",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-09",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "2 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "3 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 3 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeName=\"Arun\"; honoreeDescriptionText=\"my uncle\"; eventType=\"memorial tea\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [halos] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 34567,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7669,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1708,
+        "reasoningTokens": 1171,
+        "providerRequestId": "resp_0a8f249cdd9a34f9006aa91af6784887d1b99e6441d6b0f9fb"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-10",
+        "prompt": "We're holding a key handover for the first residents of our housing co-op. It's taken eleven years to get here. The children are helping hand over the keys. Make it feel ceremonial and almost regal—we've earned a bit of pomp. Please don't make it look like a property launch.",
+        "expectClarification": "no",
+        "rationale": "A collective housing milestone calls for dignity, pride and permission to be grand. The children and long effort give the ceremony a community context without implying a luxury sales event. The host has already distinguished the desired celebration from property marketing; a creative director can choose how to express that without questioning the request for pomp.",
+        "expectedFacts": {
+          "eventType": "key handover"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "ceremonial and almost regal",
+            "kind": "direction"
+          },
+          {
+            "phrase": "Please don't make it look like a property launch",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "Gold foil and heraldic crests are required.",
+          "The design must avoid showing the building."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Treat the handover as a long-awaited civic investiture: proud, communal and almost regal, with earned pomp rooted in collective perseverance rather than luxury or salesmanship. The children’s role should feel integral to the ceremony, bringing continuity and hope without making the identity juvenile.",
+          "toneKeywords": [
+            "ceremonial",
+            "almost regal",
+            "collectively triumphant",
+            "dignified",
+            "civic-minded",
+            "intergenerational",
+            "warm"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "deep burgundy",
+              "midnight blue",
+              "warm cream",
+              "antique brass accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "Mid-to-deep ceremonial richness with crisp contrast and luminous accents; substantial and celebratory rather than sombre.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "transitional",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "ceremonial keys as symbols of stewardship and belonging",
+            "civic seal and charter-inspired forms",
+            "processional ribbons or banners",
+            "subtle eleven-year milestone markers",
+            "intergenerational hand-to-hand key exchange"
+          ],
+          "textureDirection": "Weighty, tactile and archival, with the character of fine paper, woven ceremonial textiles and gently aged metal.",
+          "typographyDirection": "Commanding heritage-led display typography balanced by clear, humane supporting text; formal and authoritative without becoming corporate.",
+          "copyTone": "Proud, collective and warmly triumphant, with ceremonial cadence and no sales or developer language.",
+          "hostConstraints": [
+            "Please don't make it look like a property launch."
+          ],
+          "creativeGuidance": [
+            "Center the residents, children and shared achievement rather than buildings or property imagery.",
+            "Let the pomp come from civic ritual, procession and symbolic stewardship instead of luxury real-estate cues.",
+            "Present the children as meaningful participants in a generational milestone, not as a source of juvenile decoration.",
+            "Use the eleven-year journey to give the ceremony emotional weight without turning the identity into a project timeline."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": "the first residents of our housing co-op",
+          "eventType": "key handover",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-10",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "2 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 2 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeDescriptionText=\"the first residents of our housing co-op\"; eventType=\"key handover\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 32505,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7671,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1697,
+        "reasoningTokens": 1178,
+        "providerRequestId": "resp_0251bb2c68d1084b006aa91b19269887d1805b95c3d92f4eec"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-11",
+        "prompt": "We're doing a mystery dinner for friends. I keep going between ridiculously glamorous suspects making a scene over dinner and those icy thrillers where a glance across the table does all the work. I love both. I want the invitation to set the tone for how everyone plays along.",
+        "expectClarification": "likely",
+        "rationale": "The references pull toward two different emotional treatments: exuberant theatrical accusation and controlled psychological suspense. The invitation is meant to shape how guests play along, so choosing the wrong emphasis changes the intended experience. One focused question about whether the night should feel playful and exaggerated or tense and restrained is favored. This concerns creative tone, not missing event facts or permission.",
+        "expectedFacts": {
+          "eventType": "mystery dinner"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "ridiculously glamorous suspects making a scene over dinner",
+            "kind": "direction"
+          },
+          {
+            "phrase": "those icy thrillers where a glance across the table does all the work",
+            "kind": "direction"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "The invitation must be black and white.",
+          "Comedy is prohibited."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A dinner-party mystery poised between extravagant social theatre and glacial psychological suspense. The invitation should establish a sophisticated world of secrets, observation and performance, making guests feel that playing along begins before they arrive.",
+          "toneKeywords": [
+            "suspenseful",
+            "cinematic",
+            "sophisticated",
+            "socially charged",
+            "dramatic",
+            "knowing"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "inky black and smoke",
+              "bone or cool ivory",
+              "oxblood or deep jewel tones",
+              "cold silver accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "Deep, evening-weighted contrast suits the mystery, with room for either sumptuous glamour or colder, more austere tension.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "dark",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "high_contrast_editorial",
+            "transitional",
+            "grotesk_led"
+          ],
+          "visualMotifs": [
+            "loaded dinner-table objects",
+            "watchful eyes and exchanged glances",
+            "elegant suspect portraits or silhouettes",
+            "fragmented clues and redacted details",
+            "cinematic shadows"
+          ],
+          "textureDirection": "Polished evening surfaces balanced by crisp paper, smoky grain and the occasional cold metallic note.",
+          "typographyDirection": "A commanding cinematic display voice with disciplined supporting text; capable of shifting between decadent theatricality and terse psychological control.",
+          "copyTone": "Knowing, provocative and conspiratorial, inviting guests into character without overexplaining the mystery.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Let the invitation function as the first act of the game, giving guests implicit permission to observe, suspect and perform.",
+            "Avoid generic detective-party shorthand; build intrigue through social tension, suggestive details and confident dramatic pacing.",
+            "Whichever register leads, preserve a trace of the other so glamour carries menace or restraint carries theatrical anticipation."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "mystery dinner",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": true,
+          "questions": [
+            {
+              "kind": "creative",
+              "question": "Which style of play should the invitation encourage most strongly?",
+              "whyItMatters": "A flamboyant social performance and a restrained psychological thriller create materially different guest behavior, copy energy and visual worlds; the invitation is explicitly meant to establish that behavior.",
+              "options": [
+                {
+                  "label": "Glamorous and theatrical — big characters and delicious scenes",
+                  "isDefer": false
+                },
+                {
+                  "label": "Icy and restrained — quiet suspicion, loaded glances, controlled tension",
+                  "isDefer": false
+                },
+                {
+                  "label": "A deliberate blend — glamorous surfaces with menace underneath",
+                  "isDefer": false
+                },
+                {
+                  "label": "You decide",
+                  "isDefer": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-11",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "2 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"mystery dinner\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "1 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=true, 1"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"likely\"; model asked 1. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "pass",
+            "detail": "no question asks for an operational field"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "pass",
+            "detail": "creative questions offer exactly one defer; boundary questions offer none"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "pass",
+            "detail": "creative only"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 35178,
+        "transientRetries": 0,
+        "repairRetries": 1,
+        "schemaValidFirstCall": false,
+        "inputTokens": 8329,
+        "cachedInputTokens": 7664,
+        "outputTokens": 662,
+        "reasoningTokens": 57,
+        "providerRequestId": "resp_04d042a24a1101df006aa91b54740c87d199ae418cdb70c1f4"
+      }
+    },
+    {
+      "caseData": {
+        "id": "SC2-12",
+        "prompt": "I'm organizing a retirement dinner for my mum, Denise. Her sister is coming; they haven't spoken in years. I want the invitation built around 'together again', with the two of them pictured side by side. My aunt is keen. Mum doesn't know she's coming, and I honestly don't know how she'll take it.",
+        "expectClarification": "expected",
+        "rationale": "The requested central image and message would present an unresolved estrangement as a reunion endorsed by both sisters. The aunt's enthusiasm does not establish Denise's wishes. One focused clarification must establish whether Denise wants that reunion featured before proceeding with the premise; silently removing it would also discard the host's central request rather than resolve the human boundary.",
+        "expectedFacts": {
+          "honoreeName": "Denise",
+          "honoreeDescriptionText": "my mum",
+          "eventType": "retirement dinner"
+        },
+        "hostPhrases": [
+          {
+            "phrase": "I want the invitation built around 'together again', with the two of them pictured side by side",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "The reunion must remain a surprise until the dinner.",
+          "The sisters must be portrayed embracing."
+        ]
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A dignified, emotionally warm retirement dinner identity that honors Denise first, with a proposed theme of reconnection expressed sincerely rather than theatrically. Any reunion-focused wording or imagery must wait until Denise’s boundary around the surprise has been settled.",
+          "toneKeywords": [
+            "affectionate",
+            "dignified",
+            "intimate",
+            "reflective",
+            "hopeful",
+            "emotionally sensitive"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm paper neutrals",
+              "deep wine or aubergine accents",
+              "soft muted botanical tones"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let warm neutrals create an intimate foundation, with deeper accents providing evening depth and a sense of occasion."
+          },
+          "tonalIntent": "Warm mid-tones with measured depth and gentle contrast, avoiding either stark drama or overly bright cheerfulness.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "transitional",
+            "oldstyle",
+            "soft_serif",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "family-album portrait warmth",
+            "paired portraiture if settled with Denise",
+            "subtle mirrored forms",
+            "two branches or lines gently converging",
+            "understated commemorative details"
+          ],
+          "textureDirection": "Warm, tactile paper character with subtle grain and softly photographic depth rather than glossy celebration.",
+          "typographyDirection": "A poised, humane serif-led hierarchy with restrained contemporary support; commemorative and personal without becoming sentimental or ceremonial.",
+          "copyTone": "Warm, concise and honoring, with emotional restraint; celebrate Denise’s retirement without presuming reconciliation, forgiveness or a particular response.",
+          "hostConstraints": [
+            "invitation built around 'together again'",
+            "the two of them pictured side by side"
+          ],
+          "creativeGuidance": [
+            "Keep Denise’s retirement as the primary occasion rather than letting the family reunion eclipse her.",
+            "If reunion framing is approved, express reconnection with warmth and openness rather than implying that past conflict has already been resolved.",
+            "Use portraiture with documentary family-album sincerity rather than staged sentimentality."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": "Denise",
+          "honoreeDescriptionText": "my mum",
+          "eventType": "retirement dinner",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": true,
+          "questions": [
+            {
+              "kind": "boundary",
+              "question": "What has been settled with Denise about revealing and featuring her sister on the invitation?",
+              "whyItMatters": "Without this boundary, the brief would present Denise as participating in and endorsing a public reunion message and side-by-side portrayal even though she does not know her sister is attending.",
+              "options": [
+                {
+                  "label": "Denise approved her sister’s attendance, the wording and the photo.",
+                  "isDefer": false
+                },
+                {
+                  "label": "Denise knows she is coming; omit reunion wording and imagery.",
+                  "isDefer": false
+                },
+                {
+                  "label": "Nothing is agreed with Denise; omit her sister and reunion theme.",
+                  "isDefer": false
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "evaluation": {
+        "caseId": "SC2-12",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 2 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "3 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 3 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeName=\"Denise\"; honoreeDescriptionText=\"my mum\"; eventType=\"retirement dinner\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "1 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=true, 1"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"expected\"; model asked 1. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "pass",
+            "detail": "no question asks for an operational field"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "pass",
+            "detail": "creative questions offer exactly one defer; boundary questions offer none"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "pass",
+            "detail": "one boundary question, asked alone"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 54177,
+        "transientRetries": 0,
+        "repairRetries": 1,
+        "schemaValidFirstCall": false,
+        "inputTokens": 8447,
+        "cachedInputTokens": 7674,
+        "outputTokens": 725,
+        "reasoningTokens": 81,
+        "providerRequestId": "resp_07c1a9dd05594da8006aa91b87d69c87d1beb57685f2e9b8df"
+      }
+    }
+  ]
+}

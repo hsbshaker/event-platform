@@ -72,10 +72,16 @@ export function corpusPath(set: CorpusSet): string {
  *
  * Each was produced by a run that is now part of the record: the Phase 4A baseline, the first
  * sealed challenge's one and only run, the `v5` regression run, the `v5` diagnostic re-run of the
- * spent challenge, and the one run of the pre-registered validation set. An eval set pointing at
- * any of them would not overwrite a report — it would overwrite the thing the report is evidence
- * *of*. The holdout matters most here: pre-registered means run once, so a second run over that
- * directory would not just lose evidence, it would destroy the property that made it evidence.
+ * spent challenge, the one run of the pre-registered validation set, and the one run of the fresh
+ * sealed challenge. An eval set pointing at any of them would not overwrite a report — it would
+ * overwrite the thing the report is evidence *of*. The holdout and the fresh challenge matter most
+ * here: run-once is what made them evidence, so a second run over either directory would not
+ * merely lose the record, it would destroy the property the record rests on.
+ *
+ * With `sealed_challenge_v2` spent, every set now points at a protected path and none of the five
+ * can write. That is the correct end state for this evidence programme, not a defect: fresh
+ * evidence for a future prompt version needs a new corpus and a new slot, which is exactly the
+ * cost that keeps a rerun from quietly standing in for one.
  *
  * A directory is added here as part of finishing the run that produced it, never as a follow-up:
  * until it is, the only guard is the write-once check, which `EVAL_OVERWRITE=1` overrides on
@@ -88,6 +94,7 @@ export const PROTECTED_RESULT_DIRS = [
   "docs/model-evals/results/creative-understanding-v1-regression",
   "docs/model-evals/results/creative-understanding-sealed-challenge-v1-v5-regression",
   "docs/model-evals/results/creative-understanding-holdout-v1",
+  "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
 ] as const;
 
 /**

@@ -115,17 +115,20 @@ describe("the spent v1 corpus can be re-run without touching its first-run evide
 });
 
 describe("no set can write over evidence that already exists", () => {
-  it("protects every run that has happened, and nothing that has not", () => {
+  it("protects every run that has happened, which is now all five of them", () => {
     expect([...PROTECTED_RESULT_DIRS]).toEqual([
       "docs/model-evals/results/creative-understanding-v1",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
       "docs/model-evals/results/creative-understanding-v1-regression",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v1-v5-regression",
       "docs/model-evals/results/creative-understanding-holdout-v1",
+      "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
     ]);
-    // The one set that has never run must stay writable, or the fresh evidence it exists to
-    // produce could never be produced.
-    expect(isProtectedOutput(EVAL_SETS.challenge2.out)).toBe(false);
+    // No set has a writable output path any more. Until `sealed_challenge_v2` ran there was
+    // always one, and the list carried an assertion that it stayed writable; that assertion is
+    // gone because the set it protected is spent, not because the rule relaxed. Fresh evidence
+    // for a future prompt version needs a new corpus and a new slot.
+    expect(sets.every((set) => isProtectedOutput(EVAL_SETS[set].out))).toBe(true);
   });
 
   it("protects every directory that already holds a completed run's evidence", () => {
@@ -156,13 +159,21 @@ describe("no set can write over evidence that already exists", () => {
     expect(isProtectedOutput("docs/model-evals//results/creative-understanding-v1")).toBe(true);
   });
 
-  it("permits the sibling directories the other sets actually use", () => {
-    // The `-v5-regression` sibling shares a prefix with the protected v1 directory and must not
-    // be caught by it; a check that refused it would make the safe rerun slot unusable. The two
-    // sets that are refused are refused because their runs are done, not because of a prefix.
-    for (const set of sets) {
-      expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(set !== "challenge2");
-    }
+  it("refuses on the path, never on a shared prefix", () => {
+    // `…-v1-regression` and `…-sealed-challenge-v1-v5-regression` each extend a protected name
+    // by a hyphen, and each is refused on its own entry rather than by its neighbour's prefix.
+    // Every set's output is protected now, so that distinction can no longer be read off the
+    // set list — these unclaimed siblings hold the property instead, and a prefix check that
+    // over-matched would fail here rather than silently swallowing the next slot we add.
+    expect(isProtectedOutput("docs/model-evals/results/creative-understanding-v1-other")).toBe(
+      false,
+    );
+    expect(isProtectedOutput("docs/model-evals/results/creative-understanding-holdout-v2")).toBe(
+      false,
+    );
+    expect(
+      isProtectedOutput("docs/model-evals/results/creative-understanding-sealed-challenge-v3"),
+    ).toBe(false);
   });
 
   it("is called by the runner before anything is read or written", () => {
@@ -185,13 +196,12 @@ describe("no set can write over evidence that already exists", () => {
   });
 
   it("aims only already-run sets at protected evidence, and refuses each of them", () => {
-    // `regression`, `spentChallenge` and `holdout` joined this list as their v5 runs finished.
-    // Every set named here can still be invoked from npm; each now stops at the refusal rather
-    // than writing, which is the point. Only `challenge2` has anywhere left to write.
+    // Each set joined this list as its v5 run finished, `challenge2` last. All five can still be
+    // invoked from npm; each now stops at the refusal rather than writing, which is the point.
     const aimed = sets.filter((s) =>
       (PROTECTED_RESULT_DIRS as readonly string[]).includes(EVAL_SETS[s].out),
     );
-    expect(aimed).toEqual(["regression", "holdout", "challenge", "spentChallenge"]);
+    expect(aimed).toEqual(["regression", "holdout", "challenge", "spentChallenge", "challenge2"]);
     for (const set of aimed) expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(true);
     expect(EVAL_SETS.challenge.label).toMatch(/SPENT/);
     expect(EVAL_SETS.challenge.label).toMatch(/immutable and this path is refused/i);
