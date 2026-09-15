@@ -244,9 +244,12 @@ hash — a corpus edited without bumping it defeats the join, which is why the c
 **The sealed challenge path is wired before its cases exist, and stays that way.**
 `EVAL_SET=challenge` names a corpus and an output directory fixed once and never since; when
 `sealed_challenge_v1` was written the corpus file was deliberately absent, authored independently
-after the implementation froze, and dropped in unchanged. The same arrangement holds for the
-corpus a `v5` GO requires: the path is already wired, so that corpus is added and nothing else
-moves. A challenge invocation before a corpus lands fails at
+after the implementation froze, and dropped in unchanged. The same arrangement is already in place for the
+corpus a `v5` GO requires: `EVAL_SET=challenge2` names
+`creative-understanding-sealed-challenge-v2.json` and its own output directory, wired before its
+cases are known, so that corpus is added and nothing else moves. `EVAL_SET=spentChallenge` reruns
+the spent `v1` cases into a separate `-v5-regression` directory as diagnostic evidence, and the
+`v1` first-run evidence is refused as an output by every set. A challenge invocation before a corpus lands fails at
 module scope — before the API-key check, before a client is constructed, and with no provider call
 — and the runner refuses any set whose corpus is missing, uniformly. `prompt-leakage.test.ts`
 already names the challenge filename behind an existence check, so the independently authored

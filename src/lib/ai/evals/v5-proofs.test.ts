@@ -41,6 +41,8 @@ const SPEC = read("spec.md");
 const SPEC_FLAT = flat(SPEC);
 const CONTRACTS = read("docs/model-contracts.md");
 const PLAN = read("docs/development-plan.md");
+const DOCTRINE = read("docs/product-doctrine.md");
+const DOCTRINE_FLAT = flat(DOCTRINE);
 const WIRE = JSON.parse(read("docs/model-schemas/event-identity-result.wire.schema.json"));
 
 /** Every description the wire schema ships, addressed by path. */
@@ -498,5 +500,52 @@ describe("the version says the model is seeing different text", () => {
     // The wire schema carries no length keywords at all — counts are runtime-only, which is
     // why the descriptions have to state them.
     expect(JSON.stringify(WIRE)).not.toMatch(/maxItems|minItems|maxLength|minLength/);
+  });
+});
+
+/* ------------------------------------------------------------------ doctrine */
+
+describe("product doctrine describes v5, not v4", () => {
+  it("no longer says all clarification is taste-only", () => {
+    // Doctrine is read first by every agent, so a stale §6 tells the next one the opposite of
+    // the shipped contract.
+    expect(DOCTRINE_FLAT).not.toContain("actually present in this prompt, about taste only");
+    expect(DOCTRINE).toContain("## 6. Adaptive clarification");
+    expect(DOCTRINE).toContain("### Creative clarification");
+    expect(DOCTRINE).toContain("### Boundary clarification");
+  });
+
+  it("scopes the defer promise to creative questions", () => {
+    expect(DOCTRINE_FLAT).not.toMatch(/Every such question always offers/);
+    expect(DOCTRINE_FLAT).toContain("Every **creative** question always offers");
+    expect(DOCTRINE_FLAT).toContain('It offers **no** "You decide"');
+  });
+
+  it("says a boundary question may hold concepts, and that its identity is provisional", () => {
+    expect(DOCTRINE_FLAT).toContain("It is the one thing that may hold concepts");
+    expect(DOCTRINE_FLAT).toMatch(/identity returned beside it is \*provisional\*/);
+    expect(DOCTRINE_FLAT).toContain("`EventIdentity` runs again");
+  });
+
+  it("keeps the durable principle and the logistics and design-decision bans", () => {
+    expect(DOCTRINE).toContain("Understand aggressively. Infer creatively. Ask selectively.");
+    expect(DOCTRINE).toContain("**Logistics — never a gate on design.**");
+    expect(DOCTRINE).toContain("AI should remove decisions, not create more decisions.");
+    expect(DOCTRINE_FLAT).toContain("never a way to ask for a fact or a design decision");
+  });
+
+  it("records the v5 resolution in the §14 conflict register as an audit trail", () => {
+    expect(DOCTRINE_FLAT).toContain("Resolved by decision, then expanded by a second");
+    expect(DOCTRINE_FLAT).toContain("*Original (v4):*");
+    expect(DOCTRINE_FLAT).toContain("*Expanded (v5, approved after the first sealed challenge):*");
+    expect(DOCTRINE_FLAT).toContain(
+      'So "bounded to taste" and "never a gate" now describe Route A',
+    );
+  });
+
+  it("leaves the plan's deviation resolved rather than masquerading as open", () => {
+    expect(flat(PLAN)).not.toContain("pending doctrine approval");
+    expect(flat(PLAN)).toContain("was reconciled to `v5`, by explicit approval");
+    expect(flat(PLAN)).toContain("Resolved, not open.");
   });
 });

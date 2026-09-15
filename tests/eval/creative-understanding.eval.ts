@@ -4,9 +4,9 @@
  * A case is one model call, or two when the single repair retry is spent (`§8`), plus any
  * transient HTTP retries underneath those.
  *
- * Run with `npm run eval:regression`, `npm run eval:holdout` or `npm run eval:challenge`. It is
- * its own vitest project, excluded from `npm test`, because it costs money, takes minutes and
- * talks to a live provider —
+ * Run with one of the `npm run eval:*` scripts; `evals/corpus.ts` defines the sets and what class
+ * of evidence each one produces. It is its own vitest project, excluded from `npm test`, because
+ * it costs money, takes minutes and talks to a live provider —
  * `docs/model-contracts.md §4.5`: "do not gate ordinary code changes on it — it measures
  * the creative stack, not the compiler."
  *
@@ -32,7 +32,7 @@ import { describe, expect, it } from "vitest";
 import { EventIdentityError, generateEventIdentity } from "@/lib/ai/openai/event-identity";
 import { EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { evaluateCase, type CorpusCase } from "@/lib/ai/evals/creative-understanding";
-import { corpusPath, validateCorpusShape } from "@/lib/ai/evals/corpus";
+import { EVAL_SETS, PROTECTED_RESULT_DIRS, validateCorpusShape } from "@/lib/ai/evals/corpus";
 import { buildBlindArtifact, buildMechanicalReport, type CaseRun } from "@/lib/ai/evals/report";
 import {
   appendJournal,
@@ -45,48 +45,11 @@ import {
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 /**
- * Which corpus runs, and where its evidence lands.
- *
- * There is no default — see the `EVAL_SET` check below. Exactly one of these three is fresh
- * generalization evidence, and the labels say which, because a report that overstates its own
- * evidence class is how a weak result gets read as a strong one:
- *
- * - **regression** — the original cases. Every output has been inspected and discussed
- *   (`results/creative-understanding-v1/astra-qualitative-review.md`), so a re-run catches
- *   regressions and nothing more.
- * - **holdout** — the pre-registered validation set. Frozen and independently reviewed before
- *   the remediation, but authored by the same person who then wrote the prompt, with knowledge
- *   of the cases. Useful validation; not the strongest evidence of generalization.
- * - **challenge** — the sealed challenge, and the only fresh evidence of the three. Its corpus
- *   does not exist yet, deliberately: this path was wired and frozen first so that revealing the
- *   cases cannot be followed by an adjustment to the harness that grades them.
- *
- * The output directory is derived from the set, never shared. Hardcoding it meant pointing the
- * runner at a second corpus would have overwritten the immutable Phase 4A baseline in place,
- * and the first anyone would know is that the evidence no longer matched the report.
+ * The set definitions live in `evals/corpus.ts` so the leakage scan and this runner cannot
+ * disagree about which file a set means, and so the output directories can be asserted unique
+ * by a unit test rather than by reading. Each carries its own evidence-class label, because a
+ * report that overstates its class is how a weak result gets read as a strong one.
  */
-const EVAL_SETS = {
-  regression: {
-    corpus: corpusPath("regression"),
-    out: "docs/model-evals/results/creative-understanding-v1-regression",
-    label: "REGRESSION RE-RUN — known cases, not fresh evidence",
-  },
-  holdout: {
-    corpus: corpusPath("holdout"),
-    out: "docs/model-evals/results/creative-understanding-holdout-v1",
-    label:
-      "PRE-REGISTERED VALIDATION SET — frozen before remediation, but known to the " +
-      "implementation author; useful validation evidence, not the strongest evidence of " +
-      "generalization",
-  },
-  challenge: {
-    corpus: corpusPath("challenge"),
-    out: "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
-    label:
-      "SEALED CHALLENGE — independently authored after the production implementation was " +
-      "frozen; strongest fresh/generalization evidence",
-  },
-} as const;
 
 /**
  * No default. A bare `vitest run --project eval` must refuse rather than quietly spend money
@@ -98,28 +61,38 @@ const SET = process.env.EVAL_SET as keyof typeof EVAL_SETS | undefined;
 if (!SET || !(SET in EVAL_SETS)) {
   throw new Error(
     `EVAL_SET must be set explicitly to one of ${Object.keys(EVAL_SETS).join(", ")}. ` +
-      "Use `npm run eval:regression`, `npm run eval:holdout` or `npm run eval:challenge`; " +
-      "this run costs money and writes evidence, so it never starts by accident.",
+      "Use one of the `npm run eval:*` scripts; this run costs money and writes evidence, so " +
+      "it never starts by accident.",
   );
 }
 const CORPUS = path.join(ROOT, EVAL_SETS[SET].corpus);
 const OUT = path.join(ROOT, EVAL_SETS[SET].out);
 
-/** The immutable baseline. No run may write here again, whatever EVAL_SET says. */
-const BASELINE = path.join(ROOT, "docs/model-evals/results/creative-understanding-v1");
-if (OUT === BASELINE) {
-  throw new Error("refusing to overwrite the immutable Phase 4A baseline evidence");
+/**
+ * Evidence that already exists. No run may write over it, whatever `EVAL_SET` says — and the
+ * list lives beside the set definitions so adding a set cannot quietly aim at one of them.
+ */
+for (const protectedDir of PROTECTED_RESULT_DIRS) {
+  if (OUT === path.join(ROOT, protectedDir)) {
+    throw new Error(
+      `refusing to write over ${protectedDir}: that directory holds a completed run's evidence. ` +
+        (SET === "challenge"
+          ? "The v1 sealed challenge is spent; `npm run eval:spent-challenge` reruns those cases " +
+            "into their own directory, and `npm run eval:challenge2` is the fresh v5 corpus."
+          : "Point the set at a directory of its own."),
+    );
+  }
 }
 
 /**
  * The corpus has to exist before anything else happens.
  *
- * This is what makes the challenge path safely dormant: its corpus is deliberately absent until
- * after the freeze, and `npm run eval:challenge` must fail here — at module scope, during
- * collection, before the API-key check, before any client is constructed and a very long way
- * before a request — rather than partway through a run. When the sealed cases do arrive, adding
- * the file is the whole change: no runner, checker, prompt, schema or model code moves, because
- * moving any of it after seeing the cases is the thing a sealed challenge exists to prevent.
+ * This is what keeps a fresh-challenge path safely dormant. `challenge2`'s corpus is deliberately
+ * absent until after the v5 freeze, so `npm run eval:challenge2` must fail here — at module scope,
+ * during collection, before the API-key check, before any client is constructed and a very long
+ * way before a request — rather than partway through a run. When those cases arrive, adding the
+ * file is the whole change: no runner, checker, prompt, schema or model code moves, because moving
+ * any of it after seeing the cases is the thing a sealed challenge exists to prevent.
  */
 if (!existsSync(CORPUS)) {
   throw new Error(
@@ -130,10 +103,11 @@ if (!existsSync(CORPUS)) {
 }
 
 /**
- * Evidence is written once. Both the validation set and the sealed challenge are one-shot by
+ * Evidence is written once. The validation set and a fresh sealed challenge are one-shot by
  * construction — a second `npm run eval:holdout` would destroy the pre-registered validation
- * evidence, and a second `npm run eval:challenge` the generalization evidence, exactly as the
- * accidental run nearly did. `EVAL_OVERWRITE=1` is the deliberate override.
+ * evidence, and a second `npm run eval:challenge2` the generalization evidence, exactly as the
+ * accidental run nearly did. `EVAL_OVERWRITE=1` is the deliberate override, and it cannot reach
+ * the protected directories above.
  */
 if (existsSync(OUT) && process.env.EVAL_OVERWRITE !== "1") {
   throw new Error(

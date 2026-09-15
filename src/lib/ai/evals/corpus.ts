@@ -48,12 +48,16 @@ export const CLARIFICATION_LABELS = [
  * sealed challenge is scanned the moment it lands — a control that stops anyone looking, which is
  * the exact defect this project's leakage-scan claim already turned out to be once.
  *
- * `challenge` deliberately names a file that does not exist yet.
+ * `challenge2` deliberately names a file that does not exist yet: naming it before its cases
+ * are known is what keeps its arrival from requiring an edit here.
  */
 export const CORPUS_FILES = {
   regression: "creative-understanding.json",
   holdout: "creative-understanding-holdout.json",
+  /** `sealed_challenge_v1` — authored for `v4`, run once, spent. Now a known regression set. */
   challenge: "creative-understanding-sealed-challenge.json",
+  /** The fresh corpus a `v5` GO needs. Deliberately absent: it is authored after this freeze. */
+  challenge2: "creative-understanding-sealed-challenge-v2.json",
 } as const;
 
 export type CorpusSet = keyof typeof CORPUS_FILES;
@@ -62,6 +66,68 @@ export type CorpusSet = keyof typeof CORPUS_FILES;
 export function corpusPath(set: CorpusSet): string {
   return `docs/model-evals/${CORPUS_FILES[set]}`;
 }
+
+/**
+ * Evidence that may never be written again, whatever anyone asks for.
+ *
+ * Both were produced by runs that are now part of the record: the Phase 4A baseline, and the
+ * first sealed challenge's one and only run. An eval set pointing at either would not overwrite
+ * a report — it would overwrite the thing the report is evidence *of*.
+ */
+export const PROTECTED_RESULT_DIRS = [
+  "docs/model-evals/results/creative-understanding-v1",
+  "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
+] as const;
+
+/**
+ * Which corpus each eval set runs, where its evidence lands, and what class that evidence is.
+ *
+ * Two sets share the `challenge` corpus and must never share an output directory: `challenge`
+ * is the historical run, and `spentChallenge` is the safe `v5` diagnostic rerun of the same
+ * twelve cases. Keeping the labels far apart is deliberate — the single most expensive mistake
+ * available here is reading a rerun of known cases as generalization evidence.
+ */
+export const EVAL_SETS = {
+  regression: {
+    corpus: corpusPath("regression"),
+    out: "docs/model-evals/results/creative-understanding-v1-regression",
+    label: "REGRESSION RE-RUN — known cases, not fresh evidence",
+  },
+  holdout: {
+    corpus: corpusPath("holdout"),
+    out: "docs/model-evals/results/creative-understanding-holdout-v1",
+    label:
+      "PRE-REGISTERED VALIDATION SET — frozen before remediation, but known to the " +
+      "implementation author; useful validation evidence, not the strongest evidence of " +
+      "generalization",
+  },
+  challenge: {
+    corpus: corpusPath("challenge"),
+    out: "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
+    label:
+      "SPENT SEALED CHALLENGE (sealed_challenge_v1) — run once at v4 and already used; its " +
+      "first-run evidence is immutable and this path is refused. Use eval:spent-challenge for a " +
+      "diagnostic rerun",
+  },
+  spentChallenge: {
+    corpus: corpusPath("challenge"),
+    out: "docs/model-evals/results/creative-understanding-sealed-challenge-v1-v5-regression",
+    label:
+      "KNOWN / SPENT CHALLENGE RE-RUN — the v1 sealed cases against v5, as regression and " +
+      "diagnostic evidence only. These cases were known while v5 was written. NOT fresh " +
+      "generalization evidence",
+  },
+  challenge2: {
+    corpus: corpusPath("challenge2"),
+    out: "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
+    label:
+      "FRESH SEALED CHALLENGE (sealed_challenge_v2) — independently authored after the v5 " +
+      "implementation and harness froze, and unseen while they were written; the fresh " +
+      "generalization evidence for v5",
+  },
+} as const;
+
+export type EvalSet = keyof typeof EVAL_SETS;
 
 /** Only the fields this validation reads. A corpus carries far more, all of it optional. */
 interface UncheckedCorpus {

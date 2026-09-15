@@ -79,7 +79,10 @@ describe("which corpora this scan covers", () => {
   // Prints the unscanned corpus by name. When the sealed challenge lands this test reports an
   // empty list, and the three `describe`s below start covering it with no edit here.
   it.runIf(ABSENT.length > 0)("names any corpus that does not exist yet, as unscanned", () => {
-    expect(ABSENT).toEqual(["creative-understanding-sealed-challenge.json"]);
+    // Read from the shared map rather than written out, so this stays true when the fresh v5
+    // corpus lands: `ABSENT` empties, this test stops running, and the three scans below start
+    // covering it — with no edit here, which is the property the seal depends on.
+    expect(ABSENT).toEqual([CORPUS_FILES.challenge2]);
   });
 });
 

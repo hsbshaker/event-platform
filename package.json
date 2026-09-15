@@ -19,7 +19,9 @@
     "schemas:event-identity": "UPDATE_SCHEMAS=1 vitest run --project unit src/lib/ai/event-identity/schema-drift.test.ts",
     "eval:regression": "EVAL_SET=regression vitest run --project eval",
     "eval:holdout": "EVAL_SET=holdout vitest run --project eval",
-    "eval:challenge": "EVAL_SET=challenge vitest run --project eval"
+    "eval:challenge": "EVAL_SET=challenge vitest run --project eval",
+    "eval:spent-challenge": "EVAL_SET=spentChallenge vitest run --project eval",
+    "eval:challenge2": "EVAL_SET=challenge2 vitest run --project eval"
   },
   "dependencies": {
     "@sparticuz/chromium": "^153.0.0",

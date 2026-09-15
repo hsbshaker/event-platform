@@ -80,6 +80,30 @@ The general point, recorded because it is the more useful one: the eval runner i
 module in this repository that cannot be run to find anything out. Any future check placed inside
 it is unverifiable by construction, and belongs beside this one.
 
+## A third accidental run occurred, and its output was also discarded
+
+During the pre-eval hardening pass that wired the fresh `challenge2` slot and the safe
+`spentChallenge` rerun slot, `npm run eval:spent-challenge` was invoked to confirm the new guards
+behaved — under an explicit instruction not to run that set. A key was present, the guards passed
+correctly, and the run began calling the provider. It was killed at about sixty seconds, its
+partial output directory deleted without any file being opened, and all protected evidence
+verified byte-identical afterwards.
+
+It used the already-spent `sealed_challenge_v1` cases, so no unseen case was consumed and the
+fresh `challenge2` corpus — which does not exist — was untouched.
+
+This is the same mistake as the second incident, one level further out, and the second time it was
+made *while verifying the very guard that was supposed to prevent it*. The first fix moved a rule
+out of the runner so it could be unit-tested. The rule this time was not a rule but a *wiring*
+question — which corpus a set reads, where it writes, what it may claim — and that is equally
+checkable offline: `src/lib/ai/evals/harness-provenance.test.ts` now asserts every one of those
+properties against the set definitions and the runner's **source text**, never by invoking it,
+including that the corpus-existence guard precedes the API-key check.
+
+The generalisation, stated plainly because two fixes have now been needed to reach it: **nothing
+about the eval runner may be verified by running it.** Not its checks, not its paths, not its
+refusals. If a property of that module matters, it is asserted from outside.
+
 ## Benchmark leakage was caught four times in the production prompt
 
 Recorded because the pattern matters more than any individual instance: each was introduced
