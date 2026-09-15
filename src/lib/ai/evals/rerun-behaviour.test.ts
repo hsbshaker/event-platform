@@ -354,7 +354,7 @@ describe("paths and ownership are fixed before the cases are known", () => {
         "the mechanical checks, the acceptance criteria and the blind artifact, all frozen at T5 " +
         "before the validation cases existed. Changing a criterion after seeing the cases is the " +
         "thing this set exists not to do.",
-    ).toBe("57b12ce0db271e9f42f5be44c29326a1f3db89e61311d203376b55841df9e411");
+    ).toBe("540ff24256ebd6d1345f468dd33fc89cc579e8ac310782da84265284bb0e9132");
   });
 
   it("does not change at all", () => {
@@ -395,6 +395,7 @@ describe("the acceptance criteria are frozen, and say what class this evidence i
       "NOT a replacement for the spent v5 sealed challenge",
       "validates the input shape and lifecycle, not the interpreter's creative quality",
       "the prior clarification history is frozen fixture state authored with the case; no model produced it, and only the rerun is a live call",
+      "cumulative history is verified as rendering, not as selection: the harness hands the assembly the full history, so the production query that gathers every prior answer sits above this seam and is not evidenced here",
     ]);
   });
 
@@ -608,7 +609,7 @@ describe("the structural contract refuses a case that would waste a paid call", 
         }),
       ]),
     );
-    expect(problems.join(" ")).toMatch(/duplicate question text/);
+    expect(problems.join(" ")).toMatch(/repeats or contains another question's/);
   });
 
   it("refuses a multi-round case with only one round of history", () => {
@@ -625,6 +626,145 @@ describe("the structural contract refuses a case that would waste a paid call", 
       corpus([validCase({ expectedFacts: { venue: "the garden" } })]),
     );
     expect(problems.join(" ")).toMatch(/is not a supplied-fact field/);
+    expect(
+      validateRerunCorpusShape(corpus([validCase({ expectedFacts: { venueText: null } })])),
+    ).toEqual([]);
+  });
+
+  it("refuses a round the real schema would reject", () => {
+    // `buildSeededRevision` claims to be schema-valid by construction; that has to be true of
+    // everything the contract admits, not of the examples anyone happened to write. A T9 assembly
+    // that parses fail-closed would otherwise throw inside the call, and the runner would journal
+    // our corpus defect as a provider failure and destroy a one-shot paid run.
+    const boundary = {
+      kind: "boundary" as const,
+      question: "Is the pregnancy public yet?",
+      options: [{ label: "Yes" }, { label: "Not yet" }],
+    };
+    const mixed = validateRerunCorpusShape(
+      corpus([
+        validCase({
+          history: [
+            {
+              questions: [boundary, question()],
+              answers: [{ questionIndex: 0, selectedOptionLabel: "Yes", freeText: null }],
+            },
+          ],
+        }),
+      ]),
+    );
+    expect(mixed.join(" ")).toMatch(/only question in its round/);
+
+    const tooMany = validateRerunCorpusShape(
+      corpus([
+        validCase({
+          history: [
+            {
+              questions: [
+                question({ question: "How formal should the evening read?" }),
+                question({ question: "Warm or cool in feel, overall?" }),
+                question({ question: "Quiet or celebratory in voice?" }),
+                question({ question: "Intimate or expansive in scale?" }),
+              ],
+              answers: [{ questionIndex: 0, selectedOptionLabel: "Black tie", freeText: null }],
+            },
+          ],
+        }),
+      ]),
+    );
+    expect(tooMany.join(" ")).toMatch(/at most 3 questions/);
+  });
+
+  it("refuses padded question text and padded labels, as it already refuses a padded prompt", () => {
+    // Zod `.trim()` is a transform, not a rejection, so an assembly that parses the envelope
+    // renders the trimmed text while the checks search for the padded one.
+    expect(
+      validateRerunCorpusShape(
+        corpus([
+          validCase({
+            history: [
+              {
+                questions: [question({ question: "  How formal should the evening read?  " })],
+                answers: [{ questionIndex: 0, selectedOptionLabel: "Black tie", freeText: null }],
+              },
+            ],
+          }),
+        ]),
+      ).join(" "),
+    ).toMatch(/question` must not have leading or trailing whitespace/);
+
+    expect(
+      validateRerunCorpusShape(
+        corpus([
+          validCase({
+            history: [
+              {
+                questions: [
+                  question({
+                    options: [
+                      { label: " Black tie " },
+                      { label: "Relaxed" },
+                      { label: "You choose", isDefer: true },
+                    ],
+                  }),
+                ],
+                answers: [{ questionIndex: 0, selectedOptionLabel: " Black tie ", freeText: null }],
+              },
+            ],
+          }),
+        ]),
+      ).join(" "),
+    ).toMatch(/label` must not have leading or trailing whitespace/);
+  });
+
+  it("refuses a question text that contains another question's", () => {
+    const problems = validateRerunCorpusShape(
+      corpus([
+        validCase({
+          history: [
+            {
+              questions: [question()],
+              answers: [{ questionIndex: 0, selectedOptionLabel: "Black tie", freeText: null }],
+            },
+            {
+              questions: [question({ question: "Say more: How formal should the evening read?" })],
+              answers: [{ questionIndex: 0, selectedOptionLabel: "Relaxed", freeText: null }],
+            },
+          ],
+        }),
+      ]),
+    );
+    expect(problems.join(" ")).toMatch(/repeats or contains another question's/);
+  });
+
+  it("refuses answers listed out of question order", () => {
+    // Production orders by `(round, question_index)`; this array is carried in the author's order.
+    const problems = validateRerunCorpusShape(
+      corpus([
+        validCase({
+          history: [
+            {
+              questions: [question(), question({ question: "Warm or cool in feel, overall?" })],
+              answers: [
+                { questionIndex: 1, selectedOptionLabel: "Black tie", freeText: null },
+                { questionIndex: 0, selectedOptionLabel: "Black tie", freeText: null },
+              ],
+            },
+          ],
+        }),
+      ]),
+    );
+    expect(problems.join(" ")).toMatch(/ascending `questionIndex` order/);
+  });
+
+  it("refuses an expected fact that quotes the model instead of asserting absence", () => {
+    // A quoted value asks the author to predict a trimmed verbatim span — the dependency the
+    // redesign removed everywhere else.
+    expect(
+      validateRerunCorpusShape(
+        corpus([validCase({ expectedFacts: { venueText: "the orangery" } })]),
+      ).join(" "),
+    ).toMatch(/must be null/);
     expect(
       validateRerunCorpusShape(corpus([validCase({ expectedFacts: { venueText: null } })])),
     ).toEqual([]);
@@ -728,6 +868,142 @@ describe("the mechanical checks decide what they can and refuse to guess the res
     );
     expect(status(checks, "menuNotResent")).toBe("fail");
     expect(detail(checks, "menuNotResent")).toContain("whyItMatters");
+  });
+
+  it("does not fail a correct assembly when two questions share a defer label", () => {
+    // `spec.md §7.6b #4` puts a defer option on every creative question, and labels are unique only
+    // within a question — so two rounds both offering "You decide" is ordinary, not a corpus
+    // defect. The host defers on one and picks a real option on the other; the shared label is
+    // legitimately in the request, and a per-answer carve-out would flag the other question's
+    // identical unselected label and fail an absolute check permanently.
+    const shared = validCase({
+      dimension: MULTI_ROUND_DIMENSION,
+      history: [
+        {
+          questions: [
+            question({
+              options: [
+                { label: "Black tie" },
+                { label: "Relaxed" },
+                { label: "You decide", isDefer: true },
+              ],
+            }),
+          ],
+          answers: [
+            { questionIndex: 0, selectedOptionLabel: "You decide", freeText: null, isDefer: true },
+          ],
+        },
+        {
+          questions: [
+            question({
+              question: "Quiet or celebratory in voice?",
+              options: [
+                { label: "Quiet" },
+                { label: "Celebratory" },
+                { label: "You decide", isDefer: true },
+              ],
+            }),
+          ],
+          answers: [{ questionIndex: 0, selectedOptionLabel: "Quiet", freeText: null }],
+        },
+      ],
+    });
+    expect(validateRerunCorpusShape(corpus([shared]))).toEqual([]);
+    const checks = checkRerunCase(
+      shared,
+      observation({
+        requestText: requestFor(shared),
+        answersAssembled: cumulativeHistory(shared),
+      }),
+    );
+    expect(status(checks, "menuNotResent")).toBe("pass");
+    expect(mechanicalPass(checks)).toBe(true);
+  });
+
+  it("does not fail a selected label that contains an unselected one", () => {
+    const overlapping = validCase({
+      history: [
+        {
+          questions: [
+            question({
+              options: [
+                { label: "Warm" },
+                { label: "Warm and candlelit" },
+                { label: "You decide", isDefer: true },
+              ],
+            }),
+          ],
+          answers: [
+            { questionIndex: 0, selectedOptionLabel: "Warm and candlelit", freeText: null },
+          ],
+        },
+      ],
+    });
+    const checks = checkRerunCase(
+      overlapping,
+      observation({
+        requestText: requestFor(overlapping),
+        answersAssembled: cumulativeHistory(overlapping),
+      }),
+    );
+    expect(status(checks, "menuNotResent")).toBe("pass");
+  });
+
+  it("flags rationale resent for a question nobody answered", () => {
+    // Resending an unanswered question's rationale is the same violation as resending an answered
+    // one's, so the sentinel is scanned for every seeded question.
+    const twoQuestions = validCase({
+      history: [
+        {
+          questions: [question(), question({ question: "Warm or cool in feel, overall?" })],
+          answers: [{ questionIndex: 0, selectedOptionLabel: "Black tie", freeText: null }],
+        },
+      ],
+    });
+    const checks = checkRerunCase(
+      twoQuestions,
+      observation({
+        requestText: `${requestFor(twoQuestions)}\n${seededWhyItMatters(1, 1)}`,
+        answersAssembled: cumulativeHistory(twoQuestions),
+      }),
+    );
+    expect(status(checks, "menuNotResent")).toBe("fail");
+    expect(detail(checks, "menuNotResent")).toContain("r1q1 whyItMatters");
+  });
+
+  it("fails an assembly that renders each question with the other one's answer", () => {
+    // Co-presence and order are not attribution: both texts present, in order, both labels
+    // present, and the self-report echoes the request. Only the window check sees the crossing.
+    const testCase = twoRounds();
+    const crossed = [
+      PROMPT,
+      `We asked: ${QUESTION} The host answered: Quiet`,
+      "We asked: Quiet or celebratory in voice? The host answered: Black tie",
+    ].join("\n");
+    const checks = checkRerunCase(
+      testCase,
+      observation({ requestText: crossed, answersAssembled: cumulativeHistory(testCase) }),
+    );
+    expect(status(checks, "questionRenderedWithAnswer")).toBe("pass");
+    expect(status(checks, "historyDelivered")).toBe("pass");
+    expect(status(checks, "answersAssembledAsGiven")).toBe("pass");
+    expect(status(checks, "answerBoundToItsQuestion")).toBe("fail");
+    expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("accepts an answer rendered before the question it answers", () => {
+    // The window is loose on purpose: only a genuine crossing fails.
+    const testCase = twoRounds();
+    const inverted = [
+      PROMPT,
+      `The host answered: Black tie — we had asked: ${QUESTION}`,
+      "The host answered: Quiet — we had asked: Quiet or celebratory in voice?",
+    ].join("\n");
+    const checks = checkRerunCase(
+      testCase,
+      observation({ requestText: inverted, answersAssembled: cumulativeHistory(testCase) }),
+    );
+    expect(status(checks, "answerBoundToItsQuestion")).toBe("pass");
   });
 
   it("does not count an unselected label the host or the question already used", () => {

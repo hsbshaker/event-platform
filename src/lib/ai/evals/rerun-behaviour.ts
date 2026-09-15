@@ -51,6 +51,7 @@
  * asks good questions, or asks any.
  */
 import {
+  CLARIFICATION_CEILING,
   SUPPLIED_FACT_FIELDS,
   type EventIdentityResult,
   type SuppliedEventFacts,
@@ -137,12 +138,13 @@ export interface RerunCase {
    */
   history: RerunHistoryRound[];
   /**
-   * What `suppliedFacts` must hold after the rerun: each key's value compared for equality, or
-   * `null` to require the field absent **or present and null** — the schema always emits the key,
-   * so those are one claim. Equality, not substring: the schema's values are trimmed verbatim
-   * quotations, so a partial match would accept a field saying more than the host did. Keys are
-   * validated against the real schema, so a plausible-looking `venue` is refused here rather than
-   * failing a clean run at T13.
+   * Which `suppliedFacts` must be **absent** after the rerun: every value is `null`, meaning the
+   * field was not supplied — absent or present-and-null, which the schema makes one claim since it
+   * always emits the key. A quoted value is refused by the contract: the schema's values are
+   * trimmed verbatim quotations, so asserting one asks the author to predict the model's exact
+   * span, which is the dependency this set was redesigned to remove. Keys are validated against
+   * the real schema, so a plausible-looking `venue` is refused here rather than failing a clean
+   * run at T13.
    */
   expectedFacts?: Record<string, string | null>;
   /** Terms an answer must not turn into a supplied fact. Matched against fact **values**. */
@@ -251,7 +253,19 @@ export function cumulativeHistory(testCase: RerunCase): RerunAnswerInput[] {
     round.answers.map((answer) => ({
       revision: index + 1,
       questionIndex: answer.questionIndex,
-      kind: round.questions[answer.questionIndex]?.kind ?? "creative",
+      // Throws rather than defaulting: a silent `"creative"` would mislabel a boundary answer's
+      // route in the evidence. The contract refuses an out-of-range index, so this is unreachable
+      // for any corpus that got this far — and unreachable by construction beats unreachable by
+      // inspection.
+      kind: (() => {
+        const kind = round.questions[answer.questionIndex]?.kind;
+        if (kind === undefined) {
+          throw new Error(
+            `case ${testCase.id}: revision ${index + 1} has no question at index ${answer.questionIndex}`,
+          );
+        }
+        return kind;
+      })(),
       selectedOptionLabel: answer.selectedOptionLabel,
       freeText: answer.freeText,
       isDefer: answer.isDefer === true,
@@ -343,6 +357,21 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
         problems.push(`${at}: \`questions\` must be a non-empty array`);
         return;
       }
+      // The refinements `clarificationDecisionSchema` enforces, mirrored verbatim. Without them a
+      // corpus this validator accepts builds a revision envelope the real schema rejects — and a
+      // T9 assembly that parses fail-closed (as every other reader here does) throws inside the
+      // call, so the runner journals our own corpus defect as a provider failure and destroys a
+      // one-shot paid run at the first such case. "Schema-valid by construction" has to be true of
+      // everything the contract admits, not of the examples the author happened to write.
+      if (questions.length > CLARIFICATION_CEILING) {
+        problems.push(`${at}: at most ${CLARIFICATION_CEILING} questions in a round`);
+      }
+      const boundaries = questions.filter((q) => q?.kind === "boundary").length;
+      if (boundaries > 1 || (boundaries === 1 && questions.length > 1)) {
+        problems.push(
+          `${at}: a boundary question must be the only question in its round (spec.md §7.6b)`,
+        );
+      }
 
       questions.forEach((question, questionIndex) => {
         const qAt = `${at} q${questionIndex}`;
@@ -351,10 +380,23 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
         }
         if (!nonEmpty(question?.question) || question.question.trim().length < 8) {
           problems.push(`${qAt}: \`question\` must be a question of at least 8 characters`);
-        } else if (questionTexts.has(question.question)) {
+        } else if (question.question.length > 240) {
+          problems.push(`${qAt}: \`question\` must be at most 240 characters`);
+        } else if (question.question !== question.question.trim()) {
+          // The same rule as the prompt, and for the same reason: Zod `.trim()` is a transform,
+          // not a rejection, so an assembly that parses the envelope renders the trimmed text
+          // while `questionRenderedWithAnswer` searches for the padded one — a permanent failure
+          // against a correct implementation, over whitespace.
+          problems.push(`${qAt}: \`question\` must not have leading or trailing whitespace`);
+        } else if (
+          [...questionTexts].some(
+            (seen) => seen.includes(question.question) || question.question.includes(seen),
+          )
+        ) {
           // `questionRenderedWithAnswer` locates each question in the request by its text and
-          // requires chronological order; two identical texts make that undecidable.
-          problems.push(`${qAt}: duplicate question text within the case`);
+          // requires chronological order. Identical texts make that undecidable, and a text that
+          // is a substring of another inverts it, which is worse: it fails silently and wrongly.
+          problems.push(`${qAt}: question text repeats or contains another question's in the case`);
         } else {
           questionTexts.add(question.question);
         }
@@ -367,6 +409,12 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
         const labels = options.map((option) => option?.label);
         if (labels.some((label) => !nonEmpty(label))) {
           problems.push(`${qAt}: every option needs a non-empty \`label\``);
+        }
+        if (labels.some((label) => typeof label === "string" && label.length > 80)) {
+          problems.push(`${qAt}: an option \`label\` must be at most 80 characters`);
+        }
+        if (labels.some((label) => typeof label === "string" && label !== label.trim())) {
+          problems.push(`${qAt}: an option \`label\` must not have leading or trailing whitespace`);
         }
         if (new Set(labels).size !== labels.length) {
           problems.push(`${qAt}: option labels must be distinct`);
@@ -396,6 +444,13 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
         }
         if (answered.has(answer.questionIndex)) {
           problems.push(`${aAt}: q${answer.questionIndex} is answered twice in one round`);
+        }
+        // Ascending, because production orders answers by `(round, question_index)` — that is
+        // literally the index built for it — while this array is carried in the order the author
+        // wrote it. A round listing q1 before q0 would demand that order of the request and fail
+        // two absolute checks against a correct assembly.
+        if (answered.size > 0 && answer.questionIndex <= Math.max(...answered)) {
+          problems.push(`${aAt}: answers must be listed in ascending \`questionIndex\` order`);
         }
         answered.add(answer.questionIndex);
 
@@ -441,8 +496,17 @@ export function validateRerunCorpusShape(parsed: unknown): string[] {
               `${where}: \`expectedFacts.${key}\` is not a supplied-fact field (${SUPPLIED_FACT_FIELDS.join(", ")})`,
             );
           }
-          if (value !== null && !nonEmpty(value)) {
-            problems.push(`${where}: \`expectedFacts.${key}\` must be a non-empty string or null`);
+          if (value !== null) {
+            // Absence is assertable; a quotation is a prediction. Values are trimmed verbatim
+            // quotations of the host, so `"the orangery"` loses the whole one-shot run if the
+            // model quotes `"orangery"` or `"at the orangery"` — the author predicting a
+            // stochastic span, which is the dependency this whole redesign removed. No published
+            // dimension needs one: `no_fact_invention` is served by `mustNotInvent` plus null
+            // expectations, and `answer_precedence` is qualitative.
+            problems.push(
+              `${where}: \`expectedFacts.${key}\` must be null — assert that a fact was NOT ` +
+                "supplied. A quoted value would require predicting the model's exact wording.",
+            );
           }
         }
       }
@@ -480,7 +544,8 @@ export interface RerunObservation {
   /** The host's original description as the implementation reports having sent it. */
   promptSent: string;
   /**
-   * The exact text transmitted to the provider.
+   * The assembled user message, verbatim as transmitted — and only that: no correction turn, and
+   * no assistant echo of a previous response, so no text the provider produced can reach a check.
    *
    * The checks are anchored here rather than to the self-reported fields, because those are
    * satisfiable by an implementation that echoes its arguments: `promptSent: request.prompt` and
@@ -566,26 +631,46 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
 
   /* --- CA-4's other half: the question, not the whole menu the model generated -------------- */
 
+  /**
+   * A label is evidence of a resent menu only when nothing legitimate could have put it there.
+   *
+   * The allowlist is built once per case, not per answer. Built per answer it admitted three
+   * sources — the prompt, that same question's text, that same answer's free text — and flagged
+   * every other occurrence, which fails a correct assembly in at least four ordinary shapes:
+   * two creative questions both labelled "You decide" (`spec.md §7.6b #4` requires a defer option
+   * on every one of them, and labels are unique only within a question), a selected
+   * "Warm and candlelit" that contains an unselected "Warm", a label that appears in another
+   * question's text, and a label the host typed in a different round's free text. The T6 author
+   * cannot avoid any of that, because they never see this checker.
+   *
+   * The sharp half is kept absolute: `whyItMatters` is generated per question and is never
+   * legitimate in a request, so its presence is unambiguous — and it is scanned for every seeded
+   * question, not only answered ones, since resending an unanswered question's rationale is the
+   * same violation.
+   */
+  const legitimate = [
+    testCase.prompt,
+    ...testCase.history.flatMap((round) => [
+      ...round.questions.map((question) => question.question),
+      ...round.answers.flatMap((answer) => [
+        answer.selectedOptionLabel ?? "",
+        answer.freeText ?? "",
+      ]),
+    ]),
+  ];
   const resent: string[] = [];
-  for (const answer of history) {
-    const question = questionFor(testCase, answer);
-    if (question === undefined) continue;
-    if (request.includes(seededWhyItMatters(answer.revision, answer.questionIndex))) {
-      resent.push(`r${answer.revision}q${answer.questionIndex} whyItMatters`);
-    }
-    for (const option of question.options) {
-      if (option.label === answer.selectedOptionLabel) continue;
-      // An unselected label that the host or the question itself already used is not evidence of
-      // a resent menu, so it is never counted against the assembly.
-      const elsewhere =
-        testCase.prompt.includes(option.label) ||
-        question.question.includes(option.label) ||
-        (answer.freeText ?? "").includes(option.label);
-      if (!elsewhere && request.includes(option.label)) {
-        resent.push(`r${answer.revision}q${answer.questionIndex} "${option.label}"`);
+  testCase.history.forEach((round, roundIndex) => {
+    round.questions.forEach((question, questionIndex) => {
+      const at = `r${roundIndex + 1}q${questionIndex}`;
+      if (request.includes(seededWhyItMatters(roundIndex + 1, questionIndex))) {
+        resent.push(`${at} whyItMatters`);
       }
-    }
-  }
+      for (const option of question.options) {
+        if (legitimate.some((text) => text.includes(option.label))) continue;
+        if (request.includes(option.label)) resent.push(`${at} "${option.label}"`);
+      }
+    });
+  });
   add(
     "menuNotResent",
     resent.length === 0 ? "pass" : "fail",
@@ -616,6 +701,55 @@ export function checkRerunCase(testCase: RerunCase, observed: RerunObservation):
       ? `all ${history.length} prior answer(s) reached the model, oldest first`
       : `not transmitted: ${lost.join(", ")} — an answer the host gave is no longer available to ` +
           "the model, which is stateless",
+  );
+
+  /* --- CA-4's point: each answer travels with *its own* question, not merely alongside one --- */
+
+  /**
+   * Co-presence and order are not attribution.
+   *
+   * Without this, an assembly that renders question 1 with answer 2 and question 2 with answer 1
+   * passes everything above: both texts are present, in order, and both labels are present. That
+   * is a real CA-4 violation — the decision is *previous system question → host's current answer* —
+   * sailing through every absolute check, and `answersAssembledAsGiven` cannot catch it because it
+   * is a self-report of the very thing in doubt.
+   *
+   * The window is deliberately loose: an answer's text must occur somewhere between the *previous*
+   * question and the *next* one, so "We asked X. The host said Y" and "Y — we had asked X" both
+   * pass, and only a genuine crossing fails. Every occurrence is considered, not the first, so a
+   * label that also appears in a summary elsewhere cannot push a correct rendering out of range.
+   */
+  const occurrences = (needle: string): number[] => {
+    if (needle.length === 0) return [];
+    const found: number[] = [];
+    for (let at = request.indexOf(needle); at >= 0; at = request.indexOf(needle, at + 1)) {
+      found.push(at);
+    }
+    return found;
+  };
+  const crossed: string[] = [];
+  if (missingQuestions.length === 0 && ordered) {
+    history.forEach((answer, i) => {
+      const from = i === 0 ? -1 : positions[i - 1];
+      const to = i === positions.length - 1 ? request.length : positions[i + 1];
+      const said = [answer.selectedOptionLabel, answer.freeText?.trim()].filter(
+        (text): text is string => typeof text === "string" && text.length > 0,
+      );
+      const inWindow = said.some((text) => occurrences(text).some((at) => at > from && at < to));
+      if (said.length > 0 && !inWindow) {
+        crossed.push(`r${answer.revision}q${answer.questionIndex}`);
+      }
+    });
+  }
+  const bound = crossed.length === 0;
+  add(
+    "answerBoundToItsQuestion",
+    missingQuestions.length > 0 || !ordered ? "n/a" : bound ? "pass" : "fail",
+    missingQuestions.length > 0 || !ordered
+      ? "not decidable: the carried questions are missing or out of order"
+      : bound
+        ? "each answer is rendered with the question it answers, not merely in the same request"
+        : `rendered away from its own question: ${crossed.join(", ")}`,
   );
 
   /* --- and the representation the implementation reports, matched against the frozen history - */
@@ -774,13 +908,17 @@ export const RERUN_ACCEPTANCE = {
     "NOT a replacement for the spent v5 sealed challenge",
     "validates the input shape and lifecycle, not the interpreter's creative quality",
     "the prior clarification history is frozen fixture state authored with the case; no model produced it, and only the rerun is a live call",
+    "cumulative history is verified as rendering, not as selection: the harness hands the assembly the full history, so the production query that gathers every prior answer sits above this seam and is not evidenced here",
   ],
   mechanical:
     "Every case passes mechanically: no check reports `fail`. `promptByteIdentical`, " +
     "`questionRenderedWithAnswer`, `menuNotResent`, `historyDelivered` and " +
-    "`answersAssembledAsGiven` are absolute — a single failure of any of them fails the set, " +
-    "because all five are correctness properties of the lifecycle rather than judgements. None " +
-    "of them depends on what the rerun chose to ask.",
+    "`answerBoundToItsQuestion` are absolute — a single failure of any of them fails the set, " +
+    "because all five are correctness properties of the lifecycle rather than judgements, and " +
+    "each is decided against the text actually transmitted. `answersAssembledAsGiven` gates too, " +
+    "but it is a self-report of what the assembly believes it carried, cross-checked by the five " +
+    "rather than trusted alongside them. None of the checks depends on what the rerun chose to " +
+    "ask, and none reads text the provider produced.",
   qualitative:
     "An independent reviewer, reading a blind artifact of each case, answers three questions: " +
     "did the prior answer reach the rerun as the host's current input, rather than as a rewrite " +
@@ -943,7 +1081,7 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
    */
   promptSent: string;
   /**
-   * The exact text transmitted to the provider, verbatim.
+   * The assembled user message, verbatim as transmitted.
    *
    * Required, because the checks `RERUN_ACCEPTANCE` calls absolute are otherwise tautological: an
    * implementation returning `promptSent: request.prompt` and `answersAssembled: request.answers`
@@ -957,13 +1095,17 @@ export type RerunCallRunner = (request: RerunRequest) => Promise<{
    *   verbatim;
    * - the host's typed words reach it unnormalised. Trimming is fine — the comparison is on a
    *   trimmed value — but paraphrasing, truncating or re-encoding them is not;
-   * - on a repair retry, return the **whole** assembled input for the attempt whose response you
-   *   are returning — the original user message plus whatever the retry appended, never the retry
-   *   turn alone. The provider boundary appends a correction turn rather than replacing the user
-   *   message, so the description, the questions and the answers are all still in that input.
-   *   Returning only the correction turn would fail absolute checks on a correct implementation
-   *   and hand the blind reviewer a schema complaint where the host's words should be. Repairs are
-   *   not rare: 2 of 12 calls in the v5 sealed challenge consumed one.
+   * - it is **your assembled user message and nothing else**. Not the correction turn a repair
+   *   retry appends, and — the part that matters — not the assistant echo of the model's previous,
+   *   schema-invalid response that the provider boundary puts between them. That echo is raw model
+   *   output containing model-invented option labels, and `menuNotResent` is a negative substring
+   *   scan: a rerun whose first attempt failed validation and happened to emit a label matching a
+   *   seeded unselected one would fail an absolute check with the assembly entirely correct. That
+   *   is the same defect that reopened this freeze — a stochastic model output reaching a
+   *   permanent verdict — and repairs are not rare: 2 of 12 calls in the v5 sealed challenge
+   *   consumed one. Nothing is lost by excluding them: the boundary rebuilds the user message
+   *   identically on every attempt, so one text describes both, and it still carries the
+   *   description, the questions and the answers that every positive check looks for.
    */
   requestText: string;
   assemblyVersion: string;

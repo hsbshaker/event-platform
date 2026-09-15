@@ -1195,10 +1195,12 @@ check observes, and no evidence here supports a claim about, whether EventIdenti
 all. That remains the spent v5 sealed challenge's territory. And T9 owes the harness three things
 the frozen seam states but this plan should not leave only there: `requestText` is the assembled
 user message rather than an encoded request body, host free text reaches it unnormalised (trimming
-excepted), and on a repair retry it is the **whole** assembled input for the attempt whose response
-is returned — the provider boundary appends a correction turn rather than replacing the user
-message, and returning the correction turn alone would fail absolute checks on a correct
-implementation.
+excepted), and it is the assembly's **own user message and nothing else** — not the correction turn
+a repair retry appends, and not the assistant echo of the model's previous schema-invalid response
+that the boundary puts between them. That echo is raw model output carrying model-invented option
+labels, and `menuNotResent` is a negative substring scan, so including it would let a stochastic
+repair reach a permanent verdict — the same defect that reopened this freeze. Nothing is lost:
+the boundary rebuilds the user message identically on every attempt.
 
 **What the T6 author brief must publish, and T7 must check.** The frozen validator now checks far
 more than it did — an answer's locator, its option, its defer semantics, duplicate question text,
@@ -1206,18 +1208,22 @@ multi-round coverage for the multi-round dimension, and `expectedFacts` keys aga
 schema. These are what it still cannot check, and each is a way a *correct* T9 implementation could
 fail the one paid run permanently. All are fixable at the corpus, which is what T7 is for (§3.5).
 
-1. **`expectedFacts` values are trimmed verbatim quotations of the host**, compared for equality.
-   An expectation must be lexically present in that case's own prompt or answers; `null` means the
-   field was not supplied. (The *keys* are now refused mechanically against
-   `SUPPLIED_FACT_FIELDS`, so the largest silent hazard is closed in code.)
-2. **`mustNotInvent` is a case-insensitive substring match over the rerun's fact *values*.** A term
-   must not be a substring of anything the host legitimately said in that case.
-3. **A question's text must not appear inside the case's own prompt or an answer's free text**, or
+1. **`mustNotInvent` is a case-insensitive substring match over the rerun's fact *values*.** A term
+   must not be a substring of anything the host legitimately said in that case. (`expectedFacts`
+   needs no guidance any more: its keys are refused against `SUPPLIED_FACT_FIELDS` and its values
+   must be `null`, because a quoted value would ask the author to predict a trimmed verbatim span.)
+2. **A question's text must not appear inside the case's own prompt or an answer's free text**, or
    `questionRenderedWithAnswer` cannot distinguish a rendered question from an echo of the
-   description, and `menuNotResent`'s carve-out would mask a resent label.
-4. **Dimension coverage is T7's to check**, since nothing frozen requires the corpus to span all
+   description, and `menuNotResent`'s allowlist would mask a resent label.
+3. **Dimension coverage is T7's to check**, since nothing frozen requires the corpus to span all
    seven — only that a `multi_round_provenance` case carries at least two rounds, which the
    validator does enforce.
+
+The hazards an earlier draft listed here are now refused in code instead, which is the right place
+for anything a reviewer would have to catch by eye in a corpus written by someone who cannot see
+the checker: the response-level boundary-exclusivity and question-ceiling rules the real schema
+enforces, question and label length bounds, leading or trailing whitespace on a question or a
+label, a question text that contains another's, and answers listed out of `questionIndex` order.
 
 **Three procedural notes that are not code.** (1) `src/lib/ai/evals/rerun-behaviour.ts` and
 `tests/eval/clarification-rerun.eval.ts` compile against `report.ts`, `journal.ts`, `lifecycle.ts`,
@@ -1228,6 +1234,14 @@ the corpus digest — the paths live in an editable file, and the T13 evidence i
 as they are. (3) The T13 reviewer instruction must say that the artifact is given **alone**:
 blinding in `blind-review.md` is positional, and `mechanical-report.md` lists the case ids in the
 same order.
+
+**Two notes for the T9 packet.** The harness deliberately withholds the `question_text` and
+`options` copies that `clarification_answers` carries, so the assembly must resolve the question out
+of the revision envelope. That is stronger than production's minimum, and it means T9 must be
+written to accept revision envelopes rather than growing a harness-only adapter — otherwise the
+tested path is not the production path. And a case cannot represent a revision that asked nothing:
+every history round carries at least one question, so a "revision 2 asked nothing, revision 3 asked"
+shape is outside this set's fidelity. Neither affects a check; both should be known before T9.
 
 **The inspiration channel is not T9's to add.** `event_identity_input_v2` is being validated for
 clarification-answer assembly. Phase 4A's v1 input did not send inspiration even though canon
