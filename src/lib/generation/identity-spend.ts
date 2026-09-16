@@ -6,6 +6,7 @@ import {
   TRANSIENT_BACKOFF_MS,
 } from "@/lib/ai/openai/event-identity";
 import {
+  isProductionRuntime,
   isVerified,
   logicalCallMaxUsd,
   providerAttemptMaxUsd,
@@ -46,6 +47,34 @@ const positiveNumber = (name: string, fallback: number): number => {
 };
 
 const DAY_SECONDS = 86_400;
+
+/**
+ * Development's global ceiling. **Not** a production decision.
+ *
+ * How much this product is willing to lose in a day is a financial choice with a real owner, and
+ * inheriting a number a developer picked for local convenience is not that choice being made — it
+ * is that choice being skipped. Production therefore requires `IDENTITY_CEILING_USD` to be set,
+ * and refuses before a claim exists if it is missing, malformed or non-positive.
+ */
+export const DEV_CEILING_USD = 3_000;
+
+function ceilingUsd(): number {
+  const raw = process.env.IDENTITY_CEILING_USD;
+  const configured = raw !== undefined && raw.trim() !== "";
+  if (!configured) {
+    if (!isProductionRuntime()) return DEV_CEILING_USD;
+    throw new Error(
+      "IDENTITY_CEILING_USD is not set. Production refuses to run without an explicit global " +
+        "spend ceiling: the development default is a convenience, not a decision about how much " +
+        "this product may lose in a day.",
+    );
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error("IDENTITY_CEILING_USD must be a positive number");
+  }
+  return parsed;
+}
 
 export interface IdentityLimits {
   /** Per-event daily generation cap. Spans the owner and every co-host (`spec.md §6`). */
@@ -102,12 +131,12 @@ export const LEASE_MARGIN_SECONDS = 120;
 
 export const DEFAULT_LEASE_SECONDS = LEASE_FLOOR_SECONDS + LEASE_MARGIN_SECONDS;
 
-export function identityLimits(model: string): IdentityLimits {
+export function identityLimits(model: string, now: Date = new Date()): IdentityLimits {
   // Resolved first, and it throws in production when no verified profile exists for this exact
   // model. That is the fail-closed half of the contract: a claim cannot be taken — and therefore
   // the provider cannot be reached — while the reservation would be made against a bound nobody
   // checked.
-  const profile = requireCostProfile(model);
+  const profile = requireCostProfile(model, now);
   const leaseSeconds = positiveInt("IDENTITY_CLAIM_LEASE_SECONDS", DEFAULT_LEASE_SECONDS);
   if (leaseSeconds < LEASE_FLOOR_SECONDS) {
     throw new Error(
@@ -121,7 +150,7 @@ export function identityLimits(model: string): IdentityLimits {
   // *after* the provider has been paid, so a configuration error there would throw between the
   // response and the capture — losing a paid response to a misconfiguration. Fail before the
   // money, not after it.
-  const maxUsd = logicalCallMaxUsd(model);
+  const maxUsd = logicalCallMaxUsd(model, now);
   return {
     eventCap: { windowSeconds: DAY_SECONDS, max: positiveInt("IDENTITY_EVENT_DAILY_MAX", 20) },
     accountCap: { windowSeconds: DAY_SECONDS, max: positiveInt("IDENTITY_ACCOUNT_DAILY_MAX", 40) },
@@ -131,12 +160,7 @@ export function identityLimits(model: string): IdentityLimits {
     },
     ceiling: {
       windowSeconds: positiveInt("IDENTITY_CEILING_WINDOW_SECONDS", DAY_SECONDS),
-      // Coherent with the placeholder per-attempt maximum: with prices unconfigured every call is
-      // reserved and recorded at `logicalCallMaxUsd()`, so a ceiling tuned for priced calls would
-      // refuse after a handful and present to operators as "generation is broken" — every refusal
-      // being indistinguishable by design. Setting real prices makes the accounting far less blunt
-      // and this number correspondingly less important.
-      usd: positiveNumber("IDENTITY_CEILING_USD", 3_000),
+      usd: ceilingUsd(),
     },
     logicalCallMaxUsd: maxUsd,
     warnFraction,
@@ -144,7 +168,7 @@ export function identityLimits(model: string): IdentityLimits {
     costBoundVerified: isVerified(profile),
     costProfileVersion: profile.profileVersion,
     costProfile: profile,
-    perAttemptMaxUsd: providerAttemptMaxUsd(model),
+    perAttemptMaxUsd: providerAttemptMaxUsd(model, now),
   };
 }
 

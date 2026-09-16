@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import {
+  EVENT_IDENTITY_SERVICE_TIER,
+  EVENT_IDENTITY_STORE_RESPONSES,
+  eventIdentityModelConfig,
+} from "@/lib/ai/openai/event-identity";
 import { attemptKey, basisDigest, modelConfigDigest, type IdentityCallBasis } from "./identity-key";
 
 /**
@@ -66,5 +71,32 @@ describe("the EventIdentity attempt key", () => {
 
   it("digests an empty config without collapsing into another shape", () => {
     expect(modelConfigDigest({})).not.toBe(modelConfigDigest({ model: "" }));
+  });
+
+  it("carries every request-shaping option the boundary actually sends", () => {
+    // One builder, so a basis cannot omit an option the request sends. A call billed differently
+    // or persisted differently is a different call.
+    const config = eventIdentityModelConfig("gpt-5.6-sol", "high");
+    expect(config).toEqual({
+      model: "gpt-5.6-sol",
+      reasoningEffort: "high",
+      serviceTier: EVENT_IDENTITY_SERVICE_TIER,
+      store: EVENT_IDENTITY_STORE_RESPONSES,
+    });
+  });
+
+  it.each([
+    ["the service tier", { serviceTier: "priority" }],
+    ["provider-side storage", { store: true }],
+  ])("changes the model-config digest when %s changes", (_label, patch) => {
+    // So another tier necessarily produces a different attempt key — and needs its own verified
+    // cost profile before it could be used in production.
+    const base = eventIdentityModelConfig("gpt-5.6-sol", "high");
+    expect(modelConfigDigest({ ...base, ...patch })).not.toBe(modelConfigDigest(base));
+  });
+
+  it("does not let a string impersonate a boolean option", () => {
+    const base = eventIdentityModelConfig("gpt-5.6-sol", "high");
+    expect(modelConfigDigest({ ...base, store: "false" })).not.toBe(modelConfigDigest(base));
   });
 });

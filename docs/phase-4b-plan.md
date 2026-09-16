@@ -262,6 +262,7 @@ owns:
 | 2 | per-account generation cap | bucket `identity:account:day`, keyed on the acting `user_id` — the actor, not the owner |
 | 3 | global/project spend ceiling, refused **before** the call | a pre-call check against recorded spend: the sum of `generation_runs.cost_estimate_usd` over the ceiling window, plus the reservation held by claims still in flight. Cost is knowable only after a call, so the bound is *recorded spend + (in-flight claims × the **logical-call** maximum)*, stated as a bound and never as exact spend. **An `expired_unknown` claim with no run row is reserved for too**, within the same window: it reached that state because the provider was invoked and we never learned the outcome, so §A.5.1 rule 2 costs it at the maximum — and being terminal with no run row it would otherwise drop out of both terms the instant it settled, which is fail-open in precisely the ambiguous, expensive case the rule exists for. **`cost_estimate_usd` is nullable and nothing populated it before T9A, so a null counts as the logical-call maximum, never as zero** — a ceiling that silently under-counts is the fail-open shape §A.3 exists to refuse. How both the estimate and the maximum are computed is §A.5.1, and it is the part of this row that is easiest to get wrong |
 | 4 | alert/observability path for the ceiling | a structured server-side alert record emitted when the window crosses its warn fraction and again at refusal, carrying window, recorded spend, ceiling and the refusing bucket. Delivery channel (email/pager) is explicit debt, not a new dependency — `technology-decisions.md` is locked |
+| 4b | the request is billed the way the cost profile assumes | `service_tier` and `store` are sent explicitly on every request rather than inherited. Left unset the tier comes from provider or project configuration, and the profile is built against standard pricing — Fast Mode is 2× and Batch/Flex are ½ — so an inherited tier would price a call against a bound that does not describe it. Both are part of `modelConfig`, so another tier is a different attempt key and needs its own verified profile. `store: false` because EventIdentity is stateless: the repair resends the rejected turn explicitly, so nothing needs the provider to retain host prompts and model output in a store we neither read nor purge |
 | 5 | rate limiting before the provider is reached | the claim RPC (below) runs to completion before `generateEventIdentity` is called at all. There is no provider factory to intercept — the client is constructed **inside** `generateEventIdentity` (`new OpenAI(…)`) — so the observable boundary is that function. **T9A proves the half it can**: the claim RPC refuses and returns before anything reaches the provider, and no module in T9A calls `generateEventIdentity` at all. The behavioural assertion that a refusal is never *followed* by a provider call belongs to **T10**, which is where the two are first composed — asserting it here would mean writing the composition inside a test and then testing the test. An earlier draft of this row named a `createOpenAIClient` seam that does not exist, and a later one claimed T9A made the assertion; neither was true |
 | 6 | deterministic idempotency for an EventIdentity request | the attempt key below. Derived from the request, never random, never a client-supplied token |
 | 7 | a concurrency claim so two requests cannot both pay | `event_identity_call_claims`, unique on the attempt key, **inserted before the provider is reached**. A uniqueness conflict that only surfaces after two calls have completed is not idempotency |
@@ -336,6 +337,18 @@ bill. Development and tests fall back to a labelled unverified profile whose bou
 larger than any verified one. None of this is an operator ritual: nothing is presented for
 approval and no secret unlocks it — either the profile exists for this model or the call does not
 happen.
+
+**A profile expires.** Prices move and published commitments are time-bounded, so each profile
+carries `reverifyAfter`: usable through that day inclusive, stale from the following UTC day, after
+which production refuses a **new paid attempt** against it. A bound nobody re-read is the same
+failure as one nobody verified — it just takes longer to become false. Re-verification is a person
+reading the current documentation, moving the numbers if they moved, updating the dates and bumping
+the version; nothing fetches pricing at runtime.
+
+**The global ceiling is a production decision, not a default.** Development keeps one for
+convenience; production requires `IDENTITY_CEILING_USD` explicitly and refuses — before a claim
+exists — when it is missing, malformed or non-positive. How much this product may lose in a day has
+an owner, and inheriting a developer's local number is that decision being skipped rather than made.
 
 The bound is the worst legal request at the worst tier: every input token billed as a cache write
 at long-context rates, plus the largest permitted output, rounded up. It is stored on the profile
@@ -413,11 +426,25 @@ grants in place would hand `authenticated` a `SELECT` on exactly that.
 | `abandoned` | the lease elapsed with `provider_invoked_at` null | reclaimable automatically: provably no call was made |
 | `recovery_failed` | the call **succeeded** and recovery failed: the captured text no longer validates, its schema version has no reader in this build, or the database refuses the completion deterministically | terminal; a retry is a host action. Distinct from `failed_terminal` because the diagnosis and the fix differ, and terminal because `response_captured` has no expiry — without this state one undeliverable response would hold that event's only in-flight slot for ever. The run row and its evidence are untouched and age out on the ordinary schedule |
 
+#### Who recovers, and when
+
+**Active recovery is request-driven. The daily job is only a backstop.** A host who is waiting must
+never be waiting on a scheduled job — so every orchestration, re-entry and status request completes
+a `response_captured` claim inline (§A.6 step 3) and reclaims a provably-unpaid abandoned one,
+before it considers any new spend. A refresh, a reconnect, a status poll or a duplicate POST is
+sufficient to finish that state immediately, with **no model call**.
+
+The scheduled job exists for the other case: work nobody comes back to. Its role is eventual
+cleanup and recovery for abandoned events, and it runs **once a day** — the platform plan this
+project is on caps cron frequency at once daily and rejects anything more frequent at deploy time,
+with per-hour precision (±59 minutes). That constraint is survivable only because of the sentence
+above: a cadence measured in hours cannot be on a waiting person's path, and now it is not.
+
 **Giving up is bounded by age, not by attempts.** A failure that will fail identically next time —
 an integrity violation, a data exception, an unsupported feature — terminates at once. Anything that
 might be transient is held and retried, terminating only once the captured response has aged out
-(two days). Counting attempts instead looks equivalent and is not: the sweep runs every fifteen
-minutes, so a three-attempt rule is a forty-five-minute rule, and one statement timeout or one
+(two days). Counting attempts instead looks equivalent and is not: with the sweep on any short
+cadence a three-attempt rule is a minutes-long rule, and one statement timeout or one
 migration holding a lock would irreversibly terminalize every captured response in the backlog —
 each of those hosts then paying again for a call that had already succeeded. The sweep also stops
 early when several claims in a row fail the same way, because then the claims are not the problem.
@@ -580,12 +607,12 @@ step 6 is a separate commit.
 - one `security definer` RPC performing step 4 atomically and returning a claim or a reason code;
 - the step-5 `provider_invoked_at` commit;
 - one RPC (or server function) performing step 6, and one performing step 7;
-- a reclaim/complete driver, specified rather than gestured at: a scheduled job on the existing
-  daily-housekeeping path, running often enough that a `response_captured` claim is completed well
-  inside §A.7's retention window, which marks `abandoned` every expired claim with a committed null
+- a reclaim/complete driver, specified rather than gestured at: a **once-daily backstop** on the
+  existing housekeeping path, which marks `abandoned` every expired claim with a committed null
   `provider_invoked_at`, marks `expired_unknown` every expired claim with one set, and completes
   every `response_captured` claim through the same conditional transition step 3 uses — so the job
-  and a concurrent request cannot both complete one — processing a bounded batch per run;
+  and a concurrent request cannot both complete one — processing a bounded batch per run. **It is
+  not on any active host's path**: see the recovery-ownership note below;
 - a durable home for the §A.5 ceiling alert record;
 - the new `rate_limits` rule constants beside the existing ones in `src/lib/auth/rate-limit.ts`.
   Note that `consume_rate_limit` takes `p_key_hash bytea` and `hashRateLimitKey` HMACs in TypeScript

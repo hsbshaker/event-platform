@@ -25,12 +25,13 @@ export interface IdentityCallBasis {
   inputAssemblyVersion: string;
   /**
    * Model configuration that changes the request without changing the three versions: the model
-   * id and the reasoning effort today, plus any future request-shaping option.
+   * id, the reasoning effort, the service tier and whether the provider stores the response.
    *
-   * Its presence is why a rolling deploy mid-flight produces a different key — which the
-   * one-in-flight guard, not the key, is what contains (§A.5 row 7b).
+   * Build it with `eventIdentityModelConfig()` rather than by hand, so a basis cannot omit an
+   * option the request actually sends. Its presence is why a rolling deploy mid-flight produces a
+   * different key — which the one-in-flight guard, not the key, is what contains (§A.5 row 7b).
    */
-  modelConfig: Record<string, string>;
+  modelConfig: Record<string, string | number | boolean>;
 }
 
 /**
@@ -58,10 +59,12 @@ const sha256 = (parts: readonly string[]): string => {
  * `sha256` length-prefixes to avoid one level up. A collision here means two different model
  * configurations share an attempt key, so one of them is never paid for.
  */
-export function modelConfigDigest(config: Record<string, string>): string {
+export function modelConfigDigest(config: Record<string, string | number | boolean>): string {
   const parts = Object.entries(config)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .flatMap(([k, v]) => [k, v]);
+    // Typed so `false` and `"false"` cannot collide: a boolean option flipping must change the
+    // digest, and stringifying alone would let a string-valued twin impersonate it.
+    .flatMap(([k, v]) => [k, `${typeof v}:${String(v)}`]);
   return sha256(parts);
 }
 

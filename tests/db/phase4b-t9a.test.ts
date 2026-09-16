@@ -325,6 +325,66 @@ describe("the spend ceiling", () => {
     expect(Number(probe.reserved_usd)).toBe(0);
   });
 
+  it("admits exactly one of two concurrent claims on different events", async () => {
+    // The race that matters is across events: the one-in-flight index serializes a single event,
+    // and nothing serialized the project budget, so N simultaneous claimers each read the same
+    // reservation, each concluded there was room, and all passed — a ceiling times the
+    // concurrency. The advisory lock inside `claim_identity_call` is what makes it a ceiling.
+    //
+    // Sized so exactly one more reservation fits: ceiling 30, logical-call maximum 30, nothing
+    // recorded and nothing reserved.
+    const a = await connect();
+    const b = await connect();
+    try {
+      const opts = { ceilingUsd: 30, logicalMaxUsd: 30 };
+      const [ra, rb] = await Promise.all([
+        claim("ka", { ...opts, event: eventId, basis: "ba" }, a),
+        claim("kb", { ...opts, event: otherEventId, basis: "bb" }, b),
+      ]);
+      const outcomes = [ra.outcome, rb.outcome].sort();
+      expect(outcomes).toEqual(["ceiling", "claimed"]);
+
+      // One claim, and it is the admitted one.
+      const { rows: claims } = await db.query(
+        `select event_id from public.event_identity_call_claims`,
+      );
+      expect(claims).toHaveLength(1);
+
+      // The refused transaction consumed nothing: not the event cap of *its* event, not the
+      // account cap, not the rate limit. Three buckets, one unit each, from the winner alone.
+      const consumed = await buckets();
+      expect(consumed.map((r) => r.bucket).sort()).toEqual([
+        "identity:account:day",
+        "identity:account:rate",
+        "identity:event:day",
+      ]);
+      for (const row of consumed) expect(row.count).toBe(1);
+
+      // And the admitted reservation exactly fills the ceiling, so a third is refused by the
+      // budget rather than by uniqueness — the ceiling check runs before the insert.
+      const third = await claim("kc", { ...opts, event: otherEventId, basis: "bc" });
+      expect(third.outcome).toBe("ceiling");
+      expect(Number(third.reserved_usd)).toBe(30);
+      expect(Number(third.recorded_spend_usd) + Number(third.reserved_usd)).toBeLessThanOrEqual(30);
+    } finally {
+      await a.end();
+      await b.end();
+    }
+  });
+
+  it("serializes admission on one dedicated key, and does not hold it across a provider call", async () => {
+    // Transaction-scoped, so it is released by commit — nothing to leak and nothing to clean up.
+    // `mark_identity_call_invoked` and the provider call happen in later transactions, so a slow
+    // model call can never block another event's admission.
+    const { rows } = await db.query(`select public.identity_budget_lock_key() as key`);
+    expect(typeof rows[0].key === "string" || typeof rows[0].key === "number").toBe(true);
+    await claim("k1");
+    const { rows: held } = await db.query(
+      `select count(*)::int c from pg_locks where locktype = 'advisory'`,
+    );
+    expect(held[0].c).toBe(0);
+  });
+
   it("ignores spend outside the ceiling window", async () => {
     const c = await claim("k1");
     await capture(c.claim_id!, true, { cost_estimate_usd: 900 });

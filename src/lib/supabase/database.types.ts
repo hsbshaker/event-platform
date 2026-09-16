@@ -653,7 +653,12 @@ export type Database = {
 
       /* --------- Phase 4B T9A: call-level spend, idempotency and recovery (§A.5, §A.6) -------- */
 
-      /** True for `succeeded`, `failed_terminal`, `expired_unknown` and `abandoned`. */
+      /**
+       * The one advisory-lock key the global-budget admission serializes on. A named function so
+       * the number cannot drift between callers or collide with another subsystem's lock.
+       */
+      identity_budget_lock_key: { Args: Record<string, never>; Returns: number };
+      /** True for every terminal claim state. */
       identity_claim_is_terminal: {
         Args: { p_state: IdentityCallClaimState };
         Returns: boolean;

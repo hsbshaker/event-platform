@@ -125,6 +125,8 @@ export interface ClaimRequest {
   basis: IdentityCallBasis;
   ordinal: number;
   limits?: IdentityLimits;
+  /** Test seam for the cost profile's freshness rule. Production leaves it unset. */
+  now?: Date;
 }
 
 /**
@@ -138,9 +140,9 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
   // the **model** check: an unpriced model refuses here whatever the caller passes. The caps,
   // ceiling and reservation in a supplied `limits` are still the caller's, so this is not a
   // guarantee about the numbers — only that production never reaches an unpriced model.
-  const model = req.basis.modelConfig.model ?? "";
-  requireCostProfile(model);
-  const limits = req.limits ?? identityLimits(model);
+  const model = typeof req.basis.modelConfig.model === "string" ? req.basis.modelConfig.model : "";
+  requireCostProfile(model, req.now);
+  const limits = req.limits ?? identityLimits(model, req.now);
   const digest = basisDigest(req.basis);
   const key = attemptKey(req.eventId, digest, req.ordinal);
 

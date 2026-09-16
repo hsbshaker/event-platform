@@ -45,6 +45,7 @@ const DECLARED_FUNCTIONS = {
   fail_identity_call_recovery: true,
   expired_pre_auth_draft_batch: true,
   expired_pre_auth_storage_keys: true,
+  identity_budget_lock_key: true,
   identity_claim_is_terminal: true,
   identity_is_provisional: true,
   identity_questions: true,

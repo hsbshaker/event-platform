@@ -127,6 +127,20 @@ as $$
   )
 $$;
 
+-- The one key the global-budget admission serializes on.
+--
+-- A named function rather than a literal, so the number cannot drift between callers and cannot
+-- silently collide with another subsystem's advisory lock. Derived from a fixed string so it is
+-- stable across deployments and readable in `pg_locks`.
+create or replace function public.identity_budget_lock_key()
+returns bigint
+language sql
+immutable
+parallel safe
+as $$
+  select ('x' || substr(pg_catalog.md5('event_identity:global_budget'), 1, 16))::bit(64)::bigint
+$$;
+
 create table public.event_identity_call_claims (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events (id) on delete cascade,
@@ -269,13 +283,19 @@ begin
     raise exception 'ceiling and logical-call maximum must not be negative';
   end if;
 
-  -- Read without a lock, at READ COMMITTED. Per event the one-in-flight index serializes claims,
-  -- so the ceiling is exact there; across events, N simultaneous claimers can each observe the
-  -- same reservation and all pass, overshooting by at most
-  -- `(concurrent claimers - 1) x logical-call maximum`. Bounded and small against the ceiling, and
-  -- closing it would mean an advisory lock on one global key in the hot path of every identity
-  -- call: a project-wide serialization point bought for an overshoot we can already name. Stated
-  -- rather than closed.
+  -- Serialized. Without this, N simultaneous claimers on *different* events each read the same
+  -- reservation, each conclude there is room, and all pass — so the "ceiling" is not a ceiling at
+  -- all, it is a ceiling times the concurrency. The per-event index does not help, because the
+  -- races that matter are across events.
+  --
+  -- A transaction-scoped advisory lock on one key dedicated to this admission. It is released by
+  -- commit or rollback, needs no row and no cleanup, and is held only for the few statements
+  -- below: read spend, read reservations, check, consume buckets, insert. **The provider is not
+  -- reached inside this transaction** — that happens after `claim_identity_call` has returned and
+  -- `mark_identity_call_invoked` has committed separately — so a model call never holds the global
+  -- lock, and a slow provider cannot block admissions.
+  perform pg_catalog.pg_advisory_xact_lock(public.identity_budget_lock_key());
+
   select coalesce(
            sum(coalesce(r.cost_estimate_usd, p_logical_call_max_usd)),
            0
@@ -828,3 +848,4 @@ revoke execute on function public.purge_identity_response_evidence(timestamptz)
   from public, anon, authenticated;
 revoke execute on function public.identity_claim_is_terminal(public.identity_call_claim_state)
   from public, anon, authenticated;
+revoke execute on function public.identity_budget_lock_key() from public, anon, authenticated;

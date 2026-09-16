@@ -7,6 +7,7 @@ import {
   estimateIdentityCallCostUsd,
   findCostProfile,
   GPT_5_6_SOL,
+  isFresh,
   isVerified,
   logicalCallMaxUsd,
   providerAttemptMaxUsd,
@@ -127,6 +128,58 @@ describe("the production configuration contract", () => {
       }
     },
   );
+
+  describe("freshness", () => {
+    const within = new Date(`${GPT_5_6_SOL.reverifyAfter}T00:00:00Z`);
+    const boundary = new Date(`${GPT_5_6_SOL.reverifyAfter}T23:59:59Z`);
+    const after = new Date(`${GPT_5_6_SOL.reverifyAfter}T00:00:00Z`);
+    after.setUTCDate(after.getUTCDate() + 1);
+
+    it("records when it was read and by when it must be re-read", () => {
+      for (const profile of VERIFIED_COST_PROFILES) {
+        expect(profile.reverifyAfter).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(Date.parse(profile.reverifyAfter)).toBeGreaterThan(Date.parse(profile.retrieved));
+      }
+    });
+
+    it("is usable through the documented day, inclusive", () => {
+      expect(isFresh(GPT_5_6_SOL, within)).toBe(true);
+      expect(isFresh(GPT_5_6_SOL, boundary)).toBe(true);
+    });
+
+    it("is stale from the following UTC day", () => {
+      expect(isFresh(GPT_5_6_SOL, after)).toBe(false);
+    });
+
+    it("refuses a stale profile in production, before any claim or provider call", () => {
+      // Published prices move, and the current commitment is time-bounded. A bound nobody re-read
+      // is the same failure as one nobody verified — it just took longer to become false.
+      vi.stubEnv("NODE_ENV", "production");
+      try {
+        expect(() => requireCostProfile(MODEL, boundary)).not.toThrow();
+        expect(() => requireCostProfile(MODEL, after)).toThrow(/re-verification after/);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it("restores eligibility when the profile is re-verified", () => {
+      // Re-verification is a person reading the current documentation and moving these dates,
+      // never a runtime fetch.
+      const refreshed = {
+        ...GPT_5_6_SOL,
+        profileVersion: "gpt-5.6-sol@2026-12-01",
+        retrieved: "2026-12-01",
+        reverifyAfter: "2027-02-01",
+      };
+      expect(isFresh(refreshed, after)).toBe(true);
+    });
+
+    it("never counts the dev fallback as fresh", () => {
+      expect(isFresh(UNVERIFIED_DEV_PROFILE, within)).toBe(false);
+      expect(isVerified(UNVERIFIED_DEV_PROFILE)).toBe(false);
+    });
+  });
 
   it("lets an override raise the bound but never lower it", () => {
     // A number in an environment variable is not evidence anybody read the provider's limits, so

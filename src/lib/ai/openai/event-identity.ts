@@ -72,6 +72,60 @@ export const PROVIDER_REQUEST_TIMEOUT_MS = 120_000;
 export const EVENT_IDENTITY_PASSES = 2;
 
 /**
+ * The provider service tier every EventIdentity request is sent on.
+ *
+ * Pinned, not inherited. Left unset the request takes whatever the provider or the project happens
+ * to be configured for, and the verified cost profile was built against standard pricing — Fast
+ * Mode is 2× and the Batch/Flex tiers are ½, so an inherited tier would silently price the call
+ * against a bound that does not describe it. Sending it explicitly makes the assumption the
+ * profile rests on a property of the request rather than of an account setting somebody can
+ * change.
+ *
+ * Not configurable in this phase. Another tier needs its own verified profile, and because the
+ * tier is part of `modelConfig` it necessarily produces a different attempt key.
+ */
+export const EVENT_IDENTITY_SERVICE_TIER = "default" as const;
+
+/**
+ * Provider-side response persistence, off.
+ *
+ * EventIdentity is stateless: the repair pass resends the rejected assistant turn explicitly
+ * rather than referring to a stored response, so nothing here needs the provider to keep one. Left
+ * at the provider's default, host prompts and model output would accumulate in a third-party store
+ * we neither read nor purge — and `spec.md §27`'s retention discipline would end at our own
+ * database boundary rather than at the data.
+ */
+export const EVENT_IDENTITY_STORE_RESPONSES = false as const;
+
+/** Every request-shaping option that is not the prompt, the schema or the assembled input. */
+export type EventIdentityModelConfig = {
+  model: string;
+  reasoningEffort: string;
+  serviceTier: typeof EVENT_IDENTITY_SERVICE_TIER;
+  store: typeof EVENT_IDENTITY_STORE_RESPONSES;
+};
+
+/**
+ * The canonical model configuration for an EventIdentity call.
+ *
+ * One builder, so a caller cannot assemble a basis that omits an option the request actually
+ * sends. Everything here reaches `modelConfigDigest` and therefore the attempt key: two requests
+ * that would be billed differently or persisted differently are different calls, and a deploy that
+ * changes one mid-flight is caught by the one-in-flight guard rather than by paying twice.
+ */
+export function eventIdentityModelConfig(
+  model: string,
+  reasoningEffort: string,
+): EventIdentityModelConfig {
+  return {
+    model,
+    reasoningEffort,
+    serviceTier: EVENT_IDENTITY_SERVICE_TIER,
+    store: EVENT_IDENTITY_STORE_RESPONSES,
+  };
+}
+
+/**
  * The most provider attempts one logical `generateEventIdentity` call can make.
  *
  * Six today. This is the number the spend reservation multiplies by, so it is exported rather
@@ -372,6 +426,9 @@ export async function generateEventIdentity(
           model: env.OPENAI_MODEL,
           input: messages,
           reasoning: { effort: env.OPENAI_REASONING_EFFORT },
+          // Both pinned rather than inherited, and both part of `modelConfig` — see the constants.
+          service_tier: EVENT_IDENTITY_SERVICE_TIER,
+          store: EVENT_IDENTITY_STORE_RESPONSES,
           text: {
             format: {
               type: "json_schema",

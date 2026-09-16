@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   MAX_PROVIDER_ATTEMPTS_PER_CALL,
   MAX_TRANSIENT_RETRIES,
@@ -13,6 +13,7 @@ import {
   IDENTITY_REFUSAL_PAYLOAD,
   LEASE_FLOOR_SECONDS,
   defaultIdentityAlertSink,
+  DEV_CEILING_USD,
   emitRecoveryAlert,
   setCeilingAlertSink,
   type IdentityAlert,
@@ -88,6 +89,35 @@ describe("the limits", () => {
   it("refuses a warn fraction that could never fire before the refusal", () => {
     process.env.IDENTITY_CEILING_WARN_FRACTION = "1";
     expect(() => identityLimits(MODEL)).toThrow(/below 1/);
+  });
+});
+
+describe("the production global ceiling", () => {
+  it("uses a development default outside production", () => {
+    expect(identityLimits(MODEL).ceiling.usd).toBe(DEV_CEILING_USD);
+  });
+
+  it("refuses to run in production without an explicit value", () => {
+    // How much this product may lose in a day is a financial decision with an owner. Inheriting a
+    // number a developer picked for local convenience is that decision being skipped, not made.
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      expect(() => identityLimits(MODEL)).toThrow(/IDENTITY_CEILING_USD is not set/);
+      vi.stubEnv("IDENTITY_CEILING_USD", "125.5");
+      expect(identityLimits(MODEL).ceiling.usd).toBe(125.5);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it.each(["0", "-1", "abc", "   "])("refuses the unusable production value %s", (raw) => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("IDENTITY_CEILING_USD", raw);
+    try {
+      expect(() => identityLimits(MODEL)).toThrow();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

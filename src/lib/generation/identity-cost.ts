@@ -53,7 +53,19 @@ export interface ModelCostProfile {
   /** Bumped whenever any number here changes, so persisted provenance stays meaningful. */
   profileVersion: string;
   source: string;
+  /** `YYYY-MM-DD`, the day the numbers below were read from `source`. */
   retrieved: string;
+  /**
+   * `YYYY-MM-DD`, the last day this profile may be used for a **new paid attempt**.
+   *
+   * Usable through this date inclusive, stale from the following UTC day. A profile verified once
+   * cannot call itself verified for ever: published prices move, and the current commitment is
+   * time-bounded — pricing that changes under a bound nobody re-read is the same failure as never
+   * having verified it. Re-verification is a person reading the current documentation, updating
+   * the numbers if they moved, updating `retrieved` and this date, and bumping `profileVersion`.
+   * Nothing fetches pricing at runtime.
+   */
+  reverifyAfter: string;
   contextWindowTokens: number;
   maxOutputTokens: number;
   /** Above this many input tokens, the whole request is billed at `longContext` rates. */
@@ -91,6 +103,8 @@ export const GPT_5_6_SOL: ModelCostProfile = {
   profileVersion: "gpt-5.6-sol@2026-09-16",
   source: "https://developers.openai.com/api/docs/pricing and /api/docs/models/gpt-5.6-sol",
   retrieved: "2026-09-16",
+  // The published promotional commitment runs at least this far; re-read before it lapses.
+  reverifyAfter: "2026-11-21",
   contextWindowTokens: 1_050_000,
   maxOutputTokens: 128_000,
   longContextThresholdTokens: 272_000,
@@ -113,6 +127,8 @@ export const UNVERIFIED_DEV_PROFILE: ModelCostProfile = {
   profileVersion: "unverified-dev-fallback",
   source: "none — nobody has verified this model's published limits or prices",
   retrieved: "never",
+  // Never fresh, because it was never verified. Production refuses it on both counts.
+  reverifyAfter: "1970-01-01",
   contextWindowTokens: 0,
   maxOutputTokens: 0,
   longContextThresholdTokens: 0,
@@ -123,6 +139,18 @@ export const UNVERIFIED_DEV_PROFILE: ModelCostProfile = {
 
 export function isVerified(profile: ModelCostProfile): boolean {
   return profile.profileVersion !== UNVERIFIED_DEV_PROFILE.profileVersion;
+}
+
+/**
+ * Whether the profile is still inside its re-verification window.
+ *
+ * Usable through `reverifyAfter` inclusive; stale from 00:00 UTC the following day. `now` is a
+ * parameter so the rule is testable without waiting for a date to pass.
+ */
+export function isFresh(profile: ModelCostProfile, now: Date = new Date()): boolean {
+  const lastUsableDay = Date.parse(`${profile.reverifyAfter}T23:59:59.999Z`);
+  if (Number.isNaN(lastUsableDay)) return false;
+  return now.getTime() <= lastUsableDay;
 }
 
 /** Production is anywhere a real host could reach this code. */
@@ -146,9 +174,19 @@ export function findCostProfile(model: string): ModelCostProfile | null {
  *
  * Outside production the labelled fallback applies, so tests and local work need no setup.
  */
-export function requireCostProfile(model: string): ModelCostProfile {
+export function requireCostProfile(model: string, now: Date = new Date()): ModelCostProfile {
   const profile = findCostProfile(model);
-  if (profile) return profile;
+  if (profile) {
+    if (isProductionRuntime() && !isFresh(profile, now)) {
+      throw new Error(
+        `Cost profile ${profile.profileVersion} for ${JSON.stringify(model)} needed ` +
+          `re-verification after ${profile.reverifyAfter}. Production refuses a new paid attempt ` +
+          "against prices nobody has re-read: check the provider's current documentation, update " +
+          "the numbers and dates if they moved, and bump the profile version.",
+      );
+    }
+    return profile;
+  }
   if (!isProductionRuntime()) return UNVERIFIED_DEV_PROFILE;
   throw new Error(
     `No verified cost profile for model ${JSON.stringify(model)}. Production refuses to reserve ` +
@@ -165,8 +203,8 @@ export function requireCostProfile(model: string): ModelCostProfile {
  * profile's bound — that would be exactly the "a number appeared, therefore it is verified"
  * shortcut the contract exists to refuse.
  */
-export function providerAttemptMaxUsd(model: string): number {
-  const profile = requireCostProfile(model);
+export function providerAttemptMaxUsd(model: string, now: Date = new Date()): number {
+  const profile = requireCostProfile(model, now);
   const raw = process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD;
   if (raw === undefined || raw.trim() === "") return profile.perAttemptMaxUsd;
   const parsed = Number(raw);
@@ -184,8 +222,8 @@ export function providerAttemptMaxUsd(model: string): number {
  * past it. One successful response would be the wrong unit: a claim may cost every attempt the
  * retry policy permits.
  */
-export function logicalCallMaxUsd(model: string): number {
-  return providerAttemptMaxUsd(model) * MAX_PROVIDER_ATTEMPTS_PER_CALL;
+export function logicalCallMaxUsd(model: string, now: Date = new Date()): number {
+  return providerAttemptMaxUsd(model, now) * MAX_PROVIDER_ATTEMPTS_PER_CALL;
 }
 
 /* ------------------------------------------------------------------ estimating one call */

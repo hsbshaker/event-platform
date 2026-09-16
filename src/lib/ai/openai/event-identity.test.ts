@@ -125,6 +125,28 @@ describe("the OpenAI event identity call", () => {
     return promise;
   }
 
+  it("pins the service tier and disables provider-side storage on every request", async () => {
+    // Left unset, the tier is inherited from provider or project configuration — and the verified
+    // cost profile was built against standard pricing, so an inherited Fast Mode tier would be
+    // billed at 2× a bound that does not describe it. `store` off because EventIdentity is
+    // stateless: the repair resends the rejected turn explicitly, so nothing needs the provider to
+    // keep host prompts and model output in a store we neither read nor purge.
+    create.mockResolvedValueOnce(ok());
+    await run();
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ service_tier: "default", store: false }),
+    );
+  });
+
+  it("sends them on the repair attempt too, not only the first", async () => {
+    create.mockResolvedValueOnce(ok({ identity: validIdentity })).mockResolvedValueOnce(ok());
+    await run();
+    expect(create).toHaveBeenCalledTimes(2);
+    for (const call of create.mock.calls) {
+      expect(call[0]).toMatchObject({ service_tier: "default", store: false });
+    }
+  });
+
   it("returns a validated result and records usage", async () => {
     create.mockResolvedValueOnce(ok());
     const result = await run();
