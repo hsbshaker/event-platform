@@ -33,6 +33,8 @@ const claim = (patch: Partial<Claim> & { state: IdentityCallClaimState }): Claim
   provider_invoked_at: null,
   generation_run_id: null,
   settled_at: null,
+  recovery_failure_reason: null,
+  recovery_attempts: 0,
   ...patch,
 });
 

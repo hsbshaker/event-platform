@@ -121,7 +121,7 @@ describe("the identity housekeeping job", () => {
       expiredUnknown: 1,
       completed: 0,
       unrecoverable: 0,
-      failed: 0,
+      retryable: 0,
       evidencePurged: 4,
       retentionDays: 30,
     });
@@ -169,7 +169,12 @@ describe("the identity housekeeping job", () => {
     expect(calls).toContain("complete_identity_call");
   });
 
-  it("counts a captured response it cannot validate rather than discarding it", async () => {
+  /** One captured claim, with whatever evidence and version the case needs. */
+  function servePending(
+    evidence: unknown,
+    schemaVersion = "event_identity_schema_v5",
+    completeResult: { data: unknown; error: unknown } = { data: null, error: null },
+  ) {
     rpc.mockImplementation(async (name: string) => {
       if (name === "expire_identity_call_claims") {
         return { data: [{ abandoned: 0, expired_unknown: 0 }], error: null };
@@ -181,24 +186,37 @@ describe("the identity housekeeping job", () => {
               claim_id: "c1",
               event_id: "e1",
               generation_run_id: "r1",
-              schema_version: "event_identity_schema_v5",
-              provider_response_evidence: ["not json at all"],
+              schema_version: schemaVersion,
+              provider_response_evidence: evidence,
               captured_at: "2026-09-16T00:00:00Z",
             },
           ],
           error: null,
         };
       }
+      if (name === "complete_identity_call") return completeResult;
+      if (name === "fail_identity_call_recovery") return { data: "terminal", error: null };
       return { data: 0, error: null };
     });
+  }
 
+  it("releases the event when a captured response can never be validated", async () => {
     // It validated once, before capture, so this means corruption — and the evidence is still
-    // durable. Marking it failed would destroy the only copy; it is surfaced instead.
+    // durable. The claim must go terminal even so: `response_captured` has no expiry, so leaving
+    // it would hold this event's one in-flight slot for ever.
+    servePending(["not json at all"]);
     await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
       completed: 0,
       unrecoverable: 1,
+      retryable: 0,
     });
     expect(calls).not.toContain("complete_identity_call");
+    expect(calls).toContain("fail_identity_call_recovery");
+    // Deterministic: the same bytes fail the same way for ever, so it terminates on the first try.
+    expect(rpc).toHaveBeenCalledWith(
+      "fail_identity_call_recovery",
+      expect.objectContaining({ p_deterministic: true }),
+    );
   });
 
   it("reports the failing stage rather than a bare 500", async () => {
@@ -262,6 +280,7 @@ describe("the identity housekeeping job", () => {
       if (name === "complete_identity_call") {
         return { data: null, error: { code: "23503", message: "answer does not belong" } };
       }
+      if (name === "fail_identity_call_recovery") return { data: "terminal", error: null };
       if (name === "purge_identity_response_evidence") return { data: 1, error: null };
       return { data: null, error: null };
     });
@@ -270,16 +289,20 @@ describe("the identity housekeeping job", () => {
       ok: true,
       abandoned: 1,
       completed: 0,
-      failed: 1,
+      unrecoverable: 1,
       evidencePurged: 1,
     });
+    // A foreign-key violation fails identically next time, so the event is released now rather
+    // than blocked while the same claim is retried for ever.
+    expect(rpc).toHaveBeenCalledWith(
+      "fail_identity_call_recovery",
+      expect.objectContaining({ p_deterministic: true }),
+    );
   });
 
-  it("refuses a captured response written under a schema version it has no reader for", async () => {
-    // Fetching the version and not checking it is the fail-open shape §A.3 exists to remove; its
-    // SQL twin `identity_questions()` refuses an unrecognised version rather than reading it as
-    // empty. A version today's validator happens to accept would otherwise be written into a
-    // revision whose generated column then refuses it — after the money was spent.
+  it("keeps a possibly-transient completion failure recoverable", async () => {
+    // A deadlock may well succeed next run. Terminating every error indiscriminately would throw
+    // away a paid response that was one retry from becoming a revision.
     rpc.mockImplementation(async (name: string) => {
       if (name === "expire_identity_call_claims") {
         return { data: [{ abandoned: 0, expired_unknown: 0 }], error: null };
@@ -291,7 +314,7 @@ describe("the identity housekeeping job", () => {
               claim_id: "c1",
               event_id: "e1",
               generation_run_id: "r1",
-              schema_version: "event_identity_schema_v99",
+              schema_version: "event_identity_schema_v5",
               provider_response_evidence: [JSON.stringify(validBody)],
               captured_at: "2026-09-16T00:00:00Z",
             },
@@ -299,13 +322,36 @@ describe("the identity housekeeping job", () => {
           error: null,
         };
       }
+      if (name === "complete_identity_call") {
+        return { data: null, error: { code: "40P01", message: "deadlock detected" } };
+      }
+      if (name === "fail_identity_call_recovery") return { data: "retryable", error: null };
       return { data: 0, error: null };
     });
+
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      completed: 0,
+      unrecoverable: 0,
+      retryable: 1,
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "fail_identity_call_recovery",
+      expect.objectContaining({ p_deterministic: false }),
+    );
+  });
+
+  it("releases the event when a captured response has a schema version it cannot read", async () => {
+    // Fetching the version and not checking it is the fail-open shape §A.3 exists to remove; its
+    // SQL twin `identity_questions()` refuses an unrecognised version rather than reading it as
+    // empty. A version today's validator happens to accept would otherwise be written into a
+    // revision whose generated column then refuses it — after the money was spent.
+    servePending([JSON.stringify(validBody)], "event_identity_schema_v99");
 
     await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
       completed: 0,
       unrecoverable: 1,
     });
     expect(calls).not.toContain("complete_identity_call");
+    expect(calls).toContain("fail_identity_call_recovery");
   });
 });

@@ -285,20 +285,33 @@ spending money:
 
 The correction, in four rules:
 
-1. **Aggregate every observed response.** The usage recorded for a logical invocation is the sum
-   over every provider response actually received during it — rejected and accepted alike. A
-   successful repair records response 1 + response 2; an `invalid_output` failure records both; a
-   provider failure on the repair path still records response 1. The ordinary `generation_runs`
-   token columns describe the logical invocation, not its last response. `provider_request_id`
-   keeps its singular shape and is documented as the **accepted or final** response's id, not an
-   identifier for every attempt. Usage is never smuggled into `reprompts`.
+1. **Aggregate every observed response — but price each one separately.** The usage recorded for a
+   logical invocation sums every provider response actually received, rejected and accepted alike:
+   a successful repair records response 1 + response 2, an `invalid_output` failure records both,
+   a provider failure on the repair path still records response 1. The ordinary `generation_runs`
+   token columns therefore describe the invocation, not its last response, and
+   `provider_request_id` keeps its singular shape as the **accepted or final** response's id rather
+   than an identifier for every attempt. Usage is never smuggled into `reprompts`.
+
+   **Pricing, though, reads per-response usage, because price is not linear across a call.** The
+   long-context tier applies per request, so one attempt can cross the threshold while another does
+   not; summing first and pricing afterwards charges both at whichever rate the aggregate happened
+   to land in, and then calls the answer exact. Three further things the naive sum gets wrong:
+   `output_tokens` **already includes** `reasoning_tokens`, so adding them bills reasoning twice —
+   and on a high-effort call reasoning is most of the output, so the error is large; cache
+   **writes** are billed at a premium over uncached input while cache **reads** are heavily
+   discounted, so the two cannot share a column or a rate; and an input token that is neither is
+   ordinary uncached input.
 2. **Ambiguous attempts are costed, not ignored.** A provider attempt that threw before a response
    reached us may or may not have billed. We cannot know, so it contributes the **per-attempt
    maximum**, never zero. The boundary reports how many attempts had unknown usage, so the
    arithmetic is reviewable rather than inferred.
-3. **Fail closed when usage is unavailable.** If token prices are not configured, or an observed
-   response arrived without usage, that response is priced at the per-attempt maximum too. An exact
-   number is only ever claimed where an exact number is known.
+3. **Fail closed when usage is unavailable.** A response missing a billable token class, a response
+   the summary claimed but the detail never described, and every attempt under an unverified
+   profile are all priced at the per-attempt maximum. `exact` means literally that every observed
+   response was priced from a verified profile at its own tier with every billable class present,
+   and that no attempt's usage was unknown; anything less is `exact = false` with the unknown
+   portion costed conservatively. There is no optimistic fallback.
 4. **The maximum bounds the whole logical call.** `MAX_PROVIDER_ATTEMPTS_PER_CALL = passes ×
    (MAX_TRANSIENT_RETRIES + 1)` — 6 today — and the logical-call maximum is the per-attempt
    maximum times that. Defining it as one successful response would make the row-3 inequality
@@ -310,21 +323,25 @@ The correction, in four rules:
 limit, so the per-attempt maximum is **not** derived from "our bounded token ceiling" — an earlier
 draft of row 3 said it was, and that bound does not exist. Adding a tight output limit for cleaner
 accounting could change what EventIdentity produces, which is a creative decision and not an
-accounting one (`CLAUDE.md §2`). So the per-attempt maximum is instead an **explicit configured
-constant** representing the provider's documented maximum billable usage for the configured model
-at its published prices. It is named, it is overridable per environment, and where its value cannot
-be verified against current provider documentation it is carried as an explicitly unverified
-placeholder with the verification recorded as owed before deployment — never guessed silently. A
-very conservative maximum is acceptable for alpha; a maximum that pretends to a precision we do not
-have is not.
+accounting one (`CLAUDE.md §2`).
 
-**Owed before deployment, recorded rather than quietly assumed.** T9A ships
-`DEFAULT_PROVIDER_ATTEMPT_MAX_USD` and leaves `IDENTITY_TOKEN_PRICES_USD_PER_MTOK` unset, because
-neither the model's published maximum billable usage nor its prices can be verified from this
-environment and guessing either into a money calculation is worse than carrying the gap visibly.
-`PROVIDER_ATTEMPT_MAX_IS_VERIFIED` is `false` and says so. Until both are set from current provider
-documentation, every call is costed at the per-attempt maximum — a real ceiling, just a blunt one,
-which is the correct direction to be wrong in.
+**Verified cost profiles, and a production contract that fails closed.** The bound instead comes
+from a **cost profile for one exact model id**, recording the provider documentation it was read
+from and the date. "Verified" is a property of that record, not of a number appearing in an
+environment variable — which is why an override can only make a bound *more* conservative and can
+never establish one. Production requires a profile for the configured `OPENAI_MODEL` and refuses
+before the provider is reached without it, so changing the model to something nobody has priced
+fails at configuration time rather than reserving one model's worst case against another model's
+bill. Development and tests fall back to a labelled unverified profile whose bound is deliberately
+larger than any verified one. None of this is an operator ritual: nothing is presented for
+approval and no secret unlocks it — either the profile exists for this model or the call does not
+happen.
+
+The bound is the worst legal request at the worst tier: every input token billed as a cache write
+at long-context rates, plus the largest permitted output, rounded up. It is stored on the profile
+rather than recomputed, so a pricing edit cannot move the reservation without the profile version
+moving too — and that version is persisted as provenance beside the call it priced, so a revision
+can say which bound its spend was reserved against, not merely which model answered.
 
 **Refusals never leak a counter.** `spec.md §10` says creative work is *"effectively unlimited from
 the user's perspective"* and `§32 #41` forbids exposing backend counters. A refusal is a neutral

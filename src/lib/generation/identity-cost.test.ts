@@ -1,11 +1,18 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { MAX_PROVIDER_ATTEMPTS_PER_CALL } from "@/lib/ai/openai/event-identity";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_PROVIDER_ATTEMPT_MAX_USD,
+  MAX_PROVIDER_ATTEMPTS_PER_CALL,
+  type ProviderResponseUsage,
+} from "@/lib/ai/openai/event-identity";
+import {
   estimateIdentityCallCostUsd,
+  findCostProfile,
+  GPT_5_6_SOL,
+  isVerified,
   logicalCallMaxUsd,
   providerAttemptMaxUsd,
-  tokenPrices,
+  requireCostProfile,
+  UNVERIFIED_DEV_PROFILE,
+  VERIFIED_COST_PROFILES,
   type CostRelevantUsage,
 } from "./identity-cost";
 
@@ -14,165 +21,282 @@ import {
  *
  * Every test here exists because the naive version of the same calculation is wrong in the
  * direction of spending money: dropping a rejected response's tokens, costing an ambiguous
- * failure at zero, or reserving for one response when a call may make six attempts.
+ * failure at zero, billing reasoning twice, pricing a long-context request at the short-context
+ * rate, or reserving for one response when a call may make six attempts.
  *
  * Acceptance criteria: N/A — test-only. `docs/phase-4b-plan.md §A.5.1`; `spec.md §10`, `§9.6`.
  */
-const PRICES = JSON.stringify({ input: 1, cachedInput: 0.5, output: 2 });
+const MODEL = GPT_5_6_SOL.model;
 
-const usage = (patch: Partial<CostRelevantUsage> = {}): CostRelevantUsage => {
-  const merged = {
-    inputTokens: 1_000_000,
-    cachedInputTokens: 0,
-    outputTokens: 1_000_000,
-    reasoningTokens: 0,
-    providerResponses: 1,
-    unknownUsageAttempts: 0,
-    ...patch,
-  };
-  // Attempts default to the smallest number consistent with the rest, so a fixture cannot
-  // accidentally understate them.
-  return { providerAttempts: merged.providerResponses + merged.unknownUsageAttempts, ...merged };
-};
+/** Deliberately below the long-context threshold, so the tier is a choice a test makes. */
+const IN = 100_000;
+const OUT = 100_000;
+const per = (tokens: number, pricePerMTok: number) => (tokens * pricePerMTok) / 1_000_000;
 
-afterEach(() => {
-  delete process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK;
-  delete process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD;
+const response = (patch: Partial<ProviderResponseUsage> = {}): ProviderResponseUsage => ({
+  inputTokens: IN,
+  cachedInputTokens: 0,
+  cacheWriteInputTokens: 0,
+  outputTokens: OUT,
+  reasoningTokens: 0,
+  ...patch,
 });
 
-describe("the per-attempt and logical-call maximums", () => {
-  it("bounds the whole logical call, not one successful response", () => {
-    // A claim reserves this much. If it were one response's worth, a call that made every
-    // attempt its retry policy permits would cost six times what the ceiling set aside.
-    expect(logicalCallMaxUsd()).toBe(providerAttemptMaxUsd() * MAX_PROVIDER_ATTEMPTS_PER_CALL);
+/** What one default response costs at the standard tier. */
+const STANDARD_ONE = per(IN, GPT_5_6_SOL.standard.input) + per(OUT, GPT_5_6_SOL.standard.output);
+
+const usage = (
+  responses: ProviderResponseUsage[],
+  patch: Partial<CostRelevantUsage> = {},
+): CostRelevantUsage => ({
+  responses,
+  providerResponses: responses.length,
+  providerAttempts: responses.length,
+  unknownUsageAttempts: 0,
+  ...patch,
+});
+
+afterEach(() => {
+  delete process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD;
+  delete process.env.NODE_ENV_OVERRIDE;
+});
+
+describe("the verified cost profile", () => {
+  it("records where every number came from and when", () => {
+    // "Verified" is a property of this record, not of a number appearing somewhere. Without the
+    // source and date, nobody can tell a checked bound from a guess a year later.
+    for (const profile of VERIFIED_COST_PROFILES) {
+      expect(profile.source).toMatch(/^https?:\/\//);
+      expect(profile.retrieved).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(isVerified(profile)).toBe(true);
+      expect(profile.perAttemptMaxUsd).toBeGreaterThan(0);
+    }
+  });
+
+  it("bounds the worst legal request at the worst tier", () => {
+    // Long-context rates, every input token billed as a cache write — the most expensive input
+    // class — plus the largest permitted output.
+    const p = GPT_5_6_SOL;
+    const worstInput = (p.contextWindowTokens * p.longContext.cacheWriteInput) / 1_000_000;
+    const worstOutput = (p.maxOutputTokens * p.longContext.output) / 1_000_000;
+    expect(p.perAttemptMaxUsd).toBeGreaterThanOrEqual(worstInput + worstOutput);
+  });
+
+  it("prices the long-context tier above the standard one in every class", () => {
+    const { standard, longContext } = GPT_5_6_SOL;
+    for (const key of ["input", "cachedInput", "cacheWriteInput", "output"] as const) {
+      expect(longContext[key]).toBeGreaterThan(standard[key]);
+    }
+    // A cache write costs more than ordinary input, a cache read far less. Collapsing the three
+    // into one rate is how cache accounting goes quietly wrong.
+    expect(standard.cacheWriteInput).toBeGreaterThan(standard.input);
+    expect(standard.cachedInput).toBeLessThan(standard.input);
+  });
+});
+
+describe("the production configuration contract", () => {
+  it("serves a verified profile for the configured model", () => {
+    expect(findCostProfile(MODEL)).not.toBeNull();
+    expect(requireCostProfile(MODEL).model).toBe(MODEL);
+  });
+
+  it("falls back only outside production, and says the fallback is unverified", () => {
+    const profile = requireCostProfile("some-unpriced-model");
+    expect(profile).toBe(UNVERIFIED_DEV_PROFILE);
+    expect(isVerified(profile)).toBe(false);
+    // Larger than any verified bound, so a developer with no configuration never under-reserves.
+    for (const verified of VERIFIED_COST_PROFILES) {
+      expect(UNVERIFIED_DEV_PROFILE.perAttemptMaxUsd).toBeGreaterThan(verified.perAttemptMaxUsd);
+    }
+  });
+
+  it.each(["VERCEL_ENV", "NODE_ENV"])(
+    "refuses an unpriced model when %s says production",
+    (key) => {
+      // Changing OPENAI_MODEL to something nobody has priced must fail at configuration time
+      // rather than reserve one model's worst case against another model's bill.
+      vi.stubEnv(key, "production");
+      try {
+        expect(() => requireCostProfile("gpt-5.6-sol-turbo-unpriced")).toThrow(
+          /No verified cost profile/,
+        );
+        // The configured model still works, so this is a contract, not a blanket refusal.
+        expect(requireCostProfile(MODEL).model).toBe(MODEL);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
+  it("lets an override raise the bound but never lower it", () => {
+    // A number in an environment variable is not evidence anybody read the provider's limits, so
+    // it cannot be used to shrink a verified bound.
+    process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = "1";
+    expect(providerAttemptMaxUsd(MODEL)).toBe(GPT_5_6_SOL.perAttemptMaxUsd);
+    process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = String(GPT_5_6_SOL.perAttemptMaxUsd * 3);
+    expect(providerAttemptMaxUsd(MODEL)).toBe(GPT_5_6_SOL.perAttemptMaxUsd * 3);
+  });
+
+  it.each(["0", "-1", "abc"])("refuses an unusable override %s", (raw) => {
+    process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = raw;
+    expect(() => providerAttemptMaxUsd(MODEL)).toThrow(/positive number/);
+  });
+});
+
+describe("the logical-call maximum", () => {
+  it("bounds the whole call, not one successful response", () => {
+    expect(logicalCallMaxUsd(MODEL)).toBe(
+      GPT_5_6_SOL.perAttemptMaxUsd * MAX_PROVIDER_ATTEMPTS_PER_CALL,
+    );
   });
 
   it("is pinned to the retry and pass policy", () => {
-    // The pin: `MAX_PROVIDER_ATTEMPTS_PER_CALL` is `passes × (MAX_TRANSIENT_RETRIES + 1)`.
-    // Raising either raises the reservation, and this assertion fails until the number here is
-    // updated deliberately — so worst-case spend cannot drift past the ceiling in silence.
+    // Raising `MAX_TRANSIENT_RETRIES` raises the reservation, and this assertion fails until the
+    // number is updated deliberately — so worst-case spend cannot drift past the ceiling quietly.
     expect(MAX_PROVIDER_ATTEMPTS_PER_CALL).toBe(6);
-    expect(logicalCallMaxUsd()).toBe(DEFAULT_PROVIDER_ATTEMPT_MAX_USD * 6);
-  });
-
-  it("takes a configured per-attempt maximum over the unverified default", () => {
-    process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = "0.25";
-    expect(providerAttemptMaxUsd()).toBe(0.25);
-    expect(logicalCallMaxUsd()).toBe(0.25 * MAX_PROVIDER_ATTEMPTS_PER_CALL);
-  });
-
-  it.each(["0", "-1", "abc"])("refuses an unusable bound %s rather than pricing from it", (raw) => {
-    process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = raw;
-    expect(() => providerAttemptMaxUsd()).toThrow(/positive number/);
+    expect(logicalCallMaxUsd(MODEL)).toBe(GPT_5_6_SOL.perAttemptMaxUsd * 6);
   });
 });
 
 describe("estimating what one call cost", () => {
-  it("prices observed tokens exactly when prices are configured", () => {
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = PRICES;
-    const estimate = estimateIdentityCallCostUsd(usage());
-    expect(estimate.usd).toBeCloseTo(1 + 2, 10);
+  it("prices a short-context response at the standard rate", () => {
+    const estimate = estimateIdentityCallCostUsd(MODEL, usage([response()]));
+    expect(estimate.usd).toBeCloseTo(STANDARD_ONE, 10);
     expect(estimate.exact).toBe(true);
-    expect(estimate.unpricedAttempts).toBe(0);
   });
 
-  it("bills reasoning tokens as output, because that is how they are charged", () => {
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = PRICES;
-    const withReasoning = estimateIdentityCallCostUsd(usage({ reasoningTokens: 1_000_000 }));
-    expect(withReasoning.usd).toBeCloseTo(1 + 2 + 2, 10);
+  it("bills reasoning once, because output already includes it", () => {
+    // The provider reports `output_tokens_details.reasoning_tokens` as a breakdown of
+    // `output_tokens`. Adding the two charges reasoning twice — and reasoning is the majority of
+    // output on a high-effort call, so the error is large, not marginal.
+    const withReasoning = estimateIdentityCallCostUsd(
+      MODEL,
+      usage([response({ reasoningTokens: Math.floor(OUT * 0.9) })]),
+    );
+    expect(withReasoning.usd).toBeCloseTo(STANDARD_ONE, 10);
+    const without = estimateIdentityCallCostUsd(MODEL, usage([response({ reasoningTokens: 0 })]));
+    expect(withReasoning.usd).toBe(without.usd);
   });
 
-  it("discounts the cached portion of the input rather than double-charging it", () => {
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = PRICES;
-    const cached = estimateIdentityCallCostUsd(usage({ cachedInputTokens: 1_000_000 }));
-    expect(cached.usd).toBeCloseTo(0.5 + 2, 10);
+  it("prices cache reads and cache writes as distinct classes", () => {
+    const out = per(OUT, GPT_5_6_SOL.standard.output);
+    const cacheRead = estimateIdentityCallCostUsd(
+      MODEL,
+      usage([response({ cachedInputTokens: IN })]),
+    );
+    const cacheWrite = estimateIdentityCallCostUsd(
+      MODEL,
+      usage([response({ cacheWriteInputTokens: IN })]),
+    );
+    expect(cacheRead.usd).toBeCloseTo(per(IN, GPT_5_6_SOL.standard.cachedInput) + out, 10);
+    expect(cacheWrite.usd).toBeCloseTo(per(IN, GPT_5_6_SOL.standard.cacheWriteInput) + out, 10);
+    // A cache write costs more than the uncached input it replaces; a read costs far less.
+    expect(cacheWrite.usd).toBeGreaterThan(STANDARD_ONE);
+    expect(cacheRead.usd).toBeLessThan(STANDARD_ONE);
   });
 
-  it("charges an attempt whose response carried no usage exactly once", () => {
-    // `providerResponses` and `unknownUsageAttempts` overlap: a response with no usage block is
-    // in both. Adding them charged that one attempt twice, and with prices unset — the shipped
-    // default — that was the whole bill, so a single usage-less attempt cost 2 × the maximum.
+  it("never lets overlapping subsets produce a negative charge", () => {
     const estimate = estimateIdentityCallCostUsd(
-      usage({ providerResponses: 1, unknownUsageAttempts: 1, providerAttempts: 1 }),
+      MODEL,
+      usage([response({ inputTokens: 100, cachedInputTokens: 90, cacheWriteInputTokens: 90 })]),
     );
-    expect(estimate.usd).toBe(DEFAULT_PROVIDER_ATTEMPT_MAX_USD);
-    expect(estimate.unpricedAttempts).toBe(1);
+    expect(estimate.usd).toBeGreaterThan(0);
   });
 
-  it("never exceeds the reservation, even for the worst unpriceable call", () => {
-    // Two passes, each: two transient throws then a response with no usage block. Six attempts,
-    // two responses, six unknown. Summing responses + unknown would bill eight attempts — more
-    // than a claim reserved — which falsifies the ceiling's whole inequality.
-    const worst = estimateIdentityCallCostUsd(
-      usage({ providerResponses: 2, unknownUsageAttempts: 6, providerAttempts: 6 }),
+  it("applies the long-context tier to the response that crossed it", () => {
+    const long = GPT_5_6_SOL.longContextThresholdTokens + 1;
+    const estimate = estimateIdentityCallCostUsd(
+      MODEL,
+      usage([response({ inputTokens: long, outputTokens: OUT })]),
     );
-    expect(worst.unpricedAttempts).toBe(MAX_PROVIDER_ATTEMPTS_PER_CALL);
-    expect(worst.usd).toBe(logicalCallMaxUsd());
-    expect(worst.usd).toBeLessThanOrEqual(logicalCallMaxUsd());
+    expect(estimate.usd).toBeCloseTo(
+      per(long, GPT_5_6_SOL.longContext.input) + per(OUT, GPT_5_6_SOL.longContext.output),
+      8,
+    );
+    expect(estimate.exact).toBe(true);
+  });
+
+  it("prices a mixed call per response rather than on the aggregate", () => {
+    // This is why per-response usage is kept. Aggregating first would push a short first attempt
+    // over the threshold along with the repair, or leave the repair under it — either way one of
+    // the two is charged at a rate it was not billed at, while the estimate calls itself exact.
+    const longIn = GPT_5_6_SOL.longContextThresholdTokens + 1;
+    const short = response({ inputTokens: 1_000, outputTokens: 1_000 });
+    const long = response({ inputTokens: longIn, outputTokens: 1_000 });
+    const estimate = estimateIdentityCallCostUsd(MODEL, usage([short, long]));
+    const expected =
+      per(1_000, GPT_5_6_SOL.standard.input) +
+      per(1_000, GPT_5_6_SOL.standard.output) +
+      per(longIn, GPT_5_6_SOL.longContext.input) +
+      per(1_000, GPT_5_6_SOL.longContext.output);
+    expect(estimate.usd).toBeCloseTo(expected, 8);
+    expect(estimate.exact).toBe(true);
   });
 
   it("does NOT cost an ambiguous transient attempt at zero", () => {
-    // The whole point. A timeout may have reached provider execution; we cannot know, so it is
-    // charged the per-attempt maximum. Costing it zero is how a ceiling silently undercounts
-    // exactly the expensive case it exists to catch.
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = PRICES;
-    const estimate = estimateIdentityCallCostUsd(usage({ unknownUsageAttempts: 2 }));
-    expect(estimate.usd).toBeCloseTo(3 + 2 * DEFAULT_PROVIDER_ATTEMPT_MAX_USD, 10);
+    const estimate = estimateIdentityCallCostUsd(
+      MODEL,
+      usage([response()], { providerAttempts: 3, unknownUsageAttempts: 2 }),
+    );
+    expect(estimate.usd).toBeCloseTo(STANDARD_ONE + 2 * GPT_5_6_SOL.perAttemptMaxUsd, 8);
     expect(estimate.exact).toBe(false);
     expect(estimate.unpricedAttempts).toBe(2);
   });
 
-  it("never reports a call with an unknown attempt as exact", () => {
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = PRICES;
-    expect(estimateIdentityCallCostUsd(usage({ unknownUsageAttempts: 1 })).exact).toBe(false);
-  });
-
-  it("fails closed when prices are not configured", () => {
-    // No prices means observed tokens cannot be turned into money. The honest answer is an upper
-    // bound, not a number invented from a rate nobody supplied.
-    expect(tokenPrices()).toBeNull();
-    const estimate = estimateIdentityCallCostUsd(usage({ providerResponses: 2 }));
-    expect(estimate.usd).toBe(2 * DEFAULT_PROVIDER_ATTEMPT_MAX_USD);
+  it("charges an attempt whose response carried no usage exactly once", () => {
+    const estimate = estimateIdentityCallCostUsd(
+      MODEL,
+      usage([{}], { providerAttempts: 1, unknownUsageAttempts: 1 }),
+    );
+    expect(estimate.usd).toBe(GPT_5_6_SOL.perAttemptMaxUsd);
     expect(estimate.exact).toBe(false);
   });
 
-  it("fails closed when an observed response reported no tokens", () => {
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = PRICES;
+  it("charges a response the summary claimed but the detail never described", () => {
     const estimate = estimateIdentityCallCostUsd(
-      usage({ inputTokens: undefined, outputTokens: undefined, providerResponses: 2 }),
+      MODEL,
+      usage([response()], { providerResponses: 2, providerAttempts: 2 }),
     );
-    expect(estimate.usd).toBe(2 * DEFAULT_PROVIDER_ATTEMPT_MAX_USD);
+    expect(estimate.usd).toBeCloseTo(STANDARD_ONE + GPT_5_6_SOL.perAttemptMaxUsd, 8);
     expect(estimate.exact).toBe(false);
   });
 
   it("charges a call that got nothing back for the attempts it made", () => {
     // `provider_response_evidence: []` means no text was captured, never "provably unpaid".
     const estimate = estimateIdentityCallCostUsd(
-      usage({ providerResponses: 0, unknownUsageAttempts: 3 }),
+      MODEL,
+      usage([], { providerAttempts: 3, unknownUsageAttempts: 3 }),
     );
-    expect(estimate.usd).toBe(3 * DEFAULT_PROVIDER_ATTEMPT_MAX_USD);
-    expect(estimate.usd).toBeGreaterThan(0);
+    expect(estimate.usd).toBe(3 * GPT_5_6_SOL.perAttemptMaxUsd);
+    expect(estimate.exact).toBe(false);
+  });
+
+  it("prices nothing from an unverified fallback profile", () => {
+    // No rates to price with. Charging the maximum is the only honest answer; inventing a number
+    // would be the optimistic fallback the whole section refuses.
+    const estimate = estimateIdentityCallCostUsd("some-unpriced-model", usage([response()]));
+    expect(estimate.usd).toBe(UNVERIFIED_DEV_PROFILE.perAttemptMaxUsd);
+    expect(estimate.exact).toBe(false);
   });
 
   it("stays within the reservation for every attempt count the policy permits", () => {
     for (let attempts = 1; attempts <= MAX_PROVIDER_ATTEMPTS_PER_CALL; attempts += 1) {
       for (let responses = 0; responses <= Math.min(attempts, 2); responses += 1) {
         const estimate = estimateIdentityCallCostUsd(
-          usage({
-            providerAttempts: attempts,
-            providerResponses: responses,
-            unknownUsageAttempts: attempts,
-          }),
+          MODEL,
+          usage(
+            Array.from({ length: responses }, () =>
+              response({
+                inputTokens: GPT_5_6_SOL.contextWindowTokens,
+                outputTokens: GPT_5_6_SOL.maxOutputTokens,
+                cacheWriteInputTokens: GPT_5_6_SOL.contextWindowTokens,
+              }),
+            ),
+            { providerAttempts: attempts, unknownUsageAttempts: attempts - responses },
+          ),
         );
-        expect(estimate.usd).toBeLessThanOrEqual(logicalCallMaxUsd());
+        expect(estimate.usd).toBeLessThanOrEqual(logicalCallMaxUsd(MODEL));
       }
     }
-  });
-
-  it("refuses malformed price configuration instead of guessing", () => {
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = "{not json";
-    expect(() => tokenPrices()).toThrow(/must be JSON/);
-    process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK = JSON.stringify({ input: 1 });
-    expect(() => tokenPrices()).toThrow(/numeric input, cachedInput, output/);
   });
 });

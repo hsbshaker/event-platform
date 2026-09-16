@@ -107,12 +107,13 @@ export async function GET(request: NextRequest) {
     abandoned: sweep?.abandoned ?? 0,
     expiredUnknown: sweep?.expiredUnknown ?? 0,
     completed: sweep?.completed ?? 0,
-    // A captured response that no longer validates, or one written under a schema version this
-    // build has no reader for. Not an error to swallow: the text is still durable, and it
-    // validated once before it was captured, so this means corruption.
+    // Captured responses that can never become revisions — corrupt text, a schema version this
+    // build has no reader for, or a deterministic database refusal. The claim goes terminal so the
+    // event is released; the paid response and its evidence stay for the normal retention window.
     unrecoverable: sweep?.unrecoverable ?? 0,
-    // Completions the database refused. Counted and stepped over, never allowed to stop the run.
-    failed: sweep?.failed ?? 0,
+    // Completions that failed in a way that might yet succeed. The claim stays captured and the
+    // next run tries again, up to a bound — so an unclassified error cannot hold the slot for ever.
+    retryable: sweep?.retryable ?? 0,
     evidencePurged,
     retentionDays: IDENTITY_EVIDENCE_RETENTION_DAYS,
   };

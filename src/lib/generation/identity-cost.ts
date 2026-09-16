@@ -3,176 +3,296 @@ import "server-only";
 import {
   MAX_PROVIDER_ATTEMPTS_PER_CALL,
   type EventIdentityUsage,
+  type ProviderResponseUsage,
 } from "@/lib/ai/openai/event-identity";
 
 /**
  * What one EventIdentity call may have cost, and what one may cost at worst.
  *
- * `docs/phase-4b-plan.md §A.5.1`. The spend ceiling is only as good as this number, and the
- * existing provider boundary makes four things easy to get wrong in the expensive direction:
+ * `docs/phase-4b-plan.md §A.5.1`. Four things about the provider boundary make the naive version
+ * of this wrong in the direction of spending money:
  *
  *   1. one logical call may make several provider attempts, because transient failures are
  *      retried inside it;
  *   2. it may produce two billable responses, when the first fails validation and the repair
  *      succeeds;
- *   3. it used to report usage from the final accepted response only, so a rejected first
- *      response's tokens were simply not counted (T9A fixed that at the boundary);
- *   4. a timeout or connection loss means no response reached us — which is **not** the same as
- *      the provider having done no billable work.
+ *   3. a timeout or connection loss means no response reached us, which is **not** the same as
+ *      the provider having done no billable work;
+ *   4. pricing is not linear across a call — the long-context tier applies per request, so one
+ *      attempt can cross the threshold while another does not.
  *
- * So: aggregate what we observed, charge the per-attempt maximum for what we could not observe,
- * and never claim an exact number where only an upper bound is known.
+ * So: price each observed response at its own tier, charge the per-attempt maximum for what we
+ * could not observe, and never claim an exact number where only an upper bound is known.
  */
+
+/* ------------------------------------------------------------------ verified cost profiles */
 
 /**
- * A conservative upper bound, in USD, on what **one** provider attempt of the identity call can
- * bill: the configured model's maximum billable input + output + reasoning usage at its published
- * prices.
+ * Prices are per **1M tokens**, in USD.
  *
- * **This value is an explicitly unverified placeholder.** It must be set from the provider's
- * current published limits and prices for `OPENAI_MODEL` before deployment, and this environment
- * has no access to that documentation — so it is carried as a named, overridable constant with
- * the verification recorded as owed, rather than guessed silently into the middle of a
- * money-handling calculation.
- *
- * It is deliberately *not* derived from any application-level output-token ceiling, because
- * `generateEventIdentity` enforces none. Adding a tight output limit to make the accounting
- * tidier would be a creative decision disguised as an accounting one (`CLAUDE.md §2`): it could
- * truncate exactly the interpretive richness EventIdentity exists to produce. A very conservative
- * maximum is the right trade for alpha; a maximum that pretends to precision we do not have is
- * not.
- *
- * Override per environment with `IDENTITY_PROVIDER_ATTEMPT_MAX_USD`.
+ * `cacheWriteInput` is a real third class, not a synonym for either of the others: GPT-5.6 bills
+ * cache writes at a premium over uncached input while cache reads are heavily discounted.
  */
-export const DEFAULT_PROVIDER_ATTEMPT_MAX_USD = 5;
+export interface TokenPrices {
+  input: number;
+  cachedInput: number;
+  cacheWriteInput: number;
+  output: number;
+}
 
-/** True while the bound above is still the unverified default. Surfaced, never silently assumed. */
-export const PROVIDER_ATTEMPT_MAX_IS_VERIFIED = false;
+/**
+ * A verified cost bound for one exact model id.
+ *
+ * "Verified" is a property of this record, not of a number appearing in an environment variable:
+ * it means someone read the provider's published limits and prices for this exact model and
+ * recorded where and when. A bare number in the environment cannot establish that, which is why
+ * an override alone never satisfies the production contract below.
+ */
+export interface ModelCostProfile {
+  model: string;
+  /** Bumped whenever any number here changes, so persisted provenance stays meaningful. */
+  profileVersion: string;
+  source: string;
+  retrieved: string;
+  contextWindowTokens: number;
+  maxOutputTokens: number;
+  /** Above this many input tokens, the whole request is billed at `longContext` rates. */
+  longContextThresholdTokens: number;
+  standard: TokenPrices;
+  longContext: TokenPrices;
+  /**
+   * The conservative upper bound on what ONE provider attempt can bill, in USD.
+   *
+   * Derived below from the worst legal request at the worst tier, then rounded up. It is stored
+   * rather than recomputed so a pricing edit cannot silently move the reservation without the
+   * profile version moving too.
+   */
+  perAttemptMaxUsd: number;
+}
 
-export function providerAttemptMaxUsd(): number {
+/**
+ * Verified 2026-09-16 against the provider's own documentation.
+ *
+ * Worst case for one attempt, at the long-context tier, with every input token billed as a cache
+ * write (the most expensive input class):
+ *
+ *   input   1,050,000 tokens × $10 / 1M  = $10.50
+ *   output    128,000 tokens × $30 / 1M  =  $3.84
+ *                                          ------
+ *                                          $14.34  → rounded up to $15.00
+ *
+ * Two things this bound deliberately does **not** cover, because the code never selects them: the
+ * Fast Mode tier (2× standard) and the Priority/Batch tiers. A `service_tier` is a request-shaping
+ * option, so choosing one would change `modelConfig` — and it would need a new profile, because
+ * this number would no longer bound an attempt.
+ */
+export const GPT_5_6_SOL: ModelCostProfile = {
+  model: "gpt-5.6-sol",
+  profileVersion: "gpt-5.6-sol@2026-09-16",
+  source: "https://developers.openai.com/api/docs/pricing and /api/docs/models/gpt-5.6-sol",
+  retrieved: "2026-09-16",
+  contextWindowTokens: 1_050_000,
+  maxOutputTokens: 128_000,
+  longContextThresholdTokens: 272_000,
+  standard: { input: 4, cachedInput: 0.4, cacheWriteInput: 5, output: 20 },
+  longContext: { input: 8, cachedInput: 0.8, cacheWriteInput: 10, output: 30 },
+  perAttemptMaxUsd: 15,
+};
+
+export const VERIFIED_COST_PROFILES: readonly ModelCostProfile[] = [GPT_5_6_SOL];
+
+/**
+ * The fallback for development and tests, and **only** for those.
+ *
+ * Labelled rather than quiet: it is not a bound anybody checked, and `requireCostProfile()`
+ * refuses it in production. $60 is deliberately larger than any verified profile, so a developer
+ * running without configuration is never *under*-reserving.
+ */
+export const UNVERIFIED_DEV_PROFILE: ModelCostProfile = {
+  model: "*",
+  profileVersion: "unverified-dev-fallback",
+  source: "none — nobody has verified this model's published limits or prices",
+  retrieved: "never",
+  contextWindowTokens: 0,
+  maxOutputTokens: 0,
+  longContextThresholdTokens: 0,
+  standard: { input: 0, cachedInput: 0, cacheWriteInput: 0, output: 0 },
+  longContext: { input: 0, cachedInput: 0, cacheWriteInput: 0, output: 0 },
+  perAttemptMaxUsd: 60,
+};
+
+export function isVerified(profile: ModelCostProfile): boolean {
+  return profile.profileVersion !== UNVERIFIED_DEV_PROFILE.profileVersion;
+}
+
+/** Production is anywhere a real host could reach this code. */
+export function isProductionRuntime(): boolean {
+  return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
+export function findCostProfile(model: string): ModelCostProfile | null {
+  return VERIFIED_COST_PROFILES.find((p) => p.model === model) ?? null;
+}
+
+/**
+ * The cost profile for the configured model, or a refusal.
+ *
+ * This is the fail-closed half of the contract. A verified bound for the **exact** configured
+ * model is required before a production call can be reached, so changing `OPENAI_MODEL` to
+ * something nobody has priced refuses at configuration time rather than reserving one model's
+ * worst case against another model's bill. It is a configuration check, not an arming ritual:
+ * nothing is presented to an operator to approve, and no secret unlocks it — either the profile
+ * exists for this model or the call does not happen.
+ *
+ * Outside production the labelled fallback applies, so tests and local work need no setup.
+ */
+export function requireCostProfile(model: string): ModelCostProfile {
+  const profile = findCostProfile(model);
+  if (profile) return profile;
+  if (!isProductionRuntime()) return UNVERIFIED_DEV_PROFILE;
+  throw new Error(
+    `No verified cost profile for model ${JSON.stringify(model)}. Production refuses to reserve ` +
+      "spend against an unverified bound: add a ModelCostProfile for this exact model, with the " +
+      "provider documentation it came from and the date it was read.",
+  );
+}
+
+/**
+ * Optional per-environment override of the per-attempt maximum.
+ *
+ * It can only make the bound **more** conservative. A number in an environment variable is not
+ * evidence that anyone checked the provider's limits, so it cannot be used to lower a verified
+ * profile's bound — that would be exactly the "a number appeared, therefore it is verified"
+ * shortcut the contract exists to refuse.
+ */
+export function providerAttemptMaxUsd(model: string): number {
+  const profile = requireCostProfile(model);
   const raw = process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD;
-  if (raw === undefined || raw.trim() === "") return DEFAULT_PROVIDER_ATTEMPT_MAX_USD;
+  if (raw === undefined || raw.trim() === "") return profile.perAttemptMaxUsd;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(
-      "IDENTITY_PROVIDER_ATTEMPT_MAX_USD must be a positive number; " +
-        "refusing to price provider attempts from an unusable bound.",
-    );
+    throw new Error("IDENTITY_PROVIDER_ATTEMPT_MAX_USD must be a positive number");
   }
-  return parsed;
+  return Math.max(parsed, profile.perAttemptMaxUsd);
 }
 
 /**
  * The worst a single logical call can cost, which is what a claim reserves against the ceiling.
  *
- * Defining this as one successful response would make the ceiling's inequality false: a claim may
- * legitimately cost every attempt the retry policy permits. It is pinned to
- * `MAX_PROVIDER_ATTEMPTS_PER_CALL` rather than to a literal, so raising `MAX_TRANSIENT_RETRIES`
- * raises the reservation instead of quietly raising real worst-case spend past it.
+ * Pinned to `MAX_PROVIDER_ATTEMPTS_PER_CALL` rather than to a literal, so raising
+ * `MAX_TRANSIENT_RETRIES` raises the reservation instead of quietly raising real worst-case spend
+ * past it. One successful response would be the wrong unit: a claim may cost every attempt the
+ * retry policy permits.
  */
-export function logicalCallMaxUsd(): number {
-  return providerAttemptMaxUsd() * MAX_PROVIDER_ATTEMPTS_PER_CALL;
+export function logicalCallMaxUsd(model: string): number {
+  return providerAttemptMaxUsd(model) * MAX_PROVIDER_ATTEMPTS_PER_CALL;
 }
 
-/**
- * Published per-million-token prices for the configured model, when they are configured.
- *
- * Absent by default for the same reason as the bound above: the numbers are not verifiable here.
- * When absent, observed responses cannot be priced and every attempt falls back to the per-attempt
- * maximum — fail closed financially, as `§A.5.1` rule 3 requires.
- */
-export interface TokenPricesUsdPerMTok {
-  input: number;
-  cachedInput: number;
-  output: number;
-}
+/* ------------------------------------------------------------------ estimating one call */
 
-export function tokenPrices(): TokenPricesUsdPerMTok | null {
-  const raw = process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK;
-  if (!raw || raw.trim() === "") return null;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(
-      "IDENTITY_TOKEN_PRICES_USD_PER_MTOK must be JSON: {input, cachedInput, output}",
-    );
-  }
-  const p = parsed as Partial<TokenPricesUsdPerMTok>;
-  const ok = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
-  if (!ok(p.input) || !ok(p.cachedInput) || !ok(p.output)) {
-    throw new Error("IDENTITY_TOKEN_PRICES_USD_PER_MTOK needs numeric input, cachedInput, output");
-  }
-  return { input: p.input!, cachedInput: p.cachedInput!, output: p.output! };
-}
-
-/** The usage fields this estimate reads. A subset, so tests and callers need not build a whole call result. */
 export type CostRelevantUsage = Pick<
   EventIdentityUsage,
-  | "inputTokens"
-  | "cachedInputTokens"
-  | "outputTokens"
-  | "reasoningTokens"
-  | "providerResponses"
-  | "providerAttempts"
-  | "unknownUsageAttempts"
+  "responses" | "providerResponses" | "providerAttempts" | "unknownUsageAttempts"
 >;
 
 export interface CostEstimate {
   /** USD. An upper bound whenever `exact` is false. */
   usd: number;
-  /** True only when every attempt was observed *and* priced from configured prices. */
+  /**
+   * True only when every observed response was priced from a verified profile at its own tier,
+   * with every billable token class present, and no attempt's usage was unknown.
+   */
   exact: boolean;
-  /** Attempts charged at the per-attempt maximum because their usage was unknown. */
+  /** Attempts charged at the per-attempt maximum because they could not be priced. */
   unpricedAttempts: number;
+}
+
+/** Whether every token class needed to price this response is present. */
+function priceable(usage: ProviderResponseUsage): boolean {
+  return typeof usage.inputTokens === "number" && typeof usage.outputTokens === "number";
+}
+
+/**
+ * One response, at its own tier.
+ *
+ * The threshold is on input tokens and applies to the **whole request**, which is why this cannot
+ * be done on an aggregate: a repair attempt may cross it while the first attempt did not.
+ */
+function priceResponse(profile: ModelCostProfile, usage: ProviderResponseUsage): number {
+  const input = usage.inputTokens ?? 0;
+  const prices =
+    input > profile.longContextThresholdTokens ? profile.longContext : profile.standard;
+  const cached = usage.cachedInputTokens ?? 0;
+  const cacheWrite = usage.cacheWriteInputTokens ?? 0;
+  // Cache reads and cache writes are both subsets of the reported input; what is left is ordinary
+  // uncached input. Clamped, because a provider that reports overlapping subsets must not produce
+  // a negative charge.
+  const uncached = Math.max(input - cached - cacheWrite, 0);
+  // `outputTokens` already includes reasoning. Adding `reasoningTokens` would bill it twice.
+  const output = usage.outputTokens ?? 0;
+  return (
+    (uncached * prices.input +
+      cached * prices.cachedInput +
+      cacheWrite * prices.cacheWriteInput +
+      output * prices.output) /
+    1_000_000
+  );
 }
 
 /**
  * What this invocation may have cost.
  *
- * Observed responses are priced from their aggregated tokens when prices are configured.
- * Everything else — attempts that threw, responses with no usage block, and every attempt when
- * prices are unconfigured — is charged the per-attempt maximum, **once per attempt**. With the
- * per-attempt maximum set correctly the result stays within `logicalCallMaxUsd()`, since a call
- * cannot make more attempts than the policy allows; the estimate is deliberately **not** clamped
- * to it, because a result above the reservation would mean the maximum is wrong and hiding that
- * would defeat the ceiling.
- *
- * Reasoning tokens are billed as output by every provider we use; they are counted here for the
- * same reason, and only ever as counts.
+ * Each observed response is priced at its own tier from the verified profile. Everything else —
+ * attempts that threw, responses missing a token class, and every attempt when the profile is the
+ * unverified fallback — is charged the per-attempt maximum, **once per attempt**. With the bound
+ * set honestly the result stays within `logicalCallMaxUsd()`, since a call cannot make more
+ * attempts than the policy allows; it is deliberately not clamped to it, because a result above
+ * the reservation would mean the bound is wrong and hiding that would defeat the ceiling.
  */
-export function estimateIdentityCallCostUsd(usage: CostRelevantUsage): CostEstimate {
-  const attemptMax = providerAttemptMaxUsd();
-  const prices = tokenPrices();
+export function estimateIdentityCallCostUsd(model: string, usage: CostRelevantUsage): CostEstimate {
+  const profile = requireCostProfile(model);
+  const attemptMax = providerAttemptMaxUsd(model);
   const observed = Math.max(usage.providerResponses, 0);
   const unknown = Math.max(usage.unknownUsageAttempts, 0);
-  // Attempts are the unit, because `providerResponses` and `unknownUsageAttempts` overlap: a
-  // response that arrived without a usage block is counted in both. Summing those two charges
-  // such an attempt twice, and with prices unconfigured — the shipped default — that is the
-  // entire bill, which can then exceed the reservation the ceiling already made for this claim.
-  // `unknown` is in the max as a guard, not because the boundary can disagree: a caller that
-  // reported unknown attempts and no attempt count must not be billed zero by a money function.
+  // Attempts are the unit: `providerResponses` and `unknownUsageAttempts` overlap, because a
+  // response that arrived without a usage block is in both. Summing those two charges such an
+  // attempt twice, and when nothing can be priced that is the entire bill.
   const attempts = Math.max(usage.providerAttempts, observed, unknown, 0);
 
-  // Every observed response must have reported tokens, or we cannot price any of them honestly:
-  // the aggregate cannot tell us which response was silent.
-  const anyTokenFieldMissing = usage.inputTokens === undefined || usage.outputTokens === undefined;
-  const pricedObserved = prices !== null && observed > 0 && !anyTokenFieldMissing;
-
-  if (!pricedObserved) {
+  // An unverified fallback prices nothing: there are no rates to price with, and pretending
+  // otherwise is the optimistic fallback this whole section exists to refuse.
+  if (!isVerified(profile)) {
     return { usd: attempts * attemptMax, exact: false, unpricedAttempts: attempts };
   }
 
-  const cached = usage.cachedInputTokens ?? 0;
-  const uncachedInput = Math.max((usage.inputTokens ?? 0) - cached, 0);
-  const output = (usage.outputTokens ?? 0) + (usage.reasoningTokens ?? 0);
-  const observedUsd =
-    (uncachedInput * prices.input + cached * prices.cachedInput + output * prices.output) /
-    1_000_000;
+  let usd = 0;
+  let pricedResponses = 0;
+  let unpriceableResponses = 0;
+  for (const response of usage.responses) {
+    if (priceable(response)) {
+      usd += priceResponse(profile, response);
+      pricedResponses += 1;
+    } else {
+      // We know a response arrived; we just cannot say what it cost.
+      unpriceableResponses += 1;
+    }
+  }
 
+  // A response the summary claimed but the detail never described. Silence is not evidence of zero.
+  unpriceableResponses += Math.max(observed - usage.responses.length, 0);
+
+  // Attempts that threw: every attempt that produced no response at all. Derived by subtraction
+  // rather than read from `unknownUsageAttempts`, because that counter *also* includes responses
+  // that arrived without usage — which `unpriceableResponses` has already charged. Adding the two
+  // would bill such an attempt twice, which is the same overlap that made the unpriced branch
+  // exceed the reservation.
+  const threwAttempts = Math.max(attempts - observed, 0);
+  const unpriced = unpriceableResponses + threwAttempts;
+
+  usd += unpriced * attemptMax;
   return {
-    usd: observedUsd + unknown * attemptMax,
-    exact: unknown === 0,
-    unpricedAttempts: unknown,
+    usd,
+    exact: unpriced === 0 && pricedResponses === observed && observed > 0,
+    unpricedAttempts: unpriced,
   };
 }

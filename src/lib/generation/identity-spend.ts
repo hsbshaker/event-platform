@@ -5,7 +5,7 @@ import {
   PROVIDER_REQUEST_TIMEOUT_MS,
   TRANSIENT_BACKOFF_MS,
 } from "@/lib/ai/openai/event-identity";
-import { logicalCallMaxUsd, PROVIDER_ATTEMPT_MAX_IS_VERIFIED, tokenPrices } from "./identity-cost";
+import { isVerified, logicalCallMaxUsd, requireCostProfile } from "./identity-cost";
 
 /**
  * Configured backend safety limits for the EventIdentity call, and the lease that bounds a claim.
@@ -56,12 +56,14 @@ export interface IdentityLimits {
   warnFraction: number;
   leaseSeconds: number;
   /**
-   * Whether the per-attempt maximum has been set from provider documentation.
+   * Whether the per-attempt maximum came from a verified profile for this exact model.
    *
-   * False means every call is costed at that maximum: a real ceiling, just a blunt one. Carried
-   * here so it reaches the alert record rather than being a constant nothing reads.
+   * Production cannot reach the provider without one (`requireCostProfile`), so outside production
+   * this is the only place the looser dev fallback is visible. Carried into the alert record.
    */
   costBoundVerified: boolean;
+  /** The profile's version, persisted as provenance beside the call it priced. */
+  costProfileVersion: string;
 }
 
 /**
@@ -84,7 +86,12 @@ export const LEASE_MARGIN_SECONDS = 120;
 
 export const DEFAULT_LEASE_SECONDS = LEASE_FLOOR_SECONDS + LEASE_MARGIN_SECONDS;
 
-export function identityLimits(): IdentityLimits {
+export function identityLimits(model: string): IdentityLimits {
+  // Resolved first, and it throws in production when no verified profile exists for this exact
+  // model. That is the fail-closed half of the contract: a claim cannot be taken — and therefore
+  // the provider cannot be reached — while the reservation would be made against a bound nobody
+  // checked.
+  const profile = requireCostProfile(model);
   const leaseSeconds = positiveInt("IDENTITY_CLAIM_LEASE_SECONDS", DEFAULT_LEASE_SECONDS);
   if (leaseSeconds < LEASE_FLOOR_SECONDS) {
     throw new Error(
@@ -94,11 +101,11 @@ export function identityLimits(): IdentityLimits {
   }
   const warnFraction = positiveNumber("IDENTITY_CEILING_WARN_FRACTION", 0.8);
   if (warnFraction >= 1) throw new Error("IDENTITY_CEILING_WARN_FRACTION must be below 1");
-  // Parsed here, at claim time, rather than where it is used. `estimateIdentityCallCostUsd` runs
-  // *after* the provider has been paid, so a typo in the price configuration would throw between
-  // the response and the capture — losing a paid response to a misconfiguration. Fail before the
+  // Resolved here, at claim time, rather than where it is used. `estimateIdentityCallCostUsd` runs
+  // *after* the provider has been paid, so a configuration error there would throw between the
+  // response and the capture — losing a paid response to a misconfiguration. Fail before the
   // money, not after it.
-  tokenPrices();
+  const maxUsd = logicalCallMaxUsd(model);
   return {
     eventCap: { windowSeconds: DAY_SECONDS, max: positiveInt("IDENTITY_EVENT_DAILY_MAX", 20) },
     accountCap: { windowSeconds: DAY_SECONDS, max: positiveInt("IDENTITY_ACCOUNT_DAILY_MAX", 40) },
@@ -115,10 +122,11 @@ export function identityLimits(): IdentityLimits {
       // and this number correspondingly less important.
       usd: positiveNumber("IDENTITY_CEILING_USD", 3_000),
     },
-    logicalCallMaxUsd: logicalCallMaxUsd(),
+    logicalCallMaxUsd: maxUsd,
     warnFraction,
     leaseSeconds,
-    costBoundVerified: PROVIDER_ATTEMPT_MAX_IS_VERIFIED,
+    costBoundVerified: isVerified(profile),
+    costProfileVersion: profile.profileVersion,
   };
 }
 
@@ -147,8 +155,9 @@ export interface CeilingAlert {
   reservedUsd: number;
   /** Which control refused, when one did. */
   refusedBy?: IdentityRefusalReason;
-  /** False while the per-attempt maximum is still the unverified placeholder. */
+  /** False while the per-attempt maximum comes from the unverified dev fallback. */
   costBoundVerified: boolean;
+  costProfileVersion: string;
   at: string;
 }
 

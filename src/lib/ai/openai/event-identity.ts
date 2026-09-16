@@ -13,8 +13,12 @@ import "server-only";
  * Retry policy, exactly as `§8` specifies for this call:
  *
  * - **provider failure** (network, 429, 5xx) → ordinary transient retry, bounded, with
- *   backoff. These never reached the model, so they cost nothing creatively.
- * - **invalid structured output** → exactly one repair retry, then fail visibly.
+ *   backoff. These produced no output we can judge, so they cost nothing *creatively* — which is
+ *   the only sense in which they are free. A timeout or a reset may well have reached provider
+ *   execution and been billed; we cannot tell, so `unknownUsageAttempts` counts them and cost
+ *   accounting charges each the per-attempt maximum (`docs/phase-4b-plan.md §A.5.1`).
+ * - **invalid structured output** → exactly one repair retry, then fail visibly. Both responses
+ *   were billed, so both are carried out and both are priced.
  *
  * The distinction matters more than it looks. Re-prompting until something validates
  * would let a creatively weak response be replaced by a luckier one, and Phase 4A exists
@@ -90,6 +94,26 @@ export function systemPrompt(): string {
   return cachedSystemPrompt;
 }
 
+/**
+ * One provider response's billable usage, as the provider reported it.
+ *
+ * Kept per response, not only aggregated, because pricing is not linear across a call: the
+ * long-context tier applies per request, so one attempt can cross the threshold while another does
+ * not. Summing first and pricing afterwards would silently charge both at whichever rate the
+ * aggregate happened to land in.
+ */
+export interface ProviderResponseUsage {
+  inputTokens?: number;
+  /** Cache **reads**, billed at a discount. A subset of `inputTokens`. */
+  cachedInputTokens?: number;
+  /** Cache **writes**, billed at a premium over uncached input. A subset of `inputTokens`. */
+  cacheWriteInputTokens?: number;
+  /** Billable output. **Already includes** `reasoningTokens`; never add the two together. */
+  outputTokens?: number;
+  /** A breakdown of `outputTokens`, kept as telemetry. Counts only — never content. */
+  reasoningTokens?: number;
+}
+
 export interface EventIdentityUsage {
   provider: "openai";
   model: string;
@@ -111,8 +135,16 @@ export interface EventIdentityUsage {
    */
   inputTokens?: number;
   cachedInputTokens?: number;
+  cacheWriteInputTokens?: number;
+  /**
+   * Billable output summed over every response. `reasoningTokens` is a **breakdown** of this, not
+   * an addition to it: the provider reports `output_tokens_details.reasoning_tokens` as part of
+   * `output_tokens`, so adding them would bill reasoning twice.
+   */
   outputTokens?: number;
   reasoningTokens?: number;
+  /** Per-response usage, in arrival order. Pricing reads this; the summary above is telemetry. */
+  responses: ProviderResponseUsage[];
   /** How many provider responses this invocation actually received: 0, 1 or 2. */
   providerResponses: number;
   /**
@@ -287,9 +319,11 @@ export async function generateEventIdentity(
   const agg: {
     input?: number;
     cached?: number;
+    cacheWrite?: number;
     output?: number;
     reasoning?: number;
   } = {};
+  const perResponse: ProviderResponseUsage[] = [];
   let unknownUsageAttempts = 0;
   let providerAttempts = 0;
   const add = (key: keyof typeof agg, value: number | undefined) => {
@@ -298,8 +332,10 @@ export async function generateEventIdentity(
   const aggregateUsage = () => ({
     inputTokens: agg.input,
     cachedInputTokens: agg.cached,
+    cacheWriteInputTokens: agg.cacheWrite,
     outputTokens: agg.output,
     reasoningTokens: agg.reasoning,
+    responses: [...perResponse],
     providerResponses: rawResponses.length,
     providerAttempts,
     unknownUsageAttempts,
@@ -347,8 +383,9 @@ export async function generateEventIdentity(
         });
         break;
       } catch (error) {
-        // An attempt that threw never told us what it cost, and a timeout or reset can reach
-        // provider execution regardless. Counted here, charged at the per-attempt maximum later.
+        // An attempt that threw never told us what it cost, and it is **not** an attempt that
+        // cost nothing: a timeout or a connection reset can reach provider execution and be
+        // billed. Counted here, charged at the per-attempt maximum later.
         unknownUsageAttempts += 1;
         if (t < MAX_TRANSIENT_RETRIES && isTransient(error)) {
           transientRetries += 1;
@@ -358,7 +395,8 @@ export async function generateEventIdentity(
         // `rawResponses` is usually empty here, but not always: a provider failure on the
         // repair attempt follows a first response that was returned, billed and rejected.
         // Leaving it off would drop that text and let the caller record the case as one the
-        // provider never answered.
+        // provider never answered. An empty list still means only that no text was captured,
+        // never that nothing was billed.
         throw new EventIdentityError(
           `OpenAI request failed: ${(error as Error)?.message ?? String(error)}`,
           "provider",
@@ -371,8 +409,18 @@ export async function generateEventIdentity(
 
     const raw = response.output_text ?? "";
     rawResponses.push(raw);
+    const details = response.usage?.input_tokens_details as
+      { cached_tokens?: number; cache_write_tokens?: number } | undefined;
+    perResponse.push({
+      inputTokens: response.usage?.input_tokens,
+      cachedInputTokens: details?.cached_tokens,
+      cacheWriteInputTokens: details?.cache_write_tokens,
+      outputTokens: response.usage?.output_tokens,
+      reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens,
+    });
     add("input", response.usage?.input_tokens);
-    add("cached", response.usage?.input_tokens_details?.cached_tokens);
+    add("cached", details?.cached_tokens);
+    add("cacheWrite", details?.cache_write_tokens);
     add("output", response.usage?.output_tokens);
     add("reasoning", response.usage?.output_tokens_details?.reasoning_tokens);
     // A response we received but cannot price is as unpriceable as one that never arrived.

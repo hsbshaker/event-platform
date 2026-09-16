@@ -132,7 +132,10 @@ export interface ClaimRequest {
  * the RPC's inner block is a subtransaction, so every unit it took is rolled back with it.
  */
 export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promise<ClaimResult> {
-  const limits = req.limits ?? identityLimits();
+  // The model comes from the basis, so the cost profile is resolved for the exact model this call
+  // will use. In production an unpriced model throws here — before a claim exists and long before
+  // the provider is reached.
+  const limits = req.limits ?? identityLimits(req.basis.modelConfig.model ?? "");
   const digest = basisDigest(req.basis);
   const key = attemptKey(req.eventId, digest, req.ordinal);
 
@@ -144,7 +147,9 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
     p_attempt_ordinal: req.ordinal,
     // Stored on the claim, because a recovering completer has no requester to ask.
     p_clarification_answer_ids: [...req.basis.clarificationAnswerIds],
-    p_provider_config: req.basis.modelConfig,
+    // The cost profile rides along as provenance: the revision this call produces can then say
+    // which bound its spend was reserved against, not merely which model answered.
+    p_provider_config: { ...req.basis.modelConfig, costProfileVersion: limits.costProfileVersion },
     p_lease_seconds: limits.leaseSeconds,
     p_event_cap_key: bytea(`identity:event:${req.eventId}`),
     p_event_cap_window: limits.eventCap.windowSeconds,
@@ -176,6 +181,7 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
         reservedUsd: reserved,
         refusedBy: "ceiling",
         costBoundVerified: limits.costBoundVerified,
+        costProfileVersion: limits.costProfileVersion,
       });
     }
     return { outcome: "refused", reason: row.outcome, existingClaimId: row.claim_id };
@@ -189,6 +195,7 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
       recordedSpendUsd: recorded,
       reservedUsd: reserved,
       costBoundVerified: limits.costBoundVerified,
+      costProfileVersion: limits.costProfileVersion,
     });
   }
 
@@ -224,6 +231,8 @@ export interface CaptureRun {
   provider_request_id: string | null;
   input_tokens: number | null;
   cached_input_tokens: number | null;
+  /** Cache writes, billed at a premium. `cached_input_tokens` is reads. */
+  cache_write_input_tokens: number | null;
   output_tokens: number | null;
   reasoning_tokens: number | null;
   cost_estimate_usd: number;
@@ -326,10 +335,59 @@ export async function pendingIdentityCallCompletions(admin: Admin, limit = 50) {
 export interface SweepResult extends ExpiryCounts {
   /** Captured responses turned into revisions, with **no** model call. */
   completed: number;
-  /** Captured responses whose stored text no longer validates. Surfaced, never discarded. */
+  /** Captured responses that can never be completed. Terminal, so the event is released. */
   unrecoverable: number;
-  /** Completions the database refused. Counted and stepped over, never allowed to stop the run. */
-  failed: number;
+  /** Completions that failed and may yet succeed. The claim stays captured and is retried. */
+  retryable: number;
+}
+
+/**
+ * Postgres error classes a completion will fail on identically next time.
+ *
+ * `23` integrity violations (a foreign key, check or uniqueness the data itself breaks), `22` data
+ * exceptions, `0A` unsupported feature — including the `feature_not_supported` a revision's
+ * generated column raises for a schema version it has no reader for. Retrying any of these just
+ * holds the event's slot open while failing the same way.
+ *
+ * Everything else — a deadlock, a serialization failure, a lost connection, an admin shutdown —
+ * might succeed on the next run, so it is retried. Bounded, because an error nobody classified
+ * must not be able to hold the slot open for ever either.
+ */
+const DETERMINISTIC_SQLSTATE_CLASSES = ["23", "22", "0A"];
+
+/** Recovery attempts before a failure nobody could classify is terminated anyway. */
+export const MAX_RECOVERY_ATTEMPTS = 3;
+
+export function isDeterministicCompletionFailure(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code !== "string" || code.length < 2) return false;
+  return DETERMINISTIC_SQLSTATE_CLASSES.includes(code.slice(0, 2));
+}
+
+/**
+ * Releases a captured response that cannot become a revision, without discarding it.
+ *
+ * `response_captured` is non-terminal and has no expiry, so a response nothing can complete would
+ * hold that event's one in-flight slot for ever — the wedge this whole mechanism exists to
+ * prevent, arriving by the recovery path instead of the crash path. Going terminal releases the
+ * event; the run row and its evidence stay untouched for the normal retention window; and the host
+ * starts a new paid attempt only by retrying explicitly, through every ordinary cap and the
+ * ceiling.
+ */
+export async function failIdentityCallRecovery(
+  admin: Admin,
+  claimId: string,
+  reason: string,
+  deterministic: boolean,
+): Promise<"terminal" | "retryable" | "not_captured"> {
+  const { data, error } = await admin.rpc("fail_identity_call_recovery", {
+    p_claim_id: claimId,
+    p_reason: reason,
+    p_deterministic: deterministic,
+    p_max_attempts: MAX_RECOVERY_ATTEMPTS,
+  });
+  if (error) throw error;
+  return (data as "terminal" | "retryable" | "not_captured") ?? "not_captured";
 }
 
 /**
@@ -354,14 +412,24 @@ export async function sweepIdentityCallClaims(
 
   let completed = 0;
   let unrecoverable = 0;
-  let failed = 0;
+  let retryable = 0;
+
+  /** Terminal when the failure is deterministic or the bounded retries are spent. */
+  const giveUp = async (claimId: string, reason: string, deterministic: boolean) => {
+    const outcome = await failIdentityCallRecovery(admin, claimId, reason, deterministic);
+    if (outcome === "terminal") unrecoverable += 1;
+    else if (outcome === "retryable") retryable += 1;
+    console.error(`identity sweep: claim ${claimId} not completed (${outcome}): ${reason}`);
+  };
+
   for (const row of pending) {
     // The schema version is checked, not merely fetched. `identity_questions()` refuses an
     // unrecognised version rather than reading it as empty, and this is the same decision on the
     // same data: a version today's validator happens to accept would be written into a revision
     // whose generated column then refuses it, after the money was spent.
     if (!SUPPORTED_IDENTITY_SCHEMA_VERSIONS.includes(row.schema_version)) {
-      unrecoverable += 1;
+      // Deterministic by definition: no future run of this build has a reader for it either.
+      await giveUp(row.claim_id, `unsupported schema version ${row.schema_version}`, true);
       continue;
     }
     const evidence = Array.isArray(row.provider_response_evidence)
@@ -371,20 +439,24 @@ export async function sweepIdentityCallClaims(
     // captured as `response_captured`.
     const accepted = evidence.length > 0 ? evidence[evidence.length - 1] : undefined;
     if (typeof accepted !== "string") {
-      unrecoverable += 1;
+      await giveUp(row.claim_id, "captured evidence holds no response text", true);
       continue;
     }
     const outcome = parseAndValidateEventIdentityResult(accepted);
     if (!outcome.ok) {
-      unrecoverable += 1;
+      // Deterministic: the same bytes through the same validator fail the same way for ever. It
+      // validated once before capture, so this means corruption — and the text is still durable.
+      await giveUp(row.claim_id, "captured response no longer validates", true);
       continue;
     }
-    // Per claim, because one claim the database refuses must not stop the run.
+    // Per claim, because one claim the database refuses must not stop the run — and, when the
+    // refusal is deterministic, must not hold its event's in-flight slot either.
     //
-    // `complete_identity_call` can genuinely raise — `validate_identity_revision_answers` rejects
-    // an answer id that does not belong to the event. Without this the oldest such claim would be
-    // retried first on every run, throw, discard that run's expiry counts and prevent the purge
-    // from ever running again: one bad claim disabling housekeeping deployment-wide, permanently.
+    // `complete_identity_call` can genuinely raise: `validate_identity_revision_answers` rejects
+    // an answer id that does not belong to the event. Without the catch, the oldest such claim
+    // would be retried first on every run, throw, discard that run's expiry counts and stop the
+    // purge for ever. Without the *classification*, the event behind it would stay blocked for
+    // ever even though the run continues.
     try {
       const done = await completeIdentityCall(
         admin,
@@ -393,12 +465,16 @@ export async function sweepIdentityCallClaims(
       );
       if (done) completed += 1;
     } catch (error) {
-      failed += 1;
-      console.error(`identity sweep: completing claim ${row.claim_id} failed`, error);
+      const code = (error as { code?: string } | null)?.code ?? "unknown";
+      await giveUp(
+        row.claim_id,
+        `complete_identity_call failed (${code})`,
+        isDeterministicCompletionFailure(error),
+      );
     }
   }
 
-  return { ...expiry, completed, unrecoverable, failed };
+  return { ...expiry, completed, unrecoverable, retryable };
 }
 
 /**

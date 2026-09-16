@@ -87,6 +87,7 @@ const RUN = {
   model: "gpt-5.6-sol",
   input_tokens: 100,
   cached_input_tokens: 0,
+  cache_write_input_tokens: 40,
   output_tokens: 200,
   reasoning_tokens: 50,
   cost_estimate_usd: 0.5,
@@ -385,10 +386,14 @@ describe("the capture commit", () => {
     const c = await claim("attempt-key-1");
     const runId = await capture(c.claim_id!);
     const { rows } = await db.query(
-      `select idempotency_key from public.generation_runs where id=$1`,
+      `select idempotency_key, cache_write_input_tokens, cached_input_tokens
+         from public.generation_runs where id=$1`,
       [runId],
     );
     expect(rows[0].idempotency_key).toBe("attempt-key-1");
+    // Cache writes and cache reads are separate billable classes and are stored separately.
+    expect(rows[0].cache_write_input_tokens).toBe(40);
+    expect(rows[0].cached_input_tokens).toBe(0);
   });
 
   it("returns its own earlier row when a capture is retried, and writes no second one", async () => {
@@ -783,6 +788,7 @@ describe("the claim state machine", () => {
       failed_terminal: true,
       expired_unknown: true,
       abandoned: true,
+      recovery_failed: true,
     });
 
     const { rows: idx } = await db.query(
@@ -846,6 +852,106 @@ describe("the claim state machine", () => {
     ]);
     expect((await claim("k2", { ordinal: 0 })).outcome).toBe("duplicate_key");
     expect((await claim("k3", { ordinal: 1 })).outcome).toBe("claimed");
+  });
+});
+
+describe("a captured response that can never be completed releases the event", () => {
+  const fail = async (claimId: string, reason: string, deterministic = true) =>
+    (
+      await db.query(`select public.fail_identity_call_recovery($1,$2,$3,3) as outcome`, [
+        claimId,
+        reason,
+        deterministic,
+      ])
+    ).rows[0].outcome as string;
+
+  it("goes terminal, keeps the run and its evidence, and frees the in-flight slot", async () => {
+    // `response_captured` is non-terminal and deliberately has no expiry, so a response nothing
+    // can complete would hold this event's one slot for ever — the same wedge, arriving by the
+    // recovery path instead of the crash path.
+    const c = await claim("k1");
+    const runId = await capture(c.claim_id!);
+    expect((await claim("k2", { basis: "b2" })).outcome).toBe("in_flight");
+
+    expect(await fail(c.claim_id!, "captured response no longer validates")).toBe("terminal");
+    expect(await stateOf(c.claim_id!)).toBe("recovery_failed");
+
+    // The paid response survives, and so does everything needed to diagnose why.
+    const { rows } = await db.query(
+      `select provider_response_evidence, cost_estimate_usd from public.generation_runs where id=$1`,
+      [runId],
+    );
+    expect(rows[0].provider_response_evidence).toEqual(['{"one":1}']);
+    const { rows: claimRows } = await db.query(
+      `select recovery_failure_reason, recovery_attempts, settled_at
+         from public.event_identity_call_claims where id=$1`,
+      [c.claim_id],
+    );
+    expect(claimRows[0].recovery_failure_reason).toMatch(/no longer validates/);
+    expect(claimRows[0].recovery_attempts).toBe(1);
+    expect(claimRows[0].settled_at).not.toBeNull();
+
+    // The event is free again, and the next attempt is an ordinary claim through every cap.
+    expect((await claim("k2", { basis: "b2" })).outcome).toBe("claimed");
+  });
+
+  it("never turns a recovery-failed claim into a revision", async () => {
+    const c = await claim("k1");
+    await capture(c.claim_id!);
+    await fail(c.claim_id!, "corrupt");
+    expect(await complete(c.claim_id!)).toBeUndefined();
+    const { rows } = await db.query(
+      `select count(*)::int c from public.event_identity_revisions where event_id=$1`,
+      [eventId],
+    );
+    expect(rows[0].c).toBe(0);
+  });
+
+  it("keeps a possibly-transient failure recoverable until the attempts run out", async () => {
+    // Terminating every error indiscriminately would throw away a paid response that was one
+    // retry from becoming a revision. Bounded, so an unclassified error cannot hold the slot for
+    // ever either.
+    const c = await claim("k1");
+    await capture(c.claim_id!);
+    expect(await fail(c.claim_id!, "deadlock detected", false)).toBe("retryable");
+    expect(await stateOf(c.claim_id!)).toBe("response_captured");
+    expect(await fail(c.claim_id!, "deadlock detected", false)).toBe("retryable");
+    expect(await fail(c.claim_id!, "deadlock detected", false)).toBe("terminal");
+    expect(await stateOf(c.claim_id!)).toBe("recovery_failed");
+  });
+
+  it("is a no-op on a claim that is not holding a captured response", async () => {
+    const c = await claim("k1");
+    expect(await fail(c.claim_id!, "nothing to give up on")).toBe("not_captured");
+    expect(await stateOf(c.claim_id!)).toBe("claimed");
+  });
+
+  it("needs an explicit retry, and the retry takes the next ordinal", async () => {
+    const c = await claim("k1", { ordinal: 0 });
+    await capture(c.claim_id!);
+    await fail(c.claim_id!, "corrupt");
+    // Same ordinal is refused — that attempt is spent — and the next one is an ordinary claim.
+    expect((await claim("k2", { ordinal: 0 })).outcome).toBe("duplicate_key");
+    expect((await claim("k3", { ordinal: 1 })).outcome).toBe("claimed");
+  });
+
+  it("lets the evidence age out on the ordinary schedule once terminal", async () => {
+    const c = await claim("k1");
+    const runId = await capture(c.claim_id!);
+    await fail(c.claim_id!, "corrupt");
+    await db.query(`update public.generation_runs set created_at = now() - interval '60 days'`);
+    expect(
+      (
+        await db.query(
+          `select public.purge_identity_response_evidence(now() - interval '30 days') as n`,
+        )
+      ).rows[0].n,
+    ).toBe(1);
+    const { rows } = await db.query(
+      `select provider_response_evidence_purged_at from public.generation_runs where id=$1`,
+      [runId],
+    );
+    expect(rows[0].provider_response_evidence_purged_at).not.toBeNull();
   });
 });
 

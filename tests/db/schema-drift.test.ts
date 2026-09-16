@@ -42,6 +42,7 @@ const DECLARED_FUNCTIONS = {
   consume_rate_limit: true,
   event_role: true,
   expire_identity_call_claims: true,
+  fail_identity_call_recovery: true,
   expired_pre_auth_draft_batch: true,
   expired_pre_auth_storage_keys: true,
   identity_claim_is_terminal: true,

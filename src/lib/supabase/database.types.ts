@@ -45,7 +45,10 @@ export type IdentityCallClaimState =
   | "succeeded"
   | "failed_terminal"
   | "expired_unknown"
-  | "abandoned";
+  | "abandoned"
+  /** Captured, paid, and undeliverable: distinct from a failed *call*, and terminal so the event
+   * is released. */
+  | "recovery_failed";
 
 /** Outcomes of public.claim_identity_call. Only `claimed` reaches the provider. */
 export type IdentityClaimOutcome =
@@ -213,6 +216,8 @@ type GenerationRunRow = {
   model: string;
   input_tokens: number | null;
   cached_input_tokens: number | null;
+  /** Cache **writes**, billed at a premium over uncached input. Reads are `cached_input_tokens`. */
+  cache_write_input_tokens: number | null;
   output_tokens: number | null;
   reasoning_tokens: number | null;
   cost_estimate_usd: number | null;
@@ -425,6 +430,9 @@ type EventIdentityCallClaimRow = {
   state: IdentityCallClaimState;
   generation_run_id: string | null;
   settled_at: string | null;
+  /** Server-side diagnostic. Never surfaced to a host. */
+  recovery_failure_reason: string | null;
+  recovery_attempts: number;
 };
 
 export type Database = {
@@ -543,6 +551,7 @@ export type Database = {
           | "concept_index"
           | "input_tokens"
           | "cached_input_tokens"
+          | "cache_write_input_tokens"
           | "output_tokens"
           | "reasoning_tokens"
           | "cost_estimate_usd"
@@ -702,6 +711,19 @@ export type Database = {
           is_provisional: boolean;
           authoritative: boolean;
         }[];
+      };
+      /**
+       * Releases a captured response that cannot become a revision, without discarding it.
+       * Returns `terminal`, `retryable` or `not_captured`.
+       */
+      fail_identity_call_recovery: {
+        Args: {
+          p_claim_id: string;
+          p_reason: string;
+          p_deterministic: boolean;
+          p_max_attempts: number;
+        };
+        Returns: "terminal" | "retryable" | "not_captured";
       };
       /** Lease expiry only. `response_captured` is never expired here. */
       expire_identity_call_claims: {

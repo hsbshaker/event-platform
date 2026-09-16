@@ -42,6 +42,12 @@
 alter table public.generation_runs
   add column provider_response_evidence jsonb;
 
+-- Cache **writes**, which GPT-5.6 bills at a premium over uncached input while cache reads are
+-- heavily discounted. Three input classes, three rates; `cached_input_tokens` has always meant
+-- reads, and folding writes into it would price the most expensive class at the cheapest rate.
+alter table public.generation_runs
+  add column cache_write_input_tokens integer;
+
 -- When the evidence was dropped by the retention job. Without this, purging by setting the column
 -- back to `null` would destroy the very distinction the three values above are for: a purged run
 -- and a run the contract never covered would be indistinguishable forever after.
@@ -93,7 +99,16 @@ create type public.identity_call_claim_state as enum (
   'succeeded',
   'failed_terminal',
   'expired_unknown',
-  'abandoned'
+  'abandoned',
+  -- A paid response we captured and then could not turn into a revision: its stored text no longer
+  -- validates, it was written under a schema version this build has no reader for, or the database
+  -- refused the completion deterministically.
+  --
+  -- Terminal, and distinct from `failed_terminal` on purpose: that one means the *call* failed,
+  -- this one means the call succeeded and *recovery* failed. Different diagnosis, different fix.
+  -- Being terminal is what releases the event — `response_captured` has no expiry, so without this
+  -- state one undeliverable response would block that event's identity calls for good.
+  'recovery_failed'
 );
 
 -- Used by queries and by the sweeper. The partial index below inlines the same list rather than
@@ -107,7 +122,9 @@ language sql
 immutable
 parallel safe
 as $$
-  select p_state in ('succeeded', 'failed_terminal', 'expired_unknown', 'abandoned')
+  select p_state in (
+    'succeeded', 'failed_terminal', 'expired_unknown', 'abandoned', 'recovery_failed'
+  )
 $$;
 
 create table public.event_identity_call_claims (
@@ -150,6 +167,14 @@ create table public.event_identity_call_claims (
   -- sure whatever does one day cannot open it.
   generation_run_id uuid references public.generation_runs (id) on delete restrict,
   settled_at timestamptz,
+
+  -- Why recovery gave up, for an operator. Server-side only: the host is told the attempt could
+  -- not be completed and nothing more, because a reason is a diagnostic, not a product surface.
+  recovery_failure_reason text,
+  -- Completion attempts the recovery driver has made and lost. A deterministic failure terminates
+  -- at once; anything that might be transient is retried, but only so many times — an unclassified
+  -- error must not be able to hold the event open forever either.
+  recovery_attempts integer not null default 0,
 
   -- The ordinal rule as a constraint, not only as a convention. Named, because the RPC below
   -- branches on which uniqueness was violated and Postgres truncates generated names at 63
@@ -455,7 +480,7 @@ begin
 
   insert into public.generation_runs (
     event_id, user_id, provider, provider_request_id, operation, model,
-    input_tokens, cached_input_tokens, output_tokens, reasoning_tokens,
+    input_tokens, cached_input_tokens, cache_write_input_tokens, output_tokens, reasoning_tokens,
     cost_estimate_usd, latency_ms, success, error_code,
     prompt_version, schema_version, input_assembly_version,
     schema_valid_first_call, reprompts, provider_response_evidence, idempotency_key
@@ -469,6 +494,7 @@ begin
     p_run ->> 'model',
     (p_run ->> 'input_tokens')::integer,
     (p_run ->> 'cached_input_tokens')::integer,
+    (p_run ->> 'cache_write_input_tokens')::integer,
     (p_run ->> 'output_tokens')::integer,
     (p_run ->> 'reasoning_tokens')::integer,
     (p_run ->> 'cost_estimate_usd')::numeric,
@@ -670,6 +696,56 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------
+-- 8b. Giving up on a captured response, without losing it.
+--
+-- `response_captured` is non-terminal and deliberately has no expiry, so a response that cannot be
+-- turned into a revision would hold that event's one in-flight slot for ever. This is the release:
+-- the claim goes terminal, the run row and its evidence stay exactly where they are for the normal
+-- retention window, and the host may start a new paid attempt by retrying explicitly — which still
+-- passes every cap and the ceiling, because it is an ordinary new claim.
+--
+-- `p_deterministic` is the caller's classification. A failure that will fail identically next time
+-- terminates now; anything that might be transient is retried, but only up to `p_max_attempts`,
+-- because an error nobody classified must not be able to hold the slot open either.
+-- ---------------------------------------------------------------------------
+create or replace function public.fail_identity_call_recovery(
+  p_claim_id uuid,
+  p_reason text,
+  p_deterministic boolean default true,
+  p_max_attempts integer default 3
+)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_attempts integer;
+begin
+  update public.event_identity_call_claims
+     set recovery_attempts = recovery_attempts + 1,
+         recovery_failure_reason = left(p_reason, 500)
+   where id = p_claim_id
+     and state = 'response_captured'
+  returning recovery_attempts into v_attempts;
+
+  if not found then
+    return 'not_captured';
+  end if;
+
+  if p_deterministic or v_attempts >= greatest(p_max_attempts, 1) then
+    update public.event_identity_call_claims
+       set state = 'recovery_failed',
+           settled_at = pg_catalog.now()
+     where id = p_claim_id;
+    return 'terminal';
+  end if;
+
+  return 'retryable';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- 9. Evidence retention.
 --
 -- The run row and every ordinary metric survive; only the response text is dropped. The
@@ -721,6 +797,8 @@ revoke execute on function public.capture_identity_call_response(uuid, boolean, 
 revoke execute on function public.complete_identity_call(uuid, jsonb)
   from public, anon, authenticated;
 revoke execute on function public.expire_identity_call_claims(integer)
+  from public, anon, authenticated;
+revoke execute on function public.fail_identity_call_recovery(uuid, text, boolean, integer)
   from public, anon, authenticated;
 revoke execute on function public.pending_identity_call_completions(integer)
   from public, anon, authenticated;

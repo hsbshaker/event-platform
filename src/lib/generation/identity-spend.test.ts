@@ -15,6 +15,9 @@ import {
   setCeilingAlertSink,
   type CeilingAlert,
 } from "./identity-spend";
+import { GPT_5_6_SOL } from "./identity-cost";
+
+const MODEL = GPT_5_6_SOL.model;
 
 /**
  * Acceptance criteria: N/A — test-only. `docs/phase-4b-plan.md §A.5`; `spec.md §10`, `§32 #41`.
@@ -52,12 +55,12 @@ describe("the claim lease", () => {
 
   it("leaves margin over the floor by default", () => {
     expect(DEFAULT_LEASE_SECONDS).toBeGreaterThan(LEASE_FLOOR_SECONDS);
-    expect(identityLimits().leaseSeconds).toBe(DEFAULT_LEASE_SECONDS);
+    expect(identityLimits(MODEL).leaseSeconds).toBe(DEFAULT_LEASE_SECONDS);
   });
 
   it("refuses a configured lease below the floor", () => {
     process.env.IDENTITY_CLAIM_LEASE_SECONDS = String(LEASE_FLOOR_SECONDS - 1);
-    expect(() => identityLimits()).toThrow(/at least/);
+    expect(() => identityLimits(MODEL)).toThrow(/at least/);
   });
 });
 
@@ -65,24 +68,24 @@ describe("the limits", () => {
   it("keys the event cap at the event and the account cap at the acting user", () => {
     // `spec.md §6`: limits apply at both levels regardless of whether the caller is the owner or
     // a co-host, and a co-host gets no independent pool for the same event.
-    const limits = identityLimits();
+    const limits = identityLimits(MODEL);
     expect(limits.eventCap.windowSeconds).toBe(86_400);
     expect(limits.accountCap.windowSeconds).toBe(86_400);
     expect(limits.accountRate.windowSeconds).toBeLessThan(limits.accountCap.windowSeconds);
   });
 
   it("reserves the logical-call maximum per in-flight claim", () => {
-    expect(identityLimits().logicalCallMaxUsd).toBeGreaterThan(0);
+    expect(identityLimits(MODEL).logicalCallMaxUsd).toBeGreaterThan(0);
   });
 
   it.each(["0", "-2", "1.5"])("refuses the unusable cap %s", (raw) => {
     process.env.IDENTITY_EVENT_DAILY_MAX = raw;
-    expect(() => identityLimits()).toThrow(/positive integer/);
+    expect(() => identityLimits(MODEL)).toThrow(/positive integer/);
   });
 
   it("refuses a warn fraction that could never fire before the refusal", () => {
     process.env.IDENTITY_CEILING_WARN_FRACTION = "1";
-    expect(() => identityLimits()).toThrow(/below 1/);
+    expect(() => identityLimits(MODEL)).toThrow(/below 1/);
   });
 });
 
@@ -106,7 +109,7 @@ describe("what a refused caller is told", () => {
 
 describe("the ceiling alert", () => {
   it("fires before the spend lands, counting the reservation this call would add", () => {
-    const limits = identityLimits();
+    const limits = identityLimits(MODEL);
     const nearly = limits.ceiling.usd * limits.warnFraction - limits.logicalCallMaxUsd;
     expect(crossesWarnThreshold(limits, nearly, 0)).toBe(true);
     expect(crossesWarnThreshold(limits, 0, 0)).toBe(false);
@@ -127,12 +130,13 @@ describe("the ceiling alert", () => {
       recordedSpendUsd: 9,
       reservedUsd: 1,
       refusedBy: "ceiling",
-      costBoundVerified: false,
+      costBoundVerified: true,
+      costProfileVersion: GPT_5_6_SOL.profileVersion,
     });
     expect(seen).toHaveLength(1);
     expect(seen[0].refusedBy).toBe("ceiling");
     expect(Date.parse(seen[0].at)).not.toBeNaN();
-    expect(seen[0].costBoundVerified).toBe(false);
+    expect(seen[0].costBoundVerified).toBe(true);
     setCeilingAlertSink(restore);
   });
 });
