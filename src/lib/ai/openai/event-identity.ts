@@ -116,6 +116,16 @@ export interface EventIdentityUsage {
   /** How many provider responses this invocation actually received: 0, 1 or 2. */
   providerResponses: number;
   /**
+   * How many HTTP attempts this invocation made at the provider, at most
+   * `MAX_PROVIDER_ATTEMPTS_PER_CALL`.
+   *
+   * The unit cost accounting charges. `providerResponses` and `unknownUsageAttempts` overlap —
+   * a response that arrives without a usage block is both — so adding those two together
+   * double-charges that attempt, and for a call where nothing can be priced that is the whole
+   * bill. Attempts do not overlap with anything.
+   */
+  providerAttempts: number;
+  /**
    * Attempts whose usage we do not know, and therefore cannot price.
    *
    * Counts every attempt that threw before a response reached us — a timeout or a reset may have
@@ -281,6 +291,7 @@ export async function generateEventIdentity(
     reasoning?: number;
   } = {};
   let unknownUsageAttempts = 0;
+  let providerAttempts = 0;
   const add = (key: keyof typeof agg, value: number | undefined) => {
     if (typeof value === "number") agg[key] = (agg[key] ?? 0) + value;
   };
@@ -290,6 +301,7 @@ export async function generateEventIdentity(
     outputTokens: agg.output,
     reasoningTokens: agg.reasoning,
     providerResponses: rawResponses.length,
+    providerAttempts,
     unknownUsageAttempts,
   });
 
@@ -319,6 +331,7 @@ export async function generateEventIdentity(
     let response: OpenAI.Responses.Response | undefined;
     for (let t = 0; ; t += 1) {
       try {
+        providerAttempts += 1;
         response = await client.responses.create({
           model: env.OPENAI_MODEL,
           input: messages,

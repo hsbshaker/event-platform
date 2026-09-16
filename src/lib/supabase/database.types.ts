@@ -240,6 +240,8 @@ type GenerationRunRow = {
   nearest_sibling: number | null;
   fallback: string | null;
   idempotency_key: string | null;
+  /** When the retention job dropped the evidence, so "purged" is distinguishable from "n/a". */
+  provider_response_evidence_purged_at: string | null;
   /**
    * Ordered paid provider response texts, oldest first
    * (`docs/phase-4b-plan.md §A.7`).
@@ -404,6 +406,14 @@ type EventIdentityCallClaimRow = {
   /** Stored, not recovered from the key: the ordinal rule has to query by basis, and a hash cannot be. */
   basis_digest: string;
   attempt_ordinal: number;
+  /**
+   * The rest of the basis, stored because recovery needs it.
+   *
+   * A `response_captured` claim may be completed by a different request, or by the sweeper with no
+   * request at all, and the revision it writes still has to name the answers this call carried.
+   */
+  clarification_answer_ids: string[];
+  provider_config: Json;
   claimed_by: string;
   claimed_at: string;
   lease_expires_at: string;
@@ -550,6 +560,7 @@ export type Database = {
           | "fallback"
           | "idempotency_key"
           | "provider_response_evidence"
+          | "provider_response_evidence_purged_at"
           | "created_at"
         >
       >;
@@ -649,6 +660,8 @@ export type Database = {
           p_attempt_key: string;
           p_basis_digest: string;
           p_attempt_ordinal: number;
+          p_clarification_answer_ids: string[];
+          p_provider_config: Json;
           p_lease_seconds: number;
           p_event_cap_key: string;
           p_event_cap_window: number;
@@ -682,12 +695,7 @@ export type Database = {
        * another completer got there first — not an error, just someone else's work.
        */
       complete_identity_call: {
-        Args: {
-          p_claim_id: string;
-          p_result: Json;
-          p_provider_config: Json;
-          p_clarification_answer_ids: string[];
-        };
+        Args: { p_claim_id: string; p_result: Json };
         Returns: {
           revision_id: string;
           revision: number;

@@ -368,6 +368,33 @@ planner and `DesignIntent × 3`, with that phase's evidence strategy designed be
 written and four decisions listed as requiring approval. It orders work and defines no
 requirements.
 
+## Revision 6.8 — `§9.6` is a floor, and the spend controls that reading unblocks
+
+**The change.** One sentence added to `spec.md §9.6`: *"These fields are a minimum, not an
+allowlist: an implementation may persist additional server-only telemetry needed for reliability,
+cost attribution, recovery and auditability, subject to the same privacy and access-control
+requirements."*
+
+**Why it was needed.** Phase 4B T9A had to give paid provider responses a durable home.
+`EventIdentityError.rawResponses` exists because an `invalid_output` is a call that was answered
+and billed, and the plan requires every paid response preserved — but `generation_runs` had no
+field for them, and §9.6's list did not name one. Two readings were available: a record *minimum*,
+or a closed allowlist. Nothing in canon closes it, its neighbour §9.5 is explicitly optional
+(*"may emit"*), and the prohibitions that do exist — §7.10's *"never model reasoning or
+chain-of-thought"* and §32 #41's *"do not expose backend generation/spend counters"* — govern what
+the **surface shows**, not what server-only telemetry stores. The floor reading was already the one
+the plan took; this records it so the question does not cost a third review round.
+
+**What it does not do.** It does not weaken any privacy or access-control requirement, and it is
+not a licence to persist reasoning content: that prohibition is separate and unchanged. The
+evidence column stores `response.output_text` only, which carries no reasoning item, on a table
+with RLS on, no policies, and revoked from `anon` and `authenticated`.
+
+**Consequence in the build.** `generation_runs.provider_response_evidence` (ordered paid response
+texts, 30-day retention) and the EventIdentity call-claim machinery that makes uniqueness happen
+before spend. Recorded here because `CLAUDE.md §12` treats a `spec.md` edit as a product change
+rather than cleanup, even a clarifying one.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

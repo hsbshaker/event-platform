@@ -50,12 +50,19 @@ const sha256 = (parts: readonly string[]): string => {
   return h.digest("hex");
 };
 
-/** Canonical, so key stability does not depend on object key order. */
+/**
+ * Canonical, so key stability does not depend on object key order.
+ *
+ * Keys and values are hashed as separate length-prefixed parts rather than joined with `=`:
+ * otherwise `{a: "b=c"}` and `{"a=b": "c"}` produce the same digest, which is the same collision
+ * `sha256` length-prefixes to avoid one level up. A collision here means two different model
+ * configurations share an attempt key, so one of them is never paid for.
+ */
 export function modelConfigDigest(config: Record<string, string>): string {
-  const entries = Object.entries(config)
-    .map(([k, v]) => `${k}=${v}`)
-    .sort();
-  return sha256(entries);
+  const parts = Object.entries(config)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .flatMap(([k, v]) => [k, v]);
+  return sha256(parts);
 }
 
 export function basisDigest(basis: IdentityCallBasis): string {

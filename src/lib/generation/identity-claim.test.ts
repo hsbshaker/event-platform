@@ -25,6 +25,8 @@ const claim = (patch: Partial<Claim> & { state: IdentityCallClaimState }): Claim
   attempt_key: "k",
   basis_digest: "b",
   attempt_ordinal: 0,
+  clarification_answer_ids: [],
+  provider_config: {},
   claimed_by: "u1",
   claimed_at: "2026-09-16T00:00:00Z",
   lease_expires_at: "2026-09-16T00:15:00Z",

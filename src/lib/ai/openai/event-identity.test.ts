@@ -426,6 +426,7 @@ describe("the OpenAI event identity call", () => {
       expect(result.usage.outputTokens).toBe(60);
       expect(result.usage.reasoningTokens).toBe(12);
       expect(result.usage.providerResponses).toBe(2);
+      expect(result.usage.providerAttempts).toBe(2);
       expect(result.usage.unknownUsageAttempts).toBe(0);
     });
 
@@ -495,6 +496,54 @@ describe("the OpenAI event identity call", () => {
       expect(result.usage.providerResponses).toBe(1);
       expect(result.usage.unknownUsageAttempts).toBe(1);
       expect(result.usage.inputTokens).toBeUndefined();
+      // The attempt is in both counters, which is why cost accounting charges attempts rather
+      // than adding those two together: one attempt, billed once.
+      expect(result.usage.providerAttempts).toBe(1);
+    });
+
+    it("counts every HTTP attempt, so nothing has to be inferred from the two overlapping counters", async () => {
+      create
+        .mockRejectedValueOnce(providerError(500))
+        .mockRejectedValueOnce(providerError(500))
+        .mockResolvedValueOnce(ok());
+      const result = await run();
+
+      expect(result.usage.providerAttempts).toBe(3);
+      expect(result.usage.providerResponses).toBe(1);
+      expect(result.usage.unknownUsageAttempts).toBe(2);
+    });
+
+    it("stops at one pass when every attempt in it fails transiently", async () => {
+      create.mockRejectedValue(providerError(500));
+      const thrown = await run().then(
+        () => null,
+        (e: unknown) => e as { usage?: Record<string, number> },
+      );
+      // Exhausting the transient retries throws out of the whole call, so the repair pass never
+      // runs. Three, not six.
+      expect(thrown?.usage?.providerAttempts).toBe(3);
+    });
+
+    it("reaches but never exceeds the attempt budget the reservation is sized for", async () => {
+      // The only shape that spends all six: a first pass that answers and is rejected, then a
+      // repair pass that burns its retries. This is the call the ceiling reserves against, and a
+      // call reporting more attempts than this would break its arithmetic.
+      create
+        .mockRejectedValueOnce(providerError(500))
+        .mockRejectedValueOnce(providerError(500))
+        .mockResolvedValueOnce({
+          ...ok(),
+          output_text: JSON.stringify({ identity: validIdentity }),
+        })
+        .mockRejectedValue(providerError(500));
+
+      const thrown = await run().then(
+        () => null,
+        (e: unknown) => e as { kind?: string; usage?: Record<string, number> },
+      );
+      expect(thrown?.usage?.providerAttempts).toBe(6);
+      expect(thrown?.usage?.providerResponses).toBe(1);
+      expect(thrown?.usage?.unknownUsageAttempts).toBe(5);
     });
 
     it("leaves every attempt unknown when the call never gets a response", async () => {

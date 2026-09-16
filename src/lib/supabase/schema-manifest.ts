@@ -186,6 +186,7 @@ export const SCHEMA_MANIFEST = {
     "fallback",
     "idempotency_key",
     "provider_response_evidence",
+    "provider_response_evidence_purged_at",
     "created_at",
   ],
   event_identity_call_claims: [
@@ -194,6 +195,8 @@ export const SCHEMA_MANIFEST = {
     "attempt_key",
     "basis_digest",
     "attempt_ordinal",
+    "clarification_answer_ids",
+    "provider_config",
     "claimed_by",
     "claimed_at",
     "lease_expires_at",

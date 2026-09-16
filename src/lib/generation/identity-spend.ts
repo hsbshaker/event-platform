@@ -5,7 +5,7 @@ import {
   PROVIDER_REQUEST_TIMEOUT_MS,
   TRANSIENT_BACKOFF_MS,
 } from "@/lib/ai/openai/event-identity";
-import { logicalCallMaxUsd } from "./identity-cost";
+import { logicalCallMaxUsd, PROVIDER_ATTEMPT_MAX_IS_VERIFIED, tokenPrices } from "./identity-cost";
 
 /**
  * Configured backend safety limits for the EventIdentity call, and the lease that bounds a claim.
@@ -55,6 +55,13 @@ export interface IdentityLimits {
   /** Fraction of the ceiling at which the warn alert fires. */
   warnFraction: number;
   leaseSeconds: number;
+  /**
+   * Whether the per-attempt maximum has been set from provider documentation.
+   *
+   * False means every call is costed at that maximum: a real ceiling, just a blunt one. Carried
+   * here so it reaches the alert record rather than being a constant nothing reads.
+   */
+  costBoundVerified: boolean;
 }
 
 /**
@@ -87,6 +94,11 @@ export function identityLimits(): IdentityLimits {
   }
   const warnFraction = positiveNumber("IDENTITY_CEILING_WARN_FRACTION", 0.8);
   if (warnFraction >= 1) throw new Error("IDENTITY_CEILING_WARN_FRACTION must be below 1");
+  // Parsed here, at claim time, rather than where it is used. `estimateIdentityCallCostUsd` runs
+  // *after* the provider has been paid, so a typo in the price configuration would throw between
+  // the response and the capture — losing a paid response to a misconfiguration. Fail before the
+  // money, not after it.
+  tokenPrices();
   return {
     eventCap: { windowSeconds: DAY_SECONDS, max: positiveInt("IDENTITY_EVENT_DAILY_MAX", 20) },
     accountCap: { windowSeconds: DAY_SECONDS, max: positiveInt("IDENTITY_ACCOUNT_DAILY_MAX", 40) },
@@ -96,11 +108,17 @@ export function identityLimits(): IdentityLimits {
     },
     ceiling: {
       windowSeconds: positiveInt("IDENTITY_CEILING_WINDOW_SECONDS", DAY_SECONDS),
-      usd: positiveNumber("IDENTITY_CEILING_USD", 250),
+      // Coherent with the placeholder per-attempt maximum: with prices unconfigured every call is
+      // reserved and recorded at `logicalCallMaxUsd()`, so a ceiling tuned for priced calls would
+      // refuse after a handful and present to operators as "generation is broken" — every refusal
+      // being indistinguishable by design. Setting real prices makes the accounting far less blunt
+      // and this number correspondingly less important.
+      usd: positiveNumber("IDENTITY_CEILING_USD", 3_000),
     },
     logicalCallMaxUsd: logicalCallMaxUsd(),
     warnFraction,
     leaseSeconds,
+    costBoundVerified: PROVIDER_ATTEMPT_MAX_IS_VERIFIED,
   };
 }
 
@@ -129,6 +147,8 @@ export interface CeilingAlert {
   reservedUsd: number;
   /** Which control refused, when one did. */
   refusedBy?: IdentityRefusalReason;
+  /** False while the per-attempt maximum is still the unverified placeholder. */
+  costBoundVerified: boolean;
   at: string;
 }
 

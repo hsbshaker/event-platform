@@ -20,15 +20,20 @@ import {
  */
 const PRICES = JSON.stringify({ input: 1, cachedInput: 0.5, output: 2 });
 
-const usage = (patch: Partial<CostRelevantUsage> = {}): CostRelevantUsage => ({
-  inputTokens: 1_000_000,
-  cachedInputTokens: 0,
-  outputTokens: 1_000_000,
-  reasoningTokens: 0,
-  providerResponses: 1,
-  unknownUsageAttempts: 0,
-  ...patch,
-});
+const usage = (patch: Partial<CostRelevantUsage> = {}): CostRelevantUsage => {
+  const merged = {
+    inputTokens: 1_000_000,
+    cachedInputTokens: 0,
+    outputTokens: 1_000_000,
+    reasoningTokens: 0,
+    providerResponses: 1,
+    unknownUsageAttempts: 0,
+    ...patch,
+  };
+  // Attempts default to the smallest number consistent with the rest, so a fixture cannot
+  // accidentally understate them.
+  return { providerAttempts: merged.providerResponses + merged.unknownUsageAttempts, ...merged };
+};
 
 afterEach(() => {
   delete process.env.IDENTITY_TOKEN_PRICES_USD_PER_MTOK;
@@ -83,6 +88,29 @@ describe("estimating what one call cost", () => {
     expect(cached.usd).toBeCloseTo(0.5 + 2, 10);
   });
 
+  it("charges an attempt whose response carried no usage exactly once", () => {
+    // `providerResponses` and `unknownUsageAttempts` overlap: a response with no usage block is
+    // in both. Adding them charged that one attempt twice, and with prices unset — the shipped
+    // default — that was the whole bill, so a single usage-less attempt cost 2 × the maximum.
+    const estimate = estimateIdentityCallCostUsd(
+      usage({ providerResponses: 1, unknownUsageAttempts: 1, providerAttempts: 1 }),
+    );
+    expect(estimate.usd).toBe(DEFAULT_PROVIDER_ATTEMPT_MAX_USD);
+    expect(estimate.unpricedAttempts).toBe(1);
+  });
+
+  it("never exceeds the reservation, even for the worst unpriceable call", () => {
+    // Two passes, each: two transient throws then a response with no usage block. Six attempts,
+    // two responses, six unknown. Summing responses + unknown would bill eight attempts — more
+    // than a claim reserved — which falsifies the ceiling's whole inequality.
+    const worst = estimateIdentityCallCostUsd(
+      usage({ providerResponses: 2, unknownUsageAttempts: 6, providerAttempts: 6 }),
+    );
+    expect(worst.unpricedAttempts).toBe(MAX_PROVIDER_ATTEMPTS_PER_CALL);
+    expect(worst.usd).toBe(logicalCallMaxUsd());
+    expect(worst.usd).toBeLessThanOrEqual(logicalCallMaxUsd());
+  });
+
   it("does NOT cost an ambiguous transient attempt at zero", () => {
     // The whole point. A timeout may have reached provider execution; we cannot know, so it is
     // charged the per-attempt maximum. Costing it zero is how a ceiling silently undercounts
@@ -126,11 +154,19 @@ describe("estimating what one call cost", () => {
     expect(estimate.usd).toBeGreaterThan(0);
   });
 
-  it("stays within the reservation the ceiling made, for the worst call possible", () => {
-    const worst = estimateIdentityCallCostUsd(
-      usage({ providerResponses: 2, unknownUsageAttempts: MAX_PROVIDER_ATTEMPTS_PER_CALL - 2 }),
-    );
-    expect(worst.usd).toBeLessThanOrEqual(logicalCallMaxUsd());
+  it("stays within the reservation for every attempt count the policy permits", () => {
+    for (let attempts = 1; attempts <= MAX_PROVIDER_ATTEMPTS_PER_CALL; attempts += 1) {
+      for (let responses = 0; responses <= Math.min(attempts, 2); responses += 1) {
+        const estimate = estimateIdentityCallCostUsd(
+          usage({
+            providerAttempts: attempts,
+            providerResponses: responses,
+            unknownUsageAttempts: attempts,
+          }),
+        );
+        expect(estimate.usd).toBeLessThanOrEqual(logicalCallMaxUsd());
+      }
+    }
   });
 
   it("refuses malformed price configuration instead of guessing", () => {

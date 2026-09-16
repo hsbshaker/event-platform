@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseAndValidateEventIdentityResult } from "@/lib/ai/event-identity/validate";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import type { Database, IdentityCallClaimState, Json } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -140,6 +141,9 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
     p_attempt_key: key,
     p_basis_digest: digest,
     p_attempt_ordinal: req.ordinal,
+    // Stored on the claim, because a recovering completer has no requester to ask.
+    p_clarification_answer_ids: [...req.basis.clarificationAnswerIds],
+    p_provider_config: req.basis.modelConfig,
     p_lease_seconds: limits.leaseSeconds,
     p_event_cap_key: bytea(`identity:event:${req.eventId}`),
     p_event_cap_window: limits.eventCap.windowSeconds,
@@ -170,6 +174,7 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
         recordedSpendUsd: recorded,
         reservedUsd: reserved,
         refusedBy: "ceiling",
+        costBoundVerified: limits.costBoundVerified,
       });
     }
     return { outcome: "refused", reason: row.outcome, existingClaimId: row.claim_id };
@@ -182,6 +187,7 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
       ceilingUsd: limits.ceiling.usd,
       recordedSpendUsd: recorded,
       reservedUsd: reserved,
+      costBoundVerified: limits.costBoundVerified,
     });
   }
 
@@ -233,8 +239,12 @@ export interface CaptureRun {
 /**
  * Step 6 — the capture commit.
  *
- * Returns the run id, or null when the claim was not in `claimed` (someone else settled it). This
- * commit is why a crash after the provider answered never costs a second model call.
+ * Always returns the run id: the row is written whatever state the claim is in, because refusing
+ * to record a response the provider already billed for would throw away both the evidence and the
+ * spend. A retried capture returns the run it wrote the first time rather than a second row. Null
+ * means only that the claim itself is gone.
+ *
+ * This commit is why a crash after the provider answered never costs a second model call.
  */
 export async function captureIdentityCallResponse(
   admin: Admin,
@@ -268,14 +278,13 @@ export async function completeIdentityCall(
   admin: Admin,
   claimId: string,
   result: Json,
-  providerConfig: Json,
-  clarificationAnswerIds: string[],
 ): Promise<CompletedCall | null> {
+  // The answer ids and provider configuration come from the claim, not from here: the completer
+  // may be a different request, or the sweeper, and the revision still has to name what this call
+  // actually carried.
   const { data, error } = await admin.rpc("complete_identity_call", {
     p_claim_id: claimId,
     p_result: result,
-    p_provider_config: providerConfig,
-    p_clarification_answer_ids: clarificationAnswerIds,
   });
   if (error) throw error;
   const row = (data ?? [])[0];
@@ -311,6 +320,58 @@ export async function pendingIdentityCallCompletions(admin: Admin, limit = 50) {
   const { data, error } = await admin.rpc("pending_identity_call_completions", { p_limit: limit });
   if (error) throw error;
   return data ?? [];
+}
+
+export interface SweepResult extends ExpiryCounts {
+  /** Captured responses turned into revisions, with **no** model call. */
+  completed: number;
+  /** Captured responses whose stored text no longer validates. Surfaced, never discarded. */
+  unrecoverable: number;
+}
+
+/**
+ * The recovery driver.
+ *
+ * Without something running this, the one-in-flight index is half a mechanism: it refuses every
+ * new call while a claim is unsettled, and nothing settles a claim whose process died. The event
+ * would be wedged for good. Expiry releases those; completion turns a captured paid response into
+ * its revision, re-validating the stored text through the same validator production uses and
+ * making **no** model call.
+ *
+ * A captured response whose text no longer validates is counted and left alone rather than marked
+ * failed. It validated once, before capture, so this means corruption — and the evidence is still
+ * durable, so an operator can look. Quietly discarding it would destroy the only copy.
+ */
+export async function sweepIdentityCallClaims(
+  admin: Admin,
+  options: { expireLimit?: number; completeLimit?: number } = {},
+): Promise<SweepResult> {
+  const expiry = await expireIdentityCallClaims(admin, options.expireLimit ?? 100);
+  const pending = await pendingIdentityCallCompletions(admin, options.completeLimit ?? 50);
+
+  let completed = 0;
+  let unrecoverable = 0;
+  for (const row of pending) {
+    const evidence = Array.isArray(row.provider_response_evidence)
+      ? (row.provider_response_evidence as unknown[])
+      : [];
+    // The accepted response is the last one: a repair appends, and only a successful call is
+    // captured as `response_captured`.
+    const accepted = evidence.length > 0 ? evidence[evidence.length - 1] : undefined;
+    if (typeof accepted !== "string") {
+      unrecoverable += 1;
+      continue;
+    }
+    const outcome = parseAndValidateEventIdentityResult(accepted);
+    if (!outcome.ok) {
+      unrecoverable += 1;
+      continue;
+    }
+    const done = await completeIdentityCall(admin, row.claim_id, outcome.value as unknown as Json);
+    if (done) completed += 1;
+  }
+
+  return { ...expiry, completed, unrecoverable };
 }
 
 /**

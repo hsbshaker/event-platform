@@ -27,7 +27,7 @@ let otherEventId: string;
 const K = (s: string) => Buffer.from(s.padEnd(32, "x").slice(0, 32));
 
 const CLAIM = `select * from public.claim_identity_call(
-  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`;
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`;
 
 interface ClaimOpts {
   event?: string;
@@ -41,6 +41,8 @@ interface ClaimOpts {
   ceilingUsd?: number;
   logicalMaxUsd?: number;
   accountKey?: string;
+  answerIds?: string[];
+  providerConfig?: Record<string, string>;
 }
 
 function claimArgs(key: string, o: ClaimOpts = {}) {
@@ -51,6 +53,8 @@ function claimArgs(key: string, o: ClaimOpts = {}) {
     key,
     o.basis ?? "basis-a",
     o.ordinal ?? 0,
+    o.answerIds ?? [],
+    JSON.stringify(o.providerConfig ?? { model: "gpt-5.6-sol" }),
     o.lease ?? 900,
     K(`e:${event}`),
     86_400,
@@ -134,10 +138,10 @@ const BOUNDARY_RESULT = {
 };
 
 async function complete(claimId: string, result: unknown = RESULT, client: Client = db) {
-  const { rows } = await client.query(
-    `select * from public.complete_identity_call($1,$2::jsonb,$3::jsonb,$4::uuid[])`,
-    [claimId, JSON.stringify(result), JSON.stringify({ model: "gpt-5.6-sol" }), []],
-  );
+  const { rows } = await client.query(`select * from public.complete_identity_call($1,$2::jsonb)`, [
+    claimId,
+    JSON.stringify(result),
+  ]);
   return rows[0] as
     | { revision_id: string; revision: number; is_provisional: boolean; authoritative: boolean }
     | undefined;
@@ -187,8 +191,12 @@ describe("uniqueness happens before spend", () => {
     const b = await connect();
     try {
       const [ra, rb] = await Promise.all([claim("same", {}, a), claim("same", {}, b)]);
-      const outcomes = [ra.outcome, rb.outcome].sort();
-      expect(outcomes).toEqual(["claimed", "duplicate_key"]);
+      const outcomes = [ra.outcome, rb.outcome];
+      // Exactly one wins. Which uniqueness the loser trips — the attempt key or the one-in-flight
+      // index — depends on index order, so the assertion is on the outcome that matters: one
+      // claim, one refusal, and the refusal is not a claim.
+      expect(outcomes.filter((o) => o === "claimed")).toHaveLength(1);
+      expect(outcomes.filter((o) => o === "duplicate_key" || o === "in_flight")).toHaveLength(1);
       const { rows } = await db.query(
         `select count(*)::int c from public.event_identity_call_claims where event_id=$1`,
         [eventId],
@@ -286,6 +294,36 @@ describe("the spend ceiling", () => {
     expect(Number(refused.recorded_spend_usd)).toBe(9);
   });
 
+  it("keeps a possibly-paid expired claim on the books", async () => {
+    // `expired_unknown` means the provider was invoked and we never learned the outcome, so
+    // §A.5.1 rule 2 costs it at the maximum. It is terminal and has no run row, so without an
+    // explicit term the money would vanish from the ceiling the instant the claim settled — fail
+    // open in exactly the ambiguous, expensive case the rule exists for.
+    const c = await claim("k1");
+    await db.query(`select public.mark_identity_call_invoked($1)`, [c.claim_id]);
+    await db.query(
+      `update public.event_identity_call_claims set lease_expires_at = now() - interval '1 minute'`,
+    );
+    await db.query(`select * from public.expire_identity_call_claims(10)`);
+
+    const probe = await claim("k2", { basis: "b2" });
+    expect(Number(probe.reserved_usd)).toBe(30);
+  });
+
+  it("lets a possibly-paid expired claim age out of the window", async () => {
+    const c = await claim("k1");
+    await db.query(`select public.mark_identity_call_invoked($1)`, [c.claim_id]);
+    await db.query(
+      `update public.event_identity_call_claims set lease_expires_at = now() - interval '1 minute'`,
+    );
+    await db.query(`select * from public.expire_identity_call_claims(10)`);
+    await db.query(
+      `update public.event_identity_call_claims set settled_at = now() - interval '2 days'`,
+    );
+    const probe = await claim("k2", { basis: "b2" });
+    expect(Number(probe.reserved_usd)).toBe(0);
+  });
+
   it("ignores spend outside the ceiling window", async () => {
     const c = await claim("k1");
     await capture(c.claim_id!, true, { cost_estimate_usd: 900 });
@@ -353,13 +391,41 @@ describe("the capture commit", () => {
     expect(rows[0].idempotency_key).toBe("attempt-key-1");
   });
 
-  it("cannot write two run rows for one paid call", async () => {
-    // Without the key, a retried capture double-counts exactly the spend the ceiling reads back.
+  it("returns its own earlier row when a capture is retried, and writes no second one", async () => {
+    // A capture whose HTTP response was lost is retried. The unique attempt key is what makes the
+    // retry find its own row rather than double-count the spend the ceiling reads back — and the
+    // caller gets the run id, because "already done by me" is not "settled by someone else".
     const c = await claim("k1");
-    await capture(c.claim_id!);
-    expect(await capture(c.claim_id!)).toBeNull();
+    const first = await capture(c.claim_id!);
+    const second = await capture(c.claim_id!);
+    expect(second).toBe(first);
     const { rows } = await db.query(`select count(*)::int c from public.generation_runs`);
     expect(rows[0].c).toBe(1);
+  });
+
+  it("records a response that arrived after the claim had already expired", async () => {
+    // The race the lease margin makes unlikely and does not make impossible. Refusing to write
+    // here would throw away both the paid response and the money it cost — the one outcome this
+    // whole mechanism exists to prevent — so the run row is written whatever the claim's state is
+    // and only the transition is conditional.
+    const c = await claim("k1");
+    await db.query(`select public.mark_identity_call_invoked($1)`, [c.claim_id]);
+    await db.query(
+      `update public.event_identity_call_claims set lease_expires_at = now() - interval '1 minute'`,
+    );
+    await db.query(`select * from public.expire_identity_call_claims(10)`);
+    expect(await stateOf(c.claim_id!)).toBe("expired_unknown");
+
+    const runId = await capture(c.claim_id!, true, { cost_estimate_usd: 7 });
+    expect(runId).not.toBeNull();
+    const { rows } = await db.query(
+      `select cost_estimate_usd, provider_response_evidence from public.generation_runs where id=$1`,
+      [runId],
+    );
+    expect(Number(rows[0].cost_estimate_usd)).toBe(7);
+    expect(rows[0].provider_response_evidence).toEqual(['{"one":1}']);
+    // The claim stays terminal: a host retry already governs what happens next.
+    expect(await stateOf(c.claim_id!)).toBe("expired_unknown");
   });
 
   it("writes a run row on the failure path too, from request-side values", async () => {
@@ -633,6 +699,23 @@ describe("evidence retention", () => {
     ).toBe(0);
   });
 
+  it("marks a purged run so it stays distinguishable from one the contract never covered", async () => {
+    // Nulling the column on purge would destroy the very distinction the three values are for:
+    // afterwards a purged run and a pre-contract run look identical forever.
+    const c = await claim("k1");
+    const runId = await capture(c.claim_id!);
+    await complete(c.claim_id!);
+    await age(60);
+    await db.query(`select public.purge_identity_response_evidence(now() - interval '30 days')`);
+    const { rows } = await db.query(
+      `select provider_response_evidence, provider_response_evidence_purged_at
+         from public.generation_runs where id=$1`,
+      [runId],
+    );
+    expect(rows[0].provider_response_evidence).toBeNull();
+    expect(rows[0].provider_response_evidence_purged_at).not.toBeNull();
+  });
+
   it("refuses a cutoff in the future", async () => {
     await expect(
       db.query(`select public.purge_identity_response_evidence(now() + interval '1 day')`),
@@ -667,10 +750,10 @@ describe("server-only, on the phase-1 pattern", () => {
   });
 
   it.each([
-    "select public.claim_identity_call(null,null,null,null,0,1,null,1,1,null,1,1,null,1,1,1,1,1)",
+    "select public.claim_identity_call(null,null,null,null,0,null,null,1,null,1,1,null,1,1,null,1,1,1,1,1)",
     "select public.mark_identity_call_invoked(null)",
     "select public.capture_identity_call_response(null,true,'{}'::jsonb)",
-    "select public.complete_identity_call(null,'{}'::jsonb,'{}'::jsonb,'{}'::uuid[])",
+    "select public.complete_identity_call(null,'{}'::jsonb)",
     "select public.expire_identity_call_claims(1)",
     "select public.pending_identity_call_completions(1)",
     "select public.purge_identity_response_evidence(now())",
@@ -710,6 +793,15 @@ describe("the claim state machine", () => {
     for (const [state, isTerminal] of Object.entries(terminal)) {
       expect(idx[0].predicate.includes(`'${state}'`)).toBe(!isTerminal);
     }
+  });
+
+  it("propagates a misconfiguration instead of returning it as a refusal", async () => {
+    // `consume_rate_limit` raises P0001 for a non-positive window or max. Catching that class
+    // would turn an operator's mistake into a silent, indistinguishable refusal carrying a
+    // sentence of English where the contract promises one of six outcomes.
+    await expect(db.query(CLAIM, claimArgs("k1", { rateMax: 0 }))).rejects.toThrow(
+      /window and max must be positive/,
+    );
   });
 
   it("keeps one ordinal per basis, so a retry cannot reuse a spent attempt", async () => {

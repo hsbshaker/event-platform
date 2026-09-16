@@ -114,6 +114,7 @@ export type CostRelevantUsage = Pick<
   | "outputTokens"
   | "reasoningTokens"
   | "providerResponses"
+  | "providerAttempts"
   | "unknownUsageAttempts"
 >;
 
@@ -130,11 +131,12 @@ export interface CostEstimate {
  * What this invocation may have cost.
  *
  * Observed responses are priced from their aggregated tokens when prices are configured.
- * Everything else — attempts that threw, responses with no usage block, and every response when
- * prices are unconfigured — is charged the per-attempt maximum. With the per-attempt maximum set
- * correctly the result stays within `logicalCallMaxUsd()`, since a call cannot make more attempts
- * than the policy allows; the estimate is deliberately **not** clamped to it, because a result
- * above the reservation means the maximum is wrong and hiding that would defeat the ceiling.
+ * Everything else — attempts that threw, responses with no usage block, and every attempt when
+ * prices are unconfigured — is charged the per-attempt maximum, **once per attempt**. With the
+ * per-attempt maximum set correctly the result stays within `logicalCallMaxUsd()`, since a call
+ * cannot make more attempts than the policy allows; the estimate is deliberately **not** clamped
+ * to it, because a result above the reservation would mean the maximum is wrong and hiding that
+ * would defeat the ceiling.
  *
  * Reasoning tokens are billed as output by every provider we use; they are counted here for the
  * same reason, and only ever as counts.
@@ -144,6 +146,11 @@ export function estimateIdentityCallCostUsd(usage: CostRelevantUsage): CostEstim
   const prices = tokenPrices();
   const observed = Math.max(usage.providerResponses, 0);
   const unknown = Math.max(usage.unknownUsageAttempts, 0);
+  // Attempts are the unit, because `providerResponses` and `unknownUsageAttempts` overlap: a
+  // response that arrived without a usage block is counted in both. Summing those two charges
+  // such an attempt twice, and with prices unconfigured — the shipped default — that is the
+  // entire bill, which can then exceed the reservation the ceiling already made for this claim.
+  const attempts = Math.max(usage.providerAttempts, observed, 0);
 
   // Every observed response must have reported tokens, or we cannot price any of them honestly:
   // the aggregate cannot tell us which response was silent.
@@ -151,8 +158,7 @@ export function estimateIdentityCallCostUsd(usage: CostRelevantUsage): CostEstim
   const pricedObserved = prices !== null && observed > 0 && !anyTokenFieldMissing;
 
   if (!pricedObserved) {
-    const unpriced = observed + unknown;
-    return { usd: unpriced * attemptMax, exact: false, unpricedAttempts: unpriced };
+    return { usd: attempts * attemptMax, exact: false, unpricedAttempts: attempts };
   }
 
   const cached = usage.cachedInputTokens ?? 0;

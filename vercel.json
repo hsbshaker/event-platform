@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/purge-pre-auth",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/identity-housekeeping",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

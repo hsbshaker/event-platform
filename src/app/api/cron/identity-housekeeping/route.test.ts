@@ -1,0 +1,214 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+/**
+ * The recovery driver's route.
+ *
+ * The SQL is proven against real Postgres in `tests/db/phase4b-t9a.test.ts`. What matters here is
+ * that the job exists, runs behind `CRON_SECRET`, runs all three steps, and — the part that made
+ * this a blocker — that shipping the one-in-flight refusal without something to release a dead
+ * claim would wedge an event permanently.
+ *
+ * Acceptance criteria: N/A — recovery and retention for `docs/phase-4b-plan.md §A.5`–`§A.7`.
+ */
+const rpc = vi.fn();
+let calls: string[] = [];
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => ({
+    rpc: (name: string, args: unknown) => {
+      calls.push(name);
+      return rpc(name, args);
+    },
+  }),
+}));
+
+const SECRET = "cron-secret-value-long-enough-to-pass";
+
+/**
+ * A genuinely valid envelope, because the point of the completion path is that it re-validates
+ * the stored text through the **production** validator. A stub shape would pass the test while
+ * proving nothing about recovery.
+ */
+const validIdentity = {
+  creativeDirection: "A restrained, tactile winter identity built on materials rather than motifs.",
+  toneKeywords: ["restrained", "tactile", "warm"],
+  colorsExplicitlyConstrained: false,
+  paletteIntent: {
+    requiredColors: [],
+    preferredColors: ["ivory"],
+    avoidColors: [],
+    dominanceNotes: "",
+  },
+  tonalIntent: "Mid-toned and warm, with quiet contrast.",
+  toneExplicitlyConstrained: false,
+  compatibleTonalDirections: ["mid"],
+  compatibleFamilies: ["editorial"],
+  compatibleTypographyCategories: ["oldstyle"],
+  visualMotifs: ["fine double-rule framing"],
+  textureDirection: "linen-like",
+  typographyDirection: "quiet oldstyle serif",
+  copyTone: "warm and unfussy",
+  hostConstraints: [],
+  creativeGuidance: [],
+  inspirationSummary: "No visual inspiration supplied.",
+};
+
+const validBody = {
+  identity: validIdentity,
+  suppliedFacts: {
+    hostNames: null,
+    honoreeName: null,
+    honoreeDescriptionText: null,
+    eventType: null,
+    dateText: null,
+    timeText: null,
+    venueText: null,
+    addressText: null,
+    localityText: null,
+    rsvpDeadlineText: null,
+  },
+  clarification: { needed: false, questions: [] },
+};
+
+const request = (auth?: string) =>
+  new NextRequest("https://example.com/api/cron/identity-housekeeping", {
+    headers: auth ? { authorization: auth } : {},
+  });
+
+async function GET(auth?: string) {
+  const { GET: handler } = await import("./route");
+  return handler(request(auth));
+}
+
+beforeEach(() => {
+  vi.resetModules();
+  rpc.mockReset();
+  calls = [];
+  process.env.CRON_SECRET = SECRET;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:54321";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
+  process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+  process.env.APP_ENCRYPTION_KEY = "a".repeat(48);
+  rpc.mockImplementation(async (name: string) => {
+    if (name === "expire_identity_call_claims") {
+      return { data: [{ abandoned: 2, expired_unknown: 1 }], error: null };
+    }
+    if (name === "pending_identity_call_completions") return { data: [], error: null };
+    if (name === "purge_identity_response_evidence") return { data: 4, error: null };
+    return { data: null, error: null };
+  });
+});
+
+afterEach(() => {
+  delete process.env.CRON_SECRET;
+});
+
+describe("the identity housekeeping job", () => {
+  it("is not a public endpoint", async () => {
+    expect((await GET()).status).toBe(404);
+    expect((await GET("Bearer wrong")).status).toBe(404);
+    expect(calls).toEqual([]);
+  });
+
+  it("releases dead claims, recovers captured responses and ages out evidence", async () => {
+    const response = await GET(`Bearer ${SECRET}`);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      abandoned: 2,
+      expiredUnknown: 1,
+      completed: 0,
+      unrecoverable: 0,
+      evidencePurged: 4,
+      retentionDays: 30,
+    });
+    // All three steps, every run. Expiry is the one that keeps the one-in-flight index from
+    // wedging an event whose process died; the purge is the retention commitment.
+    expect(calls).toEqual([
+      "expire_identity_call_claims",
+      "pending_identity_call_completions",
+      "purge_identity_response_evidence",
+    ]);
+  });
+
+  it("turns a captured response into a revision without calling a model", async () => {
+    const accepted = JSON.stringify(validBody);
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: [{ abandoned: 0, expired_unknown: 0 }], error: null };
+      }
+      if (name === "pending_identity_call_completions") {
+        return {
+          data: [
+            {
+              claim_id: "c1",
+              event_id: "e1",
+              generation_run_id: "r1",
+              schema_version: "event_identity_schema_v5",
+              provider_response_evidence: ['{"rejected":true}', accepted],
+              captured_at: "2026-09-16T00:00:00Z",
+            },
+          ],
+          error: null,
+        };
+      }
+      if (name === "complete_identity_call") {
+        return {
+          data: [{ revision_id: "rev1", revision: 1, is_provisional: false, authoritative: true }],
+          error: null,
+        };
+      }
+      return { data: 0, error: null };
+    });
+
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({ completed: 1 });
+    // The accepted response is the last one — a repair appends — and it is re-validated locally.
+    expect(calls).toContain("complete_identity_call");
+  });
+
+  it("counts a captured response it cannot validate rather than discarding it", async () => {
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: [{ abandoned: 0, expired_unknown: 0 }], error: null };
+      }
+      if (name === "pending_identity_call_completions") {
+        return {
+          data: [
+            {
+              claim_id: "c1",
+              event_id: "e1",
+              generation_run_id: "r1",
+              schema_version: "event_identity_schema_v5",
+              provider_response_evidence: ["not json at all"],
+              captured_at: "2026-09-16T00:00:00Z",
+            },
+          ],
+          error: null,
+        };
+      }
+      return { data: 0, error: null };
+    });
+
+    // It validated once, before capture, so this means corruption — and the evidence is still
+    // durable. Marking it failed would destroy the only copy; it is surfaced instead.
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      completed: 0,
+      unrecoverable: 1,
+    });
+    expect(calls).not.toContain("complete_identity_call");
+  });
+
+  it("reports the failing stage rather than a bare 500", async () => {
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: null, error: { code: "42501", message: "denied" } };
+      }
+      return { data: null, error: null };
+    });
+    const response = await GET(`Bearer ${SECRET}`);
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({ ok: false, stage: "sweep_claims" });
+  });
+});

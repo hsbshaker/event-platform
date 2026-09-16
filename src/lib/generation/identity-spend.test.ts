@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   MAX_PROVIDER_ATTEMPTS_PER_CALL,
   MAX_TRANSIENT_RETRIES,
@@ -114,7 +114,11 @@ describe("the ceiling alert", () => {
 
   it("goes to a sink rather than nowhere", () => {
     const seen: CeilingAlert[] = [];
-    const restore = vi.fn();
+    // Restore the real default afterwards, not a spy: the sink is module state, and leaving a
+    // `vi.fn()` behind would silently swallow every later alert in this worker.
+    const restore = (alert: CeilingAlert) => {
+      console.warn(`[spend] ${alert.kind}`, JSON.stringify(alert));
+    };
     setCeilingAlertSink((alert) => seen.push(alert));
     emitCeilingAlert({
       kind: "identity_spend_refused",
@@ -123,10 +127,12 @@ describe("the ceiling alert", () => {
       recordedSpendUsd: 9,
       reservedUsd: 1,
       refusedBy: "ceiling",
+      costBoundVerified: false,
     });
     expect(seen).toHaveLength(1);
     expect(seen[0].refusedBy).toBe("ceiling");
     expect(Date.parse(seen[0].at)).not.toBeNaN();
+    expect(seen[0].costBoundVerified).toBe(false);
     setCeilingAlertSink(restore);
   });
 });

@@ -42,6 +42,12 @@
 alter table public.generation_runs
   add column provider_response_evidence jsonb;
 
+-- When the evidence was dropped by the retention job. Without this, purging by setting the column
+-- back to `null` would destroy the very distinction the three values above are for: a purged run
+-- and a run the contract never covered would be indistinguishable forever after.
+alter table public.generation_runs
+  add column provider_response_evidence_purged_at timestamptz;
+
 alter table public.generation_runs
   add constraint generation_runs_evidence_is_array
   check (
@@ -119,6 +125,16 @@ create table public.event_identity_call_claims (
   basis_digest text not null,
   attempt_ordinal integer not null check (attempt_ordinal >= 0),
 
+  -- The rest of the basis, in the shape the revision needs it.
+  --
+  -- Recovery is the reason these are columns rather than inputs the requester remembers. A
+  -- `response_captured` claim may be completed by a **different** request, or by the sweeper with
+  -- no request at all, and the revision it writes still has to name the answers this call actually
+  -- carried and the provider configuration that produced it. A recovering completer cannot ask the
+  -- original caller, so the claim has to already know.
+  clarification_answer_ids uuid[] not null default array[]::uuid[],
+  provider_config jsonb not null default '{}'::jsonb,
+
   claimed_by uuid not null references public.profiles (id) on delete restrict,
   claimed_at timestamptz not null default now(),
   lease_expires_at timestamptz not null,
@@ -128,7 +144,11 @@ create table public.event_identity_call_claims (
   provider_invoked_at timestamptz,
 
   state public.identity_call_claim_state not null default 'claimed',
-  generation_run_id uuid references public.generation_runs (id) on delete set null,
+  -- `restrict`, not `set null`: a claim in `response_captured` whose run row vanished could never
+  -- be completed (the completion re-validates that row's stored evidence) and never expires, which
+  -- is the permanent wedge by another route. Nothing prunes `generation_runs` today; this makes
+  -- sure whatever does one day cannot open it.
+  generation_run_id uuid references public.generation_runs (id) on delete restrict,
   settled_at timestamptz,
 
   -- The ordinal rule as a constraint, not only as a convention. Named, because the RPC below
@@ -183,6 +203,8 @@ create or replace function public.claim_identity_call(
   p_attempt_key text,
   p_basis_digest text,
   p_attempt_ordinal integer,
+  p_clarification_answer_ids uuid[],
+  p_provider_config jsonb,
   p_lease_seconds integer,
   p_event_cap_key bytea,
   p_event_cap_window integer,
@@ -230,51 +252,74 @@ begin
    where r.operation = 'event_identity'
      and r.created_at >= pg_catalog.now() - (p_ceiling_window_seconds * interval '1 second');
 
+  -- In-flight claims reserve the maximum, because each may still cost every attempt its retry
+  -- policy permits.
+  --
+  -- `expired_unknown` claims with no run row are counted too, and this is not belt-and-braces: a
+  -- claim reaches that state because the provider was invoked and we never learned the outcome, so
+  -- §A.5.1 rule 2 says it must be costed at the maximum rather than at zero. It is terminal and
+  -- has no `generation_runs` row, so without this term the possibly-spent money disappears from
+  -- the ceiling the instant the claim settles — fail-open in exactly the ambiguous, expensive case
+  -- the rule exists for. Bounded to the ceiling window so it ages out with recorded spend.
   select coalesce(count(*), 0) * p_logical_call_max_usd
     into v_reserved
     from public.event_identity_call_claims c
-   where c.state in ('claimed', 'response_captured');
+   where c.state in ('claimed', 'response_captured')
+      or (
+        c.state = 'expired_unknown'
+        and c.generation_run_id is null
+        and c.settled_at >= pg_catalog.now() - (p_ceiling_window_seconds * interval '1 second')
+      );
 
   begin
     -- Admitting this call means reserving one more logical-call maximum.
     if v_recorded + v_reserved + p_logical_call_max_usd > p_ceiling_usd then
-      raise exception using errcode = 'P0001', message = 'ceiling';
+      raise exception using errcode = 'ID001', message = 'ceiling';
     end if;
 
     if not public.consume_rate_limit(
       'identity:event:day', p_event_cap_key, p_event_cap_window, p_event_cap_max
     ) then
-      raise exception using errcode = 'P0001', message = 'cap_event';
+      raise exception using errcode = 'ID001', message = 'cap_event';
     end if;
 
     if not public.consume_rate_limit(
       'identity:account:day', p_account_cap_key, p_account_cap_window, p_account_cap_max
     ) then
-      raise exception using errcode = 'P0001', message = 'cap_account';
+      raise exception using errcode = 'ID001', message = 'cap_account';
     end if;
 
     if not public.consume_rate_limit(
       'identity:account:rate', p_rate_key, p_rate_window, p_rate_max
     ) then
-      raise exception using errcode = 'P0001', message = 'rate_limited';
+      raise exception using errcode = 'ID001', message = 'rate_limited';
     end if;
 
     insert into public.event_identity_call_claims (
-      event_id, attempt_key, basis_digest, attempt_ordinal, claimed_by, lease_expires_at
+      event_id, attempt_key, basis_digest, attempt_ordinal, clarification_answer_ids,
+      provider_config, claimed_by, lease_expires_at
     )
     values (
       p_event_id,
       p_attempt_key,
       p_basis_digest,
       p_attempt_ordinal,
+      coalesce(p_clarification_answer_ids, array[]::uuid[]),
+      coalesce(p_provider_config, '{}'::jsonb),
       p_user_id,
       pg_catalog.now() + (p_lease_seconds * interval '1 second')
     )
     returning id into v_claim_id;
 
   exception
-    when sqlstate 'P0001' then
+    when sqlstate 'ID001' then
       -- Everything the inner block did is rolled back, including every consumed unit.
+      --
+      -- A dedicated SQLSTATE, not the generic `P0001` a bare `raise exception` produces:
+      -- `consume_rate_limit` raises `P0001` for a non-positive window or max, so catching that
+      -- class here would turn an operator misconfiguration into a silent refusal carrying a
+      -- sentence of English where the declared contract promises one of six outcomes. Anything
+      -- that is not one of our four refusals now propagates, as it should.
       v_outcome := sqlerrm;
       v_claim_id := null;
     when unique_violation then
@@ -352,17 +397,28 @@ declare
   v_claim public.event_identity_call_claims;
   v_run_id uuid;
 begin
-  update public.event_identity_call_claims
-     set state = (
-           case when p_success then 'response_captured' else 'failed_terminal' end
-         )::public.identity_call_claim_state,
-         settled_at = case when p_success then null else pg_catalog.now() end
+  -- Locked first, whatever state it is in. The run row is written **regardless** of that state:
+  -- if the sweeper expired this claim while the provider call was still running, refusing to
+  -- record would throw away both the paid response and the money it cost, which is the one
+  -- outcome this whole mechanism exists to prevent. Only the state transition is conditional.
+  select * into v_claim
+    from public.event_identity_call_claims
    where id = p_claim_id
-     and state = 'claimed'
-  returning * into v_claim;
+   for update;
 
   if not found then
     return null;
+  end if;
+
+  -- A capture whose HTTP response was lost is retried. The attempt key is unique on
+  -- `generation_runs`, so the retry finds its own earlier row instead of writing a second one
+  -- and double-counting the spend the ceiling reads back.
+  select id into v_run_id
+    from public.generation_runs
+   where idempotency_key = v_claim.attempt_key;
+
+  if found then
+    return v_run_id;
   end if;
 
   insert into public.generation_runs (
@@ -398,7 +454,17 @@ begin
   returning id into v_run_id;
 
   update public.event_identity_call_claims
-     set generation_run_id = v_run_id
+     set generation_run_id = v_run_id,
+         state = case
+                   when state <> 'claimed' then state
+                   when p_success then 'response_captured'
+                   else 'failed_terminal'
+                 end,
+         settled_at = case
+                        when state <> 'claimed' then settled_at
+                        when p_success then null
+                        else pg_catalog.now()
+                      end
    where id = p_claim_id;
 
   return v_run_id;
@@ -421,12 +487,7 @@ $$;
 -- deferrable — and only when the result is not provisional, which
 -- `validate_authoritative_identity()` independently refuses to allow otherwise.
 -- ---------------------------------------------------------------------------
-create or replace function public.complete_identity_call(
-  p_claim_id uuid,
-  p_result jsonb,
-  p_provider_config jsonb,
-  p_clarification_answer_ids uuid[]
-)
+create or replace function public.complete_identity_call(p_claim_id uuid, p_result jsonb)
 returns table (
   revision_id uuid,
   revision integer,
@@ -483,10 +544,10 @@ begin
     v_run.input_assembly_version,
     v_run.provider,
     v_run.model,
-    p_provider_config,
+    v_claim.provider_config,
     v_run.provider_request_id,
     v_run.id,
-    coalesce(p_clarification_answer_ids, array[]::uuid[])
+    v_claim.clarification_answer_ids
   )
   returning id, event_identity_revisions.is_provisional into v_id, v_provisional;
 
@@ -599,7 +660,8 @@ begin
   end if;
 
   update public.generation_runs g
-     set provider_response_evidence = null
+     set provider_response_evidence = null,
+         provider_response_evidence_purged_at = pg_catalog.now()
    where g.provider_response_evidence is not null
      and g.created_at < p_cutoff
      and not exists (
@@ -617,14 +679,14 @@ $$;
 -- 10. Server-only execution. None of this is reachable from an end-user JWT.
 -- ---------------------------------------------------------------------------
 revoke execute on function public.claim_identity_call(
-  uuid, uuid, text, text, integer, integer,
+  uuid, uuid, text, text, integer, uuid[], jsonb, integer,
   bytea, integer, integer, bytea, integer, integer, bytea, integer, integer,
   integer, numeric, numeric
 ) from public, anon, authenticated;
 revoke execute on function public.mark_identity_call_invoked(uuid) from public, anon, authenticated;
 revoke execute on function public.capture_identity_call_response(uuid, boolean, jsonb)
   from public, anon, authenticated;
-revoke execute on function public.complete_identity_call(uuid, jsonb, jsonb, uuid[])
+revoke execute on function public.complete_identity_call(uuid, jsonb)
   from public, anon, authenticated;
 revoke execute on function public.expire_identity_call_claims(integer)
   from public, anon, authenticated;
