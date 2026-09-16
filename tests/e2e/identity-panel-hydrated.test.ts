@@ -68,7 +68,7 @@ beforeAll(async () => {
     // A clean environment, deliberately. A vitest worker exports `NODE_OPTIONS` loader hooks and
     // `VITEST_*`, and a Vite build that inherits them tries to join the run it was spawned from
     // and never returns — which is how this hung, silently, with vitest buffering the output.
-    const env = { ...process.env, NODE_ENV: "production" };
+    const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "production" };
     delete env.NODE_OPTIONS;
     for (const key of Object.keys(env)) if (key.startsWith("VITEST")) delete env[key];
     execFileSync(
