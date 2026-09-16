@@ -259,12 +259,12 @@ owns:
 | --- | --- | --- |
 | 1 | per-event generation cap | `consume_rate_limit` bucket `identity:event:day`, keyed on the HMAC-hashed `event_id`. Event-level, so it spans owner and every co-host (`spec.md §6`) |
 | 2 | per-account generation cap | bucket `identity:account:day`, keyed on the acting `user_id` — the actor, not the owner |
-| 3 | global/project spend ceiling, refused **before** the call | a pre-call check against recorded spend: the sum of `generation_runs.cost_estimate_usd` over the ceiling window, plus a companion call-count bucket `identity:global:day`. Cost is only knowable after a call, so the honest bound is *recorded spend + (in-flight claims × the per-call maximum)*, and the count bucket is what makes that second term finite. Stated as a bound, not as an exact ceiling. **`cost_estimate_usd` is nullable and nothing computes it today, so a null must count as the per-call maximum, never as zero** — a ceiling that silently under-counts is the fail-open shape §A.3 exists to refuse. T9A either populates it for `event_identity` or treats every null as maximum; it does not get to leave the sum optimistic |
+| 3 | global/project spend ceiling, refused **before** the call | a pre-call check against recorded spend: the sum of `generation_runs.cost_estimate_usd` over the ceiling window, plus a companion call-count bucket `identity:global:day`. Cost is only knowable after a call, so the honest bound is *recorded spend + (in-flight claims × the per-call maximum)*, and the count bucket is what makes that second term finite. Stated as a bound, not as an exact ceiling. The *per-call maximum* is a named constant beside the model configuration, derived from the model's published token prices and the boundary's own bounded token ceiling, and it is reviewed whenever `OPENAI_MODEL` changes — an unnamed maximum makes the bound unbounded in practice. **`cost_estimate_usd` is nullable and nothing computes it today, so a null must count as the per-call maximum, never as zero** — a ceiling that silently under-counts is the fail-open shape §A.3 exists to refuse. T9A either populates it for `event_identity` or treats every null as maximum; it does not get to leave the sum optimistic |
 | 4 | alert/observability path for the ceiling | a structured server-side alert record emitted when the window crosses its warn fraction and again at refusal, carrying window, recorded spend, ceiling and the refusing bucket. Delivery channel (email/pager) is explicit debt, not a new dependency — `technology-decisions.md` is locked |
 | 5 | rate limiting before the provider is reached | the claim RPC (below) runs to completion before `generateEventIdentity` is called at all. There is no provider factory to intercept — the client is constructed **inside** `generateEventIdentity` (`new OpenAI(…)`) — so the observable boundary is that function, and the T9A test asserts, with the module mocked, that a refusal never calls it. That is a behavioural assertion, not a source scan; an earlier draft of this row named a `createOpenAIClient` seam that does not exist |
 | 6 | deterministic idempotency for an EventIdentity request | the attempt key below. Derived from the request, never random, never a client-supplied token |
 | 7 | a concurrency claim so two requests cannot both pay | `event_identity_call_claims`, unique on the attempt key, **inserted before the provider is reached**. A uniqueness conflict that only surfaces after two calls have completed is not idempotency |
-| 7b | **one identity call in flight per event** | a partial unique index over `(event_id)` where the claim is non-terminal. The key alone is not enough: the basis contains `model_config_digest` and three versions, so a rolling deploy between a host's request and their refresh produces a *different* key and would otherwise start a second paid call while the first runs. This is a **call-level** guard on identity calls and is not `spec.md §10`'s one-batch-in-flight rule arriving early — it knows nothing about batches, siblings or planning, and T16's rule still lands at T16 |
+| 7b | **one identity call in flight per event** | a partial unique index over `(event_id)` where the claim is non-terminal. The key alone is not enough: the basis contains `model_config_digest` and three versions, so a rolling deploy between a host's request and their refresh produces a *different* key and would otherwise start a second paid call while the first runs. This is a **call-level** guard on identity calls and is not `spec.md §10`'s one-batch-in-flight rule arriving early — it knows nothing about batches, siblings or planning, and T16's rule still lands at T16. Because `response_captured` is non-terminal, this index also refuses a *legitimate* new call while one sits unrecovered; that is why §A.6 step 3's lookup is event-scoped and completes it on the hot path, rather than leaving recovery to the sweeper |
 | 8 | usage telemetry per call | `generation_runs` as specified by `spec.md §9.6`, plus `input_assembly_version` (§B.3) and the paid-response evidence of §A.7 |
 
 **Refusals never leak a counter.** `spec.md §10` says creative work is *"effectively unlimited from
@@ -300,23 +300,33 @@ The property that makes it work: **two requests that would send the same bytes t
 key.** A double-tap, a refresh and a replayed POST all recompute the same basis and collide. A new
 clarification answer changes `ordered clarification_answer_ids`, so a genuine new round is a
 different key and a legitimately new paid call — which is why the answer ids are already ordered and
-durable (§B.2). `attempt_ordinal` is **derived server-side, never carried on the request**: it is one more than the
-highest ordinal among *terminal* claims for the same basis, and deriving it is refused outright while
-any non-terminal claim for that basis exists. So it is 0 until a host explicitly retries a terminally
-failed attempt, it cannot become a silent re-roll, and — the case a client-supplied or
-per-click counter would get wrong — **two clicks on `Retry` derive the same ordinal, collide on the
-unique index and produce one call.** `(batch_id, operation, concept_index,
+durable (§B.2). `attempt_ordinal` is **derived server-side, never carried on the request**, and the derivation has
+two modes that an earlier draft ran together into a rule that contradicted itself:
+
+- **Observing.** If a non-terminal claim exists for this basis, its ordinal *is* the answer. This is
+  the path §A.6 steps 2→3 need for cases A, B and C — you cannot observe an in-flight claim without
+  being able to derive its key — so it must not be refused.
+- **Creating.** A *new* claim takes `coalesce(max(attempt_ordinal) over terminal claims for this
+  basis, -1) + 1`, and creating one is refused while any non-terminal claim for that basis exists.
+
+So it is 0 until a host explicitly retries a terminally failed attempt, it cannot become a silent
+re-roll, and — the case a client-supplied or per-click counter would get wrong — **two clicks on
+`Retry` derive the same ordinal, collide on the unique index and produce one call.** `(batch_id, operation, concept_index,
 attempt)` — §H.2's key — is the *sibling* key and does not exist yet; this one does not depend on it.
 
 #### The claim lifecycle
 
 `event_identity_call_claims`: `attempt_key` unique, `event_id`, `claimed_by`, `claimed_at`,
 `lease_expires_at`, `provider_invoked_at` (nullable), `state`, `generation_run_id` (nullable).
+**Server-only, on the phase-1 pattern**: RLS enabled with no policies and
+`revoke all … from anon, authenticated`. Per-event in-flight state and attempt ordinals are backend
+generation counters, and `spec.md §32 #41` says not to expose those — leaving Supabase's default
+grants in place would hand `authenticated` a `SELECT` on exactly that.
 
 | State | Meaning | Exit |
 | --- | --- | --- |
 | `claimed` | the key is reserved; no provider client has been constructed | → `response_captured`, `failed_terminal`, or lease expiry |
-| `response_captured` | the provider answered and the run row **including its evidence** is committed; the revision is not yet written | → `succeeded` by deterministic completion, with **no second model call**. This is **not** terminal and **must not** be left to a lease: the next request on this key completes it inline (§A.6 step 3), and a sweeper completes any that no request returns for. It has no expiry path, because expiring it would strand a paid response behind a key the host can never change |
+| `response_captured` | the provider answered and the run row **including its evidence** is committed; the revision is not yet written | → `succeeded` by deterministic completion, with **no second model call**. This is **not** terminal and **must not** be left to a lease: the next request **on this event** completes it inline (§A.6 step 3) — on the event, not on the key, because a deploy or a new answer changes the key and the completer must still find it — and the sweeper completes any that no request returns for. It has no expiry path, because expiring it would strand a paid response; for the same reason **§A.7's evidence purge must skip every run referenced by a non-terminal claim**, or the purge reintroduces the wedge the missing expiry was avoiding |
 | `succeeded` | revision appended, pointer moved where allowed | terminal |
 | `failed_terminal` | `provider` failure with nothing paid for, or `invalid_output` after the one repair | terminal; a retry is a host action |
 | `expired_unknown` | the lease elapsed with `provider_invoked_at` set and no captured response | terminal; **explicit host retry only** |
@@ -379,13 +389,25 @@ inside the call. That is deliberate, not an omission.
 2. Resolve the exact `events.prompt` bytes and the ordered `clarification_answer_ids` visible now;
    derive `basis_digest` and `attempt_key`. **Before any cap is touched**, so cases B and C cannot
    burn quota.
-3. Look the key up. An existing claim in `claimed` or a terminal state is observed and returned;
-   stop. A claim in **`response_captured` is completed here first** — re-validate its stored evidence
-   and run step 7 — and the completed result is what the request observes. This is the recovery
-   path, and it is on the hot path deliberately: the basis cannot change (`events.prompt` is
-   immutable and the answer set has not grown), so the host can never derive a different key, and a
-   `response_captured` claim that nothing completes would wedge the event's identity permanently
-   behind a paid response. A sweeper completes any that no request returns for.
+3. **Look up any non-terminal claim for this event** — event-scoped, not key-scoped. An earlier
+   draft looked the *key* up and justified it by saying the basis cannot change; row 7b of §A.5 says
+   the opposite and is right, because a deploy or a new answer changes `model_config_digest` or an
+   answer id and therefore the key. A key-scoped lookup would find nothing, step 4's non-terminal
+   `(event_id)` index would refuse the insert, and the event would be blocked with no completer on
+   the request path at all.
+   - a `claimed` claim, or one matching this key in a terminal state, is observed and returned; stop;
+   - a **`response_captured` claim is completed here first**, whatever its key: re-validate its
+     stored evidence and run step 7, then return what that produced.
+
+   **The completion is gated by the state transition, not by the sequence.** It begins with
+   `update event_identity_call_claims set state = 'succeeded' where id = $1 and state =
+   'response_captured' returning *`; step 7 runs only if a row came back. Without that, two
+   completers — two requests, or a request and the sweeper — both read `response_captured` and both
+   run step 7, and `validate_identity_revision()` will *not* stop the late one: it recomputes
+   `max(revision) + 1` at insert time, so the second completer appends a second revision of one paid
+   response and repoints the event at the duplicate. Belt and braces, the migration also puts
+   `unique (generation_run_id)` on `event_identity_revisions`, so one paid call can produce exactly
+   one revision as a database fact rather than as a property of the code path.
 4. Otherwise, **one RPC in one transaction**: global ceiling → per-event cap → per-account cap →
    rate limit → `INSERT` the claim. A refusal rolls the whole transaction back, so a later refusal
    does not consume an earlier bucket's unit. (`consume_rate_limit` increments then compares; run
@@ -400,6 +422,14 @@ inside the call. That is deliberate, not an omission.
    call and double-counts the spend the §A.5 ceiling reads back. Move the claim to
    `response_captured` (or `failed_terminal`). This commit exists so a crash after it never costs
    another call.
+   On the failure path, `generation_runs.model`, `prompt_version`, `schema_version`, `latency_ms`
+   and `success` are `NOT NULL` and **none of them arrives on the result**:
+   `EventIdentityError.usage` is `Partial<EventIdentityUsage>` carrying only `latencyMs` and
+   `transientRetries`, and a validator bug rethrows something that is not an `EventIdentityError` at
+   all and carries no usage — yet §A.7 still gives that case an evidence value, so a row is written.
+   Those columns therefore come from the **request side**: the versions and model configuration the
+   orchestrator resolved at step 2, `success = false`, and a latency measured by the orchestrator
+   when the boundary reports none.
 7. **Second commit — derive and persist.** Append the identity revision naming the run id, prompt
    version, schema version, input assembly version, provider/model configuration and the ordered
    `clarification_answer_ids`; branch provisional vs authoritative; where authoritative, move
@@ -422,14 +452,31 @@ step 6 is a separate commit.
 **What this needs before T10 can be implemented** (none of it built in this pass):
 
 - a migration adding `event_identity_call_claims` — including its non-terminal partial unique index
-  on `event_id` (§A.5 row 7b) — and the §A.7 evidence column;
+  on `event_id` (§A.5 row 7b), **`enable row level security` with no policies and
+  `revoke all … from anon, authenticated`** on the phase-1 pattern (the table holds per-event
+  in-flight and attempt state, which is a backend generation counter under `spec.md §32 #41`), and
+  `unique (generation_run_id)` on `event_identity_revisions`;
+- the §A.7 evidence column, and an index supporting the ceiling's window sum — `generation_runs`
+  has only `(event_id, created_at desc)` and `(user_id, created_at desc)` today, neither of which
+  serves a global sum by `operation` and time;
+- exporting `MAX_TRANSIENT_RETRIES` and `TRANSIENT_BACKOFF_MS` and hoisting the boundary's
+  `timeout: 120_000` to a named exported constant. All three are module-private or inline literals
+  today, so the lease-floor pin cannot be written against them without this, and a source scan is
+  not an acceptable substitute (§A.5 row 5 disowns exactly that technique). Non-model-visible;
 - one `security definer` RPC performing step 4 atomically and returning a claim or a reason code;
 - the step-5 `provider_invoked_at` commit;
 - one RPC (or server function) performing step 6, and one performing step 7;
-- a reclaim/complete driver: `abandoned` for expired unpaid claims, and completion of any
-  `response_captured` claim no request returns for;
+- a reclaim/complete driver, specified rather than gestured at: a scheduled job on the existing
+  daily-housekeeping path, running often enough that a `response_captured` claim is completed well
+  inside §A.7's retention window, which marks `abandoned` every expired claim with a committed null
+  `provider_invoked_at`, marks `expired_unknown` every expired claim with one set, and completes
+  every `response_captured` claim through the same conditional transition step 3 uses — so the job
+  and a concurrent request cannot both complete one — processing a bounded batch per run;
 - a durable home for the §A.5 ceiling alert record;
-- the new `rate_limits` rule constants beside the existing ones in `src/lib/auth/rate-limit.ts`;
+- the new `rate_limits` rule constants beside the existing ones in `src/lib/auth/rate-limit.ts`.
+  Note that `consume_rate_limit` takes `p_key_hash bytea` and `hashRateLimitKey` HMACs in TypeScript
+  over `APP_ENCRYPTION_KEY`, so the step-4 RPC receives already-hashed keys from the caller; it does
+  not hash, and the counters table still never holds a raw identifier;
 - a small, **non-model-visible** change to the provider boundary: `EventIdentityCallResult` returns
   only `raw`, the accepted text, so a *successful repair* currently drops the rejected first
   response that was also paid for. The ordered list must leave the boundary on success as it already
@@ -478,15 +525,21 @@ is host-entered event material and the model's interpretation of it — includin
 which is already persisted in `events.prompt` and in the identity revisions; the genuine marginal
 addition is the text of *rejected* outputs. Canon sets no retention period for it, so one is
 required rather than inherited: the evidence column is nulled out on a bounded schedule by extending
-the existing purge job, keeping the run row and its metrics. **T9A does not ship without that purge
+the existing purge job, keeping the run row and its metrics. **The purge predicate must exclude
+every run referenced by a non-terminal claim.** `response_captured` deliberately has no expiry
+(§A.5), so a purge that nulled its evidence would leave a claim that can never be completed and
+never expires — the permanent wedge, reintroduced through the retention rule instead of the state
+machine. **T9A does not ship without that purge
 path**, and gate item 14 tests it. The interval itself is a product decision: this plan proposes
 **30 days**, long enough to investigate a failed round and short enough that rejected model output
 about a named person does not accumulate indefinitely, and T9A confirms or replaces that number
 before implementing. What is not available is shipping the column with no purge and no interval.
 
 **On whether this needs a `CLAUDE.md §12` approval: no, and an earlier draft of this section said
-both things at once.** If §9.6 is a floor — which its own *"where exposed"* wording and the fact that
-§9.5's telemetry is explicitly optional both support — then adding a server-only telemetry column
+both things at once.** If §9.6 is a floor — it is a record *minimum* with nothing in canon closing it, and its neighbour
+§9.5 is explicitly optional (*"Each concept compilation **may** emit deterministic telemetry"*); the
+*"where exposed"* qualifier says which fields are conditionally required, not that the list is open,
+so it is the weaker of the two supports and not the one this rests on — then adding a server-only telemetry column
 changes no canonical requirement and needs no spec edit. That is the reading this plan takes, and it
 cannot also claim the column is a §12 change. What *is* worth doing, separately and at product
 discretion, is one clarifying line in §9.6 saying the list is a minimum and additional server-only
@@ -1319,7 +1372,7 @@ graded. Fixed by ordering, not by a promise.
 | **T7** | **Independent fairness and leakage review of the corpus.** A collision with pre-existing production or model-visible text is fixed **at the corpus**, by its author — never by relaxing the scanner or the checker (§3.5) | — | T6 | leakage scan against the frozen prompt and wire schema; fairness read; the four authoring hazards checked case by case, dimension coverage included | `model-contracts.md §4.5` | no | **yes** | no |
 | **T8** | **Freeze the corpus at its own input SHA**, in a commit that adds the corpus file and nothing else | the corpus file alone | T7 | the T4 suite still green; the absence test retires without a source edit | `model-contracts.md §4.5` | no | **yes** | no |
 | **T9** | Input assembly + `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION` → `event_identity_input_v2`. It **may** see the already-frozen cases — this is honestly pre-registered validation, not a sealed challenge — because the machinery that grades them was frozen at T5 and the cases at T8 | `src/lib/ai/versions.ts`, `src/lib/ai/provider.ts`, `src/lib/ai/openai/event-identity.ts`, `src/lib/ai/openai/event-identity-input.ts`, **`src/lib/ai/evals/rerun-seam.ts`** (the one file in the frozen validation harness T9 may touch) | T3, **T8** | `input-assembly-drift.test.ts` version-named golden files; an assembly change under an unchanged version fails against its own file; one file per declared value; `prompt` byte-identical across rounds; **leakage scan clean — the assembly's static text against the frozen corpus** | `spec.md §31 — Prompt, auth, and generation`; `§7.6b`; guardrail `§32 #9` | **yes** | **yes** | no |
-| **T9A** | **Call-level EventIdentity spend, idempotency, claim and telemetry controls** (§A.5–§A.8). Nothing here is batch-shaped and nothing anticipates `generation_batches`. **T10 may not be implemented before this lands** | migration: `event_identity_call_claims`, `generation_runs.provider_response_evidence`, the claim/capture/complete RPCs; `src/lib/generation/identity-spend.ts`, `identity-claim.ts`, `identity-state.ts` (the §A.8 derivation); new `rate_limits` buckets in `src/lib/auth/rate-limit.ts`; a non-model-visible provider-boundary change returning the ordered paid responses on success too | T3, T9 | db + unit: two concurrent requests on the same basis produce **one** claim and **one** provider construction; a refusal rolls back every bucket it touched, so a later refusal spends no earlier unit; the provider factory is never constructed on a refusal; the attempt key is stable across refresh and changes when a clarification answer is added; two clicks on `Retry` derive one ordinal and one call; a `response_captured` claim is completed by the next request **with no second model call**, and cannot wedge the event; the lease floor is pinned to `MAX_TRANSIENT_RETRIES` and the boundary timeout, so raising either fails the test; a null `cost_estimate_usd` counts as the per-call maximum in the ceiling sum; the step-6 insert carries the attempt key in `generation_runs.idempotency_key`, so a retried capture cannot write two run rows; a deploy-changed `model_config_digest` mid-flight is refused by the one-in-flight guard rather than starting a second call; every refusal returns the same client-visible payload; the evidence purge path runs and nulls only the evidence; each of cases A–F; all seven `provider_response_evidence` outcomes including `[]` versus `null`; the evidence column is unreadable by `anon` and `authenticated`; no refusal payload carries a counter (`§32 #41`); the derived clarification state agrees with `is_provisional` on every constructed shape | `development-plan.md` principle 4; `spec.md §10`, `§9.6`, `§6`, `§32 #41`; `§31 — Prompt, auth, and generation` | no | **yes** | no |
+| **T9A** | **Call-level EventIdentity spend, idempotency, claim and telemetry controls** (§A.5–§A.8). Nothing here is batch-shaped and nothing anticipates `generation_batches`. **T10 may not be implemented before this lands** | migration: `event_identity_call_claims`, `generation_runs.provider_response_evidence`, the claim/capture/complete RPCs; `src/lib/generation/identity-spend.ts`, `identity-claim.ts`, `identity-state.ts` (the §A.8 derivation); new `rate_limits` buckets in `src/lib/auth/rate-limit.ts`; a non-model-visible provider-boundary change returning the ordered paid responses on success too | T3, T9 | db + unit: two concurrent requests on the same basis produce **one** claim and **one** call to `generateEventIdentity` (module mocked — there is no provider factory to count, §A.5 row 5); a refusal rolls back every bucket it touched, so a later refusal spends no earlier unit; `generateEventIdentity` is never called on a refusal; the attempt key is stable across refresh and changes when a clarification answer is added; two clicks on `Retry` derive one ordinal and one call; a `response_captured` claim is completed by the next request **with no second model call**, and cannot wedge the event; the lease floor is pinned to `MAX_TRANSIENT_RETRIES` and the boundary timeout, so raising either fails the test; a null `cost_estimate_usd` counts as the per-call maximum in the ceiling sum; the step-6 insert carries the attempt key in `generation_runs.idempotency_key`, so a retried capture cannot write two run rows; a deploy-changed `model_config_digest` mid-flight is refused by the one-in-flight guard rather than starting a second call; every refusal returns the same client-visible payload; the evidence purge path runs, nulls only the evidence, and leaves a `response_captured` claim's evidence intact; the claims table is unreadable by `anon` and `authenticated`; the lease constant is computed from the exported retry/timeout constants, so changing either fails the test; each of cases A–F; all seven `provider_response_evidence` outcomes including `[]` versus `null`; the evidence column is unreadable by `anon` and `authenticated`; no refusal payload carries a counter (`§32 #41`); the derived clarification state agrees with `is_provisional` on every constructed shape | `development-plan.md` principle 4; `spec.md §10`, `§9.6`, `§6`, `§32 #41`; `§31 — Prompt, auth, and generation` | no | **yes** | no |
 | **T10** | Orchestration: run → persist → branch → rerun | `src/lib/generation/identity-orchestrator.ts` | T1–T3, T9, **T9A** | unit + db: the §A.6 order is the implemented order, and no provider client is constructed before step 5; a crash simulated between steps 6 and 7 completes deterministically **with no second model call**; the revision and the pointer commit together, so the crash between them has no window; provisional blocks; rerun creates a revision; repeated boundary rounds; no lifetime round cap; idempotent refresh; and, for a late Route A answer, that it is appended, stays bound to the asking revision, leaves `events.prompt` and the authoritative revision untouched, does not rebase the event onto a newly rerun identity, and starts no second downstream handoff. **That last clause has no observable subject at T10** — the planner is T15 and the batch T16 — so it is recorded `n/a`, owned by T16, and T10 builds no downstream port to make it observable (see the proof-ownership note at the end of §C) | `§7.6b`, `§7.7`, `§31 — Creation Mode` | no | **yes** | no |
 | **T11** | Minimal clarification surface | `src/app/…` per `screen-spec.md` | T10 | e2e at 390 and 1280; keyboard, focus, contrast | `§31 — Creation Mode`, `§31 — Responsive/accessibility` | no | no | no |
 | **T12** | Independent engineering review of the integrated change, then **implementation freeze** | — | T11 | gate items 1–14 all green at the freeze SHA, **PostgreSQL 17 included** | §4B gate | no | **yes** | no |
@@ -1395,8 +1448,8 @@ live run; it contradicted the table below it and the `T12` and `T13` rows.)
 | 10 | The database cannot mark a boundary-bearing identity authoritative via a stale or false flag | db tests: an `INSERT` naming `is_provisional` is rejected (`428C9`); the pointer trigger still refuses when the column is tampered with directly; an unrecognised `schema_version` and a malformed `clarification.questions` are **refused rather than read as authoritative** (§A.3) |
 | 11 | Host/co-host authorization and RLS for answers and revisions are correct | db tests per the existing permission matrix, including negative cases: a non-member cannot answer; a co-host cannot attribute an answer to the owner (`answered_by = auth.uid()`); and **a member cannot move the event's authoritative-identity pointer**, which requires that column to be in `protect_event_server_columns()` (§A.3 property 4) |
 | 12 | **The migrations and the whole database suite pass against PostgreSQL 17**, the version `supabase/config.toml` pins | run before the T12 implementation freeze, on 17 rather than a local 16 substitute. Phase 4B does not close on the substitute: `ALTER TABLE … SET EXPRESSION` is 17-only and was worked around locally, and a generated column plus deferrable-FK design is exactly where a version difference would surface |
-| 13 | **No production EventIdentity call is reachable without the call-level controls in front of it** | unit + db (§A.5, T9A): caps, ceiling and rate limit are consumed in one transaction that rolls back on refusal; the provider client is not constructed when the claim is refused; two concurrent identical requests yield one claim and one call; a refresh and a replayed POST consume no quota and start no call; `expired_unknown` requires an explicit host retry while `abandoned` is reclaimed automatically — and only from a committed null `provider_invoked_at`; a `response_captured` claim is always completed without a second model call and can never wedge the event's identity; the lease exceeds the boundary's bounded worst case and is pinned to it; a mid-flight config change cannot start a second paid call; every refusal returns one indistinguishable payload and leaks no counter |
-| 14 | **Every paid provider response has a durable home, and the clarification state has exactly one source** | db: `generation_runs.provider_response_evidence` holds the ordered texts for all seven outcomes of §A.7, with `[]` and `null` distinguished; the column is unreadable by `anon` and `authenticated` and absent from the orchestrator's return type; no response body is written to `reprompts`; the bounded purge path nulls the evidence and keeps the run row and its metrics; and `awaiting_clarification` exists nowhere as a stored value, with the §A.8 derivation returning *awaiting clarification* and *consumable downstream* separately and agreeing with `is_provisional` and the authoritative pointer respectively |
+| 13 | **No production EventIdentity call is reachable without the call-level controls in front of it** | unit + db (§A.5, T9A): caps, ceiling and rate limit are consumed in one transaction that rolls back on refusal; `generateEventIdentity` is not called when the claim is refused; two concurrent identical requests yield one claim and one call; a refresh and a replayed POST consume no quota and start no call; `expired_unknown` requires an explicit host retry while `abandoned` is reclaimed automatically — and only from a committed null `provider_invoked_at`; a `response_captured` claim is always completed without a second model call and can never wedge the event's identity — including after a config change alters the key, because the step-3 lookup is event-scoped; two concurrent completers produce exactly one revision, enforced by the conditional state transition **and** by `unique (generation_run_id)`; the lease exceeds the boundary's bounded worst case and is pinned to it; a mid-flight config change cannot start a second paid call; every refusal returns one indistinguishable payload and leaks no counter |
+| 14 | **Every paid provider response has a durable home, and the clarification state has exactly one source** | db: `generation_runs.provider_response_evidence` holds the ordered texts for all seven outcomes of §A.7, with `[]` and `null` distinguished; the column is unreadable by `anon` and `authenticated` and absent from the orchestrator's return type; no response body is written to `reprompts`; the bounded purge path nulls the evidence, keeps the run row and its metrics, and **skips every run referenced by a non-terminal claim**; and `awaiting_clarification` exists nowhere as a stored value, with the §A.8 derivation returning *awaiting clarification* and *consumable downstream* separately and agreeing with `is_provisional` and the authoritative pointer respectively |
 | 15 | The pre-registered rerun-behaviour set passes its frozen mechanical and qualitative criteria | T13: one authorized live run after the T12 implementation freeze, graded against the criteria frozen at T5 — **before the cases existed** — and classed per §3.9. Evidence protected at T14, in the same change |
 
 Plus the standing gate: deterministic checks green, independent engineering review, and an explicit
