@@ -316,8 +316,12 @@ attempt)` — §H.2's key — is the *sibling* key and does not exist yet; this 
 
 #### The claim lifecycle
 
-`event_identity_call_claims`: `attempt_key` unique, `event_id`, `claimed_by`, `claimed_at`,
-`lease_expires_at`, `provider_invoked_at` (nullable), `state`, `generation_run_id` (nullable).
+`event_identity_call_claims`: `attempt_key` unique, `event_id`, `basis_digest`, `attempt_ordinal`,
+`claimed_by`, `claimed_at`, `lease_expires_at`, `provider_invoked_at` (nullable), `state`,
+`generation_run_id` (nullable). `basis_digest` and `attempt_ordinal` are stored rather than
+recovered from the key, because the key is a sha256 and the ordinal rule above has to ask both
+*"is there a non-terminal claim for this basis"* and *"what is the highest ordinal among terminal
+claims for this basis"* — neither question is answerable from a hash.
 **Server-only, on the phase-1 pattern**: RLS enabled with no policies and
 `revoke all … from anon, authenticated`. Per-event in-flight state and attempt ordinals are backend
 generation counters, and `spec.md §32 #41` says not to expose those — leaving Supabase's default
@@ -353,8 +357,10 @@ money bug waiting for a config change.
 
 - **At-most-once per attempt key.** The unique index refuses the second claim *before* any provider
   client is constructed. Uniqueness happens before spend, not after it.
-- **Idempotently observable.** A concurrent or repeated request with the same key observes the
-  existing claim and its terminal result. It starts no call and consumes no cap unit.
+- **Idempotently observable.** A concurrent or repeated request observes the existing claim and its
+  terminal result rather than starting a call, and consumes no cap unit. The lookup is *event*-scoped
+  (§A.6 step 3); the key then decides whether that claim is this request's own answer or a recovery
+  it must resubmit behind.
 - **Not exactly-once.** The provider API offers no exactly-once guarantee and this plan does not
   invent one. A crash after invocation and before capture can leave a paid call with no row. That
   resolves to `expired_unknown` and an explicit host retry — never a silent second purchase.
@@ -362,7 +368,7 @@ money bug waiting for a config change.
 | | Case | Behaviour |
 | --- | --- | --- |
 | **A** | two simultaneous first requests | identical basis → identical key; exactly one `INSERT` wins; the loser converges on observing the winner. One provider client is constructed, not two |
-| **B** | refresh while a request is in flight | key lookup precedes every cap and every call. The refresh is a read of the existing claim. If a deploy changed `model_config_digest` or a version between the two requests the key differs — row 7b's one-in-flight guard, not the key, is what refuses the second call there |
+| **B** | refresh while a request is in flight | the event-scoped claim lookup precedes every cap and every call. The refresh is a read of the existing claim. If a deploy changed `model_config_digest` or a version between the two requests the key differs — row 7b's one-in-flight guard, not the key, is what refuses the second call there |
 | **C** | repeated POST after completion | same key, terminal claim; the recorded result is returned. No call, no cap unit |
 | **D** | crash before provider invocation | committed `provider_invoked_at` null → `abandoned` at lease expiry → reclaimable automatically. No double spend, no host action. The cap and ceiling units consumed at §A.6 step 4 are **not** returned: an abandoned claim costs quota it did not spend money on, which is the conservative direction and deliberately not a refund path |
 | **E** | crash after invocation, before persistence | `expired_unknown`. The response is genuinely lost; the host is told the attempt could not be recorded and retries deliberately, incrementing `attempt_ordinal` |
@@ -395,13 +401,26 @@ inside the call. That is deliberate, not an omission.
    answer id and therefore the key. A key-scoped lookup would find nothing, step 4's non-terminal
    `(event_id)` index would refuse the insert, and the event would be blocked with no completer on
    the request path at all.
-   - a `claimed` claim, or one matching this key in a terminal state, is observed and returned; stop;
-   - a **`response_captured` claim is completed here first**, whatever its key: re-validate its
-     stored evidence and run step 7, then return what that produced.
+   - a claim **whose `basis_digest` matches this request** is this request's own: observed and
+     returned in `claimed` or a terminal state, or completed first when `response_captured` (below)
+     and then returned; stop;
+   - a claim whose basis **differs** — the deploy or new-answer case — is still completed when it is
+     `response_captured`, because leaving it is what wedges the event. But its revision is **not**
+     this request's answer: it was computed from a basis that does not include, say, the
+     clarification answer this host just submitted. The request receives an explicit *another
+     identity call for this event was in flight and has just been recovered; resubmit* state, never
+     someone else's revision presented as its own. It resolves on the resubmit: the recovered claim
+     is terminal by then and non-matching, so control falls through to step 4 and the host's own
+     round begins. No spend, no wedge, and no silent substitution.
 
    **The completion is gated by the state transition, not by the sequence.** It begins with
    `update event_identity_call_claims set state = 'succeeded' where id = $1 and state =
-   'response_captured' returning *`; step 7 runs only if a row came back. Without that, two
+   'response_captured' returning *`; step 7 runs only if a row came back. **That update and step 7
+   are one transaction**, unlike the deliberately separate commits of steps 5, 6 and 7 elsewhere in
+   this section — so the claim row's own lock is what serialises two completers, and there is no
+   window in which a claim reads `succeeded` (*"revision appended, pointer moved where allowed"*)
+   with no revision behind it. Committing the transition first would orphan a paid response behind a
+   claim no completer can find, and the host's next attempt would pay again. Without that, two
    completers — two requests, or a request and the sweeper — both read `response_captured` and both
    run step 7, and `validate_identity_revision()` will *not* stop the late one: it recomputes
    `max(revision) + 1` at insert time, so the second completer appends a second revision of one paid
