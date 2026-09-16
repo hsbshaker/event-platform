@@ -114,6 +114,12 @@ export type IdentityOrchestrationState =
   | "retry_available"
   | "temporarily_unavailable";
 
+/** One question the host has not answered, with the ordinal an answer binds to. */
+export interface OpenClarificationQuestion {
+  index: number;
+  question: ClarificationQuestion;
+}
+
 export interface IdentityOrchestrationResult {
   state: IdentityOrchestrationState;
   /**
@@ -133,12 +139,17 @@ export interface IdentityOrchestrationResult {
    * The latest revision's **unanswered** questions, in any state that has them — never the rest of
    * the envelope.
    *
+   * Each carries its ordinal in the revision's own array, because that ordinal is half of an
+   * answer's locator (`(revision, question_index)`) and the list here is a *subset*: once one of
+   * several questions is answered, a position in this array no longer names the question it came
+   * from, and an answer bound by position would attach to the wrong one.
+   *
    * Not restricted to `clarification_required`. `spec.md §7.6b #4` says a Route A question "stays
    * open and answerable" while gating nothing, and the revision that asked it is authoritative, so
    * a contract that surfaced questions only while blocking would make that unimplementable. The
    * state says whether the event is waiting; this says what there is to answer.
    */
-  questions?: readonly ClarificationQuestion[];
+  questions?: readonly OpenClarificationQuestion[];
   /** `temporarily_unavailable` only. Frozen, uniform, and reason-free by design. */
   message?: string;
 }
@@ -172,7 +183,7 @@ interface PersistedOutcome {
   latestRevisionId: string | null;
   latestRevision: number | null;
   /** The latest revision's questions the host has not answered yet, in the order asked. */
-  openQuestions: readonly ClarificationQuestion[];
+  openQuestions: readonly OpenClarificationQuestion[];
   /** True while an unanswered **boundary** question is what the event is waiting on. */
   awaitingBoundaryAnswer: boolean;
   /** True when the most recent attempt ended in a way only the host can move past. */
@@ -274,13 +285,13 @@ async function readPersistedOutcome(admin: Admin, eventId: string): Promise<Pers
   // this same envelope and this same supported-version list, so a revision this reader cannot read
   // and that one could means the two have diverged. A bug to surface, not to paper over with an
   // empty question list a host cannot answer.
-  const openQuestions = identityQuestions(row.result, row.schema_version).filter(
-    (_, index) => !closed.has(index),
-  );
+  const openQuestions = identityQuestions(row.result, row.schema_version)
+    .map((question, index) => ({ index, question }))
+    .filter((open) => !closed.has(open.index));
   return {
     ...base,
     openQuestions,
-    awaitingBoundaryAnswer: openQuestions.some((question) => question.kind === "boundary"),
+    awaitingBoundaryAnswer: openQuestions.some((open) => open.question.kind === "boundary"),
     awaitingHostRetry,
   };
 }

@@ -423,7 +423,7 @@ grants in place would hand `authenticated` a `SELECT` on exactly that.
 | `succeeded` | revision appended, pointer moved where allowed | terminal |
 | `failed_terminal` | the **call** failed: a provider failure, or `invalid_output` after the one repair. The second of those *was* paid for and its responses are captured as evidence like any other — an earlier version of this row said "nothing paid for", which is true only of the first | terminal; a retry is a host action |
 | `expired_unknown` | the lease elapsed with `provider_invoked_at` set and no captured response | terminal; **explicit host retry only** |
-| `abandoned` | the lease elapsed with `provider_invoked_at` null | reclaimable automatically: provably no call was made |
+| `abandoned` | **provably unpaid**: committed `provider_invoked_at` null and no run row. Reached by the short pre-invocation reclaim below, or by lease expiry, whichever comes first | reclaimable automatically: provably no call was made |
 | `recovery_failed` | the call **succeeded** and recovery failed: the captured text no longer validates, its schema version has no reader in this build, or the database refuses the completion deterministically | terminal; a retry is a host action. Distinct from `failed_terminal` because the diagnosis and the fix differ, and terminal because `response_captured` has no expiry — without this state one undeliverable response would hold that event's only in-flight slot for ever. The run row and its evidence are untouched and age out on the ordinary schedule |
 
 #### Who recovers, and when
@@ -432,12 +432,19 @@ grants in place would hand `authenticated` a `SELECT` on exactly that.
 never be waiting on a scheduled job. So every orchestration, re-entry and status request, before it
 considers any new spend, does two things for **this event** inline:
 
-1. **expires its due claims** — a claim whose lease elapsed is moved to `abandoned` or
+1. **reclaims a claim that provably never reached the provider** — still `claimed`, committed
+   `provider_invoked_at` null, no run row, and older than a **thirty-second** threshold. This is a
+   different instrument from the lease and deliberately so: the lease is long because it bounds
+   work that MAY have been paid for, and using the same clock for work that provably cost nothing
+   left an actively waiting host sitting out fourteen minutes for a crash between step 4 and step
+   5. Safety here is three database facts; the interval only decides eligibility, and the race
+   against `mark_identity_call_invoked` is settled by the row lock;
+2. **expires its due claims** — a claim whose lease elapsed is moved to `abandoned` or
    `expired_unknown` by the same rules the backstop uses. This is not optional politeness: a
-   process that died between reserving a claim and capturing a response leaves the claim in
-   `claimed`, and the one-in-flight index refuses every new call while it sits there. If only the
-   scheduled job could clear it, a single crash would cost that host a day;
-2. **completes a `response_captured` claim** (§A.6 step 3), with **no model call**.
+   process that died after reaching the provider leaves the claim in `claimed`, and the
+   one-in-flight index refuses every new call while it sits there. If only the scheduled job could
+   clear it, a single crash would cost that host a day;
+3. **completes a `response_captured` claim** (§A.6 step 3), with **no model call**.
 
 A refresh, a reconnect, a status poll or a duplicate POST is therefore sufficient to finish either
 state immediately.
@@ -516,7 +523,7 @@ money bug waiting for a config change.
 | **A** | two simultaneous first requests | identical basis → identical key; exactly one `INSERT` wins; the loser converges on observing the winner. One provider client is constructed, not two |
 | **B** | refresh while a request is in flight | the event-scoped claim lookup precedes every cap and every call. The refresh is a read of the existing claim. If a deploy changed `model_config_digest` or a version between the two requests the key differs — row 7b's one-in-flight guard, not the key, is what refuses the second call there |
 | **C** | repeated POST after completion | same key, terminal claim; the recorded result is returned. No call, no cap unit |
-| **D** | crash before provider invocation | committed `provider_invoked_at` null → `abandoned` at lease expiry → reclaimable automatically. No double spend, no host action. The cap and ceiling units consumed at §A.6 step 4 are **not** returned: an abandoned claim costs quota it did not spend money on, which is the conservative direction and deliberately not a refund path |
+| **D** | crash before provider invocation | committed `provider_invoked_at` null and no run row → `abandoned` after the thirty-second pre-invocation threshold, or at lease expiry if nothing asks sooner → reclaimable automatically. No double spend, no host action. The cap and ceiling units consumed at §A.6 step 4 are **not** returned: an abandoned claim costs quota it did not spend money on, which is the conservative direction and deliberately not a refund path |
 | **E** | crash after invocation, before persistence | `expired_unknown`. The response is genuinely lost; the host is told the attempt could not be recorded and retries deliberately, incrementing `attempt_ordinal` |
 | **F** | retry after an `invalid_output` terminal failure | never automatic. A host action derives the next `attempt_ordinal`, producing a new key, a new claim and a new paid call, subject to every cap |
 

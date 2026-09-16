@@ -148,6 +148,12 @@ export const DEFAULT_LEASE_SECONDS = LEASE_FLOOR_SECONDS + LEASE_MARGIN_SECONDS;
  * It does not shorten, weaken or replace the lease; it is a second and narrower door, and a test
  * pins it below the user-facing deadline, which is itself pinned below the lease, so the three
  * cannot quietly collapse into one timer.
+ *
+ * The clock runs from `claimed_at`, which is the claim transaction's start and therefore precedes
+ * any wait on the global budget lock. A live driver's effective budget is thus thirty seconds minus
+ * admission queueing. That costs it nothing but a resubmit: a driver whose claim was reclaimed gets
+ * `false` from step 5 and cannot call the provider, so the only loss is an unrefunded cap unit —
+ * the same conservative direction as case D.
  */
 export const IDENTITY_PREINVOKE_RECLAIM_MS = 30_000;
 

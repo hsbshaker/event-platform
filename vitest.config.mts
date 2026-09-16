@@ -19,6 +19,17 @@ export default defineConfig({
         test: { name: "unit", include: ["src/**/*.test.ts", "tests/unit/**/*.test.ts"] },
       },
       {
+        // Component behaviour in a DOM, where interaction can actually be driven: state
+        // transitions, keyboard, focus, and what does and does not reach the document. Layout is
+        // **not** here — jsdom has none — and is proven in the browser suite instead.
+        extends: true,
+        test: {
+          name: "component",
+          environment: "jsdom",
+          include: ["src/**/*.component.test.tsx"],
+        },
+      },
+      {
         extends: true,
         test: {
           name: "db",

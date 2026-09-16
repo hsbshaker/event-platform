@@ -293,7 +293,9 @@ describe("one call, persisted", () => {
     expect(result.state).toBe("clarification_required");
     expect(result.hasAuthoritativeIdentity).toBe(false);
     expect(result.questions).toHaveLength(1);
-    expect(result.questions?.[0].question).toBe("Has she agreed to a surprise?");
+    expect(result.questions?.[0].question.question).toBe("Has she agreed to a surprise?");
+    // The ordinal an answer binds to, carried rather than inferred from position.
+    expect(result.questions?.[0].index).toBe(0);
 
     const [revision] = await revisions();
     expect(revision.is_provisional).toBe(true);
@@ -1017,7 +1019,7 @@ describe("what the host is actually waiting on", () => {
     expect(result.state).toBe("ready");
     expect(result.hasAuthoritativeIdentity).toBe(true);
     expect(result.questions).toHaveLength(1);
-    expect(result.questions?.[0].kind).toBe("creative");
+    expect(result.questions?.[0].question.kind).toBe("creative");
   });
 
   it("reports an event that has never generated as a host action, not a failure", async () => {
@@ -1349,6 +1351,8 @@ describe("work that provably never reached the provider is not on the financial 
     const rows = await claims();
     expect(rows).toHaveLength(2);
     expect(rows.filter((c) => c.state === "succeeded")).toHaveLength(1);
+    // A new attempt, numbered past the one that was reclaimed.
+    expect(rows.map((c) => c.attempt_ordinal)).toEqual([0, 1]);
   });
 
   it("gives two concurrent resumes after the threshold one replacement call", async () => {
@@ -1388,5 +1392,94 @@ describe("work that provably never reached the provider is not on the financial 
     // Truthful persisted state afterwards: nothing in flight, nothing produced.
     expect(polled).toEqual({ state: "retry_available", hasAuthoritativeIdentity: false });
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+/* ------------------------------------------------------------------ the locking, not the predicate */
+
+describe("the reclaim/invoke race is settled by the row lock", () => {
+  /**
+   * These drive genuinely concurrent, **uncommitted** transactions on a second connection.
+   *
+   * The sequential versions above verify predicate semantics and would pass with no `for update`,
+   * no `skip locked` and no lock at all — so they cannot catch someone simplifying the locking
+   * away. These can: each one fails if the CTE stops taking the row lock.
+   */
+  const age = (claimId: string, seconds: number) =>
+    db.query(
+      `update public.event_identity_call_claims
+          set claimed_at = pg_catalog.now() - ($2 || ' seconds')::interval where id=$1`,
+      [claimId, String(seconds)],
+    );
+
+  it("skips a row another transaction is invoking, and leaves that call alive", async () => {
+    const other = await connect();
+    try {
+      const claimId = await sqlClaim({ digest: digestFor() });
+      await age(claimId, 31);
+
+      // B holds the row: mark-invoked has run but not committed.
+      await other.query("begin");
+      const marked = await other.query(`select public.mark_identity_call_invoked($1) as ok`, [
+        claimId,
+      ]);
+      expect(marked.rows[0].ok).toBe(true);
+
+      // A must not block on it and must not take the row — `skip locked` steps over it.
+      expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(0);
+
+      await other.query("commit");
+      const [row] = await claims();
+      expect(row.state).toBe("claimed");
+      expect(row.provider_invoked_at).not.toBeNull();
+    } finally {
+      await other.end();
+    }
+  });
+
+  it("makes an invoke that arrives mid-reclaim wait, then refuses it", async () => {
+    const other = await connect();
+    try {
+      const claimId = await sqlClaim({ digest: digestFor() });
+      await age(claimId, 31);
+
+      // A reclaims but does not commit, so it holds the row.
+      await db.query("begin");
+      const reclaimed = await db.query(
+        `select public.reclaim_uninvoked_identity_claims(30, $1, 10) as n`,
+        [eventId],
+      );
+      expect(reclaimed.rows[0].n).toBe(1);
+
+      // B's mark-invoked must block rather than proceed on a stale read. `lock_timeout` turns the
+      // wait into a visible failure instead of a hang, which is how the block is observed.
+      await other.query("set lock_timeout = '300ms'");
+      await expect(
+        other.query(`select public.mark_identity_call_invoked($1)`, [claimId]),
+      ).rejects.toMatchObject({ code: "55P03" });
+
+      await db.query("commit");
+      // Once the reclaim is committed, the driver re-evaluates and is refused outright.
+      expect(await markIdentityCallInvoked(admin, claimId)).toBe(false);
+      expect((await claims())[0].state).toBe("abandoned");
+    } finally {
+      await other.end();
+    }
+  });
+
+  it("treats a run row alone as proof the provider was reached", async () => {
+    // The `generation_run_id` belt and the by-key belt are separate; this covers the second on its
+    // own, so removing either is a failing test rather than a silent narrowing.
+    const claimId = await capturedClaim(digestFor());
+    await db.query(
+      `update public.event_identity_call_claims
+          set state='claimed', provider_invoked_at=null, settled_at=null, generation_run_id=null
+        where id=$1`,
+      [claimId],
+    );
+    await age(claimId, 31);
+
+    expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(0);
+    expect((await claims())[0].state).toBe("claimed");
   });
 });

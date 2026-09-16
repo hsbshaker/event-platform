@@ -90,8 +90,9 @@ create unique index event_identity_revisions_generation_run_uniq
 -- failed_terminal    a provider failure, or invalid output after the one repair
 -- expired_unknown    the lease elapsed with `provider_invoked_at` set — possibly paid, so only an
 --                    explicit host retry may follow
--- abandoned          the lease elapsed with `provider_invoked_at` null — provably unpaid, so this
---                    is the one transition that re-spends without a host decision
+-- abandoned          committed `provider_invoked_at` null and no run row — provably unpaid, so it
+--                    is the one transition that re-spends without a host decision. Reached by the
+--                    short pre-invocation reclaim (§7b) or by lease expiry, whichever comes first
 -- ---------------------------------------------------------------------------
 create type public.identity_call_claim_state as enum (
   'claimed',
@@ -706,7 +707,12 @@ $$;
 -- mark-invoked commits first, `provider_invoked_at is null` no longer holds and this matches
 -- nothing, so the live call continues; if this commits first, `state = 'claimed'` no longer holds
 -- and mark-invoked returns false, so that driver has permanently lost the right to call the
--- provider. There is no window in which both succeed, and none in which neither does.
+-- provider. The lock is what makes that exhaustive: `for update` follows the update chain and
+-- re-evaluates these quals against the latest committed row, and `skip locked` steps over one
+-- another transaction is still holding. There is no window in which both succeed. There is one in
+-- which neither does — mark-invoked uncommitted when the reclaim passes, then rolled back by a
+-- dropped connection — and the next request settles it, which is the point of running this on
+-- every request rather than once a day.
 --
 -- The lease itself is untouched. This adds a second, narrower door; it does not widen the first.
 -- ---------------------------------------------------------------------------
@@ -743,7 +749,7 @@ begin
        and c.claimed_at < pg_catalog.now() - (p_max_age_seconds * interval '1 second')
        and (p_event_id is null or c.event_id = p_event_id)
      order by c.claimed_at
-     limit greatest(p_limit, 0)
+     limit greatest(coalesce(p_limit, 100), 0)
      -- Two concurrent reclaimers must not both take the same row and both report a reclaim; the
      -- second skips it and the row is settled exactly once.
      for update skip locked
@@ -753,8 +759,9 @@ begin
          settled_at = pg_catalog.now()
     from due
    where c.id = due.id
-     -- Re-checked inside the UPDATE, not only in the CTE: between the two, a concurrent
-     -- `mark_identity_call_invoked` may have committed on a row this snapshot read as uninvoked.
+     -- Restated rather than load-bearing: the CTE already holds the row lock, so nothing can
+     -- commit between the two. Kept because it costs nothing and makes the UPDATE readable on its
+     -- own — a reader should not have to reconstruct the locking argument to see what it writes.
      and c.state = 'claimed'
      and c.provider_invoked_at is null;
 
@@ -771,7 +778,9 @@ $$;
 -- and `pending_identity_call_completions` hands the rest to the server-side sweeper.
 --
 -- `abandoned` requires a committed null `provider_invoked_at`. That is the whole safety argument:
--- it is the only transition that lets a new call start without a host deciding to retry.
+-- it is the only transition that lets a new call start without a host deciding to retry. This
+-- function is **not** its only writer: §7b reaches the same state much sooner for a claim that is
+-- additionally provably unrun, so `abandoned` means *provably unpaid*, not *the lease elapsed*.
 -- `response_captured` is never expired here — expiring it is what would strand a paid response.
 -- ---------------------------------------------------------------------------
 create or replace function public.expire_identity_call_claims(

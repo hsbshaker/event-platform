@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { loadEventDraft } from "@/app/actions/event-details";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
+import { loadEventIdentityView } from "@/app/actions/event-identity";
 import { DetailsForm } from "./DetailsForm";
-import { GenerationProgress } from "./GenerationProgress";
+import { EventIdentityPanel } from "./EventIdentityPanel";
 
 /**
  * Generation + required details (spec.md §7.3/§7.10, docs/design-system.md §4.3,
  * docs/screen-spec.md `generation-details`, e2e H03).
  *
- * No wizard, no stepper, no percent-complete gate: this is a flat autosaving form next to an
- * honest progress panel. A missing or inaccessible event renders a plain, non-leaking state
+ * No wizard, no stepper, no percent-complete gate: this is a flat autosaving form next to the
+ * live EventIdentity panel. A missing or inaccessible event renders a plain, non-leaking state
  * rather than distinguishing "does not exist" from "not yours" (spec.md §27).
+ *
+ * The two halves are deliberately side by side rather than sequential. `spec.md §7.10` calls
+ * filling details in and watching generation "equally valid", and the host may switch between them
+ * freely — which is also why a Route A question never takes the page over.
  */
 
 export default async function CreateEventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -44,12 +49,13 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
     );
   }
 
+  // Read, never started, on the server: a page render must not be a spend decision, and a
+  // prefetch or a double render would then be two. The panel starts generation from the client,
+  // once, through the canonical path.
+  const identity = await loadEventIdentityView(id);
+
   return (
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col gap-8 px-4 py-10 lg:py-14">
-      {/* Nothing is generating in Phase 2, so nothing here says anything is. The panel beside
-          this header states the same truth; a header that promised directions were on the way
-          would contradict it on the same screen and hide a wait with no end (spec.md §7.10,
-          §32 guardrail #45). */}
       <header className="flex flex-col gap-2">
         <h1 className="text-heading-xl text-app-text">Your event</h1>
         <p className="text-body-md text-app-text-secondary">
@@ -58,7 +64,7 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
         </p>
       </header>
       <div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
-        <GenerationProgress generationRequestedAt={draft.generationRequestedAt} />
+        {identity && <EventIdentityPanel eventId={id} initial={identity} />}
         <DetailsForm event={draft} />
       </div>
     </main>

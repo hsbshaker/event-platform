@@ -113,6 +113,12 @@ const SERVICE_ROLE = {
  *   capability the route resolves before calling it.
  * - `src/app/auth/callback/route.ts` — runs after the session is established.
  * - `src/app/api/cron/purge-pre-auth/route.ts` — gated on `CRON_SECRET`, 404 without it.
+ * - `src/app/actions/event-identity.ts` — every export authorizes first. The three that reach
+ *   EventIdentity go through `startEventIdentity` / `readEventIdentity`, which call
+ *   `requireEventAccess` before anything else; the one that writes a clarification answer does
+ *   **not** use this client at all, because that row is host input and `answered_by` must be a
+ *   fact the database established under the host's own session. The service role is needed only
+ *   because the claims table is server-only with RLS on and no policies.
  * - `src/app/api/cron/identity-housekeeping/route.ts` — the same `CRON_SECRET` gate. It releases
  *   and recovers EventIdentity call claims and ages out paid-response evidence, all of which live
  *   on server-only tables with RLS on and no policies, so there is no end-user path to reach them
@@ -122,6 +128,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
   "src/lib/drafts/**",
   "src/lib/human-test/store.ts",
+  "src/app/actions/event-identity.ts",
   "src/app/auth/callback/route.ts",
   "src/app/api/cron/purge-pre-auth/route.ts",
   "src/app/api/cron/identity-housekeeping/route.ts",
