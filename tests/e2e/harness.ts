@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
 
@@ -18,7 +19,38 @@ import { chromium, type Browser, type Page } from "playwright-core";
 export const MOBILE = { width: 390, height: 844 } as const;
 export const DESKTOP = { width: 1280, height: 800 } as const;
 
-const EXECUTABLE = process.env.E2E_CHROMIUM ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+/**
+ * Where Chromium is, resolved rather than hard-coded.
+ *
+ * A pinned absolute path ties the browser suite to one machine's layout: it was
+ * `/opt/pw-browsers/chromium-1194/...` here, while this environment's Playwright actually resolves
+ * `chromium-1243`, so the suite was running against a build nothing had chosen on purpose and
+ * would simply not start anywhere else — including CI.
+ *
+ * Order: an explicit `E2E_CHROMIUM` override first, because an operator naming a binary should
+ * win; then `playwright-core`'s own resolution, which honours `PLAYWRIGHT_BROWSERS_PATH` and the
+ * version this dependency was built against; then a scan of that directory as a last resort.
+ * Nothing here downloads anything — the repository already supplies the browser.
+ */
+function resolveChromium(): string | null {
+  const override = process.env.E2E_CHROMIUM;
+  if (override) return existsSync(override) ? override : null;
+  try {
+    const resolved = chromium.executablePath();
+    if (resolved && existsSync(resolved)) return resolved;
+  } catch {
+    // Not installed where playwright-core expects; fall through to the scan.
+  }
+  const root = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  if (!root || !existsSync(root)) return null;
+  for (const dir of readdirSync(root).filter((entry) => entry.startsWith("chromium-"))) {
+    for (const layout of ["chrome-linux64/chrome", "chrome-linux/chrome"]) {
+      const candidate = path.join(root, dir, layout);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return null;
+}
 const PORT = Number(process.env.E2E_PORT ?? 3210);
 const ROOT = path.resolve(import.meta.dirname, "../..");
 
@@ -95,8 +127,15 @@ export async function startApp(): Promise<AppServer | null> {
 }
 
 export async function launchBrowser(): Promise<Browser> {
+  const executablePath = resolveChromium();
+  if (!executablePath) {
+    throw new Error(
+      "No Chromium found. Set E2E_CHROMIUM, or install the browser this repository's " +
+        "playwright-core expects (PLAYWRIGHT_BROWSERS_PATH).",
+    );
+  }
   return chromium.launch({
-    executablePath: EXECUTABLE,
+    executablePath,
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
   });

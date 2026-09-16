@@ -1,0 +1,91 @@
+import type { ClarificationAnswerInput, IdentityView } from "@/lib/generation/identity-view";
+
+/**
+ * The server-action boundary, replaced at bundle time — and **only** at bundle time, for this
+ * harness.
+ *
+ * The component under test is the production one, unmodified. What is swapped is the module it
+ * talks to, which is exactly the seam T11's own design puts there: the panel consumes T10's public
+ * contract and never orchestrates. So the browser drives real React against a boundary whose
+ * answers the test dictates, and no database, no session and above all no provider is involved.
+ *
+ * Every call is recorded. The test asserts on that log, which is what makes "one request per
+ * double click" or "the resume was ordinary, not explicit" observable from outside.
+ */
+export interface HarnessCall {
+  action: "start" | "read" | "answer";
+  payload: unknown;
+}
+
+interface Harness {
+  calls: HarnessCall[];
+  /** Queued replies, consumed in order; the last one repeats once the queue is empty. */
+  queue: Partial<Record<HarnessCall["action"], IdentityView[]>>;
+  fallback: Partial<Record<HarnessCall["action"], IdentityView>>;
+  /** Actions that should reject, standing in for a lost transport. */
+  reject: Partial<Record<HarnessCall["action"], number>>;
+  /** Actions held open until the test releases them. */
+  hold: Partial<Record<HarnessCall["action"], boolean>>;
+  release: () => void;
+}
+
+declare global {
+  interface Window {
+    identityHarness: Harness;
+  }
+}
+
+const harness: Harness = {
+  calls: [],
+  queue: {},
+  fallback: {},
+  reject: {},
+  hold: {},
+  release: () => {},
+};
+
+if (typeof window !== "undefined") {
+  // Whatever the test queued before this bundle ran. Installed ahead of the panel's own arrival
+  // effect, so the very first call it makes already has an answer waiting.
+  const seeded = (window as unknown as { identityHarnessSetup?: Partial<Harness> })
+    .identityHarnessSetup;
+  if (seeded) Object.assign(harness, seeded);
+  window.identityHarness = harness;
+}
+
+const held: (() => void)[] = [];
+harness.release = () => {
+  while (held.length > 0) held.shift()!();
+};
+
+async function respond(action: HarnessCall["action"], payload: unknown): Promise<IdentityView> {
+  harness.calls.push({ action, payload });
+  if ((harness.reject[action] ?? 0) > 0) {
+    harness.reject[action] = (harness.reject[action] ?? 0) - 1;
+    throw new Error("harness: transport lost");
+  }
+  if (harness.hold[action]) {
+    await new Promise<void>((resolve) => held.push(resolve));
+  }
+  const queued = harness.queue[action];
+  const next = queued && queued.length > 0 ? queued.shift()! : harness.fallback[action];
+  if (!next) throw new Error(`harness: no reply queued for ${action}`);
+  return next;
+}
+
+export async function startEventIdentityForEvent(
+  eventId: string,
+  options: { explicitRetry?: boolean } = {},
+): Promise<IdentityView> {
+  return respond("start", { eventId, options });
+}
+
+export async function readEventIdentityForEvent(eventId: string): Promise<IdentityView> {
+  return respond("read", { eventId });
+}
+
+export async function submitClarificationAnswer(
+  input: ClarificationAnswerInput,
+): Promise<IdentityView> {
+  return respond("answer", input);
+}

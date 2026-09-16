@@ -642,3 +642,133 @@ describe("what assistive technology hears, and what a blip does not do", () => {
     expect(text()).not.toMatch(/alerted|our team/i);
   });
 });
+
+/* ------------------------------------------------------------------ the owed resume, precisely */
+
+describe("a lost start stays owed until something proves it landed", () => {
+  /**
+   * Arrival auto-starts, and that start's transport dies. From here the browser owes exactly one
+   * ordinary resume, and what the polls say decides whether it is still owed.
+   */
+  const lose = async () => {
+    start.mockRejectedValueOnce(new Error("network"));
+    render({ state: "retry_available", hasAuthoritativeIdentity: false });
+    await act(async () => {});
+    expect(start).toHaveBeenCalledTimes(1);
+  };
+
+  it("resumes when the request never reached the server at all", async () => {
+    // The poll sees an untouched event, which is truthfully `retry_available`. Reading that as
+    // "the lost start completed" would strand the host in front of a Retry button for work they
+    // already asked for — and nothing would ever have been started.
+    read.mockResolvedValue({ state: "retry_available", hasAuthoritativeIdentity: false });
+    await lose();
+
+    await act(async () => vi.advanceTimersByTime(3_000));
+    await act(async () => vi.advanceTimersByTime(RESUME_AFTER_LOST_TRANSPORT_MS));
+
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(start).toHaveBeenLastCalledWith(EVENT, { explicitRetry: false });
+  });
+
+  it("resumes when a poll has just reclaimed the stale pre-invocation claim", async () => {
+    // The sequence the backend fix makes possible: the claim existed, nobody drove it, a poll
+    // reclaimed it past the thirty-second horizon, and the honest state afterwards is
+    // `retry_available`. That is the moment the resume can finally do its job.
+    read.mockResolvedValueOnce({ state: "running", hasAuthoritativeIdentity: false });
+    read.mockResolvedValue({ state: "retry_available", hasAuthoritativeIdentity: false });
+    await lose();
+
+    await act(async () => vi.advanceTimersByTime(3_000));
+    await act(async () => vi.advanceTimersByTime(3_000));
+    expect(start).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTime(RESUME_AFTER_LOST_TRANSPORT_MS));
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(start).toHaveBeenLastCalledWith(EVENT, { explicitRetry: false });
+  });
+
+  it.each([
+    ["ready", READY],
+    ["clarification_required", boundaryView()],
+    [
+      "temporarily_unavailable",
+      {
+        state: "temporarily_unavailable",
+        hasAuthoritativeIdentity: false,
+        message: "Generation is not available right now. Please try again shortly.",
+      } as IdentityView,
+    ],
+  ])("drops the owed resume once a poll proves %s", async (_label, settled) => {
+    read.mockResolvedValue(settled);
+    await lose();
+
+    await act(async () => vi.advanceTimersByTime(3_000));
+    await act(async () => vi.advanceTimersByTime(RESUME_AFTER_LOST_TRANSPORT_MS * 2));
+
+    expect(start).toHaveBeenCalledTimes(1);
+  });
+
+  it("spends the owed resume exactly once, however long the surface stays open", async () => {
+    read.mockResolvedValue({ state: "retry_available", hasAuthoritativeIdentity: false });
+    await lose();
+
+    await act(async () => vi.advanceTimersByTime(RESUME_AFTER_LOST_TRANSPORT_MS));
+    expect(start).toHaveBeenCalledTimes(2);
+
+    // Not a loop: polling is the observation path from here.
+    await act(async () => vi.advanceTimersByTime(RESUME_AFTER_LOST_TRANSPORT_MS * 5));
+    expect(start).toHaveBeenCalledTimes(2);
+  });
+
+  it("never lets a poll itself start anything", async () => {
+    read.mockResolvedValue({ state: "running", hasAuthoritativeIdentity: false });
+    render({ state: "running", hasAuthoritativeIdentity: false });
+    await act(async () => {});
+
+    await act(async () => vi.advanceTimersByTime(3_000 * 10));
+
+    expect(read).toHaveBeenCalled();
+    expect(start).not.toHaveBeenCalled();
+    expect(answer).not.toHaveBeenCalled();
+  });
+});
+
+/* ------------------------------------------------------------------ the first paint */
+
+describe("a brand-new event does not open as a failure", () => {
+  it("says nothing has failed, and offers nothing to try again", async () => {
+    let resolve!: (view: IdentityView) => void;
+    start.mockReturnValue(new Promise<IdentityView>((r) => (resolve = r)));
+    render({ state: "retry_available", hasAuthoritativeIdentity: false });
+
+    // The very first paint, before the mandatory auto-start effect has even run.
+    expect(text()).not.toMatch(/couldn't finish|nothing was lost/i);
+    expect(button(/try again/i)).toBeUndefined();
+
+    await act(async () => {});
+    // And while the start is in flight the copy stays neutral and true.
+    expect(text()).toContain("We're starting on your event.");
+    expect(button(/try again/i)).toBeUndefined();
+    expect(start).toHaveBeenCalledWith(EVENT, { explicitRetry: false });
+
+    await act(async () => resolve({ state: "running", hasAuthoritativeIdentity: false }));
+    expect(text()).toContain("working out the creative direction");
+    // Normal polling begins.
+    await act(async () => vi.advanceTimersByTime(3_000));
+    expect(read).toHaveBeenCalled();
+  });
+
+  it("shows the real failure only once a start has actually come back with one", async () => {
+    start.mockResolvedValue({
+      state: "retry_available",
+      hasAuthoritativeIdentity: false,
+      revision: 1,
+    });
+    render({ state: "retry_available", hasAuthoritativeIdentity: false });
+    await act(async () => {});
+
+    expect(text()).toMatch(/couldn't finish/i);
+    expect(button(/try again/i)).toBeDefined();
+  });
+});

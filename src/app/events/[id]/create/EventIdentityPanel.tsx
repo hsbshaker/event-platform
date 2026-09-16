@@ -64,6 +64,27 @@ const POLLED: ReadonlySet<IdentityView["state"]> = new Set(["running", "recoveri
  */
 const TOLERATED_POLL_FAULTS = 3;
 
+/**
+ * The states that prove a lost start no longer needs resuming.
+ *
+ * **`retry_available` is deliberately absent, and that is the whole point.** It is the truthful
+ * resting state of three different situations: an event the lost request never reached at all, a
+ * stale pre-invocation claim that a poll has just reclaimed, and a terminal maybe-paid attempt. In
+ * the first two the work still has to be started; in the third an ordinary resume is harmless and
+ * spends nothing. Treating it as proof of completion was a hole that let a poll cancel the very
+ * resume the reclaim had just made possible, leaving the host looking at a Retry button for work
+ * they had already asked for.
+ *
+ * `running` and `recovering` do not settle it either — they mean the answer has not arrived yet —
+ * so the resume stays owed until one of these, or until it is spent.
+ */
+const SETTLES_OWED_RESUME: ReadonlySet<IdentityView["state"]> = new Set([
+  "ready",
+  "clarification_required",
+  "temporarily_unavailable",
+  "service_error",
+]);
+
 export interface EventIdentityPanelProps {
   eventId: string;
   initial: IdentityView;
@@ -78,6 +99,17 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
   const lostAt = useRef<number | null>(null);
   const resumed = useRef(false);
   const autoStarted = useRef(false);
+  /**
+   * True from the very first render — server render included — when this event has never generated.
+   *
+   * `retry_available` is T10's honest resting state for "nothing in flight, nothing produced", and
+   * the backend is right not to split it: distinguishing "never attempted" from "the last attempt
+   * failed" is the attempt history, which `spec.md §32 #41` keeps out of the contract. But the
+   * surface must not read it as failure before the mandatory first start has even been sent. So the
+   * distinction is drawn here, in presentation, and lives only as long as that first call: nothing
+   * client-side is persisted and no new backend state is invented.
+   */
+  const [pendingFirstStart, setPendingFirstStart] = useState(initial.state === "retry_available");
   /** Consecutive polls that came back as a server fault. */
   const faults = useRef(0);
   const moveFocus = useRef(false);
@@ -123,9 +155,9 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
 
   useEffect(() => {
     if (lostAt.current === null || resumed.current) return;
-    // A poll got there first and the event is at rest. The resume would be free — `already_succeeded`
-    // or `needs_explicit_retry` — but a POST nobody needs is still a POST.
-    if (!POLLED.has(view.state)) {
+    // Only a state that proves the work no longer needs starting cancels it. `retry_available` is
+    // not one: see `SETTLES_OWED_RESUME`.
+    if (SETTLES_OWED_RESUME.has(view.state)) {
       lostAt.current = null;
       return;
     }
@@ -203,7 +235,10 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
     // **ordinary** start, so this is safe to do unconditionally: if a terminal attempt already
     // blocks this event it returns `retry_available` and spends nothing, and if a call is in
     // flight it observes it. Only the host's own Retry sends `explicitRetry`.
-    void start(false);
+    //
+    // `pendingFirstStart` clears when it resolves, whatever it resolves to — so a genuine terminal
+    // failure surfaces its Retry immediately, and only the window before an answer is neutral.
+    void start(false).finally(() => setPendingFirstStart(false));
     // On mount only. Re-running it whenever the state changed would turn one start into a loop.
   }, [initial.state, start]);
 
@@ -220,7 +255,10 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
 
   // A start or retry of ours is in flight. Answering is separate: the question form owns its own
   // pending state, and the panel must not claim to be "starting" while an answer is saving.
-  const sending = busy && view.questions === undefined;
+  // A request of ours is in flight, or the mandatory first one has not answered yet. Answering is
+  // separate: the round form owns its own pending state, and the panel must not claim to be
+  // "starting" while an answer is saving.
+  const sending = (busy || pendingFirstStart) && view.questions === undefined;
   // A boundary question is asked alone; when one is present nothing else is shown beside it.
   const boundary = view.questions?.find((q) => q.kind === "boundary");
   const open = boundary ? [boundary] : (view.questions ?? []);
@@ -253,6 +291,9 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
       {/* While a request of ours is in flight, the true thing to say is that we have sent it —
           not the resting state it has not answered with yet. */}
       {sending ? (
+        // True of both cases this covers: a start of ours is in flight, or the mandatory first one
+        // has been scheduled and has not answered. Never "we couldn't finish that" — nothing has
+        // been attempted yet, so failure language here would be a lie about the host's own event.
         <InlineStatus>We&apos;re starting on your event.</InlineStatus>
       ) : (
         <StateCopy view={view} />
@@ -275,7 +316,8 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
         />
       )}
 
-      {view.state === "retry_available" && (
+      {/* Only once a start has actually come back. Before that there is nothing to try again. */}
+      {view.state === "retry_available" && !pendingFirstStart && (
         <AppButton
           type="button"
           pending={busy}

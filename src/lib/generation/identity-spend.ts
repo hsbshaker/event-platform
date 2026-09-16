@@ -149,11 +149,11 @@ export const DEFAULT_LEASE_SECONDS = LEASE_FLOOR_SECONDS + LEASE_MARGIN_SECONDS;
  * pins it below the user-facing deadline, which is itself pinned below the lease, so the three
  * cannot quietly collapse into one timer.
  *
- * The clock runs from `claimed_at`, which is the claim transaction's start and therefore precedes
- * any wait on the global budget lock. A live driver's effective budget is thus thirty seconds minus
- * admission queueing. That costs it nothing but a resubmit: a driver whose claim was reclaimed gets
- * `false` from step 5 and cannot call the provider, so the only loss is an unrefunded cap unit —
- * the same conservative direction as case D.
+ * The clock runs from `claimed_at`, and that column is written from `clock_timestamp()` taken
+ * **after** admission — not from the transaction's `now()`. The difference is the whole horizon: a
+ * request that queued forty seconds behind the global budget lock would otherwise commit a claim
+ * already old enough to reclaim, and a perfectly healthy driver could lose its claim before it ever
+ * reached the provider. Thirty seconds means thirty seconds from the claim existing.
  */
 export const IDENTITY_PREINVOKE_RECLAIM_MS = 30_000;
 

@@ -372,6 +372,77 @@ describe("the spend ceiling", () => {
     }
   });
 
+  it("dates a claim from when it was created, not from when its transaction started", async () => {
+    // `now()` is transaction-*start* time. This transaction starts, then queues behind the global
+    // budget lock, and only then inserts — so a column defaulted to `now()` would date the claim
+    // from before the wait. Two horizons are measured as elapsed time from that column, and both
+    // would be silently shortened by however long the queue was: a claim that waited forty seconds
+    // would be born already eligible for the thirty-second pre-invocation reclaim, and a perfectly
+    // healthy driver could have its claim taken before it ever reached the provider.
+    //
+    // The wait here is a second, not thirty: what is proven is that the timestamp advances *with*
+    // the wait, which is the property. A thirty-second sleep would prove the same thing slower.
+    const holder = await connect();
+    const waiter = await connect();
+    const WAIT_MS = 1_000;
+    const LEASE = 900;
+    try {
+      await holder.query("begin");
+      await holder.query(`select pg_advisory_xact_lock(public.identity_budget_lock_key())`);
+
+      // The waiter's transaction begins **now**, before the lock is released, so its `now()` is
+      // pinned here while real time moves on.
+      await waiter.query("begin");
+      const started = (await waiter.query(`select pg_catalog.now() as t`)).rows[0].t as Date;
+
+      const claimed = waiter.query(CLAIM, claimArgs("timing", { lease: LEASE }));
+      await new Promise((resolve) => setTimeout(resolve, WAIT_MS));
+      await holder.query("commit");
+      const { rows } = await claimed;
+      expect(rows[0].outcome).toBe("claimed");
+      await waiter.query("commit");
+
+      const row = (
+        await db.query(
+          `select claimed_at, lease_expires_at,
+                  extract(epoch from (claimed_at - $2::timestamptz)) as after_start,
+                  extract(epoch from (lease_expires_at - claimed_at)) as lease_seconds
+             from public.event_identity_call_claims where id = $1`,
+          [rows[0].claim_id, started.toISOString()],
+        )
+      ).rows[0];
+
+      // 1. The claim is dated after the wait, not at transaction start.
+      expect(Number(row.after_start)).toBeGreaterThanOrEqual(WAIT_MS / 1000);
+
+      // 2. It is not already eligible for the pre-invocation reclaim: the admission wait consumed
+      //    none of that budget.
+      const reclaimed = await db.query(
+        `select public.reclaim_uninvoked_identity_claims(30, $1, 10) as n`,
+        [eventId],
+      );
+      expect(reclaimed.rows[0].n).toBe(0);
+
+      // 3. The financial lease is the configured lease, measured from the same instant — the wait
+      //    did not eat into it either.
+      expect(Number(row.lease_seconds)).toBe(LEASE);
+
+      // 4. And the lease genuinely runs from creation: a lease dated from transaction start would
+      //    expire `WAIT_MS` early.
+      const remaining = (
+        await db.query(
+          `select extract(epoch from (lease_expires_at - pg_catalog.clock_timestamp())) as s
+             from public.event_identity_call_claims where id = $1`,
+          [rows[0].claim_id],
+        )
+      ).rows[0].s;
+      expect(Number(remaining)).toBeGreaterThan(LEASE - 5);
+    } finally {
+      await holder.end();
+      await waiter.end();
+    }
+  });
+
   it("actually blocks on the budget key, and releases it at commit", async () => {
     // Proves the lock is on the admission path rather than merely present: a second connection
     // holding the same key makes a claim wait, and `lock_timeout` turns that wait into a visible
