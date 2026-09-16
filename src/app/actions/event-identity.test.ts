@@ -74,9 +74,11 @@ function reader(rows: unknown[]) {
 }
 
 const inserted: Record<string, unknown>[] = [];
+let answeredIndexes: { question_index: number }[] = [];
 
 beforeEach(() => {
   inserted.length = 0;
+  answeredIndexes = [];
   adminRpc.mockReset();
   adminFrom.mockReset();
   userFrom.mockReset();
@@ -89,6 +91,8 @@ beforeEach(() => {
     if (table === "event_identity_revisions") return reader([REVISION]);
     if (table === "clarification_answers") {
       return {
+        // The already-answered indices of this round; empty unless a test says otherwise.
+        select: () => ({ eq: () => Promise.resolve({ data: answeredIndexes, error: null }) }),
         insert: (rows: Record<string, unknown>[]) => {
           inserted.push(...rows);
           return Promise.resolve({ error: null });
@@ -173,7 +177,10 @@ describe("a clarification answer is written as the host", () => {
   it("treats a duplicate submission as a refresh, not a failure", async () => {
     userFrom.mockImplementation((table: string) => {
       if (table === "event_identity_revisions") return reader([REVISION]);
-      return { insert: () => Promise.resolve({ error: { code: "23505" } }) };
+      return {
+        select: () => ({ eq: () => Promise.resolve({ data: answeredIndexes, error: null }) }),
+        insert: () => Promise.resolve({ error: { code: "23505" } }),
+      };
     });
 
     const view = await submitClarificationAnswer({
@@ -296,6 +303,7 @@ describe("free text is bounded", () => {
     userFrom.mockImplementation((table: string) => {
       if (table === "event_identity_revisions") return reader([CREATIVE_REVISION]);
       return {
+        select: () => ({ eq: () => Promise.resolve({ data: answeredIndexes, error: null }) }),
         insert: (rows: Record<string, unknown>[]) => {
           inserted.push(...rows);
           return Promise.resolve({ error: null });
@@ -353,6 +361,7 @@ describe("a round is answered in one submission", () => {
     userFrom.mockImplementation((table: string) => {
       if (table === "event_identity_revisions") return reader([THREE]);
       return {
+        select: () => ({ eq: () => Promise.resolve({ data: answeredIndexes, error: null }) }),
         insert: (rows: Record<string, unknown>[]) => {
           inserted.push(...rows);
           return Promise.resolve({ error: null });
@@ -382,5 +391,94 @@ describe("the free-text bound is the prompt's own", () => {
     // rather than copied. `identity-view.ts` cannot import the draft store (it is not server-only
     // and the store is), which is why the constant is duplicated and this test exists.
     expect(MAX_CLARIFICATION_FREE_TEXT).toBe(MAX_PROMPT_LENGTH);
+  });
+});
+
+describe("a round is answered whole, or not at all", () => {
+  const THREE_OPEN = {
+    id: "revision-4",
+    revision: 4,
+    result: {
+      clarification: {
+        needed: true,
+        questions: [0, 1, 2].map((i) => ({
+          kind: "creative",
+          question: `Question ${i}?`,
+          whyItMatters: "It changes the direction.",
+          options: [
+            { label: `A${i}`, isDefer: false },
+            { label: "You choose", isDefer: true },
+          ],
+        })),
+      },
+    },
+  };
+
+  beforeEach(() => {
+    userFrom.mockImplementation((table: string) => {
+      if (table === "event_identity_revisions") return reader([THREE_OPEN]);
+      return {
+        select: () => ({ eq: () => Promise.resolve({ data: answeredIndexes, error: null }) }),
+        insert: (rows: Record<string, unknown>[]) => {
+          inserted.push(...rows);
+          return Promise.resolve({ error: null });
+        },
+      };
+    });
+  });
+
+  it("refuses a partial round rather than buying a rerun on half an answer", async () => {
+    // The expensive mistake: it would insert, start a paid call on one answer, and the new
+    // revision would replace the round — so the questions left out are never asked again.
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 4,
+      answers: [{ questionIndex: 0, selectedOptionLabel: "A0" }],
+    });
+
+    expect(inserted).toHaveLength(0);
+    expect(startEventIdentity).not.toHaveBeenCalled();
+    expect(readEventIdentity).toHaveBeenCalled();
+  });
+
+  it("refuses the same question answered twice in one submission", async () => {
+    // One statement, two rows, one unique constraint: the insert would collide with itself and be
+    // misread below as an honest double submission.
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 4,
+      answers: [
+        { questionIndex: 0, selectedOptionLabel: "A0" },
+        { questionIndex: 0, selectedOptionLabel: "You choose" },
+      ],
+    });
+
+    expect(inserted).toHaveLength(0);
+    expect(startEventIdentity).not.toHaveBeenCalled();
+  });
+
+  it("refuses an index the round does not have open", async () => {
+    answeredIndexes = [{ question_index: 1 }];
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 4,
+      answers: [0, 1, 2].map((i) => ({ questionIndex: i, selectedOptionLabel: `A${i}` })),
+    });
+
+    // Question 1 is already answered, so the open set is {0, 2}; a submission naming all three is
+    // a stale tab, and re-reading is the answer.
+    expect(inserted).toHaveLength(0);
+  });
+
+  it("accepts exactly the open set when part of the round is already answered", async () => {
+    answeredIndexes = [{ question_index: 1 }];
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 4,
+      answers: [0, 2].map((i) => ({ questionIndex: i, selectedOptionLabel: `A${i}` })),
+    });
+
+    expect(inserted.map((row) => row.question_index)).toEqual([0, 2]);
+    expect(startEventIdentity).toHaveBeenCalledTimes(1);
   });
 });

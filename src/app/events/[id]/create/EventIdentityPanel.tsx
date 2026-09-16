@@ -104,6 +104,9 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
             if (faults.current < TOLERATED_POLL_FAULTS) return;
           } else {
             faults.current = 0;
+            // The canonical state has answered, so "we're checking" has stopped being true. Left
+            // standing it would sit under a question the host is being asked to answer again.
+            setAnswerError(undefined);
           }
           apply(next);
         })

@@ -497,6 +497,70 @@ describe("defer semantics follow the route", () => {
   });
 });
 
+/**
+ * Two rules the surface also applies, enforced here because the surface is not the only writer.
+ *
+ * `authenticated` holds INSERT on this table under `clarification_answers_insert_member`, and the
+ * browser carries the anon key and a session — so a member can reach PostgREST directly. A bound
+ * that lives only in a server action is advisory, and the text it was bounding is rendered
+ * verbatim into the next model request.
+ */
+describe("a boundary answer is a supported choice, and free text is bounded", () => {
+  it("refuses a boundary answer written entirely in free text", async () => {
+    // `spec.md §7.6b #1a`: Route B asks the host to state a boundary they can affirm. The options
+    // are what counts as stating it; the check constraint alone would take either field.
+    const question = boundaryQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    expect(
+      await errorCode(
+        answer(revisionId, 0, question, { selected: null, freeText: "maybe, I'll ask her" }),
+      ),
+    ).toBe("23514");
+  });
+
+  it("refuses free text alongside a chosen boundary option", async () => {
+    const question = boundaryQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    expect(
+      await errorCode(
+        answer(revisionId, 0, question, { selected: "Leave it out", freeText: "but only if…" }),
+      ),
+    ).toBe("23514");
+  });
+
+  it("refuses free text longer than the prompt's own limit", async () => {
+    const question = creativeQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    expect(
+      await errorCode(
+        answer(revisionId, 0, question, { selected: null, freeText: "x".repeat(4001) }),
+      ),
+    ).toBe("23514");
+  });
+
+  it("accepts free text at the limit, so the bound is a bound and not a trap", async () => {
+    const question = creativeQuestion();
+    const revisionId = await insertRevision(eventId, 1, [question]);
+    const { rows } = await answer(revisionId, 0, question, {
+      selected: null,
+      freeText: "x".repeat(4000),
+    });
+    expect(rows[0].id).toBeTruthy();
+  });
+
+  it("is the same number the application enforces", async () => {
+    const { MAX_CLARIFICATION_FREE_TEXT } = await import("@/lib/generation/identity-view");
+    const { rows } = await db.query(
+      `select pg_get_functiondef(p.oid) as src from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'validate_clarification_answer'`,
+    );
+    // Pinned rather than trusted: two numbers that must agree, in two languages, with nothing
+    // holding them together otherwise.
+    expect(rows[0].src).toContain(`> ${MAX_CLARIFICATION_FREE_TEXT}`);
+  });
+});
+
 describe("an answer is attributable to someone who can speak for the event", () => {
   let revisionId: string;
   const question = creativeQuestion();

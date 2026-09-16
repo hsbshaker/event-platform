@@ -156,6 +156,40 @@ begin
       using errcode = 'check_violation';
   end if;
 
+  -- (7b) A boundary answer is a supported choice, and only that.
+  --
+  -- `spec.md §7.6b #1a`: Route B asks the host "to state or confirm the boundary they can
+  -- legitimately affirm as settled". The options are the statements that count; free prose is not
+  -- one of them, and a brief that has to interpret an essay is back to taking the position the
+  -- question exists to avoid. The check constraint below is satisfied by either field, so without
+  -- this a boundary question could be answered entirely in free text.
+  --
+  -- Here rather than only in the application, because the application is not the only writer:
+  -- `authenticated` holds INSERT under `clarification_answers_insert_member`, so a member with a
+  -- session can reach this table directly. A rule enforced only above it is advisory.
+  if new.kind = 'boundary' then
+    if new.selected_option_label is null then
+      raise exception 'a boundary answer must select one of the offered options'
+        using errcode = 'check_violation';
+    end if;
+    if new.free_text is not null then
+      raise exception 'a boundary answer carries no free text'
+        using errcode = 'check_violation';
+    end if;
+  end if;
+
+  -- (7c) Free text is bounded, for the same reason `events.prompt` is.
+  --
+  -- It is rendered verbatim into the model input (`event_identity_input_v2`), so an unbounded
+  -- field is an unbounded request — and a request that fails or is truncated is still charged at
+  -- the per-attempt maximum. The limit matches `events.prompt`'s because it is the same kind of
+  -- thing: the host's own words, going to the same model. `MAX_CLARIFICATION_FREE_TEXT` is pinned
+  -- to this number by a test.
+  if new.free_text is not null and pg_catalog.char_length(new.free_text) > 4000 then
+    raise exception 'clarification free text may be at most 4000 characters'
+      using errcode = 'check_violation';
+  end if;
+
   -- (8) The round is the revision's own number.
   if new.round is distinct from rev.revision then
     raise exception 'clarification answer round % does not match revision %',

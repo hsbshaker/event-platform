@@ -334,7 +334,9 @@ describe("clarification rounds", () => {
   });
 
   it("reruns with free text, unaltered", async () => {
-    answers(boundaryResult("What should we avoid?"));
+    // A **creative** question: Route B takes a supported choice and the database refuses free text
+    // there, so this is the one route where a typed answer is legal.
+    answers(creativeResult("What should we avoid?"));
     await run();
     const [first] = await revisions();
     await answerQuestion(first.id, 1, { freeText: "  no pink, please  " });
@@ -362,7 +364,7 @@ describe("clarification rounds", () => {
     answers(boundaryResult("Round three?"));
     await run();
     const round3 = (await revisions())[2];
-    await answerQuestion(round3.id, 3, { freeText: "the third" });
+    await answerQuestion(round3.id, 3, { selected: "Yes" });
 
     answers(AUTHORITATIVE);
     const result = await run();

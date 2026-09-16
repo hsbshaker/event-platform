@@ -98,7 +98,7 @@ export async function readEventIdentityForEvent(eventId: string): Promise<Identi
 }
 
 /**
- * Persist one clarification answer, then let the canonical path decide what happens next.
+ * Persist one round's clarification answers, then let the canonical path decide what happens next.
  *
  * **The write goes through the host's own session, never the service role.** A clarification answer
  * is host input and `answered_by` has to be a fact the database established, not a value the
@@ -139,6 +139,32 @@ export async function submitClarificationAnswer(
   const questions = (latest.result as { clarification?: { questions?: unknown[] } } | null)
     ?.clarification?.questions;
   if (!Array.isArray(questions) || input.answers.length === 0) {
+    return readEventIdentityForEvent(input.eventId);
+  }
+
+  // The whole open set, exactly once each — not a subset and not a duplicate.
+  //
+  // A subset is the expensive mistake: it inserts, buys a paid rerun on a partial answer, and the
+  // new revision replaces the round, so the questions left out are never asked again. A repeated
+  // index is the confusing one: the single insert statement would violate the unique constraint
+  // against itself, and the 23505 branch below would read a malformed request as an honest double
+  // submission. The surface always sends the full set; this is the boundary, because the surface
+  // is not the only thing that can call a server action.
+  const { data: answered, error: answeredError } = await supabase
+    .from("clarification_answers")
+    .select("question_index")
+    .eq("identity_revision_id", latest.id);
+  if (answeredError) throw answeredError;
+  const closed = new Set((answered ?? []).map((row) => row.question_index));
+  const openIndexes = questions.map((_, index) => index).filter((index) => !closed.has(index));
+  const submitted = new Set(input.answers.map((a) => a.questionIndex));
+  if (
+    submitted.size !== input.answers.length ||
+    submitted.size !== openIndexes.length ||
+    openIndexes.some((index) => !submitted.has(index))
+  ) {
+    // A stale tab whose open set has shrunk re-renders against canonical state rather than
+    // dropping answers into a round that has moved on.
     return readEventIdentityForEvent(input.eventId);
   }
 
@@ -190,8 +216,9 @@ export async function submitClarificationAnswer(
   const { error } = await supabase.from("clarification_answers").insert(rows);
 
   if (error) {
-    // 23505 — a question in this set already has an answer. A double submission is a refresh, not
-    // a destructive failure, and the one-answer-per-question invariant is what makes it safe.
+    // 23505 — this round has already been answered. Because the set above is exactly the open set,
+    // a collision can only be a whole-round double submission: a refresh, not a destructive
+    // failure, and the one-answer-per-question invariant is what makes it safe.
     if (error.code !== "23505") {
       console.error("event identity: clarification answer refused", error.code);
       return readEventIdentityForEvent(input.eventId);
