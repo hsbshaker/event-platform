@@ -232,9 +232,15 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
     if (autoStarted.current || initial.state !== "retry_available") return;
     autoStarted.current = true;
     // `spec.md §7.2`: generation begins once the host is authenticated, not on a button. An
-    // **ordinary** start, so this is safe to do unconditionally: if a terminal attempt already
-    // blocks this event it returns `retry_available` and spends nothing, and if a call is in
-    // flight it observes it. Only the host's own Retry sends `explicitRetry`.
+    // **ordinary** start, so this is safe to do unconditionally: if a terminal attempt that may
+    // have been billed already blocks this event it returns `retry_available` and spends nothing,
+    // and if a call is in flight it observes it. Only the host's own Retry sends `explicitRetry`.
+    //
+    // That first clause is the orchestrator's event-scoped `awaitingHostRetry` guard, not the
+    // basis-scoped ordinal rule. The distinction is load-bearing and this comment used to elide
+    // it: across a deploy that changes the prompt, schema, assembly or model configuration, the
+    // basis-scoped rule alone sees no history for the new digest and would let this very line buy
+    // a second call for a response the host may already have paid for.
     //
     // `pendingFirstStart` clears when it resolves, whatever it resolves to — so a genuine terminal
     // failure surfaces its Retry immediately, and only the window before an answer is neutral.

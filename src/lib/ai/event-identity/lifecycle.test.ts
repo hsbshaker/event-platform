@@ -89,6 +89,24 @@ describe("an unreadable shape is refused, never answered", () => {
     ["null", null],
     ["undefined", undefined],
     ["a string", "not a result"],
+    // The array is well-formed; its *elements* are not. Every one of these used to answer
+    // `false` — "not provisional" about a question this reader cannot read — which is the
+    // fail-open the rule exists to prevent. Each shape is one plausible way a buggy writer,
+    // a hand-written backfill or a restore under a laxer path produces a boundary question
+    // the authority rule would miss.
+    ["a question that is json null", { clarification: { questions: [null] } }],
+    ["a question that is a bare string", { clarification: { questions: ["boundary"] } }],
+    ["a question that is a number", { clarification: { questions: [1] } }],
+    ["a question that is an array", { clarification: { questions: [["boundary"]] } }],
+    ["a capitalised kind key", { clarification: { questions: [{ Kind: "boundary" }] } }],
+    ["a capitalised kind value", { clarification: { questions: [{ kind: "Boundary" }] } }],
+    ["kind spelled type", { clarification: { questions: [{ type: "boundary" }] } }],
+    ["a question with no kind", { clarification: { questions: [{ question: "x" }] } }],
+    ["a question whose kind is null", { clarification: { questions: [{ kind: null }] } }],
+    [
+      "a readable question beside an unreadable one",
+      { clarification: { questions: [{ kind: "creative" }, { kind: "made-up" }] } },
+    ],
   ])("refuses %s rather than reading it as authoritative", (_label, value) => {
     const thrown = () => isProvisional(value, V5);
     expect(thrown).toThrow(UnreadableIdentityError);

@@ -768,6 +768,25 @@ export async function runEventIdentity(
     return inFlightState(resolution.claim, outcome.hasAuthoritativeIdentity);
   }
 
+  // The same rule as `needs_explicit_retry` above, asked of the **event** rather than of these
+  // exact bytes.
+  //
+  // `resolveAttemptOrdinal` is scoped to `(event_id, basis_digest)`, and the basis contains the
+  // model configuration and three versions. So a deploy that bumps the prompt version, the schema
+  // version, the assembly version or the reasoning effort gives the next request a digest with no
+  // history — `mode: "create"`, ordinal 0 — and the outstanding `expired_unknown` from the call
+  // that may already have been billed is invisible to it. The arrival start and the owed resume
+  // both send `explicitRetry: false`, so a host who merely reloads the page across a deploy would
+  // buy a second call for a response they may already have paid for, having pressed nothing.
+  //
+  // `awaitingHostRetry` is the event-scoped form of the same fact and is already computed from the
+  // record for exactly this purpose, so the answer is the one `outcomeState` gives and the poll
+  // that follows this response agrees with it. A genuine new round is unaffected: it is only ever
+  // reached after a claim that *succeeded*, which is not one of the three states this reads.
+  if (!request.explicitRetry && outcome.awaitingHostRetry) {
+    return outcomeState(outcome, "retry_available");
+  }
+
   // Resolved before the claim, not after the call: `identityLimits` is what refuses an unpriced
   // model and an unset production ceiling, and both must fail before a provider client exists.
   let limits: IdentityLimits;

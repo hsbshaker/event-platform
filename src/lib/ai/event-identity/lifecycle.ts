@@ -71,11 +71,22 @@ export class ProvisionalIdentityError extends Error {
   }
 }
 
+/** The two routes a clarification question can take. Closed, and the SQL twin inlines the pair. */
+const READABLE_QUESTION_KINDS: readonly string[] = ["creative", "boundary"];
+
 /**
  * The questions array, or a refusal.
  *
  * The SQL twin of this function is `public.identity_questions(result, schema_version)`, and the two
- * refuse on exactly the same two conditions in the same order.
+ * refuse on exactly the same three conditions in the same order.
+ *
+ * The third condition is the one worth explaining. Checking that `questions` is an array and then
+ * reading `kind` off whatever it contains answers "not provisional" about elements this function
+ * cannot read: a `null`, a bare string, `{"Kind":"boundary"}`, `{"type":"boundary"}` and
+ * `{"kind":"Boundary"}` all yield no `kind === "boundary"` match and would class a
+ * boundary-bearing brief as consumable. That is the fail-open direction, in the one rule whose
+ * entire purpose is to hold when the writer is buggy — so an unreadable element is refused here,
+ * exactly as an unreadable array already was.
  */
 export function identityQuestions(
   result: unknown,
@@ -95,16 +106,33 @@ export function identityQuestions(
       "clarification.questions is not an array",
     );
   }
+  for (const question of questions) {
+    // `typeof null === "object"`, and an array is an object too; both are unreadable here.
+    if (question === null || typeof question !== "object" || Array.isArray(question)) {
+      throw new UnreadableIdentityError(
+        "malformed_clarification",
+        "a clarification question is not an object",
+      );
+    }
+    const kind = (question as { kind?: unknown }).kind;
+    if (typeof kind !== "string" || !READABLE_QUESTION_KINDS.includes(kind)) {
+      throw new UnreadableIdentityError(
+        "malformed_clarification",
+        "a clarification question has no readable kind",
+      );
+    }
+  }
   return questions as readonly ClarificationQuestion[];
 }
 
 /**
  * True when the result carries a boundary question.
  *
- * Deliberately reads only `kind`. The per-response rules — at most one boundary question, asked
- * alone — are the contract's job (`clarificationDecisionSchema`), and re-checking them here would
- * mean a response that violated them could be read as authoritative by this function while the
- * validator rejected it. One rule, one place.
+ * Deliberately reads only `kind`, which `identityQuestions` has already proved is one of the two
+ * routes. The per-response rules — at most one boundary question, asked alone — are the contract's
+ * job (`clarificationDecisionSchema`), and re-checking them here would mean a response that
+ * violated them could be read as authoritative by this function while the validator rejected it.
+ * One rule, one place.
  */
 export function isProvisional(result: unknown, schemaVersion: string): boolean {
   return identityQuestions(result, schemaVersion).some(

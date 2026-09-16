@@ -704,6 +704,47 @@ describe("recovering a claim whose driver disappeared", () => {
     expect((await claims()).map((c) => c.attempt_ordinal)).toEqual([0, 1]);
   });
 
+  it("still needs an explicit retry when a deploy has changed the basis", async () => {
+    // The ordinal rule is scoped to `(event_id, basis_digest)`; the possibly-paid fact is not.
+    // A deploy that bumps the prompt version, the schema version, the assembly version or the
+    // reasoning effort gives the next request a digest with no history, so the basis-scoped rule
+    // alone sees a clean slate and would let an *ordinary* start buy a replacement for a call
+    // that may already have been billed. The panel's arrival start and its owed resume both send
+    // `explicitRetry: false`, so reloading the page across a deploy would be enough.
+    const stale = await sqlClaim({
+      // The digest the previous deploy would have produced: same prompt and answers, different
+      // prompt version. Nothing else about this claim differs from the test above.
+      digest: basisDigest({
+        prompt: PROMPT,
+        clarificationAnswerIds: [],
+        promptVersion: `${EVENT_IDENTITY_PROMPT_VERSION}-previous-deploy`,
+        schemaVersion: EVENT_IDENTITY_SCHEMA_VERSION,
+        inputAssemblyVersion: EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION,
+        modelConfig: eventIdentityModelConfig(MODEL, "high"),
+      }),
+      expired: true,
+    });
+    await db.query(
+      `update public.event_identity_call_claims set provider_invoked_at = pg_catalog.now()
+        where id=$1`,
+      [stale],
+    );
+
+    const result = await run();
+
+    expect((await claims()).find((c) => c.id === stale)?.state).toBe("expired_unknown");
+    // The assertion that discriminates: before the T12 correction this was `running`, one new
+    // claim existed at ordinal 0 under the new digest, and the provider had been called.
+    expect(generate).not.toHaveBeenCalled();
+    expect(result.state).toBe("retry_available");
+    expect(await claims()).toHaveLength(1);
+
+    // And the host's own decision still gets through, under the new basis, at its own ordinal 0.
+    answers(AUTHORITATIVE);
+    expect((await run({ explicitRetry: true })).state).toBe("ready");
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
   it("observes a live invoked claim rather than competing with it", async () => {
     const live = await sqlClaim({ digest: digestFor() });
     await db.query(

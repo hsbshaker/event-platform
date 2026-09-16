@@ -176,6 +176,24 @@ describe("the authority rule refuses shapes it cannot read", () => {
     ["a missing clarification", { identity: {}, suppliedFacts: {} }],
     ["questions as an object", { clarification: { questions: {} } }],
     ["questions as a string", { clarification: { questions: "none" } }],
+    // Element-level, which the array check alone does not reach. Every one of these returned
+    // `false` — classed authoritative — before the T12 correction, verified against a live
+    // database. Kept identical to the TypeScript twin's cases in
+    // src/lib/ai/event-identity/lifecycle.test.ts, because the two implementations refusing on
+    // the same inputs is the whole point of the parity suite below.
+    ["a question that is json null", { clarification: { questions: [null] } }],
+    ["a question that is a bare string", { clarification: { questions: ["boundary"] } }],
+    ["a question that is a number", { clarification: { questions: [1] } }],
+    ["a question that is an array", { clarification: { questions: [["boundary"]] } }],
+    ["a capitalised kind key", { clarification: { questions: [{ Kind: "boundary" }] } }],
+    ["a capitalised kind value", { clarification: { questions: [{ kind: "Boundary" }] } }],
+    ["kind spelled type", { clarification: { questions: [{ type: "boundary" }] } }],
+    ["a question with no kind", { clarification: { questions: [{ question: "x" }] } }],
+    ["a question whose kind is null", { clarification: { questions: [{ kind: null }] } }],
+    [
+      "a readable question beside an unreadable one",
+      { clarification: { questions: [{ kind: "creative" }, { kind: "made-up" }] } },
+    ],
   ])("refuses %s rather than calling it authoritative", async (_label, value) => {
     expect(
       await errorCode(
@@ -357,6 +375,45 @@ describe("identity revisions are append-only and ordered", () => {
     expect(
       await errorCode(db.query(`delete from public.event_identity_revisions where id = $1`, [id])),
     ).toBe("42501");
+  });
+
+  it("does not let a member read how the call was made", async () => {
+    // `spec.md §32 #41`, and the reason `src/lib/generation/identity-view.ts` exists: the T10
+    // projection strips provider internals so a component cannot forget. PostgREST is the other
+    // door to the same row, reachable from a browser with the member's own session, and a
+    // table-wide `grant select` handed them every column through it — `provider_config` alone
+    // carries the reasoning effort, the service tier and the cost-profile version.
+    await insertRevision(eventId, 1, []);
+    const forbidden = [
+      "provider",
+      "model",
+      "provider_config",
+      "provider_request_id",
+      "generation_run_id",
+    ];
+    for (const column of forbidden) {
+      const code = await asActor(db, { kind: "user", id: cohost }, (q) =>
+        errorCode(q(`select ${column} from public.event_identity_revisions`)),
+      );
+      expect([column, code]).toEqual([column, "42501"]);
+    }
+    // And `select *`, which is how anyone would actually try it.
+    expect(
+      await asActor(db, { kind: "user", id: cohost }, (q) =>
+        errorCode(q(`select * from public.event_identity_revisions`)),
+      ),
+    ).toBe("42501");
+    // What the clarification surface reads through the host's own session still works:
+    // `submitClarificationAnswer` selects exactly these three.
+    const readable = await asActor(db, { kind: "user", id: cohost }, async (q) =>
+      Number(
+        (
+          await q(`select count(*) from (select id, revision, result
+                    from public.event_identity_revisions) s`)
+        ).rows[0].count,
+      ),
+    );
+    expect(readable).toBe(1);
   });
 
   it("lets a member read but never write", async () => {
@@ -820,10 +877,23 @@ describe("anon reaches neither table", () => {
 
 describe("the SQL and TypeScript supported-version lists are the same list", () => {
   it("pairs the migration's literal with the module's constant", async () => {
+    // Every migration that defines the reader, in apply order. More than one is legitimate — a
+    // correction to `identity_questions` can only ship forward — so what matters is that the
+    // pairing below is read from the one that *wins*, which is the last.
+    const definers = readdirSync(path.join(ROOT, "supabase/migrations"))
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) =>
+        readFileSync(path.join(ROOT, "supabase/migrations", f), "utf8").includes(
+          "function public.identity_questions",
+        ),
+      )
+      .sort();
+    expect(definers[0]).toBe("20260915000000_phase4b_identity_revisions.sql");
+
     // Reads the migration, rather than comparing the module's constant to this file's own copy of
     // the same string — which would have passed while SQL accepted some third version.
     const migration = readFileSync(
-      path.join(ROOT, "supabase/migrations/20260915000000_phase4b_identity_revisions.sql"),
+      path.join(ROOT, "supabase/migrations", definers[definers.length - 1]),
       "utf8",
     );
     const literals = [...migration.matchAll(/'(event_identity_schema_v\d+)'/g)].map((m) => m[1]);
@@ -831,19 +901,6 @@ describe("the SQL and TypeScript supported-version lists are the same list", () 
     // and an order-sensitive comparison would fail spuriously the first time a second version is
     // added to either side.
     expect([...new Set(literals)].sort()).toEqual([...SUPPORTED_IDENTITY_SCHEMA_VERSIONS].sort());
-
-    // …and this is the only migration that defines the reader, so reading one file is reading all
-    // of them. A later `create or replace function public.identity_questions` elsewhere would
-    // change what SQL accepts while leaving the pairing above untouched.
-    const migrations = readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) =>
-      f.endsWith(".sql"),
-    );
-    const definers = migrations.filter((f) =>
-      readFileSync(path.join(ROOT, "supabase/migrations", f), "utf8").includes(
-        "function public.identity_questions",
-      ),
-    );
-    expect(definers).toEqual(["20260915000000_phase4b_identity_revisions.sql"]);
     const { rows } = await db.query(`select public.identity_is_provisional($1::jsonb, $2) as v`, [
       JSON.stringify(envelope([])),
       V5,
