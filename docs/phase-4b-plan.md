@@ -424,6 +424,13 @@ early when several claims in a row fail the same way, because then the claims ar
 Every terminal give-up reaches the alert sink, not only the log: the host paid, the response exists,
 and the only way forward is for them to pay again.
 
+**This trade has one named dependency.** Holding rather than terminalizing means a *permanent*
+systemic fault drains a backlog slowly — roughly two age-checks per sweep once the halt engages —
+and that is acceptable only because somebody is told. The sink's default is `console.warn` and its
+delivery channel is the same explicit debt as the ceiling alert's (§A.5 row 4). Recorded here so it
+reads as a known dependency rather than an assumption: an unread alert turns "hold and alert" into
+"hold".
+
 `provider_invoked_at` is written **and committed in its own transaction** before the provider is
 reached; the safety argument below depends on that commit, so it is a requirement, not an
 implementation detail. A crash between that commit and the HTTP send yields a false positive — a

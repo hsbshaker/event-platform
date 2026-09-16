@@ -268,7 +268,10 @@ function priceResponse(profile: ModelCostProfile, usage: ProviderResponseUsage):
 export function estimateIdentityCallCostUsd(
   profile: ModelCostProfile,
   usage: CostRelevantUsage,
-  attemptMaxUsd: number = profile.perAttemptMaxUsd,
+  // Required, not defaulted to `profile.perAttemptMaxUsd`: an environment override can raise the
+  // bound, and a caller that forgot the argument would record unpriced attempts *below* what the
+  // claim reserved. `IdentityLimits.perAttemptMaxUsd` exists to be passed here.
+  attemptMaxUsd: number,
 ): CostEstimate {
   const attemptMax = attemptMaxUsd;
   const observed = Math.max(usage.providerResponses, 0);

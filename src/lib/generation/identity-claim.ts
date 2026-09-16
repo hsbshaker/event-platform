@@ -135,8 +135,9 @@ export interface ClaimRequest {
  */
 export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promise<ClaimResult> {
   // Resolved unconditionally, before the `??`, so a caller-supplied `limits` cannot route around
-  // the production contract. Left behind an `??` this line is the whole fail-closed guarantee and
-  // an optional field skips it — which is exactly the seam a later caller would reach for.
+  // the **model** check: an unpriced model refuses here whatever the caller passes. The caps,
+  // ceiling and reservation in a supplied `limits` are still the caller's, so this is not a
+  // guarantee about the numbers — only that production never reaches an unpriced model.
   const model = req.basis.modelConfig.model ?? "";
   requireCostProfile(model);
   const limits = req.limits ?? identityLimits(model);
@@ -504,6 +505,13 @@ export async function sweepIdentityCallClaims(
         outcome.value as unknown as Json,
       );
       if (done) completed += 1;
+      // Reset on success, or "consecutive" is not consecutive: without this, one sparse recurring
+      // code trips the halt across an arbitrarily long run of successes. A backlog of fifty
+      // claims where three time out and forty-seven complete would report a systemic halt — and
+      // because the pending list is stably ordered, the same three lead every later run and the
+      // tail behind them is never attempted.
+      sameCodeRun = 0;
+      lastCode = null;
     } catch (error) {
       const code = (error as { code?: string } | null)?.code ?? "unknown";
       const deterministic = isDeterministicCompletionFailure(error);

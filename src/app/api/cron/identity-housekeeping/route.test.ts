@@ -340,6 +340,110 @@ describe("the identity housekeeping job", () => {
     );
   });
 
+  /** `n` pending claims; `outcomes[i]` decides whether claim i completes or how it fails. */
+  function servePendingMany(outcomes: ({ ok: true } | { ok: false; code: string })[]) {
+    let next = 0;
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: [{ abandoned: 0, expired_unknown: 0 }], error: null };
+      }
+      if (name === "pending_identity_call_completions") {
+        return {
+          data: outcomes.map((_, i) => ({
+            claim_id: `c${i}`,
+            event_id: `e${i}`,
+            generation_run_id: `r${i}`,
+            schema_version: "event_identity_schema_v5",
+            provider_response_evidence: [JSON.stringify(validBody)],
+            captured_at: "2026-09-16T00:00:00Z",
+          })),
+          error: null,
+        };
+      }
+      if (name === "complete_identity_call") {
+        const outcome = outcomes[next];
+        next += 1;
+        if (outcome?.ok) {
+          return {
+            data: [
+              {
+                revision_id: `rev${next}`,
+                revision: 1,
+                is_provisional: false,
+                authoritative: true,
+              },
+            ],
+            error: null,
+          };
+        }
+        return { data: null, error: { code: outcome?.code ?? "57014", message: "slow" } };
+      }
+      if (name === "fail_identity_call_recovery") return { data: "retryable", error: null };
+      return { data: 0, error: null };
+    });
+  }
+
+  it("halts when several claims in a row fail the same way", async () => {
+    servePendingMany([
+      { ok: false, code: "57014" },
+      { ok: false, code: "57014" },
+      { ok: false, code: "57014" },
+      { ok: true },
+    ]);
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      systemicHalt: true,
+      completed: 0,
+    });
+  });
+
+  it("does not halt when successes come between the failures", async () => {
+    // "Consecutive" has to mean consecutive. Without a reset on success, one sparse recurring code
+    // trips the halt across an arbitrarily long run of successes — and since the pending list is
+    // stably ordered, the same slow claims lead every later run and the tail behind them is never
+    // attempted.
+    servePendingMany([
+      { ok: false, code: "57014" },
+      { ok: true },
+      { ok: false, code: "57014" },
+      { ok: false, code: "57014" },
+    ]);
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      systemicHalt: false,
+      completed: 1,
+      retryable: 3,
+    });
+  });
+
+  it("does not halt on deterministic failures, which terminalize individually", async () => {
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: [{ abandoned: 0, expired_unknown: 0 }], error: null };
+      }
+      if (name === "pending_identity_call_completions") {
+        return {
+          data: [0, 1, 2].map((i) => ({
+            claim_id: `c${i}`,
+            event_id: `e${i}`,
+            generation_run_id: `r${i}`,
+            schema_version: "event_identity_schema_v5",
+            provider_response_evidence: [JSON.stringify(validBody)],
+            captured_at: "2026-09-16T00:00:00Z",
+          })),
+          error: null,
+        };
+      }
+      if (name === "complete_identity_call") {
+        return { data: null, error: { code: "23503", message: "answer does not belong" } };
+      }
+      if (name === "fail_identity_call_recovery") return { data: "terminal", error: null };
+      return { data: 0, error: null };
+    });
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      systemicHalt: false,
+      unrecoverable: 3,
+    });
+  });
+
   it("releases the event when a captured response has a schema version it cannot read", async () => {
     // Fetching the version and not checking it is the fail-open shape §A.3 exists to remove; its
     // SQL twin `identity_questions()` refuses an unrecognised version rather than reading it as

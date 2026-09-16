@@ -160,7 +160,11 @@ describe("the logical-call maximum", () => {
 
 describe("estimating what one call cost", () => {
   it("prices a short-context response at the standard rate", () => {
-    const estimate = estimateIdentityCallCostUsd(GPT_5_6_SOL, usage([response()]));
+    const estimate = estimateIdentityCallCostUsd(
+      GPT_5_6_SOL,
+      usage([response()]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
+    );
     expect(estimate.usd).toBeCloseTo(STANDARD_ONE, 10);
     expect(estimate.exact).toBe(true);
   });
@@ -172,11 +176,13 @@ describe("estimating what one call cost", () => {
     const withReasoning = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response({ reasoningTokens: Math.floor(OUT * 0.9) })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(withReasoning.usd).toBeCloseTo(STANDARD_ONE, 10);
     const without = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response({ reasoningTokens: 0 })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(withReasoning.usd).toBe(without.usd);
   });
@@ -186,10 +192,12 @@ describe("estimating what one call cost", () => {
     const cacheRead = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response({ cachedInputTokens: IN })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     const cacheWrite = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response({ cacheWriteInputTokens: IN })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(cacheRead.usd).toBeCloseTo(per(IN, GPT_5_6_SOL.standard.cachedInput) + out, 10);
     expect(cacheWrite.usd).toBeCloseTo(per(IN, GPT_5_6_SOL.standard.cacheWriteInput) + out, 10);
@@ -202,6 +210,7 @@ describe("estimating what one call cost", () => {
     const estimate = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response({ inputTokens: 100, cachedInputTokens: 90, cacheWriteInputTokens: 90 })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(estimate.usd).toBeGreaterThan(0);
   });
@@ -211,6 +220,7 @@ describe("estimating what one call cost", () => {
     const estimate = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response({ inputTokens: long, outputTokens: OUT })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(estimate.usd).toBeCloseTo(
       per(long, GPT_5_6_SOL.longContext.input) + per(OUT, GPT_5_6_SOL.longContext.output),
@@ -226,7 +236,11 @@ describe("estimating what one call cost", () => {
     const longIn = GPT_5_6_SOL.longContextThresholdTokens + 1;
     const short = response({ inputTokens: 1_000, outputTokens: 1_000 });
     const long = response({ inputTokens: longIn, outputTokens: 1_000 });
-    const estimate = estimateIdentityCallCostUsd(GPT_5_6_SOL, usage([short, long]));
+    const estimate = estimateIdentityCallCostUsd(
+      GPT_5_6_SOL,
+      usage([short, long]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
+    );
     const expected =
       per(1_000, GPT_5_6_SOL.standard.input) +
       per(1_000, GPT_5_6_SOL.standard.output) +
@@ -240,6 +254,7 @@ describe("estimating what one call cost", () => {
     const estimate = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response()], { providerAttempts: 3, unknownUsageAttempts: 2 }),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(estimate.usd).toBeCloseTo(STANDARD_ONE + 2 * GPT_5_6_SOL.perAttemptMaxUsd, 8);
     expect(estimate.exact).toBe(false);
@@ -250,6 +265,7 @@ describe("estimating what one call cost", () => {
     const estimate = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([{}], { providerAttempts: 1, unknownUsageAttempts: 1 }),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(estimate.usd).toBe(GPT_5_6_SOL.perAttemptMaxUsd);
     expect(estimate.exact).toBe(false);
@@ -259,6 +275,7 @@ describe("estimating what one call cost", () => {
     const estimate = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([response()], { providerResponses: 2, providerAttempts: 2 }),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(estimate.usd).toBeCloseTo(STANDARD_ONE + GPT_5_6_SOL.perAttemptMaxUsd, 8);
     expect(estimate.exact).toBe(false);
@@ -269,6 +286,7 @@ describe("estimating what one call cost", () => {
     const estimate = estimateIdentityCallCostUsd(
       GPT_5_6_SOL,
       usage([], { providerAttempts: 3, unknownUsageAttempts: 3 }),
+      GPT_5_6_SOL.perAttemptMaxUsd,
     );
     expect(estimate.usd).toBe(3 * GPT_5_6_SOL.perAttemptMaxUsd);
     expect(estimate.exact).toBe(false);
@@ -277,7 +295,11 @@ describe("estimating what one call cost", () => {
   it("prices nothing from an unverified fallback profile", () => {
     // No rates to price with. Charging the maximum is the only honest answer; inventing a number
     // would be the optimistic fallback the whole section refuses.
-    const estimate = estimateIdentityCallCostUsd(UNVERIFIED_DEV_PROFILE, usage([response()]));
+    const estimate = estimateIdentityCallCostUsd(
+      UNVERIFIED_DEV_PROFILE,
+      usage([response()]),
+      UNVERIFIED_DEV_PROFILE.perAttemptMaxUsd,
+    );
     expect(estimate.usd).toBe(UNVERIFIED_DEV_PROFILE.perAttemptMaxUsd);
     expect(estimate.exact).toBe(false);
   });
@@ -297,6 +319,7 @@ describe("estimating what one call cost", () => {
             ),
             { providerAttempts: attempts, unknownUsageAttempts: attempts - responses },
           ),
+          GPT_5_6_SOL.perAttemptMaxUsd,
         );
         expect(estimate.usd).toBeLessThanOrEqual(logicalCallMaxUsd(MODEL));
       }
