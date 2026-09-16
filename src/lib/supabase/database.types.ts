@@ -741,6 +741,11 @@ export type Database = {
         Args: { p_limit: number; p_event_id?: string | null };
         Returns: { abandoned: number; expired_unknown: number }[];
       };
+      /** Settles claims that provably never reached the provider, on a horizon of seconds. */
+      reclaim_uninvoked_identity_claims: {
+        Args: { p_max_age_seconds: number; p_event_id?: string | null; p_limit?: number };
+        Returns: number;
+      };
       /** Paid responses no request has come back to complete. */
       pending_identity_call_completions: {
         Args: { p_limit: number; p_event_id?: string | null };

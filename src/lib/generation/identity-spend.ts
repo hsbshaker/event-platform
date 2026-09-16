@@ -131,6 +131,26 @@ export const LEASE_MARGIN_SECONDS = 120;
 
 export const DEFAULT_LEASE_SECONDS = LEASE_FLOOR_SECONDS + LEASE_MARGIN_SECONDS;
 
+/**
+ * How long a claim that provably never reached the provider may sit before it is reclaimed.
+ *
+ * A **different instrument from the lease**, and the distinction is the whole point. The lease
+ * bounds work that MAY have been paid for, so it is derived from the provider call's worst case and
+ * has to be long. This bounds work that provably was NOT: the claim is still `claimed`, its
+ * committed `provider_invoked_at` is null and no run row exists for it, so there is nothing to
+ * protect and nothing to lose by reclaiming it.
+ *
+ * Thirty seconds, because step 4 and step 5 are consecutive database round trips on the same
+ * request — a gap of thirty seconds between them means that process is gone. Making an actively
+ * waiting host sit out the financial lease for a crash that cost nothing is exactly what
+ * request-driven recovery exists to stop.
+ *
+ * It does not shorten, weaken or replace the lease; it is a second and narrower door, and a test
+ * pins it below the user-facing deadline, which is itself pinned below the lease, so the three
+ * cannot quietly collapse into one timer.
+ */
+export const IDENTITY_PREINVOKE_RECLAIM_MS = 30_000;
+
 export function identityLimits(model: string, now: Date = new Date()): IdentityLimits {
   // Resolved first, and it throws in production when no verified profile exists for this exact
   // model. That is the fail-closed half of the contract: a claim cannot be taken — and therefore

@@ -30,6 +30,7 @@ import {
   findNonTerminalClaim,
   markIdentityCallInvoked,
   pendingIdentityCallCompletions,
+  reclaimUninvokedIdentityClaims,
   recordCompletionFailure,
   resolveAttemptOrdinal,
   type CaptureRun,
@@ -330,11 +331,16 @@ interface ClaimObservation {
 /**
  * §A.6 step 3, and §A.5's "Who recovers, and when", in the order those sections require.
  *
- * 1. **expire this event's due claims.** A process that died between reserving a claim and
- *    reaching the provider leaves `claimed`, and the one-in-flight index refuses every new call
- *    while it sits there. With only the daily job to clear it, one crash costs that host a day.
- *    Scoped to this event, because the global pass is bounded and ordered by lease age: the
- *    waiting host's claim might simply not be in the batch.
+ * 1. **reclaim this event's provably uninvoked claims, then expire its due ones.** A process that
+ *    died between reserving a claim and reaching the provider leaves `claimed`, and the
+ *    one-in-flight index refuses every new call while it sits there. Two horizons, because they
+ *    bound different things: a claim whose committed `provider_invoked_at` is null and which has
+ *    no run row cost nothing and is reclaimed after thirty seconds, while a claim that may have
+ *    been paid for waits out the financial lease. Making a waiting host sit out fourteen minutes
+ *    for a crash that provably spent nothing is the case request-driven recovery exists for; using
+ *    the same clock for both is what made it still happen. Both are scoped to this event, because
+ *    the global passes are bounded and ordered by age and the waiting host's claim might simply
+ *    not be in the batch.
  * 2. **look the event's non-terminal claim up** — event-scoped, not key-scoped. A deploy or a new
  *    answer changes the model-config digest or an answer id and therefore the key, so a key-scoped
  *    lookup would find nothing, the insert would be refused by the `(event_id)` index, and the
@@ -346,6 +352,12 @@ interface ClaimObservation {
 async function settleEventClaims(admin: Admin, eventId: string): Promise<ClaimObservation> {
   // An event holds at most one non-terminal claim, so these bounds are slack rather than a budget:
   // they exist so a corrupted table cannot turn one request into an unbounded scan.
+  //
+  // The short reclaim runs first. If it settles the claim, the expiry below finds nothing and the
+  // ordinal resolution reads `abandoned` — which is reclaimable automatically, because it is
+  // provably unpaid — so this request may create the replacement claim itself, with no explicit
+  // host retry and no second payment.
+  await reclaimUninvokedIdentityClaims(admin, { eventId, limit: 10 });
   await expireIdentityCallClaims(admin, { limit: 10, eventId });
   const claim = await findNonTerminalClaim(admin, eventId);
   if (!claim || claim.state !== "response_captured") return { claim, recovered: null };

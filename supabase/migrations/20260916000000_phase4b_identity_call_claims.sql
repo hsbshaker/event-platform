@@ -686,6 +686,84 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- 7b. The short pre-invocation reclaim.
+--
+-- The lease is a **financial** horizon: it bounds how long a call that MAY have reached the
+-- provider is believed to be in flight, and it is derived from that call's bounded worst case
+-- (about fourteen minutes). Using it as the recovery clock for work that provably did **not**
+-- reach the provider is the wrong instrument — a process that died between the claim insert and
+-- the `provider_invoked_at` commit left nothing to protect, and an actively waiting host should
+-- not pay a quarter of an hour for that.
+--
+-- Provably uninvoked is four conditions, all of them facts in this database rather than timing
+-- assumptions: the claim is still `claimed`, its committed `provider_invoked_at` is null, no
+-- generation run exists for it, and it is older than the caller's short threshold. Only the last
+-- one is a clock, and it decides eligibility, never safety.
+--
+-- **The race with `mark_identity_call_invoked` is decided by the row lock, not by the interval.**
+-- Both are UPDATEs on the same row with predicates over the columns the other writes. Under READ
+-- COMMITTED the loser re-evaluates its predicate against the winner's committed row: if
+-- mark-invoked commits first, `provider_invoked_at is null` no longer holds and this matches
+-- nothing, so the live call continues; if this commits first, `state = 'claimed'` no longer holds
+-- and mark-invoked returns false, so that driver has permanently lost the right to call the
+-- provider. There is no window in which both succeed, and none in which neither does.
+--
+-- The lease itself is untouched. This adds a second, narrower door; it does not widen the first.
+-- ---------------------------------------------------------------------------
+create or replace function public.reclaim_uninvoked_identity_claims(
+  p_max_age_seconds numeric,
+  p_event_id uuid default null,
+  p_limit integer default 100
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_count integer;
+begin
+  if p_max_age_seconds is null or p_max_age_seconds <= 0 then
+    raise exception 'pre-invocation reclaim age must be positive';
+  end if;
+
+  with due as (
+    select c.id
+      from public.event_identity_call_claims c
+     where c.state = 'claimed'
+       -- Committed null, which is exactly what makes `abandoned` mean *provably unpaid*.
+       and c.provider_invoked_at is null
+       -- Belt and braces beside it: a run row for this attempt key would mean the provider was
+       -- reached whatever the claim column says, and this is the one transition that re-spends
+       -- without a host deciding to.
+       and c.generation_run_id is null
+       and not exists (
+         select 1 from public.generation_runs g where g.idempotency_key = c.attempt_key
+       )
+       and c.claimed_at < pg_catalog.now() - (p_max_age_seconds * interval '1 second')
+       and (p_event_id is null or c.event_id = p_event_id)
+     order by c.claimed_at
+     limit greatest(p_limit, 0)
+     -- Two concurrent reclaimers must not both take the same row and both report a reclaim; the
+     -- second skips it and the row is settled exactly once.
+     for update skip locked
+  )
+  update public.event_identity_call_claims c
+     set state = 'abandoned',
+         settled_at = pg_catalog.now()
+    from due
+   where c.id = due.id
+     -- Re-checked inside the UPDATE, not only in the CTE: between the two, a concurrent
+     -- `mark_identity_call_invoked` may have committed on a row this snapshot read as uninvoked.
+     and c.state = 'claimed'
+     and c.provider_invoked_at is null;
+
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- 8. The recovery driver's SQL half.
 --
 -- Expiry is decidable in SQL; completion is not, because it re-validates the captured text through
@@ -896,6 +974,8 @@ revoke execute on function public.capture_identity_call_response(uuid, boolean, 
 revoke execute on function public.complete_identity_call(uuid, jsonb)
   from public, anon, authenticated;
 revoke execute on function public.expire_identity_call_claims(integer, uuid)
+  from public, anon, authenticated;
+revoke execute on function public.reclaim_uninvoked_identity_claims(numeric, uuid, integer)
   from public, anon, authenticated;
 revoke execute on function public.fail_identity_call_recovery(uuid, text, boolean, integer)
   from public, anon, authenticated;

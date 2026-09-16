@@ -57,7 +57,7 @@ const { EventIdentityError, eventIdentityModelConfig } =
   await import("@/lib/ai/openai/event-identity");
 const { resetEnvCache } = await import("@/lib/env");
 const { basisDigest } = await import("@/lib/generation/identity-key");
-const { expireIdentityCallClaims, markIdentityCallInvoked } =
+const { expireIdentityCallClaims, markIdentityCallInvoked, reclaimUninvokedIdentityClaims } =
   await import("@/lib/generation/identity-claim");
 const { IDENTITY_REFUSAL_PAYLOAD } = await import("@/lib/generation/identity-spend");
 const { eventIdentityState, runEventIdentity, IDENTITY_USER_DEADLINE_MS } =
@@ -1223,5 +1223,170 @@ describe("an outstanding host decision survives what happens after it", () => {
     expect((await claims())[0].state).toBe("claimed");
     expect((await eventIdentityState(admin, eventId)).state).toBe("running");
     expect(await runs()).toHaveLength(0);
+  });
+});
+
+/* ------------------------------------------------------------------ the pre-invocation reclaim */
+
+describe("work that provably never reached the provider is not on the financial lease's clock", () => {
+  /** Winds `claimed_at` back, which is what makes a claim eligible without waiting. */
+  const age = (claimId: string, seconds: number) =>
+    db.query(
+      `update public.event_identity_call_claims
+          set claimed_at = pg_catalog.now() - ($2 || ' seconds')::interval where id=$1`,
+      [claimId, String(seconds)],
+    );
+
+  const stateOf = async (claimId: string) =>
+    (await db.query(`select state from public.event_identity_call_claims where id=$1`, [claimId]))
+      .rows[0].state as string;
+
+  it("reclaims a pre-invocation claim after thirty seconds, not after the lease", async () => {
+    const stale = await sqlClaim({ digest: digestFor() });
+    await age(stale, 31);
+    // The lease is untouched and still has minutes to run; that is the point.
+    const lease = (await claims()).find((c) => c.id === stale)!.lease_expires_at as string;
+    expect(Date.parse(lease)).toBeGreaterThan(Date.now());
+
+    expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(1);
+
+    expect(await stateOf(stale)).toBe("abandoned");
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("leaves a pre-invocation claim younger than the threshold alone", async () => {
+    const fresh = await sqlClaim({ digest: digestFor() });
+    await age(fresh, 5);
+
+    expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(0);
+    expect(await stateOf(fresh)).toBe("claimed");
+  });
+
+  it("never reclaims a claim that reached the provider, however old", async () => {
+    const invoked = await sqlClaim({ digest: digestFor() });
+    await db.query(
+      `update public.event_identity_call_claims set provider_invoked_at = pg_catalog.now()
+        where id=$1`,
+      [invoked],
+    );
+    await age(invoked, 60 * 60 * 24);
+
+    expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(0);
+    expect(await stateOf(invoked)).toBe("claimed");
+    // The long lease remains the right instrument for work that may have been paid for.
+    expect(await expireIdentityCallClaims(admin, { eventId })).toEqual({
+      abandoned: 0,
+      expiredUnknown: 0,
+    });
+  });
+
+  it("never treats a claim with a generation run as provably uninvoked", async () => {
+    // Belt and braces beside `provider_invoked_at`: a run row for this attempt key means the
+    // provider was reached whatever the claim column says, and this is the one transition that
+    // re-spends without a host deciding to.
+    const captured = await capturedClaim(digestFor());
+    await db.query(
+      `update public.event_identity_call_claims
+          set state='claimed', provider_invoked_at=null, settled_at=null where id=$1`,
+      [captured],
+    );
+    await age(captured, 60 * 60);
+
+    expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(0);
+    expect(await stateOf(captured)).toBe("claimed");
+  });
+
+  it("lets the database decide the reclaim/invoke race: reclaim first", async () => {
+    const claimId = await sqlClaim({ digest: digestFor() });
+    await age(claimId, 31);
+
+    expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(1);
+    // The original driver has permanently lost the right to call the provider.
+    expect(await markIdentityCallInvoked(admin, claimId)).toBe(false);
+    expect(await stateOf(claimId)).toBe("abandoned");
+  });
+
+  it("lets the database decide the reclaim/invoke race: mark-invoked first", async () => {
+    const claimId = await sqlClaim({ digest: digestFor() });
+    await age(claimId, 31);
+
+    expect(await markIdentityCallInvoked(admin, claimId)).toBe(true);
+    // The live call continues; the reclaim matches nothing.
+    expect(await reclaimUninvokedIdentityClaims(admin, { eventId })).toBe(0);
+    expect(await stateOf(claimId)).toBe("claimed");
+  });
+
+  it("settles a contested row once when two reclaimers run at the same moment", async () => {
+    const other = await connect();
+    try {
+      const claimId = await sqlClaim({ digest: digestFor() });
+      await age(claimId, 31);
+
+      const [a, b] = await Promise.all([
+        reclaimUninvokedIdentityClaims(admin, { eventId }),
+        reclaimUninvokedIdentityClaims(supabaseShim(other), { eventId }),
+      ]);
+
+      expect([a, b].sort()).toEqual([0, 1]);
+      expect(await stateOf(claimId)).toBe("abandoned");
+    } finally {
+      await other.end();
+    }
+  });
+
+  it("resumes automatically, with no explicit retry and no housekeeping call", async () => {
+    const stale = await sqlClaim({ digest: digestFor() });
+    await age(stale, 31);
+    answers(AUTHORITATIVE);
+
+    // Ordinary resume — `explicitRetry` is not passed, because the abandoned attempt is provably
+    // unpaid and re-spending after it costs the host nothing they did not already ask for.
+    const result = await run();
+
+    expect(result.state).toBe("ready");
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(await stateOf(stale)).toBe("abandoned");
+    const rows = await claims();
+    expect(rows).toHaveLength(2);
+    expect(rows.filter((c) => c.state === "succeeded")).toHaveLength(1);
+  });
+
+  it("gives two concurrent resumes after the threshold one replacement call", async () => {
+    const other = await connect();
+    try {
+      const stale = await sqlClaim({ digest: digestFor() });
+      await age(stale, 31);
+      const gate = deferred<ReturnType<typeof callResult>>();
+      generate.mockReturnValue(gate.promise);
+
+      const settling = Promise.allSettled([
+        run(),
+        runEventIdentity(supabaseShim(other), { eventId, userId: owner }),
+      ]);
+      await vi.waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
+      gate.resolve(callResult(AUTHORITATIVE));
+      const settled = await settling;
+
+      expect(settled.every((s) => s.status === "fulfilled")).toBe(true);
+      expect(generate).toHaveBeenCalledTimes(1);
+      expect(await stateOf(stale)).toBe("abandoned");
+      // One replacement claim, not two.
+      expect((await claims()).filter((c) => c.id !== stale)).toHaveLength(1);
+      expect(await revisions()).toHaveLength(1);
+    } finally {
+      await other.end();
+    }
+  });
+
+  it("reclaims from a bare status poll, which still never spends", async () => {
+    const stale = await sqlClaim({ digest: digestFor() });
+    await age(stale, 31);
+
+    const polled = await eventIdentityState(admin, eventId);
+
+    expect(await stateOf(stale)).toBe("abandoned");
+    // Truthful persisted state afterwards: nothing in flight, nothing produced.
+    expect(polled).toEqual({ state: "retry_available", hasAuthoritativeIdentity: false });
+    expect(generate).not.toHaveBeenCalled();
   });
 });

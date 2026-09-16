@@ -12,6 +12,7 @@ import {
   emitCeilingAlert,
   emitRecoveryAlert,
   identityLimits,
+  IDENTITY_PREINVOKE_RECLAIM_MS,
   type IdentityLimits,
   type IdentityRefusalReason,
 } from "./identity-spend";
@@ -342,6 +343,28 @@ export async function expireIdentityCallClaims(
   if (error) throw error;
   const row = (data ?? [])[0];
   return { abandoned: row?.abandoned ?? 0, expiredUnknown: row?.expired_unknown ?? 0 };
+}
+
+/**
+ * The short pre-invocation reclaim (§A.5).
+ *
+ * Settles claims that provably never reached the provider, on a horizon measured in seconds rather
+ * than on the financial lease. Safety is four database facts; the age only decides when the row
+ * becomes eligible, and the race against `mark_identity_call_invoked` is decided by the row lock.
+ *
+ * Returns how many were reclaimed.
+ */
+export async function reclaimUninvokedIdentityClaims(
+  admin: Admin,
+  options: { maxAgeMs?: number; eventId?: string; limit?: number } = {},
+): Promise<number> {
+  const { data, error } = await admin.rpc("reclaim_uninvoked_identity_claims", {
+    p_max_age_seconds: (options.maxAgeMs ?? IDENTITY_PREINVOKE_RECLAIM_MS) / 1000,
+    p_event_id: options.eventId ?? null,
+    p_limit: options.limit ?? 100,
+  });
+  if (error) throw error;
+  return (data as number | null) ?? 0;
 }
 
 /** One captured response waiting to become a revision. */

@@ -55,6 +55,7 @@ const DECLARED_FUNCTIONS = {
   is_event_member: true,
   is_event_owner: true,
   purge_expired_pre_auth_state: true,
+  reclaim_uninvoked_identity_claims: true,
   purge_identity_response_evidence: true,
   purge_pre_auth_drafts: true,
   purge_stale_rate_limits: true,

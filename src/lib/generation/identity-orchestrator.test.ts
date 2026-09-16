@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_LEASE_SECONDS, LEASE_FLOOR_SECONDS } from "./identity-spend";
+import {
+  DEFAULT_LEASE_SECONDS,
+  IDENTITY_PREINVOKE_RECLAIM_MS,
+  LEASE_FLOOR_SECONDS,
+} from "./identity-spend";
 import { IDENTITY_USER_DEADLINE_MS } from "./identity-orchestrator";
 
 /**
@@ -18,6 +22,31 @@ import { IDENTITY_USER_DEADLINE_MS } from "./identity-orchestrator";
  *
  * Acceptance criteria: N/A — test-only. `docs/phase-4b-plan.md §A.5`, `§J`.
  */
+describe("three horizons, three instruments", () => {
+  it("keeps the pre-invocation reclaim, the product deadline and the financial lease apart", () => {
+    // They answer different questions and must never collapse into one timer.
+    //
+    //  * the reclaim bounds work that provably cost nothing, so it can be seconds;
+    //  * the deadline bounds how long "still working" stays an honest thing to say;
+    //  * the lease bounds work that may have been paid for, so it must exceed the provider call's
+    //    worst case.
+    //
+    // Ordering them in a test is what stops a later change from reusing one as another — the exact
+    // mistake that left an actively waiting host sitting out fourteen minutes for a crash that had
+    // provably not reached the provider.
+    expect(IDENTITY_PREINVOKE_RECLAIM_MS).toBeLessThan(IDENTITY_USER_DEADLINE_MS);
+    expect(IDENTITY_USER_DEADLINE_MS).toBeLessThan(LEASE_FLOOR_SECONDS * 1000);
+    expect(LEASE_FLOOR_SECONDS).toBeLessThanOrEqual(DEFAULT_LEASE_SECONDS);
+  });
+
+  it("gives the reclaim a horizon far longer than two consecutive database round trips", () => {
+    // Step 4 and step 5 are consecutive statements on one request. Thirty seconds is ample for a
+    // live process and short enough that a dead one does not cost the host the lease.
+    expect(IDENTITY_PREINVOKE_RECLAIM_MS).toBeGreaterThanOrEqual(10_000);
+    expect(IDENTITY_PREINVOKE_RECLAIM_MS).toBeLessThanOrEqual(60_000);
+  });
+});
+
 describe("the product deadline is not the financial lease", () => {
   it("resolves the host's wait long before the lease that protects the spend", () => {
     expect(IDENTITY_USER_DEADLINE_MS).toBeLessThan(LEASE_FLOOR_SECONDS * 1000);
