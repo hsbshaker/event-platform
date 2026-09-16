@@ -351,7 +351,81 @@ When such a change is explicitly approved:
 
 ---
 
-# 13. Final decision rule
+# 13. Live infrastructure
+
+This project now has **real, running infrastructure**, and a session may hold credentials that
+reach it. A hosted Supabase project carries the schema and live rows; a Vercel project serves the
+app. Both are reachable from an agent session over HTTPS. Treat every rule below as binding.
+
+## 13.1 The test database is never a real database
+
+Every test under `tests/db/` begins by dropping `public`, `auth` and `extensions`. Against a real
+project that destroys every table, every row and every auth user, and there is no undo.
+
+- **Never** point `TEST_DATABASE_URL` at anything but a scratch database on localhost.
+- **Never** run `npm run test:db`, import `tests/db/harness.ts`, call `resetDatabase()`, or apply
+  `tests/db/auth-stub.sql` against a hosted database. *Every* test in `tests/db/` resets, including
+  `schema-drift.test.ts` — there is no read-only one.
+- `databaseUrl()` and `resetDatabase()` both refuse a non-loopback host, and
+  `tests/unit/db-harness-guard.test.ts` holds them to it. Those guards are load-bearing safety
+  equipment, not ceremony. Do not relax, bypass or add an override to them; a change that needs
+  them weakened is a stop condition, not a refactor.
+
+This is written from an incident. A session put a live Supabase URL into `TEST_DATABASE_URL` and
+reached for the harness; the only thing that stopped it was an unrelated network policy blocking
+the connection. That policy is not protection and must not be relied on.
+
+## 13.2 Schema changes reach a real database only through migrations
+
+The schema is whatever `supabase/migrations/` builds, applied in filename order. To change a hosted
+database, add a migration and apply it — never hand-edit a table through a dashboard or a client,
+and never apply a migration id that is already recorded.
+
+Applied migrations are frozen. A correction ships as a **new, later** migration that
+`create or replace`s what it fixes; editing a file whose id an environment has already recorded
+changes nothing there and silently desynchronises the repository from the database.
+`tests/unit/migration-history.test.ts` pins the files this rule has already been applied to.
+
+Raw TCP to Postgres (5432, 6543) is blocked from agent containers, so `psql`, `node-pg`, the direct
+`db.*.supabase.co` host and both poolers all fail. The working route is the Supabase **Management
+API** over HTTPS:
+
+```
+POST https://api.supabase.com/v1/projects/<ref>/database/query
+Authorization: Bearer $SUPABASE_ACCESS_TOKEN
+{"query": "<SQL>"}
+```
+
+Build that JSON body with a real encoder — the migrations contain dollar-quoted plpgsql bodies that
+shell interpolation corrupts.
+
+## 13.3 Credentials
+
+- Read every credential from the environment. **Never** accept one pasted into conversation text,
+  never print one, never commit one, never write one into a file the repository tracks, and never
+  expose one through a `NEXT_PUBLIC_*` variable.
+- `SUPABASE_ACCESS_TOKEN` is **account-wide**: it can run arbitrary SQL on, and delete, every
+  project in the account. There is no project-scoped variant. Use it only for work that genuinely
+  needs DDL.
+- The app itself reads none of the operator credentials. Nothing in `src/` should ever read
+  `SUPABASE_ACCESS_TOKEN` or a Vercel token; if one appears in the app's environment, that is a
+  misconfiguration to report, not to use.
+
+## 13.4 Before an irreversible action
+
+Applying a migration, changing environment variables, redeploying, and anything that writes to a
+hosted database are outward-facing and hard to undo. Before one:
+
+1. Read the current state first and report it, rather than assuming it.
+2. Say what you are about to change and confirm, unless the user has already authorised that exact
+   action.
+3. Prefer the additive form; never `drop`, `truncate` or `delete` on a hosted database without an
+   explicit instruction naming that object.
+4. Verify afterwards with **read-only** queries, and report row counts before and after.
+
+---
+
+# 14. Final decision rule
 
 Before shipping, ask:
 

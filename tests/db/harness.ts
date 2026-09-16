@@ -5,16 +5,66 @@ import { Client } from "pg";
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const MIGRATIONS = path.join(ROOT, "supabase", "migrations");
 
+/**
+ * Hosts this harness is allowed to touch.
+ *
+ * Every test in `tests/db` begins by dropping `public`, `auth` and `extensions`. That is correct
+ * for a scratch database and catastrophic for any other one: it destroys every table, every row
+ * and every auth user, and there is no undo.
+ *
+ * Nothing used to stop it. `TEST_DATABASE_URL` was read and handed straight to `pg`, so a
+ * connection string for a real project — pasted into the wrong variable, inherited from a shell,
+ * or set in an agent's environment — would have been accepted in silence and the first `beforeAll`
+ * would have wiped it. That is not hypothetical: it came within one failed TCP connection of
+ * happening to this project's live Supabase database, and the only thing that prevented it was an
+ * unrelated network policy.
+ *
+ * So the harness refuses to run anywhere but loopback. A scratch database is always local — CI
+ * starts one in a container on `127.0.0.1`, and `supabase start` binds locally — so this costs
+ * nothing legitimate. There is deliberately **no override**: an escape hatch is the first thing
+ * reached for under time pressure, which is exactly when this check is protecting something. If
+ * you genuinely need to point it elsewhere, edit this list, and let the diff say so out loud.
+ */
+const ALLOWED_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]", ""]);
+
+function assertLoopback(host: string | undefined, source: string): void {
+  // `127.0.0.1` covers the common case; the whole `127/8` block is loopback too.
+  const normalized = (host ?? "").replace(/^\[|\]$/g, "");
+  if (ALLOWED_HOSTS.has(normalized) || /^127\./.test(normalized)) return;
+  throw new Error(
+    `tests/db refuses to run against ${JSON.stringify(normalized)} (${source}).\n` +
+      "This harness DROPS the public, auth and extensions schemas before every run. It is only " +
+      "ever meant to run against a scratch database on localhost.\n" +
+      "If you are trying to apply migrations to a real database, this is the wrong tool: apply " +
+      "supabase/migrations directly and never through tests/db.",
+  );
+}
+
 export function databaseUrl(): string {
   const url = process.env.TEST_DATABASE_URL;
   if (!url) {
     throw new Error("TEST_DATABASE_URL is required for tests/db (see .env.example)");
   }
+  // Parsed rather than pattern-matched, so a host cannot hide in userinfo or a query parameter.
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("TEST_DATABASE_URL is not a valid URL");
+  }
+  assertLoopback(parsed.hostname, "TEST_DATABASE_URL");
   return url;
 }
 
 /** Drops and recreates the schemas the migrations own, installs the auth stub, applies migrations in order. */
 export async function resetDatabase(client: Client): Promise<void> {
+  // Checked again, on the connection itself. `databaseUrl()` guards the URL this module hands out,
+  // but `resetDatabase` takes a client someone else may have built — and this is the last line
+  // before the drops, so it is the one that has to hold.
+  assertLoopback(
+    (client as unknown as { host?: string }).host,
+    "the client passed to resetDatabase()",
+  );
   await client.query(`
     drop schema if exists public cascade;
     drop schema if exists auth cascade;
