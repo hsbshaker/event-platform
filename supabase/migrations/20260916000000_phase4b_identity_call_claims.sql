@@ -276,7 +276,6 @@ declare
   v_reserved numeric := 0;
   v_answers integer;
   v_constraint text;
-  v_created timestamptz;
 begin
   if p_lease_seconds <= 0 then
     raise exception 'lease seconds must be positive';
@@ -409,29 +408,9 @@ begin
       raise exception using errcode = 'ID001', message = 'rate_limited';
     end if;
 
-    -- **The one timestamp in this function that must not be `now()`.**
-    --
-    -- `now()` is transaction-*start* time, and this transaction started before it queued for the
-    -- global budget lock above. Two horizons are measured as elapsed time from this column, and
-    -- both would be silently shortened by however long that queue was:
-    --
-    --   * the pre-invocation reclaim age (§7b) — a claim that waited 40 s for admission would be
-    --     born already eligible to be reclaimed, so a perfectly healthy request could have its
-    --     claim taken from under it before it reached the provider;
-    --   * the financial lease, which is derived from the provider call's bounded worst case and
-    --     must be that long *from the call*, not from whenever the request happened to arrive.
-    --
-    -- So one actual wall-clock reading, taken after the waiting is over and immediately before the
-    -- row exists, used for both. `clock_timestamp()` advances within a transaction; `now()` does
-    -- not. Written explicitly rather than left to the column default, which is `now()`.
-    --
-    -- Deliberately narrow: every other `now()` in this migration marks when something *was
-    -- decided*, and transaction-start is the right reading for those.
-    v_created := pg_catalog.clock_timestamp();
-
     insert into public.event_identity_call_claims (
       event_id, attempt_key, basis_digest, attempt_ordinal, clarification_answer_ids,
-      provider_config, claimed_by, claimed_at, lease_expires_at
+      provider_config, claimed_by, lease_expires_at
     )
     values (
       p_event_id,
@@ -441,8 +420,7 @@ begin
       coalesce(p_clarification_answer_ids, array[]::uuid[]),
       coalesce(p_provider_config, '{}'::jsonb),
       p_user_id,
-      v_created,
-      v_created + (p_lease_seconds * interval '1 second')
+      pg_catalog.now() + (p_lease_seconds * interval '1 second')
     )
     returning id into v_claim_id;
 
