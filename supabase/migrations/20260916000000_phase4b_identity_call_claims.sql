@@ -296,10 +296,12 @@ begin
   -- lock, and a slow provider cannot block admissions.
   -- The lock orders the admissions; READ COMMITTED is what makes the reads that follow *see* the
   -- other claimer's committed work, because it takes a fresh snapshot per statement. Under
-  -- REPEATABLE READ or SERIALIZABLE the snapshot is fixed at the transaction's first statement, so
-  -- two claimers could serialize on the lock and still both read `reserved = 0` — the overshoot
-  -- back, silently, with the lock apparently in place and the tests still green. Asserted rather
-  -- than assumed.
+  -- REPEATABLE READ the snapshot is fixed at the transaction's first statement, so two claimers
+  -- could serialize on the lock and still both read `reserved = 0` — the overshoot back, silently,
+  -- with the lock apparently in place and the tests still green. SERIALIZABLE would in fact be
+  -- safe here (the two claimers form a read-write conflict on this table and SSI aborts one with
+  -- 40001), but it is refused with the rest: this function's guarantee should not rest on which
+  -- stronger isolation level happens to rescue it. Asserted rather than assumed.
   --
   -- This also means the function must be invoked as its own transaction, which is how PostgREST
   -- calls it. Inside a larger transaction already holding `events`, `profiles` or `rate_limits`
@@ -472,11 +474,22 @@ as $$
 declare
   v_updated integer;
 begin
+  -- The lease is in the predicate, not only the state. An expired `claimed` claim reserves
+  -- nothing against the ceiling (`claim_identity_call`'s reservation window), and "reserves
+  -- nothing" is only safe if it also cannot spend. Without this line those two facts are held
+  -- together by arithmetic — the boundary's own timeout happens to be shorter than the lease — and
+  -- the lease is operator-settable. With it, the claim that stopped reserving is the claim that
+  -- stopped being allowed to call, as one condition evaluated by the database.
+  --
+  -- It is also the transition request-driven recovery relies on (§A.6 step 3): a driver whose
+  -- pre-invocation claim was reclaimed cannot afterwards reach the provider, because this update
+  -- matches nothing and the caller must treat `false` as "do not call".
   update public.event_identity_call_claims
      set provider_invoked_at = pg_catalog.now()
    where id = p_claim_id
      and state = 'claimed'
-     and provider_invoked_at is null;
+     and provider_invoked_at is null
+     and lease_expires_at > pg_catalog.now();
   get diagnostics v_updated = row_count;
   return v_updated = 1;
 end;
@@ -683,7 +696,10 @@ $$;
 -- it is the only transition that lets a new call start without a host deciding to retry.
 -- `response_captured` is never expired here — expiring it is what would strand a paid response.
 -- ---------------------------------------------------------------------------
-create or replace function public.expire_identity_call_claims(p_limit integer default 100)
+create or replace function public.expire_identity_call_claims(
+  p_limit integer default 100,
+  p_event_id uuid default null
+)
 returns table (abandoned integer, expired_unknown integer)
 language plpgsql
 security definer
@@ -698,6 +714,10 @@ begin
       from public.event_identity_call_claims
      where state = 'claimed'
        and lease_expires_at < pg_catalog.now()
+       -- Scoped when a request drives it. A waiting host must not depend on the daily backstop to
+       -- clear the dead claim blocking their own event, and a global sweep ordered by lease age
+       -- might not reach it in one bounded batch (§A.5, "Who recovers, and when").
+       and (p_event_id is null or event_id = p_event_id)
      order by lease_expires_at
      limit greatest(p_limit, 0)
      for update skip locked
@@ -726,7 +746,10 @@ end;
 $$;
 
 -- Claims holding a paid response that no request has come back to complete.
-create or replace function public.pending_identity_call_completions(p_limit integer default 50)
+create or replace function public.pending_identity_call_completions(
+  p_limit integer default 50,
+  p_event_id uuid default null
+)
 returns table (
   claim_id uuid,
   event_id uuid,
@@ -744,6 +767,7 @@ as $$
     from public.event_identity_call_claims c
     join public.generation_runs r on r.id = c.generation_run_id
    where c.state = 'response_captured'
+     and (p_event_id is null or c.event_id = p_event_id)
    order by r.created_at
    limit greatest(p_limit, 0)
 $$;
@@ -871,11 +895,11 @@ revoke execute on function public.capture_identity_call_response(uuid, boolean, 
   from public, anon, authenticated;
 revoke execute on function public.complete_identity_call(uuid, jsonb)
   from public, anon, authenticated;
-revoke execute on function public.expire_identity_call_claims(integer)
+revoke execute on function public.expire_identity_call_claims(integer, uuid)
   from public, anon, authenticated;
 revoke execute on function public.fail_identity_call_recovery(uuid, text, boolean, integer)
   from public, anon, authenticated;
-revoke execute on function public.pending_identity_call_completions(integer)
+revoke execute on function public.pending_identity_call_completions(integer, uuid)
   from public, anon, authenticated;
 revoke execute on function public.purge_identity_response_evidence(timestamptz)
   from public, anon, authenticated;

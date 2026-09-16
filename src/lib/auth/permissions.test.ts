@@ -13,6 +13,9 @@ const MATRIX: Record<Capability, [owner: boolean, cohost: boolean, guest: boolea
   manage_native_item_purchase_state: [true, true, false],
   send_messages: [true, true, false],
   use_design_controls: [true, true, false],
+  // Not a row in §25's table; the sentence under it ("Owner/co-host design generation … After
+  // publish, AI generation and concept switching are disabled for both") is what this transcribes.
+  generate_event_identity: [true, true, false],
   add_redesign_inspiration: [true, true, false],
   enter_redesign_feedback: [true, true, false],
   generate_redesign_concepts: [true, true, false],
@@ -52,6 +55,7 @@ describe("permission matrix (spec.md §25)", () => {
 
   it("disables redesign and concept switching after publish (spec.md §8.2)", () => {
     for (const role of ["owner", "cohost"] as const) {
+      expect(can(role, "generate_event_identity", { published: true })).toBe(false);
       expect(can(role, "generate_redesign_concepts", { published: true })).toBe(false);
       expect(can(role, "browse_select_concepts", { published: true })).toBe(false);
       expect(can(role, "use_design_controls", { published: true })).toBe(true);

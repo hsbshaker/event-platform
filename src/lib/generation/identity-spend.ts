@@ -219,7 +219,36 @@ export interface RecoveryAlert {
   at: string;
 }
 
-export type IdentityAlert = CeilingAlert | RecoveryAlert;
+/**
+ * A safety limit that refused because it is not configured, rather than because it was reached.
+ *
+ * Separated from the refusals above because the remedy is different and the user-facing answer
+ * must be too. A ceiling that has been *hit* is a busy system and "try again shortly" is true. A
+ * ceiling that was never *set*, or a model with no verified cost profile, will refuse identically
+ * for ever: telling that host to try again shortly is false, and folding it into the uniform
+ * payload means the misconfiguration is invisible until somebody reads a log.
+ */
+export interface ConfigurationAlert {
+  kind: "identity_configuration_refused";
+  reason: string;
+  at: string;
+}
+
+export type IdentityAlert = CeilingAlert | RecoveryAlert | ConfigurationAlert;
+
+/**
+ * Raised when EventIdentity is configured such that no paid attempt may be made.
+ *
+ * A distinct type so a caller can neither mistake it for a provider failure nor answer it with the
+ * refusal payload. It is thrown **before** a claim exists and before any provider client is
+ * constructed, so nothing is consumed and nothing is spent.
+ */
+export class IdentityConfigurationError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "IdentityConfigurationError";
+  }
+}
 
 /**
  * Where a ceiling alert goes.
@@ -246,6 +275,10 @@ export function emitCeilingAlert(alert: Omit<CeilingAlert, "at">): void {
 }
 
 export function emitRecoveryAlert(alert: Omit<RecoveryAlert, "at">): void {
+  sink({ ...alert, at: new Date().toISOString() });
+}
+
+export function emitConfigurationAlert(alert: Omit<ConfigurationAlert, "at">): void {
   sink({ ...alert, at: new Date().toISOString() });
 }
 

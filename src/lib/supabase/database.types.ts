@@ -737,12 +737,13 @@ export type Database = {
       };
       /** Lease expiry only. `response_captured` is never expired here. */
       expire_identity_call_claims: {
-        Args: { p_limit: number };
+        /** `p_event_id` scopes the sweep to one event, for request-driven recovery. */
+        Args: { p_limit: number; p_event_id?: string | null };
         Returns: { abandoned: number; expired_unknown: number }[];
       };
       /** Paid responses no request has come back to complete. */
       pending_identity_call_completions: {
-        Args: { p_limit: number };
+        Args: { p_limit: number; p_event_id?: string | null };
         Returns: {
           claim_id: string;
           event_id: string;

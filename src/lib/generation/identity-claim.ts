@@ -324,17 +324,39 @@ export interface ExpiryCounts {
 /**
  * Lease expiry. `abandoned` only ever from a committed null `provider_invoked_at`, because it is
  * the one transition that lets a new call start without a host deciding to retry.
+ *
+ * `eventId` scopes it to one event, which is what a request drives (§A.5, "Who recovers, and
+ * when"). Unscoped it is the daily backstop's global pass. The distinction matters because the
+ * global pass is bounded and ordered by lease age: a waiting host's dead claim might not be in
+ * the batch, and waiting a day for the next one is the outcome request-driven recovery exists to
+ * remove.
  */
-export async function expireIdentityCallClaims(admin: Admin, limit = 100): Promise<ExpiryCounts> {
-  const { data, error } = await admin.rpc("expire_identity_call_claims", { p_limit: limit });
+export async function expireIdentityCallClaims(
+  admin: Admin,
+  options: { limit?: number; eventId?: string } = {},
+): Promise<ExpiryCounts> {
+  const { data, error } = await admin.rpc("expire_identity_call_claims", {
+    p_limit: options.limit ?? 100,
+    p_event_id: options.eventId ?? null,
+  });
   if (error) throw error;
   const row = (data ?? [])[0];
   return { abandoned: row?.abandoned ?? 0, expiredUnknown: row?.expired_unknown ?? 0 };
 }
 
+/** One captured response waiting to become a revision. */
+export type PendingCompletion =
+  Database["public"]["Functions"]["pending_identity_call_completions"]["Returns"][number];
+
 /** Claims holding a paid response that no request has come back to complete (§A.6 step 3). */
-export async function pendingIdentityCallCompletions(admin: Admin, limit = 50) {
-  const { data, error } = await admin.rpc("pending_identity_call_completions", { p_limit: limit });
+export async function pendingIdentityCallCompletions(
+  admin: Admin,
+  options: { limit?: number; eventId?: string } = {},
+): Promise<PendingCompletion[]> {
+  const { data, error } = await admin.rpc("pending_identity_call_completions", {
+    p_limit: options.limit ?? 50,
+    p_event_id: options.eventId ?? null,
+  });
   if (error) throw error;
   return data ?? [];
 }
@@ -417,24 +439,186 @@ export async function failIdentityCallRecovery(
 }
 
 /**
- * The recovery driver.
+ * One attempt at turning a captured paid response into its revision, with **no** model call.
+ *
+ * Deliberately does not record its own failure. The sweeper needs to see the failure *before*
+ * deciding what to do with it — several claims failing the same way means the claims are not the
+ * problem, and the third one must be left untouched rather than counted against — so
+ * classification and the give-up are two steps, and both callers share both.
+ */
+export type CompletionAttempt =
+  | { kind: "completed"; result: CompletedCall }
+  /** Another completer got there first. An ordinary outcome, not a failure. */
+  | { kind: "raced" }
+  | { kind: "failed"; reason: string; deterministic: boolean; code: string | null };
+
+export async function completeCapturedClaim(
+  admin: Admin,
+  row: PendingCompletion,
+): Promise<CompletionAttempt> {
+  // The schema version is checked, not merely fetched. `identity_questions()` refuses an
+  // unrecognised version rather than reading it as empty, and this is the same decision on the
+  // same data: a version today's validator happens to accept would be written into a revision
+  // whose generated column then refuses it, after the money was spent.
+  if (!SUPPORTED_IDENTITY_SCHEMA_VERSIONS.includes(row.schema_version)) {
+    // Deterministic by definition: no future run of this build has a reader for it either.
+    return {
+      kind: "failed",
+      reason: `unsupported schema version ${row.schema_version}`,
+      deterministic: true,
+      code: null,
+    };
+  }
+  const evidence = Array.isArray(row.provider_response_evidence)
+    ? (row.provider_response_evidence as unknown[])
+    : [];
+  // The accepted response is the last one: a repair appends, and only a successful call is
+  // captured as `response_captured`.
+  const accepted = evidence.length > 0 ? evidence[evidence.length - 1] : undefined;
+  if (typeof accepted !== "string") {
+    return {
+      kind: "failed",
+      reason: "captured evidence holds no response text",
+      deterministic: true,
+      code: null,
+    };
+  }
+  const outcome = parseAndValidateEventIdentityResult(accepted);
+  if (!outcome.ok) {
+    // Deterministic: the same bytes through the same validator fail the same way for ever. It
+    // validated once before capture, so this means corruption — and the text is still durable.
+    return {
+      kind: "failed",
+      reason: "captured response no longer validates",
+      deterministic: true,
+      code: null,
+    };
+  }
+  // `complete_identity_call` can genuinely raise: `validate_identity_revision_answers` rejects an
+  // answer id that does not belong to the event. Caught rather than thrown, because one claim the
+  // database refuses must not abort the caller — for the sweeper that would discard the run's
+  // expiry counts and stop the purge; for a request it would turn a recoverable event into a 500.
+  try {
+    const done = await completeIdentityCall(admin, row.claim_id, outcome.value as unknown as Json);
+    return done ? { kind: "completed", result: done } : { kind: "raced" };
+  } catch (error) {
+    const code = (error as { code?: string } | null)?.code ?? "unknown";
+    return {
+      kind: "failed",
+      reason: `complete_identity_call failed (${code})`,
+      deterministic: isDeterministicCompletionFailure(error),
+      code,
+    };
+  }
+}
+
+/**
+ * Records a failed completion, and releases the event when the failure is final.
+ *
+ * Terminal when the failure is deterministic or the captured response has aged out; otherwise the
+ * claim stays captured and is retried. Either way the run row and its evidence are untouched.
+ */
+export async function recordCompletionFailure(
+  admin: Admin,
+  claimId: string,
+  reason: string,
+  deterministic: boolean,
+): Promise<"terminal" | "retryable" | "not_captured"> {
+  try {
+    const outcome = await failIdentityCallRecovery(admin, claimId, reason, deterministic);
+    // To the alert sink, not only to the console: a host paid, the response exists, and the only
+    // way forward is for them to pay again. A count in a cron response body is not a signal
+    // anybody receives.
+    if (outcome === "terminal") {
+      emitRecoveryAlert({ kind: "identity_recovery_failed", claimId, reason, deterministic });
+    }
+    console.error(`identity recovery: claim ${claimId} not completed (${outcome}): ${reason}`);
+    return outcome;
+  } catch (error) {
+    // The give-up itself failing must not abort the caller and discard everything around it —
+    // the same failure mode the completion's own catch exists to prevent.
+    console.error(`identity recovery: could not record the failure of claim ${claimId}`, error);
+    return "retryable";
+  }
+}
+
+export interface RequestRecovery extends ExpiryCounts {
+  /** Captured responses turned into revisions inline, with **no** model call. */
+  completed: number;
+  unrecoverable: number;
+  retryable: number;
+}
+
+/**
+ * Request-driven recovery for **one event**, run before anything considers new spend.
+ *
+ * `docs/phase-4b-plan.md §A.5`, "Who recovers, and when". The scheduled job runs once a day, and a
+ * host who is waiting must never be waiting on it. Two things happen here, in this order, and
+ * neither makes a model call:
+ *
+ * 1. **this event's due claims expire** — a process that died between reserving a claim and
+ *    reaching the provider leaves `claimed`, and the one-in-flight index refuses every new call
+ *    while it sits there. If only the daily job could clear it, one crash would cost that host a
+ *    day;
+ * 2. **a captured response is completed** — the paid response becomes its revision by
+ *    re-validating the stored text, through the same conditional transition the sweeper uses, so a
+ *    request and the job cannot both complete one.
+ *
+ * A refresh, a reconnect, a status poll or a duplicate POST is therefore enough to finish either
+ * state immediately.
+ */
+export async function recoverEventIdentityClaims(
+  admin: Admin,
+  eventId: string,
+): Promise<RequestRecovery> {
+  // An event holds at most one non-terminal claim (the partial unique index), so these bounds are
+  // slack rather than a budget; they exist so a corrupted table cannot turn one request into an
+  // unbounded scan.
+  const expiry = await expireIdentityCallClaims(admin, { limit: 10, eventId });
+  const pending = await pendingIdentityCallCompletions(admin, { limit: 5, eventId });
+
+  let completed = 0;
+  let unrecoverable = 0;
+  let retryable = 0;
+  for (const row of pending) {
+    const attempt = await completeCapturedClaim(admin, row);
+    if (attempt.kind === "completed") completed += 1;
+    else if (attempt.kind === "failed") {
+      const outcome = await recordCompletionFailure(
+        admin,
+        row.claim_id,
+        attempt.reason,
+        attempt.deterministic,
+      );
+      if (outcome === "terminal") unrecoverable += 1;
+      else if (outcome === "retryable") retryable += 1;
+    }
+  }
+  return { ...expiry, completed, unrecoverable, retryable };
+}
+
+/**
+ * The daily backstop.
+ *
+ * Its role is **eventual cleanup and recovery for work nobody comes back to**; it is explicitly
+ * not on an active host's latency path, which is what `recoverEventIdentityClaims` is for. The
+ * platform plan this project is on caps cron frequency at once daily, and that is survivable only
+ * because a waiting host no longer depends on it.
  *
  * Without something running this, the one-in-flight index is half a mechanism: it refuses every
- * new call while a claim is unsettled, and nothing settles a claim whose process died. The event
- * would be wedged for good. Expiry releases those; completion turns a captured paid response into
- * its revision, re-validating the stored text through the same validator production uses and
- * making **no** model call.
- *
- * A captured response whose text no longer validates is counted and left alone rather than marked
- * failed. It validated once, before capture, so this means corruption — and the evidence is still
- * durable, so an operator can look. Quietly discarding it would destroy the only copy.
+ * new call while a claim is unsettled, and nothing settles a claim whose process died on an event
+ * nobody returns to. Expiry releases those; completion turns a captured paid response into its
+ * revision, re-validating the stored text through the same validator production uses and making
+ * **no** model call.
  */
 export async function sweepIdentityCallClaims(
   admin: Admin,
   options: { expireLimit?: number; completeLimit?: number } = {},
 ): Promise<SweepResult> {
-  const expiry = await expireIdentityCallClaims(admin, options.expireLimit ?? 100);
-  const pending = await pendingIdentityCallCompletions(admin, options.completeLimit ?? 50);
+  const expiry = await expireIdentityCallClaims(admin, { limit: options.expireLimit ?? 100 });
+  const pending = await pendingIdentityCallCompletions(admin, {
+    limit: options.completeLimit ?? 50,
+  });
 
   let completed = 0;
   let unrecoverable = 0;
@@ -443,102 +627,52 @@ export async function sweepIdentityCallClaims(
   let lastCode: string | null = null;
   let sameCodeRun = 0;
 
-  /** Terminal when the failure is deterministic, or when the captured response has aged out. */
-  const giveUp = async (claimId: string, reason: string, deterministic: boolean) => {
-    try {
-      const outcome = await failIdentityCallRecovery(admin, claimId, reason, deterministic);
-      if (outcome === "terminal") unrecoverable += 1;
-      else if (outcome === "retryable") retryable += 1;
-      // To the alert sink, not only to the console: a host paid, the response exists, and the only
-      // way forward is for them to pay again. A count in a cron response body is not a signal
-      // anybody receives.
-      if (outcome === "terminal") {
-        emitRecoveryAlert({ kind: "identity_recovery_failed", claimId, reason, deterministic });
-      }
-      console.error(`identity sweep: claim ${claimId} not completed (${outcome}): ${reason}`);
-    } catch (error) {
-      // The give-up itself failing must not abort the sweep and discard the expiry counts — the
-      // same failure mode the completion's own catch exists to prevent.
-      retryable += 1;
-      console.error(`identity sweep: could not record the failure of claim ${claimId}`, error);
-    }
-  };
-
   for (const row of pending) {
-    if (systemicHalt) break;
-    // The schema version is checked, not merely fetched. `identity_questions()` refuses an
-    // unrecognised version rather than reading it as empty, and this is the same decision on the
-    // same data: a version today's validator happens to accept would be written into a revision
-    // whose generated column then refuses it, after the money was spent.
-    if (!SUPPORTED_IDENTITY_SCHEMA_VERSIONS.includes(row.schema_version)) {
-      // Deterministic by definition: no future run of this build has a reader for it either.
-      await giveUp(row.claim_id, `unsupported schema version ${row.schema_version}`, true);
-      continue;
-    }
-    const evidence = Array.isArray(row.provider_response_evidence)
-      ? (row.provider_response_evidence as unknown[])
-      : [];
-    // The accepted response is the last one: a repair appends, and only a successful call is
-    // captured as `response_captured`.
-    const accepted = evidence.length > 0 ? evidence[evidence.length - 1] : undefined;
-    if (typeof accepted !== "string") {
-      await giveUp(row.claim_id, "captured evidence holds no response text", true);
-      continue;
-    }
-    const outcome = parseAndValidateEventIdentityResult(accepted);
-    if (!outcome.ok) {
-      // Deterministic: the same bytes through the same validator fail the same way for ever. It
-      // validated once before capture, so this means corruption — and the text is still durable.
-      await giveUp(row.claim_id, "captured response no longer validates", true);
-      continue;
-    }
-    // Per claim, because one claim the database refuses must not stop the run — and, when the
-    // refusal is deterministic, must not hold its event's in-flight slot either.
-    //
-    // `complete_identity_call` can genuinely raise: `validate_identity_revision_answers` rejects
-    // an answer id that does not belong to the event. Without the catch, the oldest such claim
-    // would be retried first on every run, throw, discard that run's expiry counts and stop the
-    // purge for ever. Without the *classification*, the event behind it would stay blocked for
-    // ever even though the run continues.
-    try {
-      const done = await completeIdentityCall(
-        admin,
-        row.claim_id,
-        outcome.value as unknown as Json,
-      );
-      if (done) completed += 1;
+    const attempt = await completeCapturedClaim(admin, row);
+    if (attempt.kind === "completed") {
+      completed += 1;
       // Reset on success, or "consecutive" is not consecutive: without this, one sparse recurring
-      // code trips the halt across an arbitrarily long run of successes. A backlog of fifty
-      // claims where three time out and forty-seven complete would report a systemic halt — and
-      // because the pending list is stably ordered, the same three lead every later run and the
-      // tail behind them is never attempted.
+      // code trips the halt across an arbitrarily long run of successes. A backlog of fifty claims
+      // where three time out and forty-seven complete would report a systemic halt — and because
+      // the pending list is stably ordered, the same three lead every later run and the tail
+      // behind them is never attempted.
       sameCodeRun = 0;
       lastCode = null;
-    } catch (error) {
-      const code = (error as { code?: string } | null)?.code ?? "unknown";
-      const deterministic = isDeterministicCompletionFailure(error);
-      if (!deterministic) {
-        sameCodeRun = code === lastCode ? sameCodeRun + 1 : 1;
-        lastCode = code;
-        if (sameCodeRun >= SYSTEMIC_FAILURE_RUN) {
-          // The claims are not the problem. Stopping leaves them captured and recoverable rather
-          // than working through the backlog on the strength of a fault about to be fixed.
-          systemicHalt = true;
-          emitRecoveryAlert({
-            kind: "identity_recovery_halted",
-            claimId: row.claim_id,
-            reason: `${SYSTEMIC_FAILURE_RUN} consecutive completions failed with ${code}`,
-            deterministic: false,
-          });
-          console.error(`identity sweep: halting — ${sameCodeRun} consecutive failures (${code})`);
-          continue;
-        }
-      } else {
-        sameCodeRun = 0;
-        lastCode = null;
-      }
-      await giveUp(row.claim_id, `complete_identity_call failed (${code})`, deterministic);
+      continue;
     }
+    if (attempt.kind === "raced") continue;
+
+    if (!attempt.deterministic) {
+      const code = attempt.code ?? "unknown";
+      sameCodeRun = code === lastCode ? sameCodeRun + 1 : 1;
+      lastCode = code;
+      if (sameCodeRun >= SYSTEMIC_FAILURE_RUN) {
+        // The claims are not the problem. Stopping leaves them captured and recoverable rather
+        // than working through the backlog on the strength of a fault about to be fixed — and
+        // this claim is left untouched, not counted against.
+        systemicHalt = true;
+        emitRecoveryAlert({
+          kind: "identity_recovery_halted",
+          claimId: row.claim_id,
+          reason: `${SYSTEMIC_FAILURE_RUN} consecutive completions failed with ${code}`,
+          deterministic: false,
+        });
+        console.error(`identity sweep: halting — ${sameCodeRun} consecutive failures (${code})`);
+        break;
+      }
+    } else {
+      sameCodeRun = 0;
+      lastCode = null;
+    }
+
+    const outcome = await recordCompletionFailure(
+      admin,
+      row.claim_id,
+      attempt.reason,
+      attempt.deterministic,
+    );
+    if (outcome === "terminal") unrecoverable += 1;
+    else if (outcome === "retryable") retryable += 1;
   }
 
   return { ...expiry, completed, unrecoverable, retryable, systemicHalt };

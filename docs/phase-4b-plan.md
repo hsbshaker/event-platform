@@ -446,7 +446,9 @@ The scheduled job exists for the other case: work nobody comes back to. Its role
 cleanup and recovery for abandoned events, and it runs **once a day** — the platform plan this
 project is on caps cron frequency at once daily and rejects anything more frequent at deploy time,
 with per-hour precision (±59 minutes). That constraint is survivable only because of the sentence
-above: a cadence measured in hours cannot be on a waiting person's path, and now it is not.
+above: a cadence measured in hours cannot be on a waiting person's path, and T10 is built so that
+it is not — `recoverEventIdentityClaims` runs both obligations inline, on every orchestration and
+every status read, and a test refuses to let the orchestrator reach for the sweeper at all.
 
 **Giving up is bounded by age, not by attempts.** A failure that will fail identically next time —
 an integrity violation, a data exception, an unsupported feature — terminates at once. Anything that
@@ -465,6 +467,16 @@ and that is acceptable only because somebody is told. The sink's default is `con
 delivery channel is the same explicit debt as the ceiling alert's (§A.5 row 4). Recorded here so it
 reads as a known dependency rather than an assumption: an unread alert turns "hold and alert" into
 "hold".
+
+**Reclaiming and the right to spend are one condition.** `mark_identity_call_invoked` requires a
+live lease as well as `claimed` and a null `provider_invoked_at`. That is what makes request-driven
+reclaim safe: a driver whose pre-invocation claim was expired — by a request, by the backstop, or
+merely by the lease elapsing before either ran — cannot afterwards reach the provider, because its
+step 5 matches no row and the caller must read `false` as *do not call*. Without the lease in that
+predicate the guarantee would rest on arithmetic instead: an expired `claimed` claim reserves
+nothing against the ceiling, so "reserves nothing" and "cannot spend" have to be the same fact, and
+the only reason they agreed before was that the boundary's own timeout happens to be shorter than
+the default lease — two independently settable numbers.
 
 `provider_invoked_at` is written **and committed in its own transaction** before the provider is
 reached; the safety argument below depends on that commit, so it is a requirement, not an
@@ -745,6 +757,50 @@ caller cannot lie**. A stored status would be precisely the stale flag §A.3's t
 
 No migration. T9A exposes one named derivation — `identityClarificationState(event)` — so T11 reads
 it instead of inventing an interpretation, and `event_status` keeps meaning publishing lifecycle.
+
+---
+
+### A.9 What T10 exposes, and what it must not
+
+T11 will poll this every few seconds. The contract therefore has to be safe to read repeatedly and
+safe to read by someone who should not learn how close the project is to its ceiling.
+
+**Six states.** `running`, `recovering`, `clarification_required`, `ready`, `retry_available`,
+`temporarily_unavailable`. Beside them, one boolean: whether the event has an authoritative
+identity, because §A.8 is explicit that "the latest revision is provisional" and "the event has a
+consumable identity" are independent facts and collapsing them is how a surface and a downstream
+stage come to disagree. `clarification_required` additionally carries the open questions and the
+revision that asked them; `temporarily_unavailable` carries the one frozen sentence. Nothing else
+leaves.
+
+**The set is small on purpose.** `spec.md §32 #41` forbids exposing backend generation and spend
+counters, and a richer state machine is one with extra steps: a caller who can tell "the project
+ceiling refused you" from "your event is capped" from "you are being rate limited" has read three
+counters. So every refusal collapses into `temporarily_unavailable` and every terminal failure into
+`retry_available` — which deliberately does not distinguish *never attempted* from *the last attempt
+failed* either, since that distinction is the attempt history. No claim id, no attempt key, no
+ordinal, no basis digest, no cost, no SQLSTATE, no provider internals and no response evidence
+appear in any state.
+
+**`recovering` is not an error.** It means: no new call may start yet, and none is needed from the
+host. Three situations reach it — a captured response being completed, a claim of a *different*
+round just recovered (the resubmit case of §A.6 step 3), and a call still in flight past the product
+deadline below. In all three the host keeps polling, and a resubmit is safe.
+
+**The wait a host is shown is not the lease.** The claim lease is a financial instrument derived
+from the provider boundary's worst case: about fourteen minutes today. The product deadline is
+ninety seconds, near three times §J's median call, and crossing it changes nothing financial — no
+call is abandoned, no second call is bought, no claim moves. What changes is the sentence: a call
+still running past its expected window is reported as `recovering` rather than as a spinner
+promising imminent completion. A test pins the two apart, because the failure to guard against is
+somebody raising the lease for a sound financial reason and silently lengthening the wait a host is
+shown.
+
+**Configuration refusals are not `temporarily_unavailable`.** A ceiling that has been *reached* is a
+busy system and "try again shortly" is true. A ceiling that was never *set*, or a model with no
+verified cost profile, refuses identically for ever: answering that with the same payload tells the
+host to keep trying and pages nobody. T10 raises those, and emits a configuration alert, before a
+claim exists and before any provider client is constructed.
 
 ---
 
