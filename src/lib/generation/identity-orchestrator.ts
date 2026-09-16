@@ -372,6 +372,11 @@ async function settleEventClaims(admin: Admin, eventId: string): Promise<ClaimOb
   // ordinal resolution reads `abandoned` — which is reclaimable automatically, because it is
   // provably unpaid — so this request may create the replacement claim itself, with no explicit
   // host retry and no second payment.
+  //
+  // "May", not "will": the event-scoped guard in `runEventIdentity` still applies. If some
+  // *earlier* attempt for this event ended possibly-paid and the host has not decided about it
+  // yet, an ordinary request stops at `retry_available` even though this particular claim was
+  // provably unpaid. One press, and it proceeds.
   await reclaimUninvokedIdentityClaims(admin, { eventId, limit: 10 });
   await expireIdentityCallClaims(admin, { limit: 10, eventId });
   const claim = await findNonTerminalClaim(admin, eventId);

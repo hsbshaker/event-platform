@@ -27,8 +27,14 @@
 -- answers 'not provisional' about JSON it could not read."
 --
 -- So an unreadable element is refused, exactly as an unreadable array already was. Narrow on
--- purpose: this adds a third refusal to a reader, and changes nothing about which schema versions
--- are supported — "extend, never narrow" still governs that list, which is untouched.
+-- purpose: this adds a third refusal to a reader. The supported-version list is untouched, so
+-- "extend, never narrow" is not being bent there — but be honest about what it *does* narrow: the
+-- set of envelopes this reader accepts backs a STORED generated column, so a restore or branch
+-- clone containing a row that was stamped before this migration and holds a malformed element now
+-- fails at recompute, and an event whose pointer already names such a row now refuses every
+-- `events` update. Both fail loudly rather than open, which is the direction the base migration
+-- argues for, and only zod-validated writers exist today — but the cost is real and is stated
+-- here rather than discovered later.
 --
 -- `identity_is_provisional` is deliberately NOT replaced. Once every element is known to be an
 -- object carrying one of the two kinds, `q ->> 'kind' = 'boundary'` is sound, and replacing one
@@ -283,6 +289,66 @@ begin
   if public.is_end_user_request() and new.answered_by is distinct from auth.uid() then
     raise exception 'answered_by must be the authenticated user'
       using errcode = 'insufficient_privilege';
+  end if;
+
+  return new;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 4. The authoritative-pointer trigger, for the same reason and a larger blast radius.
+--
+-- `validate_authoritative_identity` has the same `select * into rev` against a `%rowtype`, is not
+-- `security definer`, and — unlike the answer trigger — is attached unscoped `before insert or
+-- update on public.events`. It short-circuits only while the pointer is null, so from the moment
+-- an event has an authoritative identity it runs on **every** member edit of that event.
+--
+-- Section 2 without this would therefore have refused every autosave in Creation Mode with
+-- `42501`, permanently, for every member — and no existing test would have caught it: the one DB
+-- test that updates `events` as an end user expects `42501` already, from the protect trigger.
+-- Reproduced against a live database before this section was written, and a test that fails
+-- without it is in tests/db/phase4b.test.ts.
+--
+-- It reads three columns. It now selects three.
+-- ---------------------------------------------------------------------------
+create or replace function public.validate_authoritative_identity()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public
+as $$
+declare
+  -- The three columns this trigger validates against, not the whole row — for the reason
+  -- section 3 gives, and for a wider blast radius. This trigger is unscoped `before insert or
+  -- update on public.events`, so once an event has an authoritative identity it fires on every
+  -- member edit: a title, a date, a venue. It is not `security definer` either, so `select *`
+  -- against a `%rowtype` would demand the provider columns section 2 just took away and refuse
+  -- **every autosave in Creation Mode** with `42501`, for the rest of that event's life.
+  rev record;
+begin
+  if new.authoritative_identity_revision_id is null then
+    return new;
+  end if;
+
+  select r.event_id, r.result, r.schema_version into rev
+    from public.event_identity_revisions r
+    where r.id = new.authoritative_identity_revision_id;
+  if not found then
+    raise exception 'authoritative identity revision does not exist'
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  -- A pointer into another event's revision would hand this event someone else's brief.
+  if rev.event_id <> new.id then
+    raise exception 'authoritative identity revision must belong to this event'
+      using errcode = 'check_violation';
+  end if;
+
+  -- Re-derived from the persisted JSON, deliberately NOT read from rev.is_provisional. The
+  -- convenience column is a cache of this answer; the answer is this call. If the column were
+  -- ever wrong, dropped, or recomputed under a changed definition, this check would still refuse.
+  if public.identity_is_provisional(rev.result, rev.schema_version) then
+    raise exception 'a provisional identity cannot become authoritative (spec.md §7.6b)'
+      using errcode = 'check_violation';
   end if;
 
   return new;

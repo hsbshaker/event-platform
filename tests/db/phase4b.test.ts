@@ -333,6 +333,31 @@ describe("a provisional identity can never become authoritative", () => {
     ).toBe("23514");
   });
 
+  it("does not stop a member editing the event once the pointer is set", async () => {
+    // The pointer trigger is unscoped `before insert or update on public.events` and is not
+    // `security definer`, so from the moment an event has an authoritative identity it runs, as
+    // the member, on every ordinary edit — a title, a date, a venue. When it read the referenced
+    // revision with `select *` it needed columns a member is not granted, and every autosave in
+    // Creation Mode failed with `42501`, permanently, for the rest of the event's life.
+    //
+    // Every other test that updates `events` as an end user is asserting a refusal, so none of
+    // them could see this. This one asserts the success.
+    const id = await insertRevision(eventId, 1, []);
+    await db.query(
+      `update public.events set authoritative_identity_revision_id = $1 where id = $2`,
+      [id, eventId],
+    );
+    for (const actor of [owner, cohost]) {
+      const code = await asActor(db, { kind: "user", id: actor }, (q) =>
+        errorCode(q(`update public.events set title = 'A new title' where id = $1`, [eventId])),
+      );
+      expect([actor === owner ? "owner" : "cohost", code]).toEqual([
+        actor === owner ? "owner" : "cohost",
+        null,
+      ]);
+    }
+  });
+
   it("is a server-managed column a member cannot move", async () => {
     const first = await insertRevision(eventId, 1, []);
     const second = await insertRevision(eventId, 2, []);
