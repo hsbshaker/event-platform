@@ -181,10 +181,12 @@ interface PersistedOutcome {
 /**
  * Claim states that leave the next move to the host.
  *
- * `abandoned` is deliberately absent: it is provably unpaid and is reclaimed automatically, so it
- * is not a thing the host has to decide about. The other three may all have cost money, which is
- * why `resolveAttemptOrdinal` refuses to derive a new attempt from them without an explicit retry —
- * and this is the same rule, read from the resting state rather than from one request's basis.
+ * All three may have cost money, which is why `resolveAttemptOrdinal` refuses to derive a new
+ * attempt from any of them without an explicit retry — and this is the same rule, read from the
+ * resting state rather than from one request's basis.
+ *
+ * `abandoned` is not merely absent from the list; the query below never sees it, so a later
+ * abandoned claim cannot mask an earlier outstanding decision by being newer.
  */
 const HOST_RETRY_STATES: readonly IdentityCallClaimState[] = [
   "failed_terminal",
@@ -218,25 +220,35 @@ async function readPersistedOutcome(admin: Admin, eventId: string): Promise<Pers
   // The resting state has to be derivable without the request's basis, or a POST and the poll that
   // follows it a second later disagree: the POST knows its own attempt failed, and a poll deriving
   // nothing would answer `ready` from an earlier round's identity and erase the failure from the
-  // surface within one tick. So it is read from the claims: the newest settled one, and whether
-  // anything has been produced since it.
-  const { data: settled, error: claimError } = await admin
+  // surface within one tick.
+  //
+  // So it is read from the claims — and it asks only for the states that mean *the host has a
+  // decision to make*, rather than for the newest settled claim of any kind. Those are not the
+  // same question. A retry that dies before reaching the provider settles as `abandoned` **after**
+  // the failure it was retrying, and "newest wins" would let that provably-unpaid row mask the
+  // outstanding decision and regress the surface from `retry_available` to `ready` — leaving T11
+  // with no affordance to resubmit. `abandoned` is transparent here, not merely absent from the
+  // set. The `limit(1)` is meant literally for the same reason: unordered, a long clarification
+  // history could return an arbitrary hundred rows and miss the one that matters.
+  const { data: outstanding, error: claimError } = await admin
     .from("event_identity_call_claims")
     .select("state, settled_at")
     .eq("event_id", eventId)
-    .limit(100);
+    .in("state", [...HOST_RETRY_STATES])
+    .order("settled_at", { ascending: false })
+    .limit(1);
   if (claimError) throw claimError;
 
   const row = (revisions ?? [])[0] ?? null;
-  const newest = (settled ?? [])
-    .filter((claim) => claim.settled_at !== null)
-    .sort((a, b) => (a.settled_at! < b.settled_at! ? 1 : -1))[0];
+  const newest = (outstanding ?? [])[0];
   const awaitingHostRetry =
-    newest !== undefined &&
-    HOST_RETRY_STATES.includes(newest.state) &&
+    newest?.settled_at != null &&
     // Anything produced *after* that failure supersedes it: a later completer, or a concurrent
-    // round of a different basis, has already given this event an answer.
-    (row === null || newest.settled_at! > row.created_at);
+    // round of a different basis, has already given this event an answer. That covers a later
+    // success without querying for one, because a claim succeeds in the same transaction that
+    // writes its revision. Parsed rather than compared as text: the two timestamps are formatted
+    // by different layers, and a lexical comparison would be three assumptions holding hands.
+    (row === null || Date.parse(newest.settled_at) > Date.parse(row.created_at));
 
   const derived = identityClarificationState({
     latestRevision: row
@@ -783,15 +795,24 @@ export async function runEventIdentity(
   } catch (error) {
     // Step 6 on the failure path. Written before anything is decided about the error, so no
     // classification bug can lose a paid response.
+    let recorded = true;
     try {
       await captureWithRetry(admin, claimed.claim.id, false, failureRun(error, limits, side));
     } catch (captureError) {
+      recorded = false;
       // Swallowed deliberately, and only here. `captureWithRetry` has already logged it, and
       // rethrowing would replace the provider's own error with a database one — losing the
       // diagnosis for the failure that actually happened. The claim expires as unknown either way.
       console.error("identity capture: the failure path could not be recorded", captureError);
     }
     if (error instanceof EventIdentityError) {
+      // When the capture did not land, the record does not contain this failure: the claim is
+      // still `claimed` and invoked. Answering `retry_available` from it would be the very
+      // disagreement the resting-state rule exists to remove — the next poll, seeing a
+      // non-terminal claim, would say `running`. `recovering` is what the record actually says.
+      if (!recorded) {
+        return { state: "recovering", hasAuthoritativeIdentity: outcome.hasAuthoritativeIdentity };
+      }
       const after = await readPersistedOutcome(admin, eventId);
       return outcomeState(after, "retry_available");
     }

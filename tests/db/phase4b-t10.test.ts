@@ -57,7 +57,8 @@ const { EventIdentityError, eventIdentityModelConfig } =
   await import("@/lib/ai/openai/event-identity");
 const { resetEnvCache } = await import("@/lib/env");
 const { basisDigest } = await import("@/lib/generation/identity-key");
-const { markIdentityCallInvoked } = await import("@/lib/generation/identity-claim");
+const { expireIdentityCallClaims, markIdentityCallInvoked } =
+  await import("@/lib/generation/identity-claim");
 const { IDENTITY_REFUSAL_PAYLOAD } = await import("@/lib/generation/identity-spend");
 const { eventIdentityState, runEventIdentity, IDENTITY_USER_DEADLINE_MS } =
   await import("@/lib/generation/identity-orchestrator");
@@ -1169,5 +1170,58 @@ describe("the paths that only exist for things going wrong", () => {
     // writing a second and double-counting the spend the ceiling reads back.
     expect(await runs()).toHaveLength(1);
     expect(generate).toHaveBeenCalledTimes(1);
+  });
+});
+
+/* ------------------------------------------------------------------ the re-review's findings */
+
+describe("an outstanding host decision survives what happens after it", () => {
+  it("is not masked by a later retry that died before reaching the provider", async () => {
+    answers(AUTHORITATIVE);
+    expect((await run()).state).toBe("ready");
+    const [round1] = await revisions();
+
+    // A second round on a different basis, which fails terminally.
+    process.env.OPENAI_REASONING_EFFORT = "medium";
+    resetEnvCache();
+    generate.mockReset();
+    generate.mockRejectedValue(new EventIdentityError("nope", "provider", undefined, {}));
+    expect((await run()).state).toBe("retry_available");
+
+    // The host clicks Retry; that process dies before step 5 and its claim later expires as
+    // `abandoned` — provably unpaid, and *newer* than the failure it was retrying. A rule that
+    // simply took the newest settled claim would read that as "nothing outstanding" and regress
+    // the surface to `ready`, leaving the host no affordance to try again.
+    const retry = await sqlClaim({ digest: "the-retry-that-died", ordinal: 7, expired: true });
+    await expireIdentityCallClaims(admin, { eventId });
+    expect((await claims()).find((c) => c.id === retry)?.state).toBe("abandoned");
+
+    const polled = await eventIdentityState(admin, eventId);
+    expect(polled.state).toBe("retry_available");
+    expect(polled.hasAuthoritativeIdentity).toBe(true);
+    expect(polled.identityRevisionId).toBe(round1.id);
+  });
+
+  it("answers `recovering` when the failure itself could not be recorded", async () => {
+    generate.mockRejectedValue(new EventIdentityError("nope", "provider", undefined, {}));
+    const blocked = {
+      from: admin.from.bind(admin),
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        if (name === "capture_identity_call_response") throw new Error("connection reset");
+        return (admin as unknown as { rpc: (n: string, a: unknown) => Promise<unknown> }).rpc(
+          name,
+          args,
+        );
+      },
+    } as unknown as Admin;
+
+    const result = await runEventIdentity(blocked, { eventId, userId: owner });
+
+    // The claim is still in flight as far as the database is concerned, so `retry_available` would
+    // be contradicted by the very next poll.
+    expect(result.state).toBe("recovering");
+    expect((await claims())[0].state).toBe("claimed");
+    expect((await eventIdentityState(admin, eventId)).state).toBe("running");
+    expect(await runs()).toHaveLength(0);
   });
 });

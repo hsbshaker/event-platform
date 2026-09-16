@@ -795,8 +795,16 @@ if the poll derived nothing it would answer `ready` from an earlier round's iden
 failure from the surface within one tick of T11's polling. So `retry_available` comes from the
 newest settled claim being one of `failed_terminal`, `expired_unknown` or `recovery_failed` with
 nothing produced since — never from a flag one code path sets and the other cannot. `abandoned` is
-not in that set: it is provably unpaid and reclaimed automatically, so it is not the host's
-decision.
+**ignored** by that rule rather than merely absent from it: a retry that dies before reaching the
+provider settles as `abandoned` *after* the failure it was retrying, and a newest-wins rule would
+let a provably-unpaid row mask the decision the host still has to make.
+
+Two consequences worth stating rather than discovering. A capture that could not be recorded leaves
+the failure out of the record, so that request answers `recovering` — what the record says — instead
+of a `retry_available` the next poll would contradict. And a configuration rolled *back* after a
+failed round leaves the event resting on `retry_available` until something newer settles: every
+attempt resolves to the round that already succeeded and costs nothing, `hasAuthoritativeIdentity`
+stays true throughout, and nothing downstream is affected. A stale affordance, not a defect.
 
 **`recovering` is not an error.** It means: no new call may start yet, and none is needed from the
 host. Three situations reach it — a captured response being completed, a claim of a *different*
