@@ -32,10 +32,13 @@ jobs:
       # Before the browser suite, and not only as its own check: the browser gate measures the
       # stylesheet this build emits, and the hydrated harness is bundled from the same source.
       - run: npm run build
-      # The interaction gate. Chromium comes from the Playwright package this repository already
-      # depends on — installed here, never downloaded during a test run — and the harness resolves
-      # it through `playwright-core` rather than a machine-specific path.
-      - run: npx playwright install --with-deps chromium
+      # The interaction gate. `playwright-core` is the dependency this repository actually declares,
+      # and its own CLI installs the Chromium revision that version expects. `npx playwright …`
+      # would fetch whatever the registry's latest `playwright` happens to be, install *its*
+      # revision, and leave `chromium.executablePath()` — resolved by playwright-core 1.63 —
+      # pointing at a directory that does not exist, so the browser gate would silently stop
+      # running the moment the two drifted apart.
+      - run: npx playwright-core install --with-deps chromium
       - run: npm run test:e2e
 
   db:

@@ -350,7 +350,10 @@ describe.each([
       await retry.click({ force: true }).catch(() => {});
 
       const started = await calls(page, "start");
-      // Arrival (ordinary) plus exactly one explicit retry — not three.
+      // Arrival (ordinary) plus exactly one explicit retry — not three. Two guards stop the
+      // extra clicks and production has both: `AppButton` disables itself while pending, so they
+      // never reach the handler, and the handler's own `busy` check would refuse them if they
+      // did. The safety boundary is neither — it is the claim, proven against real Postgres.
       expect(started).toHaveLength(2);
       expect(started[0].payload).toMatchObject({ options: { explicitRetry: false } });
       expect(started[1].payload).toMatchObject({ options: { explicitRetry: true } });
@@ -450,7 +453,9 @@ describe.each([
       });
       expect(outline).not.toBe("none");
 
-      // Exactly one live region: a second would announce the same transition twice.
+      // One explicit live region for state. `role=alert` is an implicit live region too, and one
+      // appears when an error is shown — so this asserts exactly one *status* region, which is
+      // what stops a single state change being announced twice.
       expect(await page.locator("[aria-live]").count()).toBe(1);
     } finally {
       await close();
@@ -518,7 +523,6 @@ describe.each([
           ),
           buttonLabel: ratio(button.color, button.backgroundColor),
           focus: ratio(focusStyle.outlineColor, surface),
-          border: ratio(optionStyle.borderTopColor, surface),
         };
       }, CONTRAST);
 
@@ -528,6 +532,11 @@ describe.each([
       expect(measured.legend).toBeGreaterThanOrEqual(4.5);
       expect(measured.optionLabel).toBeGreaterThanOrEqual(4.5);
       expect(measured.buttonLabel).toBeGreaterThanOrEqual(4.5);
+      // The indicator §14.1 means here is the focus outline, not the option row's resting border.
+      // That border is decorative: the control whose state a viewer must perceive is the native
+      // radio, which carries its own accent, and the row is a hit target drawn around it. An
+      // earlier draft measured the border and asserted nothing about it, which reads as coverage
+      // and is not — so it is no longer measured.
       expect(measured.focus).toBeGreaterThanOrEqual(3);
     } finally {
       await close();

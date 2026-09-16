@@ -412,23 +412,25 @@ describe("the spend ceiling", () => {
         )
       ).rows[0];
 
-      // 1. The claim is dated after the wait, not at transaction start.
-      expect(Number(row.after_start)).toBeGreaterThanOrEqual(WAIT_MS / 1000);
+      // 1. The claim is dated after the wait, not at transaction start. This is the assertion
+      //    that discriminates: under the old `now()` default it is exactly 0. The 0.9 rather than
+      //    1.0 is for the millisecond `toISOString()` floors away and the odd early timer.
+      expect(Number(row.after_start)).toBeGreaterThanOrEqual(WAIT_MS / 1000 - 0.1);
 
-      // 2. It is not already eligible for the pre-invocation reclaim: the admission wait consumed
-      //    none of that budget.
+      // 2. The lease is the configured lease measured from that same instant. Together with (1)
+      //    this is the whole property: both horizons start when the claim was created, so the
+      //    admission wait consumed neither.
+      expect(Number(row.lease_seconds)).toBe(LEASE);
+
+      // 3. And the effect that matters: the claim is not already eligible for the pre-invocation
+      //    reclaim, and its remaining lease still exceeds what the wait would have taken off it.
+      //    Neither of these discriminates on its own at a one-second wait — they are the
+      //    consequence, stated so a reader can see it, not the evidence.
       const reclaimed = await db.query(
         `select public.reclaim_uninvoked_identity_claims(30, $1, 10) as n`,
         [eventId],
       );
       expect(reclaimed.rows[0].n).toBe(0);
-
-      // 3. The financial lease is the configured lease, measured from the same instant — the wait
-      //    did not eat into it either.
-      expect(Number(row.lease_seconds)).toBe(LEASE);
-
-      // 4. And the lease genuinely runs from creation: a lease dated from transaction start would
-      //    expire `WAIT_MS` early.
       const remaining = (
         await db.query(
           `select extract(epoch from (lease_expires_at - pg_catalog.clock_timestamp())) as s
@@ -436,7 +438,7 @@ describe("the spend ceiling", () => {
           [rows[0].claim_id],
         )
       ).rows[0].s;
-      expect(Number(remaining)).toBeGreaterThan(LEASE - 5);
+      expect(Number(remaining)).toBeGreaterThan(LEASE - WAIT_MS / 1000);
     } finally {
       await holder.end();
       await waiter.end();

@@ -1436,6 +1436,9 @@ Rules:
 - interactive option targets at least `44 × 44px` (§7.6);
 - semantic app tokens only (§23.2) — no new colour, radius, shadow, spacing step or type size.
 
+Responsive: width-agnostic. Option rows are full-width at every breakpoint and wrap rather than
+truncate, so mobile and desktop differ only in the measure available to them.
+
 Use for a genuine single choice, such as a clarification question's offered options.
 
 Do not use it as a generic card-selection or template-picking primitive. Concept selection is

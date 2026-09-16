@@ -92,3 +92,20 @@ export async function submitClarificationAnswer(
 ): Promise<IdentityView> {
   return respond("answer", input);
 }
+
+/**
+ * The stub must keep the shape of the module it replaces.
+ *
+ * Types only, so nothing real is imported into the bundle — but if the server action's signature
+ * changes and this does not, the harness would go on testing a boundary production no longer has.
+ */
+type RealActions = typeof import("@/app/actions/event-identity");
+const _shape = {
+  startEventIdentityForEvent,
+  readEventIdentityForEvent,
+  submitClarificationAnswer,
+} satisfies Pick<
+  RealActions,
+  "startEventIdentityForEvent" | "readEventIdentityForEvent" | "submitClarificationAnswer"
+>;
+void _shape;

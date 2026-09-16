@@ -395,6 +395,22 @@ texts, 30-day retention) and the EventIdentity call-claim machinery that makes u
 before spend. Recorded here because `CLAUDE.md §12` treats a `spec.md` edit as a product change
 rather than cleanup, even a clarifying one.
 
+## Revision 6.9 — `ChoiceGroup` joins the component system
+
+**What changed.** `docs/design-system.md §10.5a` adds `ChoiceGroup`, the canonical single-choice
+control: a real radio group named by its `<legend>`.
+
+**Why it is canon rather than a feature component.** `§23.1` forbids page-local forks of shared
+controls, and this one could not be `Field`: a group of radios is named by a `<legend>`, which
+`Field`'s `<label for>` cannot provide. It was written for T11's clarification question and shipped
+under `src/components/app/` from the start, with its source and README saying it was not yet
+canonical — a known mismatch, and not one to freeze a phase with.
+
+**What it does not do.** It introduces no token, colour, variant or second choice component, and
+its entry documents only behaviour the component already has. It is explicitly not a
+card-selection or template-picking primitive: concept selection is `ConceptCard` (`§10.14`), and a
+template gallery is forbidden outright (`spec.md §32 #5`).
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
