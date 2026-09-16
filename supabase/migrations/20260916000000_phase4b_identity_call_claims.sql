@@ -704,15 +704,22 @@ $$;
 -- retention window, and the host may start a new paid attempt by retrying explicitly — which still
 -- passes every cap and the ceiling, because it is an ordinary new claim.
 --
--- `p_deterministic` is the caller's classification. A failure that will fail identically next time
--- terminates now; anything that might be transient is retried, but only up to `p_max_attempts`,
--- because an error nobody classified must not be able to hold the slot open either.
+-- `p_deterministic` is the caller's classification: a failure that will fail identically next time
+-- terminates now.
+--
+-- Everything else is held, and held by **elapsed time since the response was captured**, not by a
+-- count of attempts. Counting attempts looks equivalent and is not: the sweep runs every fifteen
+-- minutes, so three failures is forty-five minutes, and a statement timeout, a lock held by a
+-- migration or a bad grant would irreversibly terminalize every captured response in the backlog
+-- inside one short degradation — each of those hosts then paying again for a call that had
+-- already succeeded. An age bound holds through an outage and still guarantees the slot is
+-- released eventually.
 -- ---------------------------------------------------------------------------
 create or replace function public.fail_identity_call_recovery(
   p_claim_id uuid,
   p_reason text,
   p_deterministic boolean default true,
-  p_max_attempts integer default 3
+  p_max_age_seconds integer default 172800
 )
 returns text
 language plpgsql
@@ -720,24 +727,39 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_attempts integer;
+  v_claim public.event_identity_call_claims;
+  v_captured_at timestamptz;
 begin
   update public.event_identity_call_claims
      set recovery_attempts = recovery_attempts + 1,
-         recovery_failure_reason = left(p_reason, 500)
+         recovery_failure_reason = left(coalesce(p_reason, 'unspecified'), 500)
    where id = p_claim_id
      and state = 'response_captured'
-  returning recovery_attempts into v_attempts;
+  returning * into v_claim;
 
   if not found then
     return 'not_captured';
   end if;
 
-  if p_deterministic or v_attempts >= greatest(p_max_attempts, 1) then
+  -- When the response was captured, which is what the age bound is measured from. Falls back to
+  -- the claim itself if the run row is somehow unreadable, so an unknown age is treated as old
+  -- rather than as new.
+  select r.created_at into v_captured_at
+    from public.generation_runs r
+   where r.id = v_claim.generation_run_id;
+  if not found then
+    v_captured_at := v_claim.claimed_at;
+  end if;
+
+  if
+    p_deterministic
+    or v_captured_at < pg_catalog.now() - (greatest(p_max_age_seconds, 0) * interval '1 second')
+  then
     update public.event_identity_call_claims
        set state = 'recovery_failed',
            settled_at = pg_catalog.now()
-     where id = p_claim_id;
+     where id = p_claim_id
+       and state = 'response_captured';
     return 'terminal';
   end if;
 

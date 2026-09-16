@@ -409,8 +409,9 @@ export async function generateEventIdentity(
 
     const raw = response.output_text ?? "";
     rawResponses.push(raw);
-    const details = response.usage?.input_tokens_details as
-      { cached_tokens?: number; cache_write_tokens?: number } | undefined;
+    // No cast: the SDK declares both fields, so a rename breaks the build rather than silently
+    // reclassifying every cache write as ordinary input at a quarter of its price.
+    const details = response.usage?.input_tokens_details;
     perResponse.push({
       inputTokens: response.usage?.input_tokens,
       cachedInputTokens: details?.cached_tokens,

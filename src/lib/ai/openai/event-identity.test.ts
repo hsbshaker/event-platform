@@ -402,14 +402,75 @@ describe("the OpenAI event identity call", () => {
    * retried ambiguous failure — that the ceiling exists to protect against.
    */
   describe("accounting for what the whole logical call cost", () => {
-    const withUsage = (input: number, output: number, reasoning: number, cached = 0) => ({
+    const withUsage = (
+      input: number,
+      output: number,
+      reasoning: number,
+      cached = 0,
+      cacheWrite = 0,
+    ) => ({
       ...ok(),
       usage: {
         input_tokens: input,
         output_tokens: output,
-        input_tokens_details: { cached_tokens: cached },
+        input_tokens_details: { cached_tokens: cached, cache_write_tokens: cacheWrite },
         output_tokens_details: { reasoning_tokens: reasoning },
       },
+    });
+
+    it("carries each response's usage out separately, not only the sum", async () => {
+      // Pricing needs per-response usage: the long-context tier applies per request, so one
+      // attempt can cross the threshold while another does not. Without this the cost model sees
+      // no responses at all and charges every attempt the per-attempt maximum.
+      create
+        .mockResolvedValueOnce({
+          ...withUsage(10, 20, 5, 1, 2),
+          output_text: JSON.stringify({ identity: validIdentity }),
+        })
+        .mockResolvedValueOnce(withUsage(30, 40, 7, 3, 4));
+      const result = await run();
+
+      expect(result.usage.responses).toEqual([
+        {
+          inputTokens: 10,
+          cachedInputTokens: 1,
+          cacheWriteInputTokens: 2,
+          outputTokens: 20,
+          reasoningTokens: 5,
+        },
+        {
+          inputTokens: 30,
+          cachedInputTokens: 3,
+          cacheWriteInputTokens: 4,
+          outputTokens: 40,
+          reasoningTokens: 7,
+        },
+      ]);
+    });
+
+    it("reads cache writes as their own class, not as cache reads", async () => {
+      // They are billed at opposite ends: a write costs more than uncached input, a read far less.
+      // Folding writes into reads prices the most expensive input class at the cheapest rate.
+      create.mockResolvedValueOnce(withUsage(100, 50, 10, 7, 13));
+      const result = await run();
+
+      expect(result.usage.cachedInputTokens).toBe(7);
+      expect(result.usage.cacheWriteInputTokens).toBe(13);
+      expect(result.usage.responses[0].cacheWriteInputTokens).toBe(13);
+    });
+
+    it("leaves a response's cache classes undefined when the provider omits them", async () => {
+      // Which is what makes the cost model refuse to call such a response exactly priced: read as
+      // zero, every input token would be billed as uncached and the total labelled exact.
+      const noDetails = {
+        ...ok(),
+        usage: { input_tokens: 100, output_tokens: 50 },
+      };
+      create.mockResolvedValueOnce(noDetails);
+      const result = await run();
+
+      expect(result.usage.responses[0].cachedInputTokens).toBeUndefined();
+      expect(result.usage.responses[0].cacheWriteInputTokens).toBeUndefined();
     });
 
     it("adds the rejected first response's tokens to the accepted one's", async () => {

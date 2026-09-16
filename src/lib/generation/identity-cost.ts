@@ -207,9 +207,21 @@ export interface CostEstimate {
   unpricedAttempts: number;
 }
 
-/** Whether every token class needed to price this response is present. */
+/**
+ * Whether **every** billable token class needed to price this response is present.
+ *
+ * All four, not just input and output. If `input_tokens_details` is missing — a gateway, a proxy,
+ * an older API version — the cache classes read as zero, every input token is billed as uncached,
+ * and a response that was in fact 900k cache-write tokens at the long-context tier is recorded 20%
+ * cheap *and labelled exact*. That is the optimistic fallback §A.5.1 says does not exist.
+ */
 function priceable(usage: ProviderResponseUsage): boolean {
-  return typeof usage.inputTokens === "number" && typeof usage.outputTokens === "number";
+  return (
+    typeof usage.inputTokens === "number" &&
+    typeof usage.outputTokens === "number" &&
+    typeof usage.cachedInputTokens === "number" &&
+    typeof usage.cacheWriteInputTokens === "number"
+  );
 }
 
 /**
@@ -244,14 +256,21 @@ function priceResponse(profile: ModelCostProfile, usage: ProviderResponseUsage):
  *
  * Each observed response is priced at its own tier from the verified profile. Everything else —
  * attempts that threw, responses missing a token class, and every attempt when the profile is the
- * unverified fallback — is charged the per-attempt maximum, **once per attempt**. With the bound
- * set honestly the result stays within `logicalCallMaxUsd()`, since a call cannot make more
- * attempts than the policy allows; it is deliberately not clamped to it, because a result above
- * the reservation would mean the bound is wrong and hiding that would defeat the ceiling.
+ * unverified fallback — is charged the per-attempt maximum, **once per attempt**.
+ *
+ * **Total by construction.** It takes an already-resolved profile rather than a model id, because
+ * it runs *after* the provider has been paid: resolving there could throw between the response and
+ * the capture, losing a paid response to a configuration mismatch. The mismatch is not
+ * hypothetical — the provider answers with a dated snapshot id (`…-2026-08-01`) that no profile
+ * matches by exact string. The profile the claim already reserved against is the right one to
+ * price with anyway: it is the bound the money was held against.
  */
-export function estimateIdentityCallCostUsd(model: string, usage: CostRelevantUsage): CostEstimate {
-  const profile = requireCostProfile(model);
-  const attemptMax = providerAttemptMaxUsd(model);
+export function estimateIdentityCallCostUsd(
+  profile: ModelCostProfile,
+  usage: CostRelevantUsage,
+  attemptMaxUsd: number = profile.perAttemptMaxUsd,
+): CostEstimate {
+  const attemptMax = attemptMaxUsd;
   const observed = Math.max(usage.providerResponses, 0);
   const unknown = Math.max(usage.unknownUsageAttempts, 0);
   // Attempts are the unit: `providerResponses` and `unknownUsageAttempts` overlap, because a
@@ -268,9 +287,24 @@ export function estimateIdentityCallCostUsd(model: string, usage: CostRelevantUs
   let usd = 0;
   let pricedResponses = 0;
   let unpriceableResponses = 0;
+  let clamped = false;
   for (const response of usage.responses) {
     if (priceable(response)) {
-      usd += priceResponse(profile, response);
+      const raw = priceResponse(profile, response);
+      // Clamped to what one attempt can legally cost. Not hiding anything — a single attempt
+      // cannot exceed this, so a larger number means the provider reported impossible usage. Left
+      // unclamped, one bogus report (`input_tokens: 1e12` → ~$8M) lands in `cost_estimate_usd`,
+      // is summed into the ceiling's recorded spend, and refuses every host's generation for the
+      // rest of the window behind an indistinguishable payload, with no operator lever but
+      // editing the row.
+      if (raw > attemptMax) {
+        clamped = true;
+        console.error(
+          `identity cost: a response priced at ${raw} exceeds the per-attempt maximum ` +
+            `${attemptMax} for ${profile.model}; clamping. That usage is not believable.`,
+        );
+      }
+      usd += Math.min(raw, attemptMax);
       pricedResponses += 1;
     } else {
       // We know a response arrived; we just cannot say what it cost.
@@ -292,7 +326,8 @@ export function estimateIdentityCallCostUsd(model: string, usage: CostRelevantUs
   usd += unpriced * attemptMax;
   return {
     usd,
-    exact: unpriced === 0 && pricedResponses === observed && observed > 0,
+    // A clamped response was not priced from what the provider said, so the total is a bound.
+    exact: unpriced === 0 && pricedResponses === observed && observed > 0 && !clamped,
     unpricedAttempts: unpriced,
   };
 }

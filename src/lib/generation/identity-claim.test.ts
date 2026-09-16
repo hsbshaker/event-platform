@@ -101,12 +101,12 @@ describe("resolving the attempt ordinal", () => {
     });
   });
 
-  it.each(["failed_terminal", "expired_unknown"] as const)(
+  it.each(["failed_terminal", "expired_unknown", "recovery_failed"] as const)(
     "makes the host decide after %s",
     async (state) => {
-      // Both may have cost money — `expired_unknown` especially, which is the whole reason it is
-      // a separate state from `abandoned`. Retrying either without the host asking is a silent
-      // second purchase.
+      // All three may have cost money. `expired_unknown` is the whole reason it is a separate
+      // state from `abandoned`, and `recovery_failed` holds a response we know was paid for.
+      // Retrying any of them without the host asking is a silent second purchase.
       const last = claim({ state, attempt_ordinal: 0 });
       expect(await resolveAttemptOrdinal(admin([last]), "e1", "b")).toMatchObject({
         mode: "needs_explicit_retry",

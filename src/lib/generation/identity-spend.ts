@@ -5,7 +5,13 @@ import {
   PROVIDER_REQUEST_TIMEOUT_MS,
   TRANSIENT_BACKOFF_MS,
 } from "@/lib/ai/openai/event-identity";
-import { isVerified, logicalCallMaxUsd, requireCostProfile } from "./identity-cost";
+import {
+  isVerified,
+  logicalCallMaxUsd,
+  providerAttemptMaxUsd,
+  requireCostProfile,
+  type ModelCostProfile,
+} from "./identity-cost";
 
 /**
  * Configured backend safety limits for the EventIdentity call, and the lease that bounds a claim.
@@ -64,6 +70,16 @@ export interface IdentityLimits {
   costBoundVerified: boolean;
   /** The profile's version, persisted as provenance beside the call it priced. */
   costProfileVersion: string;
+  /**
+   * The resolved profile.
+   *
+   * Carried so the cost estimate can be computed *after* the provider has been paid without
+   * re-resolving anything: resolving there could throw between the response and the capture, and
+   * the provider's dated snapshot id would not match a profile by exact string anyway.
+   */
+  costProfile: ModelCostProfile;
+  /** The bound actually in force, after any environment override. */
+  perAttemptMaxUsd: number;
 }
 
 /**
@@ -127,6 +143,8 @@ export function identityLimits(model: string): IdentityLimits {
     leaseSeconds,
     costBoundVerified: isVerified(profile),
     costProfileVersion: profile.profileVersion,
+    costProfile: profile,
+    perAttemptMaxUsd: providerAttemptMaxUsd(model),
   };
 }
 
@@ -162,6 +180,24 @@ export interface CeilingAlert {
 }
 
 /**
+ * A paid response that could not become a revision, and the event it was holding.
+ *
+ * Routed to the same sink as the spend alerts rather than only to `console.error`, because this is
+ * the outcome an operator most needs to see: the host paid, the response exists, and the only way
+ * forward is for them to pay again. A count in a cron response body is not a signal anybody
+ * receives.
+ */
+export interface RecoveryAlert {
+  kind: "identity_recovery_failed" | "identity_recovery_halted";
+  claimId: string;
+  reason: string;
+  deterministic: boolean;
+  at: string;
+}
+
+export type IdentityAlert = CeilingAlert | RecoveryAlert;
+
+/**
  * Where a ceiling alert goes.
  *
  * A structured server-side record, not a new dependency: `docs/technology-decisions.md` is locked
@@ -169,17 +205,23 @@ export interface CeilingAlert {
  * crossing truthfully is the part that cannot be retrofitted, because an alert nobody emitted is
  * not one anybody can route later.
  */
-export type CeilingAlertSink = (alert: CeilingAlert) => void;
+export type CeilingAlertSink = (alert: IdentityAlert) => void;
 
-let sink: CeilingAlertSink = (alert) => {
-  console.warn(`[spend] ${alert.kind}`, JSON.stringify(alert));
+export const defaultIdentityAlertSink: CeilingAlertSink = (alert) => {
+  console.warn(`[identity] ${alert.kind}`, JSON.stringify(alert));
 };
+
+let sink: CeilingAlertSink = defaultIdentityAlertSink;
 
 export function setCeilingAlertSink(next: CeilingAlertSink): void {
   sink = next;
 }
 
 export function emitCeilingAlert(alert: Omit<CeilingAlert, "at">): void {
+  sink({ ...alert, at: new Date().toISOString() });
+}
+
+export function emitRecoveryAlert(alert: Omit<RecoveryAlert, "at">): void {
   sink({ ...alert, at: new Date().toISOString() });
 }
 

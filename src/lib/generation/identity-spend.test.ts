@@ -12,8 +12,10 @@ import {
   identityLimits,
   IDENTITY_REFUSAL_PAYLOAD,
   LEASE_FLOOR_SECONDS,
+  defaultIdentityAlertSink,
+  emitRecoveryAlert,
   setCeilingAlertSink,
-  type CeilingAlert,
+  type IdentityAlert,
 } from "./identity-spend";
 import { GPT_5_6_SOL } from "./identity-cost";
 
@@ -116,12 +118,9 @@ describe("the ceiling alert", () => {
   });
 
   it("goes to a sink rather than nowhere", () => {
-    const seen: CeilingAlert[] = [];
+    const seen: IdentityAlert[] = [];
     // Restore the real default afterwards, not a spy: the sink is module state, and leaving a
     // `vi.fn()` behind would silently swallow every later alert in this worker.
-    const restore = (alert: CeilingAlert) => {
-      console.warn(`[spend] ${alert.kind}`, JSON.stringify(alert));
-    };
     setCeilingAlertSink((alert) => seen.push(alert));
     emitCeilingAlert({
       kind: "identity_spend_refused",
@@ -134,9 +133,25 @@ describe("the ceiling alert", () => {
       costProfileVersion: GPT_5_6_SOL.profileVersion,
     });
     expect(seen).toHaveLength(1);
-    expect(seen[0].refusedBy).toBe("ceiling");
     expect(Date.parse(seen[0].at)).not.toBeNaN();
-    expect(seen[0].costBoundVerified).toBe(true);
-    setCeilingAlertSink(restore);
+    expect(seen[0]).toMatchObject({ kind: "identity_spend_refused", costBoundVerified: true });
+    setCeilingAlertSink(defaultIdentityAlertSink);
+  });
+
+  it("carries a terminal recovery failure to the same sink, not only to the log", () => {
+    // The outcome an operator most needs to see: the host paid, the response exists, and the only
+    // way forward is for them to pay again. A count in a cron response body reaches nobody.
+    const seen: IdentityAlert[] = [];
+    setCeilingAlertSink((alert) => seen.push(alert));
+    emitRecoveryAlert({
+      kind: "identity_recovery_failed",
+      claimId: "c1",
+      reason: "captured response no longer validates",
+      deterministic: true,
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ kind: "identity_recovery_failed", claimId: "c1" });
+    expect(Date.parse(seen[0].at)).not.toBeNaN();
+    setCeilingAlertSink(defaultIdentityAlertSink);
   });
 });

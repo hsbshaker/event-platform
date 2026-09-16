@@ -160,7 +160,7 @@ describe("the logical-call maximum", () => {
 
 describe("estimating what one call cost", () => {
   it("prices a short-context response at the standard rate", () => {
-    const estimate = estimateIdentityCallCostUsd(MODEL, usage([response()]));
+    const estimate = estimateIdentityCallCostUsd(GPT_5_6_SOL, usage([response()]));
     expect(estimate.usd).toBeCloseTo(STANDARD_ONE, 10);
     expect(estimate.exact).toBe(true);
   });
@@ -170,22 +170,25 @@ describe("estimating what one call cost", () => {
     // `output_tokens`. Adding the two charges reasoning twice — and reasoning is the majority of
     // output on a high-effort call, so the error is large, not marginal.
     const withReasoning = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([response({ reasoningTokens: Math.floor(OUT * 0.9) })]),
     );
     expect(withReasoning.usd).toBeCloseTo(STANDARD_ONE, 10);
-    const without = estimateIdentityCallCostUsd(MODEL, usage([response({ reasoningTokens: 0 })]));
+    const without = estimateIdentityCallCostUsd(
+      GPT_5_6_SOL,
+      usage([response({ reasoningTokens: 0 })]),
+    );
     expect(withReasoning.usd).toBe(without.usd);
   });
 
   it("prices cache reads and cache writes as distinct classes", () => {
     const out = per(OUT, GPT_5_6_SOL.standard.output);
     const cacheRead = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([response({ cachedInputTokens: IN })]),
     );
     const cacheWrite = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([response({ cacheWriteInputTokens: IN })]),
     );
     expect(cacheRead.usd).toBeCloseTo(per(IN, GPT_5_6_SOL.standard.cachedInput) + out, 10);
@@ -197,7 +200,7 @@ describe("estimating what one call cost", () => {
 
   it("never lets overlapping subsets produce a negative charge", () => {
     const estimate = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([response({ inputTokens: 100, cachedInputTokens: 90, cacheWriteInputTokens: 90 })]),
     );
     expect(estimate.usd).toBeGreaterThan(0);
@@ -206,7 +209,7 @@ describe("estimating what one call cost", () => {
   it("applies the long-context tier to the response that crossed it", () => {
     const long = GPT_5_6_SOL.longContextThresholdTokens + 1;
     const estimate = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([response({ inputTokens: long, outputTokens: OUT })]),
     );
     expect(estimate.usd).toBeCloseTo(
@@ -223,7 +226,7 @@ describe("estimating what one call cost", () => {
     const longIn = GPT_5_6_SOL.longContextThresholdTokens + 1;
     const short = response({ inputTokens: 1_000, outputTokens: 1_000 });
     const long = response({ inputTokens: longIn, outputTokens: 1_000 });
-    const estimate = estimateIdentityCallCostUsd(MODEL, usage([short, long]));
+    const estimate = estimateIdentityCallCostUsd(GPT_5_6_SOL, usage([short, long]));
     const expected =
       per(1_000, GPT_5_6_SOL.standard.input) +
       per(1_000, GPT_5_6_SOL.standard.output) +
@@ -235,7 +238,7 @@ describe("estimating what one call cost", () => {
 
   it("does NOT cost an ambiguous transient attempt at zero", () => {
     const estimate = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([response()], { providerAttempts: 3, unknownUsageAttempts: 2 }),
     );
     expect(estimate.usd).toBeCloseTo(STANDARD_ONE + 2 * GPT_5_6_SOL.perAttemptMaxUsd, 8);
@@ -245,7 +248,7 @@ describe("estimating what one call cost", () => {
 
   it("charges an attempt whose response carried no usage exactly once", () => {
     const estimate = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([{}], { providerAttempts: 1, unknownUsageAttempts: 1 }),
     );
     expect(estimate.usd).toBe(GPT_5_6_SOL.perAttemptMaxUsd);
@@ -254,7 +257,7 @@ describe("estimating what one call cost", () => {
 
   it("charges a response the summary claimed but the detail never described", () => {
     const estimate = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([response()], { providerResponses: 2, providerAttempts: 2 }),
     );
     expect(estimate.usd).toBeCloseTo(STANDARD_ONE + GPT_5_6_SOL.perAttemptMaxUsd, 8);
@@ -264,7 +267,7 @@ describe("estimating what one call cost", () => {
   it("charges a call that got nothing back for the attempts it made", () => {
     // `provider_response_evidence: []` means no text was captured, never "provably unpaid".
     const estimate = estimateIdentityCallCostUsd(
-      MODEL,
+      GPT_5_6_SOL,
       usage([], { providerAttempts: 3, unknownUsageAttempts: 3 }),
     );
     expect(estimate.usd).toBe(3 * GPT_5_6_SOL.perAttemptMaxUsd);
@@ -274,7 +277,7 @@ describe("estimating what one call cost", () => {
   it("prices nothing from an unverified fallback profile", () => {
     // No rates to price with. Charging the maximum is the only honest answer; inventing a number
     // would be the optimistic fallback the whole section refuses.
-    const estimate = estimateIdentityCallCostUsd("some-unpriced-model", usage([response()]));
+    const estimate = estimateIdentityCallCostUsd(UNVERIFIED_DEV_PROFILE, usage([response()]));
     expect(estimate.usd).toBe(UNVERIFIED_DEV_PROFILE.perAttemptMaxUsd);
     expect(estimate.exact).toBe(false);
   });
@@ -283,7 +286,7 @@ describe("estimating what one call cost", () => {
     for (let attempts = 1; attempts <= MAX_PROVIDER_ATTEMPTS_PER_CALL; attempts += 1) {
       for (let responses = 0; responses <= Math.min(attempts, 2); responses += 1) {
         const estimate = estimateIdentityCallCostUsd(
-          MODEL,
+          GPT_5_6_SOL,
           usage(
             Array.from({ length: responses }, () =>
               response({

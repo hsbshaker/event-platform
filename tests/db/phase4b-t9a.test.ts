@@ -856,12 +856,19 @@ describe("the claim state machine", () => {
 });
 
 describe("a captured response that can never be completed releases the event", () => {
-  const fail = async (claimId: string, reason: string, deterministic = true) =>
+  /** `maxAgeSeconds` is how long a captured response may sit unrecoverable before it is given up. */
+  const fail = async (
+    claimId: string,
+    reason: string,
+    deterministic = true,
+    maxAgeSeconds = 48 * 60 * 60,
+  ) =>
     (
-      await db.query(`select public.fail_identity_call_recovery($1,$2,$3,3) as outcome`, [
+      await db.query(`select public.fail_identity_call_recovery($1,$2,$3,$4) as outcome`, [
         claimId,
         reason,
         deterministic,
+        maxAgeSeconds,
       ])
     ).rows[0].outcome as string;
 
@@ -907,15 +914,29 @@ describe("a captured response that can never be completed releases the event", (
     expect(rows[0].c).toBe(0);
   });
 
-  it("keeps a possibly-transient failure recoverable until the attempts run out", async () => {
-    // Terminating every error indiscriminately would throw away a paid response that was one
-    // retry from becoming a revision. Bounded, so an unclassified error cannot hold the slot for
-    // ever either.
+  it("holds a possibly-transient failure however many times it recurs, while it is young", async () => {
+    // Counting attempts looks equivalent to bounding age and is not: the sweep runs every fifteen
+    // minutes, so three failures is forty-five minutes. One statement timeout, one migration
+    // holding a lock, and every captured response in the backlog would be irreversibly terminal —
+    // each of those hosts then paying again for a call that had already succeeded.
     const c = await claim("k1");
     await capture(c.claim_id!);
-    expect(await fail(c.claim_id!, "deadlock detected", false)).toBe("retryable");
+    for (let i = 0; i < 5; i += 1) {
+      expect(await fail(c.claim_id!, "deadlock detected", false)).toBe("retryable");
+    }
     expect(await stateOf(c.claim_id!)).toBe("response_captured");
-    expect(await fail(c.claim_id!, "deadlock detected", false)).toBe("retryable");
+    const { rows } = await db.query(
+      `select recovery_attempts from public.event_identity_call_claims where id=$1`,
+      [c.claim_id],
+    );
+    expect(rows[0].recovery_attempts).toBe(5);
+  });
+
+  it("gives up on a possibly-transient failure once the response has aged out", async () => {
+    // The slot is still released eventually; it just is not released by a short outage.
+    const c = await claim("k1");
+    await capture(c.claim_id!);
+    await db.query(`update public.generation_runs set created_at = now() - interval '3 days'`);
     expect(await fail(c.claim_id!, "deadlock detected", false)).toBe("terminal");
     expect(await stateOf(c.claim_id!)).toBe("recovery_failed");
   });

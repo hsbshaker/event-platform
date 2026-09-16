@@ -5,10 +5,12 @@ import { parseAndValidateEventIdentityResult } from "@/lib/ai/event-identity/val
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import type { Database, IdentityCallClaimState, Json } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireCostProfile } from "./identity-cost";
 import { attemptKey, basisDigest, type IdentityCallBasis } from "./identity-key";
 import {
   crossesWarnThreshold,
   emitCeilingAlert,
+  emitRecoveryAlert,
   identityLimits,
   type IdentityLimits,
   type IdentityRefusalReason,
@@ -132,10 +134,12 @@ export interface ClaimRequest {
  * the RPC's inner block is a subtransaction, so every unit it took is rolled back with it.
  */
 export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promise<ClaimResult> {
-  // The model comes from the basis, so the cost profile is resolved for the exact model this call
-  // will use. In production an unpriced model throws here — before a claim exists and long before
-  // the provider is reached.
-  const limits = req.limits ?? identityLimits(req.basis.modelConfig.model ?? "");
+  // Resolved unconditionally, before the `??`, so a caller-supplied `limits` cannot route around
+  // the production contract. Left behind an `??` this line is the whole fail-closed guarantee and
+  // an optional field skips it — which is exactly the seam a later caller would reach for.
+  const model = req.basis.modelConfig.model ?? "";
+  requireCostProfile(model);
+  const limits = req.limits ?? identityLimits(model);
   const digest = basisDigest(req.basis);
   const key = attemptKey(req.eventId, digest, req.ordinal);
 
@@ -339,6 +343,8 @@ export interface SweepResult extends ExpiryCounts {
   unrecoverable: number;
   /** Completions that failed and may yet succeed. The claim stays captured and is retried. */
   retryable: number;
+  /** The sweep stopped early because every claim was failing the same way. */
+  systemicHalt: boolean;
 }
 
 /**
@@ -355,8 +361,25 @@ export interface SweepResult extends ExpiryCounts {
  */
 const DETERMINISTIC_SQLSTATE_CLASSES = ["23", "22", "0A"];
 
-/** Recovery attempts before a failure nobody could classify is terminated anyway. */
-export const MAX_RECOVERY_ATTEMPTS = 3;
+/**
+ * How long a captured response may sit unrecoverable before it is given up on.
+ *
+ * Measured from capture, not counted in attempts. The sweep runs every fifteen minutes, so a
+ * three-attempt rule is a forty-five-minute rule: one statement timeout, one migration holding a
+ * lock, one bad grant, and every captured response in the backlog is irreversibly terminal and
+ * every one of those hosts pays again for a call that already succeeded. Two days holds through an
+ * outage and still releases the slot eventually.
+ */
+export const RECOVERY_MAX_AGE_SECONDS = 48 * 60 * 60;
+
+/**
+ * Consecutive same-code failures that stop the sweep instead of counting against the claims.
+ *
+ * When every claim in a batch fails the same way, the claims are not the problem — and continuing
+ * would work through the backlog terminalizing paid responses on the strength of a fault that is
+ * about to be fixed.
+ */
+export const SYSTEMIC_FAILURE_RUN = 3;
 
 export function isDeterministicCompletionFailure(error: unknown): boolean {
   const code = (error as { code?: unknown } | null)?.code;
@@ -384,7 +407,7 @@ export async function failIdentityCallRecovery(
     p_claim_id: claimId,
     p_reason: reason,
     p_deterministic: deterministic,
-    p_max_attempts: MAX_RECOVERY_ATTEMPTS,
+    p_max_age_seconds: RECOVERY_MAX_AGE_SECONDS,
   });
   if (error) throw error;
   return (data as "terminal" | "retryable" | "not_captured") ?? "not_captured";
@@ -413,16 +436,33 @@ export async function sweepIdentityCallClaims(
   let completed = 0;
   let unrecoverable = 0;
   let retryable = 0;
+  let systemicHalt = false;
+  let lastCode: string | null = null;
+  let sameCodeRun = 0;
 
-  /** Terminal when the failure is deterministic or the bounded retries are spent. */
+  /** Terminal when the failure is deterministic, or when the captured response has aged out. */
   const giveUp = async (claimId: string, reason: string, deterministic: boolean) => {
-    const outcome = await failIdentityCallRecovery(admin, claimId, reason, deterministic);
-    if (outcome === "terminal") unrecoverable += 1;
-    else if (outcome === "retryable") retryable += 1;
-    console.error(`identity sweep: claim ${claimId} not completed (${outcome}): ${reason}`);
+    try {
+      const outcome = await failIdentityCallRecovery(admin, claimId, reason, deterministic);
+      if (outcome === "terminal") unrecoverable += 1;
+      else if (outcome === "retryable") retryable += 1;
+      // To the alert sink, not only to the console: a host paid, the response exists, and the only
+      // way forward is for them to pay again. A count in a cron response body is not a signal
+      // anybody receives.
+      if (outcome === "terminal") {
+        emitRecoveryAlert({ kind: "identity_recovery_failed", claimId, reason, deterministic });
+      }
+      console.error(`identity sweep: claim ${claimId} not completed (${outcome}): ${reason}`);
+    } catch (error) {
+      // The give-up itself failing must not abort the sweep and discard the expiry counts — the
+      // same failure mode the completion's own catch exists to prevent.
+      retryable += 1;
+      console.error(`identity sweep: could not record the failure of claim ${claimId}`, error);
+    }
   };
 
   for (const row of pending) {
+    if (systemicHalt) break;
     // The schema version is checked, not merely fetched. `identity_questions()` refuses an
     // unrecognised version rather than reading it as empty, and this is the same decision on the
     // same data: a version today's validator happens to accept would be written into a revision
@@ -466,15 +506,32 @@ export async function sweepIdentityCallClaims(
       if (done) completed += 1;
     } catch (error) {
       const code = (error as { code?: string } | null)?.code ?? "unknown";
-      await giveUp(
-        row.claim_id,
-        `complete_identity_call failed (${code})`,
-        isDeterministicCompletionFailure(error),
-      );
+      const deterministic = isDeterministicCompletionFailure(error);
+      if (!deterministic) {
+        sameCodeRun = code === lastCode ? sameCodeRun + 1 : 1;
+        lastCode = code;
+        if (sameCodeRun >= SYSTEMIC_FAILURE_RUN) {
+          // The claims are not the problem. Stopping leaves them captured and recoverable rather
+          // than working through the backlog on the strength of a fault about to be fixed.
+          systemicHalt = true;
+          emitRecoveryAlert({
+            kind: "identity_recovery_halted",
+            claimId: row.claim_id,
+            reason: `${SYSTEMIC_FAILURE_RUN} consecutive completions failed with ${code}`,
+            deterministic: false,
+          });
+          console.error(`identity sweep: halting — ${sameCodeRun} consecutive failures (${code})`);
+          continue;
+        }
+      } else {
+        sameCodeRun = 0;
+        lastCode = null;
+      }
+      await giveUp(row.claim_id, `complete_identity_call failed (${code})`, deterministic);
     }
   }
 
-  return { ...expiry, completed, unrecoverable, retryable };
+  return { ...expiry, completed, unrecoverable, retryable, systemicHalt };
 }
 
 /**

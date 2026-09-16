@@ -406,11 +406,23 @@ grants in place would hand `authenticated` a `SELECT` on exactly that.
 | State | Meaning | Exit |
 | --- | --- | --- |
 | `claimed` | the key is reserved; no provider client has been constructed | → `response_captured`, `failed_terminal`, or lease expiry |
-| `response_captured` | the provider answered and the run row **including its evidence** is committed; the revision is not yet written | → `succeeded` by deterministic completion, with **no second model call**. This is **not** terminal and **must not** be left to a lease: the next request **on this event** completes it inline (§A.6 step 3) — on the event, not on the key, because a deploy or a new answer changes the key and the completer must still find it — and the sweeper completes any that no request returns for. It has no expiry path, because expiring it would strand a paid response; for the same reason **§A.7's evidence purge must skip every run referenced by a non-terminal claim**, or the purge reintroduces the wedge the missing expiry was avoiding |
+| `response_captured` | the provider answered and the run row **including its evidence** is committed; the revision is not yet written | → `succeeded` by deterministic completion, with **no second model call**. This is **not** terminal and **must not** be left to a lease: the next request **on this event** completes it inline (§A.6 step 3) — on the event, not on the key, because a deploy or a new answer changes the key and the completer must still find it — and the sweeper completes any that no request returns for. It has **no lease expiry**, because expiring it would strand a paid response; for the same reason **§A.7's evidence purge must skip every run referenced by a non-terminal claim**, or the purge reintroduces the wedge the missing expiry was avoiding. Its other exit is → `recovery_failed` |
 | `succeeded` | revision appended, pointer moved where allowed | terminal |
-| `failed_terminal` | `provider` failure with nothing paid for, or `invalid_output` after the one repair | terminal; a retry is a host action |
+| `failed_terminal` | the **call** failed: a provider failure, or `invalid_output` after the one repair. The second of those *was* paid for and its responses are captured as evidence like any other — an earlier version of this row said "nothing paid for", which is true only of the first | terminal; a retry is a host action |
 | `expired_unknown` | the lease elapsed with `provider_invoked_at` set and no captured response | terminal; **explicit host retry only** |
 | `abandoned` | the lease elapsed with `provider_invoked_at` null | reclaimable automatically: provably no call was made |
+| `recovery_failed` | the call **succeeded** and recovery failed: the captured text no longer validates, its schema version has no reader in this build, or the database refuses the completion deterministically | terminal; a retry is a host action. Distinct from `failed_terminal` because the diagnosis and the fix differ, and terminal because `response_captured` has no expiry — without this state one undeliverable response would hold that event's only in-flight slot for ever. The run row and its evidence are untouched and age out on the ordinary schedule |
+
+**Giving up is bounded by age, not by attempts.** A failure that will fail identically next time —
+an integrity violation, a data exception, an unsupported feature — terminates at once. Anything that
+might be transient is held and retried, terminating only once the captured response has aged out
+(two days). Counting attempts instead looks equivalent and is not: the sweep runs every fifteen
+minutes, so a three-attempt rule is a forty-five-minute rule, and one statement timeout or one
+migration holding a lock would irreversibly terminalize every captured response in the backlog —
+each of those hosts then paying again for a call that had already succeeded. The sweep also stops
+early when several claims in a row fail the same way, because then the claims are not the problem.
+Every terminal give-up reaches the alert sink, not only the log: the host paid, the response exists,
+and the only way forward is for them to pay again.
 
 `provider_invoked_at` is written **and committed in its own transaction** before the provider is
 reached; the safety argument below depends on that commit, so it is a requirement, not an

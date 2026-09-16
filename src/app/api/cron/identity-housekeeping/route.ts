@@ -114,6 +114,10 @@ export async function GET(request: NextRequest) {
     // Completions that failed in a way that might yet succeed. The claim stays captured and the
     // next run tries again, up to a bound — so an unclassified error cannot hold the slot for ever.
     retryable: sweep?.retryable ?? 0,
+    // The sweep stopped early because every claim was failing the same way. The claims are not
+    // the problem, and continuing would terminalize paid responses on the strength of a fault
+    // that is about to be fixed.
+    systemicHalt: sweep?.systemicHalt ?? false,
     evidencePurged,
     retentionDays: IDENTITY_EVIDENCE_RETENTION_DAYS,
   };

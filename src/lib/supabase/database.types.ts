@@ -721,7 +721,7 @@ export type Database = {
           p_claim_id: string;
           p_reason: string;
           p_deterministic: boolean;
-          p_max_attempts: number;
+          p_max_age_seconds: number;
         };
         Returns: "terminal" | "retryable" | "not_captured";
       };
