@@ -149,30 +149,25 @@ async function open(
 ) {
   const { page, close } = await newPage(browser, viewport);
 
-  // Both installed before any page script runs, which is what `addInitScript` is for: the timer
-  // shim has to be in place before the bundle schedules anything, and the harness's replies have to
-  // be queued before the panel's arrival effect asks for one.
-  //
-  // Passed as **source text**, not as functions. Vitest transforms this file through Vite, and a
-  // function handed to `addInitScript` is serialised from its *transformed* source — which carries
-  // references that mean nothing in a browser. The page then throws on load and every wait hangs
-  // with no output, which is exactly how this failed. Strings cannot be rewritten.
-  await page.addInitScript({
-    content: `(() => {
-      const scale = ${TIME_SCALE};
-      const t = window.setTimeout.bind(window);
-      const i = window.setInterval.bind(window);
-      window.setTimeout = (fn, ms, ...rest) =>
-        t(fn, Math.max(0, Math.floor((ms || 0) / scale)), ...rest);
-      window.setInterval = (fn, ms, ...rest) =>
-        i(fn, Math.max(1, Math.floor((ms || 0) / scale)), ...rest);
-    })();`,
-  });
-
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>${css}</style></head>
-<body class="bg-app-bg"><main class="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col gap-8 px-4 py-10 lg:py-14">
+<body class="bg-app-bg">
+<script>
+  // First script in the document, so every timer the bundle schedules is already scaled. In the
+  // document rather than an init script, for the same reason the harness setup is: what is in the
+  // markup is provably in place before the bundle runs.
+  (() => {
+    const scale = ${TIME_SCALE};
+    const t = window.setTimeout.bind(window);
+    const i = window.setInterval.bind(window);
+    window.setTimeout = (fn, ms, ...rest) =>
+      t(fn, Math.max(0, Math.floor((ms || 0) / scale)), ...rest);
+    window.setInterval = (fn, ms, ...rest) =>
+      i(fn, Math.max(1, Math.floor((ms || 0) / scale)), ...rest);
+  })();
+</script>
+<main class="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col gap-8 px-4 py-10 lg:py-14">
 <div class="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
 <div id="panel"></div>
 <div class="rounded-2xl border border-app-border bg-app-surface p-5 text-app-text">Details form stands here.</div>
@@ -405,11 +400,17 @@ describe.each([
       },
     );
     try {
-      await page.waitForFunction(
-        () => window.identityHarness.calls.filter((c) => c.action === "start").length === 2,
-        undefined,
-        { timeout: 20_000 },
-      );
+      await page
+        .waitForFunction(
+          () => window.identityHarness.calls.filter((c) => c.action === "start").length === 2,
+          undefined,
+          { timeout: 20_000 },
+        )
+        .catch(async () => {
+          throw new Error(
+            `no resume: calls=${JSON.stringify(await calls(page))} text=${await panelText(page)}`,
+          );
+        });
       const started = await calls(page, "start");
       expect(started).toHaveLength(2);
       // Ordinary, never explicit: the resume must not convert a maybe-paid failure into a call.
