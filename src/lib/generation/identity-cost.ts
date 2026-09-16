@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  EVENT_IDENTITY_SERVICE_TIER,
   MAX_PROVIDER_ATTEMPTS_PER_CALL,
   type EventIdentityUsage,
   type ProviderResponseUsage,
@@ -243,6 +244,13 @@ export interface CostEstimate {
   exact: boolean;
   /** Attempts charged at the per-attempt maximum because they could not be priced. */
   unpricedAttempts: number;
+  /**
+   * The provider served a response on a tier this profile does not price.
+   *
+   * Surfaced rather than swallowed: the estimate stays safe by charging the maximum, but somebody
+   * needs to know the account is serving a tier the bound was not built for.
+   */
+  servedUnpricedTier: boolean;
 }
 
 /**
@@ -260,6 +268,21 @@ function priceable(usage: ProviderResponseUsage): boolean {
     typeof usage.cachedInputTokens === "number" &&
     typeof usage.cacheWriteInputTokens === "number"
   );
+}
+
+/**
+ * Whether the provider served this response on the tier the profile prices.
+ *
+ * The request pins `service_tier`, but the SDK documents the served value as possibly different —
+ * so pinning alone is half an assumption. A response served on `fast` is billed at twice standard;
+ * priced from the standard table it is recorded at half its cost with `exact: true`, and the
+ * per-attempt clamp is an order of magnitude too loose to notice. When the provider does not say,
+ * the request's pin is the best evidence there is and the response is priced normally.
+ */
+function servedOnPricedTier(usage: ProviderResponseUsage): boolean {
+  const served = usage.servedServiceTier;
+  if (served === undefined || served === null) return true;
+  return served === EVENT_IDENTITY_SERVICE_TIER;
 }
 
 /**
@@ -322,15 +345,25 @@ export function estimateIdentityCallCostUsd(
   // An unverified fallback prices nothing: there are no rates to price with, and pretending
   // otherwise is the optimistic fallback this whole section exists to refuse.
   if (!isVerified(profile)) {
-    return { usd: attempts * attemptMax, exact: false, unpricedAttempts: attempts };
+    return {
+      usd: attempts * attemptMax,
+      exact: false,
+      unpricedAttempts: attempts,
+      servedUnpricedTier: false,
+    };
   }
 
   let usd = 0;
   let pricedResponses = 0;
   let unpriceableResponses = 0;
   let clamped = false;
+  let servedUnpricedTier = false;
   for (const response of usage.responses) {
-    if (priceable(response)) {
+    if (!servedOnPricedTier(response)) {
+      // Charged the maximum, not guessed at another tier's rates: we price what we verified.
+      servedUnpricedTier = true;
+      unpriceableResponses += 1;
+    } else if (priceable(response)) {
       const raw = priceResponse(profile, response);
       // Clamped to what one attempt can legally cost. Not hiding anything — a single attempt
       // cannot exceed this, so a larger number means the provider reported impossible usage. Left
@@ -370,5 +403,6 @@ export function estimateIdentityCallCostUsd(
     // A clamped response was not priced from what the provider said, so the total is a bound.
     exact: unpriced === 0 && pricedResponses === observed && observed > 0 && !clamped,
     unpricedAttempts: unpriced,
+    servedUnpricedTier,
   };
 }

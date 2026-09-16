@@ -140,7 +140,7 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
   // the **model** check: an unpriced model refuses here whatever the caller passes. The caps,
   // ceiling and reservation in a supplied `limits` are still the caller's, so this is not a
   // guarantee about the numbers — only that production never reaches an unpriced model.
-  const model = typeof req.basis.modelConfig.model === "string" ? req.basis.modelConfig.model : "";
+  const model = req.basis.modelConfig.model;
   requireCostProfile(model, req.now);
   const limits = req.limits ?? identityLimits(model, req.now);
   const digest = basisDigest(req.basis);
@@ -367,11 +367,11 @@ const DETERMINISTIC_SQLSTATE_CLASSES = ["23", "22", "0A"];
 /**
  * How long a captured response may sit unrecoverable before it is given up on.
  *
- * Measured from capture, not counted in attempts. The sweep runs every fifteen minutes, so a
- * three-attempt rule is a forty-five-minute rule: one statement timeout, one migration holding a
+ * Measured from capture, not counted in attempts. An attempt count makes the give-up horizon a
+ * function of how often the sweep happens to run: one statement timeout, one migration holding a
  * lock, one bad grant, and every captured response in the backlog is irreversibly terminal and
- * every one of those hosts pays again for a call that already succeeded. Two days holds through an
- * outage and still releases the slot eventually.
+ * every one of those hosts pays again for a call that already succeeded. Two days is stable under
+ * any cadence and still releases the slot eventually.
  */
 export const RECOVERY_MAX_AGE_SECONDS = 48 * 60 * 60;
 

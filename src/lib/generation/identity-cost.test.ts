@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  EVENT_IDENTITY_SERVICE_TIER,
   MAX_PROVIDER_ATTEMPTS_PER_CALL,
   type ProviderResponseUsage,
 } from "@/lib/ai/openai/event-identity";
@@ -301,6 +302,44 @@ describe("estimating what one call cost", () => {
       per(1_000, GPT_5_6_SOL.longContext.output);
     expect(estimate.usd).toBeCloseTo(expected, 8);
     expect(estimate.exact).toBe(true);
+  });
+
+  it("refuses to price a response the provider served on another tier", () => {
+    // Pinning the request is half the assumption. The SDK documents the served tier as possibly
+    // different, and `fast` is twice standard — priced from the standard table that response is
+    // recorded at half its cost with `exact: true`, and the per-attempt clamp is an order of
+    // magnitude too loose to notice.
+    const estimate = estimateIdentityCallCostUsd(
+      GPT_5_6_SOL,
+      usage([response({ servedServiceTier: "fast" })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
+    );
+    expect(estimate.usd).toBe(GPT_5_6_SOL.perAttemptMaxUsd);
+    expect(estimate.exact).toBe(false);
+    expect(estimate.servedUnpricedTier).toBe(true);
+  });
+
+  it("prices normally when the provider confirms the tier we asked for", () => {
+    const estimate = estimateIdentityCallCostUsd(
+      GPT_5_6_SOL,
+      usage([response({ servedServiceTier: EVENT_IDENTITY_SERVICE_TIER })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
+    );
+    expect(estimate.usd).toBeCloseTo(STANDARD_ONE, 10);
+    expect(estimate.exact).toBe(true);
+    expect(estimate.servedUnpricedTier).toBe(false);
+  });
+
+  it("prices normally when the provider says nothing about the tier", () => {
+    // Then the request's pin is the best evidence there is, and refusing to price every response
+    // would make every call cost the maximum for no gain in truth.
+    const estimate = estimateIdentityCallCostUsd(
+      GPT_5_6_SOL,
+      usage([response({ servedServiceTier: null })]),
+      GPT_5_6_SOL.perAttemptMaxUsd,
+    );
+    expect(estimate.exact).toBe(true);
+    expect(estimate.servedUnpricedTier).toBe(false);
   });
 
   it("does NOT cost an ambiguous transient attempt at zero", () => {

@@ -657,7 +657,12 @@ export type Database = {
        * The one advisory-lock key the global-budget admission serializes on. A named function so
        * the number cannot drift between callers or collide with another subsystem's lock.
        */
-      identity_budget_lock_key: { Args: Record<string, never>; Returns: number };
+      identity_budget_lock_key: {
+        Args: Record<string, never>;
+        // `bigint` from 64 bits of md5, so it exceeds 2^53 and arrives as a string through
+        // PostgREST. Typed as it arrives rather than as a `number` that would silently round.
+        Returns: string;
+      };
       /** True for every terminal claim state. */
       identity_claim_is_terminal: {
         Args: { p_state: IdentityCallClaimState };

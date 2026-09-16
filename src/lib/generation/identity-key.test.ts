@@ -18,7 +18,7 @@ const base: IdentityCallBasis = {
   promptVersion: "event_identity_v5",
   schemaVersion: "event_identity_schema_v5",
   inputAssemblyVersion: "event_identity_input_v2",
-  modelConfig: { model: "gpt-5.6-sol", reasoningEffort: "high" },
+  modelConfig: eventIdentityModelConfig("gpt-5.6-sol", "high"),
 };
 
 describe("the EventIdentity attempt key", () => {
@@ -28,7 +28,10 @@ describe("the EventIdentity attempt key", () => {
   });
 
   it("does not depend on the order model-config keys happen to be in", () => {
-    const flipped = { ...base, modelConfig: { reasoningEffort: "high", model: "gpt-5.6-sol" } };
+    const flipped = {
+      ...base,
+      modelConfig: { ...eventIdentityModelConfig("gpt-5.6-sol", "high") },
+    };
     expect(basisDigest(flipped)).toBe(basisDigest(base));
   });
 

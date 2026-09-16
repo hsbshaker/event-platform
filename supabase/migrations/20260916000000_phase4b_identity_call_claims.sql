@@ -294,6 +294,23 @@ begin
   -- reached inside this transaction** — that happens after `claim_identity_call` has returned and
   -- `mark_identity_call_invoked` has committed separately — so a model call never holds the global
   -- lock, and a slow provider cannot block admissions.
+  -- The lock orders the admissions; READ COMMITTED is what makes the reads that follow *see* the
+  -- other claimer's committed work, because it takes a fresh snapshot per statement. Under
+  -- REPEATABLE READ or SERIALIZABLE the snapshot is fixed at the transaction's first statement, so
+  -- two claimers could serialize on the lock and still both read `reserved = 0` — the overshoot
+  -- back, silently, with the lock apparently in place and the tests still green. Asserted rather
+  -- than assumed.
+  --
+  -- This also means the function must be invoked as its own transaction, which is how PostgREST
+  -- calls it. Inside a larger transaction already holding `events`, `profiles` or `rate_limits`
+  -- row locks, taking the advisory lock afterwards could build a cycle.
+  if pg_catalog.current_setting('transaction_isolation') <> 'read committed' then
+    raise exception
+      'claim_identity_call requires READ COMMITTED; got %',
+      pg_catalog.current_setting('transaction_isolation')
+      using errcode = 'invalid_transaction_state';
+  end if;
+
   perform pg_catalog.pg_advisory_xact_lock(public.identity_budget_lock_key());
 
   select coalesce(
@@ -305,19 +322,35 @@ begin
    where r.operation = 'event_identity'
      and r.created_at >= pg_catalog.now() - (p_ceiling_window_seconds * interval '1 second');
 
-  -- In-flight claims reserve the maximum, because each may still cost every attempt its retry
-  -- policy permits.
+  -- Reserve for what might still spend, or might already have spent. Nothing else.
   --
-  -- `expired_unknown` claims with no run row are counted too, and this is not belt-and-braces: a
-  -- claim reaches that state because the provider was invoked and we never learned the outcome, so
-  -- §A.5.1 rule 2 says it must be costed at the maximum rather than at zero. It is terminal and
-  -- has no `generation_runs` row, so without this term the possibly-spent money disappears from
-  -- the ceiling the instant the claim settles — fail-open in exactly the ambiguous, expensive case
-  -- the rule exists for. Bounded to the ceiling window so it ages out with recorded spend.
+  --   * `response_captured` — the money is gone and the run row is not yet joined to this sum, so
+  --     it must be held;
+  --   * `claimed` whose lease has **not** elapsed — may still make every attempt its retry policy
+  --     permits;
+  --   * `claimed` whose lease *has* elapsed but whose `provider_invoked_at` is set — possibly paid,
+  --     and not yet settled into `expired_unknown`;
+  --   * `expired_unknown` with no run row — the provider was invoked and we never learned the
+  --     outcome, so §A.5.1 rule 2 costs it at the maximum rather than at zero. Terminal and with no
+  --     `generation_runs` row, it would otherwise drop out of both terms the instant it settled.
+  --
+  -- What is deliberately **not** reserved: a `claimed` claim whose lease elapsed with a committed
+  -- null `provider_invoked_at`. That is provably unpaid and can never spend, so holding the
+  -- maximum against it charges the project for money nobody can spend — and since expiry only
+  -- happens in the housekeeping job, which now runs once a day, such a claim would hold that
+  -- reservation for up to twenty-four hours. Ten instances dying mid-deploy would have frozen
+  -- nine hundred dollars of a ceiling nobody was spending against.
   select coalesce(count(*), 0) * p_logical_call_max_usd
     into v_reserved
     from public.event_identity_call_claims c
-   where c.state in ('claimed', 'response_captured')
+   where c.state = 'response_captured'
+      or (
+        c.state = 'claimed'
+        and (
+          c.lease_expires_at >= pg_catalog.now()
+          or c.provider_invoked_at is not null
+        )
+      )
       or (
         c.state = 'expired_unknown'
         and c.generation_run_id is null
@@ -728,12 +761,12 @@ $$;
 -- terminates now.
 --
 -- Everything else is held, and held by **elapsed time since the response was captured**, not by a
--- count of attempts. Counting attempts looks equivalent and is not: the sweep runs every fifteen
--- minutes, so three failures is forty-five minutes, and a statement timeout, a lock held by a
--- migration or a bad grant would irreversibly terminalize every captured response in the backlog
--- inside one short degradation — each of those hosts then paying again for a call that had
--- already succeeded. An age bound holds through an outage and still guarantees the slot is
--- released eventually.
+-- count of attempts. Counting attempts looks equivalent and is not: it makes the give-up horizon a
+-- function of how often the sweep happens to run, so a statement timeout, a lock held by a
+-- migration or a bad grant could irreversibly terminalize every captured response in the backlog
+-- inside one short degradation — each of those hosts then paying again for a call that had already
+-- succeeded. An age bound is stable under any cadence and still guarantees the slot is released
+-- eventually.
 -- ---------------------------------------------------------------------------
 create or replace function public.fail_identity_call_recovery(
   p_claim_id uuid,

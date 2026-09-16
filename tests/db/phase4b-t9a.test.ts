@@ -372,17 +372,83 @@ describe("the spend ceiling", () => {
     }
   });
 
-  it("serializes admission on one dedicated key, and does not hold it across a provider call", async () => {
-    // Transaction-scoped, so it is released by commit — nothing to leak and nothing to clean up.
-    // `mark_identity_call_invoked` and the provider call happen in later transactions, so a slow
-    // model call can never block another event's admission.
-    const { rows } = await db.query(`select public.identity_budget_lock_key() as key`);
-    expect(typeof rows[0].key === "string" || typeof rows[0].key === "number").toBe(true);
-    await claim("k1");
-    const { rows: held } = await db.query(
-      `select count(*)::int c from pg_locks where locktype = 'advisory'`,
+  it("actually blocks on the budget key, and releases it at commit", async () => {
+    // Proves the lock is on the admission path rather than merely present: a second connection
+    // holding the same key makes a claim wait, and `lock_timeout` turns that wait into a visible
+    // failure instead of a hang.
+    const holder = await connect();
+    const waiter = await connect();
+    try {
+      await holder.query("begin");
+      await holder.query(`select pg_advisory_xact_lock(public.identity_budget_lock_key())`);
+
+      await waiter.query("set lock_timeout = '300ms'");
+      const code = await errorCode(waiter.query(CLAIM, claimArgs("k1")));
+      expect(code).toBe("55P03");
+
+      // Released by commit — transaction-scoped, nothing to leak and nothing to clean up.
+      await holder.query("commit");
+      expect((await claim("k1", {}, waiter)).outcome).toBe("claimed");
+    } finally {
+      await holder.end();
+      await waiter.end();
+    }
+
+    // And nothing holds it afterwards. Scoped to this key, so a concurrently running suite's own
+    // advisory lock cannot make this pass or fail for an unrelated reason.
+    const { rows } = await db.query(
+      `select count(*)::int c from pg_locks
+        where locktype = 'advisory'
+          and ((classid::bigint << 32) | objid::bigint) = public.identity_budget_lock_key()`,
     );
-    expect(held[0].c).toBe(0);
+    expect(rows[0].c).toBe(0);
+  });
+
+  it("refuses to admit outside READ COMMITTED rather than silently overshooting", async () => {
+    // The lock orders the admissions; READ COMMITTED's per-statement snapshot is what makes the
+    // reads see the other claimer's committed work. Under a fixed snapshot both would serialize on
+    // the lock and still read `reserved = 0` — the overshoot back, with the lock apparently in
+    // place and the tests still green.
+    const c = await connect();
+    try {
+      await c.query("begin isolation level repeatable read");
+      const code = await errorCode(c.query(CLAIM, claimArgs("k1")));
+      expect(code).toBe("25000");
+      await c.query("rollback");
+    } finally {
+      await c.end();
+    }
+  });
+
+  it("holds no reservation for a claim that expired without ever reaching the provider", async () => {
+    // Provably unpaid: it can never spend, so reserving the maximum against it charges the project
+    // for money nobody can spend. Expiry only happens in the housekeeping job, which runs once a
+    // day, so ten instances dying mid-deploy would otherwise freeze nine hundred dollars of a
+    // ceiling nobody was spending against, for up to twenty-four hours.
+    // Probed from the same event, so the probe itself adds no reservation: `reserved_usd` is
+    // computed before the insert and the one-in-flight index refuses it afterwards.
+    const c = await claim("k1");
+    expect(Number((await claim("k2", { basis: "b2" })).reserved_usd)).toBe(30);
+
+    await db.query(
+      `update public.event_identity_call_claims set lease_expires_at = now() - interval '1 minute'
+        where id = $1`,
+      [c.claim_id],
+    );
+    expect(Number((await claim("k3", { basis: "b3" })).reserved_usd)).toBe(0);
+  });
+
+  it("still reserves for an expired claim that had already reached the provider", async () => {
+    // Possibly paid, and not yet settled into `expired_unknown`. Dropping it would be fail-open in
+    // the ambiguous case the reservation exists for.
+    const c = await claim("k1");
+    await db.query(`select public.mark_identity_call_invoked($1)`, [c.claim_id]);
+    await db.query(
+      `update public.event_identity_call_claims set lease_expires_at = now() - interval '1 minute'
+        where id = $1`,
+      [c.claim_id],
+    );
+    expect(Number((await claim("k2", { basis: "b2" })).reserved_usd)).toBe(30);
   });
 
   it("ignores spend outside the ceiling window", async () => {

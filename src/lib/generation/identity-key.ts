@@ -2,6 +2,8 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import type { EventIdentityModelConfig } from "@/lib/ai/openai/event-identity";
+
 /**
  * The deterministic identity of one EventIdentity attempt.
  *
@@ -27,11 +29,13 @@ export interface IdentityCallBasis {
    * Model configuration that changes the request without changing the three versions: the model
    * id, the reasoning effort, the service tier and whether the provider stores the response.
    *
-   * Build it with `eventIdentityModelConfig()` rather than by hand, so a basis cannot omit an
-   * option the request actually sends. Its presence is why a rolling deploy mid-flight produces a
-   * different key — which the one-in-flight guard, not the key, is what contains (§A.5 row 7b).
+   * Typed, not an open record: every option the request sends must be present, so a caller
+   * cannot hand-roll a basis that omits the service tier and silently stop distinguishing a call
+   * billed at twice the rate. Build it with `eventIdentityModelConfig()`. Its presence is why a
+   * rolling deploy mid-flight produces a different key — which the one-in-flight guard, not the
+   * key, is what contains (§A.5 row 7b).
    */
-  modelConfig: Record<string, string | number | boolean>;
+  modelConfig: EventIdentityModelConfig;
 }
 
 /**

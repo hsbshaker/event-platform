@@ -166,6 +166,16 @@ export interface ProviderResponseUsage {
   outputTokens?: number;
   /** A breakdown of `outputTokens`, kept as telemetry. Counts only — never content. */
   reasoningTokens?: number;
+  /**
+   * The tier the provider says it **served** this response on.
+   *
+   * Not the same question as the tier we asked for: the SDK documents this as "may be different
+   * from the value set in the parameter". Pinning the request is only half the assumption the cost
+   * profile rests on — a response served on `fast` costs twice standard, and priced from the
+   * standard table it would be recorded at half its real cost and labelled exact. Undefined when
+   * the provider does not say.
+   */
+  servedServiceTier?: string | null;
 }
 
 export interface EventIdentityUsage {
@@ -475,6 +485,7 @@ export async function generateEventIdentity(
       cacheWriteInputTokens: details?.cache_write_tokens,
       outputTokens: response.usage?.output_tokens,
       reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens,
+      servedServiceTier: response.service_tier,
     });
     add("input", response.usage?.input_tokens);
     add("cached", details?.cached_tokens);

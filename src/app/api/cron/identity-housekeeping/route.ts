@@ -26,9 +26,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *   3. **purge** — evidence older than the retention window is dropped, keeping the run row, its
  *      metrics, and every run a non-terminal claim still needs.
  *
- * Scheduled every fifteen minutes in `vercel.json`, not daily: the claim lease is minutes, so a
- * daily cadence would leave an event unable to generate for up to a day after one crash. It is
- * also safe to call by hand, and idempotent — every step is a no-op when there is nothing to do.
+ * **A once-daily backstop, not an active host's recovery path.** The hosting plan this project is
+ * on caps cron frequency at once per day and rejects anything more frequent at deploy time, with
+ * per-hour precision — so a waiting host must never be waiting on this. That is why recovery is
+ * request-driven (`docs/phase-4b-plan.md §A.5`, "Who recovers, and when"): an orchestration,
+ * re-entry or status request expires this event's due claims and completes a captured response
+ * inline, before it considers any new spend. This job exists for the other case — work nobody
+ * comes back to.
+ *
+ * Safe to call by hand, and idempotent: every step is a no-op when there is nothing to do.
  * Requires `CRON_SECRET`, so it is not a public endpoint.
  */
 export const runtime = "nodejs";

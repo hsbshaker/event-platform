@@ -21,6 +21,14 @@ import {
 import { GPT_5_6_SOL } from "./identity-cost";
 
 const MODEL = GPT_5_6_SOL.model;
+/**
+ * A fixed instant inside the profile's re-verification window.
+ *
+ * Without it, every production-mode test here starts throwing "needed re-verification after …"
+ * the day the profile goes stale — failing in the *ceiling* tests with a misleading message. The
+ * freshness deadline is enforced by the tests that are actually about it.
+ */
+const IN_WINDOW = new Date(`${GPT_5_6_SOL.reverifyAfter}T00:00:00Z`);
 
 /**
  * Acceptance criteria: N/A — test-only. `docs/phase-4b-plan.md §A.5`; `spec.md §10`, `§32 #41`.
@@ -58,12 +66,12 @@ describe("the claim lease", () => {
 
   it("leaves margin over the floor by default", () => {
     expect(DEFAULT_LEASE_SECONDS).toBeGreaterThan(LEASE_FLOOR_SECONDS);
-    expect(identityLimits(MODEL).leaseSeconds).toBe(DEFAULT_LEASE_SECONDS);
+    expect(identityLimits(MODEL, IN_WINDOW).leaseSeconds).toBe(DEFAULT_LEASE_SECONDS);
   });
 
   it("refuses a configured lease below the floor", () => {
     process.env.IDENTITY_CLAIM_LEASE_SECONDS = String(LEASE_FLOOR_SECONDS - 1);
-    expect(() => identityLimits(MODEL)).toThrow(/at least/);
+    expect(() => identityLimits(MODEL, IN_WINDOW)).toThrow(/at least/);
   });
 });
 
@@ -71,30 +79,30 @@ describe("the limits", () => {
   it("keys the event cap at the event and the account cap at the acting user", () => {
     // `spec.md §6`: limits apply at both levels regardless of whether the caller is the owner or
     // a co-host, and a co-host gets no independent pool for the same event.
-    const limits = identityLimits(MODEL);
+    const limits = identityLimits(MODEL, IN_WINDOW);
     expect(limits.eventCap.windowSeconds).toBe(86_400);
     expect(limits.accountCap.windowSeconds).toBe(86_400);
     expect(limits.accountRate.windowSeconds).toBeLessThan(limits.accountCap.windowSeconds);
   });
 
   it("reserves the logical-call maximum per in-flight claim", () => {
-    expect(identityLimits(MODEL).logicalCallMaxUsd).toBeGreaterThan(0);
+    expect(identityLimits(MODEL, IN_WINDOW).logicalCallMaxUsd).toBeGreaterThan(0);
   });
 
   it.each(["0", "-2", "1.5"])("refuses the unusable cap %s", (raw) => {
     process.env.IDENTITY_EVENT_DAILY_MAX = raw;
-    expect(() => identityLimits(MODEL)).toThrow(/positive integer/);
+    expect(() => identityLimits(MODEL, IN_WINDOW)).toThrow(/positive integer/);
   });
 
   it("refuses a warn fraction that could never fire before the refusal", () => {
     process.env.IDENTITY_CEILING_WARN_FRACTION = "1";
-    expect(() => identityLimits(MODEL)).toThrow(/below 1/);
+    expect(() => identityLimits(MODEL, IN_WINDOW)).toThrow(/below 1/);
   });
 });
 
 describe("the production global ceiling", () => {
   it("uses a development default outside production", () => {
-    expect(identityLimits(MODEL).ceiling.usd).toBe(DEV_CEILING_USD);
+    expect(identityLimits(MODEL, IN_WINDOW).ceiling.usd).toBe(DEV_CEILING_USD);
   });
 
   it("refuses to run in production without an explicit value", () => {
@@ -102,9 +110,9 @@ describe("the production global ceiling", () => {
     // number a developer picked for local convenience is that decision being skipped, not made.
     vi.stubEnv("NODE_ENV", "production");
     try {
-      expect(() => identityLimits(MODEL)).toThrow(/IDENTITY_CEILING_USD is not set/);
+      expect(() => identityLimits(MODEL, IN_WINDOW)).toThrow(/IDENTITY_CEILING_USD is not set/);
       vi.stubEnv("IDENTITY_CEILING_USD", "125.5");
-      expect(identityLimits(MODEL).ceiling.usd).toBe(125.5);
+      expect(identityLimits(MODEL, IN_WINDOW).ceiling.usd).toBe(125.5);
     } finally {
       vi.unstubAllEnvs();
     }
@@ -114,7 +122,7 @@ describe("the production global ceiling", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("IDENTITY_CEILING_USD", raw);
     try {
-      expect(() => identityLimits(MODEL)).toThrow();
+      expect(() => identityLimits(MODEL, IN_WINDOW)).toThrow();
     } finally {
       vi.unstubAllEnvs();
     }
@@ -141,7 +149,7 @@ describe("what a refused caller is told", () => {
 
 describe("the ceiling alert", () => {
   it("fires before the spend lands, counting the reservation this call would add", () => {
-    const limits = identityLimits(MODEL);
+    const limits = identityLimits(MODEL, IN_WINDOW);
     const nearly = limits.ceiling.usd * limits.warnFraction - limits.logicalCallMaxUsd;
     expect(crossesWarnThreshold(limits, nearly, 0)).toBe(true);
     expect(crossesWarnThreshold(limits, 0, 0)).toBe(false);
