@@ -45,11 +45,14 @@ const harness: Harness = {
 };
 
 if (typeof window !== "undefined") {
-  // Whatever the test queued before this bundle ran. Installed ahead of the panel's own arrival
-  // effect, so the very first call it makes already has an answer waiting.
-  const seeded = (window as unknown as { identityHarnessSetup?: Partial<Harness> })
-    .identityHarnessSetup;
-  if (seeded) Object.assign(harness, seeded);
+  // Whatever the test queued, read from the document itself.
+  //
+  // The same mechanism the initial view uses, and for the same reason: it is in the markup before
+  // this script runs, so the panel's arrival effect — which fires the instant it mounts — already
+  // has an answer waiting. An earlier version seeded this from a Playwright init script and the
+  // queue was reliably empty by the time the first call arrived.
+  const seed = document.getElementById("harness-setup")?.textContent;
+  if (seed) Object.assign(harness, JSON.parse(seed) as Partial<Harness>);
   window.identityHarness = harness;
 }
 

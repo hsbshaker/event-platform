@@ -1410,6 +1410,37 @@ Rules:
 - no floating-label pattern;
 - minimum comfortable touch height.
 
+## 10.5a `ChoiceGroup`
+
+Canonical single-choice control: a real radio group, one visible label per option.
+
+Separate from `Field` because the two are labelled differently — a group of radios is named by its
+`<legend>`, which `Field`'s `<label for>` cannot provide.
+
+Built on native `<input type="radio">`. Arrow-key traversal, roving focus, the one-of-many
+semantics and the group's accessible name all come from the platform; a div-with-ARIA
+reimplementation is how a control ends up keyboard-reachable in a test and unusable with a screen
+reader.
+
+Supports:
+- a visible `<legend>` naming the group;
+- exactly one selected value at a time;
+- an optional hint, associated with the group;
+- an inline group-level error;
+- a disabled state;
+- an optional quiet note under an individual option.
+
+Rules:
+- native keyboard traversal, never re-implemented;
+- visible focus on the option row, not a hairline on the control alone;
+- interactive option targets at least `44 × 44px` (§7.6);
+- semantic app tokens only (§23.2) — no new colour, radius, shadow, spacing step or type size.
+
+Use for a genuine single choice, such as a clarification question's offered options.
+
+Do not use it as a generic card-selection or template-picking primitive. Concept selection is
+`ConceptCard` (§10.14), and a template gallery is forbidden outright (`spec.md §32 #5`).
+
 ## 10.6 `Sheet`
 
 Mobile contextual editor.

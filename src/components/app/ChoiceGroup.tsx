@@ -16,8 +16,7 @@ import { cx } from "./cx";
  * reimplementation of that is how a surface ends up keyboard-reachable in a test and unusable in
  * a screen reader.
  *
- * Not yet an entry in `docs/design-system.md §10` — adding one is a canonical change under
- * `CLAUDE.md §12` and needs explicit approval, so it is proposed rather than assumed.
+ * Canonical: `docs/design-system.md §10.5a`.
  */
 
 export interface ChoiceOption {

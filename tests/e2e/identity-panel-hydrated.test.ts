@@ -168,9 +168,6 @@ async function open(
         i(fn, Math.max(1, Math.floor((ms || 0) / scale)), ...rest);
     })();`,
   });
-  await page.addInitScript({
-    content: `window.identityHarnessSetup = ${JSON.stringify(setup)};`,
-  });
 
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -181,6 +178,7 @@ async function open(
 <div class="rounded-2xl border border-app-border bg-app-surface p-5 text-app-text">Details form stands here.</div>
 </div></main>
 <script type="application/json" id="initial">${JSON.stringify(initial)}</script>
+<script type="application/json" id="harness-setup">${JSON.stringify(setup)}</script>
 <script>${bundle}</script>
 </body></html>`;
   const failures: string[] = [];
@@ -270,7 +268,7 @@ describe.each([
       fallback: { answer: READY, read: READY },
     });
     try {
-      await page.getByRole("radio", { name: /it's a surprise/i }).check();
+      await page.locator('input[type="radio"]').nth(1).check();
       await page.getByRole("button", { name: /continue/i }).click();
       await page.waitForFunction(() =>
         /ready/i.test(document.querySelector("h2")?.textContent ?? ""),
@@ -304,11 +302,11 @@ describe.each([
       expect(await page.locator("legend").innerText()).toMatch(/warm and golden|feeling lean/i);
       expect(await page.locator("[role=dialog]").count()).toBe(0);
       // The model's defer, and no `Skip` of ours. No typed channel either.
-      expect(await page.getByRole("radio", { name: "You choose" }).count()).toBe(1);
+      expect(await page.locator('input[value="You choose"]').count()).toBe(1);
       expect(await panelText(page)).not.toMatch(/\bskip\b/i);
       expect(await page.locator("textarea").count()).toBe(0);
 
-      await page.getByRole("radio", { name: "You choose" }).check();
+      await page.locator('input[value="You choose"]').check();
       await page.getByRole("button", { name: /send this/i }).click();
       await page.waitForFunction(() =>
         window.identityHarness.calls.some((c) => c.action === "answer"),
@@ -340,13 +338,12 @@ describe.each([
     }
 
     const { page, close } = await open(RETRY, viewport, {
+      // The arrival start resolves still-blocked, which is what an ordinary resume after a
+      // terminal failure does: it spends nothing and reports the same state.
       queue: { start: [RETRY] },
       fallback: { start: RUNNING, read: RUNNING },
-      hold: { start: true },
     });
     try {
-      // The arrival start resolves still-blocked, which is what a terminal failure does.
-      await page.evaluate(() => window.identityHarness.release());
       await page.waitForSelector("button:has-text('Try again')");
 
       const retry = page.getByRole("button", { name: /try again/i });

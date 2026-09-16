@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   app:
-    name: Lint, typecheck, unit tests, build
+    name: Lint, typecheck, unit, component, build, browser
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
@@ -28,7 +28,15 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:component
+      # Before the browser suite, and not only as its own check: the browser gate measures the
+      # stylesheet this build emits, and the hydrated harness is bundled from the same source.
       - run: npm run build
+      # The interaction gate. Chromium comes from the Playwright package this repository already
+      # depends on — installed here, never downloaded during a test run — and the harness resolves
+      # it through `playwright-core` rather than a machine-specific path.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
 
   db:
     name: Migrations and RLS
