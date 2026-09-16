@@ -29,8 +29,8 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: userFrom }),
 }));
 
-vi.mock("@/lib/auth/session", () => ({
-  requireUser: async () => ({ id: "user-1" }),
+vi.mock("@/lib/auth/event-access", () => ({
+  requireEventAccess: async () => ({ user: { id: "user-1" }, role: "owner" }),
 }));
 
 vi.mock("@/lib/generation/identity-orchestrator", async (importOriginal) => {
@@ -89,8 +89,8 @@ beforeEach(() => {
     if (table === "event_identity_revisions") return reader([REVISION]);
     if (table === "clarification_answers") {
       return {
-        insert: (row: Record<string, unknown>) => {
-          inserted.push(row);
+        insert: (rows: Record<string, unknown>[]) => {
+          inserted.push(...rows);
           return Promise.resolve({ error: null });
         },
       };
@@ -107,8 +107,7 @@ describe("a clarification answer is written as the host", () => {
     await submitClarificationAnswer({
       eventId: EVENT,
       revision: 1,
-      questionIndex: 0,
-      selectedOptionLabel: "No, it's a surprise",
+      answers: [{ questionIndex: 0, selectedOptionLabel: "No, it's a surprise" }],
     });
 
     expect(inserted).toHaveLength(1);
@@ -129,8 +128,7 @@ describe("a clarification answer is written as the host", () => {
     await submitClarificationAnswer({
       eventId: EVENT,
       revision: 1,
-      questionIndex: 0,
-      selectedOptionLabel: "Yes, she knows",
+      answers: [{ questionIndex: 0, selectedOptionLabel: "Yes, she knows" }],
     });
 
     // A tampered payload cannot describe a question the host was never asked: the text and the
@@ -143,8 +141,7 @@ describe("a clarification answer is written as the host", () => {
     await submitClarificationAnswer({
       eventId: EVENT,
       revision: 1,
-      questionIndex: 0,
-      selectedOptionLabel: "Yes, she knows",
+      answers: [{ questionIndex: 0, selectedOptionLabel: "Yes, she knows" }],
     });
     // Route B offers no defer, so the honest path never claims one — the database refuses it too.
     expect(inserted[0].is_defer).toBe(false);
@@ -154,8 +151,7 @@ describe("a clarification answer is written as the host", () => {
     await submitClarificationAnswer({
       eventId: EVENT,
       revision: 1,
-      questionIndex: 0,
-      selectedOptionLabel: "Something the model never said",
+      answers: [{ questionIndex: 0, selectedOptionLabel: "Something the model never said" }],
     });
 
     expect(inserted).toHaveLength(0);
@@ -164,7 +160,11 @@ describe("a clarification answer is written as the host", () => {
   });
 
   it("answers a stale tab with the current state instead of writing to the wrong round", async () => {
-    await submitClarificationAnswer({ eventId: EVENT, revision: 99, questionIndex: 0 });
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 99,
+      answers: [{ questionIndex: 0 }],
+    });
 
     expect(inserted).toHaveLength(0);
     expect(readEventIdentity).toHaveBeenCalled();
@@ -179,8 +179,7 @@ describe("a clarification answer is written as the host", () => {
     const view = await submitClarificationAnswer({
       eventId: EVENT,
       revision: 1,
-      questionIndex: 0,
-      selectedOptionLabel: "Yes, she knows",
+      answers: [{ questionIndex: 0, selectedOptionLabel: "Yes, she knows" }],
     });
 
     // One answer per question is the invariant; a second submission converges on it and the host
@@ -193,8 +192,7 @@ describe("a clarification answer is written as the host", () => {
     await submitClarificationAnswer({
       eventId: EVENT,
       revision: 1,
-      questionIndex: 0,
-      selectedOptionLabel: "Yes, she knows",
+      answers: [{ questionIndex: 0, selectedOptionLabel: "Yes, she knows" }],
     });
     // A new answer is a new basis, so the rerun is a legitimately new round — through T10, not
     // through anything this module decides.
@@ -243,5 +241,146 @@ describe("the model's own rationale never leaves the server", () => {
     expect(JSON.stringify(view)).not.toContain(QUESTION.whyItMatters);
     // The revision **id** is a server concern; the round number is what an answer is checked on.
     expect(view).not.toHaveProperty("identityRevisionId");
+  });
+});
+
+describe("Route B takes a supported choice and nothing else", () => {
+  it("refuses free text on a boundary question", async () => {
+    // The check constraint is satisfied by either field, so the database would take this. The
+    // refusal has to be here — which is also where "a tampered payload cannot describe a question
+    // the host was never asked" has to be made good. `spec.md §7.6b #1a` asks the host to state a
+    // boundary they can affirm, not to write an essay the brief then has to interpret.
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 1,
+      answers: [{ questionIndex: 0, freeText: "maybe, I'll ask her" }],
+    });
+
+    expect(inserted).toHaveLength(0);
+    expect(readEventIdentity).toHaveBeenCalled();
+  });
+
+  it("refuses a boundary answer that chose nothing", async () => {
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 1,
+      answers: [{ questionIndex: 0 }],
+    });
+    expect(inserted).toHaveLength(0);
+  });
+});
+
+describe("free text is bounded", () => {
+  const CREATIVE_REVISION = {
+    id: "revision-2",
+    revision: 2,
+    result: {
+      clarification: {
+        needed: true,
+        questions: [
+          {
+            kind: "creative",
+            question: "Warmer or cooler?",
+            whyItMatters: "It changes the whole palette.",
+            options: [
+              { label: "Warmer", isDefer: false },
+              { label: "You choose", isDefer: true },
+            ],
+          },
+        ],
+      },
+    },
+  };
+
+  beforeEach(() => {
+    userFrom.mockImplementation((table: string) => {
+      if (table === "event_identity_revisions") return reader([CREATIVE_REVISION]);
+      return {
+        insert: (rows: Record<string, unknown>[]) => {
+          inserted.push(...rows);
+          return Promise.resolve({ error: null });
+        },
+      };
+    });
+  });
+
+  it("refuses text longer than the prompt's own limit", async () => {
+    const { MAX_CLARIFICATION_FREE_TEXT } = await import("@/lib/generation/identity-view");
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 2,
+      answers: [{ questionIndex: 0, freeText: "x".repeat(MAX_CLARIFICATION_FREE_TEXT + 1) }],
+    });
+
+    // Unbounded free text is an unbounded model request, and a request that fails or is truncated
+    // is still charged at the per-attempt maximum.
+    expect(inserted).toHaveLength(0);
+  });
+
+  it("keeps text within the limit exactly as the host wrote it", async () => {
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 2,
+      answers: [{ questionIndex: 0, freeText: "  nothing pink, please  " }],
+    });
+
+    // Provenance-bearing input: the assembly renders it verbatim, so nothing here trims it.
+    expect(inserted[0].free_text).toBe("  nothing pink, please  ");
+  });
+});
+
+describe("a round is answered in one submission", () => {
+  const THREE = {
+    id: "revision-3",
+    revision: 3,
+    result: {
+      clarification: {
+        needed: true,
+        questions: [0, 1, 2].map((i) => ({
+          kind: "creative",
+          question: `Question ${i}?`,
+          whyItMatters: "It changes the direction.",
+          options: [
+            { label: `A${i}`, isDefer: false },
+            { label: "You choose", isDefer: true },
+          ],
+        })),
+      },
+    },
+  };
+
+  it("writes every answer and starts exactly one rerun", async () => {
+    userFrom.mockImplementation((table: string) => {
+      if (table === "event_identity_revisions") return reader([THREE]);
+      return {
+        insert: (rows: Record<string, unknown>[]) => {
+          inserted.push(...rows);
+          return Promise.resolve({ error: null });
+        },
+      };
+    });
+
+    await submitClarificationAnswer({
+      eventId: EVENT,
+      revision: 3,
+      answers: [0, 1, 2].map((i) => ({ questionIndex: i, selectedOptionLabel: `A${i}` })),
+    });
+
+    // `spec.md §7.6b #1b` allows up to three creative questions in one response. A rerun is keyed
+    // to the whole answer set, so one call per answer would be three paid calls and would replace
+    // the questions the first rerun had not yet been told about.
+    expect(inserted.map((row) => row.question_index)).toEqual([0, 1, 2]);
+    expect(startEventIdentity).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the free-text bound is the prompt's own", () => {
+  it("does not drift from the limit it was derived from", async () => {
+    const { MAX_PROMPT_LENGTH } = await import("@/lib/drafts/store");
+    const { MAX_CLARIFICATION_FREE_TEXT } = await import("@/lib/generation/identity-view");
+    // Same kind of thing — the host's own words, going to the same model — so one number, pinned
+    // rather than copied. `identity-view.ts` cannot import the draft store (it is not server-only
+    // and the store is), which is why the constant is duplicated and this test exists.
+    expect(MAX_CLARIFICATION_FREE_TEXT).toBe(MAX_PROMPT_LENGTH);
   });
 });

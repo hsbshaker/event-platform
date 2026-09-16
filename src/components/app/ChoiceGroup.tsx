@@ -57,6 +57,10 @@ export function ChoiceGroup({
 
   return (
     <fieldset
+      // `radiogroup`, so `aria-invalid` is valid here: it is not permitted on a fieldset's
+      // implicit `group` role, and an attribute assistive tech ignores is worse than none —
+      // it reads as coverage.
+      role="radiogroup"
       className={cx("flex flex-col gap-3 border-0 p-0", className)}
       aria-describedby={describedBy}
       aria-invalid={error ? true : undefined}
@@ -87,7 +91,7 @@ export function ChoiceGroup({
               value={option.value}
               checked={value === option.value}
               onChange={() => onChange(option.value)}
-              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--app-action)]"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-app-action"
             />
             <span className="flex flex-col gap-0.5">
               <span className="text-body-md text-app-text">{option.label}</span>

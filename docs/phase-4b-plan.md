@@ -781,9 +781,10 @@ safe to read by someone who should not learn how close the project is to its cei
 identity, because §A.8 is explicit that "the latest revision is provisional" and "the event has a
 consumable identity" are independent facts and collapsing them is how a surface and a downstream
 stage come to disagree. Beside them, the latest revision's **unanswered** questions, whenever
-it has any — not only while blocking, because `spec.md §7.6b #4` says a Route A question "stays open
-and answerable" while gating nothing, and a contract that surfaced questions only in
-`clarification_required` would make that unimplementable. The state says whether the event is
+it has any — not only while blocking. `spec.md §7.6b` makes Route A "Non-blocking", and §C above
+records what follows: the question "stays open and answerable; never a blocker, never a retry
+trigger". A contract that surfaced questions only in `clarification_required` would make that
+unimplementable. The state says whether the event is
 waiting on the host; the questions say what there is to answer. `temporarily_unavailable` carries
 the one frozen sentence. Nothing else leaves.
 

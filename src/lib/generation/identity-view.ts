@@ -56,3 +56,38 @@ export interface IdentityView {
   /** The frozen, reason-free sentence. `temporarily_unavailable` only. */
   message?: string;
 }
+
+/**
+ * The longest free text a clarification answer may carry.
+ *
+ * Bounded for the same reason `events.prompt` is: it is rendered verbatim into the model input, so
+ * an unbounded field is an unbounded request — and a request that fails or is truncated is still
+ * charged at the per-attempt maximum. The prompt's own limit rather than a second invented number,
+ * because it is the same kind of thing: the host's own words, going to the same model.
+ *
+ * Here rather than beside the server action because a `"use server"` module may export only async
+ * functions.
+ */
+export const MAX_CLARIFICATION_FREE_TEXT = 4_000;
+
+/** Pinned to `events.prompt`'s own limit by a test, so the two cannot drift apart silently. */
+
+export interface ClarificationAnswer {
+  questionIndex: number;
+  selectedOptionLabel?: string | null;
+  freeText?: string | null;
+}
+
+export interface ClarificationAnswerInput {
+  eventId: string;
+  /** The round the browser was showing. A stale tab answers nothing. */
+  revision: number;
+  /**
+   * Every open question of that round, answered together.
+   *
+   * One submission per **round**, not per question. `spec.md §7.6b #1b` allows up to three creative
+   * questions in one response, and a rerun is keyed to the whole answer set — so answering them one
+   * at a time would buy one paid call per answer and lose the questions the first rerun replaced.
+   */
+  answers: ClarificationAnswer[];
+}

@@ -68,7 +68,7 @@ function documentFor(view: IdentityView, css: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>${css}</style></head>
 <body class="bg-app-bg"><main class="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col gap-8 px-4 py-10 lg:py-14">
-<div class="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">${markup}
+<div class="${PAGE_GRID}">${markup}
 <div class="rounded-2xl border border-app-border bg-app-surface p-5">Details form stands here.</div>
 </div></main></body></html>`;
 }
@@ -90,6 +90,14 @@ const BOUNDARY: IdentityView = {
     },
   ],
 };
+
+/**
+ * The wrapper the page puts the panel in.
+ *
+ * Copied here, so it is checked against `page.tsx` below rather than quietly drifting: a test that
+ * lays out its own grid proves its own grid.
+ */
+const PAGE_GRID = "grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start";
 
 const CREATIVE: IdentityView = {
   state: "ready",
@@ -141,7 +149,7 @@ describe.each([
   it("shows a boundary question without pushing the page sideways", async () => {
     const { page, close } = await open(BOUNDARY, viewport);
     try {
-      expect(await page.locator("h2").innerText()).toMatch(/one question before we start/i);
+      expect(await page.locator("h2").innerText()).toMatch(/shouldn.t decide for you/i);
       expect(await page.locator("legend").innerText()).toMatch(/is this a surprise/i);
       expect(await hasHorizontalScroll(page)).toBe(false);
     } finally {
@@ -193,6 +201,32 @@ describe.each([
     }
   });
 
+  it("keeps the live region in the accessibility tree and out of the layout", async () => {
+    const { page, close } = await open(BOUNDARY, viewport);
+    try {
+      const region = await page.evaluate(() => {
+        const node = document.querySelector('[aria-live="polite"]') as HTMLElement | null;
+        if (!node) return null;
+        const style = getComputedStyle(node);
+        const box = node.getBoundingClientRect();
+        return {
+          text: node.textContent,
+          display: style.display,
+          visibility: style.visibility,
+          area: box.width * box.height,
+        };
+      });
+      // Announced, not drawn: `display: none` or `visibility: hidden` would take it out of the
+      // accessibility tree too, so the utility has to hide it by size and clipping instead.
+      expect(region?.text?.length ?? 0).toBeGreaterThan(0);
+      expect(region?.display).not.toBe("none");
+      expect(region?.visibility).not.toBe("hidden");
+      expect(region?.area ?? 999).toBeLessThan(10);
+    } finally {
+      await close();
+    }
+  });
+
   it("names its submit control for a screen reader", async () => {
     const { page, close } = await open(BOUNDARY, viewport);
     try {
@@ -229,6 +263,17 @@ describe.each([
     } finally {
       await close();
     }
+  });
+});
+
+describe("the document under test is the page's own layout", () => {
+  it("uses the grid `page.tsx` actually renders", () => {
+    // Without this the desktop assertion below measures a layout that exists only in this file.
+    const page = readFileSync(
+      path.join(ROOT, "src", "app", "events", "[id]", "create", "page.tsx"),
+      "utf8",
+    );
+    expect(page).toContain(PAGE_GRID);
   });
 });
 

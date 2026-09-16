@@ -3,14 +3,19 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
-import { requireUser } from "@/lib/auth/session";
+import { requireEventAccess } from "@/lib/auth/event-access";
 import { IdentityConfigurationError } from "@/lib/generation/identity-spend";
 import {
   readEventIdentity,
   startEventIdentity,
   type IdentityOrchestrationResult,
 } from "@/lib/generation/identity-orchestrator";
-import type { IdentityView, IdentityViewQuestion } from "@/lib/generation/identity-view";
+import {
+  MAX_CLARIFICATION_FREE_TEXT,
+  type ClarificationAnswerInput,
+  type IdentityView,
+  type IdentityViewQuestion,
+} from "@/lib/generation/identity-view";
 
 /**
  * T11's server boundary: start, read, answer, retry — and nothing else.
@@ -48,6 +53,13 @@ function toView(result: IdentityOrchestrationResult): IdentityView {
  * The diagnosis stays server-side, where an operator can see it; the host gets a calm, generic
  * sentence and no invitation to keep hammering.
  */
+/**
+ * `hasAuthoritativeIdentity: false` here means *unknown*, not *absent*: the read that would have
+ * settled it is the one that failed. Reported conservatively, and never used to withdraw something
+ * the surface was already showing — the panel keeps its previous view rather than replacing it.
+ */
+const SERVICE_ERROR: IdentityView = { state: "service_error", hasAuthoritativeIdentity: false };
+
 async function guarded(run: () => Promise<IdentityOrchestrationResult>): Promise<IdentityView> {
   try {
     return toView(await run());
@@ -55,10 +67,10 @@ async function guarded(run: () => Promise<IdentityOrchestrationResult>): Promise
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) throw error;
     if (error instanceof IdentityConfigurationError) {
       console.error("event identity: refused by configuration", error);
-      return { state: "service_error", hasAuthoritativeIdentity: false };
+      return SERVICE_ERROR;
     }
     console.error("event identity: unexpected failure", error);
-    return { state: "service_error", hasAuthoritativeIdentity: false };
+    return SERVICE_ERROR;
   }
 }
 
@@ -85,15 +97,6 @@ export async function readEventIdentityForEvent(eventId: string): Promise<Identi
   return guarded(() => readEventIdentity(createAdminClient(), eventId));
 }
 
-export interface ClarificationAnswerInput {
-  eventId: string;
-  /** The round the browser was showing. A stale tab answers nothing. */
-  revision: number;
-  questionIndex: number;
-  selectedOptionLabel?: string | null;
-  freeText?: string | null;
-}
-
 /**
  * Persist one clarification answer, then let the canonical path decide what happens next.
  *
@@ -111,7 +114,10 @@ export interface ClarificationAnswerInput {
 export async function submitClarificationAnswer(
   input: ClarificationAnswerInput,
 ): Promise<IdentityView> {
-  const user = await requireUser();
+  // The capability, not merely a session: `spec.md §25` disables AI generation after publish, and
+  // checking that only in the start below would persist an answer and then refuse the rerun —
+  // telling the host the save failed when it had not.
+  const access = await requireEventAccess(input.eventId, "generate_event_identity");
   const supabase = await createClient();
 
   // Read through the caller's session: a non-member sees no revision and gets the same answer as
@@ -132,37 +138,60 @@ export async function submitClarificationAnswer(
 
   const questions = (latest.result as { clarification?: { questions?: unknown[] } } | null)
     ?.clarification?.questions;
-  const question = Array.isArray(questions) ? questions[input.questionIndex] : undefined;
-  if (!question || typeof question !== "object") return readEventIdentityForEvent(input.eventId);
-  const asked = question as {
-    kind: "creative" | "boundary";
-    question: string;
-    options: { label: string; isDefer: boolean }[];
-  };
+  if (!Array.isArray(questions) || input.answers.length === 0) {
+    return readEventIdentityForEvent(input.eventId);
+  }
 
-  const selected = input.selectedOptionLabel ?? null;
-  const chosen = selected === null ? null : asked.options.find((o) => o.label === selected);
-  if (selected !== null && !chosen) return readEventIdentityForEvent(input.eventId);
+  const rows = [];
+  for (const answer of input.answers) {
+    const question = questions[answer.questionIndex];
+    if (!question || typeof question !== "object") return readEventIdentityForEvent(input.eventId);
+    const asked = question as {
+      kind: "creative" | "boundary";
+      question: string;
+      options: { label: string; isDefer: boolean }[];
+    };
 
-  const { error } = await supabase.from("clarification_answers").insert({
-    event_id: input.eventId,
-    identity_revision_id: latest.id,
-    question_index: input.questionIndex,
-    round: latest.revision,
-    kind: asked.kind,
-    question_text: asked.question,
-    options: asked.options,
-    selected_option_label: selected,
-    free_text: input.freeText ?? null,
-    // The defer is the question's own property, not the browser's claim: a boundary question has
-    // no defer option and the database refuses one, but the honest path must not offer it either.
-    is_defer: chosen?.isDefer ?? false,
-    answered_by: user.id,
-  });
+    const selected = answer.selectedOptionLabel ?? null;
+    const chosen = selected === null ? null : asked.options.find((o) => o.label === selected);
+    if (selected !== null && !chosen) return readEventIdentityForEvent(input.eventId);
+
+    // Route B takes a supported choice and nothing else. `spec.md §7.6b #1a` asks the host to
+    // state a boundary they can legitimately affirm; free text there is an unsupported answer to a
+    // question whose whole point is that the position must be settled explicitly. The database
+    // would accept it — the check constraint is satisfied by either field — so the refusal has to
+    // be here, which is also where the claim "a tampered payload cannot describe a question the
+    // host was never asked" has to be made good.
+    const freeText = answer.freeText ?? null;
+    if (asked.kind === "boundary" && (freeText !== null || chosen === null)) {
+      return readEventIdentityForEvent(input.eventId);
+    }
+    if (freeText !== null && freeText.length > MAX_CLARIFICATION_FREE_TEXT) {
+      return readEventIdentityForEvent(input.eventId);
+    }
+
+    rows.push({
+      event_id: input.eventId,
+      identity_revision_id: latest.id,
+      question_index: answer.questionIndex,
+      round: latest.revision,
+      kind: asked.kind,
+      question_text: asked.question,
+      options: asked.options,
+      selected_option_label: selected,
+      free_text: freeText,
+      // The defer is the question's own property, not the browser's claim: a boundary question has
+      // no defer option and the database refuses one, but the honest path must not offer it either.
+      is_defer: chosen?.isDefer ?? false,
+      answered_by: access.user.id,
+    });
+  }
+
+  const { error } = await supabase.from("clarification_answers").insert(rows);
 
   if (error) {
-    // 23505 — this question already has an answer. A double submission is a refresh, not a
-    // destructive failure, and the one-answer-per-question invariant is what makes it safe.
+    // 23505 — a question in this set already has an answer. A double submission is a refresh, not
+    // a destructive failure, and the one-answer-per-question invariant is what makes it safe.
     if (error.code !== "23505") {
       console.error("event identity: clarification answer refused", error.code);
       return readEventIdentityForEvent(input.eventId);

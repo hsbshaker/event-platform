@@ -209,6 +209,9 @@ describe("polling", () => {
 describe("a start whose transport is lost", () => {
   it("waits past the reclaim horizon, then resumes exactly once, ordinarily", async () => {
     start.mockRejectedValueOnce(new Error("network"));
+    // Still working as far as anyone can see, so the resume is still owed. (A poll that settles it
+    // first cancels the resume — the case below.)
+    read.mockResolvedValue({ state: "running", hasAuthoritativeIdentity: false });
     render({ state: "retry_available", hasAuthoritativeIdentity: false });
     await act(async () => {});
     expect(start).toHaveBeenCalledTimes(1);
@@ -230,6 +233,20 @@ describe("a start whose transport is lost", () => {
 
   it("resumes after the server could have reclaimed a claim that never reached the provider", () => {
     expect(RESUME_AFTER_LOST_TRANSPORT_MS).toBeGreaterThan(IDENTITY_PREINVOKE_RECLAIM_MS);
+  });
+
+  it("drops the owed resume when a poll settles the event first", async () => {
+    start.mockRejectedValueOnce(new Error("network"));
+    read.mockResolvedValue(READY);
+    render({ state: "retry_available", hasAuthoritativeIdentity: false });
+    await act(async () => {});
+    expect(start).toHaveBeenCalledTimes(1);
+
+    // The poll answers within three seconds; by the time the resume would have fired there is
+    // nothing to resume. It would have been free either way, but a POST nobody needs is still one.
+    await act(async () => vi.advanceTimersByTime(3_000));
+    await act(async () => vi.advanceTimersByTime(RESUME_AFTER_LOST_TRANSPORT_MS * 2));
+    expect(start).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -271,9 +288,7 @@ describe("a boundary question", () => {
     expect(answer).toHaveBeenCalledWith({
       eventId: EVENT,
       revision: 1,
-      questionIndex: 0,
-      selectedOptionLabel: "No, it's a surprise",
-      freeText: null,
+      answers: [{ questionIndex: 0, selectedOptionLabel: "No, it's a surprise" }],
     });
   });
 
@@ -336,31 +351,22 @@ describe("a creative question", () => {
     await act(async () => {});
 
     expect(answer).toHaveBeenCalledWith(
-      expect.objectContaining({ questionIndex: 2, selectedOptionLabel: "You choose" }),
+      expect.objectContaining({
+        answers: [{ questionIndex: 2, selectedOptionLabel: "You choose" }],
+      }),
     );
   });
 
-  it("preserves typed text exactly, including its spacing", async () => {
-    answer.mockResolvedValue(READY);
+  it("offers no free-text box, because canon specifies options and one defer", async () => {
     render(creativeView());
     await act(async () => {});
 
-    const textarea = container.querySelector("textarea")!;
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype,
-        "value",
-      )!.set!;
-      setter.call(textarea, "  nothing pink, please  ");
-      textarea.dispatchEvent(new window.Event("input", { bubbles: true }));
-    });
-    submit();
-    await act(async () => {});
-
-    // The host's words are provenance-bearing input; the assembly renders them verbatim.
-    expect(answer).toHaveBeenCalledWith(
-      expect.objectContaining({ freeText: "  nothing pink, please  " }),
-    );
+    // `spec.md §7.6b #4` gives a creative question options plus exactly one defer, and that defer
+    // is what guarantees a host who has no design vocabulary is never stuck. A typed channel is
+    // supported by the database and by the frozen input assembly, but it is product behaviour with
+    // no acceptance criterion, so it is not offered until that is decided (`CLAUDE.md §7.3`). The
+    // server path is bounded and creative-only already, and is covered in the action's own tests.
+    expect(container.querySelector("textarea")).toBeNull();
   });
 });
 
@@ -518,5 +524,121 @@ describe("progress is truthful", () => {
     render({ state: "recovering", hasAuthoritativeIdentity: false });
     await act(async () => {});
     expect(text()).toContain("We're safely finishing your event.");
+  });
+});
+
+/* ------------------------------------------------------------------ one round, one form */
+
+describe("a new round is a new form", () => {
+  it("carries no selection from the question it replaced", async () => {
+    // A rerun commonly returns the next question at the same index. Without the round in the key
+    // React keeps the same component instance, and the previous round's selection survives into a
+    // question it was never an answer to — which then reaches the model as the host's own words.
+    answer.mockResolvedValue({
+      ...boundaryView("Is the venue theirs to offer?"),
+      revision: 2,
+    });
+    render(boundaryView());
+    await act(async () => {});
+
+    choose(radios()[0]);
+    submit();
+    await act(async () => {});
+
+    expect(text()).toContain("Is the venue theirs to offer?");
+    expect(radios().some((r) => r.checked)).toBe(false);
+
+    // And the stale selection cannot be submitted either: nothing is chosen, so the guard holds.
+    answer.mockClear();
+    submit();
+    await act(async () => {});
+    expect(answer).not.toHaveBeenCalled();
+  });
+
+  it("answers several creative questions in one submission, buying one rerun", async () => {
+    const three: IdentityView = {
+      state: "ready",
+      hasAuthoritativeIdentity: true,
+      revision: 1,
+      questions: [0, 1].map((i) => ({
+        kind: "creative" as const,
+        index: i,
+        question: `Question ${i}?`,
+        options: [
+          { label: `A${i}`, isDefer: false },
+          { label: "You choose", isDefer: true },
+        ],
+      })),
+    };
+    answer.mockResolvedValue(READY);
+    render(three);
+    await act(async () => {});
+
+    // One submit for the round, not one per question: `§7.6b #1b` allows up to three, and a rerun
+    // is keyed to the whole answer set.
+    expect(container.querySelectorAll("form")).toHaveLength(1);
+    expect(container.querySelectorAll("button[type=submit]")).toHaveLength(1);
+
+    choose(radios()[0]);
+    submit();
+    await act(async () => {});
+    // Half a round is not a round: sending it would buy a call and leave the rest unanswered.
+    expect(answer).not.toHaveBeenCalled();
+
+    choose(radios()[2]);
+    submit();
+    await act(async () => {});
+    expect(answer).toHaveBeenCalledTimes(1);
+    expect(answer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answers: [
+          { questionIndex: 0, selectedOptionLabel: "A0" },
+          { questionIndex: 1, selectedOptionLabel: "A1" },
+        ],
+      }),
+    );
+  });
+});
+
+/* ------------------------------------------------------------------ announcements and blips */
+
+describe("what assistive technology hears, and what a blip does not do", () => {
+  it("keeps one live region mounted so a polled transition is announced", async () => {
+    read.mockResolvedValue(boundaryView());
+    render({ state: "running", hasAuthoritativeIdentity: false });
+    await act(async () => {});
+
+    const region = container.querySelector('[aria-live="polite"]')!;
+    expect(region).not.toBeNull();
+    expect(region.textContent).toBe("Reading your description");
+
+    await act(async () => vi.advanceTimersByTime(3_000));
+
+    // The same node, new text — which is what gets announced. A region mounted together with its
+    // content announces nothing, so per-state live elements are silent for exactly this transition.
+    expect(container.querySelector('[aria-live="polite"]')).toBe(region);
+    expect(region.textContent).toBe("One thing we shouldn't decide for you");
+  });
+
+  it("absorbs a dropped poll instead of declaring the service broken", async () => {
+    read.mockResolvedValue({ state: "service_error", hasAuthoritativeIdentity: false });
+    render({ state: "running", hasAuthoritativeIdentity: false });
+    await act(async () => {});
+
+    await act(async () => vi.advanceTimersByTime(3_000));
+    await act(async () => vi.advanceTimersByTime(3_000));
+    // Still working: one dropped read is not a broken service, and applying it would stop the
+    // polling that would have recovered from it while a paid call finished unseen.
+    expect(text()).toContain("working out the creative direction");
+
+    await act(async () => vi.advanceTimersByTime(3_000));
+    // A fault that persists is reported.
+    expect(text()).toMatch(/can't start this right now/i);
+  });
+
+  it("does not claim an alert it did not send", async () => {
+    render({ state: "service_error", hasAuthoritativeIdentity: false });
+    await act(async () => {});
+    expect(text()).not.toMatch(/alerted|our team/i);
   });
 });

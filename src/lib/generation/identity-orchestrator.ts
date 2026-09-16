@@ -144,10 +144,13 @@ export interface IdentityOrchestrationResult {
    * several questions is answered, a position in this array no longer names the question it came
    * from, and an answer bound by position would attach to the wrong one.
    *
-   * Not restricted to `clarification_required`. `spec.md §7.6b #4` says a Route A question "stays
-   * open and answerable" while gating nothing, and the revision that asked it is authoritative, so
-   * a contract that surfaced questions only while blocking would make that unimplementable. The
-   * state says whether the event is waiting; this says what there is to answer.
+   * Not restricted to `clarification_required`. `spec.md §7.6b` calls Route A "Non-blocking:
+   * ... the host can always hand the call back and concepts proceed", and the revision that asked
+   * is authoritative — so the question outlives the moment it was asked, which is what
+   * `docs/phase-4b-plan.md §C` records as "the question stays open and answerable; never a
+   * blocker". A contract that surfaced questions only while blocking would make that
+   * unimplementable. The state says whether the event is waiting; this says what there is to
+   * answer.
    */
   questions?: readonly OpenClarificationQuestion[];
   /** `temporarily_unavailable` only. Frozen, uniform, and reason-free by design. */
@@ -319,9 +322,10 @@ function outcomeState(
     result.identityRevisionId = outcome.latestRevisionId;
     result.revision = outcome.latestRevision ?? undefined;
   }
-  // Carried whatever the state is. A Route A question does not gate anything (`spec.md §7.6b #4`)
-  // and the revision that asked it is authoritative, but it "stays open and answerable" — which a
-  // contract that only surfaced questions while blocking would make unimplementable.
+  // Carried whatever the state is. Route A is non-blocking (`spec.md §7.6b`) and the revision that
+  // asked is authoritative, so the question outlives the moment — `docs/phase-4b-plan.md §C`:
+  // "never a blocker, never a retry trigger". A contract that only surfaced questions while
+  // blocking would make that unimplementable.
   if (outcome.openQuestions.length > 0) result.questions = outcome.openQuestions;
 
   if (outcome.awaitingBoundaryAnswer) return { ...result, state: "clarification_required" };

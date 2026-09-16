@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppButton } from "@/components/app/AppButton";
 import { ChoiceGroup } from "@/components/app/ChoiceGroup";
 import { InlineStatus } from "@/components/app/InlineStatus";
-import { Textarea } from "@/components/app/Textarea";
 import {
   readEventIdentityForEvent,
   startEventIdentityForEvent,
@@ -24,7 +23,8 @@ import type { IdentityView, IdentityViewQuestion } from "@/lib/generation/identi
  *
  * **Route A never gates.** A creative question renders beside whatever state the event is in,
  * including `ready`. It is not a modal, it traps nobody, and its only defer option is the one the
- * model returned — this surface adds no `Skip` of its own (`spec.md §7.6b #4`).
+ * model returned — this surface adds no `Skip` of its own (`spec.md §7.6b #4`: exactly one defer
+ * option, and a boundary question has none).
  *
  * **Route B is the one thing that blocks.** A boundary question is shown alone, with the options
  * the model returned and no invented default, because Route B fires exactly when the decision is
@@ -56,6 +56,14 @@ export const RESUME_AFTER_LOST_TRANSPORT_MS = 33_000;
 /** The states worth asking about again. Everything else is at rest until the host acts. */
 const POLLED: ReadonlySet<IdentityView["state"]> = new Set(["running", "recovering"]);
 
+/**
+ * How many consecutive polls may fail before the surface says so.
+ *
+ * One dropped read is not a broken service, and treating it as one stops the polling that would
+ * have recovered from it.
+ */
+const TOLERATED_POLL_FAULTS = 3;
+
 export interface EventIdentityPanelProps {
   eventId: string;
   initial: IdentityView;
@@ -70,6 +78,8 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
   const lostAt = useRef<number | null>(null);
   const resumed = useRef(false);
   const autoStarted = useRef(false);
+  /** Consecutive polls that came back as a server fault. */
+  const faults = useRef(0);
   const moveFocus = useRef(false);
 
   const apply = useCallback((next: IdentityView) => {
@@ -84,10 +94,20 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
     const id = setInterval(() => {
       void readEventIdentityForEvent(eventId)
         .then((next) => {
-          if (!cancelled) apply(next);
+          if (cancelled) return;
+          // A dropped connection inside one read comes back as `service_error`, and applying it
+          // would stop the polling, withdraw the Retry affordance and tell the host the service
+          // is broken — while their paid call finishes unseen. A blip is absorbed; a fault that
+          // persists across several polls is reported.
+          if (next.state === "service_error") {
+            faults.current += 1;
+            if (faults.current < TOLERATED_POLL_FAULTS) return;
+          } else {
+            faults.current = 0;
+          }
+          apply(next);
         })
-        // A failed poll is not an event: the next one will ask again. Showing an error for a
-        // dropped request would turn an ordinary reconnect into something the host must read.
+        // A rejected poll is not an event either: the next one will ask again.
         .catch(() => {});
     }, POLL_MS);
     return () => {
@@ -100,6 +120,12 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
 
   useEffect(() => {
     if (lostAt.current === null || resumed.current) return;
+    // A poll got there first and the event is at rest. The resume would be free — `already_succeeded`
+    // or `needs_explicit_retry` — but a POST nobody needs is still a POST.
+    if (!POLLED.has(view.state)) {
+      lostAt.current = null;
+      return;
+    }
     const wait = Math.max(0, RESUME_AFTER_LOST_TRANSPORT_MS - (Date.now() - lostAt.current));
     const id = setTimeout(() => {
       resumed.current = true;
@@ -127,37 +153,42 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
         // The transport died, not the generation. Keep polling, and owe exactly one resume.
         lostAt.current = Date.now();
         resumed.current = false;
-        apply({ state: "running", hasAuthoritativeIdentity: view.hasAuthoritativeIdentity });
+        // Keep the round and its open questions: dropping them would unmount a form the host may
+        // be part-way through, over a transport failure that says nothing about it.
+        apply({ ...view, state: "running" });
       } finally {
         setBusy(false);
       }
     },
-    [busy, eventId, apply, view.hasAuthoritativeIdentity],
+    [busy, eventId, apply, view],
   );
 
   const answer = useCallback(
-    async (question: IdentityViewQuestion, selected: string | null, freeText: string | null) => {
+    async (answers: { questionIndex: number; selectedOptionLabel: string | null }[]) => {
       if (busy) return;
       setBusy(true);
       setAnswerError(undefined);
       moveFocus.current = true;
       try {
+        // One submission for the whole round. A rerun is keyed to the answer set, so sending them
+        // one at a time would buy a paid call per answer and replace the questions still unanswered.
         apply(
           await submitClarificationAnswer({
             eventId,
             revision: view.revision ?? 0,
-            questionIndex: question.index,
-            selectedOptionLabel: selected,
-            freeText,
+            answers,
           }),
         );
       } catch {
-        setAnswerError("We couldn't save that just now. Try once more.");
+        // The answer may well be durable and a call already running, so this arms the poll rather
+        // than leaving the surface still: the canonical state is what settles it.
+        setAnswerError("We couldn't confirm that just now. We're checking.");
+        apply({ ...view, state: "running" });
       } finally {
         setBusy(false);
       }
     },
-    [busy, eventId, view.revision, apply],
+    [busy, eventId, view, apply],
   );
 
   /* ------------------------------------------------ the first run, once, on arrival */
@@ -187,8 +218,9 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
   // A start or retry of ours is in flight. Answering is separate: the question form owns its own
   // pending state, and the panel must not claim to be "starting" while an answer is saving.
   const sending = busy && view.questions === undefined;
+  // A boundary question is asked alone; when one is present nothing else is shown beside it.
   const boundary = view.questions?.find((q) => q.kind === "boundary");
-  const creative = view.questions?.filter((q) => q.kind === "creative") ?? [];
+  const open = boundary ? [boundary] : (view.questions ?? []);
 
   return (
     <section
@@ -204,35 +236,41 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
         {sending ? "Starting" : HEADING[view.state]}
       </h2>
 
+      {/* One live region, always mounted.
+          A region inserted along with its text announces nothing — the platform reports *changes*
+          to a region that was already there — so per-state `aria-live` elements are silent for
+          exactly the transition that matters: a poll turning `running` into a question, while the
+          host is typing in the details form beside this and looking elsewhere. Kept off-screen
+          because the visible copy below already says it; this exists so it is also heard, once.
+          `docs/design-system.md §14.4`: restrained live-region updates, not a running commentary. */}
+      <p aria-live="polite" className="sr-only">
+        {sending ? "Starting" : HEADING[view.state]}
+      </p>
+
       {/* While a request of ours is in flight, the true thing to say is that we have sent it —
           not the resting state it has not answered with yet. */}
       {sending ? (
-        <InlineStatus live>We&apos;re starting on your event.</InlineStatus>
+        <InlineStatus>We&apos;re starting on your event.</InlineStatus>
       ) : (
         <StateCopy view={view} />
       )}
 
-      {/* Route B: alone, blocking, and only the options the model returned. */}
-      {boundary && (
-        <QuestionForm
-          question={boundary}
+      {/* One form for the round. Route B is alone by construction (`spec.md §7.6b #1b`); Route A
+          may be up to three, and they are answered together so one rerun serves them all.
+
+          Keyed by the round as well as by what it asks: a rerun commonly returns the next
+          question at the same index, and without the round in the key React keeps the same
+          instance — so the previous round's selection would survive into a question it was never
+          an answer to. */}
+      {open.length > 0 && (
+        <RoundForm
+          key={`${view.revision ?? 0}-${open.map((q) => q.index).join(",")}`}
+          questions={open}
           busy={busy}
           error={answerError}
-          onSubmit={(selected, freeText) => void answer(boundary, selected, freeText)}
+          onSubmit={(answers) => void answer(answers)}
         />
       )}
-
-      {/* Route A: beside everything else, never instead of it. */}
-      {!boundary &&
-        creative.map((question) => (
-          <QuestionForm
-            key={question.index}
-            question={question}
-            busy={busy}
-            error={answerError}
-            onSubmit={(selected, freeText) => void answer(question, selected, freeText)}
-          />
-        ))}
 
       {view.state === "retry_available" && (
         <AppButton
@@ -254,7 +292,7 @@ export function EventIdentityPanel({ eventId, initial }: EventIdentityPanelProps
 const HEADING: Record<IdentityView["state"], string> = {
   running: "Reading your description",
   recovering: "Finishing up",
-  clarification_required: "One question before we start",
+  clarification_required: "One thing we shouldn't decide for you",
   ready: "Your creative direction is ready",
   retry_available: "We couldn't finish that",
   temporarily_unavailable: "Not available right now",
@@ -266,24 +304,22 @@ function StateCopy({ view }: { view: IdentityView }) {
     case "running":
       // No percentage, no stage list, no invented activity. One true sentence.
       return (
-        <InlineStatus live>
-          We&apos;re working out the creative direction for your event.
-        </InlineStatus>
+        <InlineStatus>We&apos;re working out the creative direction for your event.</InlineStatus>
       );
     case "recovering":
       // Not an endless spinner, and not an error either: the host has nothing to do. No mention of
       // leases, claims, providers or recovery internals.
-      return <InlineStatus live>We&apos;re safely finishing your event.</InlineStatus>;
+      return <InlineStatus>We&apos;re safely finishing your event.</InlineStatus>;
     case "clarification_required":
       return (
         <p className="text-body-md text-app-text-secondary">
-          There&apos;s one thing we shouldn&apos;t decide for you.
+          Your answer goes straight back into how we read your event.
         </p>
       );
     case "ready":
       return (
         <p className="text-body-md text-app-text-secondary">
-          We&apos;ve read your description and worked out the direction. Design concepts come next.
+          We&apos;ve read your description and worked out the creative direction for your event.
         </p>
       );
     case "retry_available":
@@ -298,84 +334,88 @@ function StateCopy({ view }: { view: IdentityView }) {
     case "service_error":
       // Deliberately not an invitation to keep trying: this will not fix itself by retrying.
       return (
+        // Says what is true and no more. An earlier draft promised the team had been alerted,
+        // which holds for a configuration refusal and not for an unexpected fault — a promise the
+        // surface cannot keep is the same failure as a fabricated progress bar.
         <InlineStatus variant="danger">
-          We can&apos;t start this right now. Our team has been alerted — please check back later.
+          We can&apos;t start this right now. Trying again won&apos;t help — please check back
+          later.
         </InlineStatus>
       );
   }
 }
 
-/* ------------------------------------------------------------------ one question */
+/* ------------------------------------------------------------------ one round's questions */
 
-function QuestionForm({
-  question,
+function RoundForm({
+  questions,
   busy,
   error,
   onSubmit,
 }: {
-  question: IdentityViewQuestion;
+  questions: IdentityViewQuestion[];
   busy: boolean;
   error?: string;
-  onSubmit: (selected: string | null, freeText: string | null) => void;
+  onSubmit: (answers: { questionIndex: number; selectedOptionLabel: string | null }[]) => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [freeText, setFreeText] = useState("");
+  const [selected, setSelected] = useState<Record<number, string>>({});
   const [missing, setMissing] = useState(false);
-  const name = `clarification-${question.index}`;
-  const creative = question.kind === "creative";
+  const boundary = questions.some((q) => q.kind === "boundary");
 
   return (
     <form
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        const typed = freeText.trim().length > 0 ? freeText : null;
-        // An answer that says nothing is not an answer — the same rule the table's check
-        // constraint enforces, applied here so the host is told rather than refused.
-        if (selected === null && typed === null) {
+        // Every question in the round, or none: a partial set would buy a paid rerun and leave the
+        // rest unanswered behind it.
+        if (questions.some((question) => selected[question.index] === undefined)) {
           setMissing(true);
           return;
         }
         setMissing(false);
-        onSubmit(selected, typed);
+        onSubmit(
+          questions.map((question) => ({
+            questionIndex: question.index,
+            selectedOptionLabel: selected[question.index],
+          })),
+        );
       }}
     >
-      <ChoiceGroup
-        name={name}
-        legend={question.question}
-        options={question.options.map((option) => ({
-          value: option.label,
-          label: option.label,
-          // The model's own defer option, named as what it is. This surface never adds one: a
-          // boundary question has none because that decision is the host's.
-          note: option.isDefer ? "We'll make this call for you." : undefined,
-        }))}
-        value={selected}
-        onChange={(value) => {
-          setSelected(value);
-          setMissing(false);
-        }}
-        disabled={busy}
-        error={missing ? "Choose an option to continue." : error}
-      />
+      {questions.map((question) => (
+        <ChoiceGroup
+          key={question.index}
+          name={`clarification-${question.index}`}
+          legend={question.question}
+          options={question.options.map((option) => ({
+            value: option.label,
+            label: option.label,
+            // The model's own defer option, named as what it is. This surface never adds one: a
+            // boundary question has none, because that decision is the host's.
+            note: option.isDefer ? "We'll make this call for you." : undefined,
+          }))}
+          value={selected[question.index] ?? null}
+          onChange={(value) => {
+            setSelected((current) => ({ ...current, [question.index]: value }));
+            setMissing(false);
+          }}
+          disabled={busy}
+          error={
+            missing && selected[question.index] === undefined
+              ? "Choose an option to continue."
+              : undefined
+          }
+        />
+      ))}
 
-      {creative && (
-        <label className="flex flex-col gap-1.5">
-          <span className="text-label-md text-app-text">Or tell us in your own words</span>
-          <Textarea
-            value={freeText}
-            onChange={(event) => {
-              setFreeText(event.target.value);
-              setMissing(false);
-            }}
-            disabled={busy}
-            rows={2}
-          />
-        </label>
+      {error && (
+        <p role="alert" className="text-body-sm text-app-danger">
+          {error}
+        </p>
       )}
 
       <AppButton type="submit" pending={busy} disabled={busy} className="self-start">
-        {creative ? "Send this" : "Continue"}
+        {boundary ? "Continue" : "Send this"}
       </AppButton>
     </form>
   );
