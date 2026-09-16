@@ -1164,6 +1164,8 @@ Every model call records, where exposed:
 - generation round/concept index;
 - diversity assignment.
 
+These fields are a minimum, not an allowlist: an implementation may persist additional server-only telemetry needed for reliability, cost attribution, recovery and auditability, subject to the same privacy and access-control requirements.
+
 Application usage should reconcile against provider usage where practical.
 
 ## 10. Generation Limits

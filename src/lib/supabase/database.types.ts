@@ -32,6 +32,31 @@ export type AttachInspirationOutcome = "attached" | "limit_reached" | "gone";
 export type ModelOperation =
   "event_identity" | "design_intent" | "composition" | "structured_extraction";
 
+/**
+ * Claim states for one EventIdentity call
+ * (supabase/migrations/20260916000000_phase4b_identity_call_claims.sql).
+ *
+ * `claimed` and `response_captured` are non-terminal; the other four are terminal.
+ * `response_captured` deliberately has no expiry — expiring it would strand a paid response.
+ */
+export type IdentityCallClaimState =
+  | "claimed"
+  | "response_captured"
+  | "succeeded"
+  | "failed_terminal"
+  | "expired_unknown"
+  | "abandoned";
+
+/** Outcomes of public.claim_identity_call. Only `claimed` reaches the provider. */
+export type IdentityClaimOutcome =
+  | "claimed"
+  | "in_flight"
+  | "duplicate_key"
+  | "ceiling"
+  | "cap_event"
+  | "cap_account"
+  | "rate_limited";
+
 type ProfileRow = {
   id: string;
   email: string | null;
@@ -215,6 +240,20 @@ type GenerationRunRow = {
   nearest_sibling: number | null;
   fallback: string | null;
   idempotency_key: string | null;
+  /**
+   * Ordered paid provider response texts, oldest first
+   * (`docs/phase-4b-plan.md §A.7`).
+   *
+   * `null` means the evidence contract does not apply to this run, or the run predates it. `[]`
+   * means the contract applies and **no response text was captured** — which is not a claim that
+   * nothing was billed; an ambiguous transport failure can reach provider execution. What was
+   * spent is `cost_estimate_usd`'s question, and it charges such an attempt the per-attempt
+   * maximum rather than zero.
+   *
+   * Server-only: the table has RLS on with no policies and is revoked from `anon` and
+   * `authenticated`, and this field is never returned to a user.
+   */
+  provider_response_evidence: Json | null;
   created_at: string;
 };
 
@@ -332,6 +371,50 @@ type AppendOnlyTable<Row, Ins> = {
   Insert: Ins;
   Update: Record<string, never>;
   Relationships: [];
+};
+
+/**
+ * A table the application only ever reads directly; every write goes through a `security definer`
+ * RPC.
+ *
+ * `event_identity_call_claims` is the first. Its whole value is that cap consumption, the claim
+ * insert and each state transition happen inside one transaction with the right guard — a
+ * `.insert()` or `.update()` from application code would bypass exactly the atomicity the table
+ * exists to provide, so the contract refuses both at compile time rather than hoping nobody tries.
+ */
+type RpcWrittenTable<Row> = {
+  Row: Row;
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
+/**
+ * One EventIdentity call's claim
+ * (supabase/migrations/20260916000000_phase4b_identity_call_claims.sql, `docs/phase-4b-plan.md §A.5`).
+ *
+ * Inserted before the provider is reached, in the same transaction that consumes the caps, so
+ * uniqueness happens before spend rather than after it.
+ */
+type EventIdentityCallClaimRow = {
+  id: string;
+  event_id: string;
+  /** sha256 over (event_id, operation, basis_digest, attempt_ordinal). Unique. */
+  attempt_key: string;
+  /** Stored, not recovered from the key: the ordinal rule has to query by basis, and a hash cannot be. */
+  basis_digest: string;
+  attempt_ordinal: number;
+  claimed_by: string;
+  claimed_at: string;
+  lease_expires_at: string;
+  /**
+   * Committed on its own before the provider is reached. `abandoned` means *provably unpaid*, and
+   * that meaning rests entirely on this being null at expiry.
+   */
+  provider_invoked_at: string | null;
+  state: IdentityCallClaimState;
+  generation_run_id: string | null;
+  settled_at: string | null;
 };
 
 export type Database = {
@@ -466,9 +549,11 @@ export type Database = {
           | "nearest_sibling"
           | "fallback"
           | "idempotency_key"
+          | "provider_response_evidence"
           | "created_at"
         >
       >;
+      event_identity_call_claims: RpcWrittenTable<EventIdentityCallClaimRow>;
       rate_limits: Table<RateLimitRow, Insert<RateLimitRow, "count">>;
       human_test_1_responses: Table<
         HumanTest1ResponseRow,
@@ -545,12 +630,97 @@ export type Database = {
         Args: { result: Json; schema_version: string };
         Returns: boolean;
       };
+
+      /* --------- Phase 4B T9A: call-level spend, idempotency and recovery (§A.5, §A.6) -------- */
+
+      /** True for `succeeded`, `failed_terminal`, `expired_unknown` and `abandoned`. */
+      identity_claim_is_terminal: {
+        Args: { p_state: IdentityCallClaimState };
+        Returns: boolean;
+      };
+      /**
+       * Ceiling, caps, rate limit and the claim insert — one transaction, so a refusal rolls back
+       * every unit it consumed and a refused request costs the host nothing.
+       */
+      claim_identity_call: {
+        Args: {
+          p_event_id: string;
+          p_user_id: string;
+          p_attempt_key: string;
+          p_basis_digest: string;
+          p_attempt_ordinal: number;
+          p_lease_seconds: number;
+          p_event_cap_key: string;
+          p_event_cap_window: number;
+          p_event_cap_max: number;
+          p_account_cap_key: string;
+          p_account_cap_window: number;
+          p_account_cap_max: number;
+          p_rate_key: string;
+          p_rate_window: number;
+          p_rate_max: number;
+          p_ceiling_window_seconds: number;
+          p_ceiling_usd: number;
+          p_logical_call_max_usd: number;
+        };
+        Returns: {
+          outcome: IdentityClaimOutcome;
+          claim_id: string | null;
+          recorded_spend_usd: number;
+          reserved_usd: number;
+        }[];
+      };
+      /** Step 5: committed before the provider is reached. False when the claim already moved on. */
+      mark_identity_call_invoked: { Args: { p_claim_id: string }; Returns: boolean };
+      /** Step 6: the run row (with evidence and the attempt key) and the claim, in one transaction. */
+      capture_identity_call_response: {
+        Args: { p_claim_id: string; p_success: boolean; p_run: Json };
+        Returns: string | null;
+      };
+      /**
+       * Step 7: the conditional transition and the revision, atomically. Returns no row when
+       * another completer got there first — not an error, just someone else's work.
+       */
+      complete_identity_call: {
+        Args: {
+          p_claim_id: string;
+          p_result: Json;
+          p_provider_config: Json;
+          p_clarification_answer_ids: string[];
+        };
+        Returns: {
+          revision_id: string;
+          revision: number;
+          is_provisional: boolean;
+          authoritative: boolean;
+        }[];
+      };
+      /** Lease expiry only. `response_captured` is never expired here. */
+      expire_identity_call_claims: {
+        Args: { p_limit: number };
+        Returns: { abandoned: number; expired_unknown: number }[];
+      };
+      /** Paid responses no request has come back to complete. */
+      pending_identity_call_completions: {
+        Args: { p_limit: number };
+        Returns: {
+          claim_id: string;
+          event_id: string;
+          generation_run_id: string;
+          schema_version: string;
+          provider_response_evidence: Json | null;
+          captured_at: string;
+        }[];
+      };
+      /** Nulls aged evidence, skipping every run a non-terminal claim still needs. */
+      purge_identity_response_evidence: { Args: { p_cutoff: string }; Returns: number };
     };
     Enums: {
       event_status: EventStatus;
       event_visibility: EventVisibility;
       event_member_role: EventMemberRole;
       model_operation: ModelOperation;
+      identity_call_claim_state: IdentityCallClaimState;
     };
     CompositeTypes: Record<string, never>;
   };

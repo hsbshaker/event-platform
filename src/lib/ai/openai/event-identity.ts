@@ -50,9 +50,31 @@ import {
 
 const PROMPT_PATH = path.join(process.cwd(), "docs", "model-prompts", "event-identity.system.md");
 
-/** Bounded transient retries. Provider-side failures only; never an output problem. */
-const MAX_TRANSIENT_RETRIES = 2;
-const TRANSIENT_BACKOFF_MS = [500, 1500];
+/**
+ * Bounded transient retries. Provider-side failures only; never an output problem.
+ *
+ * Exported because two things downstream are pinned to them and must fail when they change:
+ * the claim lease, which has to outlast the worst legitimate call (`docs/phase-4b-plan.md §A.5`),
+ * and the logical-call spend maximum, which reserves against every attempt this policy permits
+ * (§A.5.1). Both would be silently wrong if these moved and nothing noticed.
+ */
+export const MAX_TRANSIENT_RETRIES = 2;
+export const TRANSIENT_BACKOFF_MS = [500, 1500];
+
+/** A hung request must not eat the caller's budget and abort whatever follows it. */
+export const PROVIDER_REQUEST_TIMEOUT_MS = 120_000;
+
+/** Attempts at the model per logical call: the original, then the single repair. */
+export const EVENT_IDENTITY_PASSES = 2;
+
+/**
+ * The most provider attempts one logical `generateEventIdentity` call can make.
+ *
+ * Six today. This is the number the spend reservation multiplies by, so it is exported rather
+ * than recomputed: a call that ends up costing six attempts must not exceed a ceiling that
+ * reserved for one.
+ */
+export const MAX_PROVIDER_ATTEMPTS_PER_CALL = EVENT_IDENTITY_PASSES * (MAX_TRANSIENT_RETRIES + 1);
 
 let cachedSystemPrompt: string | undefined;
 
@@ -71,11 +93,37 @@ export function systemPrompt(): string {
 export interface EventIdentityUsage {
   provider: "openai";
   model: string;
+  /**
+   * The **accepted or final** response's request id, not an identifier for every attempt.
+   *
+   * One logical call can make up to `MAX_PROVIDER_ATTEMPTS_PER_CALL` provider attempts and
+   * receive two billable responses. This field keeps its singular shape because that is what
+   * `spec.md §9.6` asks for; it does not pretend to name them all.
+   */
   providerRequestId?: string;
+  /**
+   * Token counts **aggregated over every response this invocation received**, rejected and
+   * accepted alike (`docs/phase-4b-plan.md §A.5.1`).
+   *
+   * Reporting only the accepted response would drop the tokens of a rejected first response that
+   * was billed just the same, and the repair path is exactly where a call gets expensive. A field
+   * is absent when no response reported it, which is not the same as zero.
+   */
   inputTokens?: number;
   cachedInputTokens?: number;
   outputTokens?: number;
   reasoningTokens?: number;
+  /** How many provider responses this invocation actually received: 0, 1 or 2. */
+  providerResponses: number;
+  /**
+   * Attempts whose usage we do not know, and therefore cannot price.
+   *
+   * Counts every attempt that threw before a response reached us — a timeout or a reset may have
+   * reached provider execution and billed — plus any response that arrived without a usage block.
+   * Cost accounting charges each of these the per-attempt maximum rather than zero, which is the
+   * only honest direction when the provider's billing is unobservable to us.
+   */
+  unknownUsageAttempts: number;
   latencyMs: number;
   /** Transient provider retries consumed. */
   transientRetries: number;
@@ -86,8 +134,16 @@ export interface EventIdentityUsage {
 }
 
 export interface EventIdentityCallResult {
-  /** Raw provider text, kept verbatim for telemetry and for the review artifact. */
+  /** Raw provider text of the **accepted** response, kept verbatim for the review artifact. */
   raw: string;
+  /**
+   * Every provider text this invocation was billed for, oldest first.
+   *
+   * On a first-call success this is `[raw]`. After a repair it is `[rejected, raw]` — the
+   * rejected response was paid for too, and until T9A the success path dropped it, so a
+   * successful repair preserved less evidence than a failed one.
+   */
+  rawResponses: string[];
   output: EventIdentityResult;
   usage: EventIdentityUsage;
   promptVersion: string;
@@ -184,8 +240,7 @@ export async function generateEventIdentity(
     // requests against the six this policy documents — and `transientRetries` would
     // undercount real provider load threefold in the run report.
     maxRetries: 0,
-    // A hung request must not eat the eval run's budget and abort the cases after it.
-    timeout: 120_000,
+    timeout: PROVIDER_REQUEST_TIMEOUT_MS,
   });
   const schema = strictWireSchema();
   /**
@@ -212,6 +267,31 @@ export async function generateEventIdentity(
    * paid for in here has to leave with the error or it is gone.
    */
   const rawResponses: string[] = [];
+  /**
+   * Usage aggregated across every response, and a count of the attempts we cannot price.
+   *
+   * `add` keeps a field `undefined` until some response reports it, so "no response told us" and
+   * "the total is zero" stay distinguishable. `unknownUsageAttempts` is what stops an ambiguous
+   * failure being costed at zero.
+   */
+  const agg: {
+    input?: number;
+    cached?: number;
+    output?: number;
+    reasoning?: number;
+  } = {};
+  let unknownUsageAttempts = 0;
+  const add = (key: keyof typeof agg, value: number | undefined) => {
+    if (typeof value === "number") agg[key] = (agg[key] ?? 0) + value;
+  };
+  const aggregateUsage = () => ({
+    inputTokens: agg.input,
+    cachedInputTokens: agg.cached,
+    outputTokens: agg.output,
+    reasoningTokens: agg.reasoning,
+    providerResponses: rawResponses.length,
+    unknownUsageAttempts,
+  });
 
   // Two passes at most: the original call, then the single repair retry.
   for (let attempt = 0; attempt <= 1; attempt += 1) {
@@ -254,6 +334,9 @@ export async function generateEventIdentity(
         });
         break;
       } catch (error) {
+        // An attempt that threw never told us what it cost, and a timeout or reset can reach
+        // provider execution regardless. Counted here, charged at the per-attempt maximum later.
+        unknownUsageAttempts += 1;
         if (t < MAX_TRANSIENT_RETRIES && isTransient(error)) {
           transientRetries += 1;
           await sleep(TRANSIENT_BACKOFF_MS[Math.min(t, TRANSIENT_BACKOFF_MS.length - 1)]);
@@ -267,7 +350,7 @@ export async function generateEventIdentity(
           `OpenAI request failed: ${(error as Error)?.message ?? String(error)}`,
           "provider",
           undefined,
-          { latencyMs: Date.now() - startedAt, transientRetries },
+          { latencyMs: Date.now() - startedAt, transientRetries, ...aggregateUsage() },
           [...rawResponses],
         );
       }
@@ -275,6 +358,12 @@ export async function generateEventIdentity(
 
     const raw = response.output_text ?? "";
     rawResponses.push(raw);
+    add("input", response.usage?.input_tokens);
+    add("cached", response.usage?.input_tokens_details?.cached_tokens);
+    add("output", response.usage?.output_tokens);
+    add("reasoning", response.usage?.output_tokens_details?.reasoning_tokens);
+    // A response we received but cannot price is as unpriceable as one that never arrived.
+    if (!response.usage) unknownUsageAttempts += 1;
     // Validation is our code, not theirs. A bug in a zod refinement throws out of `safeParse`
     // rather than being reported as an issue, and would otherwise destroy the text just paid
     // for. So it is caught, annotated with the paid responses, and rethrown as itself: the same
@@ -296,6 +385,7 @@ export async function generateEventIdentity(
     if (outcome.ok) {
       return {
         raw,
+        rawResponses: [...rawResponses],
         output: outcome.value,
         promptVersion: EVENT_IDENTITY_PROMPT_VERSION,
         schemaVersion: EVENT_IDENTITY_SCHEMA_VERSION,
@@ -305,10 +395,7 @@ export async function generateEventIdentity(
           provider: "openai",
           model: response.model ?? env.OPENAI_MODEL,
           providerRequestId: response.id,
-          inputTokens: response.usage?.input_tokens,
-          cachedInputTokens: response.usage?.input_tokens_details?.cached_tokens,
-          outputTokens: response.usage?.output_tokens,
-          reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens,
+          ...aggregateUsage(),
           latencyMs: Date.now() - startedAt,
           transientRetries,
           schemaValidFirstCall: attempt === 0,
@@ -329,7 +416,7 @@ export async function generateEventIdentity(
     "Event Identity output failed validation after the single repair retry.",
     "invalid_output",
     lastIssues,
-    { latencyMs: Date.now() - startedAt, transientRetries, repairRetries },
+    { latencyMs: Date.now() - startedAt, transientRetries, repairRetries, ...aggregateUsage() },
     [...rawResponses],
   );
 }

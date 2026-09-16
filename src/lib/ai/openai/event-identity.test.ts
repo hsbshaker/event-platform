@@ -392,4 +392,122 @@ describe("the OpenAI event identity call", () => {
     await expect(generateEventIdentity({ prompt: "x" })).rejects.toThrow(/OpenAI/);
     expect(create).not.toHaveBeenCalled();
   });
+
+  /**
+   * Cost accounting (`docs/phase-4b-plan.md §A.5.1`).
+   *
+   * The spend ceiling is only as good as the number it sums, and this boundary used to report
+   * usage from the final accepted response alone. A successful repair therefore looked exactly
+   * as expensive as a first-call success, which undercounts precisely the case — a repair, or a
+   * retried ambiguous failure — that the ceiling exists to protect against.
+   */
+  describe("accounting for what the whole logical call cost", () => {
+    const withUsage = (input: number, output: number, reasoning: number, cached = 0) => ({
+      ...ok(),
+      usage: {
+        input_tokens: input,
+        output_tokens: output,
+        input_tokens_details: { cached_tokens: cached },
+        output_tokens_details: { reasoning_tokens: reasoning },
+      },
+    });
+
+    it("adds the rejected first response's tokens to the accepted one's", async () => {
+      create
+        .mockResolvedValueOnce({
+          ...withUsage(10, 20, 5),
+          output_text: JSON.stringify({ identity: validIdentity }),
+        })
+        .mockResolvedValueOnce(withUsage(30, 40, 7));
+      const result = await run();
+
+      expect(result.usage.schemaValidFirstCall).toBe(false);
+      expect(result.usage.inputTokens).toBe(40);
+      expect(result.usage.outputTokens).toBe(60);
+      expect(result.usage.reasoningTokens).toBe(12);
+      expect(result.usage.providerResponses).toBe(2);
+      expect(result.usage.unknownUsageAttempts).toBe(0);
+    });
+
+    it("hands the success path both paid responses, not only the accepted one", async () => {
+      // Until T9A the success path returned `raw` alone, so a *successful* repair preserved less
+      // evidence than a failed one — the rejected response was billed either way.
+      create
+        .mockResolvedValueOnce({
+          ...ok(),
+          output_text: JSON.stringify({ identity: validIdentity }),
+        })
+        .mockResolvedValueOnce(ok());
+      const result = await run();
+
+      expect(result.rawResponses).toHaveLength(2);
+      expect(result.rawResponses[1]).toBe(result.raw);
+    });
+
+    it("accounts for both observed responses on an invalid-output failure", async () => {
+      create.mockResolvedValue({
+        ...withUsage(11, 22, 3),
+        output_text: JSON.stringify({ identity: validIdentity }),
+      });
+      const thrown = await run().then(
+        () => null,
+        (e: unknown) => e as { usage?: Record<string, number> },
+      );
+      expect(thrown?.usage?.inputTokens).toBe(22);
+      expect(thrown?.usage?.outputTokens).toBe(44);
+      expect(thrown?.usage?.providerResponses).toBe(2);
+    });
+
+    it("keeps the first response's usage when the repair attempt never reaches the provider", async () => {
+      create
+        .mockResolvedValueOnce({
+          ...withUsage(13, 17, 0),
+          output_text: JSON.stringify({ identity: validIdentity }),
+        })
+        .mockRejectedValue(providerError(500));
+
+      const thrown = await run().then(
+        () => null,
+        (e: unknown) => e as { usage?: Record<string, number> },
+      );
+      expect(thrown?.usage?.inputTokens).toBe(13);
+      expect(thrown?.usage?.providerResponses).toBe(1);
+      // Three failed attempts on the repair pass, none of which told us what it cost.
+      expect(thrown?.usage?.unknownUsageAttempts).toBe(3);
+    });
+
+    it("counts an attempt that threw as unknown rather than as free", async () => {
+      // A timeout or a reset can reach provider execution and bill; we see an exception and know
+      // nothing. Costing it zero is the one direction that loses money silently.
+      create.mockRejectedValueOnce(providerError(500)).mockResolvedValueOnce(ok());
+      const result = await run();
+
+      expect(result.usage.transientRetries).toBe(1);
+      expect(result.usage.unknownUsageAttempts).toBe(1);
+      expect(result.usage.providerResponses).toBe(1);
+    });
+
+    it("counts a response that arrived without usage as unpriceable", async () => {
+      const noUsage = { ...ok(), usage: undefined };
+      create.mockResolvedValueOnce(noUsage);
+      const result = await run();
+
+      expect(result.usage.providerResponses).toBe(1);
+      expect(result.usage.unknownUsageAttempts).toBe(1);
+      expect(result.usage.inputTokens).toBeUndefined();
+    });
+
+    it("leaves every attempt unknown when the call never gets a response", async () => {
+      create.mockRejectedValue(providerError(500));
+      const thrown = await run().then(
+        () => null,
+        (e: unknown) =>
+          e as { kind?: string; usage?: Record<string, number>; rawResponses?: string[] },
+      );
+      expect(thrown?.kind).toBe("provider");
+      expect(thrown?.rawResponses).toEqual([]);
+      expect(thrown?.usage?.providerResponses).toBe(0);
+      expect(thrown?.usage?.unknownUsageAttempts).toBe(3);
+    });
+  });
 });

@@ -2,8 +2,9 @@
 
 **Status:** in implementation. Phase 4B **T1–T9 have shipped** — the identity-revision and
 clarification-answer migrations, the frozen T4/T5 validation machinery, the T8 corpus frozen at its
-own SHA, and `event_identity_input_v2`. **T9A** and T10 onward, and the whole of Phase 4C, are
-still plan only.
+own SHA, `event_identity_input_v2`, and **T9A** — the call-level spend, idempotency, claim and
+telemetry controls, with their migration and the non-model-visible boundary accounting fix. T10
+onward, and the whole of Phase 4C, are still plan only.
 The original header read *"plan only … no production code, prompt, schema, migration or corpus
 exists for any of it"*; that stopped being true at T1 and is corrected here rather than left to
 mislead a reader deciding what 4B still owes.
@@ -259,13 +260,71 @@ owns:
 | --- | --- | --- |
 | 1 | per-event generation cap | `consume_rate_limit` bucket `identity:event:day`, keyed on the HMAC-hashed `event_id`. Event-level, so it spans owner and every co-host (`spec.md §6`) |
 | 2 | per-account generation cap | bucket `identity:account:day`, keyed on the acting `user_id` — the actor, not the owner |
-| 3 | global/project spend ceiling, refused **before** the call | a pre-call check against recorded spend: the sum of `generation_runs.cost_estimate_usd` over the ceiling window, plus a companion call-count bucket `identity:global:day`. Cost is only knowable after a call, so the honest bound is *recorded spend + (in-flight claims × the per-call maximum)*, and the count bucket is what makes that second term finite. Stated as a bound, not as an exact ceiling. The *per-call maximum* is a named constant beside the model configuration, derived from the model's published token prices and the boundary's own bounded token ceiling, and it is reviewed whenever `OPENAI_MODEL` changes — an unnamed maximum makes the bound unbounded in practice. **`cost_estimate_usd` is nullable and nothing computes it today, so a null must count as the per-call maximum, never as zero** — a ceiling that silently under-counts is the fail-open shape §A.3 exists to refuse. T9A either populates it for `event_identity` or treats every null as maximum; it does not get to leave the sum optimistic |
+| 3 | global/project spend ceiling, refused **before** the call | a pre-call check against recorded spend: the sum of `generation_runs.cost_estimate_usd` over the ceiling window, plus the reservation held by claims still in flight. Cost is knowable only after a call, so the bound is *recorded spend + (in-flight claims × the **logical-call** maximum)*, stated as a bound and never as exact spend. **`cost_estimate_usd` is nullable and nothing populated it before T9A, so a null counts as the logical-call maximum, never as zero** — a ceiling that silently under-counts is the fail-open shape §A.3 exists to refuse. How both the estimate and the maximum are computed is §A.5.1, and it is the part of this row that is easiest to get wrong |
 | 4 | alert/observability path for the ceiling | a structured server-side alert record emitted when the window crosses its warn fraction and again at refusal, carrying window, recorded spend, ceiling and the refusing bucket. Delivery channel (email/pager) is explicit debt, not a new dependency — `technology-decisions.md` is locked |
 | 5 | rate limiting before the provider is reached | the claim RPC (below) runs to completion before `generateEventIdentity` is called at all. There is no provider factory to intercept — the client is constructed **inside** `generateEventIdentity` (`new OpenAI(…)`) — so the observable boundary is that function, and the T9A test asserts, with the module mocked, that a refusal never calls it. That is a behavioural assertion, not a source scan; an earlier draft of this row named a `createOpenAIClient` seam that does not exist |
 | 6 | deterministic idempotency for an EventIdentity request | the attempt key below. Derived from the request, never random, never a client-supplied token |
 | 7 | a concurrency claim so two requests cannot both pay | `event_identity_call_claims`, unique on the attempt key, **inserted before the provider is reached**. A uniqueness conflict that only surfaces after two calls have completed is not idempotency |
 | 7b | **one identity call in flight per event** | a partial unique index over `(event_id)` where the claim is non-terminal. The key alone is not enough: the basis contains `model_config_digest` and three versions, so a rolling deploy between a host's request and their refresh produces a *different* key and would otherwise start a second paid call while the first runs. This is a **call-level** guard on identity calls and is not `spec.md §10`'s one-batch-in-flight rule arriving early — it knows nothing about batches, siblings or planning, and T16's rule still lands at T16. Because `response_captured` is non-terminal, this index also refuses a *legitimate* new call while one sits unrecovered; that is why §A.6 step 3's lookup is event-scoped and completes it on the hot path, rather than leaving recovery to the sweeper |
 | 8 | usage telemetry per call | `generation_runs` as specified by `spec.md §9.6`, plus `input_assembly_version` (§B.3) and the paid-response evidence of §A.7 |
+
+#### A.5.1 Cost accounting, and the cases that would have undercounted it
+
+The ceiling in row 3 is only as good as the number it sums. The existing boundary makes this
+harder than it looks, in four ways that a naive implementation gets wrong in the direction of
+spending money:
+
+- one logical `generateEventIdentity` call may make **several provider attempts**, because
+  transient failures are retried inside it;
+- it may produce **two billable responses**, when the first fails validation and the repair pass
+  succeeds;
+- it reports usage from the **final accepted response**, so the rejected first response's tokens
+  would simply not be counted;
+- a timeout or connection loss means **no response reached us**, which is not the same as the
+  provider having done no billable work.
+
+The correction, in four rules:
+
+1. **Aggregate every observed response.** The usage recorded for a logical invocation is the sum
+   over every provider response actually received during it — rejected and accepted alike. A
+   successful repair records response 1 + response 2; an `invalid_output` failure records both; a
+   provider failure on the repair path still records response 1. The ordinary `generation_runs`
+   token columns describe the logical invocation, not its last response. `provider_request_id`
+   keeps its singular shape and is documented as the **accepted or final** response's id, not an
+   identifier for every attempt. Usage is never smuggled into `reprompts`.
+2. **Ambiguous attempts are costed, not ignored.** A provider attempt that threw before a response
+   reached us may or may not have billed. We cannot know, so it contributes the **per-attempt
+   maximum**, never zero. The boundary reports how many attempts had unknown usage, so the
+   arithmetic is reviewable rather than inferred.
+3. **Fail closed when usage is unavailable.** If token prices are not configured, or an observed
+   response arrived without usage, that response is priced at the per-attempt maximum too. An exact
+   number is only ever claimed where an exact number is known.
+4. **The maximum bounds the whole logical call.** `MAX_PROVIDER_ATTEMPTS_PER_CALL = passes ×
+   (MAX_TRANSIENT_RETRIES + 1)` — 6 today — and the logical-call maximum is the per-attempt
+   maximum times that. Defining it as one successful response would make the row-3 inequality
+   false, because a single claim can cost six attempts. It is pinned to the retry and pass policy
+   by a test, exactly as the lease is (§A.5), so raising `MAX_TRANSIENT_RETRIES` cannot silently
+   raise worst-case spend past the reservation the ceiling already made.
+
+**No invented token ceiling.** `generateEventIdentity` enforces no application-level output-token
+limit, so the per-attempt maximum is **not** derived from "our bounded token ceiling" — an earlier
+draft of row 3 said it was, and that bound does not exist. Adding a tight output limit for cleaner
+accounting could change what EventIdentity produces, which is a creative decision and not an
+accounting one (`CLAUDE.md §2`). So the per-attempt maximum is instead an **explicit configured
+constant** representing the provider's documented maximum billable usage for the configured model
+at its published prices. It is named, it is overridable per environment, and where its value cannot
+be verified against current provider documentation it is carried as an explicitly unverified
+placeholder with the verification recorded as owed before deployment — never guessed silently. A
+very conservative maximum is acceptable for alpha; a maximum that pretends to a precision we do not
+have is not.
+
+**Owed before deployment, recorded rather than quietly assumed.** T9A ships
+`DEFAULT_PROVIDER_ATTEMPT_MAX_USD` and leaves `IDENTITY_TOKEN_PRICES_USD_PER_MTOK` unset, because
+neither the model's published maximum billable usage nor its prices can be verified from this
+environment and guessing either into a money calculation is worse than carrying the gap visibly.
+`PROVIDER_ATTEMPT_MAX_IS_VERIFIED` is `false` and says so. Until both are set from current provider
+documentation, every call is costed at the per-attempt maximum — a real ceiling, just a blunt one,
+which is the correct direction to be wrong in.
 
 **Refusals never leak a counter.** `spec.md §10` says creative work is *"effectively unlimited from
 the user's perspective"* and `§32 #41` forbids exposing backend counters. A refusal is a neutral
@@ -528,14 +587,23 @@ the ordered paid response texts, oldest first, constrained to a JSON array. Sema
 | --- | --- |
 | success, valid on the first call | one entry: the accepted text |
 | success after the one repair | two entries: the rejected text, then the accepted text |
-| `provider` failure before any response | `[]` — answered nothing, paid for nothing |
+| `provider` failure before any response | `[]` — **no response text was captured**. Not a claim that nothing was billed: see below |
 | `provider` failure on the repair attempt | one entry: the first response, already paid for |
 | `invalid_output` after the repair | two entries, both paid for |
 | a validator bug thrown out of validation | whatever the boundary annotated onto the error |
 | any run written before this contract, or an operation it does not cover | `null` |
 
-`null` means *not applicable*; `[]` means *nothing was returned*. They are not the same and neither
-is a silent drop. Success and failure are therefore both unambiguous, which is the point.
+`null` means *this evidence contract does not apply* — a run the contract does not cover, or one
+written before it. `[]` means *the contract applies and no response text was captured*. They are not
+the same and neither is a silent drop.
+
+**`[]` is not a proof of zero spend, and nothing in the code, comments or tests may say it is.** A
+transport timeout, a connection reset or a cancelled request can reach provider execution without a
+response ever reaching us; we see an exception and know nothing about what was billed. Evidence
+records what we *captured*. What was *spent* is §A.5.1's job, and there an attempt with no response
+is costed at the per-attempt maximum rather than at zero. Reading `provider_response_evidence = []`
+as "provably unpaid" would join the two honest halves into one false claim, and it is precisely the
+expensive case — an ambiguous failure after a repair — where it would be most wrong.
 
 **Privacy and retention, stated rather than assumed.** This is server-only telemetry:
 `generation_runs` has RLS on, no policies, and is revoked from `anon` and `authenticated`. It must
