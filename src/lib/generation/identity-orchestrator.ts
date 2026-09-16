@@ -18,7 +18,7 @@ import {
 } from "@/lib/ai/openai/event-identity";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { openAiEnv } from "@/lib/env";
-import type { Database, Json } from "@/lib/supabase/database.types";
+import type { Database, IdentityCallClaimState, Json } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
@@ -128,7 +128,15 @@ export interface IdentityOrchestrationResult {
   /** The revision this state is about: the latest one, when there is one. */
   identityRevisionId?: string;
   revision?: number;
-  /** The open questions. `clarification_required` only, and never the rest of the envelope. */
+  /**
+   * The latest revision's **unanswered** questions, in any state that has them — never the rest of
+   * the envelope.
+   *
+   * Not restricted to `clarification_required`. `spec.md §7.6b #4` says a Route A question "stays
+   * open and answerable" while gating nothing, and the revision that asked it is authoritative, so
+   * a contract that surfaced questions only while blocking would make that unimplementable. The
+   * state says whether the event is waiting; this says what there is to answer.
+   */
   questions?: readonly ClarificationQuestion[];
   /** `temporarily_unavailable` only. Frozen, uniform, and reason-free by design. */
   message?: string;
@@ -166,7 +174,23 @@ interface PersistedOutcome {
   openQuestions: readonly ClarificationQuestion[];
   /** True while an unanswered **boundary** question is what the event is waiting on. */
   awaitingBoundaryAnswer: boolean;
+  /** True when the most recent attempt ended in a way only the host can move past. */
+  awaitingHostRetry: boolean;
 }
+
+/**
+ * Claim states that leave the next move to the host.
+ *
+ * `abandoned` is deliberately absent: it is provably unpaid and is reclaimed automatically, so it
+ * is not a thing the host has to decide about. The other three may all have cost money, which is
+ * why `resolveAttemptOrdinal` refuses to derive a new attempt from them without an explicit retry —
+ * and this is the same rule, read from the resting state rather than from one request's basis.
+ */
+const HOST_RETRY_STATES: readonly IdentityCallClaimState[] = [
+  "failed_terminal",
+  "expired_unknown",
+  "recovery_failed",
+];
 
 /**
  * The persisted facts this contract is allowed to report.
@@ -182,7 +206,7 @@ async function readPersistedOutcome(admin: Admin, eventId: string): Promise<Pers
     await Promise.all([
       admin
         .from("event_identity_revisions")
-        .select("id, revision, is_provisional, result, schema_version")
+        .select("id, revision, is_provisional, result, schema_version, created_at")
         .eq("event_id", eventId)
         .order("revision", { ascending: false })
         .limit(1),
@@ -191,7 +215,29 @@ async function readPersistedOutcome(admin: Admin, eventId: string): Promise<Pers
   if (revisionError) throw revisionError;
   if (eventError) throw eventError;
 
+  // The resting state has to be derivable without the request's basis, or a POST and the poll that
+  // follows it a second later disagree: the POST knows its own attempt failed, and a poll deriving
+  // nothing would answer `ready` from an earlier round's identity and erase the failure from the
+  // surface within one tick. So it is read from the claims: the newest settled one, and whether
+  // anything has been produced since it.
+  const { data: settled, error: claimError } = await admin
+    .from("event_identity_call_claims")
+    .select("state, settled_at")
+    .eq("event_id", eventId)
+    .limit(100);
+  if (claimError) throw claimError;
+
   const row = (revisions ?? [])[0] ?? null;
+  const newest = (settled ?? [])
+    .filter((claim) => claim.settled_at !== null)
+    .sort((a, b) => (a.settled_at! < b.settled_at! ? 1 : -1))[0];
+  const awaitingHostRetry =
+    newest !== undefined &&
+    HOST_RETRY_STATES.includes(newest.state) &&
+    // Anything produced *after* that failure supersedes it: a later completer, or a concurrent
+    // round of a different basis, has already given this event an answer.
+    (row === null || newest.settled_at! > row.created_at);
+
   const derived = identityClarificationState({
     latestRevision: row
       ? { id: row.id, revision: row.revision, is_provisional: row.is_provisional }
@@ -203,7 +249,7 @@ async function readPersistedOutcome(admin: Admin, eventId: string): Promise<Pers
     latestRevisionId: derived.latestRevisionId,
     latestRevision: derived.latestRevision,
   };
-  if (!row) return { ...base, openQuestions: [], awaitingBoundaryAnswer: false };
+  if (!row) return { ...base, openQuestions: [], awaitingBoundaryAnswer: false, awaitingHostRetry };
 
   const { data: answered, error: answerError } = await admin
     .from("clarification_answers")
@@ -222,24 +268,24 @@ async function readPersistedOutcome(admin: Admin, eventId: string): Promise<Pers
     ...base,
     openQuestions,
     awaitingBoundaryAnswer: openQuestions.some((question) => question.kind === "boundary"),
+    awaitingHostRetry,
   };
 }
 
 /**
  * The persisted facts, as a public result.
  *
- * `fallback` is what to say when nothing persisted settles it. `force` marks the cases where the
- * fallback is itself the finding — a terminal failure this request just recorded, or one the host
- * must decide about — so that an event which already holds an authoritative identity from an
- * earlier round does not answer a failed rerun with `ready`.
+ * `fallback` is what to say when nothing persisted settles it. Everything else is derived from the
+ * record alone — deliberately, so that a POST and the poll a second later cannot disagree about
+ * the same database.
  *
- * An unanswered boundary question outranks both: it is the one state where the host has something
- * to do that is not "try again".
+ * Precedence: an unanswered boundary question first, because it is the one state where the host
+ * has something to do that is not "try again"; then a failed last attempt, so an authoritative
+ * identity from an earlier round cannot answer a failed rerun with `ready`; then `ready`.
  */
 function outcomeState(
   outcome: PersistedOutcome,
   fallback: IdentityOrchestrationState,
-  options: { force?: boolean } = {},
 ): IdentityOrchestrationResult {
   const result: IdentityOrchestrationResult = {
     state: fallback,
@@ -255,7 +301,7 @@ function outcomeState(
   if (outcome.openQuestions.length > 0) result.questions = outcome.openQuestions;
 
   if (outcome.awaitingBoundaryAnswer) return { ...result, state: "clarification_required" };
-  if (options.force) return result;
+  if (outcome.awaitingHostRetry) return { ...result, state: "retry_available" };
   if (outcome.hasAuthoritativeIdentity) return { ...result, state: "ready" };
   return result;
 }
@@ -513,11 +559,16 @@ function successRun(
  */
 function failureRun(error: unknown, limits: IdentityLimits, side: RunSide): CaptureRun {
   const identityError = error instanceof EventIdentityError ? error : null;
-  const usage: Partial<EventIdentityUsage> = identityError?.usage ?? {};
+  // A validator bug is not an `EventIdentityError`; the boundary annotates the thrown object with
+  // both what had been paid for and how many attempts made it, so read the annotation rather than
+  // inferring the count from the texts in hand.
+  const annotated = (error as { usage?: unknown } | null)?.usage;
+  const usage: Partial<EventIdentityUsage> =
+    identityError?.usage ??
+    (annotated && typeof annotated === "object" ? (annotated as Partial<EventIdentityUsage>) : {});
   const evidence =
     identityError?.rawResponses ??
-    // A validator bug is not an `EventIdentityError`; the boundary annotates the thrown object
-    // with what had been paid for, and dropping it here would destroy the only copy.
+    // Dropping this would destroy the only copy of a response the provider was paid for.
     (Array.isArray((error as { rawResponses?: unknown } | null)?.rawResponses)
       ? (error as { rawResponses: string[] }).rawResponses
       : []);
@@ -554,6 +605,49 @@ function failureRun(error: unknown, limits: IdentityLimits, side: RunSide): Capt
   };
 }
 
+/**
+ * Step 6, retried.
+ *
+ * `capture_identity_call_response` was built idempotent — the attempt key is unique on
+ * `generation_runs`, so a second call finds the row the first wrote instead of double-counting the
+ * spend — and until now nothing used that. Without a retry, one transient network error between a
+ * paid, validated response and its commit costs the host the whole call: the claim stays `claimed`
+ * and invoked, expires to `expired_unknown` a quarter of an hour later, and they pay again for a
+ * response this process was holding in memory.
+ *
+ * Bounded, because the durable home is the database and there is no second one. If every attempt
+ * fails, the caller is told; the response text is **not** logged as a fallback, because it is
+ * verbatim model output about a named real person and the log has none of the retention or access
+ * control `spec.md §27` puts around the column it belongs in.
+ */
+const CAPTURE_ATTEMPTS = 3;
+const CAPTURE_BACKOFF_MS = [200, 800];
+
+async function captureWithRetry(
+  admin: Admin,
+  claimId: string,
+  success: boolean,
+  run: CaptureRun,
+): Promise<void> {
+  let last: unknown;
+  for (let attempt = 0; attempt < CAPTURE_ATTEMPTS; attempt += 1) {
+    try {
+      await captureIdentityCallResponse(admin, claimId, success, run);
+      return;
+    } catch (error) {
+      last = error;
+      const backoff = CAPTURE_BACKOFF_MS[Math.min(attempt, CAPTURE_BACKOFF_MS.length - 1)];
+      if (attempt < CAPTURE_ATTEMPTS - 1) await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+  console.error(
+    `identity capture: claim ${claimId} could not record a paid provider response after ` +
+      `${CAPTURE_ATTEMPTS} attempts; the claim will expire as unknown and the host must retry`,
+    last,
+  );
+  throw last;
+}
+
 /* ------------------------------------------------------------------ the orchestration itself */
 
 export interface RunEventIdentityRequest {
@@ -575,6 +669,10 @@ export interface RunEventIdentityRequest {
  * Step 1 (authenticate and authorize) belongs to the caller — `startEventIdentity` below is the
  * request-shaped entry point that performs it — because this function is also what a server action
  * and a test drive, and an orchestrator that reaches for cookies cannot be either.
+ *
+ * **A route handler must not call this directly.** It takes `userId` from its caller and checks no
+ * membership: reaching it from a request without `startEventIdentity` in front would let any
+ * signed-in user spend against somebody else's event.
  */
 export async function runEventIdentity(
   admin: Admin,
@@ -622,9 +720,10 @@ export async function runEventIdentity(
     return outcomeState(outcome, "retry_available");
   }
   if (resolution.mode === "needs_explicit_retry") {
-    // The last attempt for these exact bytes may have cost money. Somebody decides — and an
-    // authoritative identity from an earlier round must not answer this with `ready`.
-    return outcomeState(outcome, "retry_available", { force: true });
+    // The last attempt for these exact bytes may have cost money. Somebody decides — and
+    // `outcomeState` reaches the same conclusion from the record, so the poll that follows this
+    // response says the same thing.
+    return outcomeState(outcome, "retry_available");
   }
   if (resolution.mode === "observe") {
     return inFlightState(resolution.claim, outcome.hasAuthoritativeIdentity);
@@ -684,15 +783,17 @@ export async function runEventIdentity(
   } catch (error) {
     // Step 6 on the failure path. Written before anything is decided about the error, so no
     // classification bug can lose a paid response.
-    await captureIdentityCallResponse(
-      admin,
-      claimed.claim.id,
-      false,
-      failureRun(error, limits, side),
-    );
+    try {
+      await captureWithRetry(admin, claimed.claim.id, false, failureRun(error, limits, side));
+    } catch (captureError) {
+      // Swallowed deliberately, and only here. `captureWithRetry` has already logged it, and
+      // rethrowing would replace the provider's own error with a database one — losing the
+      // diagnosis for the failure that actually happened. The claim expires as unknown either way.
+      console.error("identity capture: the failure path could not be recorded", captureError);
+    }
     if (error instanceof EventIdentityError) {
       const after = await readPersistedOutcome(admin, eventId);
-      return outcomeState(after, "retry_available", { force: true });
+      return outcomeState(after, "retry_available");
     }
     // Our own code threw. The evidence and the spend are recorded and the claim is terminal, so
     // the event is released and nothing silently buys a replacement — but this is a bug, and a bug
@@ -701,11 +802,16 @@ export async function runEventIdentity(
   }
 
   // Step 6 — capture what was paid for. After this commit, no crash can cost a second call.
-  await captureIdentityCallResponse(admin, claimed.claim.id, true, successRun(call, limits, side));
+  await captureWithRetry(admin, claimed.claim.id, true, successRun(call, limits, side));
 
   // Step 7 — the conditional transition and the revision, in one transaction. Null means another
   // completer won the race; whatever it produced is this request's answer too.
   await completeIdentityCall(admin, claimed.claim.id, call.output as unknown as Json);
+  // `recovering` is only the fallback for a completer that lost the race and found nothing
+  // persisted yet; whenever the record settles it, `outcomeState` answers from the record. The one
+  // shape it does not describe is a claim expired to `expired_unknown` while this call ran, and
+  // that resolves too — `awaitingHostRetry` reads exactly that state — so the fallback is reached
+  // only when there is genuinely nothing to report.
   return outcomeState(await readPersistedOutcome(admin, eventId), "recovering");
 }
 

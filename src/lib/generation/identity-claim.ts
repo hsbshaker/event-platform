@@ -516,7 +516,8 @@ export async function completeCapturedClaim(
  * Records a failed completion, and releases the event when the failure is final.
  *
  * Terminal when the failure is deterministic or the captured response has aged out; otherwise the
- * claim stays captured and is retried. Either way the run row and its evidence are untouched.
+ * claim stays captured and is retried by the next request or the next sweep. Either way the run
+ * row and its evidence are untouched.
  */
 export async function recordCompletionFailure(
   admin: Admin,
@@ -542,66 +543,11 @@ export async function recordCompletionFailure(
   }
 }
 
-export interface RequestRecovery extends ExpiryCounts {
-  /** Captured responses turned into revisions inline, with **no** model call. */
-  completed: number;
-  unrecoverable: number;
-  retryable: number;
-}
-
-/**
- * Request-driven recovery for **one event**, run before anything considers new spend.
- *
- * `docs/phase-4b-plan.md §A.5`, "Who recovers, and when". The scheduled job runs once a day, and a
- * host who is waiting must never be waiting on it. Two things happen here, in this order, and
- * neither makes a model call:
- *
- * 1. **this event's due claims expire** — a process that died between reserving a claim and
- *    reaching the provider leaves `claimed`, and the one-in-flight index refuses every new call
- *    while it sits there. If only the daily job could clear it, one crash would cost that host a
- *    day;
- * 2. **a captured response is completed** — the paid response becomes its revision by
- *    re-validating the stored text, through the same conditional transition the sweeper uses, so a
- *    request and the job cannot both complete one.
- *
- * A refresh, a reconnect, a status poll or a duplicate POST is therefore enough to finish either
- * state immediately.
- */
-export async function recoverEventIdentityClaims(
-  admin: Admin,
-  eventId: string,
-): Promise<RequestRecovery> {
-  // An event holds at most one non-terminal claim (the partial unique index), so these bounds are
-  // slack rather than a budget; they exist so a corrupted table cannot turn one request into an
-  // unbounded scan.
-  const expiry = await expireIdentityCallClaims(admin, { limit: 10, eventId });
-  const pending = await pendingIdentityCallCompletions(admin, { limit: 5, eventId });
-
-  let completed = 0;
-  let unrecoverable = 0;
-  let retryable = 0;
-  for (const row of pending) {
-    const attempt = await completeCapturedClaim(admin, row);
-    if (attempt.kind === "completed") completed += 1;
-    else if (attempt.kind === "failed") {
-      const outcome = await recordCompletionFailure(
-        admin,
-        row.claim_id,
-        attempt.reason,
-        attempt.deterministic,
-      );
-      if (outcome === "terminal") unrecoverable += 1;
-      else if (outcome === "retryable") retryable += 1;
-    }
-  }
-  return { ...expiry, completed, unrecoverable, retryable };
-}
-
 /**
  * The daily backstop.
  *
  * Its role is **eventual cleanup and recovery for work nobody comes back to**; it is explicitly
- * not on an active host's latency path, which is what `recoverEventIdentityClaims` is for. The
+ * not on an active host's latency path, which is the orchestrator's own settle step. The
  * platform plan this project is on caps cron frequency at once daily, and that is survivable only
  * because a waiting host no longer depends on it.
  *

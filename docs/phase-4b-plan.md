@@ -447,8 +447,12 @@ cleanup and recovery for abandoned events, and it runs **once a day** — the pl
 project is on caps cron frequency at once daily and rejects anything more frequent at deploy time,
 with per-hour precision (±59 minutes). That constraint is survivable only because of the sentence
 above: a cadence measured in hours cannot be on a waiting person's path, and T10 is built so that
-it is not — `recoverEventIdentityClaims` runs both obligations inline, on every orchestration and
-every status read, and a test refuses to let the orchestrator reach for the sweeper at all.
+it is not — the orchestrator's settle step runs both obligations inline, on every orchestration and
+every status read, before anything considers new spend, and a test refuses to let the orchestrator
+reach for the sweeper at all. It is one implementation, not a request-side copy of the job: a
+second function that merely looked equivalent is exactly how the two would drift, and the one
+written here also settles a captured claim whose run row cannot be read — which the job's own
+pending query, an inner join on `generation_runs`, would skip and thereby leave wedged.
 
 **Giving up is bounded by age, not by attempts.** A failure that will fail identically next time —
 an integrity violation, a data exception, an unsupported feature — terminates at once. Anything that
@@ -769,9 +773,12 @@ safe to read by someone who should not learn how close the project is to its cei
 `temporarily_unavailable`. Beside them, one boolean: whether the event has an authoritative
 identity, because §A.8 is explicit that "the latest revision is provisional" and "the event has a
 consumable identity" are independent facts and collapsing them is how a surface and a downstream
-stage come to disagree. `clarification_required` additionally carries the open questions and the
-revision that asked them; `temporarily_unavailable` carries the one frozen sentence. Nothing else
-leaves.
+stage come to disagree. Beside them, the latest revision's **unanswered** questions, whenever
+it has any — not only while blocking, because `spec.md §7.6b #4` says a Route A question "stays open
+and answerable" while gating nothing, and a contract that surfaced questions only in
+`clarification_required` would make that unimplementable. The state says whether the event is
+waiting on the host; the questions say what there is to answer. `temporarily_unavailable` carries
+the one frozen sentence. Nothing else leaves.
 
 **The set is small on purpose.** `spec.md §32 #41` forbids exposing backend generation and spend
 counters, and a richer state machine is one with extra steps: a caller who can tell "the project
@@ -781,6 +788,15 @@ counters. So every refusal collapses into `temporarily_unavailable` and every te
 failed* either, since that distinction is the attempt history. No claim id, no attempt key, no
 ordinal, no basis digest, no cost, no SQLSTATE, no provider internals and no response evidence
 appear in any state.
+
+**The resting state is derived from the record, not from the request.** A POST that has just
+recorded a terminal failure and a poll a second later read the same database and must not disagree:
+if the poll derived nothing it would answer `ready` from an earlier round's identity and erase the
+failure from the surface within one tick of T11's polling. So `retry_available` comes from the
+newest settled claim being one of `failed_terminal`, `expired_unknown` or `recovery_failed` with
+nothing produced since — never from a flag one code path sets and the other cannot. `abandoned` is
+not in that set: it is provably unpaid and reclaimed automatically, so it is not the host's
+decision.
 
 **`recovering` is not an error.** It means: no new call may start yet, and none is needed from the
 host. Three situations reach it — a captured response being completed, a claim of a *different*

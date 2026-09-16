@@ -942,6 +942,7 @@ describe("the public contract leaks nothing internal", () => {
     // A different reasoning effort is a different model configuration and therefore a different
     // basis, which is how this reaches the ceiling instead of replaying the completed round.
     process.env.OPENAI_REASONING_EFFORT = "medium";
+    resetEnvCache();
     process.env.IDENTITY_CEILING_USD = "1";
     seen.push(await run());
     delete process.env.IDENTITY_CEILING_USD;
@@ -1022,5 +1023,151 @@ describe("what the host is actually waiting on", () => {
     const result = await eventIdentityState(admin, eventId);
     expect(result).toEqual({ state: "retry_available", hasAuthoritativeIdentity: false });
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+/* ------------------------------------------------------------------ branches the review named */
+
+describe("the paths that only exist for things going wrong", () => {
+  it("does not call the provider when the claim was reclaimed between steps 4 and 5", async () => {
+    // Driven through the orchestrator rather than by calling the RPC wrapper: step 5 returning
+    // `false` must stop this request, not merely report something.
+    answers(AUTHORITATIVE);
+    const reclaim = async () => {
+      await db.query(
+        `update public.event_identity_call_claims
+            set state='abandoned', settled_at=pg_catalog.now()
+          where event_id=$1 and state='claimed'`,
+        [eventId],
+      );
+      return true;
+    };
+    // The claim exists by the time `mark_identity_call_invoked` runs, so reclaiming it inside that
+    // window is what the orchestrator has to survive. The shim lets us wedge the reclaim in by
+    // hooking the RPC the orchestrator is about to call.
+    const hooked = {
+      from: admin.from.bind(admin),
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        if (name === "mark_identity_call_invoked") await reclaim();
+        return (admin as unknown as { rpc: (n: string, a: unknown) => Promise<unknown> }).rpc(
+          name,
+          args,
+        );
+      },
+    } as unknown as Admin;
+
+    const result = await runEventIdentity(hooked, { eventId, userId: owner });
+
+    expect(result.state).toBe("recovering");
+    expect(generate).not.toHaveBeenCalled();
+    expect(await revisions()).toHaveLength(0);
+  });
+
+  it("releases an event whose captured response can never become a revision", async () => {
+    // A foreign answer id: `validate_identity_revision_answers` refuses it, deterministically and
+    // for ever. Without a terminal state the paid response would hold this event's only in-flight
+    // slot permanently — the wedge, arriving by the recovery path instead of the crash path.
+    const otherEvent = (
+      await db.query(
+        `insert into public.events (owner_id, prompt) values ($1,'elsewhere')
+                      returning id`,
+        [owner],
+      )
+    ).rows[0].id;
+    const claimId = await capturedClaim(digestFor());
+    const foreign = (
+      await db.query(
+        `insert into public.event_identity_revisions
+           (event_id, revision, result, prompt_version, schema_version, input_assembly_version,
+            provider, model)
+         values ($1,1,$2::jsonb,$3,$4,$5,'openai',$6) returning id`,
+        [
+          otherEvent,
+          JSON.stringify(boundaryResult("elsewhere?")),
+          EVENT_IDENTITY_PROMPT_VERSION,
+          EVENT_IDENTITY_SCHEMA_VERSION,
+          EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION,
+          MODEL,
+        ],
+      )
+    ).rows[0].id;
+    const foreignAnswer = (
+      await db.query(
+        `insert into public.clarification_answers
+           (event_id, identity_revision_id, question_index, round, kind, question_text, options,
+            selected_option_label, answered_by)
+         values ($1,$2,0,1,'boundary','elsewhere?',
+                 '[{"label":"Yes","isDefer":false},{"label":"No","isDefer":false}]'::jsonb,
+                 'Yes',$3)
+         returning id`,
+        [otherEvent, foreign, owner],
+      )
+    ).rows[0].id;
+    await db.query(
+      `update public.event_identity_call_claims set clarification_answer_ids = array[$2::uuid]
+        where id=$1`,
+      [claimId, foreignAnswer],
+    );
+
+    const result = await eventIdentityState(admin, eventId);
+
+    expect((await claims()).find((c) => c.id === claimId)?.state).toBe("recovery_failed");
+    expect(result.state).toBe("retry_available");
+    expect(await revisions()).toHaveLength(0);
+    // The evidence survives the give-up: the host paid for it.
+    const [row] = await runs();
+    expect(row.provider_response_evidence).not.toBeNull();
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("agrees with itself: a failed rerun reads the same on the next poll as in its own response", async () => {
+    answers(AUTHORITATIVE);
+    expect((await run()).state).toBe("ready");
+
+    // A second round on a different basis, which fails terminally. Without the resting state being
+    // derived from the record, the poll a second later would answer `ready` from round one and the
+    // failure would vanish from the surface within one tick.
+    process.env.OPENAI_REASONING_EFFORT = "medium";
+    resetEnvCache();
+    generate.mockReset();
+    generate.mockRejectedValue(new EventIdentityError("nope", "provider", undefined, {}));
+
+    const posted = await run();
+    const polled = await eventIdentityState(admin, eventId);
+
+    expect(posted.state).toBe("retry_available");
+    expect(polled.state).toBe("retry_available");
+    expect(posted.hasAuthoritativeIdentity).toBe(true);
+    expect(polled.hasAuthoritativeIdentity).toBe(true);
+  });
+
+  it("retries a capture whose first attempt was lost, and writes one run row", async () => {
+    answers(AUTHORITATIVE);
+    let failures = 0;
+    const flaky = {
+      from: admin.from.bind(admin),
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        const result = await (
+          admin as unknown as { rpc: (n: string, a: unknown) => Promise<unknown> }
+        ).rpc(name, args);
+        // The hard case, not the easy one: the capture **committed** and its answer was lost on
+        // the way back. A retry that was not idempotent would write a second run row here and
+        // double-count the spend the ceiling reads back.
+        if (name === "capture_identity_call_response" && failures < 1) {
+          failures += 1;
+          throw new Error("connection reset after the commit");
+        }
+        return result;
+      },
+    } as unknown as Admin;
+
+    const result = await runEventIdentity(flaky, { eventId, userId: owner });
+
+    expect(failures).toBe(1);
+    expect(result.state).toBe("ready");
+    // The attempt key is unique on `generation_runs`, so the retry found its own row rather than
+    // writing a second and double-counting the spend the ceiling reads back.
+    expect(await runs()).toHaveLength(1);
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 });

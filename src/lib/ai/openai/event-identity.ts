@@ -508,6 +508,17 @@ export async function generateEventIdentity(
     } catch (error) {
       if (error && typeof error === "object" && Object.isExtensible(error)) {
         (error as { rawResponses?: string[] }).rawResponses = [...rawResponses];
+        // The attempt counts travel with the responses, for the same reason the responses do.
+        // Cost accounting charges per *attempt* (`docs/phase-4b-plan.md §A.5.1`), and without this
+        // a caller can only infer attempts from the texts in hand — so a validator bug that
+        // followed two transient retries would be billed as one attempt instead of three, and the
+        // undercount would land in the figure the ceiling reads back.
+        (error as { usage?: Partial<EventIdentityUsage> }).usage = {
+          latencyMs: Date.now() - startedAt,
+          transientRetries,
+          repairRetries,
+          ...aggregateUsage(),
+        };
       }
       throw error;
     }
