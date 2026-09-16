@@ -1,5 +1,6 @@
 import "server-only";
 
+import { SUPPORTED_IDENTITY_SCHEMA_VERSIONS } from "@/lib/ai/event-identity/lifecycle";
 import { parseAndValidateEventIdentityResult } from "@/lib/ai/event-identity/validate";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import type { Database, IdentityCallClaimState, Json } from "@/lib/supabase/database.types";
@@ -327,6 +328,8 @@ export interface SweepResult extends ExpiryCounts {
   completed: number;
   /** Captured responses whose stored text no longer validates. Surfaced, never discarded. */
   unrecoverable: number;
+  /** Completions the database refused. Counted and stepped over, never allowed to stop the run. */
+  failed: number;
 }
 
 /**
@@ -351,7 +354,16 @@ export async function sweepIdentityCallClaims(
 
   let completed = 0;
   let unrecoverable = 0;
+  let failed = 0;
   for (const row of pending) {
+    // The schema version is checked, not merely fetched. `identity_questions()` refuses an
+    // unrecognised version rather than reading it as empty, and this is the same decision on the
+    // same data: a version today's validator happens to accept would be written into a revision
+    // whose generated column then refuses it, after the money was spent.
+    if (!SUPPORTED_IDENTITY_SCHEMA_VERSIONS.includes(row.schema_version)) {
+      unrecoverable += 1;
+      continue;
+    }
     const evidence = Array.isArray(row.provider_response_evidence)
       ? (row.provider_response_evidence as unknown[])
       : [];
@@ -367,11 +379,26 @@ export async function sweepIdentityCallClaims(
       unrecoverable += 1;
       continue;
     }
-    const done = await completeIdentityCall(admin, row.claim_id, outcome.value as unknown as Json);
-    if (done) completed += 1;
+    // Per claim, because one claim the database refuses must not stop the run.
+    //
+    // `complete_identity_call` can genuinely raise — `validate_identity_revision_answers` rejects
+    // an answer id that does not belong to the event. Without this the oldest such claim would be
+    // retried first on every run, throw, discard that run's expiry counts and prevent the purge
+    // from ever running again: one bad claim disabling housekeeping deployment-wide, permanently.
+    try {
+      const done = await completeIdentityCall(
+        admin,
+        row.claim_id,
+        outcome.value as unknown as Json,
+      );
+      if (done) completed += 1;
+    } catch (error) {
+      failed += 1;
+      console.error(`identity sweep: completing claim ${row.claim_id} failed`, error);
+    }
   }
 
-  return { ...expiry, completed, unrecoverable };
+  return { ...expiry, completed, unrecoverable, failed };
 }
 
 /**

@@ -234,6 +234,7 @@ declare
   v_claim_id uuid;
   v_recorded numeric := 0;
   v_reserved numeric := 0;
+  v_answers integer;
   v_constraint text;
 begin
   if p_lease_seconds <= 0 then
@@ -243,6 +244,13 @@ begin
     raise exception 'ceiling and logical-call maximum must not be negative';
   end if;
 
+  -- Read without a lock, at READ COMMITTED. Per event the one-in-flight index serializes claims,
+  -- so the ceiling is exact there; across events, N simultaneous claimers can each observe the
+  -- same reservation and all pass, overshooting by at most
+  -- `(concurrent claimers - 1) x logical-call maximum`. Bounded and small against the ceiling, and
+  -- closing it would mean an advisory lock on one global key in the hot path of every identity
+  -- call: a project-wide serialization point bought for an overshoot we can already name. Stated
+  -- rather than closed.
   select coalesce(
            sum(coalesce(r.cost_estimate_usd, p_logical_call_max_usd)),
            0
@@ -270,6 +278,30 @@ begin
         and c.generation_run_id is null
         and c.settled_at >= pg_catalog.now() - (p_ceiling_window_seconds * interval '1 second')
       );
+
+  -- Validated here, before a claim exists and long before the provider is reached.
+  --
+  -- The same ids are checked again by `validate_identity_revision_answers` when the revision is
+  -- written — but that is *after* the model has been paid, and by then the completer may be the
+  -- sweeper rather than the caller that got them wrong. A caller bug would become a permanent
+  -- post-spend failure. Fail before the money instead.
+  if p_clarification_answer_ids is not null and array_length(p_clarification_answer_ids, 1) > 0 then
+    if exists (
+      select 1 from unnest(p_clarification_answer_ids) as a(id)
+      group by a.id having count(*) > 1
+    ) then
+      raise exception 'clarification_answer_ids contains a duplicate'
+        using errcode = 'check_violation';
+    end if;
+    select count(*) into v_answers
+      from public.clarification_answers ca
+     where ca.id = any (p_clarification_answer_ids)
+       and ca.event_id = p_event_id;
+    if v_answers <> array_length(p_clarification_answer_ids, 1) then
+      raise exception 'clarification_answer_ids must all exist and belong to this event'
+        using errcode = 'foreign_key_violation';
+    end if;
+  end if;
 
   begin
     -- Admitting this call means reserving one more logical-call maximum.

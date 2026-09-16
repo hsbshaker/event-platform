@@ -121,6 +121,7 @@ describe("the identity housekeeping job", () => {
       expiredUnknown: 1,
       completed: 0,
       unrecoverable: 0,
+      failed: 0,
       evidencePurged: 4,
       retentionDays: 30,
     });
@@ -205,10 +206,106 @@ describe("the identity housekeeping job", () => {
       if (name === "expire_identity_call_claims") {
         return { data: null, error: { code: "42501", message: "denied" } };
       }
+      if (name === "purge_identity_response_evidence") return { data: 2, error: null };
       return { data: null, error: null };
     });
     const response = await GET(`Bearer ${SECRET}`);
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toMatchObject({ ok: false, stage: "sweep_claims" });
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      stage: "sweep_claims",
+      code: "42501",
+    });
+  });
+
+  it("purges even when the sweep failed", async () => {
+    // The two are independent jobs sharing a schedule. Returning early on a sweep failure would
+    // have let one claim the sweep cannot settle stop evidence retention deployment-wide.
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: null, error: { code: "42501", message: "denied" } };
+      }
+      if (name === "purge_identity_response_evidence") return { data: 3, error: null };
+      return { data: null, error: null };
+    });
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      ok: false,
+      evidencePurged: 3,
+    });
+    expect(calls).toContain("purge_identity_response_evidence");
+  });
+
+  it("steps over a completion the database refuses instead of stopping the run", async () => {
+    // One poison-pill claim must not disable housekeeping. `complete_identity_call` genuinely
+    // raises when an answer id does not belong to the event, and the pending list is oldest-first,
+    // so the same claim would be retried first on every run — discarding that run's expiry counts
+    // and stopping the purge forever.
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: [{ abandoned: 1, expired_unknown: 0 }], error: null };
+      }
+      if (name === "pending_identity_call_completions") {
+        return {
+          data: [
+            {
+              claim_id: "poison",
+              event_id: "e1",
+              generation_run_id: "r1",
+              schema_version: "event_identity_schema_v5",
+              provider_response_evidence: [JSON.stringify(validBody)],
+              captured_at: "2026-09-16T00:00:00Z",
+            },
+          ],
+          error: null,
+        };
+      }
+      if (name === "complete_identity_call") {
+        return { data: null, error: { code: "23503", message: "answer does not belong" } };
+      }
+      if (name === "purge_identity_response_evidence") return { data: 1, error: null };
+      return { data: null, error: null };
+    });
+
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      ok: true,
+      abandoned: 1,
+      completed: 0,
+      failed: 1,
+      evidencePurged: 1,
+    });
+  });
+
+  it("refuses a captured response written under a schema version it has no reader for", async () => {
+    // Fetching the version and not checking it is the fail-open shape §A.3 exists to remove; its
+    // SQL twin `identity_questions()` refuses an unrecognised version rather than reading it as
+    // empty. A version today's validator happens to accept would otherwise be written into a
+    // revision whose generated column then refuses it — after the money was spent.
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "expire_identity_call_claims") {
+        return { data: [{ abandoned: 0, expired_unknown: 0 }], error: null };
+      }
+      if (name === "pending_identity_call_completions") {
+        return {
+          data: [
+            {
+              claim_id: "c1",
+              event_id: "e1",
+              generation_run_id: "r1",
+              schema_version: "event_identity_schema_v99",
+              provider_response_evidence: [JSON.stringify(validBody)],
+              captured_at: "2026-09-16T00:00:00Z",
+            },
+          ],
+          error: null,
+        };
+      }
+      return { data: 0, error: null };
+    });
+
+    await expect((await GET(`Bearer ${SECRET}`)).json()).resolves.toMatchObject({
+      completed: 0,
+      unrecoverable: 1,
+    });
+    expect(calls).not.toContain("complete_identity_call");
   });
 });

@@ -795,6 +795,41 @@ describe("the claim state machine", () => {
     }
   });
 
+  it("refuses an answer id that is not this event's, before any money is at stake", async () => {
+    // The same ids are checked again when the revision is written — but that is after the model
+    // has been paid, and by then the completer may be the sweeper rather than the caller that got
+    // them wrong. A caller bug would become a permanent post-spend failure.
+    const otherRevision = await db.query(
+      `insert into public.event_identity_revisions
+         (event_id, revision, result, prompt_version, schema_version, input_assembly_version,
+          provider, model)
+       values ($1, 1, $2::jsonb, 'event_identity_v5', 'event_identity_schema_v5',
+               'event_identity_input_v2', 'openai', 'gpt-5.6-sol') returning id`,
+      [otherEventId, JSON.stringify(BOUNDARY_RESULT)],
+    );
+    const foreign = await db.query(
+      `insert into public.clarification_answers
+         (event_id, identity_revision_id, question_index, round, kind, question_text, options,
+          selected_option_label, answered_by)
+       values ($1, $2, 0, 1, 'boundary', 'Has she agreed?', $3::jsonb, 'Yes', $4) returning id`,
+      [
+        otherEventId,
+        otherRevision.rows[0].id,
+        JSON.stringify(BOUNDARY_RESULT.clarification.questions[0].options),
+        owner,
+      ],
+    );
+
+    await expect(
+      db.query(CLAIM, claimArgs("k1", { answerIds: [foreign.rows[0].id] })),
+    ).rejects.toThrow(/must all exist and belong to this event/);
+    expect(await buckets()).toEqual([]);
+    const { rows } = await db.query(
+      `select count(*)::int c from public.event_identity_call_claims`,
+    );
+    expect(rows[0].c).toBe(0);
+  });
+
   it("propagates a misconfiguration instead of returning it as a refusal", async () => {
     // `consume_rate_limit` raises P0001 for a non-positive window or max. Catching that class
     // would turn an operator's mistake into a silent, indistinguishable refusal carrying a

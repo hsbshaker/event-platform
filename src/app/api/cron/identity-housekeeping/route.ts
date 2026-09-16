@@ -58,10 +58,9 @@ function authorized(request: NextRequest): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function failed(stage: string, error: unknown): NextResponse {
-  const code = (error as { code?: string } | null)?.code ?? null;
-  console.error(`identity-housekeeping failed at ${stage}`, error);
-  return NextResponse.json({ ok: false, stage, code }, { status: 500 });
+/** The database's own error code, which is what a scheduled job can act on. Never the message. */
+function errorCode(error: unknown): string | null {
+  return (error as { code?: string } | null)?.code ?? null;
 }
 
 export async function GET(request: NextRequest) {
@@ -78,35 +77,59 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, stage: "setup", detail }, { status: 500 });
   }
 
-  let sweep;
+  // The purge runs whatever the sweep did.
+  //
+  // They are independent jobs that share a schedule, and the retention commitment must not be
+  // hostage to a claim the sweep could not settle. Returning early on a sweep failure would have
+  // meant one bad row stopping evidence retention deployment-wide, for as long as it sat there.
+  let sweep: Awaited<ReturnType<typeof sweepIdentityCallClaims>> | null = null;
+  let sweepError: unknown = null;
   try {
     sweep = await sweepIdentityCallClaims(admin, {
       expireLimit: EXPIRE_LIMIT,
       completeLimit: COMPLETE_LIMIT,
     });
   } catch (error) {
-    return failed("sweep_claims", error);
+    sweepError = error;
+    console.error("identity-housekeeping failed at sweep_claims", error);
   }
 
-  let evidencePurged: number;
+  let evidencePurged: number | null = null;
+  let purgeError: unknown = null;
   try {
     evidencePurged = await purgeIdentityResponseEvidence(admin);
   } catch (error) {
-    // The sweep already committed; reporting its counts would be more useful than losing them,
-    // but a partial run that claimed `ok` would be a lie. The caller holds CRON_SECRET and can act
-    // on the stage name.
-    return failed("purge_evidence", error);
+    purgeError = error;
+    console.error("identity-housekeeping failed at purge_evidence", error);
   }
 
-  return NextResponse.json({
-    ok: true,
-    abandoned: sweep.abandoned,
-    expiredUnknown: sweep.expiredUnknown,
-    completed: sweep.completed,
-    // A captured response that no longer validates. Not an error to swallow: the text is still
-    // durable, and it validated once before it was captured, so this means corruption.
-    unrecoverable: sweep.unrecoverable,
+  const body = {
+    abandoned: sweep?.abandoned ?? 0,
+    expiredUnknown: sweep?.expiredUnknown ?? 0,
+    completed: sweep?.completed ?? 0,
+    // A captured response that no longer validates, or one written under a schema version this
+    // build has no reader for. Not an error to swallow: the text is still durable, and it
+    // validated once before it was captured, so this means corruption.
+    unrecoverable: sweep?.unrecoverable ?? 0,
+    // Completions the database refused. Counted and stepped over, never allowed to stop the run.
+    failed: sweep?.failed ?? 0,
     evidencePurged,
     retentionDays: IDENTITY_EVIDENCE_RETENTION_DAYS,
-  });
+  };
+
+  // A partial run reporting `ok` would be a lie, so the stage is named — but the counts the run
+  // did achieve go back with it, because a scheduled job needs both.
+  if (sweepError || purgeError) {
+    return NextResponse.json(
+      {
+        ok: false,
+        stage: sweepError ? "sweep_claims" : "purge_evidence",
+        code: errorCode(sweepError ?? purgeError),
+        ...body,
+      },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, ...body });
 }

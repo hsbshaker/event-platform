@@ -598,6 +598,14 @@ the ordered paid response texts, oldest first, constrained to a JSON array. Sema
 written before it. `[]` means *the contract applies and no response text was captured*. They are not
 the same and neither is a silent drop.
 
+**A response captured after its claim expired is recorded, and stays case E.** The run row and its
+evidence are written whatever state the claim is in — refusing would throw away both the paid
+response and the money it cost. But the claim stays terminal, so that response never becomes a
+revision and the evidence ages out at 30 days. That is §A.5 case E working as designed, not a leak:
+the host was already told the attempt could not be recorded and has already decided whether to
+retry. Recorded here so nobody later reads the surviving evidence as a bug or as something to
+resurrect.
+
 **Purging needs a third value, or the retention rule destroys the first two.** Nulling the column on
 purge would make a purged run and a pre-contract run indistinguishable forever after, which is
 exactly the distinction this section calls load-bearing — the rule would quietly eat it in steady

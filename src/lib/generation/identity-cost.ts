@@ -150,7 +150,9 @@ export function estimateIdentityCallCostUsd(usage: CostRelevantUsage): CostEstim
   // response that arrived without a usage block is counted in both. Summing those two charges
   // such an attempt twice, and with prices unconfigured — the shipped default — that is the
   // entire bill, which can then exceed the reservation the ceiling already made for this claim.
-  const attempts = Math.max(usage.providerAttempts, observed, 0);
+  // `unknown` is in the max as a guard, not because the boundary can disagree: a caller that
+  // reported unknown attempts and no attempt count must not be billed zero by a money function.
+  const attempts = Math.max(usage.providerAttempts, observed, unknown, 0);
 
   // Every observed response must have reported tokens, or we cannot price any of them honestly:
   // the aggregate cannot tell us which response was silent.
