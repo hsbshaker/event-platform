@@ -374,9 +374,15 @@ async function settleEventClaims(admin: Admin, eventId: string): Promise<ClaimOb
   // host retry and no second payment.
   //
   // "May", not "will": the event-scoped guard in `runEventIdentity` still applies. If some
-  // *earlier* attempt for this event ended possibly-paid and the host has not decided about it
-  // yet, an ordinary request stops at `retry_available` even though this particular claim was
-  // provably unpaid. One press, and it proceeds.
+  // *earlier* attempt for this event ended possibly-paid, an ordinary request stops at
+  // `retry_available` even though this particular claim was provably unpaid. One press, and it
+  // proceeds.
+  //
+  // Worth being precise about the reachable case, because it is not "the host has not decided":
+  // the usual way to get here is that they *did* — their explicit retry created the claim that
+  // then died before invocation. What the record cannot see is that decision, which is not
+  // persisted anywhere. So the host presses once more. The alternative is to infer consent to
+  // spend from a claim that no longer exists, and that is the wrong way to be wrong about money.
   await reclaimUninvokedIdentityClaims(admin, { eventId, limit: 10 });
   await expireIdentityCallClaims(admin, { limit: 10, eventId });
   const claim = await findNonTerminalClaim(admin, eventId);

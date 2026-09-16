@@ -348,13 +348,27 @@ describe("a provisional identity can never become authoritative", () => {
       [id, eventId],
     );
     for (const actor of [owner, cohost]) {
-      const code = await asActor(db, { kind: "user", id: actor }, (q) =>
-        errorCode(q(`update public.events set title = 'A new title' where id = $1`, [eventId])),
-      );
-      expect([actor === owner ? "owner" : "cohost", code]).toEqual([
-        actor === owner ? "owner" : "cohost",
-        null,
-      ]);
+      const who = actor === owner ? "owner" : "cohost";
+      // Row count, not just the absence of an error: under RLS an update that matches no row is a
+      // silent success, so a regressed membership fixture would let this pass without the trigger
+      // ever running — which is the only thing it is here to exercise.
+      const outcome = await asActor(db, { kind: "user", id: actor }, async (q) => {
+        try {
+          return {
+            code: null,
+            rows: (
+              await q(
+                `update public.events set title = 'A new title'
+                                                 where id = $1`,
+                [eventId],
+              )
+            ).rowCount,
+          };
+        } catch (error) {
+          return { code: (error as { code?: string }).code ?? "unknown", rows: 0 };
+        }
+      });
+      expect([who, outcome]).toEqual([who, { code: null, rows: 1 }]);
     }
   });
 
