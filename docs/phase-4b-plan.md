@@ -1071,10 +1071,15 @@ So the ownership is: the **directive is subordinate structural guidance, never h
 where it and a host constraint conflict the constraint wins and the directive yields. The stages
 that must respect a constraint are the ones that can read it. The DesignIntent call receives
 `hostConstraints` inside the brief (§E: "every `hostConstraint` respected by all three"), §3.2
-checks every constraint is traceable into all three, and §3.7 makes "a `hostConstraint` eroded or
-contradicted" a **Fail** for the batch. What the planner is held to, and all it is held to, is that
-it carries both lists through unchanged, derives nothing from either, and never promotes guidance
-or a directive into a constraint.
+checks that all three **contradict** none of them and that the ones whose subject a DesignIntent can
+carry are **conformed to here**, and §3.7 makes "a `hostConstraint` eroded or contradicted" a
+**Fail** for the batch — judged, since T19B, on the surface this stage actually has. A constraint
+whose satisfaction belongs to a later stage stays authoritative and is owed to the first stage able
+to express it, which is the same sentence as the one above: the stages that must respect a
+constraint are the ones that can read it, and the stage that must *fulfil* one is the first that can
+say it. What the planner is held to, and all it is held to, is that it carries both lists through
+unchanged, derives nothing from either, and never promotes guidance or a directive into a
+constraint.
 
 **One gap this exposes, recorded rather than asserted away.** `GenerateCompositionInput` is
 `{ designIntent, capabilities, directive, reprompt? }` — it carries no `hostConstraints`. So a
@@ -1402,9 +1407,12 @@ satisfiable by a rule the prompt could be taught directly.
 
 **Within a batch of three:** assignment conformance; palette separation above a floor; typography
 distinctness; composition-vector distinctness; motif overlap below a ceiling; token allotment
-respected; every `hostConstraint` traceable into all three; no `suppliedFacts` value invented or
-altered; no `creativeGuidance` string appearing as a constraint; schema validity and first-call
-success; repair and transient retry counts.
+respected; **every `hostConstraint` non-contradicted by all three, and additionally conformed to at
+this stage where its subject is observable on the DesignIntent surface**; no `suppliedFacts` value
+invented or altered; no `creativeGuidance` string appearing as a constraint; schema validity and
+first-call success; repair and transient retry counts.
+
+That clause is stage-scoped on purpose, and the end of this section says exactly how.
 
 **Across batches — and this block is not optional.** Every metric above is within-batch, and a
 system that produces three vivid, distinct, assignment-conforming worlds for *every* event, and
@@ -1431,6 +1439,52 @@ recurrence they surface is a finding the reviewer must address.
 A mechanical pass is **necessary and never sufficient** — three outputs can satisfy every distance
 metric and still be one idea. Undecidable cases report `n/a` or **advisory**, never a silent pass,
 and advisory labels are never folded into the pass count.
+
+**Why that clause is stage-scoped, and why an earlier draft of it was unfair.** It used to read
+"every `hostConstraint` traceable into all three", which is a requirement this stage cannot always
+meet. `spec.md §7.5` defines a host constraint broadly and authoritatively — a prohibition, an
+explicit requirement of a specific thing, or a correction — and deliberately does **not** limit it
+to things a DesignIntent can encode. A production identity may therefore carry a perfectly valid
+constraint whose subject is event-detail copy, RSVP or payment behaviour, meal and alcohol
+disclosure, section ordering or placement. A DesignIntent has seven design fields and a host-facing
+`presentation` card. It has no field for any of those.
+
+So the obligation splits, and both halves are binding:
+
+1. **Universal non-contradiction.** Every host constraint is authoritative for every sibling,
+   whatever its subject. A DesignIntent must never contradict one, reinterpret one as optional,
+   promote an incompatible recommendation over it, fabricate an opposing fact or preference, or
+   encode design semantics that would make it impossible to satisfy downstream.
+2. **Observable conformance, at the stage that can express it.** A constraint must additionally be
+   *visibly* conformed to here only when its subject is observable on the DesignIntent surface:
+   required or avoided palette treatment, a typography restriction, a motif restriction, a
+   tone or aesthetic boundary, a restriction on concept-card language, or any design-semantic
+   requirement the seven fields can carry. A constraint whose satisfaction belongs to a later stage
+   **remains authoritative downstream** and is enforced at the first stage able to express it;
+   its absence from a DesignIntent is not erosion.
+
+This is stage ownership, not a loophole, and it narrows nothing about the constraint's authority.
+The alternative — leaving the broad wording — would fail a correct DesignIntent for not putting an
+event's start time into an object with nowhere to put it, which is a defect in the benchmark rather
+than in the model.
+
+**How host constraints are split between the machine and the reviewer.** No classifier decides which
+arbitrary English constraint belongs to which stage, and none is to be built — not a keyword table,
+not a model. The division is by what the checker can actually decide from the DesignIntent in front
+of it:
+
+1. a constraint whose subject the machine can read off the DesignIntent surface — a required or
+   prohibited palette treatment it can match against the compiled palette — is **checked here**,
+   and a violation is a gating failure;
+2. every remaining constraint is **handed to the reviewer**, named and unreduced, to be judged for
+   non-contradiction and for conformance where its subject is observable in a DesignIntent;
+3. the reviewer **must not require this stage to express content or behaviour outside the
+   DesignIntent contract**, and the packet says so in those terms (§3.8).
+
+A constraint the machine cannot decide is reported as **deferred to the reviewer** — never as
+passed, never as failed, and never counted as either. Calling it passed would be the silent pass
+this section forbids; calling it failed would be the unfair benchmark this scoping exists to
+prevent.
 
 ## 3.3 Qualitative review dimensions (4C)
 
@@ -1583,7 +1637,7 @@ systemic pattern.**
 | S1 | siblings collapsing into one recognisable house style despite different assignments |
 | S2 | "three concepts" that are parameter variants rather than different creative worlds |
 | S3 | `creativeGuidance` promoted into host law |
-| S4 | host constraints eroded or contradicted |
+| S4 | **host constraints eroded or contradicted**, judged at this stage. S4 is present when a concept contradicts a host constraint, weakens an authoritative constraint into optional guidance, makes a design choice the constraint prohibits, violates a constraint whose subject is observable in DesignIntent, or uses `presentation` language that itself breaches one. S4 is **not** present merely because a DesignIntent does not restate or fulfil an obligation whose satisfaction belongs to a later content, composition or publishing stage — see §3.2. The category keeps its one-batch threshold and its zero tolerance; what is scoped is the surface it is judged on, never the constraint's authority |
 | S5 | generic-premium treatment overwhelming event-specific personality |
 | S6 | unsupported emotional moderation / anti-sentimentality / anti-theatricality across siblings |
 | S7 | another recurring pattern that directly defeats the core 4C question — **which the reviewer must name and define in the same terms as the others** |
@@ -1667,6 +1721,22 @@ DesignIntents** generated from it, **each with its `presentation` object** — w
 verbal-identity questions in §3.3, the `Good` band and minimum-wowable criterion 4 cannot be
 answered. Plus, once, the corpus-wide measurements of §3.2. Nothing else — no case metadata, no
 expectations, no clarification labels, no prior evidence.
+
+**The packet opens with what this artifact is, before any judgement is asked for.** Without it S4 is
+not answerable fairly, because a reviewer cannot tell an eroded constraint from one this stage has
+no field for. In substance:
+
+> You are reviewing DesignIntent, not the finished site. A DesignIntent carries design semantics —
+> family, tonal direction, palette, typography pairing, density, a composition vector and motifs —
+> plus a host-facing concept card of a name and a description. It does not carry event-detail copy,
+> RSVP or payment behaviour, section structure, or any other later-stage content. Host constraints
+> remain authoritative. At this stage, judge them for **contradiction**, and for **conformance
+> where the constraint's subject is observable in a DesignIntent**. Do not mark a constraint eroded
+> merely because satisfying it requires a later stage that this artifact does not represent.
+
+That statement is about the shape of the artifact, not about the rule applied to the ratings, so it
+withholds nothing: it tells the reviewer what they are looking at, which is the precondition for
+every judgement that follows.
 
 **The reviewer packet carries the definitions and withholds the arithmetic.** It includes the four
 band definitions with `Excellent`'s six requirements, the minimum-wowable question with its five
@@ -1804,7 +1874,9 @@ case exists.**
 | **T17** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T16 | db: updates refused; equality check refuses a mismatched snapshot on every enumerated column; FK required | `spec.md §31 — DesignIntent, composition and compiler` (persistence); `§9.4`; `CLAUDE.md §2` | no | **yes** | no |
 | **T18** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T17 | unit: semantic invariants, narrowing, repair rules, schema-drift | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `§32 #12`, `#21` | **schema descriptions ship** | **yes** | no |
 | **T19** | **Prewire the 4C evidence harness and freeze the gate, while no cases exist.** Paths, evidence-class labels, structural contract, runner slots, **the production seam T21 fills** (below), protection behaviour, leakage-scan coverage, the per-batch and corpus-wide mechanical checks (§3.2), the blind-artifact and reviewer-packet contract (§3.8), and **the whole of §3.7** — bands including `Excellent`'s six requirements, the **minimum-wowable question and its five criteria**, the **12/12** distribution rule, corpus size, same-type composition requirement, **S1–S9** and the class thresholds — written into canon and hash-pinned | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts`, `model-contracts.md`, this document | T18 | unit/static only; absence tests for both corpora; a freeze test that fails on any edit to a threshold, band, minimum-wowable definition, S-category, corpus requirement, reviewer contract or path | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | **no — never run to verify itself** |
+| **T19B** | **The corrective freeze.** T19's host-constraint criterion overclaimed what a DesignIntent can express (`§3.2`, and the record below). T19B restates it stage-scoped in §3.2, §3.7's S4 row and §3.8's packet, corrects the machinery's wording so a downstream-only constraint is **deferred to the reviewer** rather than called passed or failed, opens a **fresh pre-registered validation slot** because the old corpus was read while the rule was being changed, and re-pins every affected hash. **Nothing about creative quality moves**: the bands, `Excellent`'s six requirements, the minimum-wowable question and its five criteria, the 12/12 distribution rule, S1–S9, the thresholds, the corpus size and the same-type requirement are byte-identical, and `design-intent-gate.ts` does not change at all | `src/lib/ai/evals/*`, `model-contracts.md`, this document | T19, T20 | the gate module's hash is unchanged; §3.7's values re-asserted; absence tests for all three corpora; the five stage-scope tests below | `spec.md §7.5`; `spec.md §11.9` discipline | no | **yes** | **no** |
 | **T20** | **Independent authors write the regression and pre-registered corpora**, from the published dimensions only — not this repository, and specifically not T18's `.describe()` strings, which ship to the model and are prompt text under §3.5. Independent fairness and leakage review, then freeze each at its own input SHA | the corpus files alone | T19 | the frozen T19 structural contract accepts them; leakage scan clean | `model-contracts.md §4.5` | no | **yes** | no |
+| **T20B** | **A replacement pre-registered validation corpus**, written by a **fresh** independent author who has not seen the invalidated one, from the corrected published dimensions alone. The author is told the stage-scope rule, so a case may legitimately carry a downstream-only host constraint — DesignIntent must not contradict it — but no case may define success as a DesignIntent emitting site content it has no field for. Independent fairness and leakage review again; frozen at its own path and digest | the new corpus file alone | T19B | the corrected T19B structural contract accepts it; leakage scan clean; no case reused from the invalidated corpus | `model-contracts.md §4.5` | no | **yes** | no |
 | **T21** | The DesignIntent prompt **and the production provider boundary it is sent through** — request assembly, the narrowed structured-output schema, model configuration with explicit reasoning effort, `service_tier` and `store: false`, transient-retry bounds, the single schema-invalid repair retry, application validation, request-id capture, usage and latency telemetry, raw paid-response preservation, and a **verified DesignIntent cost bound derived from the model's verified rate table** rather than inherited from EventIdentity's attempt shape. It repoints the T19 seam, and prompt and schema versions bump together if model-visible text changes (§5.1's rule). **This is the implementation freeze before the first live call** | `docs/model-prompts/design-intent.system.md`, `src/lib/ai/openai/design-intent*.ts`, `src/lib/ai/versions.ts`, `src/lib/generation/*-cost.ts`, the T19 seam | T19, T20 | leakage scan; independent engineering read for benchmark integrity; deterministic validation of the boundary with the provider mocked — **never by calling it** | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`, `§8`; `product-doctrine.md` | **yes** | **yes** | no |
 | | **▶ STOP — APPROVAL REQUIRED BEFORE THE FIRST LIVE DesignIntent CALL** | | | | | | | |
 | **T22** | Freeze; an independent author writes the **sealed** challenge, unseen while T21 was written; one run; blind review; evidence protected in the same change | — | T21 + authorization | the 4A protocol exactly | `model-contracts.md §4.5`; §3.7 | no | **yes** | **yes — one authorized run per set** |
@@ -1814,6 +1886,25 @@ case exists.**
 > the prompt is written and before any corpus is authored. Every set is run at most once per
 > authorization, and each completed run's directory is protected in the same commit as its
 > evidence.
+
+**The T19/T20 candidate chain, and why it is recorded rather than rewritten.** `411cf1c` (the first
+T19 freeze) and `86e9551` (the first 4C corpora) stay in history exactly as they happened. They are
+**candidate evidence design, invalidated at T19B**, and the reason is the one above: independent
+review found a stage-observability mismatch in the host-constraint criterion. Two things make this
+recoverable rather than a lost programme. No DesignIntent provider call had been made, so no model
+output existed to tune a criterion against; and no T21 implementation had entered history, so the
+prompt was not written against the broken rule either. That is the whole window in which a frozen
+benchmark may honestly be corrected, and it closes the moment either of those becomes false.
+
+What the correction costs is the **pre-registered validation corpus**, and the cost is paid rather
+than argued away. `docs/model-evals/design-intent-validation.json` was authored under the old rule
+and was read while the rule was being changed; whatever its cases say, it can no longer be called a
+set whose criteria were fixed before it existed. It is preserved unchanged, its digest pinned, no
+eval set points at it, and it is never run as pre-registered evidence for the corrected contract.
+The **regression** corpus is a different class — `§3.4`: freely readable, claiming no
+pre-registered generalization — so it stays in service if the corrected machinery still accepts it,
+which is a fact to demonstrate rather than assume. The **sealed challenge** does not exist and is
+untouched.
 
 **Who owns the production DesignIntent call, settled at T19 because no row owned it.** T18 built
 `src/lib/ai/design-intent/*` — the contract, schema, narrowing and validator — and deliberately

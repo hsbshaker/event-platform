@@ -835,10 +835,14 @@ describe("host constraints and creative guidance", () => {
     // produced the baseline's only mechanical failure.
     //
     // Constraint conformance is owned by the stages that can read a constraint: the DesignIntent
-    // call receives them inside the brief (§E), §3.2 checks each is traceable into all three, and
-    // §3.7 fails a batch where one is eroded or contradicted. Note the composition call does
-    // *not* currently receive them — `GenerateCompositionInput` is `{ designIntent, capabilities,
-    // directive, reprompt? }` — which §D records as an open 4D question about that contract.
+    // call receives them inside the brief (§E), §3.2 checks that all three contradict none of them
+    // and that the ones a DesignIntent can carry are conformed to there, and §3.7 fails a batch
+    // where one is eroded or contradicted — judged, since T19B, on the surface that stage actually
+    // has, with a later-stage obligation staying authoritative rather than failed for absence.
+    // None of that changes what the planner owes, which is the loop below. Note the composition
+    // call does *not* currently receive them — `GenerateCompositionInput` is
+    // `{ designIntent, capabilities, directive, reprompt? }` — which §D records as an open 4D
+    // question about that contract.
     for (const revision of REVISIONS) {
       const bare = plan(revision);
       const loaded = plan(revision, { hostConstraints: HOST, creativeGuidance: GUIDANCE });

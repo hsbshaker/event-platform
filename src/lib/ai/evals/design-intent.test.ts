@@ -21,7 +21,13 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { CORPUS_FILES, corpusPath, EVAL_SETS, isProtectedOutput } from "./corpus";
+import {
+  CORPUS_FILES,
+  corpusPath,
+  EVAL_SETS,
+  INVALIDATED_CORPORA,
+  isProtectedOutput,
+} from "./corpus";
 import {
   buildDesignIntentBlindArtifact,
   buildDesignIntentMechanicalReport,
@@ -31,6 +37,7 @@ import {
   checkDesignIntentBatch,
   DESIGN_INTENT_ACCEPTANCE,
   DESIGN_INTENT_CAPABILITY_DIMENSIONS,
+  DESIGN_INTENT_STAGE_SCOPE,
   designIntentRunnerUnavailable,
   GATED_DESIGN_INTENT_SET,
   hexColorsIn,
@@ -237,8 +244,9 @@ describe("the gate is the plan's own words, not a paraphrase of them", () => {
           "was frozen at T19, before any corpus was authored and before the DesignIntent prompt " +
           "was written. §3.7 itself: moving either half after results voids the gate. If this " +
           "change is deliberate and approved, the module beside it has to move with it — do not " +
-          "update this hash on its own.",
-      ).toBe("daa9c9f64ea3a2dd200afb4b3860f0e53cb70e18b0b5c77ae1f153055d238f0b");
+          "update this hash on its own. " +
+          "T19B is the one authorised move of this hash, and it moved it once: the host-constraint criterion was corrected to the stage-scoped rule before any DesignIntent provider call and before T21 existed, which is the whole window in which a frozen benchmark may honestly be corrected. A later task may not repeat it. If this fails now, the change is not T19B's and the fix is to revert it, not to re-pin.",
+      ).toBe("c5e176b9f1ea2349c2ae3e66e29d8806d610a6c1d632fc4a19b8e3cbcfe325da");
     });
   });
 
@@ -301,8 +309,9 @@ describe("the gate is the plan's own words, not a paraphrase of them", () => {
         "docs/phase-4b-plan.md §3.8 changed. It is the blinding contract: what the artifact " +
           "carries, what the reviewer packet carries, and what it withholds. A withheld item added " +
           "here has to be added to REVIEWER_WITHHELD and to the packet's blinding scan in the same " +
-          "change — do not update this hash on its own.",
-      ).toBe("bb5bf02c6823deca13764f3595bb6fbd470052b91791296bc721b4ed22fcad75");
+          "change — do not update this hash on its own. " +
+          "T19B is the one authorised move of this hash, and it moved it once: the host-constraint criterion was corrected to the stage-scoped rule before any DesignIntent provider call and before T21 existed, which is the whole window in which a frozen benchmark may honestly be corrected. A later task may not repeat it. If this fails now, the change is not T19B's and the fix is to revert it, not to re-pin.",
+      ).toBe("46357fe871b4a1a345eb7b9792853995225a82a540c1bc90141ab271eddd4b00");
     });
 
     it("does not change at all — §3.2", () => {
@@ -310,8 +319,9 @@ describe("the gate is the plan's own words, not a paraphrase of them", () => {
         createHash("sha256").update(MECHANICAL, "utf8").digest("hex"),
         "docs/phase-4b-plan.md §3.2 changed. It is the mechanical block the per-batch checks and " +
           "the corpus-wide measurements implement. An invariant added here is one the harness does " +
-          "not take — do not update this hash on its own.",
-      ).toBe("db0842608c506fdb5c2ec8e7f4875453b081a8edeebab9f3d892f9c921a61856");
+          "not take — do not update this hash on its own. " +
+          "T19B is the one authorised move of this hash, and it moved it once: the host-constraint criterion was corrected to the stage-scoped rule before any DesignIntent provider call and before T21 existed, which is the whole window in which a frozen benchmark may honestly be corrected. A later task may not repeat it. If this fails now, the change is not T19B's and the fix is to revert it, not to re-pin.",
+      ).toBe("75ada638d8e88481fdc54b46a89b72e6ce558d9e038ba71021c5786a78c4823c");
     });
   });
 });
@@ -386,14 +396,18 @@ describe("nothing frozen at T19 changes afterwards", () => {
         { name: "noSuppliedFactSurfaced", gating: false },
         { name: "presentationPresent", gating: true },
       ],
+      // T19B repointed the validation slot at a fresh corpus and a fresh output directory, and
+      // nothing else in this object moved. Its predecessor was authored under a host-constraint
+      // criterion this stage cannot always meet and read while that criterion was being corrected,
+      // so it is preserved, recorded in `INVALIDATED_CORPORA` and pointed at by nothing.
       corpora: [
         "docs/model-evals/design-intent-regression.json",
-        "docs/model-evals/design-intent-validation.json",
+        "docs/model-evals/design-intent-validation-v2.json",
         "docs/model-evals/design-intent-sealed-challenge.json",
       ],
       outputs: [
         "docs/model-evals/results/design-intent-regression-v1",
-        "docs/model-evals/results/design-intent-validation-v1",
+        "docs/model-evals/results/design-intent-validation-v2",
         "docs/model-evals/results/design-intent-sealed-challenge-v1",
       ],
     });
@@ -413,7 +427,10 @@ describe("nothing frozen at T19 changes afterwards", () => {
       "src/lib/ai/evals/design-intent-gate.ts changed. It holds §3.7 whole: the four bands, " +
         "Excellent's six requirements, the minimum-wowable question and its five criteria, S1–S9, " +
         "the class thresholds, the corpus size and composition, and the GO/NO-GO rule. All of it " +
-        "was frozen at T19 before any case existed. Do not update this hash to silence the failure.",
+        "was frozen at T19 before any case existed. Do not update this hash to silence the " +
+        "failure. T19B deliberately left this file alone: it corrected where a host constraint is " +
+        "judged, and moved no creative-quality bar, so an unchanged hash here is the proof of " +
+        "that and there is no version of T19B that needed it to move.",
     ).toBe("8f5ca5abbbbbf4eb57082dd3ea15b4f428d07d00d7de1a51ad3862e52db20172");
   });
 
@@ -432,8 +449,9 @@ describe("nothing frozen at T19 changes afterwards", () => {
       "src/lib/ai/evals/design-intent-evidence.ts changed. It holds the published dimensions, the " +
         "corpus structural contract, the mechanical checks and their frozen floors, the blind " +
         "artifact and the reviewer packet, all frozen at T19 before the cases existed. Changing a " +
-        "criterion after seeing the cases is the thing this set exists not to do.",
-    ).toBe("4752eb5c39fb8afc54995b7a8a98d2963e5fc2eb94b918eafbac486954fd69de");
+        "criterion after seeing the cases is the thing this set exists not to do. " +
+        "T19B is the one authorised move of this hash, and it moved it once: the host-constraint criterion was corrected to the stage-scoped rule before any DesignIntent provider call and before T21 existed, which is the whole window in which a frozen benchmark may honestly be corrected. A later task may not repeat it. If this fails now, the change is not T19B's and the fix is to revert it, not to re-pin.",
+    ).toBe("787ea0aa0612c0780f3df0a60325a6ca3590672fdaa1fbb6c1921c9d84b31378");
   });
 
   it("does not change at all — the runner", () => {
@@ -502,13 +520,65 @@ describe("nothing frozen at T19 changes afterwards", () => {
   });
 });
 
+/**
+ * T19B corrected where a host constraint is judged. It moved no creative-quality bar, and this is
+ * the test that says so in values rather than in a commit message.
+ *
+ * The correction was possible because it landed **before** any DesignIntent provider call and
+ * before T21 existed: no model output existed to tune a criterion against, and no prompt had been
+ * written against the broken rule. That is the whole window, and it closes the moment either
+ * becomes false. What a corrective freeze must never do is spend that window on the bar itself —
+ * so the gate module is byte-identical and every number `§3.7` fixes is re-asserted here, beside
+ * the hash, where a reader can see what "nothing moved" actually means.
+ */
+describe("T19B moved nothing about creative quality", () => {
+  it("leaves the gate module byte-identical to its T19 freeze", () => {
+    expect(
+      createHash("sha256").update(GATE, "utf8").digest("hex"),
+      "T19B's whole claim is that it corrected the stage a host constraint is judged at and " +
+        "touched no creative-quality bar. This file is that claim's evidence, so it does not " +
+        "change at T19B and there is no later task for which it does.",
+    ).toBe("8f5ca5abbbbbf4eb57082dd3ea15b4f428d07d00d7de1a51ad3862e52db20172");
+  });
+
+  it("re-asserts the distribution rule, the bands and the wowable criteria unchanged", () => {
+    expect(SEALED_CORPUS_BATCHES).toBe(12);
+    expect(FLAT_PLAN).toContain(flat(DISTRIBUTION_RULE));
+    expect(EXCELLENT_REQUIREMENTS).toHaveLength(6);
+    expect(MINIMUM_WOWABLE_CRITERIA).toHaveLength(5);
+    expect(MINIMUM_WOWABLE_CRITERIA.map((criterion) => criterion.id)).toEqual([1, 2, 3, 4, 5]);
+    expect(BAND_IDS).toEqual(["Excellent", "Good", "Borderline", "Fail"]);
+
+    // The rule as behaviour, not only as text: every batch Excellent and wowable is the only
+    // distribution that passes, and one Good is not.
+    expect(decideDesignIntentGate(review()).decision).toBe("GO");
+    expect(
+      decideDesignIntentGate(
+        review({ batches: twelve((index) => (index === 3 ? { band: "Good" } : {})) }),
+      ).decision,
+    ).toBe("NO-GO");
+  });
+
+  it("leaves S4 a correctness category with a one-batch threshold", () => {
+    // The category T19B scoped. What was scoped is the *surface* S4 is judged on; its authority,
+    // its class and its threshold are untouched, and a single cited batch still vetoes.
+    expect(SYSTEMIC_THRESHOLD_BATCHES.S4).toBe(1);
+    expect(SYSTEMIC_CLASSES.find((klass) => klass.id === "correctness")?.categories).toContain(
+      "S4",
+    );
+    const decision = decideDesignIntentGate(review({ systemic: present("S4", ["Batch 5"]) }));
+    expect(decision.decision).toBe("NO-GO");
+    expect(decision.reasons.map((entry) => entry.kind)).toContain("systemic_veto");
+  });
+});
+
 /* ------------------------------------------------------------------ absence and refusal */
 
 describe("no 4C corpus exists, and the slots refuse without one", () => {
   it("names all three, wherever they are in their life", () => {
     // Unconditional: the names are fixed now so that adding a file later is the entire change.
     expect(CORPUS_FILES.designIntentRegression).toBe("design-intent-regression.json");
-    expect(CORPUS_FILES.designIntentValidation).toBe("design-intent-validation.json");
+    expect(CORPUS_FILES.designIntentValidation).toBe("design-intent-validation-v2.json");
     expect(CORPUS_FILES.designIntentChallenge).toBe("design-intent-sealed-challenge.json");
   });
 
@@ -540,6 +610,68 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
         ).toEqual([]);
       },
     );
+  });
+
+  /**
+   * The replacement validation corpus, absent exactly as the other two slots were at T19.
+   *
+   * Written the same way as the absence tests above and for the same reason: T20B must be a commit
+   * that adds one corpus file and changes nothing else. The refusal is asserted from the runner's
+   * **source**, never by importing it — importing a runner with an API key present is what starts
+   * paying a provider.
+   */
+  it("has no replacement validation corpus yet, and the slot refuses without one", () => {
+    expect(EVAL_SETS.designIntentValidation.corpus).toBe(
+      "docs/model-evals/design-intent-validation-v2.json",
+    );
+    expect(existsSync(`${ROOT}docs/model-evals/design-intent-validation-v2.json`)).toBe(false);
+    // The same module-scope refusal that covers the other two slots, located before `describe(`.
+    const absence = RUNNER.indexOf("if (!existsSync(CORPUS))");
+    expect(absence).toBeGreaterThan(-1);
+    expect(absence).toBeLessThan(RUNNER.indexOf("describe("));
+  });
+
+  /**
+   * The invalidated corpus is preserved, not deleted, and pinned so "invalidated" is checkable.
+   *
+   * Deleting the thing a correction cost is how a programme loses the ability to say what the
+   * correction cost. It stays on disk, byte for byte, and `INVALIDATED_CORPORA` carries its digest.
+   */
+  it("preserves the invalidated validation corpus unchanged", () => {
+    const file = `${ROOT}docs/model-evals/design-intent-validation.json`;
+    expect(existsSync(file)).toBe(true);
+    const bytes = readFileSync(file);
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
+      "2207df544a66669d171cc8d2a333ddf616ab4047c70db3d6b9447f7927330d26",
+    );
+    const record = INVALIDATED_CORPORA.find(
+      (entry) => entry.path === "docs/model-evals/design-intent-validation.json",
+    );
+    expect(record?.sha256).toBe("2207df544a66669d171cc8d2a333ddf616ab4047c70db3d6b9447f7927330d26");
+    expect(record?.bytes).toBe(bytes.byteLength);
+    expect(record?.invalidatedAt).toBe("T19B");
+    expect(record?.why).toContain("traceable into all three");
+  });
+
+  /**
+   * Preservation without deletion only works if nothing can still run it.
+   *
+   * A file left on disk beside a set that still points at it is not invalidated, it is pending.
+   * This is the assertion that makes the difference real, and it is written over the whole set
+   * table rather than over the one key that changed, so a future set cannot quietly adopt it.
+   */
+  it("points no eval set at any invalidated corpus", () => {
+    const invalidated = INVALIDATED_CORPORA.map((entry) => entry.path);
+    expect(invalidated.length).toBeGreaterThan(0);
+    for (const set of Object.keys(EVAL_SETS) as (keyof typeof EVAL_SETS)[]) {
+      expect(
+        invalidated,
+        `${set} points at ${EVAL_SETS[set].corpus}, which is recorded as invalidated`,
+      ).not.toContain(EVAL_SETS[set].corpus);
+    }
+    for (const file of Object.values(CORPUS_FILES)) {
+      expect(invalidated).not.toContain(`docs/model-evals/${file}`);
+    }
   });
 
   it("refuses at module scope, before any provider client could exist", () => {
@@ -1944,6 +2076,174 @@ describe("the within-batch mechanical block", () => {
       palette: { colors: ["#2B1B12", "#B8622A"], dominant: "#FFFFFF" },
     });
     expect(status(checkDesignIntentBatch(testCase, batch), "schemaValid")).toBe("fail");
+  });
+});
+
+/* ------------------------------------------- host constraints, judged where they can be judged */
+
+/**
+ * The correction T19B exists for, as behaviour rather than as wording.
+ *
+ * `spec.md §7.5` defines a host constraint broadly and authoritatively — a prohibition, an explicit
+ * requirement of a specific thing, or a correction — and does **not** limit it to what a
+ * DesignIntent can encode. A DesignIntent carries seven design fields and a `presentation` card. So
+ * a valid brief may carry a constraint about an event's start time, its RSVP behaviour or its
+ * section order, and the stage under test has nowhere to put any of them.
+ *
+ * The obligation therefore splits, and both halves bind (`§3.2`): **non-contradiction**, owed to
+ * every constraint whatever its subject, and **observable conformance**, owed here only where the
+ * subject is observable on the DesignIntent surface. The tests below hold the two halves apart —
+ * what is still gated, what is still reviewable, and what must never be reported as passed.
+ */
+describe("a host constraint is judged at the stage that can express it", () => {
+  /** A brief whose only host constraint is prose about something no DesignIntent field carries. */
+  const downstreamOnly = () =>
+    corpusCase({
+      identity: brief({ hostConstraints: ["the event's start time must be stated plainly"] }),
+    });
+
+  const detailOf = (checks: DesignIntentCheck[], name: string) =>
+    checks.find((check) => check.name === name)?.detail ?? "";
+
+  it("still gates on an observable palette constraint the output violated", () => {
+    // Nothing about the scoping softens the half a machine can decide. `paletteIntent` declares the
+    // direction, the check reads it there, and a sibling that omits a required colour fails — which
+    // is gating S4 evidence, produced mechanically and before any reviewer sees the batch.
+    const observable = corpusCase({
+      identity: brief({
+        colorsExplicitlyConstrained: true,
+        hostConstraints: ["It has to carry the school colour #2B1B12, on every one of them"],
+        paletteIntent: {
+          requiredColors: ["#2B1B12"],
+          preferredColors: [],
+          avoidColors: [],
+          dominanceNotes: "The school colour leads.",
+        },
+      }),
+    });
+    const checks = checkDesignIntentBatch(observable, healthyBatch(observable));
+    expect(status(checks, "hostConstraintColoursHonoured")).toBe("fail");
+    expect(detailOf(checks, "hostConstraintColoursHonoured")).toContain("omits required #2B1B12");
+    expect(mechanicalPass(checks)).toBe(false);
+  });
+
+  it("hands a contradicted natural-language constraint to the reviewer, named and unreduced", () => {
+    // The constraint the scoping must not lose. Its subject *is* observable in a DesignIntent — it
+    // is about colour and tone — but it names no hex, so no machine here can decide it, and all
+    // three siblings visibly go the other way. It must reach the reviewer as the host wrote it,
+    // under S4, rather than being summarised, bucketed or dropped.
+    const contradicted = corpusCase({
+      identity: brief({
+        toneExplicitlyConstrained: true,
+        hostConstraints: ["Nothing dark or funereal — she was very clear about that"],
+      }),
+    });
+    const observation = healthyBatch(contradicted);
+    const checks = checkDesignIntentBatch(contradicted, observation);
+
+    expect(status(checks, "hostConstraintsForReviewer")).toBe("advisory");
+    const deferred = detailOf(checks, "hostConstraintsForReviewer");
+    expect(deferred).toContain("Nothing dark or funereal — she was very clear about that");
+    expect(deferred).toContain("non-contradiction");
+    // Never a verdict in either direction: a contradiction here is S4's to find, not a check's.
+    expect(status(checks, "hostConstraintsForReviewer")).not.toBe("pass");
+    expect(status(checks, "hostConstraintsForReviewer")).not.toBe("fail");
+
+    // And the reviewer can actually see it: the artifact carries the brief's constraints verbatim,
+    // under the label that says they are authoritative.
+    const artifact = buildDesignIntentBlindArtifact(
+      [contradicted],
+      [observation],
+      measureCorpus([contradicted], [observation]),
+    );
+    expect(artifact).toContain("Host constraints (AUTHORITATIVE)");
+    expect(artifact).toContain("Nothing dark or funereal — she was very clear about that");
+  });
+
+  it("never claims a downstream-only constraint is traceable into the seven fields", () => {
+    // The defect. Under the old wording this constraint was "the reviewer's to trace into all
+    // three", which asks a DesignIntent to carry an event's start time — a field it does not have.
+    // It is deferred instead: reported, not decided, and it decides nothing.
+    const testCase = downstreamOnly();
+    const checks = checkDesignIntentBatch(testCase, healthyBatch(testCase));
+
+    expect(status(checks, "hostConstraintsForReviewer")).toBe("advisory");
+    expect(mechanicalPass(checks)).toBe(true);
+
+    const deferred = detailOf(checks, "hostConstraintsForReviewer");
+    expect(deferred).toContain("the event's start time must be stated plainly");
+    expect(deferred).toContain("deferred to the reviewer");
+    expect(deferred).toContain("never reported passed, never reported failed, never counted as");
+    expect(deferred).toContain(
+      "must not require this stage to express content or behaviour outside the DesignIntent " +
+        "contract",
+    );
+    // No claim of traceability survives anywhere in the rendered detail.
+    expect(deferred).not.toMatch(/traceab|trace into/i);
+    // And the colour half says the same thing rather than a different one.
+    expect(status(checks, "hostConstraintColoursHonoured")).toBe("n/a");
+    expect(detailOf(checks, "hostConstraintColoursHonoured")).not.toMatch(/traceab|trace into/i);
+  });
+
+  it("explains the stage's scope in the packet, before any judgement and with no arithmetic", () => {
+    const packet = buildDesignIntentReviewerPacket();
+    expect(packet).toContain(DESIGN_INTENT_STAGE_SCOPE);
+
+    // Before section A: a reviewer cannot answer S4 fairly without knowing what they are holding,
+    // and `§3.8` says the packet opens with it.
+    const scope = packet.indexOf(DESIGN_INTENT_STAGE_SCOPE);
+    expect(scope).toBeGreaterThan(-1);
+    expect(scope).toBeLessThan(packet.indexOf("## A. Which band is this batch?"));
+    expect(scope).toBeLessThan(packet.indexOf("## C. The cross-batch checklist"));
+
+    // It is `§3.8`'s own text, not a paraphrase that could soften on its way here.
+    expect(FLAT_PLAN).toContain(flat(DESIGN_INTENT_STAGE_SCOPE));
+
+    // It tells the reviewer what the artifact is, and nothing about the rule applied to their
+    // ratings — the blinding scan, unchanged, over the packet it now sits in.
+    expect(
+      leakedArithmetic(packet, { measurementNumbersAllowed: false }),
+      "the stage-scope statement leaked part of the rule §3.8 withholds",
+    ).toEqual([]);
+    // And nothing about this having been worded differently once: a reviewer who learns a criterion
+    // was corrected learns which way the project expects the answer to fall.
+    for (const tell of ["T19B", "T19", "invalidated", "corrected", "used to read", "previously"]) {
+      expect({ tell, present: packet.includes(tell) }).toEqual({ tell, present: false });
+    }
+  });
+
+  it("does not call a downstream-only constraint passed in the mechanical report", () => {
+    const testCase = downstreamOnly();
+    const observation = healthyBatch(testCase);
+    const checks = checkDesignIntentBatch(testCase, observation);
+    const report = buildDesignIntentMechanicalReport({
+      runStartedAt: "2026-01-01T00:00:00.000Z",
+      evalSet: "designIntentRegression",
+      label: EVAL_SETS.designIntentRegression.label,
+      corpusVersion: "design_intent_corpus_v1",
+      plannerVersion: observation.plan.plannerVersion,
+      rows: [{ caseId: testCase.id, label: "Batch 1", checks }],
+      measurements: measureCorpus([testCase], [observation]),
+    });
+
+    // The per-batch row prints each check's own status. This one is advisory, never pass.
+    expect(report).toContain("hostConstraintsForReviewer:advisory");
+    expect(report).not.toContain("hostConstraintsForReviewer:pass");
+    expect(report).not.toContain("hostConstraintsForReviewer:fail");
+
+    // The detail says what advisory means here, in the report the go/no-go author reads.
+    expect(report).toContain("deferred to the reviewer");
+    expect(report).toContain("the event's start time must be stated plainly");
+
+    // It is folded into nothing: the batch's mechanical verdict comes from the gating checks alone,
+    // and the report states the rule it was counted under.
+    expect(report).toContain("| Batch 1 | DI-01 | pass |");
+    expect(report).toContain(DESIGN_INTENT_ACCEPTANCE.advisoryNeverCounts);
+    expect(DESIGN_INTENT_ACCEPTANCE.mechanical).toContain("deferred to the reviewer");
+    expect(DESIGN_INTENT_ACCEPTANCE.mechanical).toContain("never reported as passed");
+    // `hostConstraintsForReviewer` is named among the checks that never gate, not among those
+    // that do.
+    expect(DESIGN_INTENT_ACCEPTANCE.mechanical).toContain("`hostConstraintsForReviewer`");
   });
 });
 

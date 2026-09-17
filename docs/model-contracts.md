@@ -446,14 +446,22 @@ transcribes that section verbatim, is hash-pinned, and is checked against the pl
 | script | `EVAL_SET` | corpus | output | class |
 | --- | --- | --- | --- | --- |
 | `eval:design-intent-regression` | `designIntentRegression` | `design-intent-regression.json` | `docs/model-evals/results/design-intent-regression-v1` | **regression** — authored before the prompt, readable freely, catches regressions forever |
-| `eval:design-intent-validation` | `designIntentValidation` | `design-intent-validation.json` | `docs/model-evals/results/design-intent-validation-v1` | **pre-registered validation** — authored and frozen before the prompt was written, by an author who implemented none of the harness, independently reviewed for fairness and leakage |
+| `eval:design-intent-validation` | `designIntentValidation` | `design-intent-validation-v2.json` | `docs/model-evals/results/design-intent-validation-v2` | **pre-registered validation, the replacement** — its predecessor `design-intent-validation.json` was invalidated at T19B for a stage-observability mismatch: it was authored under a host-constraint criterion this stage cannot always meet, and was read while that criterion was being corrected. This one is authored and frozen against the corrected contract before the prompt was written, by a second independent author who implemented none of the harness and saw none of the invalidated cases, independently reviewed for fairness and leakage |
 | `eval:design-intent-challenge` | `designIntentChallenge` | `design-intent-sealed-challenge.json` | `docs/model-evals/results/design-intent-sealed-challenge-v1` | **sealed challenge** — authored after the T21 implementation and the harness froze, unseen while they were written. The generalization evidence the §3.7 gate is applied to. One run, then spent |
 
-All three corpora are **deliberately absent** today, and all three slots refuse at module scope
-without them — before an API key is read and before a client is constructed. The first two are
-authored at T20; the sealed challenge at T22, after the implementation freeze. Adding a corpus file
-is then the entire change: no runner, checker, prompt, schema or model code moves, because moving
-any of it after seeing the cases is precisely what these classes exist to prevent. Each output
+**The regression corpus is on disk; the other two are absent, and a slot refuses at module scope
+without its file** — before an API key is read and before a client is constructed. T20 authored the
+regression corpus, and it stays in service because its class claims no pre-registration (§3.4). T20
+also authored a pre-registered validation corpus, and **T19B invalidated it**: the host-constraint
+criterion it was written under asked this stage for conformance a DesignIntent has no field for, and
+the correction was made while that corpus was on disk and being read, so it can no longer be called
+a set whose criteria were fixed before its cases existed. It is preserved unchanged and pinned by
+digest in `src/lib/ai/evals/corpus.ts` as `INVALIDATED_CORPORA`; no eval set points at it, and it
+is never run as pre-registered evidence for the corrected contract. **T20B** writes the replacement
+named above, from the corrected published dimensions alone; T22 writes the sealed challenge, after
+the implementation freeze. Adding a corpus file is then the entire change: no runner, checker,
+prompt, schema or model code moves, because moving any of it after seeing the cases is precisely
+what these classes exist to prevent. Each output
 directory joins `PROTECTED_RESULT_DIRS` in the same change that commits its evidence, never as a
 follow-up.
 
@@ -556,6 +564,23 @@ where it is a statement about the right thing. **Required and excluded colours a
 requirement or a correction, and `"No #C8102E anywhere"` and `"it has to carry #C8102E"` are the
 same string to a regex. A hex whose direction is not declared goes to the reviewer under S4.
 
+**What a host constraint is judged for here is stage-scoped, and both halves bind**
+(`phase-4b-plan.md §3.2`). Every host constraint is authoritative for all three siblings whatever
+its subject, so no DesignIntent may contradict one, reinterpret it as optional, promote an
+incompatible recommendation over it, fabricate an opposing fact, or encode design semantics that
+make it impossible to satisfy downstream. A constraint must additionally be *visibly* conformed to
+**at this stage** only where its subject is observable on the DesignIntent surface — a required or
+avoided palette treatment, a typography restriction, a motif restriction, a tone or aesthetic
+boundary, a restriction on concept-card language, or any design-semantic requirement the seven
+fields carry. `spec.md §7.5` defines a constraint broadly and does not limit it to what a
+DesignIntent can encode, so a valid brief may carry one whose subject is event-detail copy, RSVP
+or payment behaviour, or section ordering; such a constraint **remains authoritative downstream**
+and is enforced at the first stage able to express it, and its absence from a DesignIntent is not
+erosion. No classifier decides which arbitrary English constraint belongs to which stage, and none
+is to be built — not a keyword table, not a model. What the checker can decide from `paletteIntent`
+it decides, and a violation gates; every remaining constraint is **deferred** to the reviewer, named
+and unreduced, and is never reported passed, never reported failed and never counted as either.
+
 Corpus-wide, and this block is not
 optional: same-index sibling distance across batches, the same restricted to batches sharing an
 event type, palette-family, typography and motif-set frequencies, recurring finishing language, and
@@ -566,8 +591,9 @@ A check that cannot be decided honestly reports `n/a` or `advisory` and is **nev
 pass count. Several are permanently advisory by design, and each for a stated reason: first-call
 schema validity, because §8 allows one repair retry and a repaired response is a legal production
 outcome; retry counts, because they are a measurement rather than a verdict; natural-language host
-constraints and creative-guidance adoption, because both are the reviewer's under S4 and S3; and the
-attractive-token allotment, because **a DesignIntent carries no attractive token** — the allotment
+constraints, which are deferred to the reviewer under S4 rather than claimed as traceable into
+three objects that may have no field for them, and creative-guidance adoption, which is the
+reviewer's under S3; and the attractive-token allotment, because **a DesignIntent carries no attractive token** — the allotment
 constrains the composition call (`spec.md §7.7`) and 4C runs none, so the model never had the chance
 to violate it. That check reports `n/a` and carries the plan's own facts as detail; a `pass` there
 would have put a true-looking verdict about model output into an evidence report, on a property that

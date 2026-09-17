@@ -994,7 +994,9 @@ export function checkDesignIntentBatch(
     decidableColours === 0 ? "n/a" : colourProblems.length === 0 ? "pass" : "fail",
     decidableColours === 0
       ? "`paletteIntent` names no colour in a form a machine can decide (a hex string), so nothing " +
-          "here is decidable; constraint preservation is the reviewer's, under S4"
+          "here is decidable. Every constraint this case carries is deferred to the reviewer under " +
+          "S4 instead — for non-contradiction, and for conformance where its subject is observable " +
+          "on the DesignIntent surface"
       : colourProblems.length === 0
         ? `${requiredHex.length} required and ${avoidHex.length} excluded hex colour(s), read from ` +
           "`paletteIntent` where direction is declared, honoured by all three siblings"
@@ -1002,14 +1004,35 @@ export function checkDesignIntentBatch(
   );
 
   /**
-   * Everything a machine cannot decide, handed to the reviewer under S4 — including a hex whose
-   * *direction* is undecidable.
+   * Everything a machine cannot decide, **deferred** to the reviewer under S4 — including a hex
+   * whose *direction* is undecidable.
    *
    * A constraint naming a colour is not automatically decided by the check above: `paletteIntent`
    * is where required and excluded are declared, and a hex that appears only in constraint prose
    * could be either. `"No #C8102E anywhere"` is a prohibition; the same hex under
    * `requiredColors` is an obligation; the regex cannot tell them apart. So a constraint is passed
    * on unless every colour it names is already decided one way or the other.
+   *
+   * **What the reviewer is asked for, and what they must not be asked for.** `spec.md §7.5` defines
+   * a host constraint broadly — a prohibition, an explicit requirement of a specific thing, or a
+   * correction — and deliberately does not limit it to things a DesignIntent can encode. A
+   * DesignIntent has seven design fields and a host-facing `presentation` card; it has no field for
+   * event-detail copy, RSVP or payment behaviour, meal or alcohol disclosure, section ordering or
+   * placement. So the obligation splits, and both halves are binding (`§3.2`): every constraint is
+   * authoritative for every sibling whatever its subject, so none may be **contradicted**,
+   * reinterpreted as optional, outranked by a recommendation, answered with a fabricated opposing
+   * fact, or made impossible downstream by the design semantics chosen here; and a constraint must
+   * additionally be *visibly* **conformed to at this stage only where its subject is observable on
+   * the DesignIntent surface**. A constraint whose satisfaction belongs to a later stage remains
+   * authoritative downstream, and its absence from a DesignIntent is not erosion.
+   *
+   * No classifier decides which arbitrary English constraint belongs to which stage, and none is to
+   * be built — not a keyword table, not a model. The split is by what this checker can actually
+   * decide from the DesignIntent in front of it, which today is a hex whose direction
+   * `paletteIntent` declares. Everything else is **deferred**: never reported passed, never
+   * reported failed, never counted as either. Calling it passed would be the silent pass `§3.2`
+   * forbids; calling it failed would fail a correct DesignIntent for not carrying an event's start
+   * time in an object with nowhere to put it.
    */
   const undecided = identity.hostConstraints.filter((constraint) => {
     const named = hexColorsIn(constraint);
@@ -1020,10 +1043,19 @@ export function checkDesignIntentBatch(
     "hostConstraintsForReviewer",
     undecided.length === 0 ? "n/a" : "advisory",
     undecided.length === 0
-      ? "every host constraint was decided against `paletteIntent`, or there were none"
-      : `${undecided.length} host constraint(s) are the reviewer's to trace into all three (S4): ` +
+      ? "nothing is deferred: every host constraint this case carries was decided against " +
+          "`paletteIntent` by `hostConstraintColoursHonoured`, or there were none"
+      : `${undecided.length} host constraint(s) are deferred to the reviewer (S4): ` +
           "either natural language, or naming a colour whose direction — required or prohibited — " +
-          `\`paletteIntent\` does not declare: ${undecided.map((c) => `“${c}”`).join("; ")}`,
+          "`paletteIntent` does not declare. What a machine can decide about a DesignIntent here " +
+          "is decided by `hostConstraintColoursHonoured`; each constraint below goes to the " +
+          "reviewer for **non-contradiction** — it is authoritative for all three siblings whatever " +
+          "its subject — and for **conformance where its subject is observable on the DesignIntent " +
+          "surface**. The reviewer must not require this stage to express content or behaviour " +
+          "outside the DesignIntent contract: a constraint whose satisfaction belongs to a later " +
+          "stage remains authoritative downstream, and its absence here is not erosion. Deferred " +
+          "means deferred — never reported passed, never reported failed, never counted as " +
+          `either: ${undecided.map((c) => `“${c}”`).join("; ")}`,
   );
 
   /* --- creativeGuidance stays advisory -------------------------------------------------------- */
@@ -1353,7 +1385,13 @@ export const DESIGN_INTENT_ACCEPTANCE = {
     "`retryCounts`, `hostConstraintsForReviewer`, `creativeGuidanceStaysAdvisory` and " +
     "`tokenAllotmentRespected` never gate, because each of them measures something whose verdict " +
     "belongs to the reviewer, to the retry policy or to the planner rather than to the model's " +
-    "creative output. `tokenAllotmentRespected` is the sharpest of those: a DesignIntent carries " +
+    "creative output. A host constraint `hostConstraintsForReviewer` cannot decide from the " +
+    "DesignIntent in front of it is **deferred to the reviewer** — for non-contradiction, which " +
+    "every constraint is owed whatever its subject, and for conformance where that subject is " +
+    "observable on the DesignIntent surface. It is never reported as passed, never reported as " +
+    "failed and never counted as either, and the reviewer is not asked to require this stage to " +
+    "express content or behaviour the DesignIntent contract has no field for. " +
+    "`tokenAllotmentRespected` is the sharpest of those: a DesignIntent carries " +
     "no attractive token at all — the allotment constrains the composition call (`spec.md §7.7`) " +
     "and 4C runs none — so it reports `n/a`, and a `pass` there would have put a true-looking " +
     "verdict about model output into an evidence report on a property the model never had the " +
@@ -1576,6 +1614,30 @@ export function renderCorpusMeasurements(measurements: CorpusMeasurements): stri
  * so it looks for the numbers, the phrases and the gate module's own constants rather than for a
  * single sentinel string.
  */
+/**
+ * What the artifact is, said before any judgement is asked for. `§3.8`'s own words.
+ *
+ * Without it S4 is not answerable fairly: a reviewer cannot tell an eroded constraint from one this
+ * stage has no field for, and the broad reading would mark a correct DesignIntent as eroding a
+ * constraint about an event's start time — a defect in the benchmark rather than in the model.
+ *
+ * It is about the **shape of the artifact**, never the rule applied to the ratings, so it withholds
+ * nothing `§3.8` withholds: no threshold, no arithmetic, no expected outcome, no corpus rationale,
+ * and no hint that any of this was ever worded differently. The blinding scan searches the rendered
+ * packet for all of that and this paragraph has to pass it unchanged.
+ *
+ * Exported so it can be asserted against the plan's own bytes rather than trusted as a paraphrase.
+ */
+export const DESIGN_INTENT_STAGE_SCOPE =
+  "You are reviewing DesignIntent, not the finished site. A DesignIntent carries design semantics " +
+  "— family, tonal direction, palette, typography pairing, density, a composition vector and " +
+  "motifs — plus a host-facing concept card of a name and a description. It does not carry " +
+  "event-detail copy, RSVP or payment behaviour, section structure, or any other later-stage " +
+  "content. Host constraints remain authoritative. At this stage, judge them for " +
+  "**contradiction**, and for **conformance where the constraint's subject is observable in a " +
+  "DesignIntent**. Do not mark a constraint eroded merely because satisfying it requires a later " +
+  "stage that this artifact does not represent.";
+
 export function buildDesignIntentReviewerPacket(): string {
   return [
     "# DesignIntent — independent reviewer packet",
@@ -1583,6 +1645,8 @@ export function buildDesignIntentReviewerPacket(): string {
     "You are reviewing sets of three design concepts. Each set was generated for one event from",
     "the creative brief shown beside it in the artifact. You have the brief and the three",
     "concepts, and nothing else about how any of this was made.",
+    "",
+    DESIGN_INTENT_STAGE_SCOPE,
     "",
     "Work through every batch in the artifact. For each one, answer **A** and **B**. When you have",
     "finished all of them, answer **C** once, against the corpus-wide measurements at the end of",

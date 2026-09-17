@@ -70,10 +70,21 @@ export const CORPUS_FILES = {
    */
   designIntentRegression: "design-intent-regression.json",
   /**
-   * Phase 4C's pre-registered validation corpus. **Deliberately absent**, same reason and same
-   * task: authored at T20, after this freeze, from the published dimensions alone.
+   * Phase 4C's pre-registered validation corpus, **v2 and deliberately absent**.
+   *
+   * The v1 file is still on disk and nothing points at it any more. It was authored at T20 under a
+   * host-constraint criterion that asked this stage to be traceable for constraints a DesignIntent
+   * has no field for, and it was read while that criterion was being corrected — so whatever its
+   * cases say, it can no longer be called a set whose criteria were fixed before it existed.
+   * `INVALIDATED_CORPORA` records it, with its digest, so "invalidated" is a fact in the code
+   * rather than a claim in a commit message.
+   *
+   * The key is deliberately unchanged. `prompt-leakage.test.ts` and `harness-provenance.test.ts`
+   * read the key, not the filename, so the replacement is scanned for leakage the moment it lands
+   * and no control had to be widened to notice it. T20B authors it, from the corrected published
+   * dimensions alone, by an author who has not seen the invalidated one.
    */
-  designIntentValidation: "design-intent-validation.json",
+  designIntentValidation: "design-intent-validation-v2.json",
   /**
    * Phase 4C's sealed challenge. **Deliberately absent, and for longer than the other two**: it is
    * written at T22 by an author who has seen neither the prompt nor prior outputs nor known
@@ -297,12 +308,16 @@ export const EVAL_SETS = {
   designIntentValidation: {
     runner: "design-intent",
     corpus: corpusPath("designIntentValidation"),
-    out: "docs/model-evals/results/design-intent-validation-v1",
+    out: "docs/model-evals/results/design-intent-validation-v2",
     label:
-      "PRE-REGISTERED VALIDATION SET (4C DesignIntent) — authored and frozen before the " +
-      "DesignIntent prompt was written, by an author who implemented none of the harness, and " +
-      "independently reviewed for fairness and leakage. Validation against pre-registered " +
-      "invariants; NOT generalization evidence, and NOT the sealed challenge",
+      "PRE-REGISTERED VALIDATION SET (4C DesignIntent), the replacement — its predecessor was " +
+      "invalidated at T19B, because it was authored under a host-constraint criterion this stage " +
+      "could not always meet and was read while that criterion was being corrected. This corpus " +
+      "is authored and frozen against the corrected contract, before the DesignIntent prompt was " +
+      "written, by a second independent author who implemented none of the harness and saw none " +
+      "of the invalidated cases, and independently reviewed for fairness and leakage. Validation " +
+      "against pre-registered invariants; NOT generalization evidence, and NOT the sealed " +
+      "challenge",
   },
   designIntentChallenge: {
     runner: "design-intent",
@@ -317,6 +332,49 @@ export const EVAL_SETS = {
 } as const;
 
 export type EvalSet = keyof typeof EVAL_SETS;
+
+/**
+ * Corpora that exist, are preserved, and may never be run as the evidence class they were written
+ * to be.
+ *
+ * This is a different thing from `PROTECTED_RESULT_DIRS`, and the difference is worth stating.
+ * That list protects *evidence a run produced*. This one records *a set whose claim about itself
+ * stopped being true* — which cannot be fixed by protecting it, only by pointing nothing at it and
+ * saying why in the place a reader will look.
+ *
+ * `design-intent-validation.json` is the first entry and, so far, the only one. It was authored at
+ * T20 against `§3.2`'s then-current criterion, "every `hostConstraint` traceable into all three".
+ * Independent review found that criterion asks a stage to be traceable for constraints it has no
+ * field for: `spec.md §7.5` defines a host constraint broadly — a prohibition, an explicit
+ * requirement of a specific thing, or a correction — and a DesignIntent carries seven design fields
+ * and a `presentation` card, with nowhere to put event-detail copy, RSVP or payment behaviour,
+ * meal or alcohol disclosure, or section ordering. T19B corrected the criterion to the stage-scoped
+ * rule, and the correction was made while this corpus was on disk and being read. A pre-registered
+ * set is one whose criteria were fixed before its cases existed; this one's were not, in the
+ * direction that matters, so calling it pre-registered validation evidence for the corrected
+ * contract would be a claim the record does not support.
+ *
+ * So it is preserved exactly as it was, pinned by digest here and by a test beside it, and nothing
+ * points at it. It is not deleted: deleting the thing a correction cost is how a programme loses
+ * the ability to say what the correction cost. T20B writes the replacement.
+ *
+ * A digest, a byte count and a task id, because "invalidated" has to be checkable. If an entry here
+ * ever stops matching the file on disk, the record is wrong about what was invalidated, which is a
+ * stop condition rather than a hash to update.
+ */
+export const INVALIDATED_CORPORA = [
+  {
+    path: "docs/model-evals/design-intent-validation.json",
+    sha256: "2207df544a66669d171cc8d2a333ddf616ab4047c70db3d6b9447f7927330d26",
+    bytes: 37123,
+    invalidatedAt: "T19B",
+    why:
+      "authored at T20 under §3.2's pre-T19B host-constraint criterion — 'every `hostConstraint` " +
+      "traceable into all three' — which required conformance this stage cannot express, and read " +
+      "while that criterion was being corrected. Preserved unchanged; no eval set points at it; " +
+      "never run as pre-registered evidence for the corrected contract",
+  },
+] as const;
 
 /** Only the fields this validation reads. A corpus carries far more, all of it optional. */
 interface UncheckedCorpus {
