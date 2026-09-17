@@ -25,8 +25,13 @@ import { designIntentInputAssemblyVersion } from "./input";
 
 describe("the DesignIntent version constants", () => {
   it("are three independent values, and the assembly one is new at T18", () => {
-    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v4");
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v4");
+    // T21 moved the first two together, which is `docs/model-contracts.md §5.1`'s rule whenever
+    // model-visible text changes and the `event_identity_v5` lesson behind it. The third did not
+    // move: `v1` declared the envelope's contents before any rendering existed, and T21 chose that
+    // rendering for the first time rather than changing one — no DesignIntent request has ever
+    // been sent, so there is no earlier rendering `v1` could have described.
+    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v5");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
     expect(DESIGN_INTENT_INPUT_ASSEMBLY_VERSION).toBe("design_intent_input_v1");
     // Three labels, three things. `§B.3`: the assembly version "does not bump for a prompt-file
     // edit or a schema change; those have versions of their own and the three are independent."

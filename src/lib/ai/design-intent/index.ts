@@ -26,6 +26,7 @@ export {
   PALETTE_MAX_COLORS,
   PALETTE_MIN_COLORS,
   paletteSchema,
+  PRESENTATION_NAME,
   presentationSchema,
   RHYTHMS,
   SECTION_CONTRASTS,

@@ -148,11 +148,11 @@ describe("runtime narrowing of the pairing enum", () => {
 });
 
 describe("version constants", () => {
-  it("are at v4, and the prompt and schema say so too", () => {
-    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v4");
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v4");
-    expect(prompt).toContain("**Prompt version:** `design_intent_v4`");
-    expect(designIntentSchema.title).toContain("design_intent_schema_v4");
+  it("are at v5, and the prompt and schema say so too", () => {
+    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v5");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
+    expect(prompt).toContain("**Prompt version:** `design_intent_v5`");
+    expect(designIntentSchema.title).toContain("design_intent_schema_v5");
   });
 
   it("preserve v3 rather than rewriting it", () => {
@@ -166,25 +166,106 @@ describe("version constants", () => {
       readFileSync(`${DOCS}model-prompts/history/design-intent.v3.system.md`, "utf8"),
     ).toContain("design_intent_v3");
   });
+
+  it("preserve the v4 pre-provider draft rather than relabelling it", () => {
+    // `docs/phase-4b-plan.md`, Part IV, "The version rule": if T21 changes model-visible text,
+    // prompt and schema versions bump together, "the previous asset is preserved in `history/`,
+    // and old bytes are never relabelled as the new version". v4 is the draft no model was ever
+    // sent, and it is the artifact that makes the v5 diff reviewable.
+    const v4Prompt = readFileSync(
+      `${DOCS}model-prompts/history/design-intent.v4.system.md`,
+      "utf8",
+    );
+    expect(v4Prompt).toContain("**Prompt version:** `design_intent_v4`");
+    // The three inputs the draft addressed and this call has never had. Their presence here, and
+    // their absence from the live prompt below, is the correction in one pair of assertions.
+    for (const absent of ["redesignFeedback", "priorConceptNames", "priorIntentSignatures"]) {
+      expect(v4Prompt).toContain(absent);
+    }
+    const v4Schema = JSON.parse(
+      readFileSync(`${DOCS}model-schemas/history/design-intent.v4.schema.json`, "utf8"),
+    ) as JsonSchema;
+    expect(v4Schema.title).toContain("design_intent_schema_v4");
+    // The implementer-directed sentence that shipped to the model, kept where it can be seen.
+    expect(v4Schema.properties.dominant?.description ?? "").toBe("");
+    expect(JSON.stringify(v4Schema)).toContain("Enforce with post-schema semantic validation");
+    expect(
+      readFileSync(`${DOCS}model-schemas/history/design-intent.v4.wire.schema.json`, "utf8"),
+    ).toContain("design_intent_schema_v4");
+  });
 });
 
-describe("the v4 prompt speaks Revision 6", () => {
+describe("the v5 prompt speaks Revision 6, and speaks to the inputs this call has", () => {
   it("says family, never archetype, outside its own changelog note", () => {
     const body = prompt
       .split("\n")
-      .filter((l) => !l.startsWith("_v4 reconciles") && !l.includes("replaces `archetype`"))
+      .filter((l) => !l.startsWith("_v5 is the first") && !l.includes("replaces `archetype`"))
       .join("\n");
     expect(body.toLowerCase()).not.toContain("archetype");
   });
 
   it("names the page system as compiler-owned and structure as the composition call's", () => {
-    expect(prompt).toMatch(/page system[\s\S]{0,200}resolved by the compiler/i);
-    expect(prompt).toMatch(/composition call (that runs after|authors)/i);
+    expect(prompt).toMatch(/page system[\s\S]{0,200}the \*\*compiler\*\* resolves/i);
+    expect(prompt).toMatch(/composition call\*\*\s+authors after you/i);
   });
 
   it("keeps the creative responsibilities it always had", () => {
-    expect(prompt).toContain("`family` MUST exactly equal `assignment.family`");
-    expect(prompt).toContain("`typographyPairing` MUST come from `allowedTypographyPairings`");
-    expect(prompt).toContain("Motifs are requests, not placements.");
+    expect(prompt).toContain("exactly the assigned family");
+    expect(prompt).toContain("one of the pairings offered in the assignment block");
+    expect(prompt).toContain("They are **requests, not placements.**");
+  });
+
+  it("names the assigned hierarchy, which the schema deliberately does not narrow", () => {
+    // `src/lib/ai/design-intent/narrowing.ts` narrows `composition.hierarchy` by *family*, so the
+    // enum admits hierarchies the planner did not assign — and `docs/model-contracts.md §4.7`
+    // checks hierarchy against the assignment under `assignmentConformance`. The prompt is the
+    // only place that requirement can reach the model, so a prompt that did not state it would
+    // be grading the model on something it was never told.
+    expect(prompt).toContain("`composition.hierarchy` — exactly the assigned hierarchy");
+    expect(prompt).toContain("`composition.hierarchy` is exactly the assigned hierarchy");
+  });
+
+  it("scopes the no-invented-facts rule to facts, so it cannot punish evocative language", () => {
+    // `docs/phase-4b-plan.md`, "The recurring lesson": do not build a prompt requirement that
+    // punishes correct behaviour. A blanket ban on naming a place would fail a concept called
+    // `Lantern Season` for evoking one, which is the work rather than a violation of it.
+    expect(prompt).toContain("state no **fact about this event**");
+    expect(prompt).toContain("Evocative language is not a fact");
+    expect(prompt).toContain("could someone act on it as though it were true?");
+  });
+
+  it("states the authority split in terms that cannot be mistaken", () => {
+    expect(prompt).toMatch(/`hostConstraints` \| \*\*AUTHORITATIVE/);
+    expect(prompt).toMatch(/`creativeGuidance` \| \*\*ADVISORY/);
+    expect(prompt).toContain("you may adopt it, evolve it, or set it aside.");
+    expect(prompt).toContain("Departing from\nit is never a fault");
+  });
+
+  it("addresses no input this call does not receive", () => {
+    // The v4 draft named three, and instructed the model to differentiate itself from concepts it
+    // cannot see. `docs/phase-4b-plan.md §E`: the call receives the brief and its own assignment,
+    // "and nothing else"; the three calls are blind and parallel.
+    for (const absent of [
+      "redesignFeedback",
+      "priorConceptNames",
+      "priorIntentSignatures",
+      "suppliedFacts",
+      "capabilities",
+      "contentProfile",
+      "forbiddenTokens",
+    ]) {
+      expect(prompt, `the v5 prompt names ${absent}, which this call never receives`).not.toContain(
+        absent,
+      );
+    }
+  });
+
+  it("asks for no cross-sibling coordination, which would measure the planner", () => {
+    // `docs/phase-4b-plan.md`, "The recurring lesson": a requirement the model cannot satisfy from
+    // what it is given is a defect in prompt form, and crediting the model for planner-owned
+    // separation measures the planner.
+    expect(prompt).toContain("you must not try to guess, complement or avoid them");
+    expect(prompt.toLowerCase()).not.toContain("differ from prior concepts");
+    expect(prompt.toLowerCase()).not.toContain("prior signatures");
   });
 });

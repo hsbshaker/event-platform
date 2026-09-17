@@ -2,9 +2,12 @@
 ## Event Identity, DesignIntent and Composition prompts and structured-output schemas
 
 **Status:** Revision 2 — composition-language baseline. Event Identity is in production at `v5`
-(Phase 4A closed **GO**, `§4.6`); DesignIntent and Composition are contracts on paper, unbuilt.  
-**Prompt versions:** `event_identity_v5`, `design_intent_v4`, `composition_v1_p2`  
-**Schema versions:** `event_identity_schema_v5`, `design_intent_schema_v4`, `composition_schema_v1`  
+(Phase 4A closed **GO**, `§4.6`). DesignIntent is **built and frozen at `v5`** — contract, schema,
+runtime narrowing, application validator, prompt and provider boundary — and has **not yet been
+exercised against a provider**: the first live call is gated on `docs/phase-4b-plan.md`'s stop
+point. Composition remains a contract on paper, unbuilt.  
+**Prompt versions:** `event_identity_v5`, `design_intent_v5`, `composition_v1_p2`  
+**Schema versions:** `event_identity_schema_v5`, `design_intent_schema_v5`, `composition_schema_v1`  
 **PRD:** `../spec.md` Revision 6  
 **Renderer:** `event-renderer-system.md` Revision 2
 
@@ -47,8 +50,8 @@ Prompts and schemas are versioned production assets:
 ```ts
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5"
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
-export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v4"
-export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v4"
+export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v5"
+export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v5"
 export const COMPOSITION_PROMPT_VERSION    = "composition_v1_p2"
 export const COMPOSITION_SCHEMA_VERSION    = "composition_schema_v1"
 export const PRIMITIVE_SET_VERSION         = "composition_v1"
@@ -56,8 +59,16 @@ export const COMPILER_VERSION              = "…"
 ```
 
 `src/lib/ai/versions.ts` is where these live; the Event Identity pair reached `v5` through Phase 4A
-and its history is recorded there, prompt by prompt. The DesignIntent and Composition values are
-the contract as designed and have never been exercised against a provider.
+and its history is recorded there, prompt by prompt. The DesignIntent pair reached `v5` at Phase
+4C's T21 and its history is recorded there the same way — `v4` was a pre-provider draft, so no
+evidence exists under it. The Composition values are the contract as designed and have never been
+exercised against a provider.
+
+A fourth constant, `DESIGN_INTENT_INPUT_ASSEMBLY_VERSION`, versions the *effective model input*
+independently of the prompt and the schema, for the reason `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION`
+does: the prompt version names the accepted contract, while what is actually rendered into the
+request — which channels are present, how each is labelled, in what order, how precedence between
+them is expressed — can change underneath it.
 
 Record every version with generation telemetry. Do not silently edit a production prompt while keeping the same version. The primitive set is versioned separately from the compiler because the renderer must support every set that has a live spec.
 
@@ -607,7 +618,7 @@ outputs can satisfy every distance metric and still be one idea.
 
 ---
 
-# 5. DesignIntent (design_intent_v4)
+# 5. DesignIntent (design_intent_v5)
 
 ## 5.1 Contract
 
@@ -638,11 +649,25 @@ DesignIntent {
 - `motifs` carried a ten-item catalog (`plaid_restrained`, `botanical_line`, `deco_border`, …) that no longer exists. The v4 enum is the seven curated IDs — four patterns (`plaid`, `stripe`, `gingham`, `linen`) and three arrangements (`equestrian`, `botanical`, `celestial`).
 - schema and prompt descriptions still said `archetype`, which Revision 6 removed. v4 says `family`, names the page system as compiler-owned, and names structure as the later composition call's.
 
-Creative responsibilities are unchanged: the planner assigns family, tone, typography category and hierarchy; the strong model returns the DesignIntent; the composition call authors structure. v3 is preserved at `docs/model-schemas/history/design-intent.v3.schema.json` and `docs/model-prompts/history/design-intent.v3.system.md`.
+Creative responsibilities are unchanged: the planner assigns family, tone, typography category and hierarchy; the strong model returns the DesignIntent; the composition call authors structure.
+
+**v5 — the first version sent to a provider.** `v4` was a pre-provider contract and draft that no model was ever sent, and T21 found three things in it that only a real request makes visible. Prompt and schema move together, which is this section's rule and the `event_identity_v5` lesson: a fix that reaches only the prompt leaves whatever is wrong inside the wire schema's `.describe()` strings, and those ship.
+
+- The prompt addressed three inputs this call has never had — `redesignFeedback`, `priorConceptNames`, `priorIntentSignatures` — and told the model to differentiate itself from concepts it cannot see. A DesignIntent call receives the creative brief and its own assignment and nothing else (`§5.2`, `spec.md §7.7`), and the three calls are blind and parallel, so that instruction was both unsatisfiable and a measurement of the planner rather than of the model. Removed, not reworded. What replaces it: the authority split between `hostConstraints` and `creativeGuidance` stated in terms the model cannot mistake, and the rule that no fact about the event may be stated because none is supplied.
+- Several schema descriptions addressed the *implementer* while shipping to the model — "Enforce with post-schema semantic validation", "Runtime schema should narrow this enum to one value". Every description now addresses the model.
+- `composition.hierarchy` carried no statement of the assignment requirement (see `§5.2`).
+
+`presentation.name`'s pattern also widens from ASCII letters to Unicode letters and marks. The ASCII class rejected every accented concept name, and because the wire projection carries no `pattern` at all it rejected it only *after* the model had answered — dropping a good card to a deterministic fallback for a character-class decision that bears on none of what the rule is for.
+
+`v4` is preserved at `docs/model-prompts/history/design-intent.v4.system.md`, `docs/model-schemas/history/design-intent.v4.schema.json` and `…/design-intent.v4.wire.schema.json`; `v3` at `docs/model-schemas/history/design-intent.v3.schema.json` and `docs/model-prompts/history/design-intent.v3.system.md`.
 
 ## 5.2 Input, assembly, narrowing, validation
 
 As Revision 1 §9–§12 with `assignment.family` in place of `assignment.heroArchetype`, `family` narrowed to the assigned value, the compatible hierarchies narrowed by family (`invitation` excludes `monumental`; `statement` allows only `dramatic` and `monumental`), and typography pairings filtered by category and by whether they hold at the assigned hierarchy. The one-retry rule stands: one repair retry for structurally invalid output; no model calls for compatibility repair.
+
+**What the call receives**: the creative brief — the `identity` sibling of the authoritative envelope, including `inspirationSummary` — plus **only this sibling's assignment** (`spec.md §7.7`, `docs/phase-4b-plan.md §E`). Not the raw host prompt, not raw inspiration assets, not `suppliedFacts` or `clarification`, not the structural directive or the attractive-token allotment, not capabilities or the content profile, not another sibling's output, and no library recipe or silhouette identifier. `DESIGN_INTENT_INPUT_ASSEMBLY_VERSION` versions how those two channels are rendered into the request.
+
+**`composition.hierarchy` must equal the assigned hierarchy, and the prompt is where that is said.** The enum is narrowed by *family* rather than to the assignment, deliberately: `composition` is a diversity-measurable vector, and collapsing one of its five dimensions to a planner constant would make a departure impossible rather than visible. `§4.7`'s `assignmentConformance` nevertheless gates on hierarchy matching the assignment, so the requirement is real and the schema does not carry it — which leaves exactly one honest place to state it. The prompt states it, and the assignment block renders the assigned value beside it. A returned hierarchy that differs is therefore a visible deviation rather than an impossible one, and it is not repaired by a model call.
 
 ## 5.3 Evals
 

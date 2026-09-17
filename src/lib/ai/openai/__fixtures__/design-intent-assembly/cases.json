@@ -1,0 +1,77 @@
+{
+  "_note": "Hand-authored fixture state for the design_intent_input_v1 goldens. Every brief here satisfies eventIdentitySchema's bounds; none of it is model output and none of it is a corpus case.",
+  "cases": {
+    "unconstrained": {
+      "identity": {
+        "creativeDirection": "A late-summer supper in an orchard, built from the materials already there rather than from anything brought in.",
+        "toneKeywords": ["unhurried", "sun-warmed", "plainspoken"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["bruised plum", "dry grass"],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Warm and mid-toned, with the contrast of low sun rather than of ink.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "light"],
+        "compatibleFamilies": ["editorial", "invitation"],
+        "compatibleTypographyCategories": ["oldstyle", "soft_serif"],
+        "visualMotifs": ["fruit left where it fell", "a long table under branches"],
+        "textureDirection": "Coarse linen and unfinished timber; nothing lacquered.",
+        "typographyDirection": "An oldstyle serif that looks set rather than designed.",
+        "copyTone": "Direct, affectionate, no ceremony.",
+        "hostConstraints": [],
+        "creativeGuidance": ["Let the palette come from the fruit, not from the season generally."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "assignment": {
+        "family": "editorial",
+        "tonalDirection": "mid",
+        "typographyCategory": "oldstyle",
+        "hierarchy": "editorial",
+        "typographyPairings": ["oldstyle_garamond_worksans", "oldstyle_cormorant_figtree"]
+      }
+    },
+    "constrained": {
+      "identity": {
+        "creativeDirection": "A winter anniversary held in a house that has held several, where the restraint is the point and the warmth sits underneath it.",
+        "toneKeywords": ["restrained", "settled", "quietly formal", "interior"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["#0B1F3A", "a true cream"],
+          "preferredColors": ["forest green"],
+          "avoidColors": ["#C8102E", "anything metallic"],
+          "dominanceNotes": "The navy should hold the page; the cream is the air around it, never the subject."
+        },
+        "tonalIntent": "Deep and low, lit as if by lamps rather than daylight.",
+        "toneExplicitlyConstrained": true,
+        "compatibleTonalDirections": ["dark"],
+        "compatibleFamilies": ["editorial", "statement", "invitation"],
+        "compatibleTypographyCategories": ["heritage", "transitional"],
+        "visualMotifs": ["a ruled border of the kind found on old stationery"],
+        "textureDirection": "Laid paper and polished wood.",
+        "typographyDirection": "A heritage pairing with a clear break between the display voice and the reading voice.",
+        "copyTone": "Formal without stiffness; the voice of someone who knows everyone in the room.",
+        "hostConstraints": [
+          "It has to carry #0B1F3A somewhere.",
+          "No red anywhere on it.",
+          "Do not put the dress code on the page; they will be told.",
+          "Do not call it a party."
+        ],
+        "creativeGuidance": [
+          "A forest green would sit well against the navy if a third colour is wanted.",
+          "Keep ornament sparing; the room is already ornamented."
+        ],
+        "inspirationSummary": "Two photographs of the house's entrance hall: panelled wood, a long runner, lamplight rather than overheads."
+      },
+      "assignment": {
+        "family": "statement",
+        "tonalDirection": "dark",
+        "typographyCategory": "heritage",
+        "hierarchy": "monumental",
+        "typographyPairings": ["heritage_caslon_karla", "heritage_baskerville_inter"]
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://event-platform.local/schemas/design-intent.v4.wire.schema.json",
-  "title": "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v4)",
+  "$id": "https://event-platform.local/schemas/design-intent.v5.wire.schema.json",
+  "title": "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v5)",
   "description": "The canonical schema reduced to the subset OpenAI structured outputs accept in strict mode — every property required, additionalProperties false everywhere, no length/count/pattern/uniqueness keywords. Committed so the reduction is reviewable. This is the UNNARROWED superset: the schema actually sent for one concept is this reduction applied to the sibling's narrowed contract, where family and tonalDirection are single-value enums and typographyPairing is filtered to the assigned category and hierarchy (docs/model-contracts.md §5.2). Generated — do not hand-edit. The dropped constraints are enforced by the application validator, which is the authority (docs/model-contracts.md §3).",
   "type": "object",
   "properties": {
@@ -12,7 +12,7 @@
         "invitation",
         "statement"
       ],
-      "description": "Design grammar. Must exactly match the deterministic assignment; runtime schema narrows this to one value. Not a layout: the composition call authors structure."
+      "description": "Design grammar. Must exactly match the family named in the assignment. Not a layout: the composition call authors structure."
     },
     "tonalDirection": {
       "type": "string",
@@ -21,7 +21,7 @@
         "mid",
         "dark"
       ],
-      "description": "Must exactly match the deterministic assignment. Runtime schema should narrow this enum to one value."
+      "description": "Must exactly match the tonal direction named in the assignment."
     },
     "palette": {
       "type": "object",
@@ -35,7 +35,7 @@
         },
         "dominant": {
           "type": "string",
-          "description": "Must exactly equal one member of colors. Enforce with post-schema semantic validation."
+          "description": "Must exactly equal one member of colors, character for character."
         }
       },
       "required": [
@@ -60,7 +60,7 @@
         "grotesk_archivo_inter",
         "grotesk_space_sourcesans"
       ],
-      "description": "A concrete curated pairing ID, not a category and not raw font names. Category and pairing are different things: each of the six typography categories holds two pairings. The runtime schema narrows this enum to the pairings in the planner-assigned typography category, and further to pairings that hold at the assigned hierarchy — when hierarchy is monumental, only monumental-capable pairings are offered."
+      "description": "A concrete curated pairing ID, not a category and not raw font names. Category and pairing are different things: each of the six typography categories holds two pairings. Choose one of the pairings offered in the assignment; they are already filtered to the assigned typography category and to the pairings that hold at the assigned hierarchy."
     },
     "density": {
       "type": "string",
@@ -89,7 +89,7 @@
             "dramatic",
             "monumental"
           ],
-          "description": "Runtime schema narrows by family: invitation excludes monumental; statement allows only dramatic and monumental."
+          "description": "Must exactly match the hierarchy named in the assignment. The enum offers every hierarchy the assigned family admits, so a departure from the assignment is visible rather than impossible; that is not an invitation to depart from it."
         },
         "rhythm": {
           "type": "string",
@@ -140,7 +140,7 @@
           "celestial"
         ]
       },
-      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. Runtime narrowing may further constrain the catalog; the ornament direction in `composition` caps how many actually render."
+      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's; the ornament value in `composition` caps how many actually render."
     },
     "presentation": {
       "type": "object",
