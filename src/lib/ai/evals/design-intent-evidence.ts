@@ -1638,15 +1638,99 @@ export const DESIGN_INTENT_STAGE_SCOPE =
   "DesignIntent**. Do not mark a constraint eroded merely because satisfying it requires a later " +
   "stage that this artifact does not represent.";
 
+/**
+ * What this stage can express, said before any judgement is asked for.
+ *
+ * `typographyPairing` and `motifs` are not open fields: they are ids drawn from curated tables that
+ * exist before any concept does (`src/lib/renderer/vocabulary`, and the composition language's own
+ * enum table in `src/lib/renderer/composition/tokens.ts`). A reviewer who assumes otherwise reads a
+ * brief's typographic or ornamental language as an unfulfilled request when no available value
+ * could have fulfilled it — a defect in the benchmark rather than in the model, and the same class
+ * of defect `DESIGN_INTENT_STAGE_SCOPE` removes one field along.
+ *
+ * Stated as a property of the stage, for every output it will ever produce. It names no case, no
+ * expectation and no rule applied to the ratings, so it withholds everything `§3.8` withholds.
+ *
+ * Exported so it can be asserted against the plan's own bytes rather than trusted as a paraphrase.
+ */
+export const DESIGN_INTENT_EXPRESSIVE_SURFACE =
+  "What this stage can express is bounded, and the bounds are not choices made here. " +
+  "`typographyPairing` is an id from a fixed curated table of twelve conventional pairings — a " +
+  "display face and a body face, grouped in six typographic categories, two to a category. " +
+  "`motifs` are up to three ids from a fixed set of seven: four surface patterns (plaid, stripe, " +
+  "gingham, linen) and three ornamental arrangements (equestrian, botanical, celestial). Nothing " +
+  "outside those tables is expressible at this stage — no other typeface, no invented lettering, " +
+  "no described or custom ornament. The palette is not drawn from a table: it is three to five " +
+  "validated hex colours. So where a brief asks for a typographic or ornamental quality that no " +
+  "available value carries, its absence is a property of the vocabulary, and what is open to " +
+  "judgement is the choice made among the values that exist.";
+
+/**
+ * Which fields this stage chooses, and which were fixed before it ran.
+ *
+ * `family`, `tonalDirection` and `composition.hierarchy` are assigned per concept by the
+ * deterministic planner (`src/lib/generation/planner.ts`) and runtime narrowing reduces each enum
+ * to the single assigned value (`src/lib/ai/design-intent/narrowing.ts`), so the call has no
+ * alternative to return. `typographyPairing` is chosen, from within one assigned category. A
+ * reviewer who reads an assigned value — or the separation between three concepts' assigned values
+ * — as evidence of the model's taste is rating the planner.
+ *
+ * This is attribution only. It says nothing about whether a concept is correct, and
+ * `DESIGN_INTENT_ATTRIBUTION_IS_NOT_CORRECTNESS` is the sentence that keeps it from being read
+ * that way.
+ *
+ * Exported so it can be asserted against the plan's own bytes rather than trusted as a paraphrase.
+ */
+export const DESIGN_INTENT_ASSIGNED_FIELDS =
+  "Some fields are fixed before a concept is generated, and some are chosen. `family`, " +
+  "`tonalDirection` and `composition.hierarchy` are assigned to each concept by a deterministic " +
+  "step that runs first, and generation is restricted to the assigned value, so no alternative " +
+  "was available. `typographyPairing` is chosen, but only from within one assigned typographic " +
+  "category. Chosen here are the palette, `density`, the rest of the composition vector — " +
+  "asymmetry, rhythm, section contrast and ornament — the motifs, and the concept card's name and " +
+  "description. Read an assigned field as a given condition rather than as evidence of taste, and " +
+  "read the way three concepts differ in family, tonal direction and hierarchy the same way.";
+
+/**
+ * The line between attribution and correctness, which the two statements above must not blur.
+ *
+ * They say what this stage chose. They say nothing about what a concept owes. A concept that
+ * erodes or contradicts an authoritative `hostConstraint` is a finding whatever produced it,
+ * including when an assigned field produced it: `§3.7`'s correctness class judges the system's
+ * output, not the model's intentions. Context that let a reviewer forgive a host-constraint
+ * failure because the planner caused it would be an exemption wearing a fairness argument, and
+ * worse than the omission it removes.
+ *
+ * `DESIGN_INTENT_STAGE_SCOPE` remains the only statement that bounds *where* a constraint is
+ * judged, and it bounds it by stage rather than by cause.
+ *
+ * Exported so it can be asserted against the plan's own bytes rather than trusted as a paraphrase.
+ */
+export const DESIGN_INTENT_ATTRIBUTION_IS_NOT_CORRECTNESS =
+  "This changes attribution, not correctness. A concept still owes every authoritative host " +
+  "constraint in full. If the concept in front of you contradicts or erodes one, that is a " +
+  "finding and belongs in your answer, whatever produced it — including when an assigned field " +
+  "produced it. Nothing above is a reason to excuse a host-constraint failure: the statement of " +
+  "what this stage carries is the only limit on where a constraint is judged, and it limits it by " +
+  "stage, never by cause.";
+
 export function buildDesignIntentReviewerPacket(): string {
   return [
     "# DesignIntent — independent reviewer packet",
     "",
     "You are reviewing sets of three design concepts. Each set was generated for one event from",
     "the creative brief shown beside it in the artifact. You have the brief and the three",
-    "concepts, and nothing else about how any of this was made.",
+    "concepts. What follows describes how this stage works for every concept it produces; you are",
+    "given nothing about how any particular set was made, what was expected of it, or any earlier",
+    "work.",
     "",
     DESIGN_INTENT_STAGE_SCOPE,
+    "",
+    DESIGN_INTENT_EXPRESSIVE_SURFACE,
+    "",
+    DESIGN_INTENT_ASSIGNED_FIELDS,
+    "",
+    DESIGN_INTENT_ATTRIBUTION_IS_NOT_CORRECTNESS,
     "",
     "Work through every batch in the artifact. For each one, answer **A** and **B**. When you have",
     "finished all of them, answer **C** once, against the corpus-wide measurements at the end of",

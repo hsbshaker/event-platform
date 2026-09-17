@@ -38,6 +38,9 @@ import {
   DESIGN_INTENT_ACCEPTANCE,
   DESIGN_INTENT_CAPABILITY_DIMENSIONS,
   DESIGN_INTENT_STAGE_SCOPE,
+  DESIGN_INTENT_EXPRESSIVE_SURFACE,
+  DESIGN_INTENT_ASSIGNED_FIELDS,
+  DESIGN_INTENT_ATTRIBUTION_IS_NOT_CORRECTNESS,
   designIntentRunnerUnavailable,
   GATED_DESIGN_INTENT_SET,
   hexColorsIn,
@@ -310,8 +313,8 @@ describe("the gate is the plan's own words, not a paraphrase of them", () => {
           "carries, what the reviewer packet carries, and what it withholds. A withheld item added " +
           "here has to be added to REVIEWER_WITHHELD and to the packet's blinding scan in the same " +
           "change — do not update this hash on its own. " +
-          "T19B is the one authorised move of this hash, and it moved it once: the host-constraint criterion was corrected to the stage-scoped rule before any DesignIntent provider call and before T21 existed, which is the whole window in which a frozen benchmark may honestly be corrected. A later task may not repeat it. If this fails now, the change is not T19B's and the fix is to revert it, not to re-pin.",
-      ).toBe("46357fe871b4a1a345eb7b9792853995225a82a540c1bc90141ab271eddd4b00");
+          "This hash has two authorised moves and no third. T19B moved it once: the host-constraint criterion was corrected to the stage-scoped rule. T19C moved it again: the reviewer's context gained what this stage can express — bounded typography and motif vocabularies — and which of its fields the planner assigns before the call, so a lawful output can no longer be marked down for a bound it never had. T19C moved no band, no requirement, no criterion, no S-category, no threshold, no distribution rule and no corpus size, and left the gate module byte-identical, which is that claim's evidence. Both landed before any DesignIntent provider call, which is the whole window in which a frozen benchmark may honestly be corrected, and it closes the moment that becomes false. If this fails now, the change is neither of theirs and the fix is to revert it, not to re-pin.",
+      ).toBe("1ed1080be5fd40a2b904a671368c68a5645178e94da549e6ced0f16001c6abd5");
     });
 
     it("does not change at all — §3.2", () => {
@@ -450,8 +453,8 @@ describe("nothing frozen at T19 changes afterwards", () => {
         "corpus structural contract, the mechanical checks and their frozen floors, the blind " +
         "artifact and the reviewer packet, all frozen at T19 before the cases existed. Changing a " +
         "criterion after seeing the cases is the thing this set exists not to do. " +
-        "T19B is the one authorised move of this hash, and it moved it once: the host-constraint criterion was corrected to the stage-scoped rule before any DesignIntent provider call and before T21 existed, which is the whole window in which a frozen benchmark may honestly be corrected. A later task may not repeat it. If this fails now, the change is not T19B's and the fix is to revert it, not to re-pin.",
-    ).toBe("787ea0aa0612c0780f3df0a60325a6ca3590672fdaa1fbb6c1921c9d84b31378");
+        "This hash has two authorised moves and no third. T19B moved it once: the host-constraint criterion was corrected to the stage-scoped rule. T19C moved it again: the reviewer's context gained what this stage can express — bounded typography and motif vocabularies — and which of its fields the planner assigns before the call, so a lawful output can no longer be marked down for a bound it never had. T19C moved no band, no requirement, no criterion, no S-category, no threshold, no distribution rule and no corpus size, and left the gate module byte-identical, which is that claim's evidence. Both landed before any DesignIntent provider call, which is the whole window in which a frozen benchmark may honestly be corrected, and it closes the moment that becomes false. If this fails now, the change is neither of theirs and the fix is to revert it, not to re-pin.",
+    ).toBe("11fc3af5b46ab99a2c3bfc16a9714b8706d2e8ab2e706017651bf08dfd0c5e31");
   });
 
   it("does not change at all — the runner", () => {
@@ -2230,6 +2233,36 @@ describe("a host constraint is judged at the stage that can express it", () => {
 
     // It is `§3.8`'s own text, not a paraphrase that could soften on its way here.
     expect(FLAT_PLAN).toContain(flat(DESIGN_INTENT_STAGE_SCOPE));
+
+    /**
+     * T19C's three statements get the same guard, and they need it more than the scope statement
+     * does, because two of them tell the reviewer what *not* to blame the model for. A softened
+     * paraphrase of the first two widens that; a softened paraphrase of the third narrows the one
+     * thing keeping attribution from becoming an exemption. Pinning them to the plan's own bytes
+     * means a drift has to move canon, where it is visible, rather than a string in a builder.
+     */
+    for (const [label, statement] of [
+      ["the expressive-surface statement", DESIGN_INTENT_EXPRESSIVE_SURFACE],
+      ["the assigned-fields statement", DESIGN_INTENT_ASSIGNED_FIELDS],
+      [
+        "the attribution-is-not-correctness statement",
+        DESIGN_INTENT_ATTRIBUTION_IS_NOT_CORRECTNESS,
+      ],
+    ] as const) {
+      expect(packet, `${label} is not in the packet`).toContain(statement);
+      expect(
+        packet.indexOf(statement),
+        `${label} must precede any judgement the reviewer is asked for`,
+      ).toBeLessThan(packet.indexOf("## A. Which band is this batch?"));
+      expect(FLAT_PLAN, `${label} is not §3.8's text any more`).toContain(flat(statement));
+    }
+
+    // The third statement is load-bearing in one specific way: it must keep a host-constraint
+    // finding reportable whatever caused it. If this string stops saying so, the correction has
+    // become the loophole it was written to prevent.
+    expect(flat(DESIGN_INTENT_ATTRIBUTION_IS_NOT_CORRECTNESS)).toContain(
+      "that is a finding and belongs in your answer, whatever produced it",
+    );
 
     // It tells the reviewer what the artifact is, and nothing about the rule applied to their
     // ratings — the blinding scan, unchanged, over the packet it now sits in.

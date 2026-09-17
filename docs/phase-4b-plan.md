@@ -1738,6 +1738,63 @@ That statement is about the shape of the artifact, not about the rule applied to
 withholds nothing: it tells the reviewer what they are looking at, which is the precondition for
 every judgement that follows.
 
+**It says, in the same general terms, what this stage can express and which of its fields it
+chooses.** Two facts are needed for the same reason S4 needs the one above, and a reviewer without
+them can mark a lawful output down for something no output could have avoided. The expressive
+surface is bounded: `typographyPairing` and `motifs` are ids from curated tables that exist before
+any concept does, so a brief's typographic or ornamental language can ask for something no
+available value carries. And some fields are not this stage's decisions at all: the deterministic
+planner assigns `family`, `tonalDirection` and `composition.hierarchy` per concept and runtime
+narrowing reduces each enum to the assigned value, so a reviewer who reads those as taste — or
+reads the separation between three concepts' assigned values as creative range — is rating the
+planner. In substance:
+
+> What this stage can express is bounded, and the bounds are not choices made here.
+> `typographyPairing` is an id from a fixed curated table of twelve conventional pairings — a
+> display face and a body face, grouped in six typographic categories, two to a category. `motifs`
+> are up to three ids from a fixed set of seven: four surface patterns (plaid, stripe, gingham,
+> linen) and three ornamental arrangements (equestrian, botanical, celestial). Nothing outside
+> those tables is expressible at this stage — no other typeface, no invented lettering, no
+> described or custom ornament. The palette is not drawn from a table: it is three to five
+> validated hex colours. So where a brief asks for a typographic or ornamental quality that no
+> available value carries, its absence is a property of the vocabulary, and what is open to
+> judgement is the choice made among the values that exist.
+
+> Some fields are fixed before a concept is generated, and some are chosen. `family`,
+> `tonalDirection` and `composition.hierarchy` are assigned to each concept by a deterministic step
+> that runs first, and generation is restricted to the assigned value, so no alternative was
+> available. `typographyPairing` is chosen, but only from within one assigned typographic category.
+> Chosen here are the palette, `density`, the rest of the composition vector — asymmetry, rhythm,
+> section contrast and ornament — the motifs, and the concept card's name and description. Read an
+> assigned field as a given condition rather than as evidence of taste, and read the way three
+> concepts differ in family, tonal direction and hierarchy the same way.
+
+> This changes attribution, not correctness. A concept still owes every authoritative host
+> constraint in full. If the concept in front of you contradicts or erodes one, that is a finding
+> and belongs in your answer, whatever produced it — including when an assigned field produced it.
+> Nothing above is a reason to excuse a host-constraint failure: the statement of what this stage
+> carries is the only limit on where a constraint is judged, and it limits it by stage, never by
+> cause.
+
+Like the scope statement, these are properties of the stage rather than of any batch, written for
+every output this stage will ever produce. They name no case, no expectation, no prior evidence and
+no rule applied to the ratings, so they withhold everything the paragraph below withholds, and the
+blinding scan runs over the packet they now sit in. Nor do they hand over the repository the
+paragraph after that withholds: what a reviewer receives is the shape of this stage's expressive
+surface and the split between what it was given and what it decided — never a prompt, never code,
+never the assignment behind any particular concept, and nothing about how this stage came to work
+this way.
+
+**The third statement is what keeps attribution from becoming an exemption.** The two before it say
+only what this stage chose; they say nothing about what a concept owes. The model does not choose
+the assigned fields, so it is neither credited nor blamed for them — but the concept as a whole
+still owes every authoritative host constraint, and a concept that erodes or contradicts one is a
+real finding whatever caused it, including when an assigned value caused it. `§3.7`'s correctness
+class judges the system's output, not the model's intentions. Context that let a reviewer forgive a
+host-constraint violation because the planner caused it would be worse than the omission it fixes:
+it would quietly retire the one class of finding this gate cannot afford to lose. Where a
+constraint is judged is bounded by the scope statement, by stage — never by cause.
+
 **The reviewer packet carries the definitions and withholds the arithmetic.** It includes the four
 band definitions with `Excellent`'s six requirements, the minimum-wowable question with its five
 criteria, and the S1–S9 definitions — a reviewer asked to rate against a scale they cannot see is
