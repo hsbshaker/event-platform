@@ -219,6 +219,7 @@ describe("the contract's nullability matches the database's", () => {
     pre_auth_event_drafts: "PreAuthEventDraftRow",
     inspiration_assets: "InspirationAssetRow",
     event_identities: "EventIdentityRow",
+    design_intent_artifacts: "DesignIntentArtifactRow",
     design_concepts: "DesignConceptRow",
     resolved_design_specs: "ResolvedDesignSpecRow",
     event_identity_revisions: "EventIdentityRevisionRow",

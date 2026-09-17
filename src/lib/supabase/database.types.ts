@@ -194,6 +194,54 @@ type EventIdentityRow = {
   updated_at: string;
 };
 
+/**
+ * One successfully generated DesignIntent sibling
+ * (20260917210000_phase4c_t17_design_intent_artifacts.sql, `docs/phase-4b-plan.md §G.2`, `§G.4`).
+ *
+ * Append-only: `reject_update()` refuses every UPDATE with no carve-out, which is why the table
+ * below is `AppendOnlyTable`. Before composition a sibling *is* `(batch_id, concept_index)`
+ * (`§G.3` point 4); from composition onward `design_concepts.id` identifies the concept, and
+ * `design_concepts.design_intent_artifact_id` is the lineage in the one direction canon allows.
+ */
+type DesignIntentArtifactRow = {
+  id: string;
+  event_id: string;
+  /** The batch this sibling belongs to; `(batch_id, concept_index)` is unique. */
+  batch_id: string;
+  /** Which identity produced this — part of `§G.4`'s attribution tuple. */
+  identity_revision_id: string;
+  concept_index: number;
+  round: number;
+  planner_version: string;
+  /** family, tonal direction, typography category, hierarchy. */
+  assignment: Json;
+  /**
+   * Recorded for lineage, and **not** inputs to the DesignIntent call — `§G.4` is explicit that
+   * both are composition's. `not null` here, where `design_concepts` still types them nullable for
+   * its pre-4C shape; the insert-time equality check makes a 4C concept supply them.
+   */
+  directive: Json;
+  token_allotment: Json;
+  design_intent_prompt_version: string;
+  design_intent_schema_version: string;
+  design_intent_input_assembly_version: string;
+  provider: string;
+  model: string;
+  provider_config: Json | null;
+  provider_request_id: string | null;
+  /**
+   * Deliberately not a foreign key (see the migration): `on delete set null` would make the
+   * referential-integrity system UPDATE this immutable row, so pruning telemetry would fail. The
+   * same rule applies to any column added to this table later.
+   */
+  generation_run_id: string | null;
+  /** The validated output, immutable. Its shape is T18's contract, not this file's. */
+  design_intent: Json;
+  /** Non-design, host-facing concept metadata: `{ name, description }`, both non-empty strings. */
+  presentation: Json;
+  created_at: string;
+};
+
 type DesignConceptRow = {
   id: string;
   event_id: string;
@@ -202,6 +250,16 @@ type DesignConceptRow = {
   name: string;
   description: string;
   design_intent: Json;
+  /**
+   * The artifact this concept was composed from
+   * (20260917210000_phase4c_t17_design_intent_artifacts.sql, `docs/phase-4b-plan.md §G.3`).
+   *
+   * `NOT NULL`, and enumerated by `protect_design_concept()` so it cannot be re-pointed at another
+   * sibling's artifact after insert. A BEFORE INSERT trigger additionally requires the concept to
+   * agree with the artifact on every column they both carry: `design_intent`, `event_id`, `round`,
+   * `concept_index`, the two DesignIntent version columns, `directive` and `token_allotment`.
+   */
+  design_intent_artifact_id: string;
   composition_raw: Json;
   composition: Json;
   composition_hash: string;
@@ -404,9 +462,12 @@ type Table<Row, Ins> = {
  * `Update: Record<string, never>` makes any field passed to `.update()` an excess property, so an
  * append-only table's immutability is a compile error rather than a trigger firing in production.
  *
- * Three tables today. The two Phase 4B evidence tables carve out only the DELETE that arrives
- * inside an event's cascade, and `resolved_design_specs` is stricter still: `reject_update()`
- * raises on every UPDATE with no carve-out at all. That one is the immutability `spec.md §32 #18`
+ * Four tables today. The two Phase 4B evidence tables carve out only the DELETE that arrives
+ * inside an event's cascade, while `resolved_design_specs` and `design_intent_artifacts` are
+ * stricter still: `reject_update()` raises on every UPDATE with no carve-out at all — for the
+ * artifacts that is `docs/phase-4b-plan.md §G.2`'s "a protect trigger refusing every UPDATE", and
+ * their DELETE needs no carve-out because the trigger is scoped to UPDATE and the event cascade is
+ * therefore never refused. `resolved_design_specs` is the immutability `spec.md §32 #18`
  * and `CLAUDE.md §2` make load-bearing — "generated design data is immutable" — and it was typed
  * `Table` here, so `.update()` on it compiled and would have failed only in production.
  * `design_concepts` is deliberately not in this set: its protect trigger permits
@@ -587,6 +648,13 @@ export type Database = {
       event_identities: Table<
         EventIdentityRow,
         Insert<EventIdentityRow, "created_at" | "updated_at">
+      >;
+      design_intent_artifacts: AppendOnlyTable<
+        DesignIntentArtifactRow,
+        Insert<
+          DesignIntentArtifactRow,
+          "id" | "provider_config" | "provider_request_id" | "generation_run_id" | "created_at"
+        >
       >;
       design_concepts: Table<
         DesignConceptRow,

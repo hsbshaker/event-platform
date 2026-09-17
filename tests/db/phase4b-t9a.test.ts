@@ -1193,26 +1193,31 @@ describe("nothing batch- or sibling-shaped arrived early", () => {
     expect(names).not.toContain("concept_index");
   });
 
-  it("creates generation_batches from Phase 4C's migration and from no earlier one", async () => {
+  it("creates each Phase 4C table from its own migration and from no earlier one", () => {
     // The original form of this assertion said `generation_batches` did not exist at all, which
     // was true until T16 created it and is not a claim that can survive T16 landing. What it was
     // actually protecting — that no Phase 4B migration anticipated batches — is asserted at the
     // migration files instead, where it stays checkable afterwards.
+    //
+    // The same happened one task later: this test also asserted that `design_intent_artifacts` did
+    // not exist yet, which stopped being true when T17 created it. Converted to the same durable
+    // form rather than deleted, because the claim worth keeping is that no earlier migration
+    // reached forward to either table.
     const dir = path.resolve(import.meta.dirname, "../../supabase/migrations");
-    const creators = readdirSync(dir)
-      .filter((name) => name.endsWith(".sql"))
-      .filter((name) =>
-        /create\s+table\s+public\.generation_batches\b/i.test(
-          readFileSync(path.join(dir, name), "utf8"),
-        ),
-      );
-    expect(creators).toEqual(["20260917000000_phase4c_t16_generation_batches.sql"]);
+    const creatorsOf = (table: string) =>
+      readdirSync(dir)
+        .filter((name) => name.endsWith(".sql"))
+        .filter((name) =>
+          new RegExp(`create\\s+table\\s+public\\.${table}\\b`, "i").test(
+            readFileSync(path.join(dir, name), "utf8"),
+          ),
+        );
 
-    // T17 is still ahead of us; nothing has reached forward to it either.
-    const { rows } = await db.query(
-      `select table_name from information_schema.tables
-        where table_schema='public' and table_name='design_intent_artifacts'`,
-    );
-    expect(rows).toEqual([]);
+    expect(creatorsOf("generation_batches")).toEqual([
+      "20260917000000_phase4c_t16_generation_batches.sql",
+    ]);
+    expect(creatorsOf("design_intent_artifacts")).toEqual([
+      "20260917210000_phase4c_t17_design_intent_artifacts.sql",
+    ]);
   });
 });

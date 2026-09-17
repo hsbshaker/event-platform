@@ -14,15 +14,79 @@ const CONCEPT_VERSIONS = `
   primitive_set_version, compiler_version`;
 const CONCEPT_VERSION_VALUES = `'design_intent_v3','design_intent_schema_v3','composition_v1_p2','composition_schema_v1','composition_v1','compiler_v0'`;
 
+/**
+ * The DesignIntent artifact a concept is composed from
+ * (20260917210000_phase4c_t17_design_intent_artifacts.sql, `docs/phase-4b-plan.md §G.3` point 2).
+ *
+ * `design_concepts.design_intent_artifact_id` is `NOT NULL` from T17 onward, so every concept
+ * fixture here now needs a real artifact — which needs a real identity revision and a real batch.
+ * Built rather than faked, because the artifact's own insert trigger requires it to agree with its
+ * batch about the event, the round and the identity revision.
+ */
+const DIRECTIVE = `'{"structure":"Split"}'`;
+const ALLOTMENT = `'{"allowed":[],"forbidden":[]}'`;
+
+async function ensureIdentityRevision(): Promise<string> {
+  const existing = await db.query(
+    `select id from public.event_identity_revisions where event_id = $1 and revision = 1`,
+    [eventId],
+  );
+  if (existing.rowCount) return existing.rows[0].id as string;
+  const { rows } = await db.query(
+    `insert into public.event_identity_revisions
+       (event_id, revision, result, prompt_version, schema_version, input_assembly_version,
+        provider, model)
+     values ($1, 1, '{"clarification":{"questions":[]}}', 'event_identity_v5',
+             'event_identity_schema_v5', 'event_identity_input_v2', 'openai', 'gpt-5.6-sol')
+     returning id`,
+    [eventId],
+  );
+  return rows[0].id as string;
+}
+
+async function ensureBatch(round: number): Promise<string> {
+  const existing = await db.query(
+    `select id from public.generation_batches where event_id = $1 and round = $2`,
+    [eventId, round],
+  );
+  if (existing.rowCount) return existing.rows[0].id as string;
+  const { rows } = await db.query(
+    `insert into public.generation_batches
+       (event_id, identity_revision_id, planner_version, round, idempotency_key)
+     values ($1, $2, 'planner_v1', $3, $4) returning id`,
+    [eventId, await ensureIdentityRevision(), round, `batch-${eventId}-${round}`],
+  );
+  return rows[0].id as string;
+}
+
+async function insertArtifact(index: number, round: number): Promise<string> {
+  const { rows } = await db.query(
+    `insert into public.design_intent_artifacts
+       (event_id, batch_id, identity_revision_id, concept_index, round, planner_version,
+        assignment, directive, token_allotment,
+        design_intent_prompt_version, design_intent_schema_version,
+        design_intent_input_assembly_version, provider, model, design_intent, presentation)
+     values ($1, $2, $3, $4, $5, 'planner_v1', '{"family":"editorial"}', ${DIRECTIVE}, ${ALLOTMENT},
+             'design_intent_v3', 'design_intent_schema_v3', 'design_intent_input_v1',
+             'openai', 'gpt-5.6-sol', '{"family":"editorial"}',
+             '{"name":"Concept","description":"A direction"}')
+     returning id`,
+    [eventId, await ensureBatch(round), await ensureIdentityRevision(), index, round],
+  );
+  return rows[0].id as string;
+}
+
 async function insertConcept(index = 0, round = 1): Promise<string> {
   const { rows } = await db.query(
     `insert into public.design_concepts
        (event_id, round, concept_index, name, description, design_intent, composition_raw,
-        composition, composition_hash, capabilities, ${CONCEPT_VERSIONS})
+        composition, composition_hash, capabilities, directive, token_allotment,
+        design_intent_artifact_id, ${CONCEPT_VERSIONS})
      values ($1, $2, $3, 'Concept', 'A direction', '{"family":"editorial"}', '{"version":"composition_v1","sections":[]}',
-        '{"version":"composition_v1","sections":[]}', $4, '{"rsvp":true}', ${CONCEPT_VERSION_VALUES})
+        '{"version":"composition_v1","sections":[]}', $4, '{"rsvp":true}', ${DIRECTIVE}, ${ALLOTMENT},
+        $5, ${CONCEPT_VERSION_VALUES})
      returning id`,
-    [eventId, round, index, `hash-${index}`],
+    [eventId, round, index, `hash-${index}`, await insertArtifact(index, round)],
   );
   return rows[0].id as string;
 }
