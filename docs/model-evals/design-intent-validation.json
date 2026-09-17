@@ -1,0 +1,780 @@
+{
+  "version": "design_intent_validation_v1",
+  "cases": [
+    {
+      "id": "DIV-01",
+      "eventType": "engagement party",
+      "identity": {
+        "creativeDirection": "An engagement party moved into the garden of a hospice so that the bride's father, who has weeks rather than months, can be there for an hour of it. Everyone knows why the date changed. The afternoon has to hold joy and grief at once without pretending either away.",
+        "toneKeywords": [
+          "two feelings at once",
+          "tender",
+          "urgent",
+          "bright afternoon",
+          "held together"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [],
+          "avoidColors": [],
+          "dominanceNotes": "One colour should carry the day; an even split would ask guests to interpret something they should not have to."
+        },
+        "tonalIntent": "Daylight-bright, but with real depth underneath it; not a sunny party card.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "transitional",
+          "soft_serif",
+          "high_contrast_editorial"
+        ],
+        "visualMotifs": [
+          "one hour marked out of an afternoon",
+          "a garden bench in full sun",
+          "a chair kept empty and then filled",
+          "blossom already going over"
+        ],
+        "textureDirection": "Warm brick, clipped lawn, a cotton blanket over a lap.",
+        "typographyDirection": "Quiet and steady; the two names together are the only large thing on the page.",
+        "copyTone": "Honest and unhurried, with no brave-face cheerfulness and no funeral language either.",
+        "hostConstraints": [
+          "Do not mention his illness anywhere guests can see.",
+          "The one o'clock hour when he will be there must be stated plainly."
+        ],
+        "creativeGuidance": [
+          "Time, not place, is the fact this day turns on."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 5 (emotional and aesthetic range) at its most demanding: a brief with two incompatible feelings and no colour instruction at all. Fails if the three concepts hedge into the same careful middle, or if any of them resolves the tension by ignoring one half of it. Also dimension 3: the silence about his illness and the explicit hour must hold across all three. Paired with DIV-02 on eventType."
+    },
+    {
+      "id": "DIV-02",
+      "eventType": "engagement party",
+      "identity": {
+        "creativeDirection": "Two chefs who met working the same section are getting engaged and running the party the way they run a Friday night: forty covers, one sitting, everyone eats at the same moment. They want it to feel like the back of house, not the dining room.",
+        "toneKeywords": [
+          "on the line",
+          "fast",
+          "sweary-adjacent",
+          "generous with food",
+          "kitchen-warm",
+          "unpolished"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "stainless steel greys",
+            "burnt sugar"
+          ],
+          "avoidColors": [
+            "white-tablecloth cream",
+            "anything that reads as fine dining"
+          ],
+          "dominanceNotes": "Metal and heat; no linen anywhere."
+        },
+        "tonalIntent": "Hard light bouncing off steel with deep shadow sitting behind it.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "high_contrast_editorial",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "a pass with tickets clipped along it",
+          "forty covers, one sitting",
+          "the scorched base of a pan",
+          "a prep list written on blue tape"
+        ],
+        "textureDirection": "Brushed steel, blue tape, scorch marks.",
+        "typographyDirection": "Set like a ticket or a prep list, where times and quantities look official.",
+        "copyTone": "Clipped and instructional, and very funny to anyone who has ever worked a section.",
+        "hostConstraints": [
+          "Everyone eats at the same time; do not present the food as a buffet or as courses guests pick from.",
+          "No candle-and-linen styling."
+        ],
+        "creativeGuidance": [
+          "Run the page on kitchen time: prep, then the pass, then the last plate out."
+        ],
+        "inspirationSummary": "They sent a photo of their own pass at eight o'clock on a Friday with tickets clipped in a row, and a prep list written on blue tape along a shelf."
+      },
+      "notes": "Dimension 7 (no convergence onto one house style), enforced by the pairing with DIV-01. Same eventType, opposite meaning: one is an hour borrowed from a dying man, the other is a kitchen brigade feeding forty people at once. Fails if the two batches share a recognisable look, or if this one drifts toward tasteful restaurant styling the hosts explicitly rejected."
+    },
+    {
+      "id": "DIV-03",
+      "eventType": "50th wedding anniversary",
+      "identity": {
+        "creativeDirection": "Fifty years for a couple who met handing out leaflets outside a factory gate in 1975 and never really stopped. Their children want the day to say that the marriage and the politics were one project, not two.",
+        "toneKeywords": [
+          "solidarity",
+          "plain-spoken",
+          "stubborn",
+          "soft on each other",
+          "hand-printed"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "#9B1C1F, the red of their branch banner"
+          ],
+          "preferredColors": [
+            "banner gold used sparingly"
+          ],
+          "avoidColors": [
+            "faded sugared-almond shades",
+            "silver-and-white anniversary styling"
+          ],
+          "dominanceNotes": "The red does the heavy work; gold appears only as an edge or a rule."
+        },
+        "tonalIntent": "Solid and printed-looking, with real heft; nothing washed out anywhere.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "heritage",
+          "grotesk_led",
+          "high_contrast_editorial",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "a sewn banner with a heavy fringe",
+          "two names on one leaflet",
+          "a factory gate",
+          "a trestle table with a tea urn"
+        ],
+        "textureDirection": "Screen-printed ink sitting on top of the paper, and heavy embroidered cloth.",
+        "typographyDirection": "Letters that look cut or printed by hand, with the fifty set as a claim rather than an ornament.",
+        "copyTone": "Warm and unfussy with a bit of rallying in it; they would enjoy being addressed as comrades and as a family at once.",
+        "hostConstraints": [
+          "No silver-wedding style ornament.",
+          "Do not use their union's or their old employer's logo."
+        ],
+        "creativeGuidance": [
+          "The banner is the strongest single object in their history; it would be a reasonable place to build from."
+        ],
+        "inspirationSummary": "The family photographed the branch banner hanging in their hall: deep red ground, gold lettering, a heavy fringe, and two visible repairs."
+      },
+      "notes": "Dimension 6 (personalization versus generic premium). The default fiftieth-anniversary treatment is gold, script and soft focus, all of which this brief rules out. Fails if a concept reaches for anniversary conventions anyway, or if the supplied hex drifts. Also tests exact hex preservation; the required red and the avoided sugared-almond shades are nowhere near each other. Paired with DIV-04 on eventType."
+    },
+    {
+      "id": "DIV-04",
+      "eventType": "50th wedding anniversary",
+      "identity": {
+        "creativeDirection": "Fifty years for a Gujarati couple in Leicester, marked with lunch for three hundred in the temple hall after prayers. Four generations will be in the room, and the youngest cousins have never seen the wedding photographs.",
+        "toneKeywords": [
+          "four generations",
+          "communal lunch",
+          "devotional",
+          "abundant",
+          "orderly warmth"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "marigold",
+            "turmeric",
+            "a strong green"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Whatever leads should feel like a great deal of one colour rather than a mixture of several."
+        },
+        "tonalIntent": "Bright and heated, with enough depth left that gold still reads as metal.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "heritage",
+          "transitional",
+          "high_contrast_editorial",
+          "oldstyle",
+          "grotesk_led"
+        ],
+        "visualMotifs": [
+          "rows of thalis laid out",
+          "marigold strung in long lengths",
+          "a 1975 wedding photograph enlarged",
+          "shoes left in rows at the door"
+        ],
+        "textureDirection": "Fresh flowers, steel serving dishes, and a hall floor polished for the day.",
+        "typographyDirection": "Both names always together and always the same size; Gujarati and English must look equally cared for.",
+        "copyTone": "Respectful and inviting, addressed to a whole extended family rather than to individual guests.",
+        "hostConstraints": [
+          "The lunch is vegetarian and no alcohol is served; this must be clear without sounding like a rule.",
+          "The temple's name must never be set below the couple's names on any page."
+        ],
+        "creativeGuidance": [
+          "The room laid for three hundred is more moving than any portrait of the couple."
+        ],
+        "inspirationSummary": "The family sent a picture of the hall being laid the night before, and their 1975 wedding photograph, quite faded, with a scalloped white border."
+      },
+      "notes": "Dimension 1 (sibling distinctness beyond palette and font swaps), with a pairing against DIV-03 on eventType. Two fiftieths whose meanings barely overlap: a political partnership and a four-generation communal meal. Within this batch, three concepts should differ in what they treat as the event — the prayers, the room, or the span of generations. Fails if distinctness is delivered as three saturations of marigold."
+    },
+    {
+      "id": "DIV-05",
+      "eventType": "leaving party",
+      "identity": {
+        "creativeDirection": "A leaving do for a colleague of eleven years who is moving to Lisbon. It is a Thursday after work in the usual pub, but the person going is genuinely loved and the evening must not read as an obligation anybody is discharging.",
+        "toneKeywords": [
+          "end of an era, quietly",
+          "pub Thursday",
+          "everyone actually likes him",
+          "teasing",
+          "slightly wistful"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "An evening indoors: warm and dim rather than bright.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional",
+          "high_contrast_editorial"
+        ],
+        "visualMotifs": [
+          "eleven years counted out",
+          "a desk cleared to nothing",
+          "a departures board",
+          "a round bought for the whole table"
+        ],
+        "textureDirection": "Beer mats, printer paper, and the varnish on a pub table.",
+        "typographyDirection": "Sized for a phone held in a loud room; the leaving date should be blunt about itself.",
+        "copyTone": "Jokey on the surface and sincere underneath, written by one colleague rather than by the company.",
+        "hostConstraints": [
+          "Nothing that looks as though it came from the company; this is not a work event.",
+          "Do not collect money on the site."
+        ],
+        "creativeGuidance": [
+          "Eleven years is the number worth using."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 8 (useful differences in organising idea, visual language and experience) on an event with almost no material to be glamorous about. Three concepts should differ in what they think the evening is: a departure, a span of years, or one last ordinary Thursday. Fails if the differences amount to three pub-quiz-poster variants, or if any concept inflates a pub night into something ceremonial."
+    },
+    {
+      "id": "DIV-06",
+      "eventType": "book launch",
+      "identity": {
+        "creativeDirection": "A first poetry collection, self-published at sixty-one, launched in the back room of a bookshop with about thirty chairs. The poems are about caring for her mother through a long decline, and the launch must not oversell itself.",
+        "toneKeywords": [
+          "late arrival",
+          "plainly said",
+          "attentive",
+          "private thing made public",
+          "modest pride"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "uncoated paper white",
+            "a single ink colour"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "One ink and the paper; a second colour would have to earn its place."
+        },
+        "tonalIntent": "Pale and matte, with the type doing all the darkening.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "transitional",
+          "high_contrast_editorial",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a line break left visible",
+          "thirty chairs put out in rows",
+          "a book held open flat",
+          "the back room of a bookshop"
+        ],
+        "textureDirection": "Uncoated stock with a slight tooth, and ink that sinks into it.",
+        "typographyDirection": "Set the way a book is set, measure first; the title of the collection is not a logo.",
+        "copyTone": "Her own voice out of the poems: careful, unshowy, and occasionally very direct.",
+        "hostConstraints": [
+          "Do not describe the book as moving or as brave.",
+          "Her mother must not be named."
+        ],
+        "creativeGuidance": [
+          "A fragment of one poem would carry more than any description of the book."
+        ],
+        "inspirationSummary": "She sent a photograph of the printed proof on her kitchen table, and a page spread showing how short the poems actually are."
+      },
+      "notes": "Dimension 6 (personalization versus generic premium). A book launch is the easiest possible invitation to produce handsome literary styling that would fit any book at all. Fails if the three concepts would work unchanged for a different author's collection, or if the single ink is treated as the whole idea, so the three differ only in which ink rather than in what the launch is about. Also dimension 2: all three must stay faithful to a book about caring for a dying parent without naming her."
+    },
+    {
+      "id": "DIV-07",
+      "eventType": "bar mitzvah",
+      "identity": {
+        "creativeDirection": "A bar mitzvah for a boy who has spent two years riding and logging every line on the regional network, in order, and who learned his portion the same methodical way. His family want the day to belong to that stubborn, systematic kid rather than to a standard thirteenth-birthday party.",
+        "toneKeywords": [
+          "methodical",
+          "thirteen years old",
+          "logged and numbered",
+          "single-minded",
+          "his people behind him"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "the dark blue of enamel signs"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "One colour doing the work, the way a network is printed in one colour."
+        },
+        "tonalIntent": "Readable at a glance and unfussy; being clear matters more here than being atmospheric.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "heritage",
+          "transitional",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "a notebook of journeys with dates beside them",
+          "a departure board mid-flip",
+          "one line drawn end to end across a map",
+          "a platform number",
+          "a ticket punched twice"
+        ],
+        "textureDirection": "Painted enamel, printed card folded and unfolded many times, and the grain of a station bench.",
+        "typographyDirection": "Set the way a timetable is set, where the numbers and times are the most cared-for things; his name should look like a person's name and not a badge.",
+        "copyTone": "Precise and friendly, carrying the practical detail a thirteen-year-old planner would insist on: when, where, and how long it takes to get there.",
+        "hostConstraints": [
+          "Hebrew text must not be used as decoration or reversed for effect.",
+          "No photographs of the boy on pages guests can reach without the code."
+        ],
+        "creativeGuidance": [
+          "The two years of riding the network are the story worth using; the portion he learned sits inside that rather than beside it."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 1 (sibling distinctness). One boy, one fixation, and three concepts that must find genuinely different things to be about: the network entire, one journey taken end to end, or the patience of two years of logging. Also dimension 9, since those imply different page structures downstream. Fails if the trains arrive as a decorative layer over an otherwise identical scheme, or if the three differ only in how much enamel blue they use."
+    },
+    {
+      "id": "DIV-08",
+      "eventType": "80th birthday",
+      "identity": {
+        "creativeDirection": "An eightieth held in the day room of the home where she now lives, because she cannot travel to anything. Many of her guests are old too. The day should feel like an occasion she is hosting, not something being done for her.",
+        "toneKeywords": [
+          "hosted by her",
+          "easy to read",
+          "unpatronising",
+          "kind without fussing",
+          "long acquaintance"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "strong clear colours"
+          ],
+          "avoidColors": [
+            "washed-out pale schemes",
+            "anything that reads as hospital"
+          ],
+          "dominanceNotes": "A wide gap between words and whatever sits behind them, everywhere, with no clever low-difference effects."
+        },
+        "tonalIntent": "Bright, with a wide gap between light and dark, because several people reading this see poorly.",
+        "toneExplicitlyConstrained": true,
+        "compatibleTonalDirections": [
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "transitional",
+          "oldstyle",
+          "grotesk_led",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a day room rearranged for once",
+          "a chair kept by the window",
+          "eighty years counted in decades",
+          "a tea trolley"
+        ],
+        "textureDirection": "Nothing busy behind the words; whatever they sit on stays calm.",
+        "typographyDirection": "Large and open, nothing thin, and nothing set in long unbroken runs.",
+        "copyTone": "Written as her own invitation, in her words, courteous and a little grand.",
+        "hostConstraints": [
+          "Text must be large and easy to read throughout; several guests read with difficulty.",
+          "Do not name the home.",
+          "Say plainly that guests may come for twenty minutes and then leave."
+        ],
+        "creativeGuidance": [
+          "Decades make a friendlier structure than one large number."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 8 (useful differences) under a hard shared constraint. Legibility and the single permitted brightness direction bind all three, so distinctness has to come from the idea rather than from colour or size. Fails if the constraint flattens the batch into three near-identical large-type layouts, or if one concept buys distinctness by breaking the legibility requirement. Also dimension 3: the twenty-minute welcome and the unnamed home must survive all three."
+    },
+    {
+      "id": "DIV-09",
+      "eventType": "allotment harvest supper",
+      "identity": {
+        "creativeDirection": "The last Saturday of the growing season on a council allotment site: trestle tables set up between the plots, everyone brings what they grew, and the committee hands out three slightly absurd trophies. It has run for thirty-eight years.",
+        "toneKeywords": [
+          "muddy",
+          "neighbourly",
+          "competitive about marrows",
+          "long-running",
+          "end of season"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "soil browns",
+            "bean-flower red"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Late afternoon going cool: warm colour set against a grey sky.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "heritage",
+          "grotesk_led",
+          "transitional",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "a hand-lettered plot number",
+          "three trophies of no value at all",
+          "a trestle table down a central path",
+          "a shed door propped open"
+        ],
+        "textureDirection": "Creosoted timber, galvanised steel, damp earth.",
+        "typographyDirection": "Looks written by whoever was holding the marker pen; the year number matters more than it should.",
+        "copyTone": "As dry as committee minutes, with real fondness underneath it.",
+        "hostConstraints": [
+          "Bring a dish and bring a chair; both must be obvious.",
+          "No sponsor or council branding."
+        ],
+        "creativeGuidance": [
+          "Thirty-eight years of doing exactly the same thing is the story worth telling."
+        ],
+        "inspirationSummary": "Someone sent two photos from last year: the trestle tables set up along the central path, and the three trophies lined up on a plank."
+      },
+      "notes": "Dimension 7 (no convergence onto one house style). This is the sort of event a system tuned on celebrations will quietly upgrade into something charming and rustic. Fails if the three concepts are three grades of countryside prettiness, or if any of them resembles the treatment given to other food-centred cases in this corpus. Also dimension 2: none of the three may lose the committee dryness the brief describes."
+    },
+    {
+      "id": "DIV-10",
+      "eventType": "naming day",
+      "identity": {
+        "creativeDirection": "A naming day for twins adopted at four and six, held in a community garden with the people who supported the family through two years of waiting. The children will choose their own middle names that afternoon in front of everybody.",
+        "toneKeywords": [
+          "picked by them",
+          "steady",
+          "not a christening",
+          "open-hearted",
+          "a bit nervous"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Clear and daylit, neither solemn nor sugary.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "soft_serif",
+          "grotesk_led",
+          "transitional",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "two names written by the children themselves",
+          "a circle of people standing",
+          "a young tree staked upright",
+          "hands making a promise"
+        ],
+        "textureDirection": "Growing things and unfinished wood; nothing churchlike.",
+        "typographyDirection": "The names the children choose should be the largest words on the site and should look like the children's own decision rather than something handed to them.",
+        "copyTone": "Plain and generous, and it explains what will happen because most guests have never been to one.",
+        "hostConstraints": [
+          "No religious language or symbols of any kind.",
+          "Do not refer to the children's birth family or to adoption on pages guests can see."
+        ],
+        "creativeGuidance": [
+          "The act of choosing is the centre of this, not the party afterwards."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 5 (emotional and aesthetic range). The feeling here has no ready-made template: it is a ceremony with no religion, for older children, carrying two years of anxiety behind it. Fails if the three concepts borrow christening warmth, or if they retreat into neutral friendliness because the brief is unfamiliar. Also dimension 3: the two prohibitions are absolute and must hold in all three."
+    },
+    {
+      "id": "DIV-11",
+      "eventType": "sobriety anniversary",
+      "identity": {
+        "creativeDirection": "A dinner for twelve to mark one year without drinking, thrown by the person themselves. He is proud of it and also does not want the evening to be about the subject all night; the site should say it once, clearly, and then be about dinner.",
+        "toneKeywords": [
+          "one year",
+          "unashamed",
+          "appetite",
+          "even-keeled",
+          "good company"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "deep green"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Deep and grown-up: an evening, not a leaflet from a clinic.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "high_contrast_editorial",
+          "transitional",
+          "oldstyle",
+          "grotesk_led"
+        ],
+        "visualMotifs": [
+          "a table laid for twelve",
+          "a year shown as one full turn",
+          "a jug of something cold and good",
+          "candles burnt well down"
+        ],
+        "textureDirection": "Linen that has been used before, glass, dark wood.",
+        "typographyDirection": "Set like a menu written for adults; the number one should carry weight without being explained.",
+        "copyTone": "First person, matter-of-fact about the year, then straight on to what is for dinner.",
+        "hostConstraints": [
+          "Say once that there will be no alcohol, and do not repeat it anywhere else.",
+          "No recovery language, slogans or step references."
+        ],
+        "creativeGuidance": [
+          "Food and hosting are the subject; the anniversary is only the reason."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Callum",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": "dinner, one year",
+        "dateText": "the 14th",
+        "timeText": "7.30",
+        "venueText": "my place",
+        "addressText": null,
+        "localityText": "Walthamstow",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Dimension 10 (no invented host facts, no advisory guidance promoted into host law). None of the supplied facts reach the model, so a concept that names Dan, the date, the time or the area has invented them. The say-it-once instruction is a genuine host constraint and must hold; the food-is-the-subject line is advice and a concept that centres the year instead must not be marked down for it. Also dimension 3."
+    },
+    {
+      "id": "DIV-12",
+      "eventType": "open studio",
+      "identity": {
+        "creativeDirection": "A ceramicist opens her studio for one weekend a year, sells seconds off a table, and fires the kiln on the Saturday so that visitors can watch it opened on the Sunday. It is a working building and not a gallery.",
+        "toneKeywords": [
+          "working building",
+          "kiln heat",
+          "practical",
+          "welcoming to strangers",
+          "seconds for sale"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "fired clay",
+            "ash glaze grey"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Warm and dusty; all the light in there comes from one big window.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "oldstyle",
+          "transitional",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a kiln shelf stacked for firing",
+          "a table of seconds with chalked prices",
+          "two days that are not the same as each other",
+          "a wet clay handprint left on a wall"
+        ],
+        "textureDirection": "Dust settled over everything, raw clay, and glaze test tiles.",
+        "typographyDirection": "The prices and the opening hours should be set as well as her own name is.",
+        "copyTone": "Practical and unprecious; she would far rather tell you what time to arrive than describe her work.",
+        "hostConstraints": [
+          "Card payments only, and this must be stated.",
+          "Do not describe the pieces as artisanal or handcrafted."
+        ],
+        "creativeGuidance": [
+          "The two days are different, so building the page around the kiln opening would make sense.",
+          "The board of test tiles would make a good repeating element."
+        ],
+        "inspirationSummary": "She sent a photo of a board of glaze test tiles, about sixty of them in rows, and last year's seconds table with the prices chalked on it."
+      },
+      "notes": "Dimension 4 (creative guidance remaining advisory). Both pieces of guidance are sound, which is the point: a sibling that instead builds on the table of seconds, or on the building as a place of work, should score as well as one that follows the kiln-opening suggestion. Fails if all three obey, or if departure is scored as unfaithfulness. Also dimension 9: the two-day structure and the sale should push the three toward different page shapes."
+    },
+    {
+      "id": "DIV-13",
+      "eventType": "40th birthday",
+      "identity": {
+        "creativeDirection": "A fortieth for a woman who has saved two years to throw the party she has pictured since she was twenty: a hotel function room, a tower of glasses poured from the top, gold on everything, and a magician working the tables between courses. She would be genuinely let down by anything understated, and she is not joking.",
+        "toneKeywords": [
+          "glossy",
+          "more is more",
+          "dressed up to the nines",
+          "unembarrassed",
+          "a proper big night"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "gold, and plenty of it"
+          ],
+          "preferredColors": [
+            "deep wine red",
+            "a black that looks polished"
+          ],
+          "avoidColors": [
+            "muted greys",
+            "chalky neutrals"
+          ],
+          "dominanceNotes": "Gold is the point rather than an accent, and nothing here should be used sparingly."
+        },
+        "tonalIntent": "Dark and lit, like a room with the lights down and everything in it catching them.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "high_contrast_editorial",
+          "heritage",
+          "transitional",
+          "grotesk_led"
+        ],
+        "visualMotifs": [
+          "a tower of glasses filled from the top",
+          "sequins under a moving light",
+          "her name spelled out in bulbs",
+          "a magician working the tables",
+          "a table plan in a gold frame"
+        ],
+        "textureDirection": "Sequin, foil and polished glass; everything in the room is there to catch light and be seen doing it.",
+        "typographyDirection": "Large letters unafraid of ornament; her name and the number forty should both be impossible to miss.",
+        "copyTone": "Excited and funny and a bit boastful in a way she has earned, inviting people to something she is proud of.",
+        "hostConstraints": [
+          "Do not make it tasteful or pared back; she will hear that as being talked out of her own party.",
+          "It must say black tie, plainly."
+        ],
+        "creativeGuidance": [
+          "Excess is the brief; the work is making it feel deliberate rather than accidental."
+        ],
+        "inspirationSummary": "She sent screenshots of three hotel ballrooms she has been saving for years: a glass tower being poured, a lit-up name behind a top table, and a floor still packed at one in the morning."
+      },
+      "notes": "Dimension 5 (emotional and aesthetic range), at the end of the range the rest of this corpus barely visits. The host wants gloss and excess by her own taste, not by any cultural form, so a system with a house preference for moderation has nowhere to hide. Fails if any concept quietly tones her down, launders the excess into restrained luxury, or handles it with irony. Also dimension 6 and dimension 1: three concepts should differ in what makes the night big, not merely in how much gold sits on black."
+    }
+  ]
+}

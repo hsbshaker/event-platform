@@ -1,0 +1,727 @@
+{
+  "version": "design_intent_regression_v1",
+  "cases": [
+    {
+      "id": "DIR-01",
+      "eventType": "christening",
+      "identity": {
+        "creativeDirection": "A christening in the same small stone chapel where the baby's grandmother was christened in 1951. The family want the day to feel handed down rather than staged, so the real work is making continuity moving without making it heavy.",
+        "toneKeywords": [
+          "handed down",
+          "chapel-quiet",
+          "plain",
+          "tender",
+          "unhurried"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "the grey of the chapel walls",
+            "candle cream"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Mostly pale and even, with one darker anchor somewhere so the whole thing does not float away.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "heritage",
+          "transitional",
+          "soft_serif"
+        ],
+        "visualMotifs": [
+          "a font cover being lifted",
+          "worn flagstone edges",
+          "hymn board numbers",
+          "a shawl folded and kept"
+        ],
+        "textureDirection": "Anything rough should read as old stone and washed cotton, never as new things deliberately scuffed.",
+        "typographyDirection": "Letters that look made by a steady older hand; the baby's name is the loudest thing on the page and the date is nearly silent.",
+        "copyTone": "Short, warm, slightly formal, the way this family speaks inside a church.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Holding back is the achievement here; do not add noise to make up for the quiet."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 5 (emotional and aesthetic range), on a restrained occasion where the wow has to come from precision. Fails if any of the three reaches for drama the event does not have, or if all three land on the same pale, pretty treatment because nothing in the brief pushes back. Paired with DIR-02 on eventType."
+    },
+    {
+      "id": "DIR-02",
+      "eventType": "christening",
+      "identity": {
+        "creativeDirection": "A christening in south London that runs straight into a Yoruba naming ceremony at the hall afterwards, with the tasting of honey, salt, water and kola. Two hundred people, aunties in gele, and a day that is loud on purpose.",
+        "toneKeywords": [
+          "jubilant",
+          "gele-bright",
+          "crowded in a good way",
+          "ceremonious",
+          "open-handed"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "the deep purple the aunties chose for the aso ebi"
+          ],
+          "preferredColors": [
+            "gold that reads as metal rather than yellow"
+          ],
+          "avoidColors": [
+            "baby pastels"
+          ],
+          "dominanceNotes": "The purple is the first thing anyone should see; gold is trim only and never covers large areas."
+        },
+        "tonalIntent": "Saturated and warm; depth is welcome but nothing dingy or dusty.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "high_contrast_editorial",
+          "heritage",
+          "grotesk_led",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "four small tastings set out in a row",
+          "wrapped head-ties",
+          "a hall laid for two hundred",
+          "a drum skin"
+        ],
+        "textureDirection": "Woven cloth with the thread visible, and metal that has been handled a lot.",
+        "typographyDirection": "Confident name-setting at size; the child's two names must sit together as equals.",
+        "copyTone": "Proud and welcoming, the family speaking as hosts rather than as guests at their own day.",
+        "hostConstraints": [
+          "The English name and the Yoruba name must appear together, neither one beneath the other as a subtitle.",
+          "Do not use baby-pastel colours."
+        ],
+        "creativeGuidance": [
+          "The naming ceremony, not the church service, is what the day should be built around."
+        ],
+        "inspirationSummary": "Host shared photographs of their own aso ebi cloth and a picture of the hall from a cousin's ceremony last year: long tables, purple everywhere, a stage at one end."
+      },
+      "notes": "Dimension 7 (no convergence onto one house style), tested by pairing with DIR-01 on the same eventType. Fails if this batch reads as a recoloured version of the quiet chapel christening, or if the naming ceremony is treated as decoration on a default christening layout. Also exercises dimension 3: the two-names requirement must survive all three concepts."
+    },
+    {
+      "id": "DIR-03",
+      "eventType": "retirement party",
+      "identity": {
+        "creativeDirection": "Forty-one years driving and then maintaining buses out of the same depot, and the party is in the depot canteen because that is where he wants it. The day should honour a working life without dressing it up as something posher than it was.",
+        "toneKeywords": [
+          "hard-wearing",
+          "fond without saying so",
+          "deadpan",
+          "workmates",
+          "proud"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "#14532D, the depot livery green taken off an old panel"
+          ],
+          "preferredColors": [
+            "the yellow used on route blinds"
+          ],
+          "avoidColors": [
+            "pink",
+            "pale lilac",
+            "champagne shades"
+          ],
+          "dominanceNotes": "The green carries the whole thing; the yellow behaves like a signal and stays small."
+        },
+        "tonalIntent": "Fairly dark and solid, like painted metal under strip lighting.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "heritage",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "a route number blind",
+          "a clocking-in card",
+          "depot roller doors",
+          "a spanner worn smooth"
+        ],
+        "textureDirection": "Painted metal chipped at the edges, and the grain of a canteen table.",
+        "typographyDirection": "Plain working letter shapes of the kind painted onto vehicles; his years of service should read as a big number.",
+        "copyTone": "Dry, fond, a bit of workshop humour, and no speeches written out on the page.",
+        "hostConstraints": [
+          "No balloons or party-shop styling.",
+          "Do not call it a celebration of a career; he hates that phrase."
+        ],
+        "creativeGuidance": [
+          "Treat the depot itself as the subject rather than him; he will find that easier to accept."
+        ],
+        "inspirationSummary": "Host sent two phone photos: the depot's green painted panel with the fleet number stencilled on it, and the canteen with its formica tables."
+      },
+      "notes": "Dimension 6 (personalization versus generic premium), on an unglamorous event with an exact hex supplied. Fails if any concept prettifies the depot into something upmarket, if the hex is approximated or drifted, or if the three differ only in how much green they use. Deliberately tests exact hex preservation; required and avoided colours are far apart."
+    },
+    {
+      "id": "DIR-04",
+      "eventType": "60th birthday",
+      "identity": {
+        "creativeDirection": "A sixtieth for a woman who has spent thirty years repairing books for a university library. Twenty-two guests, one long lunch, and she has asked that nobody give a speech. The pleasure of the day is close attention, not volume.",
+        "toneKeywords": [
+          "exacting",
+          "quiet company",
+          "papery",
+          "wry",
+          "patient"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "bookcloth blues",
+            "paste white"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Middling and even; nothing should glare and nothing should vanish.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "transitional",
+          "high_contrast_editorial",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a sewn signature",
+          "boards left under a weight",
+          "a repaired tear seen up close",
+          "marbled endpaper"
+        ],
+        "textureDirection": "Laid paper, linen cloth and wheat paste, all seen at reading distance.",
+        "typographyDirection": "Set by someone who minds about spacing more than size; the number sixty should not shout.",
+        "copyTone": "Precise and gently funny, the way she writes her repair notes.",
+        "hostConstraints": [
+          "No speeches, and nothing on the page that implies there will be speeches."
+        ],
+        "creativeGuidance": [
+          "Detail at close range should carry the occasion rather than any large gesture."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 8 (useful differences in organising idea, visual language and experience). Three concepts should differ in what the day is about — the craft, the twenty-two people, or thirty years of small repairs — not merely in blue shade. Fails if the differences are cosmetic. Paired with DIR-05 on eventType."
+    },
+    {
+      "id": "DIR-05",
+      "eventType": "60th birthday",
+      "identity": {
+        "creativeDirection": "A sixtieth thrown by a Trinidadian family in Birmingham: soca from four in the afternoon, a pot of pelau big enough for forty, and a man who has not sat down at his own party since 1994. It should feel like the noise starts before you arrive.",
+        "toneKeywords": [
+          "loud",
+          "sweaty",
+          "hospitable",
+          "carnival-adjacent",
+          "back-slapping",
+          "warm night"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "hot orange",
+            "sea green"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Whatever leads should be turned up rather than tastefully dulled."
+        },
+        "tonalIntent": "Hot and bright set against something night-dark, with a heavy gap between the two.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "high_contrast_editorial",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a stack of speakers",
+          "the rim of a steel pan",
+          "a pot big enough for forty",
+          "bulbs strung across a yard"
+        ],
+        "textureDirection": "Night air, condensation on bottles, painted plywood.",
+        "typographyDirection": "Big and rhythmic; letters that feel like they are being shouted over music.",
+        "copyTone": "Teasing and familiar, full of instruction about when to come, what to bring and who to find.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "The food and the sound system are the two anchors; the birthday number comes second."
+        ],
+        "inspirationSummary": "Host described the last party they threw: a garage door open onto the drive, bulbs strung above it, everyone standing, nobody sitting down until midnight."
+      },
+      "notes": "Dimension 1 (sibling distinctness beyond palette and font swaps). With no host constraints at all, three concepts have maximum room; if they come back as one loud idea in three colourways, the capability is absent. Pairs with DIR-04 on eventType: same label, opposite meaning — one is close attention, the other is volume and hospitality."
+    },
+    {
+      "id": "DIR-06",
+      "eventType": "housewarming",
+      "identity": {
+        "creativeDirection": "A first flat bought alone at forty-three after a long separation. The host wants the evening to feel like a beginning that belongs to her rather than a consolation prize, and she is nervous about who can see the details of where she lives.",
+        "toneKeywords": [
+          "self-possessed",
+          "new start",
+          "private",
+          "steady",
+          "cheerful without effort"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Bright and open, like a room where the curtains have finally come down.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "soft_serif",
+          "transitional",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "one set of keys",
+          "a bare window",
+          "boxes half unpacked",
+          "a table pulled into the middle of a room"
+        ],
+        "textureDirection": "Fresh emulsion and daylight falling on a bare floor.",
+        "typographyDirection": "Direct and unfussy; her own name belongs somewhere it cannot be missed.",
+        "copyTone": "First person, plain, quietly pleased with itself.",
+        "hostConstraints": [
+          "The street address must never be shown to anyone who has not been given the code.",
+          "The flat number must not appear anywhere, including inside directions.",
+          "Her ex-husband's name is not to appear on the site at all."
+        ],
+        "creativeGuidance": [
+          "Arrival information should be the last thing a guest reaches, not the first."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Marianne",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Saturday the 4th",
+        "timeText": "from 6ish",
+        "venueText": "my flat",
+        "addressText": "Flat 6, 118 Ashgrove Road",
+        "localityText": "Leith",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Dimension 3 (host-constraint preservation across all three), where the constraint is structural rather than visual: it governs where address information can live in the page, not how anything looks. Fails if one of the three treats the address as ordinary hero material, or if the flat number surfaces anywhere. Also dimension 10 via suppliedFacts: the model never sees these, so any appearance of the address, the locality or a date is an invented fact."
+    },
+    {
+      "id": "DIR-07",
+      "eventType": "memorial gathering",
+      "identity": {
+        "creativeDirection": "A gathering six weeks after the death of a session drummer who spent fifty years playing behind other people. His family want the afternoon to be about listening, and they are clear that it should not be sad in the way funerals are sad.",
+        "toneKeywords": [
+          "sustaining",
+          "grateful",
+          "musician's wake",
+          "unsentimental",
+          "swinging"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "brass",
+            "smoky browns"
+          ],
+          "avoidColors": [
+            "black as the leading colour",
+            "funeral purple"
+          ],
+          "dominanceNotes": "Nothing should read as mourning stationery."
+        },
+        "tonalIntent": "Low and warm, like a room lit from behind the bar rather than from overhead.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "heritage",
+          "high_contrast_editorial",
+          "grotesk_led",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "brushes on a snare head",
+          "a set list written in pencil",
+          "record sleeves stacked",
+          "the edge of a cymbal catching light"
+        ],
+        "textureDirection": "A worn drum head and card sleeves gone soft at the corners.",
+        "typographyDirection": "Something with swing in the spacing; his name should look like a credit on a record sleeve, not an inscription.",
+        "copyTone": "Warm and specific, in the present tense where possible, with no euphemisms for dying.",
+        "hostConstraints": [
+          "Do not use the word passed; the family say died.",
+          "No black-bordered or memorial-card styling."
+        ],
+        "creativeGuidance": [
+          "Let the music he played on carry the feeling rather than the fact of his death."
+        ],
+        "inspirationSummary": "The family sent a scan of a 1978 album sleeve he is credited on, and a photo of his snare case covered in venue stickers from three decades."
+      },
+      "notes": "Dimension 5 (emotional range), at the hard end: three concepts must all be celebratory without becoming flippant, and none may drift back into standard memorial styling. Fails if any concept sits outside the feeling the family described, or if all three settle on one idea of what the afternoon is when the listening, the fifty years of sideman credits and the room itself are each available as a centre."
+    },
+    {
+      "id": "DIR-08",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "Two people marrying at the register office on a Tuesday morning with eight guests, then walking round the corner to a pub for lunch. They have refused the wedding industry on purpose and would be embarrassed by anything that looked expensive.",
+        "toneKeywords": [
+          "matter-of-fact",
+          "fond",
+          "Tuesday morning",
+          "small",
+          "unbothered"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [],
+          "avoidColors": [],
+          "dominanceNotes": "Whatever is used should look like it cost nothing and was still chosen carefully."
+        },
+        "tonalIntent": "Daylight, flat and honest, with no glow laid over it.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "a numbered ticket at the register office",
+          "a short walk drawn as a line",
+          "a table booked for ten",
+          "two coats over the backs of chairs"
+        ],
+        "textureDirection": "Office paper and a pub table; nothing should look handmade for effect.",
+        "typographyDirection": "Plainly set, like a good public notice; two first names carry it and no titles appear.",
+        "copyTone": "Understated, practical, slightly amused by the fuss other weddings make.",
+        "hostConstraints": [
+          "No script lettering and nothing gold.",
+          "Do not use the words big day.",
+          "Nothing that implies gifts."
+        ],
+        "creativeGuidance": [
+          "Smallness is the subject; make eight guests feel deliberate rather than apologetic."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 6 (personalization versus generic premium) on the event type most likely to trigger a default luxury treatment. The obvious premium answer is exactly wrong here. Fails if any concept smuggles in wedding-industry gloss, or if the three are three shades of tasteful minimal because the brief said small."
+    },
+    {
+      "id": "DIR-09",
+      "eventType": "baby shower",
+      "identity": {
+        "creativeDirection": "A shower for a second baby, thrown by the mother's two closest friends in a garden in late September. The parents already own everything, so the afternoon is really about giving her a few hours of being looked after.",
+        "toneKeywords": [
+          "looked after",
+          "late summer",
+          "easy",
+          "funny",
+          "grown-up"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "late garden greens",
+            "windfall apple reds"
+          ],
+          "avoidColors": [
+            "nursery pastels",
+            "pale blue paired with pale pink"
+          ],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Warm and slightly golden; the sun is already low by four o'clock.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "soft_serif",
+          "oldstyle",
+          "grotesk_led",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "a low table under a tree",
+          "a blanket over someone's knees",
+          "windfall fruit gathered into a bowl",
+          "one garden chair kept for one person"
+        ],
+        "textureDirection": "Cut grass going over, warm brick, an old blanket.",
+        "typographyDirection": "Relaxed and easy to read outdoors; her name should appear as a person's name.",
+        "copyTone": "Friendly and a little conspiratorial, written by two friends rather than by a committee.",
+        "hostConstraints": [
+          "No games that involve guessing measurements or tasting things.",
+          "Do not use the phrase mum-to-be."
+        ],
+        "creativeGuidance": [
+          "Consider making the garden itself the through-line, with the afternoon read as a sequence of places to sit.",
+          "A harvest feeling would suit late September."
+        ],
+        "inspirationSummary": "One friend sent a photo of the garden last autumn: a long table down the middle of a lawn with apples set out along it."
+      },
+      "notes": "Dimension 4 (creative guidance remaining advisory). The garden-sequence and harvest suggestions are good but not binding. A sibling that organises instead around the hours of one afternoon, or around the act of being cared for, must score as well as one that follows the guidance. Fails if all three obey the guidance identically, or if a reviewer-visible departure is treated as unfaithful. The two host constraints, by contrast, must hold in all three."
+    },
+    {
+      "id": "DIR-10",
+      "eventType": "graduation party",
+      "identity": {
+        "creativeDirection": "A party for the first person in her family to finish a degree: adult nursing, done in three years while working night shifts. Her family are proud in a way they find hard to say out loud, and the site has to say it for them.",
+        "toneKeywords": [
+          "hard won",
+          "proud",
+          "night shifts",
+          "family-loud",
+          "it is finally over"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Strong and sure of itself; this must not look tentative anywhere.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "high_contrast_editorial",
+          "transitional",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a rota with shifts crossed off",
+          "a lanyard",
+          "stairs taken two at a time",
+          "a kitchen table used as a desk"
+        ],
+        "textureDirection": "Photocopied paper and hospital vinyl flooring, both handled a great deal.",
+        "typographyDirection": "Sure-footed and large; her full name should be set as an achievement in its own right.",
+        "copyTone": "Direct and warm, the family speaking plainly about what the three years took.",
+        "hostConstraints": [
+          "Do not name the hospital or the university anywhere."
+        ],
+        "creativeGuidance": [
+          "The three years, not the ceremony, are the story worth telling."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Mum and Auntie Viv",
+        "honoreeName": "Shanice",
+        "honoreeDescriptionText": "my daughter, finally a nurse",
+        "eventType": null,
+        "dateText": "Saturday 18th",
+        "timeText": "from 7",
+        "venueText": "the function room at the rugby club",
+        "addressText": null,
+        "localityText": "Pontypridd",
+        "rsvpDeadlineText": "let me know by the 10th"
+      },
+      "notes": "Dimension 10 (no invented host facts, no advisory guidance promoted into host law). None of the supplied facts reach the model, so any concept that names the rugby club, the town, the date or the honoree has invented them. Equally, a concept that states the three-years framing as a requirement the host imposed has turned advice into law. Fails on either."
+    },
+    {
+      "id": "DIR-11",
+      "eventType": "quinceañera",
+      "identity": {
+        "creativeDirection": "A quinceañera for a girl born in Los Angeles to parents from Michoacán: Mass in the morning, the salón in the evening. She wants it to be hers and to feel current; her grandmother wants the parts that carry meaning kept exactly as they are.",
+        "toneKeywords": [
+          "two generations",
+          "ceremonial",
+          "fifteen years old",
+          "devotional",
+          "showy in the right places"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "the deep red she chose for her dress"
+          ],
+          "preferredColors": [
+            "gold thread",
+            "candle white"
+          ],
+          "avoidColors": [
+            "pale pink"
+          ],
+          "dominanceNotes": "Red should dominate the evening part of the day; the morning can be far quieter."
+        },
+        "tonalIntent": "Two registers inside one day: pale and clear early, deep and lit late.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "high_contrast_editorial",
+          "heritage",
+          "transitional",
+          "grotesk_led"
+        ],
+        "visualMotifs": [
+          "the last doll handed over",
+          "the changing of the shoes",
+          "a court of fourteen friends",
+          "papel picado seen after dark",
+          "a ramo left at the altar"
+        ],
+        "textureDirection": "Satin catching light, wax, cut tissue paper.",
+        "typographyDirection": "Her first name is the largest thing anywhere, and Spanish and English text must be set with equal care.",
+        "copyTone": "Bilingual without apology, respectful to elders and speaking for a fifteen-year-old at the same time.",
+        "hostConstraints": [
+          "Spanish comes first wherever both languages appear.",
+          "The Mass must be shown as part of the day, never as an optional extra.",
+          "No cartoon crowns or tiara clip-art."
+        ],
+        "creativeGuidance": [
+          "The moments of handing something over are more interesting than the dress."
+        ],
+        "inspirationSummary": "The family sent photos from a cousin's quinceañera: papel picado strung across the salón, the court lined up on a staircase, and the dress fabric photographed in daylight."
+      },
+      "notes": "Dimension 2 (faithfulness of all three to the same identity) with genuine cultural specificity that generic premium design would flatten. All three must stay recognisably this girl's day across a morning and an evening register, and all three must keep the Spanish-first and Mass requirements. Fails if any concept drops to a generic party treatment with Spanish words applied on top, or if faithfulness is bought by making the three nearly identical."
+    },
+    {
+      "id": "DIR-12",
+      "eventType": "school fundraiser quiz night",
+      "identity": {
+        "creativeDirection": "A primary school parents' quiz night to replace the broken playground equipment. Tables of six, a raffle, bring your own drink, and a target on the wall that everybody wants to watch move.",
+        "toneKeywords": [
+          "competitive",
+          "village-hall",
+          "practical",
+          "cheerful",
+          "slightly chaotic"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Bright and readable under fluorescent tubes; there is no atmosphere in that hall to work with.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a rising total drawn as a thermometer",
+          "numbered tables",
+          "an answer sheet",
+          "a hall floor marked out in tape"
+        ],
+        "textureDirection": "Photocopier grey and gaffer tape on a sprung wooden floor.",
+        "typographyDirection": "Sized to be read from the back of a hall; the numbers matter more than the words.",
+        "copyTone": "Brisk, practical and funny about how seriously people take the tie-break round.",
+        "hostConstraints": [
+          "The ticket price and what it includes must be impossible to miss.",
+          "No child's name or photograph anywhere."
+        ],
+        "creativeGuidance": [
+          "The running total is the most interesting object in the whole event."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Dimension 9 (downstream suitability for materially different page compositions), on a deliberately unglamorous event. Three concepts should imply genuinely different page shapes: one led by the money total, one by the quiz rounds as a sequence, one by the plan of the hall and its tables. Fails if all three imply the same single-column poster with different colours, since nothing downstream would then have anything to choose between."
+    }
+  ]
+}
