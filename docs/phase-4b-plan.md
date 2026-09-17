@@ -1928,6 +1928,35 @@ problem is well-trodden rather than evidence of reuse, and which is exactly why 
 **T21 is therefore written without reading `docs/model-evals/design-intent-validation.json`**, and
 that is a condition of the task rather than a courtesy.
 
+**Two freeze commits described themselves more tidily than they were, and both corrections are
+kept here rather than in a conversation.** A record that rounds off its own edges is worth less
+than one that does not, and in both cases the overstatement was caught by review rather than by
+the author.
+
+*T20B* is recorded in its row as *"the new corpus file alone"*. `7c0799e` was not literally a
+one-file commit: besides `design-intent-validation-v2.json` it changed `docs/model-contracts.md`,
+this document, and comment-only text in `src/lib/ai/evals/corpus.ts`. The property that actually
+matters held exactly — no grading machinery, runner, checker, gate, prompt, schema, model
+implementation or production behaviour changed at T20B — and every edited line in `corpus.ts` sat
+inside a block comment, verified line by line.
+
+*T21* says the eval seam was its **only** touch to frozen evidence machinery. That is overstated
+in the same direction. `fc1ae8b` also added two entries to `MODEL_VISIBLE_SURFACES` in
+`corpus.ts` — `"design intent provider boundary"` and `"design intent input assembly"` — where at
+T20B that map named only the DesignIntent prompt and wire schema. Three things keep it a
+disclosure rather than a gate failure, and all three are checkable. `corpus.ts` is not one of the
+hash-pinned modules, and the map is the declared extension point: `prompt-leakage.test.ts` reads
+it rather than a literal list, which is why nothing in the frozen scanner had to move. The change
+only **widens** leakage coverage — without it, every label, delimiter and preamble T21 introduced
+would be unscanned model-visible text, which is the hole the Event Identity pair exists to close,
+and it caught a real collision on its first run. And the gate, the checker, the runner and the
+evidence module are byte-identical to their T19/T19B digests, so nothing about grading moved.
+
+Most importantly for the evidence: **the sealed challenge did not exist when this widened surface
+list was frozen.** Its author writes against the list as it stands, so the strongest evidence set
+in the programme is authored after the expansion rather than before it — which is the order that
+makes the expansion harmless.
+
 **The T19/T20 candidate chain, and why it is recorded rather than rewritten.** `411cf1c` (the first
 T19 freeze) and `86e9551` (the first 4C corpora) stay in history exactly as they happened. They are
 **candidate evidence design, invalidated at T19B**, and the reason is the one above: independent
