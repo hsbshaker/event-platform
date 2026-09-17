@@ -1492,19 +1492,85 @@ elsewhere**, and frozen at T19 before any batch is reviewed:
 
 | Band | Definition |
 | --- | --- |
-| **Excellent** | Three distinct creative worlds, each rooted in *this* event, each suggesting a different experience rather than a different look. A designer handed any one of them would know what to build, and would not confuse it with the other two. Nothing fabricated, nothing generic |
-| **Good** | Three genuinely different directions, faithful and usable, but one or more is thinner than the others — a look rather than a world, or a world whose verbal identity does not carry its visual idea. No correctness defect |
+| **Excellent** | Three distinct creative worlds, each rooted in *this* event, each suggesting a different experience rather than a different look. A designer handed any one of them would know what to build, and would not confuse it with the other two. Nothing fabricated, nothing generic. **And all six of the minimum-wowable requirements below.** |
+| **Good** | Three genuinely different directions, faithful, polished and usable, but one or more is thinner, more expected, more generic or less emotionally and verbally resolved than the minimum-wowable standard — a look rather than a world, or a world whose verbal identity does not carry its visual idea. No correctness defect. **`Good` is a diagnosis, not a pass** |
 | **Borderline** | The three are faithful and defensible, but the distinctness is largely parametric, or one sibling is a weak variant of another, or the set reads as competent premium work that this event did not specifically ask for. No correctness defect |
 | **Fail** | Any correctness defect — an invented host fact, a `creativeGuidance` recommendation promoted to host law, a `hostConstraint` eroded or contradicted — **or** siblings that are not materially different directions at all |
 
+**What `Excellent` now requires, beyond the row above.** The band is the product bar, not "strong
+professional work". An `Excellent` batch satisfies everything in its row **and** all six of:
+
+1. the set feels unmistakably authored for *this* event and identity, not merely appropriate to the
+   event type;
+2. the directions demonstrate **interpretation**, not just application of tasteful design
+   vocabulary;
+3. the creative ideas contain memorable, grounded choices that are not the obvious premium
+   defaults;
+4. the host-facing verbal identity is as specific as the visual direction;
+5. none of the three siblings is filler, a safe third option, or a weaker version included only to
+   complete the set;
+6. the batch as a whole is specific, perceptive and memorable enough that a reasonable host could
+   plausibly react with *"it got me"* rather than *"these are nice"*.
+
+**This is not a demand for fabrication, theatricality, maximalism or novelty for its own sake.**
+Wow comes from accurate interpretation and creative specificity, and a restrained event is wowable
+through precision and insight. A batch that manufactures drama an identity does not support fails
+`Fail`'s correctness clause and S6, not passes this one.
+
 **The rule:**
 
-> **No `Fail`. At most one `Borderline`. `Excellent` strictly outnumbers `Good`.**
+> **12 / 12 `Excellent`. No `Good`, no `Borderline`, no `Fail`. And 12 / 12 minimum-wowable
+> `YES` (below). Any batch below `Excellent`, or any minimum-wowable `NO`, is a NO-GO.**
 
-Stronger than 4A's outcome (7/5 passes; 6/6 does not), not satisfiable by one lucky case, and not a
-literal 12/12 that would invite tuning against spent cases. Note that the `Fail` definition makes
-any single-batch correctness defect fatal on its own — which is deliberate, and is what stops the
-"one catastrophic batch rated Borderline" path through the gate.
+**Why this replaced "Excellent strictly outnumbers Good", and why it is not tunable.** The earlier
+rule passed `E=6, G=5, B=1`. A product whose baseline promise is *"it understood what I was
+envisioning, and I need to show someone"* cannot be evidenced by a run where five of twelve hosts
+get work the reviewer called thinner and more expected than that bar. `Good` was doing double duty
+as both a diagnosis and a pass, and the two are not the same thing: it stays, because naming *how*
+a batch fell short is what makes a NO-GO actionable, but it does not pass.
+
+The cost of the stringency is accepted in advance, in the only place it can honestly be accepted —
+**before any case exists, before the prompt is written, and before a single output has been seen.**
+If a sealed challenge returns 11 `Excellent` and 1 `Good`, that is evidence the system did not meet
+the frozen bar. The challenge is then **spent**: we fix the system and author a genuinely new
+sealed corpus. We do not move the threshold, average the bands, introduce a score, or discover that
+one `Good` was really an `Excellent` after all. `spec.md §11.9`: a threshold chosen after the
+result is not a threshold.
+
+Note the `Fail` definition still makes any single-batch correctness defect fatal on its own, which
+is what stops the "one catastrophic batch rated Borderline" path through the gate. The order is
+**faithful and correct first, wowable second** — wow never excuses a correctness defect, and a
+fabricated host fact fails whatever else the batch achieves.
+
+**Half one-and-a-half — the explicit minimum-wowable judgement.** The word `Excellent` is not
+trusted to carry the bar on its own, because a band label drifts toward "the best of what I was
+shown". So the reviewer answers, per batch, one additional binary question, in these terms:
+
+> **Does this batch clear the minimum-wowable bar — is it specific, perceptive and creatively
+> memorable enough that the host could plausibly feel *"it understood me"* and want to show the
+> result to someone, rather than simply thinking *"this is polished"* or *"this is nice"*?**
+>
+> Answer **YES** or **NO**, and cite the specific text that decided it.
+
+**`YES` requires all five**, and the reviewer states which, if any, is missing:
+
+| | Criterion |
+| --- | --- |
+| 1 | **Event-specific understanding** — the concepts clearly arise from *this* identity rather than from a generic event of the same type |
+| 2 | **Creative leap** — grounded, non-obvious creative thinking, rather than only translating the identity's adjectives into palette, type and motif choices |
+| 3 | **No passenger concept** — none of the three exists as safe filler or a weak variant of another |
+| 4 | **Memorable verbal identity** — the `presentation` name and description carry *this* concept, rather than reading as language reusable across unrelated events |
+| 5 | **Plausible share impulse** — the set has enough specificity and character that *"I need to show someone"* is a plausible reaction |
+
+This judgement is **qualitative and stays qualitative**. There is no numerical wow score, no
+embedding distance standing in for delight, and no deterministic metric may be introduced later and
+called this. §3.2's mechanical block measures what is decidable; this measures what is not, which
+is precisely why a human-equivalent independent reviewer answers it.
+
+The band and the minimum-wowable answer are **both required and are not interchangeable**. A batch
+rated `Excellent` with minimum-wowable `NO` is a NO-GO, and so is a batch rated `Good` with
+minimum-wowable `YES`. Where they disagree, that disagreement is itself a finding the go/no-go
+records verbatim rather than resolving in favour of the more convenient one.
 
 **Half two — the systemic veto.** A high distribution must not mask a systemic creative failure.
 **The 4C gate fails regardless of distribution if the independent reviewer finds any predeclared
@@ -1522,6 +1588,7 @@ systemic pattern.**
 | S6 | unsupported emotional moderation / anti-sentimentality / anti-theatricality across siblings |
 | S7 | another recurring pattern that directly defeats the core 4C question — **which the reviewer must name and define in the same terms as the others** |
 | **S8** | **the same creative worlds recurring across events — including across different instances of the same event type.** Organizing idea, palette family, typographic voice, motif set, finishing language or `presentation` voice repeating from batch to batch, whether the batches share an event type or not. S1 and S2 are both *within*-batch; without S8 a system producing three excellent, genuinely distinct worlds and roughly the *same* three every time passes every category and every within-batch metric. **The same-type clause is not a refinement, it is the case that matters:** a system with a "quinceañera set" and a "christening set" that differ from each other and barely differ within a type is a template gallery at the granularity a template gallery actually has, and a reviewer reading S8 as *different* event types only would decline it because the worlds do track the event. §3.2's corpus-wide block gives the reviewer evidence for both readings |
+| **S9** | **safe competence — no creative leap.** Across batches, the outputs are faithful, distinct and professionally attractive, and they repeatedly stop at tasteful obviousness: competent premium work without a memorable, event-specific organizing idea or a perceptive creative leap. **This is the failure mode the minimum-wowable bar exists to reject, and none of the other eight catches it.** It is not S2, which is parameter variants *within* a batch — an S9 system produces three genuinely different directions. It is not S5, where generic-premium treatment overwhelms event personality — an S9 system does adapt to each event, visibly and correctly. It is not S8, where the same worlds recur — an S9 system's worlds differ from event to event. S9 is the system that gets everything right and is still only *nice*: it adapts, it separates, it stays faithful, and it never risks the specific, memorable choice that would make a host want to show someone. A batch rated `Excellent` cannot exhibit S9; a corpus of batches rated `Good` for the same reason almost certainly does, and the reviewer should reach for this category when their own per-batch prose keeps saying some version of *"polished, but I have seen this"* |
 
 *What counts as systemic*, so it is neither a discretionary escape hatch nor invocable only by
 hindsight. A pattern is systemic when the reviewer:
@@ -1539,14 +1606,19 @@ hindsight. A pattern is systemic when the reviewer:
 | Class | Categories | Threshold |
 | --- | --- | --- |
 | **Correctness** | S3 (`creativeGuidance` promoted to host law), S4 (host constraints eroded or contradicted) | **one batch.** These are the failure `v4` already paid for; an 8% rate of fabricated host authority is not a quality wobble, and any occurrence also forces that batch to `Fail` under §3.7's band definitions |
-| **Taste / convergence** | S1, S2, S5, S6, S7, S8 | **two batches** |
+| **Taste / convergence** | S1, S2, S5, S6, S7, S8, **S9** | **two batches** |
 
 *The reviewer protocol.* The reviewer is **not** asked "should this pass?", is not told the
-distribution rule, the band thresholds or the corpus size, and works from a repository they have no
-access to (§3.8). They produce:
+distribution rule, the systemic thresholds or how many `Excellent`s a GO needs, and works from a
+repository they have no access to (§3.8). They **are** given the band definitions, the six
+`Excellent` requirements and the minimum-wowable question and its five criteria, because those are
+the definitions the judgements are made against and a reviewer asked to rate against a scale they
+cannot see is guessing. What is withheld is the arithmetic. They produce:
 
 1. **per-batch ratings** on the four bands, with reasons;
-2. **an explicit cross-batch systemic assessment**, answering **every** category S1–S8 as
+2. **a per-batch minimum-wowable `YES`/`NO`**, with the deciding text cited and, on a `NO`, which
+   of the five criteria is missing;
+3. **an explicit cross-batch systemic assessment**, answering **every** category S1–S9 as
    present/absent with citations — including the absent ones, so the veto is a checklist completed
    in every review rather than a finding volunteered only sometimes.
 
@@ -1559,18 +1631,24 @@ not with an instruction not to be anchored.
 One residual no protocol removes: a reviewer who *senses* a cross-batch pattern but cannot
 articulate it may mark every category absent in good faith. So the go/no-go author has one duty
 here — **if the reviewer's prose describes a cross-batch pattern that is not filed under any of
-S1–S8, the review is returned for that pattern to be filed or explicitly declined**, before any
+S1–S9, the review is returned for that pattern to be filed or explicitly declined**, before any
 decision is recorded. That is a completeness check on the artifact, not a second opinion on the
-outcome.
+outcome. S9 is the category this duty most often lands on: "polished, but I have seen this" is
+exactly the observation a reviewer writes in prose and does not think to file.
 
-*How the go/no-go records it.* The decision states the band distribution **and** the systemic
-verdict per category. A veto is a **NO-GO** with the category and the reviewer's citations recorded
-verbatim. A pass records that all **eight** were assessed and found absent. **Neither half can be
-waived by the other**: an excellent distribution does not override a veto, and an absent veto does
-not rescue a failing distribution.
+*How the go/no-go records it.* The decision states the band distribution, **the minimum-wowable
+tally**, and the systemic verdict per category. A veto is a **NO-GO** with the category and the
+reviewer's citations recorded verbatim. A pass records that all **nine** were assessed and found
+absent, and that all twelve batches were `Excellent` with minimum-wowable `YES`. **No half can be
+waived by another**: an excellent distribution does not override a veto, an absent veto does not
+rescue a failing distribution, and neither rescues a minimum-wowable `NO`.
 
-**The north star is unchanged.** 100% Excellent-quality creative direction is the aspiration. This
-gate is the floor that protects generalization, never a license to settle for Good.
+**The north star and the floor are now the same line.** Earlier drafts of this section called 100%
+`Excellent` the aspiration and set the gate below it, which made `Good` a passing grade for a
+product whose whole promise is that the host feels understood. The gate is now the bar: twelve of
+twelve `Excellent`, twelve of twelve minimum-wowable, nine systemic categories absent. It is
+deliberately stringent, it was set before any case existed, and it does not move because a run
+comes back close.
 
 ## 3.8 Independent qualitative review process
 
@@ -1578,11 +1656,18 @@ The 4A shape, with the 4C artifact defined rather than assumed.
 
 **What the artifact contains**, per batch: the **authoritative EventIdentity brief** and the **three
 DesignIntents** generated from it, **each with its `presentation` object** — without which the
-verbal-identity questions in §3.3 and the `Good` band cannot be answered. Plus, once, the
-corpus-wide measurements of §3.2. Nothing else — no case metadata, no expectations, no
-clarification labels, no band definitions, no thresholds, no prior evidence. (The reviewer
-necessarily learns the corpus size by rating every batch; what is withheld is the *threshold*,
-which is why §3.8 excludes `model-contracts.md`.)
+verbal-identity questions in §3.3, the `Good` band and minimum-wowable criterion 4 cannot be
+answered. Plus, once, the corpus-wide measurements of §3.2. Nothing else — no case metadata, no
+expectations, no clarification labels, no prior evidence.
+
+**The reviewer packet carries the definitions and withholds the arithmetic.** It includes the four
+band definitions with `Excellent`'s six requirements, the minimum-wowable question with its five
+criteria, and the S1–S9 definitions — a reviewer asked to rate against a scale they cannot see is
+guessing, and a checklist they have not been given is one they cannot complete. It excludes the
+distribution rule, the systemic thresholds, how many `Excellent`s a GO needs, that `Good` does not
+pass, any expected outcome, any prior review, and anything about what this project hopes the answer
+is. (The reviewer necessarily learns the corpus size by rating every batch; what is withheld is the
+*rule applied to it*, which is why §3.8 excludes `model-contracts.md` and this document.)
 
 The identity is included deliberately. §3.3 asks whether each direction is rooted in *this* event,
 S5 and S6 ask whether a treatment is supported by the identity, and systemic condition 4 asks
@@ -1591,12 +1676,16 @@ outputs alone.** A blinding that withheld the identity would make the veto struc
 undeclinable-but-unprovable, which is worse than no veto.
 
 **What the reviewer does not have:** access to this repository, in full. Not the prompts, not prior
-evidence, not the failure history, and specifically **not `model-contracts.md`**, where T19 freezes
-the distribution rule — a blinding phrased as "no prompts or prior evidence" would leave the
-threshold readable in canon, which defeats §3.7's claim that the reviewer does not know it.
+evidence, not the failure history, not implementation details, and specifically **not
+`model-contracts.md` and not this document**, where T19 freezes the distribution rule — a blinding
+phrased as "no prompts or prior evidence" would leave the threshold readable in canon, which
+defeats §3.7's claim that the reviewer does not know it.
 
-They return band judgements, the S1–S8 checklist with citations, and prose. The go/no-go is
-recorded with its SHA chain.
+They return band judgements, a minimum-wowable `YES`/`NO` per batch with the deciding text cited,
+the S1–S9 checklist with citations, and prose. **The GO/NO-GO arithmetic happens afterwards,
+outside the blind review**, by someone applying §3.7's frozen rule to what the reviewer returned.
+The reviewer is never asked whether the set passes, and never learns that twelve of twelve is what
+passing means.
 
 ## 3.9 The Phase 4B rerun-behaviour validation set — classed honestly
 
@@ -1706,9 +1795,9 @@ case exists.**
 | **T16** | `generation_batches` + **batch and sibling** spend, caps and idempotency only (§H.2) — the call-level controls are Phase 4B's (§A.5, T9A) and T16 takes no credit for them. **Inherits the persisted half of the late-Route-A invariant from the 4B gate** (items 8 and 9), which could not be proven before this table existed | migration; `src/lib/generation/batch.ts`; `rate_limits` wiring | T15 | db: one in-flight batch enforced by index; caps refuse; duplicate keys collide; partial-failure resumption. **Plus, against a real `planned` or `running` row and not a mock:** a late Route A answer leaves that batch's `identity_revision_id`, planner version, assignment and persisted inputs unchanged; does not cancel or rebase it; cannot create a second in-flight batch for the same event; leaves the answer attached to the earlier asking revision; a new round may begin only through the canonical new-round path, once the current batch no longer blocks it; and, for §C row 3, an answer landing **before** a batch starts yields a batch planned from the new authoritative revision | `development-plan.md` principle 4; `spec.md §10`, `§27` | no | **yes** | no |
 | **T17** | `design_intent_artifacts` + `design_concepts.design_intent_artifact_id` + equality check | migration | T16 | db: updates refused; equality check refuses a mismatched snapshot on every enumerated column; FK required | `spec.md §31 — DesignIntent, composition and compiler` (persistence); `§9.4`; `CLAUDE.md §2` | no | **yes** | no |
 | **T18** | DesignIntent contract, schema, narrowing, validator — **no prompt** | `src/lib/ai/design-intent/*`; generated files under `docs/model-schemas/` | T17 | unit: semantic invariants, narrowing, repair rules, schema-drift | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `§32 #12`, `#21` | **schema descriptions ship** | **yes** | no |
-| **T19** | **Prewire the 4C evidence harness and freeze the gate, while no cases exist.** Paths, evidence-class labels, structural contract, runner slots, protection behaviour, leakage-scan coverage, the per-batch and corpus-wide mechanical checks (§3.2), the blind-artifact contract (§3.8), and **the whole of §3.7** — bands, distribution rule, corpus size, same-type composition requirement, S1–S8 and the class thresholds — written into canon | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts`, `model-contracts.md`, this document | T18 | unit/static only; absence tests for both corpora | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | **no — never run to verify itself** |
+| **T19** | **Prewire the 4C evidence harness and freeze the gate, while no cases exist.** Paths, evidence-class labels, structural contract, runner slots, **the production seam T21 fills** (below), protection behaviour, leakage-scan coverage, the per-batch and corpus-wide mechanical checks (§3.2), the blind-artifact and reviewer-packet contract (§3.8), and **the whole of §3.7** — bands including `Excellent`'s six requirements, the **minimum-wowable question and its five criteria**, the **12/12** distribution rule, corpus size, same-type composition requirement, **S1–S9** and the class thresholds — written into canon and hash-pinned | `src/lib/ai/evals/*`, `tests/eval/design-intent.eval.ts`, `model-contracts.md`, this document | T18 | unit/static only; absence tests for both corpora; a freeze test that fails on any edit to a threshold, band, minimum-wowable definition, S-category, corpus requirement, reviewer contract or path | `model-contracts.md §4.5`; `spec.md §11.9` discipline | no | **yes** | **no — never run to verify itself** |
 | **T20** | **Independent authors write the regression and pre-registered corpora**, from the published dimensions only — not this repository, and specifically not T18's `.describe()` strings, which ship to the model and are prompt text under §3.5. Independent fairness and leakage review, then freeze each at its own input SHA | the corpus files alone | T19 | the frozen T19 structural contract accepts them; leakage scan clean | `model-contracts.md §4.5` | no | **yes** | no |
-| **T21** | The DesignIntent prompt | `docs/model-prompts/design-intent.system.md` | T19, T20 | leakage scan; independent engineering read for benchmark integrity | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`; `product-doctrine.md` | **yes** | **yes** | no |
+| **T21** | The DesignIntent prompt **and the production provider boundary it is sent through** — request assembly, the narrowed structured-output schema, model configuration with explicit reasoning effort, `service_tier` and `store: false`, transient-retry bounds, the single schema-invalid repair retry, application validation, request-id capture, usage and latency telemetry, raw paid-response preservation, and a **verified DesignIntent cost bound derived from the model's verified rate table** rather than inherited from EventIdentity's attempt shape. It repoints the T19 seam, and prompt and schema versions bump together if model-visible text changes (§5.1's rule). **This is the implementation freeze before the first live call** | `docs/model-prompts/design-intent.system.md`, `src/lib/ai/openai/design-intent*.ts`, `src/lib/ai/versions.ts`, `src/lib/generation/*-cost.ts`, the T19 seam | T19, T20 | leakage scan; independent engineering read for benchmark integrity; deterministic validation of the boundary with the provider mocked — **never by calling it** | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`, `§8`; `product-doctrine.md` | **yes** | **yes** | no |
 | | **▶ STOP — APPROVAL REQUIRED BEFORE THE FIRST LIVE DesignIntent CALL** | | | | | | | |
 | **T22** | Freeze; an independent author writes the **sealed** challenge, unseen while T21 was written; one run; blind review; evidence protected in the same change | — | T21 + authorization | the 4A protocol exactly | `model-contracts.md §4.5`; §3.7 | no | **yes** | **yes — one authorized run per set** |
 
@@ -1717,6 +1806,35 @@ case exists.**
 > the prompt is written and before any corpus is authored. Every set is run at most once per
 > authorization, and each completed run's directory is protected in the same commit as its
 > evidence.
+
+**Who owns the production DesignIntent call, settled at T19 because no row owned it.** T18 built
+`src/lib/ai/design-intent/*` — the contract, schema, narrowing and validator — and deliberately
+built no call; `getAiProvider()` still throws and `src/lib/ai/openai/` holds only the EventIdentity
+implementation. Read literally, the table left the provider boundary unassigned, and the cheapest
+way for T22 to proceed would have been for the eval runner to construct its own OpenAI request.
+**That is forbidden, and the reason is already written down.** `rerun-runner.ts`, citing 4B's T9:
+*"the eval seam should call the same production assembly logic used by the real EventIdentity rerun
+path … A second assembly written for the harness would let the set pass while production sent
+something else, which is the one outcome that makes the whole exercise worthless."* A sealed
+challenge is generalization evidence **about an implementation**; evidence about a request shape
+that ships nowhere is evidence about nothing.
+
+So **T21 owns it**, and the row above now says so. This follows 4B's own shape rather than
+inventing one: T4 prewired the harness with a one-line seam pointing at a refusal, and T9 — the
+last implementation before the run — repointed that seam at production and changed nothing else in
+the frozen harness. T19 therefore prewires the 4C seam the same way, and T21's only permitted touch
+to frozen evidence machinery is repointing it.
+
+Two obligations come with that ownership, both T21's and neither optional. **The cost bound.** The
+verified rate table in `identity-cost.ts` is a property of the *model* and applies to any call on
+it; `perAttemptMaxUsd` is a property of an *attempt shape*, and EventIdentity's was derived from
+EventIdentity's. T21 derives DesignIntent's own bound from the same verified rates and its own
+output configuration, records it under its own profile version, and leaves the live path failing
+closed when the configured model has no verified profile. Inheriting the number, or inventing one,
+are both refused. **The version rule.** `design_intent_v4` and `design_intent_schema_v4` are a
+pre-provider contract and draft that no model has ever been sent. If T21 changes model-visible
+text, prompt and schema versions bump **together** (§5.1's rule, and the `v5` lesson), the previous
+asset is preserved in `history/`, and old bytes are never relabelled as the new version.
 
 ---
 
