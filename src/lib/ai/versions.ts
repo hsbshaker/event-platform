@@ -98,6 +98,23 @@ export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";
 export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
 export const PRIMITIVE_SET_VERSION = "composition_v1";
 /**
+ * The deterministic sibling planner (`spec.md §7.7`, `src/lib/generation/planner.ts`).
+ *
+ * It bumps whenever diversity behaviour changes — the pools a draw is taken from, the draw order,
+ * the seed derivation, the separation priority, the tone-lock rule, the directive resampler or the
+ * attractive-token allotment. Anything that would plan a different batch from the same identity
+ * revision is a bump; adding a telemetry field that reports the same plan differently is not.
+ *
+ * Historical batches are never silently re-planned. A persisted batch records the version that
+ * produced it, and **replay identity is the identity revision plus the planner version**: running
+ * this version against that revision reproduces the batch byte for byte, and running a later
+ * version against it produces a different, equally legitimate batch that is not the same artifact.
+ * The version is a label on the artifact rather than an input to the algorithm, so it is
+ * deliberately not mixed into the seed.
+ */
+export const PLANNER_VERSION = "planner_v1";
+
+/**
  * The deterministic compiler. Bumped whenever its own output shape or behaviour changes —
  * including a compiler-internal addition like the verified-fit override layer — but never for a
  * change to the composition language, which carries `PRIMITIVE_SET_VERSION` separately
