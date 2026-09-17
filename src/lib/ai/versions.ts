@@ -147,8 +147,27 @@ export const PRIMITIVE_SET_VERSION = "composition_v1";
  * version against it produces a different, equally legitimate batch that is not the same artifact.
  * The version is a label on the artifact rather than an input to the algorithm, so it is
  * deliberately not mixed into the seed.
+ *
+ * **`planner_v2`** makes every emitted assignment internally coherent. `planner_v1` could emit a
+ * `typographyPairings` list broader than the `typographyCategory` beside it: when no pairing in
+ * the drawn category held at the assigned hierarchy — reachable on `editorial` + `monumental` +
+ * `oldstyle`, and there alone — it fell back to a pool spanning several categories and then
+ * resolved the category from one pick inside that pool, emitting the whole pool. Canon describes
+ * one set, not two (`docs/model-contracts.md §5.1` "in the assigned category", `§5.2` "filtered by
+ * category and by whether they hold at the assigned hierarchy", `docs/phase-4b-plan.md §E` "within
+ * the **assigned** category"), so the planner now narrows the pool to the resolved category after
+ * the pick. Nothing else moves: the filter consumes no PRNG value and runs after every draw, so
+ * family, tonalDirection, typographyCategory, hierarchy, the directive, the seeds and the token
+ * allotment are byte-identical to `planner_v1` for the same revision. Only `typographyPairings`
+ * changes, and only on that one path.
+ *
+ * It is still a bump, because the same identity revision now yields a different assignment, and a
+ * persisted `planner_v1` batch is the artifact its version says it is. Historical `planner_v1`
+ * output stays exactly what it was and is never re-planned: replay identity remains
+ * `(identityRevisionId, PLANNER_VERSION)`, and running `planner_v2` against a `planner_v1`
+ * revision produces a different, equally legitimate batch — not a correction of the old one.
  */
-export const PLANNER_VERSION = "planner_v1";
+export const PLANNER_VERSION = "planner_v2";
 
 /**
  * The deterministic compiler. Bumped whenever its own output shape or behaviour changes —

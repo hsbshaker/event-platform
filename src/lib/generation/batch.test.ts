@@ -12,6 +12,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { PLANNER_VERSION } from "@/lib/ai/versions";
+
 import { IDENTITY_REFUSAL_PAYLOAD } from "./identity-spend";
 import {
   BATCH_REFUSAL_PAYLOAD,
@@ -26,7 +28,7 @@ import {
 const BASIS = {
   eventId: "11111111-1111-1111-1111-111111111111",
   identityRevisionId: "22222222-2222-2222-2222-222222222222",
-  plannerVersion: "planner_v1",
+  plannerVersion: PLANNER_VERSION,
   round: 1,
 } as const;
 
@@ -48,8 +50,10 @@ describe("the batch idempotency key", () => {
     expect(batchIdempotencyKey({ ...BASIS, eventId: BASIS.identityRevisionId })).not.toBe(base);
     // A clarification answer produces a new revision, and a new revision is a new batch (§C).
     expect(batchIdempotencyKey({ ...BASIS, identityRevisionId: BASIS.eventId })).not.toBe(base);
-    // A planner bump plans a different batch from the same revision (§D).
-    expect(batchIdempotencyKey({ ...BASIS, plannerVersion: "planner_v2" })).not.toBe(base);
+    // A planner bump plans a different batch from the same revision (§D). `planner_v1` is the
+    // superseded version rather than an invented one, so this is the real shape of that change.
+    expect(batchIdempotencyKey({ ...BASIS, plannerVersion: "planner_v1" })).not.toBe(base);
+    expect(PLANNER_VERSION).not.toBe("planner_v1");
     // `Try another direction` is a genuinely new round, and a legitimately new batch.
     expect(batchIdempotencyKey({ ...BASIS, round: 2 })).not.toBe(base);
   });

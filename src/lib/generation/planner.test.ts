@@ -18,6 +18,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
+  allowedPairings,
+  narrowingFor,
+  pairingsExcludedByCategory,
+} from "@/lib/ai/design-intent/narrowing";
+import {
   eventIdentityResultSchema,
   type EventIdentity,
   type EventIdentityResult,
@@ -28,13 +33,20 @@ import {
   type AuthoritativeIdentity,
 } from "@/lib/ai/event-identity/lifecycle";
 import { EVENT_IDENTITY_SCHEMA_VERSION, PLANNER_VERSION } from "@/lib/ai/versions";
-import { CAPS_PER_BATCH, planBatch } from "@/lib/renderer/planner";
+import { CAPS_PER_BATCH, planBatch, type SiblingAssignment } from "@/lib/renderer/planner";
 import {
   DIMENSIONS,
   PHRASE,
   describe as describeDirective,
 } from "@/lib/renderer/planner/directives";
-import { FAMILIES, FAMILY_KEYS, TONES, TYPOGRAPHY } from "@/lib/renderer/vocabulary";
+import {
+  FAMILIES,
+  FAMILY_KEYS,
+  TONES,
+  TYPOGRAPHY,
+  TYPOGRAPHY_KEYS,
+  type TypographyCategory,
+} from "@/lib/renderer/vocabulary";
 import * as plannerModule from "./planner";
 import {
   planConceptBatch,
@@ -194,7 +206,7 @@ describe("purity and determinism", () => {
 
   it("stamps the planner version on every plan", () => {
     expect(plan(REVISIONS[0]).plannerVersion).toBe(PLANNER_VERSION);
-    expect(PLANNER_VERSION).toBe("planner_v1");
+    expect(PLANNER_VERSION).toBe("planner_v2");
   });
 
   it("refuses an empty revision id rather than planning from a constant seed", () => {
@@ -420,6 +432,9 @@ describe("separation: family, tone, typography category, hierarchy", () => {
     for (const revision of manyRevisions(60)) {
       for (const { assignment } of plan(revision).siblings) {
         expect(assignment.typographyPairings.length).toBeGreaterThan(0);
+        for (const pairing of assignment.typographyPairings) {
+          expect(TYPOGRAPHY[pairing].category).toBe(assignment.typographyCategory);
+        }
         if (assignment.hierarchy === "monumental") {
           for (const pairing of assignment.typographyPairings) {
             expect(TYPOGRAPHY[pairing].holdsAtMonumental).toBe(true);
@@ -427,6 +442,244 @@ describe("separation: family, tone, typography category, hierarchy", () => {
         }
       }
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// the coherence property — what `planner_v2` is
+// ---------------------------------------------------------------------------
+
+/**
+ * Every non-empty subset of the six categories: exactly the range
+ * `compatibleTypographyCategories` admits (`min(1).max(6)` over a six-value enum).
+ */
+const CATEGORY_SUBSETS: TypographyCategory[][] = (() => {
+  const all = [...new Set(FAMILY_KEYS.flatMap((f) => [...FAMILIES[f].categories]))];
+  const out: TypographyCategory[][] = [];
+  for (let mask = 1; mask < 1 << all.length; mask++)
+    out.push(all.filter((_, i) => mask & (1 << i)));
+  return out;
+})();
+
+const shapeOf = (a: SiblingAssignment) =>
+  `${a.family}|${a.hierarchy}|${a.typographyCategory}|${a.typographyPairings.join(",")}`;
+
+/**
+ * Every assignment the production planner can emit, walked rather than sampled.
+ *
+ * HOW REACHABILITY IS ESTABLISHED, in two directions.
+ *
+ * *Upper bound, by reading `drawAssignment`.* The emitted `typographyCategory` and
+ * `typographyPairings` are a function of four values and nothing else: the drawn `family`, the
+ * drawn `hierarchy`, the drawn category, and `pools.categories`. The seed, the avoid list and the
+ * tone draw cannot introduce a value outside those pools — `preferFree` returns a subset of the
+ * pool it is handed, or that pool. So the space is a finite cross product:
+ *
+ *   - `family` ranges over `FAMILY_KEYS` (3);
+ *   - `hierarchy` over `FAMILIES[family].hierarchies` — never identity-narrowed, so all of them;
+ *   - the drawn category over `FAMILIES[family].categories`, because the pool is either
+ *     `narrow(F.categories, pools.categories)` or, when that is empty, `F.categories` itself;
+ *   - `pools.categories` over every non-empty subset of the six categories.
+ *
+ * The family pool does not appear: it decides *which* family is drawn, and each family is reached
+ * by pinning `compatibleFamilies`. Tone is independent of all of it.
+ *
+ * *Lower bound, by running the planner.* The walk below is real planner output — one identity per
+ * (family, category-subset) pair, sixty seeded revisions each — and the test immediately after it
+ * asserts that the set of distinct `(family, hierarchy, typographyCategory, typographyPairings)`
+ * tuples it produces is **equal** to the set derived from the rules above. Equal, not contained,
+ * so a derivation that invented an unreachable combination or missed a reachable one fails there
+ * rather than quietly making every property below a sample.
+ */
+function everyReachableAssignment(): SiblingAssignment[] {
+  const seen = new Map<string, SiblingAssignment>();
+  for (const family of FAMILY_KEYS) {
+    for (const categories of CATEGORY_SUBSETS) {
+      for (const revision of manyRevisions(60)) {
+        const p = plan(`${family}|${categories.join("-")}|${revision}`, {
+          compatibleFamilies: [family],
+          compatibleTypographyCategories: categories,
+        });
+        for (const { assignment } of p.siblings) seen.set(shapeOf(assignment), assignment);
+      }
+    }
+  }
+  return [...seen.values()];
+}
+
+const REACHABLE = everyReachableAssignment();
+
+describe("the assignment is internally coherent", () => {
+  /**
+   * THE PROPERTY, stated once.
+   *
+   * For every assignment the production planner emits, every member `p` of `typographyPairings`
+   * satisfies both of:
+   *
+   *   1. `TYPOGRAPHY[p].category === typographyCategory`;
+   *   2. `p` is compatible with `hierarchy` — at `monumental`, `TYPOGRAPHY[p].holdsAtMonumental`.
+   *
+   * `docs/model-contracts.md §5.1` ("from the allowed list, in the assigned category"), `§5.2`
+   * ("filtered by category and by whether they hold at the assigned hierarchy") and
+   * `docs/phase-4b-plan.md §E` ("`typographyPairing` within the **assigned** category") describe
+   * one set. The planner owns the assignment, so the planner emits that set, and no later stage
+   * has to discard a pairing to make the assignment mean what it says.
+   */
+  it("enumerates the whole reachable space, and the planner emits exactly it", () => {
+    const derived = new Set<string>();
+    for (const family of FAMILY_KEYS) {
+      for (const categories of CATEGORY_SUBSETS) {
+        const inFamily = FAMILIES[family].categories.filter((c) => categories.includes(c));
+        const drawable = inFamily.length ? inFamily : FAMILIES[family].categories;
+        for (const hierarchy of FAMILIES[family].hierarchies) {
+          for (const drawn of drawable) {
+            const holds = (k: (typeof TYPOGRAPHY_KEYS)[number]) =>
+              hierarchy !== "monumental" || TYPOGRAPHY[k].holdsAtMonumental;
+            let pool = TYPOGRAPHY_KEYS.filter((k) => TYPOGRAPHY[k].category === drawn && holds(k));
+            if (!pool.length)
+              pool = TYPOGRAPHY_KEYS.filter(
+                (k) => holds(k) && categories.includes(TYPOGRAPHY[k].category),
+              );
+            if (!pool.length) pool = TYPOGRAPHY_KEYS.filter(holds);
+            // Each category present in the pool is one the seeded pick can resolve to.
+            for (const resolved of new Set(pool.map((k) => TYPOGRAPHY[k].category))) {
+              const list = pool.filter((k) => TYPOGRAPHY[k].category === resolved);
+              derived.add(`${family}|${hierarchy}|${resolved}|${list.join(",")}`);
+            }
+          }
+        }
+      }
+    }
+    expect(new Set(REACHABLE.map(shapeOf))).toEqual(derived);
+    // Small enough to be genuinely exhaustive rather than merely large.
+    expect(REACHABLE.length).toBe(48);
+  });
+
+  it("puts every emitted pairing in the emitted category", () => {
+    for (const assignment of REACHABLE)
+      for (const pairing of assignment.typographyPairings)
+        expect(TYPOGRAPHY[pairing].category, shapeOf(assignment)).toBe(
+          assignment.typographyCategory,
+        );
+  });
+
+  it("keeps every emitted pairing compatible with the assigned hierarchy", () => {
+    for (const assignment of REACHABLE) {
+      expect(assignment.typographyPairings.length, shapeOf(assignment)).toBeGreaterThan(0);
+      if (assignment.hierarchy !== "monumental") continue;
+      for (const pairing of assignment.typographyPairings)
+        expect(TYPOGRAPHY[pairing].holdsAtMonumental, `${shapeOf(assignment)} ${pairing}`).toBe(
+          true,
+        );
+    }
+  });
+
+  it("emits only a typography category its own fallback rules allow", () => {
+    // Legal means one of two things and nothing else: the category the planner drew — always one
+    // the family offers — or, when no pairing in that category held at the assigned hierarchy, a
+    // category some monumental-capable pairing belongs to. The second is `constraint-relaxed`
+    // territory and telemetry reports it; see the regression case below.
+    const monumentalCapable = new Set(
+      TYPOGRAPHY_KEYS.filter((k) => TYPOGRAPHY[k].holdsAtMonumental).map(
+        (k) => TYPOGRAPHY[k].category,
+      ),
+    );
+    for (const assignment of REACHABLE) {
+      const drawable = FAMILIES[assignment.family].categories;
+      const legal =
+        drawable.includes(assignment.typographyCategory) ||
+        (assignment.hierarchy === "monumental" &&
+          monumentalCapable.has(assignment.typographyCategory));
+      expect(legal, shapeOf(assignment)).toBe(true);
+      // And a category nothing holds in at this hierarchy can never be assigned.
+      if (assignment.hierarchy === "monumental")
+        expect(monumentalCapable.has(assignment.typographyCategory), shapeOf(assignment)).toBe(
+          true,
+        );
+    }
+  });
+
+  it("gives T18 nothing to repair", () => {
+    // `narrowingFor` filters the planner's list defensively (`docs/model-contracts.md §5.2`). Under
+    // `planner_v2` that filter is a no-op on every reachable assignment: the narrowed pool is the
+    // planner's own list, and the excluded set is empty. A planner that emitted an incoherent
+    // assignment would surface here as a non-empty exclusion rather than a silent correction.
+    for (const assignment of REACHABLE) {
+      expect(pairingsExcludedByCategory(assignment), shapeOf(assignment)).toEqual([]);
+      expect(allowedPairings(assignment), shapeOf(assignment)).toEqual(
+        assignment.typographyPairings,
+      );
+      expect(narrowingFor(assignment).pairings, shapeOf(assignment)).toEqual(
+        assignment.typographyPairings,
+      );
+    }
+  });
+
+  it("holds across thousands of seeded plans on the unconstrained brief", () => {
+    const shapes = new Set(REACHABLE.map(shapeOf));
+    let assignments = 0;
+    for (const revision of manyRevisions(4000)) {
+      for (const { assignment } of plan(revision).siblings) {
+        assignments++;
+        expect(shapes.has(shapeOf(assignment)), revision).toBe(true);
+        expect(pairingsExcludedByCategory(assignment), revision).toEqual([]);
+        for (const pairing of assignment.typographyPairings) {
+          expect(TYPOGRAPHY[pairing].category, revision).toBe(assignment.typographyCategory);
+          if (assignment.hierarchy === "monumental")
+            expect(TYPOGRAPHY[pairing].holdsAtMonumental, revision).toBe(true);
+        }
+      }
+    }
+    expect(assignments).toBe(4000 * SIBLING_COUNT);
+  });
+
+  it("REGRESSION: editorial + monumental + oldstyle, the case `planner_v1` got wrong", () => {
+    // The one reachable combination where the drawn category holds nothing at the hierarchy: both
+    // oldstyle pairings are `holdsAtMonumental: false`, and only `editorial` admits both the
+    // `oldstyle` category and the `monumental` hierarchy. `planner_v1` fell back to every
+    // monumental-capable pairing — ten of them across five categories — resolved the category from
+    // one pick inside that pool, then emitted the whole pool beside the single resolved category.
+    const brief = {
+      compatibleFamilies: ["editorial" as const],
+      compatibleTypographyCategories: ["oldstyle" as const],
+    };
+    const p = plan("rev_oldstyle_1", brief);
+    const sibling = p.siblings[0];
+    expect(sibling.assignment.family).toBe("editorial");
+    expect(sibling.assignment.hierarchy).toBe("monumental");
+    // The brief admitted `oldstyle` alone, so the drawn category was `oldstyle` and the assigned
+    // one had to leave the brief. That is the fallback path, and telemetry says so.
+    expect(sibling.assignment.typographyCategory).not.toBe("oldstyle");
+    expect(dimension(p, "typographyCategory").fallback).toBe("constraint-relaxed");
+
+    // What `planner_v1` emitted here, computed from the vocabulary rather than quoted.
+    const v1Pool = TYPOGRAPHY_KEYS.filter((k) => TYPOGRAPHY[k].holdsAtMonumental);
+    expect(v1Pool).toHaveLength(10);
+    expect(new Set(v1Pool.map((k) => TYPOGRAPHY[k].category)).size).toBe(5);
+
+    // What `planner_v2` emits: that pool narrowed to the category the same seeded pick resolved.
+    expect(sibling.assignment.typographyPairings).toEqual(
+      v1Pool.filter((k) => TYPOGRAPHY[k].category === sibling.assignment.typographyCategory),
+    );
+    expect(sibling.assignment.typographyPairings.length).toBeGreaterThan(0);
+    expect(pairingsExcludedByCategory(sibling.assignment)).toEqual([]);
+
+    // Not a one-revision fluke: every sibling this brief produces at `monumental` is coherent,
+    // and the brief does produce them.
+    let monumental = 0;
+    for (const revision of manyRevisions(300)) {
+      for (const { assignment } of plan(revision, brief).siblings) {
+        if (assignment.hierarchy !== "monumental") continue;
+        monumental++;
+        expect(assignment.typographyCategory).not.toBe("oldstyle");
+        expect(pairingsExcludedByCategory(assignment), revision).toEqual([]);
+        for (const pairing of assignment.typographyPairings) {
+          expect(TYPOGRAPHY[pairing].category).toBe(assignment.typographyCategory);
+          expect(TYPOGRAPHY[pairing].holdsAtMonumental).toBe(true);
+        }
+      }
+    }
+    expect(monumental).toBeGreaterThan(0);
   });
 });
 
@@ -574,11 +827,18 @@ describe("host constraints and creative guidance", () => {
   });
 
   it("never lets a constraint or a piece of guidance influence a draw", () => {
-    // The strongest honest guarantee the planner can give about "no directive may contradict a
-    // host constraint" (`docs/phase-4b-plan.md §D`): it never *derives* anything from either
-    // list. Both are free text; reading them would take a model, which this stage does not have.
-    // Contradiction avoidance for their content belongs to the composition call, which receives
-    // the constraints alongside the directive.
+    // One of the three things `docs/phase-4b-plan.md §D` actually holds the planner to: it
+    // derives nothing from either list. Both are free text, and reading them would take a
+    // semantic interpreter this stage does not have and canon forecloses —
+    // `model-contracts.md §4` makes prompt-grounding the gating check precisely because it is
+    // "decidable without a semantic classifier", after a probe that guessed at entailment
+    // produced the baseline's only mechanical failure.
+    //
+    // Constraint conformance is owned by the stages that can read a constraint: the DesignIntent
+    // call receives them inside the brief (§E), §3.2 checks each is traceable into all three, and
+    // §3.7 fails a batch where one is eroded or contradicted. Note the composition call does
+    // *not* currently receive them — `GenerateCompositionInput` is `{ designIntent, capabilities,
+    // directive, reprompt? }` — which §D records as an open 4D question about that contract.
     for (const revision of REVISIONS) {
       const bare = plan(revision);
       const loaded = plan(revision, { hostConstraints: HOST, creativeGuidance: GUIDANCE });
@@ -601,11 +861,41 @@ describe("host constraints and creative guidance", () => {
     for (const guidance of GUIDANCE) expect(p.hostConstraints).not.toContain(guidance);
   });
 
+  it("never promotes a directive into a host constraint", () => {
+    // The third thing §D holds the planner to, and the one a later refactor is likeliest to
+    // break: only the host may create a host constraint (`spec.md §7.5`). The guidance half is
+    // tested above; this is the directive half. Nothing the planner authored — a dimension value
+    // or the assembled sentence — may reach, extend or be quoted inside that list.
+    for (const revision of manyRevisions(40)) {
+      const p = plan(revision, { hostConstraints: HOST, creativeGuidance: GUIDANCE });
+      expect(p.hostConstraints).toEqual(HOST);
+      for (const sibling of p.siblings) {
+        for (const value of Object.values(sibling.directive)) {
+          expect(p.hostConstraints).not.toContain(value);
+        }
+        expect(p.hostConstraints).not.toContain(sibling.directiveSentence);
+        for (const constraint of p.hostConstraints) {
+          expect(constraint).not.toContain(sibling.directiveSentence);
+        }
+      }
+    }
+    // And an empty brief stays empty: the planner adds nothing of its own to an absent list.
+    for (const revision of manyRevisions(10)) {
+      expect(plan(revision, { hostConstraints: [] }).hostConstraints).toEqual([]);
+    }
+  });
+
   it("commits a directive only to structure, never to a palette, font or word", () => {
-    // Why the planner cannot contradict a constraint it does not read: its whole output space on
-    // the directive is the closed structural enum below. No directive value names a color, a
-    // font, a size or a piece of copy, so a directive cannot assert anything a host constraint
-    // about those could contradict.
+    // What this bounds, and — said plainly, because an earlier version of this comment claimed
+    // more — what it does not. Every directive value comes from the closed structural enum
+    // below, so a directive names no color, font, size or piece of copy. That bounds what a
+    // directive can *assert*. It is not a proof of non-contradiction: a host constraint can
+    // itself be structural ("no registry section", "keep everything on one continuous page",
+    // "nothing dramatic at the top"), and a structural directive can conflict with one of those
+    // without naming anything this test rules out.
+    //
+    // The planner makes no non-contradiction claim (`docs/phase-4b-plan.md §D`). The directive is
+    // subordinate structural guidance and the constraint wins wherever the two meet.
     const everyValue = Object.values(DIMENSIONS).flatMap((v) => [...v]);
     for (const revision of manyRevisions(40)) {
       for (const { directive } of plan(revision).siblings) {
@@ -824,7 +1114,7 @@ describe("pathological briefs", () => {
 
 describe("parity with the ported reference planner", () => {
   /**
-   * THE PARITY CLAIM, stated precisely.
+   * THE PARITY CLAIM, stated precisely — and it is no longer exact on all five fields.
    *
    * `src/lib/renderer/planner`'s `planBatch(masterSeed, batchIndex)` is the parity-checked port
    * of `proof-b/planner.js` and is pinned by a 72-concept frozen replay. It draws from the full
@@ -833,16 +1123,37 @@ describe("parity with the ported reference planner", () => {
    * The claim proved here: **when the identity's compatible sets are the full vocabulary and tone
    * is not explicitly constrained, and the production planner is given a revision id whose FNV
    * hash is the reference's batch seed, the two produce identical sibling seeds, identical
-   * directives, identical token allotments, and identical assignments — all five fields, family,
-   * tonalDirection, typographyCategory, hierarchy and the narrowed typographyPairings list — for
-   * all three siblings of every batch compared.**
+   * directives, identical token allotments, and identical assignments on four of the five
+   * assignment fields — family, tonalDirection, typographyCategory and hierarchy — for all three
+   * siblings of every batch compared. On the fifth, `typographyPairings`, production's list is
+   * always the reference's list filtered to the assigned typography category: always a non-empty
+   * subset of it, equal to it everywhere except on one path, and a strict subset there.**
    *
-   * That is exact, not approximate, and it is the whole of what the two produce in common. It
-   * holds because the constrained draw changes only the pools: `narrow()` keeps catalog order, so
-   * a full compatible set narrows to the catalog itself; the hierarchy pool was never
+   * THE DIVERGENCE, exactly.
+   *
+   * The path is `editorial` + `monumental` + drawn category `oldstyle`, and only that: neither
+   * oldstyle pairing holds at monumental, and only `editorial` admits both that category and that
+   * hierarchy. There the reference falls back to every monumental-capable pairing — ten, across
+   * five categories — and emits the whole pool beside the single category its seeded pick
+   * resolved. `planner_v2` emits the two members of that pool in the resolved category.
+   *
+   * Production canon requires the narrower list, and says so three times:
+   * `docs/model-contracts.md §5.1` ("from the allowed list, **in the assigned category**"),
+   * `§5.2` ("filtered by category and by whether they hold at the assigned hierarchy"), and
+   * `docs/phase-4b-plan.md §E` ("`typographyPairing` within the **assigned** category"). The
+   * reference is not wrong for its own purpose — it is the Phase 3 replay gate, its output is
+   * frozen, and `intentFor()` there picked a pairing from the pool rather than handing the pool to
+   * a model — but production emits an assignment a model is narrowed by, so the assignment has to
+   * be internally coherent. `CLAUDE.md §1` puts `docs/model-contracts.md` above `proof-b/`, which
+   * is what decides it.
+   *
+   * Everything else stays exact, and that is what makes the divergence one field rather than a
+   * different batch. The constrained draw changes only the pools: `narrow()` keeps catalog order,
+   * so a full compatible set narrows to the catalog itself; the hierarchy pool was never
    * identity-derived; the tone lock is off; the extra pairing fallback added for a narrowed brief
-   * degenerates to the reference's when every category is compatible; and the fourth draw is
-   * still consumed rather than emitted, so the PRNG sequence does not shift.
+   * degenerates to the reference's when every category is compatible; the fourth draw is still
+   * consumed rather than emitted; and the category filter runs **after** that pick and consumes no
+   * PRNG value, so the sequence does not shift.
    *
    * One equality is by construction rather than by parity, and is called out so it is not read as
    * evidence: `batchSeed` matches because the revision id below is chosen to make it match. The
@@ -854,7 +1165,7 @@ describe("parity with the ported reference planner", () => {
   /** The revision id whose FNV hash is `planBatch(master, batchIndex)`'s batch seed. */
   const revisionMatching = (master: number, batchIndex: number) => `${master}|batch|${batchIndex}`;
 
-  it("reproduces the reference's assignments, directives and allotments", () => {
+  it("reproduces the reference's seeds, directives, allotments and four assignment fields", () => {
     let compared = 0;
     for (const master of MASTERS) {
       for (let batchIndex = 0; batchIndex < 12; batchIndex++) {
@@ -882,14 +1193,54 @@ describe("parity with the ported reference planner", () => {
           expect(mine.assignment.hierarchy, `${where} sib ${k} hierarchy`).toBe(
             theirs.assignment.hierarchy,
           );
-          expect(mine.assignment.typographyPairings, `${where} sib ${k} pairings`).toEqual(
-            theirs.assignment.typographyPairings,
-          );
           compared++;
         }
       }
     }
     expect(compared).toBe(MASTERS.length * 12 * 3);
+  });
+
+  it("emits the reference's pairing list filtered to the assigned category, never anything else", () => {
+    // The fifth field, stated as the exact relation rather than as equality. Three things are
+    // asserted together, because any one of them alone would let a real defect through: the list
+    // is the reference's filtered by category (so nothing is added, dropped or reordered on any
+    // other basis), it is never empty (so the model is never left with nothing legal to say), and
+    // it is a subset of the reference's (so production never widens what the frozen gate allowed).
+    let equal = 0;
+    let strictSubset = 0;
+    const diverging: string[] = [];
+    for (const master of MASTERS) {
+      for (let batchIndex = 0; batchIndex < 12; batchIndex++) {
+        const reference = planBatch(master, batchIndex);
+        const production = plan(revisionMatching(master, batchIndex));
+        for (let k = 0; k < 3; k++) {
+          const mine = production.siblings[k].assignment;
+          const theirs = reference.siblings[k].assignment;
+          const where = `master ${master} batch ${batchIndex} sib ${k}`;
+
+          expect(mine.typographyPairings, `${where} filtered`).toEqual(
+            theirs.typographyPairings.filter(
+              (pairing) => TYPOGRAPHY[pairing].category === mine.typographyCategory,
+            ),
+          );
+          expect(mine.typographyPairings.length, `${where} non-empty`).toBeGreaterThan(0);
+          for (const pairing of mine.typographyPairings)
+            expect(theirs.typographyPairings, `${where} subset`).toContain(pairing);
+
+          if (mine.typographyPairings.length === theirs.typographyPairings.length) {
+            expect(mine.typographyPairings, `${where} equal`).toEqual(theirs.typographyPairings);
+            equal++;
+          } else {
+            strictSubset++;
+            diverging.push(`${mine.family}|${mine.hierarchy}`);
+          }
+        }
+      }
+    }
+    // The divergence is real — this range reaches it — and it is only ever the one path.
+    expect(strictSubset).toBeGreaterThan(0);
+    expect(equal + strictSubset).toBe(MASTERS.length * 12 * 3);
+    expect(new Set(diverging)).toEqual(new Set(["editorial|monumental"]));
   });
 
   it("diverges from the reference exactly when the brief narrows a pool", () => {

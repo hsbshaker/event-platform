@@ -22,31 +22,36 @@
  * - `typographyPairing` to the assigned category **and** to pairings that hold at the assigned
  *   hierarchy.
  *
- * # Reconciling with the planner's own narrowing (T15)
+ * # Why it filters the planner's list rather than recomputing one
  *
- * `SiblingAssignment.typographyPairings` already carries a narrowed list, computed in
- * `src/lib/renderer/planner/index.ts`. This module does **not** compute a second, independent
- * one: it filters the planner's list, so the set offered to the model is always a subset of what
- * the planner allowed and can never offer something the planner excluded.
+ * `SiblingAssignment.typographyPairings` already carries a narrowed list. This module does **not**
+ * compute a second, independent one: it filters the planner's list, so the set offered to the
+ * model is always a subset of what the planner allowed and can never offer something the planner
+ * excluded.
  *
- * The two can nevertheless disagree, in one reachable case, and that disagreement is a defect
- * rather than a design:
+ * Under the production planner that filter is a no-op, and that is the point. `planner_v2` emits
+ * a coherent assignment: every pairing in `typographyPairings` is in `typographyCategory` and
+ * holds at `hierarchy`. `planner_v1` did not — on `editorial` + `monumental` + drawn category
+ * `oldstyle`, neither oldstyle pairing holds at monumental, so it fell back to *every*
+ * monumental-capable pairing, ten of them spanning five categories, and set `typographyCategory`
+ * from whichever one its seeded pick landed on. Canon is not ambiguous about which side owed the
+ * fix: `§5.1` requires the pairing to be "from the allowed list, **in the assigned category**",
+ * `§5.2` says "filtered by category and by whether they hold at the assigned hierarchy", and
+ * `docs/phase-4b-plan.md §E` says "`typographyPairing` within the **assigned** category". One set,
+ * and the planner owns the assignment, so the planner emits it. This module intersecting was a
+ * compensation, not the settled architecture.
  *
- *   `editorial` + `monumental` + drawn category `oldstyle`. Neither oldstyle pairing holds at
- *   monumental, so the planner falls back to *every* monumental-capable pairing — ten of them,
- *   spanning five categories — and then sets `typographyCategory` from whichever one its seeded
- *   pick landed on. The emitted list is therefore broader than the emitted category.
+ * The filter stays as a **guard**, for two reasons that survive the planner fix. It is what makes
+ * the subset discipline above literally true rather than a convention. And the same
+ * `SiblingAssignment` type is produced by `src/lib/renderer/planner`'s `assignmentFor` — the
+ * Phase 3 reference, frozen by a 72-concept replay, which still emits the broad list on that path
+ * — and carried by `planner_v1` artifacts persisted before the bump. So an incoherent assignment
+ * remains constructible; it is simply no longer something production emits.
  *
- * Canon is not ambiguous about which side is right. `§5.1` requires the pairing to be "from the
- * allowed list, **in the assigned category**"; `§5.2` says "filtered by category and by whether
- * they hold at the assigned hierarchy"; `§E`'s invariant list says "`typographyPairing` within
- * the **assigned** category"; and the v4 prompt draft states both rules at once. So the
- * intersection is canon's set, and taking it is a reconciliation rather than a third opinion: it
- * is a subset of the planner's list, it satisfies both of canon's clauses, and
- * `narrowing.test.ts` proves it is never empty for an assignment the planner can produce.
- *
- * `pairingsExcludedByCategory()` exposes the difference so the divergence is reportable instead
- * of silently absorbed. It is empty on every path but the one above.
+ * `pairingsExcludedByCategory()` is what keeps such a disagreement reportable instead of silently
+ * absorbed. `narrowing.test.ts` pins it empty across the production planner's whole reachable
+ * space and non-empty for the reference's, so the guard is neither dead code nor load-bearing for
+ * production output.
  *
  * Acceptance criteria: `spec.md §31 — DesignIntent, composition and compiler`, first bullet;
  * `§31 — Event Identity and diversity` ("Siblings never share an identical DesignIntent").
@@ -108,9 +113,14 @@ export function allowedPairings(assignment: SiblingAssignment): readonly Typogra
 /**
  * Pairings the planner offered that canon's category rule excludes.
  *
- * Non-empty only on the `editorial` + `monumental` + `oldstyle` fallback path described in the
- * module header. Reported, never repaired away here: which of the two narrowings should change is
- * a planner decision, not this module's.
+ * **Empty for every assignment the production planner can emit** — `narrowing.test.ts` proves it
+ * over that planner's whole reachable space, and `src/lib/generation/planner.test.ts` proves the
+ * same property from the planner's side. It is non-empty only for an assignment built by hand, by
+ * the frozen Phase 3 reference planner, or persisted under `planner_v1`, and then only on the
+ * `editorial` + `monumental` + `oldstyle` fallback path described in the module header.
+ *
+ * Reported, never repaired away silently: a non-empty result means the assignment beside it does
+ * not mean what it says, which is a planner defect and should be visible as one.
  */
 export function pairingsExcludedByCategory(
   assignment: SiblingAssignment,

@@ -34,6 +34,17 @@
  * the reference's. So is the fourth draw being consumed rather than emitted; see the comment at
  * that pick.
  *
+ * # The assignment is internally coherent
+ *
+ * Every pairing in `typographyPairings` is in `typographyCategory` and holds at `hierarchy`. The
+ * planner owns the assignment, so it owns that agreement: `docs/model-contracts.md §5.1` ("in the
+ * assigned category"), `§5.2` ("filtered by category and by whether they hold at the assigned
+ * hierarchy") and `docs/phase-4b-plan.md §E` ("within the **assigned** category") all describe one
+ * set, and the planner emits that set. Runtime narrowing therefore never has to discard something
+ * the planner offered. This is the one place production deliberately parts from
+ * `src/lib/renderer/planner`, whose frozen replay pins the broader fallback list; see the parity
+ * section of `planner.test.ts`.
+ *
  * # Library Boundary Invariant
  *
  * No silhouette, recipe or template identifier is read, emitted or consulted. The planner works
@@ -340,6 +351,22 @@ function drawAssignment(seed: number, pools: Pools, avoid: ReturnType<typeof emp
   // keeps the seeded sequence intact so the tone drawn next matches. The pairing itself is
   // deliberately not emitted — exposing it would invite skipping the model call.
   const typographyCategory = TYPOGRAPHY[pick(r, pairings)].category;
+
+  // The pick resolved the category; the list emitted beside it must agree with it. On the primary
+  // path this is already true and the filter is a no-op. On either fallback path the pool spans
+  // several categories — the pick lands in one of them — and emitting the whole pool would offer
+  // the model pairings outside the category the assignment declares. `docs/model-contracts.md
+  // §5.1` requires the pairing to be "in the assigned category", `§5.2` narrows "by category and
+  // by whether they hold at the assigned hierarchy", and `docs/phase-4b-plan.md §E` says "within
+  // the **assigned** category"; all three describe one set, so the planner emits that set rather
+  // than leaving the contradiction for a later stage to reconcile.
+  //
+  // Two things make this safe. It cannot empty the list: the pairing the pick landed on is in the
+  // resolved category by definition, so at least one member survives. And every survivor still
+  // holds at this hierarchy, because every branch above filtered by `holds` before the pick. It
+  // also consumes no PRNG value and runs after the pick, so the seeded sequence, the tone drawn
+  // next and every other emitted field are exactly what they were.
+  pairings = pairings.filter((k) => TYPOGRAPHY[k].category === typographyCategory);
 
   const toneChoice = pools.toneLocked
     ? { list: pools.tones, exhausted: false }

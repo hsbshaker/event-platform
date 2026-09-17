@@ -1,11 +1,17 @@
 /**
- * Runtime narrowing, and its reconciliation with the planner's own.
+ * Runtime narrowing, and its relationship to the planner's own.
  *
  * `docs/model-contracts.md §5.2` narrows the allowed output to the sibling's assignment **before**
  * the call, so an out-of-assignment value is structurally impossible rather than accepted and then
- * repaired. Two things have to hold for that to mean anything: the narrowed pool is never empty
- * for an assignment the planner can actually produce, and it never offers a value the planner
- * excluded.
+ * repaired. Three things have to hold for that to mean anything: the narrowed pool is never empty
+ * for an assignment the planner can actually produce, it never offers a value the planner
+ * excluded, and — since `planner_v2` — it never has to *discard* one either.
+ *
+ * That last one is the change this file now pins. `planner_v1` could emit a `typographyPairings`
+ * list broader than the `typographyCategory` beside it, and these tests recorded that divergence
+ * as expected behaviour. The planner owns the assignment and now emits a coherent one, so the
+ * tests pin its **absence** under production output, and keep the guard honest by showing what it
+ * still catches elsewhere.
  *
  * Acceptance criteria: `spec.md §31 — DesignIntent, composition and compiler`, first bullet;
  * `§31 — Event Identity and diversity` ("Siblings never share an identical DesignIntent").
@@ -33,51 +39,79 @@ import {
   UnnarrowableAssignmentError,
 } from "./narrowing";
 
-/** The planner's own filter, restated here only so the enumeration can reproduce its pools. */
-const plannerPairings = (
-  category: TypographyCategory,
+/** Every non-empty subset of the six categories — the range a brief's compatible set can take. */
+const CATEGORY_SUBSETS: TypographyCategory[][] = (() => {
+  const all = [...new Set(FAMILY_KEYS.flatMap((f) => [...FAMILIES[f].categories]))];
+  const out: TypographyCategory[][] = [];
+  for (let mask = 1; mask < 1 << all.length; mask++)
+    out.push(all.filter((_, i) => mask & (1 << i)));
+  return out;
+})();
+
+/**
+ * The production planner's pairing pool, restated here only so the enumeration can reproduce it.
+ *
+ * `src/lib/generation/planner.test.ts` is where this is checked against the planner's real seeded
+ * output, over the same space and by set equality; this file consumes the space rather than
+ * re-proving it.
+ */
+const productionPairings = (
+  drawn: TypographyCategory,
   hierarchy: Hierarchy,
+  compatible: readonly TypographyCategory[],
 ): TypographyPairingId[] => {
-  const inCategory = TYPOGRAPHY_KEYS.filter(
-    (k) =>
-      TYPOGRAPHY[k].category === category &&
-      (hierarchy !== "monumental" || TYPOGRAPHY[k].holdsAtMonumental),
-  );
-  return inCategory.length
-    ? inCategory
-    : TYPOGRAPHY_KEYS.filter((k) => TYPOGRAPHY[k].holdsAtMonumental);
+  const holds = (k: TypographyPairingId) =>
+    hierarchy !== "monumental" || TYPOGRAPHY[k].holdsAtMonumental;
+  let pool = TYPOGRAPHY_KEYS.filter((k) => TYPOGRAPHY[k].category === drawn && holds(k));
+  if (!pool.length)
+    pool = TYPOGRAPHY_KEYS.filter((k) => holds(k) && compatible.includes(TYPOGRAPHY[k].category));
+  if (!pool.length) pool = TYPOGRAPHY_KEYS.filter(holds);
+  return [...pool];
 };
 
 /**
- * Every assignment `assignmentFor` can emit, derived rather than sampled.
+ * Every assignment the **production** planner can emit, derived rather than sampled.
  *
- * The planner draws family, then hierarchy from that family, then a category from that family,
- * then resolves `typographyCategory` from a seeded pick inside the pairing pool. On the fallback
- * path the pool spans several categories, so *each* of them is a reachable resolved category and
- * all of them are enumerated.
+ * It draws family, then hierarchy from that family, then a category from that family narrowed by
+ * the brief, then resolves `typographyCategory` from a seeded pick inside the pairing pool — and
+ * then narrows the pool to that resolved category. On the fallback path the pool before that
+ * narrowing spans several categories, so each of them is a reachable resolved category and all of
+ * them are enumerated.
  */
 function reachableAssignments(): SiblingAssignment[] {
-  const out: SiblingAssignment[] = [];
+  const seen = new Map<string, SiblingAssignment>();
   for (const family of FAMILY_KEYS) {
-    for (const hierarchy of FAMILIES[family].hierarchies) {
-      for (const drawn of FAMILIES[family].categories) {
-        const pairings = plannerPairings(drawn, hierarchy);
-        for (const resolved of new Set(pairings.map((p) => TYPOGRAPHY[p].category))) {
-          out.push({
-            family,
-            tonalDirection: "mid",
-            typographyCategory: resolved,
-            hierarchy,
-            typographyPairings: pairings,
-          });
+    for (const compatible of CATEGORY_SUBSETS) {
+      const inFamily = FAMILIES[family].categories.filter((c) => compatible.includes(c));
+      const drawable = inFamily.length ? inFamily : FAMILIES[family].categories;
+      for (const hierarchy of FAMILIES[family].hierarchies) {
+        for (const drawn of drawable) {
+          const pool = productionPairings(drawn, hierarchy, compatible);
+          for (const resolved of new Set(pool.map((p) => TYPOGRAPHY[p].category))) {
+            const typographyPairings = pool.filter((p) => TYPOGRAPHY[p].category === resolved);
+            const assignment: SiblingAssignment = {
+              family,
+              tonalDirection: "mid",
+              typographyCategory: resolved,
+              hierarchy,
+              typographyPairings,
+            };
+            seen.set(
+              `${family}|${hierarchy}|${resolved}|${typographyPairings.join(",")}`,
+              assignment,
+            );
+          }
         }
       }
     }
   }
-  return out;
+  return [...seen.values()];
 }
 
 const REACHABLE = reachableAssignments();
+
+/** The frozen Phase 3 reference planner's output, which is a different and broader set. */
+const REFERENCE = Array.from({ length: 4000 }, (_, seed) => assignmentFor(seed, emptyAvoidList()));
 
 describe("hierarchy narrowing", () => {
   it("is §5.2's rule, read off the family table rather than restated", () => {
@@ -114,23 +148,21 @@ describe("pairing narrowing", () => {
   });
 
   it("never offers a pairing the planner excluded", () => {
-    // Subset, not equality: this is the reconciliation. The narrowed pool is derived *from* the
-    // planner's list, so a value the planner never allowed cannot appear here however the
-    // category and hierarchy rules are read.
+    // Subset, not equality by construction: the narrowed pool is derived *from* the planner's
+    // list, so a value the planner never allowed cannot appear here however the category and
+    // hierarchy rules are read.
     for (const assignment of REACHABLE)
       for (const pairing of allowedPairings(assignment))
         expect(assignment.typographyPairings).toContain(pairing);
   });
 
   it("is never empty for an assignment the planner can produce", () => {
-    // The load-bearing claim of the reconciliation: taking the intersection cannot leave the model
-    // with nothing legal to say. Checked over the derived space above and, separately, over the
-    // planner's real seeded output, so the enumeration cannot be wrong in the same way twice.
+    // Taking the planner's list cannot leave the model with nothing legal to say. Checked over the
+    // derived space above and, separately, over the reference planner's real seeded output, so the
+    // enumeration cannot be wrong in the same way twice.
     expect(REACHABLE.length).toBeGreaterThan(30);
-    for (let seed = 0; seed < 4000; seed++) {
-      const assignment = assignmentFor(seed, emptyAvoidList());
+    for (const [seed, assignment] of REFERENCE.entries())
       expect(allowedPairings(assignment).length, `seed ${seed}`).toBeGreaterThan(0);
-    }
   });
 
   it("refuses an assignment that leaves nothing legal, rather than widening it", () => {
@@ -148,32 +180,46 @@ describe("pairing narrowing", () => {
   });
 });
 
-describe("where the planner's narrowing and canon's disagree", () => {
+describe("the category guard", () => {
   /**
    * `docs/model-contracts.md §5.1` requires the pairing to be "in the assigned category" and
-   * `§5.2` filters "by category and by whether they hold at the assigned hierarchy". The planner
-   * satisfies the second and, on one path, not the first. That divergence is pinned here so it is
-   * a recorded defect rather than something a later reader rediscovers.
+   * `§5.2` filters "by category and by whether they hold at the assigned hierarchy". `planner_v1`
+   * satisfied the second and, on one path, not the first; `planner_v2` satisfies both, so the
+   * guard has nothing to remove from production output. Its absence is pinned here, in the file
+   * that used to pin its presence.
    */
-  it("is exactly the editorial + monumental + oldstyle fallback, and nowhere else", () => {
-    const diverging = REACHABLE.filter((a) => pairingsExcludedByCategory(a).length > 0);
+  it("finds nothing to exclude in any assignment the production planner can emit", () => {
+    for (const assignment of REACHABLE) {
+      const where = `${assignment.family}/${assignment.hierarchy}/${assignment.typographyCategory}`;
+      expect(pairingsExcludedByCategory(assignment), where).toEqual([]);
+      // The stronger form: narrowing is the identity on the planner's list, not a repair of it.
+      expect(allowedPairings(assignment), where).toEqual(assignment.typographyPairings);
+      expect(narrowingFor(assignment).pairings, where).toEqual(assignment.typographyPairings);
+    }
+  });
+
+  it("is not dead code: the frozen reference planner still produces what it catches", () => {
+    // `src/lib/renderer/planner`'s `assignmentFor` is the Phase 3 replay gate and is deliberately
+    // unchanged — it returns the same `SiblingAssignment` type on the broad fallback path, as do
+    // `planner_v1` artifacts persisted before the bump. So the guard still has a caller's mistake
+    // to report, which is why it survives the planner fix rather than being deleted with it.
+    const diverging = REFERENCE.filter((a) => pairingsExcludedByCategory(a).length > 0);
     expect(diverging.length).toBeGreaterThan(0);
     for (const assignment of diverging) {
       expect(assignment.hierarchy).toBe("monumental");
-      // The pool the planner fell back to is every monumental-capable pairing, which spans five
-      // categories — so it is broader than the category it emitted beside it.
+      // Every monumental-capable pairing: ten, spanning five categories — broader than the single
+      // category emitted beside them.
       expect(assignment.typographyPairings).toHaveLength(10);
       expect(
         new Set(assignment.typographyPairings.map((p) => TYPOGRAPHY[p].category)).size,
       ).toBeGreaterThan(1);
     }
     // Only `editorial` admits both `monumental` and the `oldstyle` category.
-    const families = new Set(diverging.map((a) => a.family));
-    expect([...families]).toEqual(["editorial" satisfies Family]);
+    expect([...new Set(diverging.map((a) => a.family))]).toEqual(["editorial" satisfies Family]);
   });
 
-  it("resolves toward canon: the excluded pairings are not offered to the model", () => {
-    for (const assignment of REACHABLE) {
+  it("resolves toward canon whenever it does find something", () => {
+    for (const assignment of [...REACHABLE, ...REFERENCE]) {
       const excluded = pairingsExcludedByCategory(assignment);
       const allowed = allowedPairings(assignment);
       for (const pairing of excluded) expect(allowed).not.toContain(pairing);
