@@ -356,7 +356,15 @@ export type EvalSet = keyof typeof EVAL_SETS;
  *
  * So it is preserved exactly as it was, pinned by digest here and by a test beside it, and nothing
  * points at it. It is not deleted: deleting the thing a correction cost is how a programme loses
- * the ability to say what the correction cost. T20B writes the replacement.
+ * the ability to say what the correction cost. T20B wrote the replacement.
+ *
+ * **Preserved does not mean readable by everyone.** This isolation binds the *corpus* author, and
+ * T20B's review found that nothing bound the **prompt** author — who could read an invalidated set
+ * of cases while writing the text the replacement set is meant to test independently. T20B's own
+ * replacement converged on a premise this file already contained, without its author ever seeing
+ * it, which is how well-trodden that ground turned out to be. So T21 is written **without reading
+ * this file**, as a condition of the task rather than a courtesy
+ * (`docs/phase-4b-plan.md` Part IV, T20B's freeze record).
  *
  * A digest, a byte count and a task id, because "invalidated" has to be checkable. If an entry here
  * ever stops matching the file on disk, the record is wrong about what was invalidated, which is a

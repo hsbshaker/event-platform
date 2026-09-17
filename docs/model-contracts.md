@@ -449,17 +449,21 @@ transcribes that section verbatim, is hash-pinned, and is checked against the pl
 | `eval:design-intent-validation` | `designIntentValidation` | `design-intent-validation-v2.json` | `docs/model-evals/results/design-intent-validation-v2` | **pre-registered validation, the replacement** — its predecessor `design-intent-validation.json` was invalidated at T19B for a stage-observability mismatch: it was authored under a host-constraint criterion this stage cannot always meet, and was read while that criterion was being corrected. This one is authored and frozen against the corrected contract before the prompt was written, by a second independent author who implemented none of the harness and saw none of the invalidated cases, independently reviewed for fairness and leakage |
 | `eval:design-intent-challenge` | `designIntentChallenge` | `design-intent-sealed-challenge.json` | `docs/model-evals/results/design-intent-sealed-challenge-v1` | **sealed challenge** — authored after the T21 implementation and the harness froze, unseen while they were written. The generalization evidence the §3.7 gate is applied to. One run, then spent |
 
-**The regression corpus is on disk; the other two are absent, and a slot refuses at module scope
-without its file** — before an API key is read and before a client is constructed. T20 authored the
+**The regression and replacement-validation corpora are on disk; the sealed challenge is absent,
+and a slot refuses at module scope without its file** — before an API key is read and before a client is constructed. T20 authored the
 regression corpus, and it stays in service because its class claims no pre-registration (§3.4). T20
 also authored a pre-registered validation corpus, and **T19B invalidated it**: the host-constraint
 criterion it was written under asked this stage for conformance a DesignIntent has no field for, and
 the correction was made while that corpus was on disk and being read, so it can no longer be called
 a set whose criteria were fixed before its cases existed. It is preserved unchanged and pinned by
 digest in `src/lib/ai/evals/corpus.ts` as `INVALIDATED_CORPORA`; no eval set points at it, and it
-is never run as pre-registered evidence for the corrected contract. **T20B** writes the replacement
-named above, from the corrected published dimensions alone; T22 writes the sealed challenge, after
-the implementation freeze. Adding a corpus file is then the entire change: no runner, checker,
+is never run as pre-registered evidence for the corrected contract. **T20B** wrote the replacement
+named above — thirteen cases, from the corrected published dimensions alone, by a second
+independent author whose isolation was established from their own recorded actions, and accepted
+after two independent reviews. What that set does **not** prove is recorded in
+`phase-4b-plan.md` Part IV rather than left to memory, and the invalidated corpus is **withheld
+from T21's prompt author**, which is the one contamination route the corpus cannot close from its
+own side. T22 writes the sealed challenge, after the implementation freeze. Adding a corpus file is then the entire change: no runner, checker,
 prompt, schema or model code moves, because moving any of it after seeing the cases is precisely
 what these classes exist to prevent. Each output
 directory joins `PROTECTED_RESULT_DIRS` in the same change that commits its evidence, never as a

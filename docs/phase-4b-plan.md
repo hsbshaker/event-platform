@@ -1887,6 +1887,47 @@ case exists.**
 > authorization, and each completed run's directory is protected in the same commit as its
 > evidence.
 
+**What T20B froze, and the four things the freeze record has to carry.** The replacement
+pre-registered validation corpus is `docs/model-evals/design-intent-validation-v2.json`: thirteen
+cases, `DIV2-01`–`DIV2-13`, written by a second independent author who saw the corrected published
+dimensions and nothing else. Isolation was established from that author's own recorded actions
+rather than from their account of them — every read was of their sealed packet, no repository path
+was reached for, and no `git` ran. Two independent reviews, an overlap check against all seven
+other corpora, and the frozen leakage scan stand behind it. Four things it does **not** prove are
+recorded here, because a set whose limits live only in a conversation has limits nobody can read
+later:
+
+1. **`mid` is admissible in all thirteen cases**, so a mid-tone concentration in the outputs is
+   partly guaranteed before the model is called. This is a property of a three-value tonal
+   vocabulary rather than an authoring habit — the regression corpus, different author, carries
+   `mid` in twelve of twelve with almost the same pool distribution. Forcing a brief off `mid` to
+   improve the number would distort a case to flatter a measurement, which is why it is recorded
+   instead. Magnitude, so the record is usable: with two-value pools and the planner preferring
+   free values, roughly two of three siblings per batch take distinct tones and the third repeats.
+2. **Tonal pools are two values wide in eleven of thirteen cases**, and exactly one case is
+   `toneExplicitlyConstrained`. So the planner exhausts the tonal pool in most batches, and §3.2's
+   tonal measurements are near-uninformative in either direction rather than evidence about the
+   model. The separation telemetry already distinguishes `pool-exhausted` from `tone-locked`, so
+   this reads as a corpus property rather than a planner defect.
+3. **`hierarchy` is planner-assigned, drawn from the family's own table and never from the
+   identity**, while §3.8's packet — frozen — does not tell the reviewer so. A reviewer can
+   therefore read a sibling as moderating a host's maximalism when the planner made that choice.
+   The corpus cannot fix this and the packet cannot move, so it is recorded.
+4. **Two cases share a teachable half.** The pair that brackets the default register from both
+   sides — one host forbidding *tasteful*, the other forbidding *subtle* — are both partly
+   satisfiable by the single rule "when a host forbids restraint, do not moderate". Neither
+   breaches §3.1's rule against an expected answer a prompt could be taught directly, because the
+   full expected answer for each is to be specifically *that* event three ways, which is not
+   teachable. A reader of this record should still know the bracket shares that half.
+
+**One contamination route the corpus cannot close, and who closes it.** The invalidated corpus is
+preserved on disk and readable. `corpus.ts`'s isolation language binds the *corpus* author; nothing
+binds the **prompt** author. T20B's own DIV2-13 converged independently on a premise the
+invalidated corpus already had — the author had never seen it — which is evidence that the design
+problem is well-trodden rather than evidence of reuse, and which is exactly why the route matters.
+**T21 is therefore written without reading `docs/model-evals/design-intent-validation.json`**, and
+that is a condition of the task rather than a courtesy.
+
 **The T19/T20 candidate chain, and why it is recorded rather than rewritten.** `411cf1c` (the first
 T19 freeze) and `86e9551` (the first 4C corpora) stay in history exactly as they happened. They are
 **candidate evidence design, invalidated at T19B**, and the reason is the one above: independent

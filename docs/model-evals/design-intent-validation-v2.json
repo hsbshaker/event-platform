@@ -1,0 +1,873 @@
+{
+  "version": "design_intent_validation_v2",
+  "cases": [
+    {
+      "id": "DIV2-01",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "Rosalind and Deb are marrying at sixty-three in the reading room of the branch library Deb ran for twenty-two years, thirty-one years after they met at a union meeting. It should feel like a Sunday afternoon in a room people already love, not like an occasion staged inside one.",
+        "toneKeywords": [
+          "plainspoken",
+          "unhurried",
+          "well-worn",
+          "quietly stubborn",
+          "fond without ceremony"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "the dull green of library buckram",
+            "paper that has gone warm",
+            "oak that has been waxed a thousand times",
+            "the black of a date stamp"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "The greens and browns should carry it; the black is small punctuation, not a field."
+        },
+        "tonalIntent": "Mid, lit like a room with tall south windows on a March afternoon: bright but not white, and nothing that reads as evening.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "transitional",
+          "heritage",
+          "soft_serif"
+        ],
+        "visualMotifs": [
+          "the ruled lines of a borrower's card",
+          "a date stamped over and over in the same box",
+          "long shelves running past the edge of the page",
+          "a card catalogue drawer left half open"
+        ],
+        "textureDirection": "Cloth board, foxed paper, the slight nap of a book that has been read in a bath. Nothing glossy, and nothing distressed on purpose.",
+        "typographyDirection": "Type that looks set rather than designed: a readable book face with real ink weight, small caps where something wants emphasis, and no size that shouts.",
+        "copyTone": "Dry and in complete sentences, the register of a woman who has written thousands of notices for a bulletin board and never once used an exclamation mark.",
+        "hostConstraints": [
+          "Deb will not have the word brides used anywhere; she said we are two women getting married and that is the whole sentence"
+        ],
+        "creativeGuidance": [
+          "Guests are bringing a used book instead of a gift, which is the best detail in the event and should not be buried",
+          "Do not let this read as a second wedding apologising for itself"
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Same-type pair A, half one. Dimensions 3 (a language prohibition observable in concept-card copy), 6 and 7. Open on palette and inspiration so the only real pressure is the identity itself. The constraint is a prohibition in the host's own words, not taste, so it belongs in hostConstraints under the two-field split. No suppliedFacts here on purpose so the corpus exercises the n/a path."
+    },
+    {
+      "id": "DIV2-02",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "Nnamdi and Priya are getting married on the 6:40 harbour ferry, between the dock and the far terminal, because it is the only forty minutes both families and all thirty-eight guests can give. Coffee, a box of pastries, and everybody goes to work afterwards.",
+        "toneKeywords": [
+          "brisk",
+          "cold-air clear",
+          "commuter",
+          "funny without trying",
+          "in front of strangers",
+          "early"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "the orange of a life ring",
+            "harbour water at first light",
+            "enamel sign white"
+          ],
+          "avoidColors": [
+            "#F2A5B5",
+            "pink",
+            "blush",
+            "rose",
+            "anything in the coral family"
+          ],
+          "dominanceNotes": "Let the orange work in small amounts against cold water colours; it is a safety colour, not a warm one."
+        },
+        "tonalIntent": "Cold light at the start and warming: the fifteen minutes when the water is still grey and the sky has already gone. Light overall, never candlelit.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "high_contrast_editorial",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "a departure board with one crossing on it",
+          "the diagonal of a gangway",
+          "a route drawn as two dots and a line",
+          "wake spreading behind a boat",
+          "a punched ticket"
+        ],
+        "textureDirection": "Everything on this boat has been painted over enough times to keep the salt out. Enamelled steel, a wet deck, the thick matte of municipal signage.",
+        "typographyDirection": "Signage logic: one heavy face doing everything, tight and flush left, with numerals treated as if they matter more than the words.",
+        "copyTone": "Short, useful, and slightly amused at itself, in the voice of two people who know this is a ridiculous plan and are doing it anyway.",
+        "hostConstraints": [
+          "Priya's mother asked that nothing on this be pink, in any shade, and sent #F2A5B5 as the one she has in mind",
+          "Nnamdi said the boat leaves at 6:40 and does not wait for anybody"
+        ],
+        "creativeGuidance": [
+          "The timetable is the best structure here; use it rather than making a joke about it",
+          "Maritime decoration - anchors, rope, navy stripes - would sink this",
+          "Anything that reads as a leisurely arrival is wrong for this one"
+        ],
+        "inspirationSummary": "Nnamdi photographed the ferry's own route board: white lettering routed into a dark enamel panel, a red hand-painted arrow someone added later, and a rack of orange life rings above it. He also sent a picture of the terminal floor, which is grey terrazzo with brass strips set into it."
+      },
+      "suppliedFacts": {
+        "venueText": "the Kestrel Point harbour ferry",
+        "rsvpDeadlineText": "let them know by the ninth of April"
+      },
+      "notes": "Same-type pair A, half two, and deliberately unrecognisable as the same type as DIV2-01: different century of feeling, different structure, different light. Dimensions 3, 5, 8 and 9. The pink exclusion now carries a representative hex in the host's own act of sending it, so the gating colour check can decide that one; the natural-language entries beside it stay, and they are reviewer territory. The second constraint is a plain fact about the boat, downstream in subject and deferred - it is here so a direction cannot contradict it, not so this stage states a time. Structurally unusual: a fixed forty-minute window on a moving vessel, which should push a genuinely different CompositionTree. Fact values are long and distinctive, and none appears in the identity the model receives."
+    },
+    {
+      "id": "DIV2-03",
+      "eventType": "retirement party",
+      "identity": {
+        "creativeDirection": "Alvin Petrakis has walked children across Hollis and Fourth for twenty-six years and stops in June. Three mothers on the block are throwing him a party on the sidewalk at that corner, with folding tables, a cooler, and whatever the kids make at school that week.",
+        "toneKeywords": [
+          "neighbourly",
+          "handmade",
+          "sunlit",
+          "folding tables and a cooler",
+          "the whole block turned out",
+          "children everywhere"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "school-zone yellow",
+            "wet asphalt",
+            "the white of a painted crosswalk",
+            "crossing-guard vest lime"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "The yellow-green safety colours should feel official rather than cheerful, set against a lot of grey."
+        },
+        "tonalIntent": "Flat four-o'clock daylight on concrete. Bright and a bit harsh; nothing soft or golden about it.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "heritage",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "the stripes of a crosswalk seen at an angle",
+          "a held-up stop paddle",
+          "chalk on sidewalk squares",
+          "a hand-lettered sign taped to a folding table",
+          "twenty-six tally marks"
+        ],
+        "textureDirection": "Poster paint on cardboard, retroreflective tape, gritty concrete. Cheap materials used with care.",
+        "typographyDirection": "Pushed to the heaviest weight and the largest size the space will take, mostly in capitals, with nothing small enough to look like fine print.",
+        "copyTone": "Direct and a little proud, written by a neighbour rather than an organiser, the way people talk on a block where everyone knows the same man's name.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "The kids are painting the signs that week, so whatever this is has to survive being copied by a seven-year-old",
+          "Alvin has stood in the same six square feet every school morning since 1998; the corner matters more than the leaving does",
+          "Balloons and confetti would make this a retirement in general rather than this man's corner"
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Same-type pair B, half one. Host constrained nothing at all, so this measures what the system does with an identity and no fences: dimensions 6, 7 and 10. All the taste sits in creativeGuidance and a sibling may ignore any of it without penalty. The guidance is written about this corner and these children rather than about retirement parties as a category, so it carries no design solution that another set could also arrive at. Civic register, and structurally odd in that the venue is a road intersection."
+    },
+    {
+      "id": "DIV2-04",
+      "eventType": "retirement party",
+      "identity": {
+        "creativeDirection": "Marguerite Salas-Weir is leaving after nineteen years as chaplain at a fourteen-bed hospice, and her colleagues are gathering in the garden behind it on a Thursday afternoon. Families of people who died there are invited. She has asked, more than once, that it not be a party.",
+        "toneKeywords": [
+          "held",
+          "quiet",
+          "unsentimental",
+          "grave",
+          "grateful",
+          "space left where words would be"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "the grey-green of rosemary",
+            "unbleached linen",
+            "slate after rain",
+            "a very pale ochre"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "A narrow range held close together, so that nothing in it is doing any persuading."
+        },
+        "tonalIntent": "Overcast mid-afternoon light, even and without contrast. Neither dark nor bright; the point is that nothing casts a shadow.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "transitional",
+          "soft_serif",
+          "heritage"
+        ],
+        "visualMotifs": [
+          "a single rule across a page with space above and below",
+          "a door propped open onto the garden",
+          "a bench facing away",
+          "one folded corner"
+        ],
+        "textureDirection": "Uncoated paper with a soft edge, cloth that has been washed many times, nothing with a finish on it.",
+        "typographyDirection": "Generous leading and a lot of air; one calm face at two sizes, with the smaller size used far more often than the larger one.",
+        "copyTone": "Plain and adult. It does not console, it does not thank her in the language of a plaque, and it never uses a word she would find embarrassing.",
+        "hostConstraints": [
+          "Marguerite asked that the word celebration not appear anywhere",
+          "No one should have to say publicly which person they are coming for"
+        ],
+        "creativeGuidance": [
+          "Resist anything that reads as an ending being softened; she would rather it were blunt than kind",
+          "Her colleagues will read this at work, on a phone, between other things"
+        ],
+        "inspirationSummary": "Marguerite handed over the order of service she has used at bedside for years: a single sheet, one hairline rule under the heading, the reading set small and centred with an inch of white under it, and nothing else on the page at all."
+      },
+      "suppliedFacts": {
+        "dateText": "Thursday the twelfth",
+        "venueText": "the garden behind the hospice on Wrenfield Lane"
+      },
+      "notes": "Same-type pair B, half two. Two constraints of deliberately different stage ownership: the first is concept-card language and is observable here; the second is about how people are asked to respond, which a DesignIntent has no field for and which must be deferred to the reviewer rather than mechanically failed. That split is the reason this corpus exists, so I wanted it inside a pair where the other half has no constraints at all. Grief-adjacent register; dimensions 3, 5 and 2. Nothing in my reasoning asks the model to emit content it has no field for."
+    },
+    {
+      "id": "DIV2-05",
+      "eventType": "baptism",
+      "identity": {
+        "creativeDirection": "Terrence Buckhalter is being baptised at forty-one, at the church his grandmother took him to and he stopped attending at sixteen. The service is Sunday morning; afterwards there is a potluck in the basement fellowship hall with folding chairs and a long table of foil pans.",
+        "toneKeywords": [
+          "reverent",
+          "joyful",
+          "sincere",
+          "generational",
+          "no distance from it",
+          "warm",
+          "sung"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "#2A3F8F",
+            "the royal blue of the choir robes"
+          ],
+          "preferredColors": [
+            "gold leaf that has gone slightly green",
+            "deep red glass",
+            "ivory candle wax"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "The blue should read as the ground everything else sits on, with the golds kept to edges and small marks."
+        },
+        "tonalIntent": "Deep and saturated, the way a sanctuary looks when sun comes through coloured glass onto dark wood. Mid to dark, never washed out.",
+        "toneExplicitlyConstrained": true,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "heritage",
+          "oldstyle",
+          "high_contrast_editorial",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "a sunburst worked in lead and glass",
+          "water held in a shallow bowl",
+          "a dove in outline",
+          "the fan of an open hymnal",
+          "his grandmother's name on a memorial window"
+        ],
+        "textureDirection": "Coloured glass with the lead still dark through it, varnished pew wood, hymnal paper worn soft at the corner, the faint sheen a choir robe takes under the lights.",
+        "typographyDirection": "Weighty and formal with real contrast between thick and thin, set centred where tradition expects it, dignified rather than modern.",
+        "copyTone": "Sincere and unembarrassed. Warm or plain are both fine, but no winking anywhere, and no turning faith into the language of a lifestyle.",
+        "hostConstraints": [
+          "The blue of the choir robes has to be in it; Terrence's aunt matched it off a sleeve and sent #2A3F8F",
+          "Pastor Hollins asked that any scripture appear whole and unshortened, never trimmed to fit",
+          "Terrence's aunt said it should look like the inside of the church, not one of the bright modern ones"
+        ],
+        "creativeGuidance": [
+          "The basement potluck matters as much as the service upstairs, so do not make this only about the sanctuary",
+          "Forty-one is the story: this is a man returning, not a baby being presented"
+        ],
+        "inspirationSummary": "The family sent three photographs of the sanctuary's east window: a gold sunburst in leaded glass over a deep blue field, a band of red along the bottom edge, and the grandmother's name on a small brass plate beneath it. There is also a photograph of the choir in robes at Easter."
+      },
+      "suppliedFacts": {
+        "hostNames": "Yolanda Buckhalter-Reese",
+        "venueText": "Greater Shiloh Missionary Baptist Church",
+        "timeText": "the eleven o'clock service"
+      },
+      "notes": "Religious register held straight, with no ironic distance available anywhere. The required colour is given twice: as the hex the aunt matched off a sleeve, which the gating check can decide, and as the words she used, which it cannot. The scripture constraint is downstream in its subject but has a design-semantic edge: a direction built on fragmenting or cropping text would contradict it, which is the non-contradiction half of the corrected rule. Dimensions 3, 5, 2. The supplied host name is the aunt, whom the identity refers to but never names, so it is not derivable from anything the model receives. toneExplicitlyConstrained is true here and nowhere else in the corpus: the aunt narrows the tonal space in her own words, so the dark-to-mid pool is a host instruction rather than the interpreter's reading of the sanctuary. It does not contradict the tonalIntent, which already says never washed out."
+    },
+    {
+      "id": "DIV2-06",
+      "eventType": "farewell party",
+      "identity": {
+        "creativeDirection": "Dov Rasmussen's 1994 Volvo wagon died at four hundred and thirty-one thousand miles, and he is holding a wake for it in the back lot of the machine shop that kept it running. There will be a eulogy, a flatbed at eight, and people who are genuinely upset.",
+        "toneKeywords": [
+          "deadpan",
+          "mechanical",
+          "sincerely absurd",
+          "greasy",
+          "communal",
+          "attached to a machine"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "faded cornflower paint",
+            "shop-rag red",
+            "oxidised chrome",
+            "oil-stained concrete",
+            "hazard orange"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "The faded blue is the body of it; everything else is a stain, a tool, or a warning."
+        },
+        "tonalIntent": "Late afternoon in a yard with no shade, going to dusk under a sodium light. Mid moving toward dark.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "heritage",
+          "high_contrast_editorial"
+        ],
+        "visualMotifs": [
+          "an odometer reading spelled out in full",
+          "a torque diagram from a service manual",
+          "a parts number stencilled on a box",
+          "the flat silhouette of a boxy wagon",
+          "a hood held open by its rod"
+        ],
+        "textureDirection": "Photocopied manual pages, carbon paper, sun-chalked paint, a rag that has been through everything.",
+        "typographyDirection": "The lettering of a parts catalogue and a service manual: condensed, technical, unbeautiful, with numbers given more room than names.",
+        "copyTone": "Absolutely straight-faced. Every sentence written as if this were a funeral, because for Dov it partly is, and the humour only works if nothing admits to it.",
+        "hostConstraints": [
+          "Dov was firm that this is not a joke event; he said we are actually sad, and he said nothing that winks at the reader"
+        ],
+        "creativeGuidance": [
+          "The mileage is the whole emotional argument, so treat the number as the headline",
+          "Skip the car-nostalgia look: chrome scripts, checkered flags, hot-rod flames"
+        ],
+        "inspirationSummary": "Dov sent a scan of the owner's manual cover, which is matte dark blue with a small line drawing of the car and a great deal of empty space, plus two Polaroids from 1998 of the same car packed for a move, the paint already going chalky on the roof."
+      },
+      "suppliedFacts": {
+        "venueText": "the back lot at Fenimore Machine & Weld",
+        "dateText": "the last Saturday in October"
+      },
+      "notes": "Comic premise, sincere execution, which is the hardest register to hold. The host constraint forbids the reading almost every system will reach for, so it is a real tone boundary and observable here: dimension 3 plus 5 and 7. The honoree is an object, which should also push structure and not only mood. It supplies the shop's name and the date, neither of which appears anywhere in the identity, so a concept card carrying either has invented it."
+    },
+    {
+      "id": "DIV2-07",
+      "eventType": "family reunion",
+      "identity": {
+        "creativeDirection": "The Aldergrove side of the family has not been in one room since a will was contested twenty-four years ago. Winifred has booked the lounge at a curling club because it belongs to nobody, and asked for an afternoon with no toasts, no speeches and no seating plan. Everyone coming is nervous.",
+        "toneKeywords": [
+          "careful",
+          "on nobody's ground",
+          "braced",
+          "hopeful",
+          "saying less than you mean"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "cold rink blue",
+            "birch",
+            "a soft putty grey",
+            "pale amber"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Nothing should feel like a side has chosen it, so keep the range cool and shared."
+        },
+        "tonalIntent": "Even indoor light with a rink's blue cast coming through the glass. Light to mid, and deliberately unatmospheric.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "transitional",
+          "grotesk_led",
+          "soft_serif",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "concentric rings on ice",
+          "a long table set without a head",
+          "two paths meeting at one point",
+          "an empty chair left in the row"
+        ],
+        "textureDirection": "Nothing in the room was chosen; it came with the booking. Scuffed ice through the glass, a laminate tabletop, a paper napkin folded in half.",
+        "typographyDirection": "Even-tempered and legible with no flourish, one face throughout, and the order of things carried by spacing rather than by size or weight.",
+        "copyTone": "Warm but very careful. Short sentences, no in-jokes, nothing that assumes shared history, and not one word that could be read as taking a side.",
+        "hostConstraints": [
+          "Do not list who is coming; people will decide whether to attend based on who else is on it",
+          "Winifred said there are to be no toasts and no speeches"
+        ],
+        "creativeGuidance": [
+          "Family-tree imagery - branches, roots, sepia photographs - would be exactly the wrong instinct here",
+          "No one's surname should appear larger than anyone else's"
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Awkward register, which nothing in the premium repertoire covers. Both constraints are downstream-only in subject - who appears on the page, and what happens during the afternoon - so both are deferred to the reviewer for non-contradiction and neither may be mechanically failed for absence. Neither asks this stage to make anything prominent; a direction organised around a toast, or around showing the family assembled, would contradict them, and that is the live question. Dimensions 3, 5, 8, 10."
+    },
+    {
+      "id": "DIV2-08",
+      "eventType": "public meeting",
+      "identity": {
+        "creativeDirection": "The neighbourhood association is holding an open meeting on the proposed bus lane that would take a hundred and forty parking spaces off Dunmore Avenue. Two hundred people, a school gym, interpreters in Somali and Spanish, comment cards. The association takes no side and cannot be seen to.",
+        "toneKeywords": [
+          "procedural",
+          "even-handed",
+          "plain",
+          "high-stakes",
+          "orderly"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "manila",
+            "a neutral ink blue",
+            "gymnasium floor maple",
+            "photocopy grey"
+          ],
+          "avoidColors": [
+            "the campaign green the bike coalition uses",
+            "the campaign red on the parking petition signs",
+            "any pairing that reads as one of the two campaigns"
+          ],
+          "dominanceNotes": "Neutral paper colours carrying a single ink, with no second colour strong enough to be read as a position."
+        },
+        "tonalIntent": "Fluorescent gym light, flat and unflattering, at seven in the evening. Light and even, with no mood in it at all.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "a numbered agenda",
+          "a plan view of a street with its lanes marked",
+          "a comment card with a ruled box",
+          "three columns of the same notice in three languages",
+          "a clock on a gym wall"
+        ],
+        "textureDirection": "Photocopied paper, a taped-up notice, floor tape. Institutional and unstyled, but not shabby.",
+        "typographyDirection": "Utility lettering that survives being printed badly and read in translation: open shapes, generous size, and times and numbers set so they can be found at a glance.",
+        "copyTone": "Neutral civic English at a low reading level, sentence by sentence, with no adjective that could be scored as favouring either outcome.",
+        "hostConstraints": [
+          "The association takes no position, and they said nothing may look like it is for or against the lane",
+          "It has to hold up for someone reading it in Somali or Spanish, not only in English",
+          "Do not use either campaign's colours"
+        ],
+        "creativeGuidance": [
+          "Transit-poster styling would be read as endorsement, and so would anything nostalgic about the street as it is",
+          "Most people will meet this as a photocopy on the laundromat noticeboard long before anyone sees it on a screen"
+        ],
+        "inspirationSummary": "The association sent a scan of their own letterhead from 1974 - a thin black rule across the top, the association's name in spaced capitals, the rest of the sheet empty - and a photograph of the notice board in the laundromat where most people actually see their announcements."
+      },
+      "suppliedFacts": {
+        "venueText": "the Ardsley Middle School gymnasium",
+        "timeText": "doors at 6:30, meeting at 7:00"
+      },
+      "notes": "Civic register with real consequences, and the one case where a single compatible family is honest rather than padding: a poster-family treatment of a neutral notice would itself read as advocacy. Three concepts can still differ enormously inside that. Its colour exclusions are deliberately left in natural language - two campaign identities and a pairing that reads like one - so the gating check reports them undecidable and they go to the reviewer whole. That is the honest shape of this constraint and the corpus should contain one, but it means dimension 3 is reviewer-judged here rather than machine-checked. Dimensions 1, 6, 9, and 3 as a deferred constraint."
+    },
+    {
+      "id": "DIV2-09",
+      "eventType": "memorial",
+      "identity": {
+        "creativeDirection": "Elena Vukovic ran a seed library out of a converted shipping container for eleven years and died in February. Her family are holding the memorial in March, at the start of planting, and everyone who comes leaves with seed she saved herself, labelled in her handwriting, because she was two seasons ahead when she died.",
+        "toneKeywords": [
+          "grieving",
+          "practical",
+          "keyed to the planting calendar",
+          "hopeful without cheer",
+          "earthy"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "manila envelope",
+            "damp soil brown",
+            "the green of first leaves",
+            "pencil graphite"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Mostly the colour of paper and dirt, with one living green that arrives late and small."
+        },
+        "tonalIntent": "Cold early-spring light, thin and grey with an hour of real sun in it. Light to mid; nothing warm or amber.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "transitional",
+          "grotesk_led",
+          "soft_serif"
+        ],
+        "visualMotifs": [
+          "a hand-labelled seed envelope",
+          "a row of varieties listed with their years",
+          "a germination chart",
+          "a shipping container with its doors open",
+          "something planted in a straight line"
+        ],
+        "textureDirection": "Everything she handled was meant to be written on. Kraft paper, pencil, a typewriter ribbon going dry, soil pressed into a fingerprint.",
+        "typographyDirection": "Let the two halves of the pairing do different jobs: the varieties and their dates set plainly and small, her own words set larger and with more contrast, and never more than a line of them at a time.",
+        "copyTone": "Practical and unguarded. It says she died, it does not say she passed, and it is allowed to be about seed for whole sentences at a time.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "The giving-away is the event, so build around leaving with something rather than around sitting and listening",
+          "Funeral flowers, doves and candles belong to a different woman's memorial"
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "notes": "Fully open brief: no constraints, no inspiration, no supplied facts. If a system has a house answer for grief, this is where it shows, so the case is aimed squarely at dimensions 6 and 7 and at the corpus-wide same-idea measurement. Structurally unusual because the event distributes an object rather than staging a programme, which should reach dimension 9."
+    },
+    {
+      "id": "DIV2-10",
+      "eventType": "welcome party",
+      "identity": {
+        "creativeDirection": "Theo is nine, has been with Ama and Josie for eleven weeks, and the adoption was finalised on a Tuesday morning in a courtroom holding fourteen people. Their friends have booked the roller rink for the cheap Sunday slot before public skating: rental skates, pizza at eleven, no speeches.",
+        "toneKeywords": [
+          "kid-scaled",
+          "no big speech about it",
+          "glad without being soppy",
+          "sneakers on a gym floor",
+          "nobody dressed up"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "the painted blue of a rink floor",
+            "rental-skate tan",
+            "carpet-wall red",
+            "vending-machine yellow"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "The rink's own painted blue is the ground, and everything else arrives as the colour of something you are handed at a counter."
+        },
+        "tonalIntent": "Overhead fluorescents with a mirror ball turning uselessly underneath them, at ten on a Sunday morning. Light to mid, and not remotely atmospheric.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "heritage",
+          "transitional",
+          "soft_serif"
+        ],
+        "visualMotifs": [
+          "a wall of numbered cubbies with skates in them",
+          "the painted oval worn grey down the racing line",
+          "a mirror ball going round in daylight",
+          "a laminated board of rink rules",
+          "a paper wristband",
+          "the number nine given more room than it deserves"
+        ],
+        "textureDirection": "Painted concrete under old varnish, industrial carpet halfway up the walls, laminated paper, the scuffed toe-stop of a hire skate. Nothing soft except the carpet, and the carpet is not soft either.",
+        "typographyDirection": "Big and legible enough for a nine-year-old to read from across a room: heavy, wide and cheerfully unsubtle, with the words that matter given far more size than the polite ones.",
+        "copyTone": "Plain and cheerful, addressed to Theo as much as to the adults. It does not explain what adoption is, it does not thank anyone, and it never once describes him as lucky.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Nothing off the baby-shower shelf - no storks, no pastel bunting, no tiny footprints. He is nine and he will read this himself",
+          "The rink is the best thing here - painted floor, carpet walls, a mirror ball going round in daylight - so let the room be the look",
+          "Rescue and waiting are the wrong story here; it is a Sunday morning with skates on, and Ama would hate anything grander"
+        ],
+        "inspirationSummary": "Josie sent phone pictures of the rink from a birthday party last winter: a wall of numbered wooden cubbies with skates standing in them, red industrial carpet running halfway up the walls, the painted oval on the floor gone grey down the racing line, and a hand-lettered sign about no food past the barrier taped to the rail."
+      },
+      "notes": "The dimension 4 case, rebuilt on a new premise after the overlap check. hostConstraints is empty and three strong, specific opinions sit in creativeGuidance, so a sibling may depart from any of them without penalty and none of the three may surface as a constraint; the brief is opinionated enough to tempt a promotion, which is dimension 10. Chosen because the standard visual language for a party of this shape is actively wrong for a nine-year-old, which makes it a sharp probe of dimensions 6 and 7 as well. The venue is ordinary and hard-surfaced on purpose. It supplies no facts, deliberately, so the invention check reports n/a and the case measures the two-field split on its own."
+    },
+    {
+      "id": "DIV2-11",
+      "eventType": "anniversary party",
+      "identity": {
+        "creativeDirection": "Kettleman & Daughters Hardware turns a hundred this year in the same building on the same corner, and Ruth Kettleman, the fourth to run it, is closing the street for an afternoon. Free hot dogs, the original till on the counter, and the paint mixer running all day.",
+        "toneKeywords": [
+          "mercantile",
+          "proud",
+          "trade-counter plain",
+          "sturdy",
+          "small-town",
+          "durable"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "#1F5A3C"
+          ],
+          "preferredColors": [
+            "sign-white",
+            "galvanised grey",
+            "kraft brown",
+            "brass"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "The store green is the field and the identity; everything else is hardware - metal, paper, brass."
+        },
+        "tonalIntent": "Deep and solid rather than bright. Mid to dark, the way a painted wooden sign reads in full sun.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "heritage",
+          "grotesk_led",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "a painted wooden sign with a hand-cut edge",
+          "a drawer of small parts labelled by size",
+          "a hundred years shown as four names",
+          "prices painted directly on the window",
+          "a paper bag folded down at the top"
+        ],
+        "textureDirection": "Enamel paint over wood, galvanised steel, brown paper, brass worn bright where hands go. Honest wear, not manufactured age.",
+        "typographyDirection": "Blocky sign-painter capitals with squared terminals, the way the front has been lettered since the twenties, tightly spaced and confidently unfashionable.",
+        "copyTone": "Plain trade English, the voice of a shop that has written its own signs for a century. Specific about goods, short on sentiment, allowed one flat joke.",
+        "hostConstraints": [
+          "The store green is #1F5A3C and Ruth wants that exact mix, not an approximation of it",
+          "Nothing scripty or handwritten; four generations have used the same blocky sign lettering and she will not break it"
+        ],
+        "creativeGuidance": [
+          "Do not make this a nostalgia piece; the shop is not a museum and still sells more screws than anything else",
+          "The fourth generation being daughters is worth carrying plainly, without making a point of it"
+        ],
+        "inspirationSummary": "Ruth sent photographs of the storefront: hand-lettered green and white sign boards above the windows, prices painted straight onto the glass in white, a brass till, and the small-parts wall inside, which is two hundred labelled wooden drawers, each label typed and slid into a metal frame."
+      },
+      "suppliedFacts": {
+        "localityText": "Brattlecombe",
+        "addressText": "412 Marchmont Street",
+        "dateText": "Saturday the twenty-first of September"
+      },
+      "notes": "The most constraint-dense case, and the one where every constraint is observable at this stage: an exact required hex and a typography prohibition. avoidColors is empty, so the required hex cannot collide with an exclusion and the satisfiability rule is trivially met. Three concepts can still differ widely while all carrying that green and refusing script. Dimensions 3 and 1. The honoree is a business, which is a shape a wedding-shaped system tends not to have."
+    },
+    {
+      "id": "DIV2-12",
+      "eventType": "birthday party",
+      "identity": {
+        "creativeDirection": "Ozzie Kwan-Delacroix turns seventy in August, and his family are throwing the party inside the haunted garage he has built every October for forty years: fog machine, cardboard tombstones, the coffin, a borrowed hearse on the driveway. In summer, in daylight, deliberately out of season.",
+        "toneKeywords": [
+          "gleeful",
+          "tacky on purpose",
+          "theatrical",
+          "cheap and proud of it",
+          "loud",
+          "out of season"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "drugstore Halloween orange",
+            "cellophane green",
+            "flat black",
+            "fog-machine white",
+            "purple that has faded in the box"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Orange and black doing the obvious thing, with the green and purple turned up well past the point of taste."
+        },
+        "tonalIntent": "Two lights fighting: hard August daylight at the garage door and a fog-lit interior of green and purple gels. Dark inside, bright at the edge.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "dark",
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "high_contrast_editorial",
+          "heritage",
+          "grotesk_led",
+          "soft_serif"
+        ],
+        "visualMotifs": [
+          "a cardboard tombstone with a joke carved on it",
+          "seventy candles treated as a fire hazard",
+          "cobwebs stretched thin across a corner",
+          "a hearse parked on a suburban driveway",
+          "a fog machine's cone of light",
+          "a hand coming up out of a lawn"
+        ],
+        "textureDirection": "Spray-painted polystyrene, crepe paper over a work light, gaffer tape holding up more than it should, and glitter that will still be in the driveway at Christmas.",
+        "typographyDirection": "The highest-contrast letterforms available, pushed to sizes the space cannot really take, in capitals, with the display half used everywhere instead of saved for headings. Nothing about the choice should look careful.",
+        "copyTone": "Loud, corny, and having a great time. Puns are welcome. The only thing forbidden is a knowing distance from the whole thing.",
+        "hostConstraints": [
+          "Ozzie said that if it comes out looking tasteful he will not attend"
+        ],
+        "creativeGuidance": [
+          "Forty years of doing this for other people's children is the reason it is his birthday now, so let that be felt somewhere",
+          "Modern horror styling would miss him; his references are rubber masks and hardware-store fog"
+        ],
+        "inspirationSummary": "The family sent a run of photographs from the garage over the years: 1996 with a bedsheet ghost on fishing line, 2009 with the full coffin and a green floodlight, and last year with a queue of children down the driveway. Also a picture of the hearse, which belongs to a friend and is genuinely enormous."
+      },
+      "suppliedFacts": {
+        "hostNames": "Prisca and Ruben Kwan-Delacroix",
+        "venueText": "the garage on Pemberton Row",
+        "dateText": "the sixteenth of August"
+      },
+      "notes": "The single hardest case for a system with a default register, and the one I would look at first. The constraint is a prohibition in the host's own words, not positive style direction, so it belongs in hostConstraints under the two-field split; it forbids the exact register a tasteful default reaches for and it is fully observable here. Kitsch is supported by the identity, so a sibling that moderates it is failing dimension 5, not showing judgement. Also dimensions 7 and 2. Supplied facts deliberately exclude Ozzie's own name, which the identity states and the model is therefore entitled to use. Admits all three tonal directions honestly: the identity names hard August daylight at the door as one of its two lights, so a sibling may take the out-of-season daylight reading rather than the fog-lit interior."
+    },
+    {
+      "id": "DIV2-13",
+      "eventType": "sangeet",
+      "identity": {
+        "creativeDirection": "Ravneet Ahluwalia's sangeet fills a suburban hotel ballroom with four hundred people: both families have choreographed dances they have been rehearsing since November over video calls, a dhol player, dinner at eleven, and the floor open until two. Her father did not book a room this size in order to be tasteful about it.",
+        "toneKeywords": [
+          "more is the point",
+          "gold on gold on gold",
+          "danced rather than attended",
+          "the room used at full volume",
+          "competitive in a loving way"
+        ],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [
+            "#F4A400",
+            "the marigold the drapes and garlands are matched to",
+            "foil gold, as on her mother's card"
+          ],
+          "preferredColors": [
+            "fuchsia",
+            "pomegranate red",
+            "a deep ink blue behind the gold",
+            "the silver of mirrorwork"
+          ],
+          "avoidColors": [
+            "colours that have had the heat taken out of them",
+            "pastel versions of anything above"
+          ],
+          "dominanceNotes": "Saturation is not a risk to be managed here. The gold and the marigold should be everywhere at once, and the ink blue exists only so that they read hotter against it."
+        },
+        "tonalIntent": "Ballroom chandeliers up full, then the house lights down and coloured wash across the floor. Bright at dinner, dark on the floor, and the gold doing most of the lighting either way.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "high_contrast_editorial",
+          "heritage",
+          "transitional",
+          "oldstyle",
+          "soft_serif"
+        ],
+        "visualMotifs": [
+          "a garland of marigolds heavy enough to sag",
+          "mirrorwork catching the ceiling lights",
+          "a running order pinned up beside the floor",
+          "gold with a chandelier caught in it",
+          "the dhol carried in over somebody's shoulder",
+          "pattern that does not stop at the edge"
+        ],
+        "textureDirection": "Everything here is meant to catch light. Silk with weight in it, mirrorwork, metallic thread, fresh flowers massed until they read as a surface, and foiled card if the budget will carry it.",
+        "typographyDirection": "Dressed to the limit: the most dramatic thick-to-thin the pairing can give, set large and centred, ornament taken wherever it is offered, and headings allowed to run to a size that would look immodest anywhere else.",
+        "copyTone": "Warm, effusive and entirely unembarrassed about how much of a production this is. It can promise a big night outright, and understatement would land as an apology.",
+        "hostConstraints": [
+          "Vikram said he did not book a room this size to be tasteful about it, and he said nothing subtle is to come back to him",
+          "Ravneet's mother has matched the drapes and the garlands to one marigold and wants that exact colour carried through"
+        ],
+        "creativeGuidance": [
+          "The competing dances are the actual event; this should feel like something with a running order and a winner",
+          "Saving the volume for the ceremony would be the one real mistake here - this is the loud night and everyone has been promised it",
+          "Four hundred people will see this on a phone in a group chat before they see it anywhere else"
+        ],
+        "inspirationSummary": "Ravneet's mother sent photographs from her own sangeet in 1993, in a ballroom of the same hotel chain: marigold garlands hung in three tiers from the ceiling, mirrorwork panels behind the stage throwing the light back at the room, and the card, which is gold on gold with a deep border and no white anywhere on it at all. She also sent a swatch of the drape fabric held up against the flowers."
+      },
+      "suppliedFacts": {
+        "hostNames": "Vikram and Sunita Ahluwalia",
+        "venueText": "the Calderwood Grand ballroom",
+        "dateText": "the third of May"
+      },
+      "notes": "Added after the fairness review found that all twelve earlier cases are unglamorous by construction, which means a system that had merely traded the premium house style for a gritty one would pass the whole corpus. This is the case that fails if it cannot stay when polish is right. Lavishness here is correct and expected, not a lapse of taste: a muted, well-made, restrained answer is the wrong answer, and the host has said so in his own words, so that judgement is his and not mine. It is the mirror of DIV2-12 - one host forbids tasteful in the direction of kitsch, the other forbids subtle in the direction of splendour - and between them they bracket the default register from both sides, which no single case can do. Deliberately specific rather than generically expensive, so that a generic premium answer is still visibly not this event: the saturation, the mirrorwork and the competing dances all have to be there. Dimensions 3, 5, 6 and 7. Carries a required colour as both a hex and the mother's own words. Singleton event type, so the wedding and retirement-party pairs are untouched. The ballroom and the date appear nowhere in the identity. The parents' full names are a weaker case and this note should not claim otherwise: the identity already gives Vikram's first name and the family surname, so only Sunita's name is genuinely new. The whole value is absent from what the model receives, which is what the mechanical check reads, but it is partly reconstructible and is not evidence of the same strength as the other two. Admits all three tonal directions honestly: chandeliers up full over gold and marigold is a genuine light-ground reading, and the exclusions here are about heat being taken out of a colour, not about a light ground."
+    }
+  ]
+}
