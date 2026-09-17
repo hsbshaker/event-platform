@@ -1,0 +1,485 @@
+{
+  "version": "design_intent_sealed_challenge_v1",
+  "cases": [
+    {
+      "id": "DSC-01",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "Two night-shift bakers are marrying in their own bakehouse at ten past six in the morning, between the second bake and the third, with flour still in the air. It should feel like that room at that hour: warm, working, unfussy, and pleased about the early start rather than apologising for it.",
+        "toneKeywords": ["oven-warm", "working", "early morning", "unfussy", "enough bread for everybody"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["flour white", "proved dough beige", "scorched crust brown", "the blue of the hour before sunrise"],
+          "avoidColors": [],
+          "dominanceNotes": "Pale and floury should carry most of it, with the dark crust colour kept for edges and weight."
+        },
+        "tonalIntent": "Light overall, lifting rather than glowing, with one deep note so it does not read as washed out.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["editorial", "invitation"],
+        "compatibleTypographyCategories": ["oldstyle", "soft_serif", "transitional", "grotesk_led"],
+        "visualMotifs": ["dough scored before it goes in the oven", "the long steel bench they both work at", "flour dusted over a dark surface", "proving cloths folded over tins", "the chalked bake times on the wall board"],
+        "textureDirection": "Floury, faintly gritty surfaces and paper that looks handled. Nothing glassy or lacquered.",
+        "typographyDirection": "A working hand rather than a formal one: letters with weight and a little wear, set large and close, with the timings given as plainly as a chalked bake list.",
+        "copyTone": "Plain, funny about the hour, affectionate. No ceremony language.",
+        "hostConstraints": [],
+        "creativeGuidance": ["Let the six o clock start be the headline rather than something explained away.", "Bread can be present without becoming a cute shape repeated everywhere."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Dessie and Marek Hollenbeck",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Tuesday the 3rd of February",
+        "timeText": "6:10, and we will have eaten by eight",
+        "venueText": "the bakehouse on Sallow Row",
+        "addressText": null,
+        "localityText": null,
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 6, personalization versus generic premium output, with 7 as the secondary reading. This is the zero-constraint half of the wedding pair, and it is deliberately the most house-style-tempting event type in the set at its least house-style-shaped hour. A system carrying a wedding template will produce three quiet, well-made, slightly floral evening weddings and read as fine to a casual eye; the tell is whether any of the three is actually about six in the morning in a working bakery. No hostConstraints at all, so nothing here can be scored as constraint-following: everything this case measures has to come from the brief being read. Facts chosen so none of their strings occur in the brief prose."
+    },
+    {
+      "id": "DSC-02",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "A full-dress evening wedding for three hundred in a restored opera house, paid for without flinching and meant to look it: the orchestra in the pit, six courses, the whole gilt interior lit. It should be unembarrassed about grandeur. Restraint here would read as a smaller wedding than the one being held.",
+        "toneKeywords": ["grand", "nobody in a lounge suit", "gilded", "ceremonious", "opulent", "three hundred glasses raised"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["gold, as leaf rather than as yellow"],
+          "preferredColors": ["the cream of the boxes", "low amber lamplight", "the black of evening dress"],
+          "avoidColors": ["#6E1220", "anything pastel"],
+          "dominanceNotes": "Gold should carry weight rather than act as trim, and it needs a dark ground under it."
+        },
+        "tonalIntent": "Dark and lit from within: an evening interior, never a bright one.",
+        "toneExplicitlyConstrained": true,
+        "compatibleTonalDirections": ["dark", "mid"],
+        "compatibleFamilies": ["statement", "invitation"],
+        "compatibleTypographyCategories": ["high_contrast_editorial", "heritage", "transitional"],
+        "visualMotifs": ["the gilt proscenium arch", "tiered boxes seen from the stalls", "a printed programme for the evening", "heavy folds of the house curtain", "the small lamp on a conductor stand"],
+        "textureDirection": "Gilding, lacquer, heavy card and the nap of velvet. Surfaces that read as expensive rather than as texture for its own sake.",
+        "typographyDirection": "Tall fine-stroked capitals with real contrast, spaced the way a printed programme is spaced, and a smaller second voice for the running order of the evening.",
+        "copyTone": "Formal, warm underneath, and unapologetic about the scale of the night.",
+        "hostConstraints": ["No #6E1220 anywhere. My sister had that at hers and I would never hear the end of it.", "It has to read as an evening and not as an afternoon.", "Black tie is printed on the card and it is not a suggestion."],
+        "creativeGuidance": ["Gold should look like the building's own gilding rather than like foil.", "Grandeur is the brief. Do not quietly tasteful it downwards."],
+        "inspirationSummary": "The mother of the bride sent photographs of the opera house's own 1911 season posters and a picture of the auditorium with the house lights up, along with a menu card from a state dinner she has kept since her own wedding year."
+      },
+      "suppliedFacts": {
+        "hostNames": "Rosalind and Peter Achterberg",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Saturday the 12th of October",
+        "timeText": null,
+        "venueText": "the Aurelia Opera House",
+        "addressText": null,
+        "localityText": null,
+        "rsvpDeadlineText": "by the 1st of September"
+      },
+      "notes": "Named dimension: 3, hostConstraint preservation across all three, with 5 as the secondary reading. This is the case where lavishness is the correct answer and a muted, well-made treatment is wrong; it sits opposite DSC-01 in the wedding pair so per-type templating and constraint-following can be separated in one comparison. Three constraints of three different kinds: a machine-decidable hex exclusion, a tonal restriction the DesignIntent surface can carry, and a dress-code copy requirement that belongs downstream and must only be checked for non-contradiction. The required gold is deliberately natural language and the exclusion deliberately a hex, so the pair of directions is not confounded with the pair of notations. No required hex sits near the excluded one because there is no required hex here at all."
+    },
+    {
+      "id": "DSC-03",
+      "eventType": "memorial",
+      "identity": {
+        "creativeDirection": "A memorial for a man who ran a soul and ska station out of a caravan for thirty years, held in a scout hall with a rig far too big for the room. His sisters want people dancing by nine. The grief is real and arrives through volume and records rather than through hush.",
+        "toneKeywords": ["rig too big for the room", "the whole hall knew him", "defiant", "soulful", "irreverent", "joyful"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["the orange off the station van door"],
+          "preferredColors": ["tape-label orange", "hand-cut stencil red", "the green of the hall floor paint", "warm bulb yellow"],
+          "avoidColors": ["black", "charcoal", "funeral purple", "soft dove grey"],
+          "dominanceNotes": "Strong flat colour edge to edge. No pale ground doing the emotional work."
+        },
+        "tonalIntent": "Hot and saturated through the middle of the range: flat strong colour rather than darkness.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "light"],
+        "compatibleFamilies": ["statement", "editorial"],
+        "compatibleTypographyCategories": ["grotesk_led", "high_contrast_editorial"],
+        "visualMotifs": ["hand-cut stencil lettering off the van", "a record label with the title written on in biro", "the caravan aerial guyed to a fence post", "speaker cabinets stacked to the ceiling", "a taped-up request card"],
+        "textureDirection": "Photocopy grain, gaffer tape, sun-faded paint and the fuzz of a badly copied flyer, all of it in colour.",
+        "typographyDirection": "Flyer lettering: heavy, stencilled, slightly off register, with the running order set like a bill for the night rather than an order of service.",
+        "copyTone": "Loud, fond, rude where it wants to be. Nothing consoling.",
+        "hostConstraints": ["Nothing that looks like a funeral home. No lilies, no doves, no italic script.", "No black. He hated it at our mother's and said so for a year afterwards."],
+        "creativeGuidance": ["It can be a party and still say he is dead. Do not solve that by softening it.", "Keep his own handmade lettering nearer than anything designed."],
+        "inspirationSummary": "His sisters brought a carrier bag of the station's flyers, photocopied and stencilled and stapled, and the painted van door itself, which is coming to the hall on the night."
+      },
+      "suppliedFacts": {
+        "hostNames": "his sisters, Verity and Dawn Thackwray",
+        "honoreeName": "Errol Thackwray",
+        "honoreeDescriptionText": "thirty years of Sunday nights off a caravan roof",
+        "eventType": null,
+        "dateText": "Saturday the 30th of August",
+        "timeText": null,
+        "venueText": "the scout hall on Carbery Lane",
+        "addressText": null,
+        "localityText": null,
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 5, emotional and aesthetic range, with 7 as the secondary reading. Grief-adjacent and defiantly unserious at once, and the palette exclusion is what makes it hard: black and grey and purple are all removed, so the whole learned vocabulary of memorial design is unavailable and the model has to build three loud worlds that still say someone died. The exclusion is kept satisfiable on purpose. Tonal directions were moved to mid and light and the texture note says in colour, so no sibling is asked for a dark ground it is simultaneously forbidden. toneExplicitlyConstrained is false because the sisters restricted colour and the look of the thing, not the light or dark range."
+    },
+    {
+      "id": "DSC-04",
+      "eventType": "memorial",
+      "identity": {
+        "creativeDirection": "Forty days after her death a family is keeping the memorial for their mother in the parish hall after the Sunday liturgy, with the wheat dish already made by her cousin. Half the family does not go to church. It should sit inside the service it follows and never explain it, and be steady rather than sorrowful.",
+        "toneKeywords": ["observant", "steady", "trestle tables and paper cloths", "reverent", "cousins doing the cooking"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["#1B3A6B, the blue from the icon screen"],
+          "preferredColors": ["wheat", "beeswax cream", "the worn gold of the lamp chains"],
+          "avoidColors": ["sympathy-card mauve", "any pastel that reads as consolation"],
+          "dominanceNotes": "The blue should be present and calm rather than covering the surface."
+        },
+        "tonalIntent": "Mid, with light only where the candles are. Not dark, and not airy.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "light"],
+        "compatibleFamilies": ["invitation", "editorial"],
+        "compatibleTypographyCategories": ["heritage", "oldstyle", "transitional"],
+        "visualMotifs": ["wheat grains heaped on the memorial dish", "a hanging lamp on a long chain", "a folded list of names read aloud", "trestle tables laid with paper cloths", "the narrow arch of the icon screen"],
+        "textureDirection": "Beeswax, worn wood, thin paper and a little tarnish. Nothing polished and nothing new.",
+        "typographyDirection": "Letterforms with age in them, generously spaced, and the names set larger than anything else and never decorated.",
+        "copyTone": "Quiet, exact, unembarrassed by ritual. No comfort phrases.",
+        "hostConstraints": ["The blue has to be the blue off the icon screen, #1B3A6B. Father Anastas matched it for us.", "Do not translate or explain the service on the page. The people who need to know already know."],
+        "creativeGuidance": ["Wheat is the honest shape here. Use it once and properly.", "Keep it plainer than you think and let her name carry the page."],
+        "inspirationSummary": "Her son photographed the icon screen and the hanging lamp above her usual seat, and brought in the small printed card the parish has used for memorial names since before she was born."
+      },
+      "suppliedFacts": {
+        "hostNames": "her son, Stamatis Karavassilis",
+        "honoreeName": "Efthalia Karavassilis",
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Sunday the 19th of April",
+        "timeText": null,
+        "venueText": "the parish hall behind Saint Marina's",
+        "addressText": null,
+        "localityText": null,
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 2, faithfulness of all three to the same identity, with 3 as the secondary reading. It is the religious and observant end of the range, and it is the other half of the memorial pair: same type, materially different event, and any per-type memorial template will show up as overlap with DSC-03 despite the two briefs having almost nothing in common. Carries the exact required hex in the host's own voice, which is the machine-decidable required-colour direction. Second constraint is downstream-only: a DesignIntent has no field for explanatory copy, so its only obligation is not to encode a design that depends on explaining the rite. Nothing in the notes asks this stage to emit content."
+    },
+    {
+      "id": "DSC-05",
+      "eventType": "civic ceremony",
+      "identity": {
+        "creativeDirection": "The borough is reopening the footbridge the floods took two winters ago and naming it for the lock-keeper who kept people crossing while it was gone. Twenty minutes at lunchtime, four players from the town band, and the ribbon cut by the eleven-year-old who won the schools competition. Municipal in the good sense: public, plain, and glad the crossing is back.",
+        "toneKeywords": ["civic", "plain-spoken", "the whole town's bridge", "practical", "proud"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["works-department yellow", "wet slate", "river brown", "the green of the flood meadow"],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Mid and daylit, the colour of a working riverbank in March.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "light"],
+        "compatibleFamilies": ["editorial", "statement"],
+        "compatibleTypographyCategories": ["grotesk_led", "transitional", "oldstyle"],
+        "visualMotifs": ["the new deck seen end on", "a surveyor level line across the span", "the winning drawing in pencil", "high-water marks left on the wall", "a scaffold plank and a rope ribbon"],
+        "textureDirection": "Galvanised metal, wet timber, noticeboard laminate and drawing paper.",
+        "typographyDirection": "Signage plainness: even weight, wide setting, and times and names given at the same size as everything else rather than ranked by importance.",
+        "copyTone": "Direct and local, with no civic pomp. Say who did what.",
+        "hostConstraints": ["The start time has to be stated plainly at the top. Most people are coming on their lunch break.", "No sponsor or contractor logos anywhere on it.", "The pupil who won is named on the page, not called a local schoolchild."],
+        "creativeGuidance": ["Do not dress this as a festival. It is twenty minutes and a ribbon.", "The lock-keeper's name is the point of the day."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Ferrisbrook Borough Council",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Friday the 7th of March",
+        "timeText": "12:40pm, and it will be over by one",
+        "venueText": "the north landing of the new footbridge",
+        "addressText": null,
+        "localityText": "Ferrisbrook",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 9, downstream suitability for materially different CompositionTrees, with 3 as the secondary reading. This is the case built almost entirely out of downstream-only constraints, which is fairness rule 3 in its purest form: all three entries are authoritative, none of them is expressible in seven design fields, and a checker that fails a DesignIntent for their absence is measuring the wrong stage. What is scoreable is non-contradiction, and the trap is real: a system that answers a civic brief with a grand commemorative treatment full of crests and sponsor-shaped panels contradicts the second constraint by design semantics rather than by wording. Civic plainness is also a register a premium house style has no equipment for."
+    },
+    {
+      "id": "DSC-06",
+      "eventType": "farewell party",
+      "identity": {
+        "creativeDirection": "Four brothers are giving their father's 1989 estate car a proper funeral in the yard behind the garage: eulogies, a slideshow of every holiday it survived, and the recovery truck taking it away at nine. The joke is entirely sincere. It has to hold both halves, a straight-faced order of service for a car, without winking so hard that the grief under it disappears.",
+        "toneKeywords": ["deadpan", "fond", "absurd", "grieving", "boisterous"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["the car's faded bottle green", "oil-stain iridescence", "hazard amber", "garage floor grey"],
+          "avoidColors": [],
+          "dominanceNotes": "One sober ground with the amber used the way a warning light is used, rarely and on purpose."
+        },
+        "tonalIntent": "Mid to dark, an evening in a yard under one work light.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "dark"],
+        "compatibleFamilies": ["invitation", "statement", "editorial"],
+        "compatibleTypographyCategories": ["heritage", "transitional", "high_contrast_editorial", "grotesk_led"],
+        "visualMotifs": ["an order of service, but for a car", "a ribbon tied to the towbar", "the odometer stopped at 341,000", "a laminated service history", "one headlamp beam across a dark yard"],
+        "textureDirection": "Funeral stationery printed in a garage: heavy card, thumbprints and a little oil at the edges.",
+        "typographyDirection": "The full solemn apparatus, small capitals and rules and a printed order of the evening, used dead straight on a subject that does not deserve it.",
+        "copyTone": "Straight-faced throughout. The comedy comes from the formality and never from jokes about it.",
+        "hostConstraints": [],
+        "creativeGuidance": ["Play the form absolutely straight. The moment it nudges you it stops being funny.", "Leave room for the fact that this is also about their dad."],
+        "inspirationSummary": "One brother sent the printed card from their father's own service, and a photograph of the car on a ferry ramp in 1997 with all four of them sitting on the roof rack."
+      },
+      "suppliedFacts": {
+        "hostNames": "the Halloran brothers",
+        "honoreeName": null,
+        "honoreeDescriptionText": "a 1989 estate that never once failed to start",
+        "eventType": null,
+        "dateText": "Saturday the 4th of October",
+        "timeText": "from seven, and she goes on the truck at nine",
+        "venueText": "the yard behind Halloran and Sons",
+        "addressText": null,
+        "localityText": null,
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 1, sibling distinctness beyond palette and font swaps, with 5 as the secondary reading. The brief fixes the register hard, deadpan formality over a comic subject, which removes the easy route to distinctness: three siblings cannot be told apart here by being solemn, medium and jolly, so any real difference has to come from the organizing idea, the funeral card against the service history against the yard at night. Second unconstrained brief in the set. The tonal risk is that a system reads funeral and produces three tasteful dark cards that forget the car, or reads car and produces three garage-signage jokes that forget the father."
+    },
+    {
+      "id": "DSC-07",
+      "eventType": "community iftar",
+      "identity": {
+        "creativeDirection": "The mosque committee and the crew of Station Twelve are keeping a shared iftar in the apparatus bay, with the engines pulled out onto the forecourt and two hundred plates laid down the middle of the floor. Everything waits on sunset and then happens at once. It should feel like a building lent, a clock watched, and a room filling with people who mostly have not met.",
+        "toneKeywords": ["two hundred plates down one floor", "strangers at the same cloth", "anticipatory", "a building lent for the evening", "waiting on the sun"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["dusk violet", "the skin of a date", "white plate and paper cloth", "engine red kept at the edge"],
+          "avoidColors": [],
+          "dominanceNotes": "The turn from daylight to lamplight is worth more here than any single colour."
+        },
+        "tonalIntent": "Begins light and ends dark. The page should plausibly sit on either side of sunset.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "dark", "light"],
+        "compatibleFamilies": ["editorial", "invitation"],
+        "compatibleTypographyCategories": ["oldstyle", "transitional", "grotesk_led", "heritage"],
+        "visualMotifs": ["a long line of cloths down the bay floor", "the roller shutter half up", "a jug and a stack of paper cups", "the painted floor markings of the bay", "dates set out in threes"],
+        "textureDirection": "Swept concrete, paper cloths, steel shutters and condensation on jugs.",
+        "typographyDirection": "Even and hospitable, with the order of the evening set as a simple sequence and nothing set as an announcement.",
+        "copyTone": "Welcoming and specific. Assume guests of both kinds and explain nothing twice.",
+        "hostConstraints": ["No pictures of people or animals anywhere on it. The committee were clear about that.", "Every dish has to say what is in it. Several of the crew's families have allergies."],
+        "creativeGuidance": ["Let the floor markings and the shutter do the visual work. No lanterns and crescents by default.", "Two hosts, named equally."],
+        "inspirationSummary": "The committee sent photographs of last year's tables in the school hall, and the watch manager sent one of the bay with the doors up at dusk and the floor freshly swept."
+      },
+      "suppliedFacts": {
+        "hostNames": "Station Twelve and the Meadowbank Road mosque committee",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "the second Saturday of the fast",
+        "timeText": null,
+        "venueText": "Station Twelve, Meadowbank Road",
+        "addressText": null,
+        "localityText": "Meadowbank",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 3, hostConstraint preservation, with 9 as the secondary reading. The two constraints deliberately land on opposite sides of the stage boundary: the depiction restriction is a motif restriction and is observable here, so all three siblings owe visible conformance, while the ingredient disclosure is menu copy with no field to live in and is deferred. Structurally unusual in two ways a design has to absorb, a start time set by the sun rather than by the hosts, and two co-hosts of different kinds who must not be ranked. The lazy failure is decorative religious shorthand: a system that reaches for lanterns and crescents has ignored both the guidance and the room."
+    },
+    {
+      "id": "DSC-08",
+      "eventType": "family gathering",
+      "identity": {
+        "creativeDirection": "Two halves of a family that have not spoken in nineteen years are meeting over one meal to settle who takes on the farm. The aunt arranging it wants people to come, eat, and say true things. It should be hospitable and completely unfestive: something that does not pretend the day is a celebration and does not dramatise the rift either.",
+        "toneKeywords": ["careful", "true things said over a meal", "unfestive", "eat first, talk after", "level"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["oat", "unbleached linen", "the grey-green of a winter field", "weak tea brown"],
+          "avoidColors": [],
+          "dominanceNotes": "One quiet ground colour doing nearly all of the work."
+        },
+        "tonalIntent": "Light to mid and even, with no dramatic contrast anywhere on the page.",
+        "toneExplicitlyConstrained": true,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["editorial", "invitation"],
+        "compatibleTypographyCategories": ["transitional", "oldstyle", "soft_serif", "grotesk_led"],
+        "visualMotifs": ["one long table laid for both sides", "a field boundary drawn on a deed map", "two gates in the same hedge", "a plain place card"],
+        "textureDirection": "Unbleached paper, linen weave and pencil. Nothing glossy, and nothing distressed for effect.",
+        "typographyDirection": "Even, quiet and adult. One size relationship only, so that nothing on the page shouts at anybody.",
+        "copyTone": "Plain and unsentimental. Say what will happen and at what hour, and promise nothing about how it will go.",
+        "hostConstraints": ["Do not call it a reunion. It is a meal and a conversation.", "Nothing dark or heavy-looking. People are dreading this enough as it is."],
+        "creativeGuidance": ["I would keep it near enough to one colour and almost austere, the smallest possible amount of design.", "No warmth signalling: no hand-drawn wheat, no soft script, nothing that implies reconciliation before it has happened.", "If anything is drawn at all, make it the land rather than the family."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Philippa Mardling",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Sunday the 2nd of February",
+        "timeText": "one o clock, and the room is ours until five",
+        "venueText": "the small function room at the Wheatsheaf",
+        "addressText": null,
+        "localityText": "Corby Dene",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 4, creativeGuidance remaining advisory, with 10 as the secondary reading. The taste in this case is loud and it is all in the advisory field: three opinionated recommendations, one of them nearly a design specification. A sibling that departs from them takes no penalty, and a system that hardens them into law, or that echoes them back as though the host had said them, fails the dimension. The two real constraints are narrow and of different kinds, a correction to the words used for the event, which the concept card can observe, and a tonal restriction, which the seven fields can carry. The case is also the awkward end of the emotional range: no correct answer here is celebratory."
+    },
+    {
+      "id": "DSC-09",
+      "eventType": "overnight readathon",
+      "identity": {
+        "creativeDirection": "Eighty-four readers take fifteen minutes each, through the night, reading an out-of-print history of the town aloud in the branch library to keep its late licence in the argument. The timetable is the event. It should make a night with a shape visible, who reads when and how the hours change, rather than advertising a fundraiser.",
+        "toneKeywords": ["nocturnal", "stubborn", "eighty-four people in turn", "bookish", "wakeful"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["reading-lamp yellow", "night window blue", "buckram spine red", "index card cream"],
+          "avoidColors": [],
+          "dominanceNotes": "It should get darker as the page goes down, and end lighter than it began."
+        },
+        "tonalIntent": "A dark ground with warm pooled light, shifting toward first light at the very end.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["dark", "mid"],
+        "compatibleFamilies": ["editorial", "statement"],
+        "compatibleTypographyCategories": ["oldstyle", "transitional", "high_contrast_editorial", "grotesk_led"],
+        "visualMotifs": ["a twelve-hour rota with names ranged against times", "one lamp lit at the end of a long table", "date stamps in a column", "the arched library window from outside at night", "a book left face down on a chair"],
+        "textureDirection": "Buckram, foxed paper, rubber stamp ink and the grain of a rota sheet that has been copied too many times.",
+        "typographyDirection": "Set like a timetable that has to be read from across a room: hours ranked, names even, and nothing decorative competing with the numbers.",
+        "copyTone": "Dry, local and faintly stubborn. It is a protest and a nice evening at the same time.",
+        "hostConstraints": ["No money is taken through the site. The tin is on the desk on the night."],
+        "creativeGuidance": ["The rota is the most interesting object here. Do not bury it under atmosphere.", "Avoid the cosy reading look. This is a building being argued for."],
+        "inspirationSummary": "The branch librarian sent a photograph of the old borrowing ledger and of the pencilled rota sheet pinned beside the desk, already filled in as far as three in the morning."
+      },
+      "suppliedFacts": {
+        "hostNames": "the Friends of Netherfold Library",
+        "honoreeName": null,
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Friday the 21st of November",
+        "timeText": null,
+        "venueText": "Netherfold branch library",
+        "addressText": null,
+        "localityText": "Netherfold",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 8, useful differences in organizing idea and visual language and experience, with 9 as the secondary reading. The event's own structure is a list of eighty-four names against twelve hours, which is a structurally unusual thing for a design to be built around and a poor fit for any hero-and-sections habit: the three siblings should differ in what they make the spine of the night, the rota, the hours, or the book itself. The single constraint is payment behaviour, which is downstream-only and can only be checked for non-contradiction here; a concept whose whole idea is a sponsorship ladder would contradict it without ever mentioning money."
+    },
+    {
+      "id": "DSC-10",
+      "eventType": "graduation",
+      "identity": {
+        "creativeDirection": "Fourteen men are finishing the reading and numbers programme in the education wing, with the ceremony in the gym and their families on folding chairs. It is a real graduation and everyone in the room knows exactly where they are standing. It should be as formal and as unironic as a university would be, with nothing in it that reminds anybody of the building.",
+        "toneKeywords": ["dignified", "as a university would do it", "earned", "families in folding chairs", "unsentimental"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["ink blue", "certificate cream", "one strong red for a seal"],
+          "avoidColors": ["#8C9A8E", "institutional pale green of any kind"],
+          "dominanceNotes": "Deep and saturated rather than pale. The page should look bound rather than issued."
+        },
+        "tonalIntent": "Mid to dark and substantial: a certificate and not a notice.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "dark"],
+        "compatibleFamilies": ["invitation", "editorial"],
+        "compatibleTypographyCategories": ["heritage", "transitional", "high_contrast_editorial", "oldstyle"],
+        "visualMotifs": ["a seal pressed into thick paper", "fourteen names in a column, all the same size", "a ribbon threaded through a punched hole", "a lectern with a glass of water on it"],
+        "textureDirection": "Rag paper, a pressed seal and book cloth. Nothing photocopied and nothing municipal.",
+        "typographyDirection": "Ceremonial and completely straight: the names set as large as the title, and the title set without flourish.",
+        "copyTone": "Formal and warm, and free of anything that congratulates them for overcoming themselves.",
+        "hostConstraints": ["Do not use the word inmate anywhere, in any form.", "Not #8C9A8E. That green is on every wall in here and the men look at it all day.", "No photographs of anyone who is finishing the programme."],
+        "creativeGuidance": ["Treat it exactly as a university ceremony would be treated. The dignity is the whole design.", "No bars, keys, chains, open doors or birds. Nothing that makes a metaphor out of the place."],
+        "inspirationSummary": "The coordinator sent over a photograph of the certificate the programme hands out every year, a plain bordered sheet with a pressed seal, and mentioned that the men asked for gowns, for which there is no budget."
+      },
+      "suppliedFacts": {
+        "hostNames": "the education team at Ardleigh Vale",
+        "honoreeName": null,
+        "honoreeDescriptionText": "fourteen men and two years of Tuesday evenings",
+        "eventType": null,
+        "dateText": "Thursday the 15th of May",
+        "timeText": "2pm, and the wing has to be clear by four",
+        "venueText": "the gym at Ardleigh Vale",
+        "addressText": null,
+        "localityText": null,
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 10, no invented host facts and no advisory promoted to law, with 3 as the secondary reading. Three constraints on three different levels again: a restriction on the language of the concept card, which is observable here and is the most interesting one, since a system that writes vividly about the setting can violate it while sounding sympathetic; a machine-decidable hex exclusion; and a photography prohibition that is downstream. Formality is the correct answer for a non-premium institutional event, which is the inverse of the usual trap, and the guidance names the metaphors a well-meaning system will reach for so that reaching for them is a legible failure rather than a matter of taste."
+    },
+    {
+      "id": "DSC-11",
+      "eventType": "birthday party",
+      "identity": {
+        "creativeDirection": "A hundredth birthday for the woman who sold ferry tickets from the same booth for fifty-one years, held in the upper waiting room between two sailings so that it lasts exactly a hundred minutes. Half the harbour will come through. Everything on it should come off the terminal itself, timetables and salt and gloss paint, and a century should be treated as a fact rather than as a wonder.",
+        "toneKeywords": ["salty", "matter-of-fact", "everybody waves at the booth", "weathered", "open to anyone off the pier"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["ferry hull white", "harbour green", "rust bloom", "ticket roll pink"],
+          "avoidColors": [],
+          "dominanceNotes": ""
+        },
+        "tonalIntent": "Light and open, the flat bright grey of a harbour morning.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["editorial", "statement", "invitation"],
+        "compatibleTypographyCategories": ["grotesk_led", "transitional", "heritage"],
+        "visualMotifs": ["a printed sailing timetable", "the booth window with its worn sill", "the perforated edge of a ticket", "gloss paint laid over old rivets", "the crossing drawn as a line between two points"],
+        "textureDirection": "Gloss enamel over rust, salt haze and the soft edge of a much-handled roll of tickets.",
+        "typographyDirection": "Timetable clarity: numbers you could read across a waiting room, and names given the same authority as the sailing times.",
+        "copyTone": "Brisk and fond, the way the harbour talks about her.",
+        "hostConstraints": ["Nobody is to call her young at heart. She has heard it and she did not care for it."],
+        "creativeGuidance": ["A hundred can be a number on a timetable rather than a balloon.", "The booth is more her than any photograph of her would be."],
+        "inspirationSummary": "Her granddaughter sent photographs of the booth window, a strip of old tickets, and the enamel sailing board still hanging in the waiting room with the summer times painted over the winter ones."
+      },
+      "suppliedFacts": {
+        "hostNames": "Marguerite Vandersloot's grandchildren",
+        "honoreeName": "Marguerite Vandersloot",
+        "honoreeDescriptionText": "fifty-one years on the ticket window and never once late",
+        "eventType": null,
+        "dateText": "Saturday the 8th of November",
+        "timeText": "between the 11:40 and the 1:20",
+        "venueText": "the upper waiting room at Bellhaven Point terminal",
+        "addressText": null,
+        "localityText": "Bellhaven Point",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 10, no invented host facts, with 6 as the secondary reading. This case carries the fullest set of supplied facts in the corpus precisely because the brief is so evocative that a model is tempted to furnish it: a name, a place, a time, a hundred years. None of those values occurs anywhere in the brief prose, so any appearance in a concept card is an invention rather than an echo, and every value is long and distinctive enough that it cannot surface as a fragment of ordinary writing. The single constraint restricts a phrase on the card, which this stage can observe. Materially different from DSC-12 in every respect except the two words naming the type."
+    },
+    {
+      "id": "DSC-12",
+      "eventType": "birthday party",
+      "identity": {
+        "creativeDirection": "A thirteenth birthday run as an actual race: the circuit booked from half seven before it opens to the public, twelve on the grid, transponders on, a podium and a jug of squash. She races properly and does not want a party pretending to be one. It should read as a race meeting, grid and timings and results, with the birthday underneath it.",
+        "toneKeywords": ["competitive", "fast", "kart noise off the barriers", "precise", "teenage"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["#FF4F00, the team orange"],
+          "preferredColors": ["kerb white and red", "tyre black", "timing-screen green"],
+          "avoidColors": ["pastel pink", "anything that looks like a birthday card"],
+          "dominanceNotes": "The orange should be the loudest thing on the page and it should be used flat."
+        },
+        "tonalIntent": "Bright and hard-edged, made of daylight and paint, with no atmosphere anywhere.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["statement", "editorial"],
+        "compatibleTypographyCategories": ["grotesk_led", "high_contrast_editorial"],
+        "visualMotifs": ["a grid sheet with twelve positions on it", "sector times ranged in a column", "kerb stripes", "transponder numbers", "the top step of the podium stencilled 1"],
+        "textureDirection": "Vinyl decals, scuffed kerb paint, printed timing sheets and rubber dust.",
+        "typographyDirection": "Numbers first and enormous, names in a hard even face, and results set as results rather than as decoration.",
+        "copyTone": "Fast, flat and slightly cocky. Her voice and not a parent's.",
+        "hostConstraints": ["It has to carry #FF4F00. That is the team orange and she is not negotiating on it.", "Nothing that reads as a little girl's party."],
+        "creativeGuidance": ["The timing sheet says more about her than a birthday device could.", "Thirteen can be a race number rather than a count of candles."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Dermot Sowerbutts",
+        "honoreeName": "Nyala Sowerbutts",
+        "honoreeDescriptionText": null,
+        "eventType": null,
+        "dateText": "Sunday the 6th of July",
+        "timeText": "half seven, on track by eight",
+        "venueText": "Fenwold Kart Circuit",
+        "addressText": null,
+        "localityText": null,
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 1, sibling distinctness beyond palette and font swaps, with 7 as the secondary reading. The second required hex in the corpus and the second aesthetic-boundary constraint, and the palette is nearly dictated, which is the point: with the orange fixed and loud, three siblings cannot be separated by colour and have to be separated by idea. It is the other half of the birthday pair and shares nothing with DSC-11 but the label, so same-type distance here is a clean read on per-type templating. The exclusion is natural language and nowhere near the required hex, so the case is satisfiable. Deliberately the least tasteful brief in the set: a system with any premium reflex will make it handsome and lose the child."
+    }
+  ]
+}
