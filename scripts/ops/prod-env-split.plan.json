@@ -5,11 +5,11 @@
   },
   "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
     "type": "encrypted",
-    "fromSupabase": "publishable"
+    "fromSupabase": "anon"
   },
   "SUPABASE_SERVICE_ROLE_KEY": {
     "type": "sensitive",
-    "fromSupabase": "secret"
+    "fromSupabase": "service_role"
   },
   "APP_ENCRYPTION_KEY": {
     "type": "sensitive",

@@ -81,7 +81,13 @@ async function resolveValues(entries) {
   return entries.map(([key, spec]) => {
     let value = spec.value;
     if (spec.fromSupabase) {
-      value = keys.find((k) => k.type === spec.fromSupabase)?.api_key;
+      // Legacy keys are typed "legacy" and told apart by name ("anon", "service_role"); the newer
+      // ones are typed "publishable"/"secret". Match either, because which one a project accepts
+      // is not a matter of taste: PostgREST answers 401 to an `sb_secret_…` key on these
+      // projects, so every admin and session call needs the legacy JWT.
+      value = keys.find(
+        (k) => k.type === spec.fromSupabase || k.name === spec.fromSupabase,
+      )?.api_key;
       if (!value) {
         console.error(`Supabase project has no ${spec.fromSupabase} key`);
         process.exit(1);
@@ -116,6 +122,25 @@ for (const [key, spec] of await resolveValues(Object.entries(plan))) {
       (e.target ?? []).includes("production") &&
       (e.target ?? []).includes("preview"),
   );
+  const productionOnly = envs.filter(
+    (e) => e.key === key && (e.target ?? []).join() === "production",
+  );
+
+  // Already split: correct the production value in place. That makes a re-run the way a wrong
+  // value gets fixed, rather than by deleting and recreating the entry.
+  if (combined.length === 0 && productionOnly.length === 1) {
+    console.log(`  ${key}`);
+    console.log(`     already split; update production value, type=${spec.type}`);
+    if (!APPLY) continue;
+    const updated = await api(`/v9/projects/${PROJECT}/env/${productionOnly[0].id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ value: spec.value, type: spec.type }),
+    });
+    console.log(updated.ok ? "     done" : `     ! PATCH failed: HTTP ${updated.status}`);
+    if (!updated.ok) failures++;
+    continue;
+  }
+
   if (combined.length !== 1) {
     console.log(`  ~ ${key}: expected one combined entry, found ${combined.length} — skipped`);
     continue;
