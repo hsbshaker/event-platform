@@ -115,7 +115,7 @@ describe("the spent v1 corpus can be re-run without touching its first-run evide
 });
 
 describe("no set can write over evidence that already exists", () => {
-  it("protects every run that has happened, and the one that has not stays writable", () => {
+  it("protects every run that has happened, and none is left writable", () => {
     expect([...PROTECTED_RESULT_DIRS]).toEqual([
       "docs/model-evals/results/creative-understanding-v1",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v1",
@@ -123,13 +123,14 @@ describe("no set can write over evidence that already exists", () => {
       "docs/model-evals/results/creative-understanding-sealed-challenge-v1-v5-regression",
       "docs/model-evals/results/creative-understanding-holdout-v1",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
+      "docs/model-evals/results/clarification-rerun-behaviour-v1",
     ]);
-    // Every creative-understanding set is spent and protected. Phase 4B's rerun-behaviour set is
-    // the one exception and must stay writable until its own run happens, at which point its
-    // directory joins the list in the same change that commits its evidence (T14) — the rule the
-    // eval ledger states, applied again rather than remembered.
+    // Every creative-understanding set was already spent and protected. Phase 4B's rerun-behaviour
+    // set was the one exception, and it stayed writable only until its own run happened: T13 ran it
+    // once and T14 added its directory here in the same change that committed the evidence — the
+    // rule the eval ledger states, applied again rather than remembered. Nothing is writable now.
     const writable = sets.filter((set) => !isProtectedOutput(EVAL_SETS[set].out));
-    expect(writable).toEqual(["rerunBehaviour"]);
+    expect(writable).toEqual([]);
   });
 
   it("protects every directory that already holds a completed run's evidence", () => {
@@ -197,12 +198,20 @@ describe("no set can write over evidence that already exists", () => {
   });
 
   it("aims only already-run sets at protected evidence, and refuses each of them", () => {
-    // Each set joined this list as its v5 run finished, `challenge2` last. All five can still be
-    // invoked from npm; each now stops at the refusal rather than writing, which is the point.
+    // Each set joined this list as its run finished, `rerunBehaviour` last at T14. All six can
+    // still be invoked from npm; each now stops at the refusal rather than writing, which is the
+    // point.
     const aimed = sets.filter((s) =>
       (PROTECTED_RESULT_DIRS as readonly string[]).includes(EVAL_SETS[s].out),
     );
-    expect(aimed).toEqual(["regression", "holdout", "challenge", "spentChallenge", "challenge2"]);
+    expect(aimed).toEqual([
+      "regression",
+      "holdout",
+      "challenge",
+      "spentChallenge",
+      "rerunBehaviour",
+      "challenge2",
+    ]);
     for (const set of aimed) expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(true);
     expect(EVAL_SETS.challenge.label).toMatch(/SPENT/);
     expect(EVAL_SETS.challenge.label).toMatch(/immutable and this path is refused/i);

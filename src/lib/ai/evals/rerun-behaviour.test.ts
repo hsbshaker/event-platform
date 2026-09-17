@@ -330,15 +330,16 @@ describe("paths and ownership are fixed before the cases are known", () => {
     expect(RERUN_BEHAVIOUR_OUT).toBe("docs/model-evals/results/clarification-rerun-behaviour-v1");
   });
 
-  it("is the one output path an eval may still write to", () => {
-    // Everything else is spent and protected. This joins them in the same change that commits its
-    // evidence (T14), never as a follow-up.
-    expect(isProtectedOutput(RERUN_BEHAVIOUR_OUT)).toBe(false);
+  it("was the last writable output path, and is protected now its run has happened", () => {
+    // Everything else was already spent and protected. This joined them in the same change that
+    // committed its evidence (T14), never as a follow-up — so no set can write anywhere now, and
+    // the directory that holds the one T13 run is on disk and refused as an output.
+    expect(isProtectedOutput(RERUN_BEHAVIOUR_OUT)).toBe(true);
     for (const set of Object.keys(EVAL_SETS)) {
       const writable = !isProtectedOutput(EVAL_SETS[set as keyof typeof EVAL_SETS].out);
-      expect({ set, writable }).toEqual({ set, writable: set === "rerunBehaviour" });
+      expect({ set, writable }).toEqual({ set, writable: false });
     }
-    expect(existsSync(`${ROOT}${RERUN_BEHAVIOUR_OUT}`)).toBe(false);
+    expect(existsSync(`${ROOT}${RERUN_BEHAVIOUR_OUT}`)).toBe(true);
   });
 
   it("belongs to its own runner, and the other runner refuses it", () => {
