@@ -1048,9 +1048,41 @@ Invariant is a stop condition, not a guideline.
 **Inputs** — from the **authoritative** identity only (branded type, §A.1): `compatibleFamilies`,
 `compatibleTonalDirections`, `compatibleTypographyCategories`, and what `§7.7` needs for hierarchy.
 Not the raw prompt (already test-enforced). Not `suppliedFacts` — the planner plans creative
-separation; facts belong to content fit. `hostConstraints` pass through untouched and no directive
-may contradict one; `creativeGuidance` is advisory (`model-contracts.md §4`) and may be carried as
-guidance a sibling is free to reconsider, never converted into a constraint — asserted by test.
+separation; facts belong to content fit. `hostConstraints` pass through untouched and the planner
+derives nothing from them; `creativeGuidance` is advisory (`model-contracts.md §4`) and may be
+carried as guidance a sibling is free to reconsider, never converted into a constraint — asserted
+by test.
+
+**Who owns host-constraint conformance, stated precisely because an earlier draft of this
+paragraph overstated it.** That draft said "no directive may contradict one", which is a property
+this stage cannot honestly establish. `hostConstraints` are free text and **authoritative**
+(`spec.md §7.5`: "later stages must respect it unless the host changes it"), and some are
+structural — *no registry section*, *keep everything on one continuous page*, *nothing dramatic at
+the top*. A structural directive can contradict one of those without naming a colour, a font, a
+size or a word, so "the directive only uses structural enums" bounds what it can assert but proves
+nothing about entailment. Nor may that gap be closed by pattern-matching the text:
+`model-contracts.md §4` makes prompt-grounding the gating check precisely because it is "decidable
+without a semantic classifier", and records that "a probe that guesses at entailment is what
+produced the baseline's only mechanical failure". `spec.md §7.7`, the planner's binding source,
+asks it for families, tones, typography, hierarchy, a directive and an allotment — and says nothing
+about constraint conformance.
+
+So the ownership is: the **directive is subordinate structural guidance, never host law**, and
+where it and a host constraint conflict the constraint wins and the directive yields. The stages
+that must respect a constraint are the ones that can read it. The DesignIntent call receives
+`hostConstraints` inside the brief (§E: "every `hostConstraint` respected by all three"), §3.2
+checks every constraint is traceable into all three, and §3.7 makes "a `hostConstraint` eroded or
+contradicted" a **Fail** for the batch. What the planner is held to, and all it is held to, is that
+it carries both lists through unchanged, derives nothing from either, and never promotes guidance
+or a directive into a constraint.
+
+**One gap this exposes, recorded rather than asserted away.** `GenerateCompositionInput` is
+`{ designIntent, capabilities, directive, reprompt? }` — it carries no `hostConstraints`. So a
+constraint whose subject is *structure* has no typed path to the stage that authors structure: it
+survives only insofar as the DesignIntent the model wrote while seeing it encodes it, and
+DesignIntent has no structural field. That is a real 4D question about the composition input
+contract, not a planner defect and not something to fix by widening the planner. It is named here
+so the sentence above is a statement of ownership rather than another aspiration.
 
 **Output** — per `spec.md §7.7`: a distinct compatible **family** where possible, then distinct
 **tonal direction** where the brief allows, then distinct **typography category** and
