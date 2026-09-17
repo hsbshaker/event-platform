@@ -1985,6 +1985,28 @@ problem is well-trodden rather than evidence of reuse, and which is exactly why 
 **T21 is therefore written without reading `docs/model-evals/design-intent-validation.json`**, and
 that is a condition of the task rather than a courtesy.
 
+**T21 reaffirmation under the corrected reviewer context.** The reviewer packet is part of the
+pre-registered benchmark, so reopening it reopens the ordering question: was the implementation
+still frozen when the replacement challenge was authored? Verified rather than assumed, after
+T19C and before any replacement author started — every model-visible T21 artifact is
+byte-identical to its accepted state at `fc1ae8b`, by `git diff --quiet` on each path:
+
+| artifact | sha256 (first 16) |
+| --- | --- |
+| `docs/model-prompts/design-intent.system.md` | `a268cbd1b97d3e11` |
+| `docs/model-schemas/design-intent.wire.schema.json` | `60c5907bbe44dac4` |
+| `src/lib/ai/openai/design-intent.ts` | `2447d972dab0fa8d` |
+| `src/lib/ai/openai/design-intent-input.ts` | `7d31907b5db11888` |
+| `src/lib/ai/evals/design-intent-seam.ts` | `09723fd9435ff468` |
+| `src/lib/generation/design-intent-cost.ts` | `47bed9bf280f7531` |
+
+Also identical, checked the same way: both generated schemas, the runner adapter, `contract.ts`,
+`narrowing.ts`, `validate.ts`, `schemas.ts`, `wire-schema.ts`, `policy.ts`, `input.ts`,
+`versions.ts` and `planner.ts`. So the prompt, schema, provider boundary, input assembly, seam,
+model configuration and cost profile are unchanged, and **T21 was not "improved" in response to
+the correction** — which was the point of checking. The correction moved what a human reviewer is
+told; it moved nothing the model is sent.
+
 **The first sealed challenge was invalidated before it was frozen, and it was the reviewer's
 context that failed rather than the cases.** `c6ccf2a` authored twelve cases, `DSC-01`–`DSC-12`,
 digest `080cbaa1…`, 43,482 bytes. They passed the gated structural contract, the leakage scan
