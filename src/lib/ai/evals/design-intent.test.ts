@@ -164,6 +164,82 @@ describe("the gate is the plan's own words, not a paraphrase of them", () => {
     expect(good?.definition).toContain("is a diagnosis, not a pass");
     expect(good?.reviewerFacing).not.toContain("not a pass");
   });
+
+  /**
+   * The drift check, in the direction the subset test cannot see.
+   *
+   * Everything above proves the module is a **subset** of `§3.7` — every string it holds is still
+   * in the plan. Nothing above notices the plan gaining an S10, a seventh `Excellent` requirement
+   * or a third systemic class: the module would still be a faithful subset of a gate that had
+   * grown a rule it does not implement, and the freeze would report green while the two diverged.
+   *
+   * So `§3.7` is pinned both ways: its class table verbatim, a structural count of everything the
+   * module enumerates, and a hash of the whole section. `§3.7` is frozen at T19 — *"Moving either
+   * after results voids the gate"* — so a change to it is never routine, and this failing is the
+   * correct outcome of one.
+   */
+  describe("and the plan has not grown a rule the module does not implement", () => {
+    const from = PLAN.indexOf("## 3.7 ");
+    const to = PLAN.indexOf("## 3.8 ");
+    const SECTION = PLAN.slice(from, to);
+
+    it("finds the section where it has always been", () => {
+      expect(from).toBeGreaterThan(-1);
+      expect(to).toBeGreaterThan(from);
+    });
+
+    it("carries both class rows verbatim, with exactly the categories the module assigns", () => {
+      // The row, not only the threshold cell: a category moved between classes changes which
+      // number applies to it, and the `why` strings alone would not notice.
+      const correctness =
+        "| **Correctness** | S3 (`creativeGuidance` promoted to host law), S4 (host constraints " +
+        "eroded or contradicted) | **one batch.**";
+      const taste =
+        "| **Taste / convergence** | S1, S2, S5, S6, S7, S8, **S9** | **two batches** |";
+      expect(flat(SECTION)).toContain(flat(correctness));
+      expect(flat(SECTION)).toContain(flat(taste));
+      for (const klass of SYSTEMIC_CLASSES) {
+        expect({ id: klass.id, categories: [...klass.categories] }).toEqual(
+          klass.id === "correctness"
+            ? { id: "correctness", categories: ["S3", "S4"] }
+            : {
+                id: "taste/convergence",
+                categories: ["S1", "S2", "S5", "S6", "S7", "S8", "S9"],
+              },
+        );
+      }
+    });
+
+    it("enumerates exactly what the module enumerates", () => {
+      const count = (pattern: RegExp) => (SECTION.match(pattern) ?? []).length;
+      expect({
+        systemicRows: count(/^\| (?:\*\*)?S\d(?:\*\*)? \|/gm),
+        bandRows: count(/^\| \*\*(?:Excellent|Good|Borderline|Fail)\*\* \|/gm),
+        wowableCriterionRows: count(/^\| [1-5] \| \*\*/gm),
+        classRows: count(/^\| \*\*(?:Correctness|Taste \/ convergence)\*\* \|/gm),
+        // 6 Excellent requirements + 4 systemic conditions + 3 reviewer products. A seventh
+        // requirement moves this number, which is the point.
+        numberedItems: count(/^\d+\. /gm),
+      }).toEqual({
+        systemicRows: 9,
+        bandRows: 4,
+        wowableCriterionRows: 5,
+        classRows: 2,
+        numberedItems: 13,
+      });
+    });
+
+    it("does not change at all", () => {
+      expect(
+        createHash("sha256").update(SECTION, "utf8").digest("hex"),
+        "docs/phase-4b-plan.md §3.7 changed. It is the one normative copy of the 4C gate and it " +
+          "was frozen at T19, before any corpus was authored and before the DesignIntent prompt " +
+          "was written. §3.7 itself: moving either half after results voids the gate. If this " +
+          "change is deliberate and approved, the module beside it has to move with it — do not " +
+          "update this hash on its own.",
+      ).toBe("daa9c9f64ea3a2dd200afb4b3860f0e53cb70e18b0b5c77ae1f153055d238f0b");
+    });
+  });
 });
 
 /* ------------------------------------------------------------------ the freeze */
@@ -264,7 +340,7 @@ describe("nothing frozen at T19 changes afterwards", () => {
         "Excellent's six requirements, the minimum-wowable question and its five criteria, S1–S9, " +
         "the class thresholds, the corpus size and composition, and the GO/NO-GO rule. All of it " +
         "was frozen at T19 before any case existed. Do not update this hash to silence the failure.",
-    ).toBe("3b53b0f58e3970f2c18efbcfaee48c2aef50fa7fcdeb7e51fdfb2889f9c35be9");
+    ).toBe("cc680344f9b60bac7c5d9c5239eb89f95f4524fe80e4d01ccb7ebd1d0d43f345");
   });
 
   /**
@@ -283,7 +359,7 @@ describe("nothing frozen at T19 changes afterwards", () => {
         "corpus structural contract, the mechanical checks and their frozen floors, the blind " +
         "artifact and the reviewer packet, all frozen at T19 before the cases existed. Changing a " +
         "criterion after seeing the cases is the thing this set exists not to do.",
-    ).toBe("b039b804445019d477684d74dd1a3979a971572a05ce49df5ac3f0fc5ed5a78d");
+    ).toBe("cb6d3c286e0fc15a455287b541910602321dbb4cb1a8ac5657fbdecb6aefaffa");
   });
 
   it("does not change at all — the runner", () => {
@@ -293,7 +369,7 @@ describe("nothing frozen at T19 changes afterwards", () => {
         "authored, and it has no permitted edit: T21 repoints " +
         "src/lib/ai/evals/design-intent-seam.ts instead. Do not update this hash to silence the " +
         "failure.",
-    ).toBe("f64bf5e9b2130d2fdda33cfa82898141229427fe6bc4b0df4b115fcb7b645023");
+    ).toBe("19fa48039ed8eaac84068610fbe8c4c5b62b49a3931d6579f2c1f7e766b7f51e");
   });
 
   it("keeps the seam one binding, so T21's only permitted touch stays reviewable", () => {
@@ -309,8 +385,28 @@ describe("nothing frozen at T19 changes afterwards", () => {
         (line) => line.trim() && !line.trim().startsWith("*") && !line.trim().startsWith("/*"),
       );
     expect(code.length).toBeLessThanOrEqual(8);
-    expect(seam).toContain("designIntentRunnerUnavailable");
     expect(flat(seam)).toContain("T21");
+
+    /**
+     * Bump-tolerant, the way Phase 4B's equivalent guard was.
+     *
+     * T21's whole permitted touch is repointing this binding at the production DesignIntent
+     * boundary. A test that demanded the refusal by name would have to be edited in the same
+     * commit — which makes "T21 changes one line and nothing else in the frozen harness" untrue,
+     * and puts a benchmark-integrity edit inside the implementation freeze. So the assertion is
+     * the *shape* of the binding: it points at the refusal, or at a module under
+     * `src/lib/ai/openai/design-intent`, and at nothing else.
+     */
+    const bindsRefusal = seam.includes("designIntentRunnerUnavailable");
+    const bindsProduction = /from "[^"]*openai\/design-intent[\w.-]*"/.test(seam);
+    expect(
+      { bindsRefusal, bindsProduction },
+      "the seam must bind exactly one of the T19 refusal or a production DesignIntent boundary " +
+        "under src/lib/ai/openai/design-intent",
+    ).toSatisfy(
+      (bound: { bindsRefusal: boolean; bindsProduction: boolean }) =>
+        bound.bindsRefusal !== bound.bindsProduction,
+    );
   });
 
   it("has a command per set, and each names its set explicitly", () => {
@@ -449,18 +545,36 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
     expect(rotate).toBeGreaterThan(-1);
     expect(rotate).toBeLessThan(RUNNER.indexOf("for (const [position, testCase]"));
     expect(RUNNER).toContain("kept the previous");
-    for (const file of ["mechanical-report.md", "blind-review.md", "reviewer-packet.md"]) {
-      expect(RUNNER).toContain(`rotateAside(OUT, "${file}", runStartedAt)`);
+    expect(RUNNER).toContain('rotateAside(OUT, "mechanical-report.md", runStartedAt)');
+    for (const file of ["blind-review.md", "reviewer-packet.md"]) {
+      expect(RUNNER).toContain(`rotateAside(REVIEW, "${file}", runStartedAt)`);
     }
   });
 
   it("writes the artifact before the report that signals completion", () => {
-    const artifact = RUNNER.indexOf('path.join(OUT, "blind-review.md")');
-    const packet = RUNNER.indexOf('path.join(OUT, "reviewer-packet.md")');
+    const artifact = RUNNER.indexOf('path.join(REVIEW, "blind-review.md")');
+    const packet = RUNNER.indexOf('path.join(REVIEW, "reviewer-packet.md")');
     const report = RUNNER.indexOf('path.join(OUT, "mechanical-report.md")');
     expect(artifact).toBeGreaterThan(-1);
     expect(packet).toBeGreaterThan(artifact);
     expect(report).toBeGreaterThan(packet);
+  });
+
+  /**
+   * The reviewer's files live in a subdirectory, and ours does not.
+   *
+   * `mechanical-report.md` carries the check details, the acceptance criteria and the
+   * batch-label-to-case-id join. Handing over "the results directory" with that file beside the
+   * artifact would hand the reviewer part of what `§3.8` withholds — so what gets handed over is
+   * `review/`, and the rest stays outside it. The blinding scan below covers the report as well,
+   * because a directory layout is a convention and a scan is a test.
+   */
+  it("separates the reviewer's directory from ours", () => {
+    expect(RUNNER).toContain('const REVIEW = path.join(OUT, "review")');
+    expect(RUNNER).toContain("mkdirSync(REVIEW, { recursive: true })");
+    expect(RUNNER).not.toContain('path.join(OUT, "blind-review.md")');
+    expect(RUNNER).not.toContain('path.join(OUT, "reviewer-packet.md")');
+    expect(RUNNER).not.toContain('path.join(REVIEW, "mechanical-report.md")');
   });
 
   it("stamps the completion signal with the run it completed", () => {
@@ -479,6 +593,85 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
 });
 
 /* ------------------------------------------------------------------ the blinding guarantee */
+
+/**
+ * Everything in the gate's arithmetic, hunted three ways, in any text that could reach a reviewer.
+ *
+ * It does not look for one sentinel string. It searches for the phrases `§3.8` names, for the
+ * numbers the gate is made of — read from the gate module's own constants, so a later edit that
+ * changes a threshold cannot slip past a hardcoded search — and for the frozen arithmetic texts
+ * whole.
+ *
+ * `measurementNumbersAllowed` is the one concession, and it is narrow. The mechanical report
+ * legitimately prints measured numbers, and a ΔE of `12.4` would trip a bare `\b12\b`. The shaped
+ * searches — `12 batches`, `12 / 12`, `12 of` — stay on for both, because none of those is a
+ * measurement.
+ *
+ * `§3.8`: the reviewer *"necessarily learns the corpus size by rating every batch; what is withheld
+ * is the **rule applied to it**"*.
+ */
+function leakedArithmetic(
+  text: string,
+  options: { measurementNumbersAllowed: boolean; canonPointersAllowed?: boolean },
+): string[] {
+  const found: string[] = [];
+
+  /** The rule itself, in any wording. Forbidden in anything a reviewer could read. */
+  const phrases = [
+    "12 / 12",
+    "12/12",
+    "twelve of twelve",
+    "does not pass",
+    "is a diagnosis",
+    "NO-GO",
+    "NO GO",
+    "no-go",
+    "go/no-go",
+    "distribution rule",
+    "veto",
+    "twelve batches",
+    "outnumbers",
+    // A citation of canon, and the bare word for what the numbers are — not the numbers. Our own
+    // report names the normative copy so a reader knows where the gate lives, and says a category
+    // met no threshold without saying what any threshold is. The packet carries neither: telling a
+    // reviewer "the rule is in §3.7" tells them there is a rule and what to go and look for.
+    ...(options.canonPointersAllowed ? [] : ["threshold", "phase-4b-plan", "model-contracts"]),
+  ];
+  for (const phrase of phrases) {
+    if (text.toLowerCase().includes(phrase.toLowerCase())) found.push(`phrase: ${phrase}`);
+  }
+
+  const numbers = [
+    String(SEALED_CORPUS_BATCHES),
+    ...new Set(Object.values(SYSTEMIC_THRESHOLD_BATCHES).map(String)),
+  ];
+  for (const number of numbers) {
+    for (const shape of [`${number} batch`, `${number} batches`, `${number} of `, `${number} / `]) {
+      if (text.includes(shape)) found.push(`number: ${shape}`);
+    }
+  }
+  if (
+    !options.measurementNumbersAllowed &&
+    new RegExp(`\\b${SEALED_CORPUS_BATCHES}\\b`).test(text)
+  ) {
+    found.push(`number: bare ${SEALED_CORPUS_BATCHES}`);
+  }
+  // `GO` as a word, which no definitional text and no measurement contains.
+  if (/\bGO\b/.test(text)) found.push("phrase: GO");
+
+  for (const frozen of [
+    DISTRIBUTION_RULE,
+    BAND_AND_WOWABLE_NOT_INTERCHANGEABLE,
+    CORPUS_COMPOSITION_REQUIREMENT,
+    ...SYSTEMIC_EVIDENCE_REQUIREMENTS,
+    ...SYSTEMIC_CLASSES.map((klass) => klass.why),
+    ...REVIEWER_WITHHELD,
+  ]) {
+    if (flat(text).includes(flat(frozen))) found.push(`text: ${frozen.slice(0, 48)}…`);
+  }
+
+  return found;
+}
 
 describe("the reviewer packet carries the definitions and none of the arithmetic", () => {
   const packet = buildDesignIntentReviewerPacket();
@@ -519,67 +712,8 @@ describe("the reviewer packet carries the definitions and none of the arithmetic
    * withheld is the **rule applied to it**"*.
    */
   it("contains none of the arithmetic, searched three ways", () => {
-    const found: string[] = [];
-
-    const phrases = [
-      "12 / 12",
-      "12/12",
-      "twelve of twelve",
-      "does not pass",
-      "is a diagnosis",
-      "NO-GO",
-      "NO GO",
-      "no-go",
-      "go/no-go",
-      "distribution",
-      "threshold",
-      "veto",
-      "systemic",
-      "twelve batches",
-      "outnumbers",
-      "spec.md",
-      "phase-4b-plan",
-      "model-contracts",
-    ];
-    for (const phrase of phrases) {
-      if (packet.toLowerCase().includes(phrase.toLowerCase())) found.push(`phrase: ${phrase}`);
-    }
-
-    // The numbers, read from the gate rather than written here.
-    const numbers = [
-      String(SEALED_CORPUS_BATCHES),
-      ...new Set(Object.values(SYSTEMIC_THRESHOLD_BATCHES).map(String)),
-    ];
-    for (const number of numbers) {
-      for (const shape of [
-        `${number} batch`,
-        `${number} batches`,
-        `${number} of `,
-        `${number} / `,
-      ]) {
-        if (packet.includes(shape)) found.push(`number: ${shape}`);
-      }
-    }
-    if (new RegExp(`\\b${SEALED_CORPUS_BATCHES}\\b`).test(packet)) {
-      found.push(`number: bare ${SEALED_CORPUS_BATCHES}`);
-    }
-    // `GO` as a word, which no definitional text contains.
-    if (/\bGO\b/.test(packet)) found.push("phrase: GO");
-
-    // And the frozen texts, whole.
-    for (const text of [
-      DISTRIBUTION_RULE,
-      BAND_AND_WOWABLE_NOT_INTERCHANGEABLE,
-      CORPUS_COMPOSITION_REQUIREMENT,
-      ...SYSTEMIC_EVIDENCE_REQUIREMENTS,
-      ...SYSTEMIC_CLASSES.map((klass) => klass.why),
-      ...REVIEWER_WITHHELD,
-    ]) {
-      if (flat(packet).includes(flat(text))) found.push(`text: ${text.slice(0, 48)}…`);
-    }
-
     expect(
-      found,
+      leakedArithmetic(packet, { measurementNumbersAllowed: false }),
       "the reviewer packet leaked part of the rule it is supposed to withhold (§3.8)",
     ).toEqual([]);
   });
@@ -709,7 +843,16 @@ describe("the GO/NO-GO function applies §3.7 and nothing else", () => {
     expect(reason?.detail).toContain("Batch 2 (Good + YES)");
   });
 
-  it("vetoes a correctness category on one cited batch", () => {
+  /**
+   * The thresholds decide something, which is the whole reason the class table has numbers in it.
+   *
+   * `§3.7`: *"A GO requires all nine categories explicitly assessed and none of them meeting its
+   * frozen threshold — not that every one was found absent. A category the reviewer marks present
+   * while citing fewer distinct batches than its class threshold is a recorded finding, not a
+   * veto."* The first draft of this module read "found absent" as the pass condition, which made
+   * the numbers decorative: one cited batch failed the gate exactly as two did.
+   */
+  it("vetoes a correctness category on one cited batch — threshold one", () => {
     for (const category of ["S3", "S4"] as const) {
       const decision = decideDesignIntentGate(review({ systemic: present(category, ["Batch 5"]) }));
       expect(decision.decision).toBe("NO-GO");
@@ -720,15 +863,142 @@ describe("the GO/NO-GO function applies §3.7 and nothing else", () => {
     }
   });
 
-  it("needs two cited batches before a taste category is a veto, and is still not a pass at one", () => {
-    const one = decideDesignIntentGate(review({ systemic: present("S9", ["Batch 4"]) }));
-    expect(one.decision).toBe("NO-GO");
-    expect(one.reasons.map((entry) => entry.kind)).toContain("systemic_present_below_threshold");
-    expect(one.reasons.map((entry) => entry.kind)).not.toContain("systemic_veto");
+  it("does not fail the gate on a taste category cited in one batch — threshold two", () => {
+    const decision = decideDesignIntentGate(review({ systemic: present("S5", ["Batch 4"]) }));
+    const verdict = decision.systemic.find((entry) => entry.category === "S5");
+    expect(verdict?.verdict).toBe("present");
+    expect(verdict?.thresholdBatches).toBe(2);
+    expect(verdict?.meetsThreshold).toBe(false);
+    expect(decision.reasons.map((entry) => entry.kind)).not.toContain("systemic_veto");
+    expect(decision.findings.map((entry) => entry.kind)).toContain(
+      "systemic_present_below_threshold",
+    );
+    expect(decision.decision).toBe("GO");
+  });
 
-    const two = decideDesignIntentGate(review({ systemic: present("S9", ["Batch 4", "Batch 9"]) }));
-    expect(two.decision).toBe("NO-GO");
-    expect(two.reasons.map((entry) => entry.kind)).toContain("systemic_veto");
+  it("vetoes the same category once two distinct batches are cited", () => {
+    const decision = decideDesignIntentGate(
+      review({ systemic: present("S5", ["Batch 4", "Batch 9"]) }),
+    );
+    expect(decision.systemic.find((entry) => entry.category === "S5")?.meetsThreshold).toBe(true);
+    expect(decision.reasons.map((entry) => entry.kind)).toContain("systemic_veto");
+    expect(decision.decision).toBe("NO-GO");
+  });
+
+  it("keeps a below-threshold finding visible, with its citations, in the returned artifact", () => {
+    // Not hidden, not relabelled absent, not stripped of citations. It is the evidence a next
+    // round carries forward, and it survives a GO.
+    const decision = decideDesignIntentGate(review({ systemic: present("S8", ["Batch 7"]) }));
+    const verdict = decision.systemic.find((entry) => entry.category === "S8");
+    expect(verdict?.verdict).toBe("present");
+    expect(verdict?.citedBatches).toEqual(["Batch 7"]);
+    const finding = decision.findings.find(
+      (entry) => entry.kind === "systemic_present_below_threshold",
+    );
+    expect(finding?.categories).toEqual(["S8"]);
+    expect(finding?.detail).toContain("Batch 7");
+    expect(finding?.detail).toContain("threshold 2");
+    expect(finding?.detail).toContain("recorded finding, not a veto");
+    expect(decision.decision).toBe("GO");
+  });
+
+  /**
+   * The decisive one.
+   *
+   * Twelve of twelve `Excellent`, twelve of twelve minimum-wowable `YES`, and one taste category
+   * present on a single properly cited batch — a GO. If this ever returns NO-GO, the thresholds
+   * have stopped meaning what `§3.7` says they mean, and an isolated observation is being treated
+   * as a recurring pattern.
+   */
+  it("passes on a clean distribution beside one below-threshold observation", () => {
+    const decision = decideDesignIntentGate(review({ systemic: present("S2", ["Batch 3"]) }));
+    expect(decision.decision).toBe("GO");
+    expect(decision.reasons).toEqual([]);
+    expect(decision.bandDistribution).toEqual({ Excellent: 12, Good: 0, Borderline: 0, Fail: 0 });
+    expect(decision.minimumWowableTally).toEqual({ YES: 12, NO: 0 });
+    expect(decision.findings).toHaveLength(1);
+    expect(decision.reviewComplete).toBe(true);
+    expect(decision.mustReturnToReviewer).toBe(false);
+  });
+
+  it("still requires every one of S1–S9 to be assessed, whatever the thresholds say", () => {
+    for (const category of SYSTEMIC_CATEGORY_IDS) {
+      const decision = decideDesignIntentGate(
+        review({ systemic: allAbsent().filter((entry) => entry.category !== category) }),
+      );
+      expect(decision.decision).toBe("NO-GO");
+      expect(decision.reviewComplete).toBe(false);
+      expect(
+        decision.reasons.find((entry) => entry.kind === "review_incomplete")?.detail,
+      ).toContain(`${category} was not assessed`);
+    }
+  });
+
+  it("returns the review when a below-threshold finding is cited incompletely", () => {
+    // A finding is not a licence to skip the citation rules: without a batch id the threshold
+    // count is wrong, and without a sibling or a quote there is nothing to carry forward.
+    const noBatch = decideDesignIntentGate(
+      review({
+        systemic: allAbsent().map((entry) =>
+          entry.category === "S6"
+            ? {
+                category: "S6" as const,
+                verdict: "present" as const,
+                citations: [{ batchId: "", sibling: "Concept 1", quotedText: "moderated again" }],
+              }
+            : entry,
+        ),
+      }),
+    );
+    expect(noBatch.mustReturnToReviewer).toBe(true);
+    expect(noBatch.decision).toBe("NO-GO");
+    expect(noBatch.reasons.find((entry) => entry.kind === "review_incomplete")?.detail).toContain(
+      "names no batch",
+    );
+
+    const noQuote = decideDesignIntentGate(
+      review({
+        systemic: allAbsent().map((entry) =>
+          entry.category === "S6"
+            ? {
+                category: "S6" as const,
+                verdict: "present" as const,
+                citations: [{ batchId: "Batch 2", sibling: "Concept 1", quotedText: "" }],
+              }
+            : entry,
+        ),
+      }),
+    );
+    expect(noQuote.mustReturnToReviewer).toBe(true);
+    expect(noQuote.reasons.find((entry) => entry.kind === "review_incomplete")?.detail).toContain(
+      "quotes no output text",
+    );
+  });
+
+  it("records a correctness citation against a batch not rated Fail, without making it the veto", () => {
+    // §3.7: any occurrence of S3 or S4 also forces that batch to `Fail`. A reviewer who cites S3
+    // on a batch and rates it Excellent has contradicted themselves; the record says so rather
+    // than picking a side. The NO-GO here is the S3 veto, on its own threshold.
+    const decision = decideDesignIntentGate(review({ systemic: present("S3", ["Batch 6"]) }));
+    const finding = decision.findings.find(
+      (entry) => entry.kind === "correctness_band_contradiction",
+    );
+    expect(finding?.batchIds).toEqual(["Batch 6"]);
+    expect(finding?.detail).toContain("rated Excellent");
+    expect(decision.reasons.map((entry) => entry.kind)).toEqual(["systemic_veto"]);
+
+    // Rated `Fail`, as §3.7 requires — no contradiction, and the veto still stands on its own.
+    const consistent = decideDesignIntentGate(
+      review({
+        batches: twelve((index) =>
+          index === 5 ? { band: "Fail", minimumWowable: "NO", missingCriteria: [1] } : {},
+        ),
+        systemic: present("S3", ["Batch 6"]),
+      }),
+    );
+    expect(consistent.findings.map((entry) => entry.kind)).not.toContain(
+      "correctness_band_contradiction",
+    );
   });
 
   it("counts distinct batches, not citations", () => {
@@ -739,6 +1009,30 @@ describe("the GO/NO-GO function applies §3.7 and nothing else", () => {
       "Batch 4",
     ]);
     expect(decision.reasons.map((entry) => entry.kind)).not.toContain("systemic_veto");
+    // Two citations of one batch is one batch, so it is a finding and the gate still passes.
+    expect(decision.decision).toBe("GO");
+  });
+
+  it("requires reasons beside every band, because a NO-GO built on labels is not actionable", () => {
+    const decision = decideDesignIntentGate(
+      review({ batches: twelve((index) => (index === 4 ? { reasons: "  " } : {})) }),
+    );
+    expect(decision.mustReturnToReviewer).toBe(true);
+    expect(decision.reasons.find((r) => r.kind === "review_incomplete")?.detail).toContain(
+      "Batch 5: the band rating carries no reasons",
+    );
+  });
+
+  it("refuses a YES that names a missing criterion, because YES requires all five", () => {
+    const decision = decideDesignIntentGate(
+      review({
+        batches: twelve((index) => (index === 1 ? { missingCriteria: [4] } : {})),
+      }),
+    );
+    expect(decision.mustReturnToReviewer).toBe(true);
+    expect(decision.reasons.find((r) => r.kind === "review_incomplete")?.detail).toContain(
+      "a minimum-wowable YES names criterion 4 as missing",
+    );
   });
 
   it("does not let an excellent distribution override a veto", () => {
@@ -1149,10 +1443,81 @@ describe("the within-batch mechanical block", () => {
     expect(nearly.colors.some((colour) => PALETTES[0].colors.includes(colour))).toBe(false);
   });
 
-  it("fails two siblings whose composition vectors differ on one dimension", () => {
+  /**
+   * A required colour is an obligation, not a similarity, and must not be measured as one.
+   *
+   * `paletteIntent.requiredColors` is carried by all three siblings by construction, contributing
+   * 0 ΔE to every pairwise mean. Three required colours beside one free choice 30 ΔE apart average
+   * 7.5 and would fail a floor of 12 — so a model that honoured a constrained palette exactly as
+   * `§3.2` demands would be failed for honouring it. Host-constraint preservation is a named T20
+   * dimension, so this case will exist.
+   */
+  it("measures separation over the colours the model was free to choose", () => {
+    const required = ["#2B1B12", "#B8622A", "#E8D8C3"];
+    const constrained = corpusCase({
+      identity: brief({
+        colorsExplicitlyConstrained: true,
+        paletteIntent: {
+          requiredColors: required,
+          preferredColors: [],
+          avoidColors: [],
+          dominanceNotes: "All three are the institution's.",
+        },
+      }),
+    });
+    // Every sibling carries all three required colours, plus one genuinely different free choice.
+    const free = ["#0B1F3A", "#1E3B1C", "#7A2E52"];
+    const batch = [0, 1, 2].reduce(
+      (acc, index) =>
+        withResponse(acc, index, {
+          palette: { colors: [...required, free[index]], dominant: required[0] },
+        }),
+      healthyBatch(constrained),
+    );
+    const checks = checkDesignIntentBatch(constrained, batch);
+    expect(status(checks, "paletteSeparation")).toBe("pass");
+    const detail = checks.find((check) => check.name === "paletteSeparation")?.detail ?? "";
+    expect(detail).toContain("over the non-required colours only");
+    expect(detail).toContain("dominants (all colours)");
+    // Measured over all four colours this batch would have failed, which is the whole point.
+    expect(paletteDistance([...required, free[0]], [...required, free[1]])).toBeLessThan(
+      MECHANICAL_FLOORS.paletteSeparationDeltaE,
+    );
+  });
+
+  it("reports advisory, not fail, when nothing free is left to measure", () => {
+    const required = ["#2B1B12", "#B8622A", "#E8D8C3"];
+    const mandated = corpusCase({
+      identity: brief({
+        colorsExplicitlyConstrained: true,
+        paletteIntent: {
+          requiredColors: required,
+          preferredColors: [],
+          avoidColors: [],
+          dominanceNotes: "Exactly these three.",
+        },
+      }),
+    });
+    const batch = [0, 1, 2].reduce(
+      (acc, index) =>
+        withResponse(acc, index, { palette: { colors: required, dominant: required[index] } }),
+      healthyBatch(mandated),
+    );
+    const checks = checkDesignIntentBatch(mandated, batch);
+    expect(status(checks, "paletteSeparation")).toBe("advisory");
+    expect(checks.find((check) => check.name === "paletteSeparation")?.detail).toContain(
+      "no free choice left to measure separation over",
+    );
+    // Advisory is never a pass, so the batch is not quietly blessed by an undecidable palette.
+    expect(mechanicalPass(checks)).toBe(true);
+    expect(status(checks, "hostConstraintColoursHonoured")).toBe("pass");
+  });
+
+  it("fails two siblings whose composition vectors differ on one model-owned dimension", () => {
+    // Sibling 1 copies sibling 0 on three of the four the model chooses, and keeps its own
+    // assigned hierarchy. One differing dimension is a setting, not an arrangement.
     const testCase = corpusCase();
     const batch = healthyBatch(testCase);
-    const first = batch.plan.siblings[0];
     const checks = checkDesignIntentBatch(
       testCase,
       withResponse(batch, 1, {
@@ -1163,9 +1528,36 @@ describe("the within-batch mechanical block", () => {
         },
       }),
     );
-    const differing =
-      batch.plan.siblings[1].assignment.hierarchy === first.assignment.hierarchy ? "fail" : "pass";
-    expect(status(checks, "compositionVectorDistinct")).toBe(differing);
+    expect(status(checks, "compositionVectorDistinct")).toBe("fail");
+    expect(checks.find((check) => check.name === "compositionVectorDistinct")?.detail).toContain(
+      "0↔1=1/4",
+    );
+  });
+
+  /**
+   * Hierarchy is the planner's, and counting it would have hidden the case above.
+   *
+   * The planner assigns hierarchy and actively separates it, so a pair that shares three of the
+   * four model-owned dimensions would score 2/5 with hierarchy counted — clearing a floor of two
+   * on a dimension the model never chose. That is `tokenAllotmentRespected`'s defect in a subtler
+   * place, and this is the test that would fail if anyone put hierarchy back.
+   */
+  it("counts only the four dimensions the model chooses, never the assigned hierarchy", () => {
+    const testCase = corpusCase();
+    const batch = healthyBatch(testCase);
+    const hierarchies = batch.plan.siblings.map((sibling) => sibling.assignment.hierarchy);
+    const checks = checkDesignIntentBatch(
+      testCase,
+      withResponse(batch, 1, {
+        composition: { ...COMPOSITIONS[0], ornament: "restrained", hierarchy: hierarchies[1] },
+      }),
+    );
+    const detail = checks.find((check) => check.name === "compositionVectorDistinct")?.detail ?? "";
+    expect(detail).toContain("asymmetry, rhythm, sectionContrast, ornament");
+    expect(detail).toContain("hierarchy is assigned");
+    expect(detail).not.toMatch(/=\d\/5/);
+    // The premise the test rests on: with hierarchy counted this pair would have cleared the floor.
+    expect(hierarchies[0]).not.toBe(hierarchies[1]);
   });
 
   it("fails an overlapping motif set and reports n/a when nobody asked for a motif", () => {
@@ -1185,6 +1577,35 @@ describe("the within-batch mechanical block", () => {
 
     const bare = [0, 1, 2].reduce((acc, index) => withResponse(acc, index, { motifs: [] }), batch);
     expect(status(checkDesignIntentBatch(testCase, bare), "motifOverlap")).toBe("n/a");
+  });
+
+  /**
+   * The ceiling's arithmetic has to agree with the sentence that justifies it.
+   *
+   * The rationale says "two three-motif sets share at most one motif". Two three-motif sets sharing
+   * *two* score exactly 2/4 = 0.5, so `<=` admitted the very case the sentence excludes. Strict
+   * `<` makes the comparison mean what the comment claims.
+   */
+  it("admits two three-motif sets sharing one motif, and refuses them sharing two", () => {
+    const testCase = corpusCase();
+    const batch = healthyBatch(testCase);
+    const withMotifs = (a: string[], b: string[]) =>
+      status(
+        checkDesignIntentBatch(
+          testCase,
+          withResponse(withResponse(batch, 0, { motifs: a }), 1, { motifs: b }),
+        ),
+        "motifOverlap",
+      );
+    // 1/5 = 0.2
+    expect(withMotifs(["botanical", "linen", "stripe"], ["botanical", "plaid", "gingham"])).toBe(
+      "pass",
+    );
+    // 2/4 = 0.5 exactly — the boundary case the old `<=` let through.
+    expect(withMotifs(["botanical", "linen", "stripe"], ["botanical", "linen", "plaid"])).toBe(
+      "fail",
+    );
+    expect(MECHANICAL_FLOORS.motifOverlapCeiling).toBe(0.5);
   });
 
   it("decides the half of host-constraint tracing that is decidable, and defers the rest", () => {
@@ -1216,6 +1637,60 @@ describe("the within-batch mechanical block", () => {
     expect(
       proseChecks.find((check) => check.name === "hostConstraintsForReviewer")?.detail,
     ).toContain("No photographs of the honoree");
+  });
+
+  /**
+   * A prohibition is not a requirement, and a hex does not say which it is.
+   *
+   * The contract defines a host constraint as "a prohibition, an explicit requirement of a specific
+   * thing, or a correction the host made". `"No #C8102E anywhere"` and `"It has to carry #C8102E"`
+   * are the same string to a regex. Reading every constrained hex as *required* would have failed
+   * every sibling that correctly obeyed a prohibition — the check punishing the behaviour it exists
+   * to protect. Direction is read from `paletteIntent`, where it is declared.
+   */
+  it("never reads a prohibition in constraint prose as a requirement", () => {
+    const prohibition = corpusCase({
+      identity: brief({
+        colorsExplicitlyConstrained: true,
+        hostConstraints: ["No #2B1B12 anywhere — it is the rival school's colour"],
+        paletteIntent: {
+          requiredColors: [],
+          preferredColors: [],
+          avoidColors: [],
+          dominanceNotes: "Anything but that.",
+        },
+      }),
+    });
+    const checks = checkDesignIntentBatch(prohibition, healthyBatch(prohibition));
+    // Sibling 0's palette carries #2B1B12, which would have been "omits required" under the old
+    // reading — and here it is simply not decidable, so it goes to the reviewer.
+    expect(status(checks, "hostConstraintColoursHonoured")).toBe("n/a");
+    expect(status(checks, "hostConstraintsForReviewer")).toBe("advisory");
+    const deferred = checks.find((check) => check.name === "hostConstraintsForReviewer")?.detail;
+    expect(deferred).toContain("No #2B1B12 anywhere");
+    expect(deferred).toContain("required or prohibited");
+  });
+
+  it("decides the same colour when `paletteIntent` says which direction it is", () => {
+    const excluded = corpusCase({
+      identity: brief({
+        colorsExplicitlyConstrained: true,
+        hostConstraints: ["No #2B1B12 anywhere — it is the rival school's colour"],
+        paletteIntent: {
+          requiredColors: [],
+          preferredColors: [],
+          avoidColors: ["#2B1B12"],
+          dominanceNotes: "Anything but that.",
+        },
+      }),
+    });
+    const checks = checkDesignIntentBatch(excluded, healthyBatch(excluded));
+    expect(status(checks, "hostConstraintColoursHonoured")).toBe("fail");
+    expect(
+      checks.find((check) => check.name === "hostConstraintColoursHonoured")?.detail,
+    ).toContain("inside excluded #2B1B12");
+    // The constraint is decided now, so it is not also handed to the reviewer.
+    expect(status(checks, "hostConstraintsForReviewer")).toBe("n/a");
   });
 
   it("never fails a sibling for following creative guidance", () => {
@@ -1429,6 +1904,38 @@ describe("the corpus-wide measurements give the reviewer S8 and S9 evidence", ()
     expect(report).toContain("design_intent_corpus_v1");
     // And the same corpus-wide block the reviewer sees, so the two cannot describe different runs.
     expect(report).toContain("## Corpus-wide measurements");
+  });
+
+  /**
+   * The report sits in the results directory, so it is scanned too.
+   *
+   * The reviewer's own files are in `review/`, and that separation is the first line. This is the
+   * second: whoever hands over "the results directory" must not be handing over the rule, and a
+   * directory layout is a convention while a scan is a test. `DESIGN_INTENT_ACCEPTANCE.qualitative`
+   * used to render the rule verbatim into this file, beside the artifact, with nothing checking it.
+   */
+  it("keeps the gate's arithmetic out of the mechanical report as well as the packet", () => {
+    const report = buildDesignIntentMechanicalReport({
+      runStartedAt: "2026-01-01T00:00:00.000Z",
+      evalSet: "designIntentChallenge",
+      label: EVAL_SETS.designIntentChallenge.label,
+      corpusVersion: "design_intent_corpus_v1",
+      plannerVersion: observations[0].plan.plannerVersion,
+      rows: cases.map((testCase, index) => ({
+        caseId: testCase.id,
+        label: `Batch ${index + 1}`,
+        checks: checkDesignIntentBatch(testCase, observations[index]),
+      })),
+      measurements,
+    });
+    expect(
+      leakedArithmetic(report, { measurementNumbersAllowed: true, canonPointersAllowed: true }),
+      "mechanical-report.md carries part of the rule §3.8 withholds, and it sits in the same " +
+        "results directory the reviewer is handed",
+    ).toEqual([]);
+    // It points at the one normative copy instead of restating it.
+    expect(report).toContain("docs/phase-4b-plan.md §3.7");
+    expect(report).toContain("deliberately not restated here");
   });
 
   it("counts recurring finishing language and recurring design signatures", () => {

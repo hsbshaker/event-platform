@@ -10,7 +10,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { validateCorpusShape } from "./corpus";
+import { leakageProbes, validateCorpusShape } from "./corpus";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 const read = (file: string) => JSON.parse(readFileSync(`${ROOT}docs/model-evals/${file}`, "utf8"));
@@ -134,5 +134,159 @@ describe("a corpus that would spend a paid case on nothing is refused", () => {
         ],
       }),
     ).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ leakage probes */
+
+/**
+ * What the leakage scan will look for, decided here rather than inside the scan.
+ *
+ * The scan reads corpora of two shapes now — a Phase 4A/4B host `prompt` with assertions about it,
+ * and a Phase 4C authoritative `identity` brief with no host prompt at all. This block exists for
+ * the same reason the shape guard above does: the rule has to be checkable without running the
+ * module that spends money.
+ *
+ * The 4C half is where the sharp edge is, and it was not hypothetical. A brief must declare
+ * `compatibleFamilies` from a closed enum, and `editorial` is in the Event Identity prompt and in
+ * the DesignIntent wire schema *because the schema puts it there*. Scanning it would have reported
+ * a leak on every 4C case ever written, on a value its author is not allowed to change — and `§3.5`
+ * says a collision is fixed at the corpus, never at the scanner. The only escape would have been
+ * editing the scanner after seeing the cases, which is the one move the T19-before-T20 ordering
+ * exists to prevent. The enums are excluded now, before any case exists.
+ */
+describe("leakage probes cover what an author wrote, and nothing a schema forced", () => {
+  const brief = {
+    creativeDirection: "A late-summer supper in an orchard, lit as the light goes.",
+    toneKeywords: ["unhurried", "orchard-lit"],
+    colorsExplicitlyConstrained: false,
+    paletteIntent: {
+      requiredColors: ["the school's deep green"],
+      preferredColors: [],
+      avoidColors: ["anything neon"],
+      dominanceNotes: "Let one warm tone carry the page.",
+    },
+    tonalIntent: "Low light, warm ground, nothing stark.",
+    toneExplicitlyConstrained: false,
+    compatibleTonalDirections: ["mid", "dark"],
+    compatibleFamilies: ["editorial", "invitation"],
+    compatibleTypographyCategories: ["transitional", "oldstyle"],
+    visualMotifs: ["orchard rows"],
+    textureDirection: "Paper that has been handled.",
+    typographyDirection: "Something with a written hand in it.",
+    copyTone: "Spoken, not announced.",
+    hostConstraints: ["No photographs of the honoree"],
+    creativeGuidance: ["I would reach for candlelight over string lights"],
+    inspirationSummary: "No visual inspiration supplied.",
+  };
+
+  it("scans every prose field an author actually wrote", () => {
+    const { verbatim } = leakageProbes({
+      id: "DI-01",
+      eventType: "orchard supper",
+      identity: brief,
+    });
+    for (const written of [
+      brief.creativeDirection,
+      "unhurried",
+      "orchard-lit",
+      "the school's deep green",
+      "anything neon",
+      brief.paletteIntent.dominanceNotes,
+      brief.tonalIntent,
+      "orchard rows",
+      brief.textureDirection,
+      brief.typographyDirection,
+      brief.copyTone,
+      brief.hostConstraints[0],
+      brief.creativeGuidance[0],
+    ]) {
+      expect(verbatim, `${written} is not being scanned`).toContain(written);
+    }
+  });
+
+  it("excludes the three closed enums, which no author can change", () => {
+    const { verbatim, claims } = leakageProbes({ id: "DI-01", identity: brief });
+    for (const forced of ["editorial", "invitation", "transitional", "oldstyle", "mid", "dark"]) {
+      expect([...verbatim, ...claims], `${forced} is a forced enum value`).not.toContain(forced);
+    }
+  });
+
+  it("excludes the no-inspiration sentinel, and scans a real summary", () => {
+    // The sentinel is quoted in the prompt because `contract.ts` requires it verbatim, so every
+    // case that supplies no inspiration would otherwise leak.
+    expect(leakageProbes({ identity: brief }).verbatim).not.toContain(
+      "No visual inspiration supplied.",
+    );
+    const withInspiration = {
+      ...brief,
+      inspirationSummary: "A postcard of a walled kitchen garden",
+    };
+    expect(leakageProbes({ identity: withInspiration }).verbatim).toContain(
+      "A postcard of a walled kitchen garden",
+    );
+  });
+
+  it("does not probe the event type, which is never model-visible", () => {
+    // It never reaches the model and never appears in the blind artifact: it is a grouping key for
+    // the same-type measurement, not benchmark content. It would also collide with the plan's own
+    // worked example, which names two event types in prose the model never sees.
+    const { verbatim, claims } = leakageProbes({
+      id: "DI-01",
+      eventType: "quinceanera",
+      identity: brief,
+    });
+    expect([...verbatim, ...claims]).not.toContain("quinceanera");
+  });
+
+  it("probes an author note and a supplied fact, which are benchmark content", () => {
+    const { claims } = leakageProbes({
+      id: "DI-01",
+      identity: brief,
+      notes: "this case probes the creative leap",
+      suppliedFacts: { venueText: "the Orangery at Kew" },
+    });
+    expect(claims).toContain("this case probes the creative leap");
+    expect(claims).toContain("the Orangery at Kew");
+  });
+
+  it("still reads a Phase 4A/4B case exactly as it always did", () => {
+    const { verbatim, claims } = leakageProbes({
+      id: "HO-11",
+      prompt: "a quiet winter gathering for my mother",
+      mustAvoid: ["snowflake clipart"],
+      hostPhrases: [{ phrase: "nothing sparkly" }],
+      expectedFacts: { dateText: "March 12" },
+      facts: { venueText: "the village hall" },
+      rationale: "the honoree rule, in its negative half",
+    });
+    expect(verbatim).toEqual(["a quiet winter gathering for my mother"]);
+    expect(claims).toEqual(
+      expect.arrayContaining([
+        "snowflake clipart",
+        "nothing sparkly",
+        "March 12",
+        "the village hall",
+        "the honoree rule, in its negative half",
+      ]),
+    );
+  });
+
+  it("returns empty lists rather than throwing on a shape it does not know", () => {
+    // The scan runs over whatever a corpus file holds. A case it cannot read must cover nothing
+    // loudly, not crash the suite that is meant to be watching.
+    for (const odd of [null, undefined, 3, "x", {}, { identity: null }, { identity: "brief" }]) {
+      expect(leakageProbes(odd)).toEqual({ verbatim: [], claims: [] });
+    }
+  });
+
+  it("never emits a short string, which would match ordinary English on any surface", () => {
+    const { verbatim, claims } = leakageProbes({
+      id: "DI-01",
+      prompt: "  ",
+      identity: { ...brief, copyTone: "" },
+      notes: "   ",
+    });
+    expect([...verbatim, ...claims].every((probe) => probe.trim().length >= 6)).toBe(true);
   });
 });

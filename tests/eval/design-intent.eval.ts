@@ -138,6 +138,23 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
     async () => {
       mkdirSync(OUT, { recursive: true });
 
+      /**
+       * The reviewer's two files live in their own subdirectory, and the reason is the whole
+       * blinding argument.
+       *
+       * `mechanical-report.md` is ours: it carries the check details, the corpus-wide measurements
+       * and the acceptance criteria, and the batch-label-to-case-id join. Handing a reviewer "the
+       * results directory" while that file sat beside the artifact would hand them part of what
+       * §3.8 withholds. `review/` is what gets handed over; the rest stays here.
+       *
+       * The scan is belt-and-braces with it: `design-intent.test.ts` searches the rendered
+       * mechanical report for the gate's arithmetic as well as the packet, so neither the
+       * directory layout nor the report alone is the only thing standing between a reviewer and
+       * the rule.
+       */
+      const REVIEW = path.join(OUT, "review");
+      mkdirSync(REVIEW, { recursive: true });
+
       // T21 supplies the production boundary, by repointing `design-intent-seam.ts`. Until it
       // does, this throws with an explanation rather than silently exercising a code path that
       // does not exist — and rather than the harness writing a second request assembly of its own,
@@ -166,8 +183,8 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
       const rotated = [
         rotateJournal(OUT, runStartedAt),
         rotateAside(OUT, "mechanical-report.md", runStartedAt),
-        rotateAside(OUT, "blind-review.md", runStartedAt),
-        rotateAside(OUT, "reviewer-packet.md", runStartedAt),
+        rotateAside(REVIEW, "blind-review.md", runStartedAt),
+        rotateAside(REVIEW, "reviewer-packet.md", runStartedAt),
       ].filter((file): file is string => file !== null);
       for (const file of rotated) {
         process.stdout.write(`kept the previous ${path.basename(file)}\n`);
@@ -314,13 +331,13 @@ describe(`${SET}: ${EVAL_SETS[SET].label}`, () => {
       // goes between them: it is what the artifact is read against, and a blind review that
       // arrived without it would be a reviewer rating against a scale they cannot see.
       writeFileSync(
-        path.join(OUT, "blind-review.md"),
+        path.join(REVIEW, "blind-review.md"),
         buildDesignIntentBlindArtifact(cases, observations, measurements),
         "utf8",
       );
 
       writeFileSync(
-        path.join(OUT, "reviewer-packet.md"),
+        path.join(REVIEW, "reviewer-packet.md"),
         buildDesignIntentReviewerPacket(),
         "utf8",
       );

@@ -448,18 +448,26 @@ export const MECHANICAL_FLOORS = {
    */
   avoidedColourNeighbourhoodDeltaE: 10,
   /**
-   * Of the five composition dimensions, how many must differ between any two siblings.
+   * Of the **four model-owned** composition dimensions, how many must differ between two siblings.
    *
-   * One differing dimension is a setting; two is the floor at which the pair is at least arguably
-   * a different arrangement. Hierarchy is planner-assigned, so this is not measuring the planner:
-   * four of the five are the model's own.
+   * `hierarchy` is excluded, and that exclusion is the check. The planner assigns hierarchy and
+   * actively separates it across the batch, so counting it hands every pair one differing dimension
+   * for free and leaves the model's effective floor at one of four — a setting, not an arrangement.
+   * That is `tokenAllotmentRespected`'s mistake in a subtler place: a planner fact inflating a
+   * verdict about the model. Hierarchy conformance is still checked, by `assignmentConformance`,
+   * where it is a statement about the right thing.
+   *
+   * Two of the four remaining is the floor at which a pair is at least arguably a different
+   * arrangement rather than the same one with a knob moved.
    */
   compositionVectorMinDiffering: 2,
   /**
-   * Maximum Jaccard overlap between two siblings' motif sets.
+   * Jaccard overlap between two siblings' motif sets, which must be **strictly below** this.
    *
-   * At or below a half, two three-motif sets share at most one motif. Sharing one curated motif
-   * out of seven is ordinary; sharing most of them is a swap.
+   * Strict, and the arithmetic has to agree with the sentence: two three-motif sets sharing two
+   * motifs score exactly 2/4 = 0.5, so `<=` would have admitted the very case the rationale says it
+   * excludes. Under `<`, two three-motif sets may share at most one — 1/5 = 0.2 — which is what
+   * "sharing one curated motif out of seven is ordinary, sharing most of them is a swap" means.
    */
   motifOverlapCeiling: 0.5,
 } as const;
@@ -484,6 +492,17 @@ const COMPOSITION_DIMENSIONS = [
   "sectionContrast",
   "ornament",
 ] as const;
+
+/**
+ * The four the model actually chooses. `hierarchy` is the planner's, and it is separated by design.
+ *
+ * Used for distinctness, within a batch and across the corpus. Everywhere else — the signature, the
+ * blind artifact, `assignmentConformance` — all five are read, because there the question is what
+ * the concept *is* rather than what the model decided.
+ */
+const MODEL_OWNED_COMPOSITION_DIMENSIONS = COMPOSITION_DIMENSIONS.filter(
+  (dimension) => dimension !== "hierarchy",
+);
 
 function fieldsOf(response: unknown): DesignFields {
   const value = (response ?? {}) as Partial<DesignFields>;
@@ -682,30 +701,93 @@ export function checkDesignIntentBatch(
       : deviations.join("; "),
   );
 
+  /* --- the decidable colour direction, read from the field that declares it ------------------- */
+
+  /**
+   * Required and avoided colours, taken **only** from `paletteIntent`, which is the field that
+   * says which is which.
+   *
+   * A hex inside a `hostConstraints` string carries no direction. The contract defines a constraint
+   * as "a prohibition, an explicit requirement of a specific thing, or a correction the host made",
+   * so `"No #C8102E anywhere"` and `"It has to carry #C8102E"` are the same string to a regex and
+   * opposite instructions to a designer. Treating every constrained hex as *required* would fail
+   * every sibling that correctly obeyed a prohibition — a check that punishes the behaviour it
+   * exists to protect. `paletteIntent.requiredColors` and `paletteIntent.avoidColors` are separate
+   * fields for exactly this reason, so direction is read where it is declared.
+   *
+   * A hex that appears only in constraint prose is not lost: it goes to the reviewer under S4,
+   * below, where a human can read the sentence around it.
+   */
+  const identity = testCase.identity;
+  const requiredHex = [...new Set(identity.paletteIntent.requiredColors.flatMap(hexColorsIn))];
+  const avoidHex = [...new Set(identity.paletteIntent.avoidColors.flatMap(hexColorsIn))];
+
   /* --- palette separation, in a perceptual space and not by hex equality --------------------- */
 
-  const palettePairs = pairs(fields.map((sibling, index) => ({ index, palette: sibling.palette })));
-  const paletteDistances = palettePairs.map(([a, b]) => ({
+  /**
+   * Measured over the colours the model was **free to choose**.
+   *
+   * A required colour is carried by all three siblings, by obligation, and contributes 0 ΔE to
+   * every pairwise mean. Three required colours beside one free choice 30 ΔE apart average 7.5 and
+   * fail a floor of 12 — so a model that honours a constrained palette exactly as `§3.2` demands
+   * would be failed for it, by a metric that was measuring the constraint rather than the
+   * concept. `paletteIntent.requiredColors` is a field hosts use and host-constraint preservation
+   * is a named T20 dimension, so this case will exist.
+   *
+   * The required colours are removed from the comparison and the dominant distance is reported
+   * beside it. Where removing them leaves a sibling nothing free, the batch is `advisory`: with no
+   * free colour there is nothing to measure, and `n/a`'s sibling rule applies — never a pass, never
+   * a fail.
+   */
+  const freeColours = (colours: readonly string[]) =>
+    colours.filter((colour) => !requiredHex.includes(normalizeHex(colour)));
+  const measured = fields.map((sibling, index) => ({
+    index,
+    palette: sibling.palette,
+    free: freeColours(sibling.palette.colors),
+  }));
+  const paletteDistances = pairs(measured).map(([a, b]) => ({
     pair: `${a.index}↔${b.index}`,
-    distance: paletteDistance(a.palette.colors, b.palette.colors),
+    distance: paletteDistance(a.free, b.free),
     dominant:
       a.palette.dominant && b.palette.dominant
         ? hexDeltaE(a.palette.dominant, b.palette.dominant)
         : 0,
   }));
   const anyEmpty = fields.some((sibling) => sibling.palette.colors.length === 0);
+  const noFreeColours = measured.some((sibling) => sibling.free.length === 0);
   const minPalette =
     paletteDistances.length > 0 ? Math.min(...paletteDistances.map((d) => d.distance)) : 0;
+  const separationDetail =
+    `pairwise ΔE*ab (mean nearest-neighbour)` +
+    (requiredHex.length > 0
+      ? `, over the non-required colours only — ${requiredHex.join(", ")} ${
+          requiredHex.length === 1 ? "is" : "are"
+        } required of all three and would score 0`
+      : "") +
+    `: ` +
+    paletteDistances.map((d) => `${d.pair}=${round(d.distance)}`).join(", ") +
+    `; dominants (all colours) ` +
+    paletteDistances.map((d) => `${d.pair}=${round(d.dominant)}`).join(", ") +
+    `; floor ${MECHANICAL_FLOORS.paletteSeparationDeltaE}`;
   add(
     "paletteSeparation",
-    anyEmpty ? "n/a" : minPalette >= MECHANICAL_FLOORS.paletteSeparationDeltaE ? "pass" : "fail",
+    anyEmpty
+      ? "n/a"
+      : noFreeColours
+        ? "advisory"
+        : minPalette >= MECHANICAL_FLOORS.paletteSeparationDeltaE
+          ? "pass"
+          : "fail",
     anyEmpty
       ? "a sibling returned no palette, so separation is not decidable"
-      : `pairwise ΔE*ab (mean nearest-neighbour): ` +
-          paletteDistances.map((d) => `${d.pair}=${round(d.distance)}`).join(", ") +
-          `; dominants ` +
+      : noFreeColours
+        ? "every colour a sibling returned is one the identity requires, so there is no free " +
+          `choice left to measure separation over. Dominants (all colours): ` +
           paletteDistances.map((d) => `${d.pair}=${round(d.dominant)}`).join(", ") +
-          `; floor ${MECHANICAL_FLOORS.paletteSeparationDeltaE}`,
+          ". Whether three concepts built from one mandated palette are distinct is the " +
+          "reviewer's, not a distance's"
+        : separationDetail,
   );
 
   /* --- typography pairing distinctness ------------------------------------------------------- */
@@ -729,14 +811,16 @@ export function checkDesignIntentBatch(
           "yielded three distinct ones — not decidable against the model",
   );
 
-  /* --- composition-vector distinctness across the five dimensions ---------------------------- */
+  /* --- composition-vector distinctness, over the dimensions the model owns -------------------- */
 
   const vectorPairs = pairs(
     fields.map((sibling, index) => ({ index, composition: sibling.composition })),
   );
   const differing = vectorPairs.map(([a, b]) => ({
     pair: `${a.index}↔${b.index}`,
-    count: COMPOSITION_DIMENSIONS.filter(
+    // Four, not five: `hierarchy` is the planner's and is separated by design, so counting it
+    // hands every pair a differing dimension for free. See `MECHANICAL_FLOORS`.
+    count: MODEL_OWNED_COMPOSITION_DIMENSIONS.filter(
       (dimension) => a.composition[dimension] !== b.composition[dimension],
     ).length,
   }));
@@ -744,8 +828,12 @@ export function checkDesignIntentBatch(
   add(
     "compositionVectorDistinct",
     minDiffering >= MECHANICAL_FLOORS.compositionVectorMinDiffering ? "pass" : "fail",
-    `differing composition dimensions: ` +
-      differing.map((d) => `${d.pair}=${d.count}/5`).join(", ") +
+    `differing composition dimensions, of the ${MODEL_OWNED_COMPOSITION_DIMENSIONS.length} the ` +
+      `model chooses (${MODEL_OWNED_COMPOSITION_DIMENSIONS.join(", ")}; hierarchy is assigned and ` +
+      `is checked by assignmentConformance): ` +
+      differing
+        .map((d) => `${d.pair}=${d.count}/${MODEL_OWNED_COMPOSITION_DIMENSIONS.length}`)
+        .join(", ") +
       `; floor ${MECHANICAL_FLOORS.compositionVectorMinDiffering}`,
   );
 
@@ -766,7 +854,7 @@ export function checkDesignIntentBatch(
     "motifOverlap",
     overlaps.length === 0
       ? "n/a"
-      : maxOverlap <= MECHANICAL_FLOORS.motifOverlapCeiling
+      : maxOverlap < MECHANICAL_FLOORS.motifOverlapCeiling
         ? "pass"
         : "fail",
     overlaps.length === 0
@@ -774,7 +862,8 @@ export function checkDesignIntentBatch(
           "nothing to overlap"
       : `Jaccard overlap: ` +
           overlaps.map((o) => `${o.pair}=${round(o.overlap, 2)}`).join(", ") +
-          `; ceiling ${MECHANICAL_FLOORS.motifOverlapCeiling}`,
+          `; must be strictly below ${MECHANICAL_FLOORS.motifOverlapCeiling}, so two three-motif ` +
+          "sets may share at most one",
   );
 
   /* --- token allotment: not decidable here, and it says so ----------------------------------- */
@@ -841,21 +930,15 @@ export function checkDesignIntentBatch(
 
   /* --- host constraints, in the half that is decidable --------------------------------------- */
 
-  const identity = testCase.identity;
-  const requiredHex = [
-    ...identity.hostConstraints.flatMap(hexColorsIn),
-    ...identity.paletteIntent.requiredColors.flatMap(hexColorsIn),
-  ];
-  const avoidHex = identity.paletteIntent.avoidColors.flatMap(hexColorsIn);
   const colourProblems: string[] = [];
-  for (const hex of new Set(requiredHex)) {
+  for (const hex of requiredHex) {
     fields.forEach((sibling, index) => {
       if (!sibling.palette.colors.map(normalizeHex).includes(hex)) {
         colourProblems.push(`sibling ${index} omits required ${hex}`);
       }
     });
   }
-  for (const hex of new Set(avoidHex)) {
+  for (const hex of avoidHex) {
     fields.forEach((sibling, index) => {
       const near = sibling.palette.colors.filter(
         (colour) => hexDeltaE(colour, hex) <= MECHANICAL_FLOORS.avoidedColourNeighbourhoodDeltaE,
@@ -870,23 +953,37 @@ export function checkDesignIntentBatch(
     "hostConstraintColoursHonoured",
     decidableColours === 0 ? "n/a" : colourProblems.length === 0 ? "pass" : "fail",
     decidableColours === 0
-      ? "the identity names no colour in a form a machine can decide (a hex string), so nothing " +
+      ? "`paletteIntent` names no colour in a form a machine can decide (a hex string), so nothing " +
           "here is decidable; constraint preservation is the reviewer's, under S4"
       : colourProblems.length === 0
-        ? `${decidableColours} hex constraint(s) honoured by all three siblings`
+        ? `${requiredHex.length} required and ${avoidHex.length} excluded hex colour(s), read from ` +
+          "`paletteIntent` where direction is declared, honoured by all three siblings"
         : colourProblems.join("; "),
   );
 
-  const indecidable = identity.hostConstraints.filter(
-    (constraint) => hexColorsIn(constraint).length === 0,
-  );
+  /**
+   * Everything a machine cannot decide, handed to the reviewer under S4 — including a hex whose
+   * *direction* is undecidable.
+   *
+   * A constraint naming a colour is not automatically decided by the check above: `paletteIntent`
+   * is where required and excluded are declared, and a hex that appears only in constraint prose
+   * could be either. `"No #C8102E anywhere"` is a prohibition; the same hex under
+   * `requiredColors` is an obligation; the regex cannot tell them apart. So a constraint is passed
+   * on unless every colour it names is already decided one way or the other.
+   */
+  const undecided = identity.hostConstraints.filter((constraint) => {
+    const named = hexColorsIn(constraint);
+    if (named.length === 0) return true;
+    return named.some((hex) => !requiredHex.includes(hex) && !avoidHex.includes(hex));
+  });
   add(
     "hostConstraintsForReviewer",
-    indecidable.length === 0 ? "n/a" : "advisory",
-    indecidable.length === 0
-      ? "every host constraint had a decidable form, or there were none"
-      : `${indecidable.length} host constraint(s) are natural language and are the reviewer's to ` +
-          `trace into all three (S4): ${indecidable.map((c) => `“${c}”`).join("; ")}`,
+    undecided.length === 0 ? "n/a" : "advisory",
+    undecided.length === 0
+      ? "every host constraint was decided against `paletteIntent`, or there were none"
+      : `${undecided.length} host constraint(s) are the reviewer's to trace into all three (S4): ` +
+          "either natural language, or naming a colour whose direction — required or prohibited — " +
+          `\`paletteIntent\` does not declare: ${undecided.map((c) => `“${c}”`).join("; ")}`,
   );
 
   /* --- creativeGuidance stays advisory -------------------------------------------------------- */
@@ -933,8 +1030,13 @@ export function checkDesignIntentBatch(
       "noSuppliedFactSurfaced",
       surfaced.length === 0 ? "pass" : "fail",
       surfaced.length === 0
-        ? `none of ${assertedFacts.length} supplied fact(s) appears in any presentation — which is ` +
-            "what the input contract predicts, since a DesignIntent call never receives them"
+        ? `none of the ${assertedFacts.length} fact value(s) this case names appears in any ` +
+            "presentation. **Read this narrowly**: it is a negative result about the specific " +
+            "values the author listed, and it is not evidence that nothing was invented. A " +
+            "fabricated venue, date or dress code the case never mentioned would pass this check " +
+            "untouched, and a fabrication anywhere but the presentation strings is outside what " +
+            "it reads at all. §3.1's dimension 10 — no invented host facts — is the reviewer's, " +
+            "under `Fail`'s correctness clause and S4"
         : surfaced.join("; "),
     );
   }
@@ -1101,8 +1203,10 @@ export function measureCorpus(
         paletteDeltaE: other
           ? round(paletteDistance(sibling.palette.colors, other.palette.colors))
           : 0,
+        // The four the model chooses, for the same reason the within-batch check counts four:
+        // hierarchy is assigned, so counting it measures two planners rather than two concepts.
         differingCompositionDimensions: other
-          ? COMPOSITION_DIMENSIONS.filter(
+          ? MODEL_OWNED_COMPOSITION_DIMENSIONS.filter(
               (dimension) => sibling.composition[dimension] !== other.composition[dimension],
             ).length
           : 0,
@@ -1219,11 +1323,19 @@ export const DESIGN_INTENT_ACCEPTANCE = {
     "The corpus-wide block is reported as measurements, not thresholds. It exists so the reviewer " +
     "can answer S8 and S9 against evidence rather than against recollection of the per-batch " +
     "ratings they have just given.",
+  /**
+   * A pointer, and deliberately not a copy.
+   *
+   * This string is rendered into `mechanical-report.md`, which sits in the same results directory
+   * as the reviewer's own files. Whoever hands over "the results directory" must not be handing
+   * over the rule — so the numbers live in `§3.7` and nowhere else, one normative copy, and the
+   * blinding scan checks this report as well as the packet.
+   */
   qualitative:
-    "The gate is `docs/phase-4b-plan.md §3.7`, frozen at T19: twelve of twelve `Excellent`, " +
-    "twelve of twelve minimum-wowable `YES`, and all nine systemic categories assessed and found " +
-    "absent. The arithmetic happens outside the blind review, by someone applying that frozen " +
-    "rule to what the reviewer returned.",
+    "The gate is `docs/phase-4b-plan.md §3.7`, frozen at T19 and deliberately not restated here: " +
+    "one normative copy, and the reviewer does not receive it. Every category is explicitly " +
+    "assessed, with none meeting its frozen systemic threshold. The arithmetic happens outside " +
+    "the blind review, by someone applying that frozen rule to what the reviewer returned.",
   advisoryNeverCounts: "`advisory` and `n/a` are never folded into the pass count, in either half.",
   necessaryNeverSufficient:
     "A mechanical pass is necessary and never sufficient: three outputs can satisfy every distance " +
@@ -1367,7 +1479,7 @@ export function renderCorpusMeasurements(measurements: CorpusMeasurements): stri
           ...measurements.sameEventTypePairs.flatMap((pair) =>
             pair.perIndex.map(
               (entry) =>
-                `| ${pair.a} ↔ ${pair.b} | ${entry.index + 1} | ${entry.paletteDeltaE} | ${entry.differingCompositionDimensions}/5 | ${entry.samePairing ? "yes" : "no"} | ${entry.sameMotifSet ? "yes" : "no"} |`,
+                `| ${pair.a} ↔ ${pair.b} | ${entry.index + 1} | ${entry.paletteDeltaE} | ${entry.differingCompositionDimensions}/${MODEL_OWNED_COMPOSITION_DIMENSIONS.length} | ${entry.samePairing ? "yes" : "no"} | ${entry.sameMotifSet ? "yes" : "no"} |`,
             ),
           ),
           "",

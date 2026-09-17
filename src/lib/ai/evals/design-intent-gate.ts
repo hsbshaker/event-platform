@@ -466,12 +466,18 @@ export interface ReviewerReturn {
 
 /* ------------------------------------------------------------------ the decision */
 
+/**
+ * A reason the gate did **not** pass. Every one of these makes the decision a NO-GO.
+ *
+ * Deliberately not the same list as `GateFindingKind` below. A thing the reviewer observed and a
+ * thing that fails the gate are different, and collapsing them is what made the systemic thresholds
+ * decorative in the first draft of this module.
+ */
 export type GateReasonKind =
   | "band_below_excellent"
   | "minimum_wowable_no"
   | "band_wowable_disagreement"
   | "systemic_veto"
-  | "systemic_present_below_threshold"
   | "review_incomplete";
 
 export interface GateReason {
@@ -480,6 +486,27 @@ export interface GateReason {
   readonly batchIds?: readonly string[];
   readonly categories?: readonly SystemicCategoryId[];
   readonly criteria?: readonly MinimumWowableCriterionId[];
+}
+
+/**
+ * Something the decision records without it being a reason to fail.
+ *
+ * `§3.7`: *"A category the reviewer marks present while citing fewer distinct batches than its
+ * class threshold is a **recorded finding, not a veto**: it stays in the decision artifact with its
+ * citations intact, and it does not on its own fail the gate. That is what the threshold is for."*
+ *
+ * A finding is never hidden, never relabelled absent, and never loses its citations. It simply is
+ * not arithmetic. The per-batch layer is what catches a single weak batch — twelve of twelve
+ * `Excellent` and twelve of twelve minimum-wowable `YES` — and the systemic layer exists to catch
+ * **recurrence** that the per-batch layer may not expose.
+ */
+export type GateFindingKind = "systemic_present_below_threshold" | "correctness_band_contradiction";
+
+export interface GateFinding {
+  readonly kind: GateFindingKind;
+  readonly detail: string;
+  readonly batchIds?: readonly string[];
+  readonly categories?: readonly SystemicCategoryId[];
 }
 
 export interface SystemicVerdict {
@@ -503,7 +530,16 @@ export interface BandWowableDisagreement {
 
 export interface GateDecision {
   readonly decision: "GO" | "NO-GO";
+  /** Every reason the gate failed. Empty exactly when the decision is `GO`. */
   readonly reasons: readonly GateReason[];
+  /**
+   * What the review surfaced that is not, by itself, a reason to fail.
+   *
+   * Present on a `GO` as well as a `NO-GO`: a below-threshold systemic observation is evidence the
+   * next round should carry forward, and dropping it because the gate passed would lose exactly
+   * the signal a threshold exists to grade.
+   */
+  readonly findings: readonly GateFinding[];
   readonly bandDistribution: Readonly<Record<BandId, number>>;
   readonly minimumWowableTally: Readonly<Record<MinimumWowableAnswer, number>>;
   readonly systemic: readonly SystemicVerdict[];
@@ -534,26 +570,30 @@ const countBy = <T extends string>(keys: readonly T[], values: readonly T[]) =>
  *
  * 1. `SEALED_CORPUS_BATCHES` batches, each rated **`Excellent`**;
  * 2. every batch minimum-wowable **`YES`**;
- * 3. every one of S1–S9 assessed and found **absent**.
+ * 3. every one of S1–S9 explicitly assessed, with **none of them meeting its frozen threshold**.
  *
  * Anything else is a NO-GO and the reasons say which batches, which categories and which criteria.
  *
  * Two subtleties worth stating rather than leaving to be read out of the code.
  *
- * **A category marked `present` is a NO-GO whether or not it meets its class threshold.** The
- * threshold decides whether the finding is a *veto* — the thing that fails the gate "regardless of
- * distribution" — but `§3.7`'s pass record is *"all **nine** were assessed and found absent"*, so
- * a present-but-under-cited pattern still is not a pass. Both are reported, with different reason
- * kinds, so the record says which one happened.
+ * **A category marked `present` fails the gate only when it meets its class threshold.** `§3.7`:
+ * *"A GO requires all nine categories explicitly assessed and none of them meeting its frozen
+ * threshold — not that every one was found absent."* A present category citing fewer distinct
+ * batches than its threshold is a **finding**, recorded with its citations and not counted as
+ * arithmetic — because otherwise the numbers in the class table would decide nothing, and an
+ * isolated observation and a recurring pattern are different things. S3 and S4 have a threshold of
+ * one, so a single qualifying batch still vetoes; the taste and convergence categories need two.
  *
- * **An incomplete review is a NO-GO and additionally must go back.** A missing category, a `NO`
- * with no criterion named, an S7 present without the reviewer's own name and definition, a
- * citation missing its sibling or its quoted text, a duplicated batch, or an unfiled cross-batch
- * pattern all mean the artifact does not yet support a recorded decision. Returning `GO` on any of
- * them would be the gate passing on evidence that is not there.
+ * **An incomplete review is a NO-GO and additionally must go back.** A missing category, a band
+ * rating with no reasons, a `NO` with no criterion named, a `YES` that nonetheless names a missing
+ * criterion, an S7 present without the reviewer's own name and definition, a citation missing its
+ * batch id, its sibling or its quoted text, a duplicated batch, or an unfiled cross-batch pattern
+ * all mean the artifact does not yet support a recorded decision. Returning `GO` on any of them
+ * would be the gate passing on evidence that is not there.
  */
 export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
   const reasons: GateReason[] = [];
+  const findings: GateFinding[] = [];
   const incomplete: string[] = [];
 
   const batches = review.batches ?? [];
@@ -569,6 +609,12 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
     if (!BAND_IDS.includes(batch.band)) {
       incomplete.push(`batch ${batch.batchId}: ${String(batch.band)} is not one of the four bands`);
     }
+    if (!batch.reasons || batch.reasons.trim().length === 0) {
+      // `§3.7` asks for "per-batch ratings on the four bands, **with reasons**". A band with no
+      // reasons is a label, and a NO-GO built on labels is not actionable — which is the whole
+      // argument for keeping `Good` as a diagnosis.
+      incomplete.push(`batch ${batch.batchId}: the band rating carries no reasons`);
+    }
     if (batch.minimumWowable !== "YES" && batch.minimumWowable !== "NO") {
       incomplete.push(`batch ${batch.batchId}: the minimum-wowable answer is not YES or NO`);
     }
@@ -579,6 +625,15 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
     if (batch.minimumWowable === "NO" && (batch.missingCriteria ?? []).length === 0) {
       incomplete.push(
         `batch ${batch.batchId}: a minimum-wowable NO must name which of the five criteria is missing`,
+      );
+    }
+    if (batch.minimumWowable === "YES" && (batch.missingCriteria ?? []).length > 0) {
+      // `YES` requires all five. Naming one as missing contradicts the answer beside it, and the
+      // contradiction has to surface rather than be resolved by whichever field is read first.
+      incomplete.push(
+        `batch ${batch.batchId}: a minimum-wowable YES names criterion ` +
+          `${[...(batch.missingCriteria ?? [])].sort((a, b) => a - b).join(", ")} as missing, and ` +
+          "YES requires all five",
       );
     }
   }
@@ -708,6 +763,14 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
 
     if (present) {
       for (const citation of citations) {
+        if (!citation.batchId || citation.batchId.trim().length === 0) {
+          // The threshold counts distinct cited batch ids, so an unattributed citation silently
+          // lowers the count that decides whether this is a veto. It has to be visible, not
+          // quietly dropped by the filter above.
+          incomplete.push(
+            `${category}: a citation names no batch, and §3.7 requires each batch by id`,
+          );
+        }
         if (!citation.sibling || citation.sibling.trim().length === 0) {
           incomplete.push(
             `${category}: a citation names no sibling, and §3.7 requires each batch by id and at ` +
@@ -765,14 +828,57 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
   }
 
   if (presentBelowThreshold.length > 0) {
-    reasons.push({
+    findings.push({
       kind: "systemic_present_below_threshold",
       detail:
-        "found present, with fewer batches cited than its class threshold: " +
-        presentBelowThreshold.join(", ") +
-        ". This is not a veto under §3.7's threshold, and it is still not a pass: a GO records " +
-        "that all nine were assessed and found **absent**.",
+        "found present, with fewer distinct batches cited than its class threshold: " +
+        presentBelowThreshold
+          .map((category) => {
+            const verdict = systemic.find((entry) => entry.category === category);
+            return `${category} (${verdict?.citedBatches.length} batch(es) cited, threshold ${verdict?.thresholdBatches}: ${verdict?.citedBatches.join(", ")})`;
+          })
+          .join(", ") +
+        ". §3.7: this is a **recorded finding, not a veto** — it stays in the decision artifact " +
+        "with its citations intact and does not on its own fail the gate. An isolated observation " +
+        "and a recurring pattern are different things, which is why the class table has numbers " +
+        "in it; a single weak batch is already caught by the per-batch layer.",
       categories: presentBelowThreshold,
+    });
+  }
+
+  /* --- a correctness veto and a band that disagree with each other -------------------------- */
+
+  /**
+   * `§3.7`: a `creativeGuidance` promotion or an eroded host constraint *"also forces that batch to
+   * `Fail` under §3.7's band definitions"*.
+   *
+   * So a reviewer who cites S3 or S4 on a batch and then rates that batch anything but `Fail` has
+   * contradicted themselves. Recorded, not resolved — the same treatment `§3.7` gives a band that
+   * disagrees with its minimum-wowable answer, and for the same reason: choosing the more
+   * convenient side of a contradiction is not arithmetic. It is a finding rather than a reason
+   * because the S3/S4 veto already fails the gate on its own threshold.
+   */
+  const correctnessCited = systemic
+    .filter((entry) => entry.class === "correctness" && entry.verdict === "present")
+    .flatMap((entry) =>
+      entry.citedBatches.map((batchId) => ({ batchId, category: entry.category })),
+    );
+  const bandOf = new Map(batches.map((batch) => [batch.batchId, batch.band]));
+  const contradictions = correctnessCited.filter(
+    ({ batchId }) => bandOf.has(batchId) && bandOf.get(batchId) !== "Fail",
+  );
+  if (contradictions.length > 0) {
+    findings.push({
+      kind: "correctness_band_contradiction",
+      detail:
+        "cited under a correctness category but not rated `Fail`: " +
+        contradictions
+          .map(({ batchId, category }) => `${batchId} (${category}, rated ${bandOf.get(batchId)})`)
+          .join(", ") +
+        ". §3.7: any occurrence of S3 or S4 also forces that batch to `Fail`. Recorded verbatim " +
+        "rather than resolved in favour of either side.",
+      batchIds: [...new Set(contradictions.map((entry) => entry.batchId))],
+      categories: [...new Set(contradictions.map((entry) => entry.category))],
     });
   }
 
@@ -806,6 +912,7 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
   return {
     decision: reasons.length === 0 ? "GO" : "NO-GO",
     reasons,
+    findings,
     bandDistribution,
     minimumWowableTally,
     systemic,

@@ -485,6 +485,14 @@ array. Each case is one **batch** — one event, three concepts — and needs:
   `presentation` is a fact the model invented. Absent, the check reports `n/a`;
 - optionally `notes`: the author's own, never sent to the model and never shown to the reviewer.
 
+**Every prose field of the brief is leakage-scanned** against the model-visible surfaces, so a
+distinctive phrase an author writes must not already appear in a prompt or a wire schema — and a
+collision is resolved at the corpus, never at the scanner (`phase-4b-plan.md §3.5`). The three
+`compatible*` enum arrays and the `"No visual inspiration supplied."` sentinel are exempt, because
+the schema forces those values and an author cannot change them. `eventType` is not scanned at all:
+it never reaches the model. The scan catches literal reuse and not paraphrase, so an independent
+read for benchmark integrity is still required.
+
 The gated corpus — the sealed challenge — additionally has to satisfy §3.7's frozen size and
 composition requirement. The runner asserts the whole contract at module scope, before any provider
 call, and `validateDesignIntentCorpusShape` is a pure function so it can be unit-tested without
@@ -492,11 +500,14 @@ importing the module that spends money.
 
 **What a run writes**, to the directory its `EVAL_SET` names and never to one holding a completed
 run's evidence: `raw-responses.jsonl` (appended per response, the moment it arrives, ahead of any
-deterministic evaluation), `blind-review.md`, `reviewer-packet.md` and `mechanical-report.md`. The
-artifact is written before the report, because the report is this set's completion signal and a
-directory that reads as complete with no artifact in it would be worse than an obviously aborted
-one. The journal and all three reports are rotated aside at the start of a run rather than appended
-to or left standing.
+deterministic evaluation) and `mechanical-report.md` at the top level, and **`review/`** holding
+`blind-review.md` and `reviewer-packet.md`. The split is the point: `mechanical-report.md` carries
+the check details, the acceptance criteria and the batch-label-to-case-id join, and handing a
+reviewer "the results directory" with that file beside the artifact would hand them part of what
+§3.8 withholds. What gets handed over is `review/`. The artifact is written before the report,
+because the report is this set's completion signal and a directory that reads as complete with no
+artifact in it would be worse than an obviously aborted one. The journal and all three reports are
+rotated aside at the start of a run rather than appended to or left standing.
 
 **What the blind artifact contains** (`phase-4b-plan.md §3.8`), per batch: the authoritative brief
 and the three DesignIntents, each with its `presentation` object — without which the verbal-identity
@@ -512,7 +523,8 @@ bands with `Excellent`'s requirements, the minimum-wowable question with its cri
 S1–S9 checklist. A reviewer asked to rate against a scale they cannot see is guessing, and a
 checklist they have not been given is one they cannot complete. It withholds the arithmetic, in
 §3.8's terms, and that exclusion is asserted by test against the rendered packet rather than
-asserted in prose. The GO/NO-GO arithmetic happens **afterwards, outside the blind review**, by
+asserted in prose — and against the rendered `mechanical-report.md` as well, because a directory
+layout is a convention and a scan is a test. The GO/NO-GO arithmetic happens **afterwards, outside the blind review**, by
 someone applying §3.7's frozen rule to what the reviewer returned;
 `decideDesignIntentGate` is that rule as a pure function, and it refuses to decide at all on an
 incomplete review.
@@ -520,9 +532,24 @@ incomplete review.
 **The mechanical block** (`phase-4b-plan.md §3.2`) is deterministic, per batch and corpus-wide. Per
 batch: schema validity against production's own validator, assignment conformance, palette
 separation above a frozen floor measured in CIELAB rather than by hex equality, typography-pairing
-distinctness, composition-vector distinctness across the five dimensions, motif-set overlap below a
-ceiling, host-constraint colours honoured, no supplied fact surfaced, and a present host-facing
-`presentation`. Corpus-wide, and this block is not
+distinctness, composition-vector distinctness, motif-set overlap strictly below a ceiling,
+host-constraint colours honoured, no supplied fact surfaced, and a present host-facing
+`presentation`.
+
+Three of those are narrower than they first look, and each for the same reason — a metric must
+measure the model, not something the model never chose. **Palette separation is measured over the
+non-required colours only**: a colour `paletteIntent.requiredColors` demands is carried by all three
+siblings by obligation and scores zero distance, so counting it would fail a model for honouring a
+constrained palette exactly as canon asks. Where no free colour is left, the check is advisory and
+the judgement is the reviewer's. **Composition-vector distinctness counts the four dimensions the
+model chooses** — asymmetry, rhythm, section contrast and ornament — and not `hierarchy`, which the
+planner assigns and actively separates; hierarchy conformance is checked by assignment conformance,
+where it is a statement about the right thing. **Required and excluded colours are read from
+`paletteIntent`**, never from a hex inside constraint prose: a constraint may be a prohibition, a
+requirement or a correction, and `"No #C8102E anywhere"` and `"it has to carry #C8102E"` are the
+same string to a regex. A hex whose direction is not declared goes to the reviewer under S4.
+
+Corpus-wide, and this block is not
 optional: same-index sibling distance across batches, the same restricted to batches sharing an
 event type, palette-family, typography and motif-set frequencies, recurring finishing language, and
 recurring design signatures. Those are **measurements, not thresholds** — they are the evidence the

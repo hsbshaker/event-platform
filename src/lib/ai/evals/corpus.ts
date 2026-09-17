@@ -413,6 +413,57 @@ function stringsIn(value: unknown, min: number, seen = new Set<unknown>()): stri
   );
 }
 
+/**
+ * The prose fields of an identity brief — the ones an author actually writes.
+ *
+ * Deliberately **not** the whole object, and the exclusions are the point.
+ *
+ * `compatibleFamilies`, `compatibleTonalDirections` and `compatibleTypographyCategories` are closed
+ * enums: a brief must say `editorial`, `invitation` or `statement`, and those three words are in
+ * `docs/model-prompts/event-identity.system.md` and in the DesignIntent wire schema because the
+ * schema is what puts them there. Scanning them would report a leak on **every** 4C case, on a
+ * value the schema forces — and `§3.5` says a collision is resolved *at the corpus*, never by
+ * relaxing the scanner. A corpus author cannot resolve a value they are not allowed to change, so
+ * the only escape would be editing this scanner after the cases exist, which is the one move the
+ * whole T19-before-T20 ordering exists to prevent. The enums are excluded here, before any case
+ * exists, rather than waived later.
+ *
+ * `inspirationSummary` is scanned **unless** it is the sentinel. `contract.ts` requires exactly
+ * `"No visual inspiration supplied."` when there is none, and that sentence is quoted in the prompt
+ * for the same reason — so it is a forced value too, and every 4C case would carry it.
+ *
+ * What is left is what an author chose: the creative direction, the tone keywords, the palette
+ * prose, the motifs, the texture, typography and copy direction, the host constraints and the
+ * creative guidance. Those are genuinely fixable at the corpus, which is what makes scanning them
+ * a control rather than a tripwire.
+ */
+const INSPIRATION_SENTINEL = "No visual inspiration supplied.";
+
+const IDENTITY_PROSE_FIELDS = [
+  "creativeDirection",
+  "toneKeywords",
+  "paletteIntent",
+  "tonalIntent",
+  "visualMotifs",
+  "textureDirection",
+  "typographyDirection",
+  "copyTone",
+  "hostConstraints",
+  "creativeGuidance",
+] as const;
+
+/** Every author-written string in an identity brief. Exported so its scope is testable. */
+export function identityProseStrings(identity: unknown): string[] {
+  if (identity === null || typeof identity !== "object") return [];
+  const brief = identity as Record<string, unknown>;
+  const out = IDENTITY_PROSE_FIELDS.flatMap((field) => stringsIn(brief[field], 6));
+  const inspiration = brief.inspirationSummary;
+  if (typeof inspiration === "string" && inspiration.trim() !== INSPIRATION_SENTINEL) {
+    out.push(...stringsIn(inspiration, 6));
+  }
+  return [...new Set(out)];
+}
+
 export function leakageProbes(testCase: unknown): LeakageProbes {
   const value = (testCase ?? {}) as Record<string, unknown>;
   const text = (input: unknown): string | null =>
@@ -424,12 +475,11 @@ export function leakageProbes(testCase: unknown): LeakageProbes {
   const prompt = text(value.prompt);
   if (prompt) verbatim.push(prompt);
 
-  // A 4C case: the frozen authoritative brief is what the run is built on, so every word of it is
-  // text the DesignIntent prompt must not already contain. Six characters, matching the floor the
-  // claims list has always used — below it a "match" is a word of English.
-  if (value.identity !== null && typeof value.identity === "object") {
-    verbatim.push(...stringsIn(value.identity, 6));
-  }
+  // A 4C case: the frozen authoritative brief is the input the run is built on, so the author's own
+  // words in it are text the DesignIntent prompt must not already contain. The closed enums and the
+  // no-inspiration sentinel are excluded, because a forced value cannot be fixed at the corpus —
+  // see `identityProseStrings`. Six characters, matching the floor the claims list has always used.
+  verbatim.push(...identityProseStrings(value.identity));
 
   const list = (input: unknown) =>
     Array.isArray(input) ? input.filter((entry): entry is string => typeof entry === "string") : [];
@@ -445,7 +495,12 @@ export function leakageProbes(testCase: unknown): LeakageProbes {
   claims.push(...stringsIn(value.expectedFacts, 1));
   claims.push(...stringsIn(value.facts, 1));
   claims.push(...stringsIn(value.suppliedFacts, 1));
-  for (const note of [value.notes, value.rationale, value.eventType]) {
+  // `eventType` is deliberately **not** a probe. It never reaches the model, never appears in the
+  // blind artifact, and is only a grouping key for the same-type measurement — so it is not
+  // benchmark content that could leak. Scanning it would also collide with ordinary vocabulary:
+  // `docs/phase-4b-plan.md §3.7` uses "quinceañera" and "christening" as its own worked example,
+  // and a corpus using either label would report a leak against a document the model never sees.
+  for (const note of [value.notes, value.rationale]) {
     const entry = text(note);
     if (entry) claims.push(entry);
   }

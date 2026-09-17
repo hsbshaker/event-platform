@@ -1638,17 +1638,25 @@ exactly the observation a reviewer writes in prose and does not think to file.
 
 *How the go/no-go records it.* The decision states the band distribution, **the minimum-wowable
 tally**, and the systemic verdict per category. A veto is a **NO-GO** with the category and the
-reviewer's citations recorded verbatim. A pass records that all **nine** were assessed and found
-absent, and that all twelve batches were `Excellent` with minimum-wowable `YES`. **No half can be
-waived by another**: an excellent distribution does not override a veto, an absent veto does not
-rescue a failing distribution, and neither rescues a minimum-wowable `NO`.
+reviewer's citations recorded verbatim. **A GO requires all nine categories explicitly assessed and
+none of them meeting its frozen threshold** — not that every one was found absent. A category the
+reviewer marks *present* while citing fewer distinct batches than its class threshold is a
+**recorded finding, not a veto**: it stays in the decision artifact with its citations intact, and
+it does not on its own fail the gate. That is what the threshold is for, and an earlier draft of
+this paragraph made it decorative by reading "found absent" as the pass condition — an isolated
+observation and a recurring pattern are different things, which is the whole reason the table above
+has numbers in it. A batch that genuinely is weak, generic or parametric is already caught by the
+per-batch layer, which requires twelve of twelve `Excellent` and twelve of twelve minimum-wowable
+`YES`; the systemic layer exists to catch **recurrence** that the per-batch layer may not expose.
+**No half can be waived by another**: an excellent distribution does not override a veto, an absent
+veto does not rescue a failing distribution, and neither rescues a minimum-wowable `NO`.
 
 **The north star and the floor are now the same line.** Earlier drafts of this section called 100%
 `Excellent` the aspiration and set the gate below it, which made `Good` a passing grade for a
 product whose whole promise is that the host feels understood. The gate is now the bar: twelve of
-twelve `Excellent`, twelve of twelve minimum-wowable, nine systemic categories absent. It is
-deliberately stringent, it was set before any case existed, and it does not move because a run
-comes back close.
+twelve `Excellent`, twelve of twelve minimum-wowable, nine systemic categories assessed with none
+of them meeting its frozen threshold. It is deliberately stringent, it was set before any case
+existed, and it does not move because a run comes back close.
 
 ## 3.8 Independent qualitative review process
 
@@ -2279,6 +2287,45 @@ clarification-answer assembly. Phase 4A's v1 input did not send inspiration even
 ultimately requires it, and that gap is recorded as debt. Adding it in the same model-visible change
 would introduce a second untested input channel into the one run that grades the first, so it stays
 a separate assembly-version change unless canon explicitly schedules it elsewhere.
+
+### A fourth provenance fact: the leakage scan changed again at T19
+
+The same rule about recording it, one phase along. **`src/lib/ai/evals/prompt-leakage.test.ts`
+changed at T19 and must not later be described as byte-identical across it**, and the probe logic it
+now calls changed once more in the T19 review round. Both happened before any 4C case existed.
+
+- **The file itself changed once, to read a corpus shape it could not read.** A Phase 4C case has no
+  host `prompt`: its frozen input is an authoritative `identity` brief. The scan reached for
+  `.prompt` directly, so the moment T20 landed a corpus it would either have thrown on the first
+  case or — quieter and worse — scanned nothing. The extraction moved into `corpus.ts` as the pure
+  `leakageProbes`, unit-tested in `corpus.test.ts`, and the scan now reads whichever shape a case
+  has. Coverage of the 4A/4B shape is unchanged, which its own test asserts field by field. The
+  unscanned-corpus reporter became a subset assertion in the same change, so T20 and T22 can land
+  corpus files without anyone editing benchmark-integrity tooling after seeing the cases.
+- **`leakageProbes` then changed in review, to stop the scan reporting a leak nobody could fix.**
+  Its first version pushed every string in the brief into the scan, including `compatibleFamilies`,
+  `compatibleTonalDirections` and `compatibleTypographyCategories` — closed enums whose values are in
+  the Event Identity prompt and the DesignIntent wire schema *because the schema puts them there* —
+  and the `inspirationSummary` sentinel, which `contract.ts` requires verbatim. Every 4C case would
+  have reported a leak on a value its author is not allowed to change, and §3.5 says a collision is
+  fixed **at the corpus**. A corpus author cannot fix a forced value, so the only escape would have
+  been editing the scanner after the cases existed — the one move the T19-before-T20 ordering exists
+  to prevent. The enums and the sentinel are now excluded; every prose field an author actually
+  writes is still scanned. `eventType` was dropped from the probes in the same change: it never
+  reaches the model and never appears in the blind artifact, so it is not benchmark content.
+- **Neither change was driven by a case.** No 4C corpus exists; both were decided from the schema
+  and the corpus contract alone. Coverage was widened, not relaxed: two model-visible surfaces were
+  added at T19 — `docs/model-prompts/design-intent.system.md` and
+  `docs/model-schemas/design-intent.wire.schema.json` — so the DesignIntent prompt T21 writes is
+  scanned against the 4C corpora from the moment either lands.
+
+**A scan-scope fact to record rather than leave looking like coverage.** A 4C brief's prose is
+scanned with the same six-character floor the claims list has always used, so a short, common tone
+keyword can collide with ordinary prompt vocabulary. That collision is genuinely fixable at the
+corpus — the author chose the word — which is what makes it a control rather than the tripwire the
+enums would have been. A T20 author should expect it and reword, and should not read a clean scan
+as proof that nothing paraphrased leaked: §3.5's "necessary and not sufficient" applies here
+exactly as it does one level up.
 
 ---
 
