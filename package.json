@@ -24,7 +24,10 @@
     "eval:challenge": "EVAL_SET=challenge vitest run --project eval",
     "eval:spent-challenge": "EVAL_SET=spentChallenge vitest run --project eval",
     "eval:challenge2": "EVAL_SET=challenge2 vitest run --project eval",
-    "eval:rerun-behaviour": "EVAL_SET=rerunBehaviour vitest run --project eval"
+    "eval:rerun-behaviour": "EVAL_SET=rerunBehaviour vitest run --project eval",
+    "eval:design-intent-regression": "EVAL_SET=designIntentRegression vitest run --project eval",
+    "eval:design-intent-validation": "EVAL_SET=designIntentValidation vitest run --project eval",
+    "eval:design-intent-challenge": "EVAL_SET=designIntentChallenge vitest run --project eval"
   },
   "dependencies": {
     "@sparticuz/chromium": "^153.0.0",

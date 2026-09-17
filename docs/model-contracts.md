@@ -223,8 +223,9 @@ about whether EventIdentity asks good questions, asks at the right time, or prod
 It is listed here because it is protected evidence, not because it evidences the same thing.
 `PROTECTED_RESULT_DIRS` refuses all seven as an output path. A directory is added to that list as
 part of finishing the run that produced it, never as a follow-up: until it is, the only guard is
-the write-once check, which `EVAL_OVERWRITE=1` exists to override. No eval set now has a writable
-output path. `process-notes.md` under
+the write-once check, which `EVAL_OVERWRITE=1` exists to override. No eval set **in this section**
+has a writable output path; the three Phase 4C DesignIntent slots of §4.7 do, because none of them
+has run yet, and each joins the list in the same change that commits its own evidence. `process-notes.md` under
 `creative-understanding-v1/` is a **frozen historical record**, not a current append target.
 Operational incidents from here on are recorded only in `docs/model-evals/eval-incidents.md`,
 which sits outside every protected directory and carries the rule those incidents produced:
@@ -421,6 +422,124 @@ guess. **Latency is explicit debt on the same terms:** a ~30 s median is materia
 destination in `spec.md §7.10`, and it is addressed after the creative pipeline is proven, not
 before. The north star is that every interpretation is Excellent — and the way not to get there is
 to manufacture a 12/12 by tuning against spent cases.
+
+---
+
+## 4.7 DesignIntent evaluation contract
+
+§4.5 measures whether an *interpretation* is right. This measures whether the three design
+directions built on it are — the Phase 4C question, and the one `product-doctrine.md §2` calls core
+functionality rather than polish. The harness, the corpus contract and the gate were all frozen at
+**T19**, before any case was authored and before the DesignIntent prompt was written
+(`docs/phase-4b-plan.md` Part IV).
+
+**The gate lives in `docs/phase-4b-plan.md §3.7` and only there.** Its bands, its
+`Excellent` requirements, its minimum-wowable question and criteria, its S1–S9 categories, its class
+thresholds, its corpus size and its distribution rule are **not** restated here. One normative copy
+is the whole point: a second would drift, and §3.8 additionally withholds §3.7 from the blind
+reviewer, which a copy in this document would defeat. `src/lib/ai/evals/design-intent-gate.ts`
+transcribes that section verbatim, is hash-pinned, and is checked against the plan's own bytes by
+`src/lib/ai/evals/design-intent.test.ts`.
+
+**Three evidence classes, and they are not interchangeable** (`phase-4b-plan.md §3.4`):
+
+| script | `EVAL_SET` | corpus | output | class |
+| --- | --- | --- | --- | --- |
+| `eval:design-intent-regression` | `designIntentRegression` | `design-intent-regression.json` | `docs/model-evals/results/design-intent-regression-v1` | **regression** — authored before the prompt, readable freely, catches regressions forever |
+| `eval:design-intent-validation` | `designIntentValidation` | `design-intent-validation.json` | `docs/model-evals/results/design-intent-validation-v1` | **pre-registered validation** — authored and frozen before the prompt was written, by an author who implemented none of the harness, independently reviewed for fairness and leakage |
+| `eval:design-intent-challenge` | `designIntentChallenge` | `design-intent-sealed-challenge.json` | `docs/model-evals/results/design-intent-sealed-challenge-v1` | **sealed challenge** — authored after the T21 implementation and the harness froze, unseen while they were written. The generalization evidence the §3.7 gate is applied to. One run, then spent |
+
+All three corpora are **deliberately absent** today, and all three slots refuse at module scope
+without them — before an API key is read and before a client is constructed. The first two are
+authored at T20; the sealed challenge at T22, after the implementation freeze. Adding a corpus file
+is then the entire change: no runner, checker, prompt, schema or model code moves, because moving
+any of it after seeing the cases is precisely what these classes exist to prevent. Each output
+directory joins `PROTECTED_RESULT_DIRS` in the same change that commits its evidence, never as a
+follow-up.
+
+**No live DesignIntent call may happen before T21** is complete, frozen, independently reviewed and
+explicitly approved. `tests/eval/design-intent.eval.ts` calls through a one-binding seam,
+`src/lib/ai/evals/design-intent-seam.ts`, which today points at a refusal that explains itself. T21
+repoints that binding and touches nothing else in the frozen harness. The seam exists so the eval
+goes through the **same production assembly** the real generation path uses: a second assembly
+written for the harness would let a set pass while production sent something else.
+
+**The corpus structural contract, published so an independent author can satisfy it without reading
+the checker.** A corpus is a JSON object with a non-empty `version` string and a non-empty `cases`
+array. Each case is one **batch** — one event, three concepts — and needs:
+
+- a unique non-empty `id`. It is the journal's join key, and it is also the identity revision id the
+  deterministic planner seeds from, so two cases sharing one would be planned identically;
+- a non-empty `eventType`: a short label such as `"christening"` or `"60th birthday"`, compared only
+  for equality after trimming and case folding. Two batches of the same type must spell it the same
+  way. It is never sent to the model and never appears in the blind artifact as metadata; it exists
+  because §3.2's same-type measurement and §3.7's S8 same-type clause need to know which batches are
+  instances of the same kind of event;
+- an `identity`: the **authoritative creative brief**, in exactly the shape §4.1's result envelope
+  holds under `identity`, and parsed with that same schema. It is hand-authored fixture state — no
+  model produces it, and the run makes no call to obtain it, so nothing stochastic sits upstream of
+  the thing being measured. A brief carrying a boundary question is not representable here: the
+  envelope the runner builds is authoritative by construction (`spec.md §7.6b`);
+- optionally `suppliedFacts`: keys from §4.1's supplied-fact fields, values either `null` or the
+  host's own words. A DesignIntent call never receives them, so a value that surfaces in a concept's
+  `presentation` is a fact the model invented. Absent, the check reports `n/a`;
+- optionally `notes`: the author's own, never sent to the model and never shown to the reviewer.
+
+The gated corpus — the sealed challenge — additionally has to satisfy §3.7's frozen size and
+composition requirement. The runner asserts the whole contract at module scope, before any provider
+call, and `validateDesignIntentCorpusShape` is a pure function so it can be unit-tested without
+importing the module that spends money.
+
+**What a run writes**, to the directory its `EVAL_SET` names and never to one holding a completed
+run's evidence: `raw-responses.jsonl` (appended per response, the moment it arrives, ahead of any
+deterministic evaluation), `blind-review.md`, `reviewer-packet.md` and `mechanical-report.md`. The
+artifact is written before the report, because the report is this set's completion signal and a
+directory that reads as complete with no artifact in it would be worse than an obviously aborted
+one. The journal and all three reports are rotated aside at the start of a run rather than appended
+to or left standing.
+
+**What the blind artifact contains** (`phase-4b-plan.md §3.8`), per batch: the authoritative brief
+and the three DesignIntents, each with its `presentation` object — without which the verbal-identity
+questions, the `Good` band and minimum-wowable criterion 4 cannot be answered. Plus, once, the
+corpus-wide measurements. Nothing else: no case id, no event type, no expectations, no prior
+evidence. Batches are labelled positionally, so the reviewer has an id to cite that is not the
+corpus's own case name. The identity is included **deliberately** — whether a treatment is supported
+by the identity, and whether a pattern belongs to the system or to one unusual input, are not
+answerable from outputs alone.
+
+**What the reviewer packet contains, and what it must not.** It carries the definitions: the four
+bands with `Excellent`'s requirements, the minimum-wowable question with its criteria, and the
+S1–S9 checklist. A reviewer asked to rate against a scale they cannot see is guessing, and a
+checklist they have not been given is one they cannot complete. It withholds the arithmetic, in
+§3.8's terms, and that exclusion is asserted by test against the rendered packet rather than
+asserted in prose. The GO/NO-GO arithmetic happens **afterwards, outside the blind review**, by
+someone applying §3.7's frozen rule to what the reviewer returned;
+`decideDesignIntentGate` is that rule as a pure function, and it refuses to decide at all on an
+incomplete review.
+
+**The mechanical block** (`phase-4b-plan.md §3.2`) is deterministic, per batch and corpus-wide. Per
+batch: schema validity against production's own validator, assignment conformance, palette
+separation above a frozen floor measured in CIELAB rather than by hex equality, typography-pairing
+distinctness, composition-vector distinctness across the five dimensions, motif-set overlap below a
+ceiling, host-constraint colours honoured, no supplied fact surfaced, and a present host-facing
+`presentation`. Corpus-wide, and this block is not
+optional: same-index sibling distance across batches, the same restricted to batches sharing an
+event type, palette-family, typography and motif-set frequencies, recurring finishing language, and
+recurring design signatures. Those are **measurements, not thresholds** — they are the evidence the
+reviewer answers S8 and S9 against, rather than from recollection of the ratings just given.
+
+A check that cannot be decided honestly reports `n/a` or `advisory` and is **never** folded into the
+pass count. Several are permanently advisory by design, and each for a stated reason: first-call
+schema validity, because §8 allows one repair retry and a repaired response is a legal production
+outcome; retry counts, because they are a measurement rather than a verdict; natural-language host
+constraints and creative-guidance adoption, because both are the reviewer's under S4 and S3; and the
+attractive-token allotment, because **a DesignIntent carries no attractive token** — the allotment
+constrains the composition call (`spec.md §7.7`) and 4C runs none, so the model never had the chance
+to violate it. That check reports `n/a` and carries the plan's own facts as detail; a `pass` there
+would have put a true-looking verdict about model output into an evidence report, on a property that
+is a fact about the planner, and the planner is decided over thousands of seeded plans in
+`src/lib/generation/planner.test.ts`. **A mechanical pass is necessary and never sufficient**: three
+outputs can satisfy every distance metric and still be one idea.
 
 ---
 

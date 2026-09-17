@@ -128,9 +128,18 @@ describe("no set can write over evidence that already exists", () => {
     // Every creative-understanding set was already spent and protected. Phase 4B's rerun-behaviour
     // set was the one exception, and it stayed writable only until its own run happened: T13 ran it
     // once and T14 added its directory here in the same change that committed the evidence — the
-    // rule the eval ledger states, applied again rather than remembered. Nothing is writable now.
+    // rule the eval ledger states, applied again rather than remembered.
+    //
+    // Phase 4C's three sets are writable now, and that is what a prewired slot looks like before
+    // its run: none of them has a corpus, none of them can reach a provider, and each joins the
+    // list above in the same change that commits its own evidence. Named exactly, so a fourth
+    // writable path cannot appear unnoticed.
     const writable = sets.filter((set) => !isProtectedOutput(EVAL_SETS[set].out));
-    expect(writable).toEqual([]);
+    expect(writable).toEqual([
+      "designIntentRegression",
+      "designIntentValidation",
+      "designIntentChallenge",
+    ]);
   });
 
   it("protects every directory that already holds a completed run's evidence", () => {
@@ -234,6 +243,9 @@ describe("the runner and the leakage scan cannot disagree about a corpus", () =>
       "challenge",
       "challenge2",
       "rerunBehaviour",
+      "designIntentRegression",
+      "designIntentValidation",
+      "designIntentChallenge",
     ]);
   });
 
@@ -241,10 +253,17 @@ describe("the runner and the leakage scan cannot disagree about a corpus", () =>
     // A set graded by the wrong checker is a paid run judged against criteria that were never
     // frozen for it. Ownership lives beside the set so neither runner can pick it up by accident.
     for (const set of sets) {
-      expect(["creative-understanding", "clarification-rerun"]).toContain(EVAL_SETS[set].runner);
+      expect(["creative-understanding", "clarification-rerun", "design-intent"]).toContain(
+        EVAL_SETS[set].runner,
+      );
     }
     expect(sets.filter((set) => EVAL_SETS[set].runner === "clarification-rerun")).toEqual([
       "rerunBehaviour",
+    ]);
+    expect(sets.filter((set) => EVAL_SETS[set].runner === "design-intent")).toEqual([
+      "designIntentRegression",
+      "designIntentValidation",
+      "designIntentChallenge",
     ]);
   });
 });

@@ -332,11 +332,27 @@ describe("paths and ownership are fixed before the cases are known", () => {
 
   it("was the last writable output path, and is protected now its run has happened", () => {
     // Everything else was already spent and protected. This joined them in the same change that
-    // committed its evidence (T14), never as a follow-up — so no set can write anywhere now, and
-    // the directory that holds the one T13 run is on disk and refused as an output.
+    // committed its evidence (T14), never as a follow-up — so no set that has run can write
+    // anywhere now, and the directory that holds the one T13 run is on disk and refused as an
+    // output.
+    //
+    // Scoped to the sets this freeze is about, and named rather than derived. Phase 4C T19
+    // prewired three DesignIntent slots whose runs have not happened, and their output paths are
+    // writable exactly as this one's was until T13 — that is what a prewired slot is. A test that
+    // read "no set anywhere is writable" would have had to be relaxed by whoever adds the next
+    // slot; this one has to be edited to *add* a writable set, which is the direction that keeps
+    // the guard meaningful.
     expect(isProtectedOutput(RERUN_BEHAVIOUR_OUT)).toBe(true);
-    for (const set of Object.keys(EVAL_SETS)) {
-      const writable = !isProtectedOutput(EVAL_SETS[set as keyof typeof EVAL_SETS].out);
+    const spent = [
+      "regression",
+      "holdout",
+      "challenge",
+      "spentChallenge",
+      "rerunBehaviour",
+      "challenge2",
+    ] as const;
+    for (const set of spent) {
+      const writable = !isProtectedOutput(EVAL_SETS[set].out);
       expect({ set, writable }).toEqual({ set, writable: false });
     }
     expect(existsSync(`${ROOT}${RERUN_BEHAVIOUR_OUT}`)).toBe(true);

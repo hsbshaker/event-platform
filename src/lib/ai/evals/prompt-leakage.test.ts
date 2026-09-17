@@ -26,6 +26,7 @@ import {
   ASSEMBLY_VERSION_BEFORE_ANSWERS,
   CORPUS_FILES,
   corpusPath,
+  leakageProbes,
   MODEL_VISIBLE_SURFACES,
   type CorpusSet,
 } from "./corpus";
@@ -72,16 +73,17 @@ describe("which model-visible surfaces this scan covers", () => {
   });
 });
 
+/**
+ * Only an `id`, because the strings this scan compares are extracted by `leakageProbes`.
+ *
+ * The scan reads corpora of two shapes now: a Phase 4A/4B case is a host `prompt` plus assertions
+ * about it, and a Phase 4C DesignIntent case is a frozen authoritative identity brief with no host
+ * prompt at all. Reaching for `.prompt` here would have thrown on the first 4C case, or — the
+ * quieter and worse outcome — scanned nothing. The extraction lives in `corpus.ts`, beside the
+ * filenames, so it is pure, unit-tested, and cannot be unhooked from one side.
+ */
 interface EvalCase {
   id: string;
-  prompt: string;
-  mustAvoid?: string[];
-  mustNotBeClaimedAsHostConstraint?: string[];
-  hostPhrases?: { phrase: string }[];
-  expectedFacts?: Record<string, string | null>;
-  facts?: Record<string, string>;
-  notes?: string;
-  rationale?: string;
 }
 
 /**
@@ -118,10 +120,20 @@ describe("which corpora this scan covers", () => {
   // empty list, and the three `describe`s below start covering it with no edit here.
   it.runIf(ABSENT.length > 0)("names any corpus that does not exist yet, as unscanned", () => {
     // Read from the shared map rather than written out. `challenge2` landed and this test
-    // retired; Phase 4B's rerun-behaviour corpus re-armed it, which is the mechanism working in
-    // both directions. When those cases land, `ABSENT` empties again and the three scans below
-    // start covering them with no edit here — the property both freezes depend on.
-    expect(ABSENT).toEqual([CORPUS_FILES.rerunBehaviour]);
+    // retired; Phase 4B's rerun-behaviour corpus re-armed it, and Phase 4C's three re-armed it
+    // again — the mechanism working in both directions.
+    //
+    // A **subset** assertion rather than an exact list, which is the shape that lets T20 land two
+    // corpus files and T22 the third without anyone editing benchmark-integrity tooling after
+    // seeing the cases. It still fails on the case that matters: a corpus that is absent and was
+    // never declared as authored-after-this-scan, which is a corpus that has gone missing.
+    const declaredAbsentAtSomePoint: string[] = [
+      CORPUS_FILES.rerunBehaviour,
+      CORPUS_FILES.designIntentRegression,
+      CORPUS_FILES.designIntentValidation,
+      CORPUS_FILES.designIntentChallenge,
+    ];
+    expect(ABSENT.filter((file) => !declaredAbsentAtSomePoint.includes(file))).toEqual([]);
   });
 });
 
@@ -146,14 +158,19 @@ describe.each(Object.entries(SURFACES))("%s is clean of every corpus", (_name, s
 
   for (const { file, cases } of CORPORA) {
     describe(file, () => {
-      it("contains no case prompt", () => {
-        const leaked = cases.filter((c) => surface.includes(fold(c.prompt))).map((c) => c.id);
+      it("contains no case input verbatim", () => {
+        const leaked = cases.flatMap((c) =>
+          leakageProbes(c)
+            .verbatim.filter((v) => surface.includes(fold(v)))
+            .map((v) => `${c.id}: "${v}"`),
+        );
         expect(leaked).toEqual([]);
       });
 
-      it("contains no distinctive span of a case prompt", () => {
+      it("contains no distinctive span of a case input", () => {
         const leaked = cases.flatMap((c) =>
-          spans(c.prompt)
+          leakageProbes(c)
+            .verbatim.flatMap(spans)
             .filter((s) => surface.includes(s))
             .map((s) => `${c.id}: "${s}"`),
         );
@@ -161,21 +178,11 @@ describe.each(Object.entries(SURFACES))("%s is clean of every corpus", (_name, s
       });
 
       it("contains no expected answer, probe, host phrase or case note", () => {
-        const leaked = cases.flatMap((c) => {
-          const claims = [
-            ...(c.mustAvoid ?? []),
-            ...(c.mustNotBeClaimedAsHostConstraint ?? []),
-            ...(c.hostPhrases ?? []).map((p) => p.phrase),
-            // The gating answers themselves: showing the model these is the worst form.
-            ...Object.values(c.expectedFacts ?? {}).filter(
-              (v): v is string => typeof v === "string",
-            ),
-            ...Object.values(c.facts ?? {}),
-            c.notes ?? "",
-            c.rationale ?? "",
-          ].filter((v) => v.length >= 6);
-          return claims.filter((v) => surface.includes(fold(v))).map((v) => `${c.id}: "${v}"`);
-        });
+        const leaked = cases.flatMap((c) =>
+          leakageProbes(c)
+            .claims.filter((v) => surface.includes(fold(v)))
+            .map((v) => `${c.id}: "${v}"`),
+        );
         expect(leaked).toEqual([]);
       });
     });

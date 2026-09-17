@@ -64,6 +64,24 @@ export const CORPUS_FILES = {
    * cases (T6–T8). Naming the file here now is what makes adding it later the entire change.
    */
   rerunBehaviour: "clarification-rerun-behaviour.json",
+  /**
+   * Phase 4C's DesignIntent regression corpus. **Deliberately absent**: the harness and the gate
+   * are frozen at T19, and only then does an independent author write the cases (T20).
+   */
+  designIntentRegression: "design-intent-regression.json",
+  /**
+   * Phase 4C's pre-registered validation corpus. **Deliberately absent**, same reason and same
+   * task: authored at T20, after this freeze, from the published dimensions alone.
+   */
+  designIntentValidation: "design-intent-validation.json",
+  /**
+   * Phase 4C's sealed challenge. **Deliberately absent, and for longer than the other two**: it is
+   * written at T22 by an author who has seen neither the prompt nor prior outputs nor known
+   * failures, after the T21 implementation freeze. Naming it here now, while its cases are
+   * unknown, is what keeps its arrival from requiring an edit anywhere — exactly the arrangement
+   * `challenge2` proved twice.
+   */
+  designIntentChallenge: "design-intent-sealed-challenge.json",
 } as const;
 
 export type CorpusSet = keyof typeof CORPUS_FILES;
@@ -180,6 +198,18 @@ export const MODEL_VISIBLE_SURFACES = {
    * file instead would otherwise satisfy the guard and leave the strings unscanned.
    */
   "input assembly": "src/lib/ai/openai/event-identity-input.ts",
+  /**
+   * The DesignIntent prompt. It exists today as `design_intent_v4`, a pre-provider draft that no
+   * model has ever been sent, and **T21 rewrites it**. Declared here at T19 — before the 4C
+   * corpora are authored and before the prompt is written — so the scan covers it from the moment
+   * either changes, rather than being widened after someone has seen the cases.
+   */
+  "design intent prompt": "docs/model-prompts/design-intent.system.md",
+  /**
+   * The DesignIntent wire schema. It counts for the same reason the Event Identity one does: every
+   * `.describe()` string ships to the model, which is how Phase 4A's leak 4 reached production.
+   */
+  "design intent wire schema": "docs/model-schemas/design-intent.wire.schema.json",
 } as const;
 
 /** The assembly version at which the third surface above is still legitimately absent. */
@@ -247,6 +277,43 @@ export const EVAL_SETS = {
       "implementation and harness froze, and unseen while they were written; the fresh " +
       "generalization evidence for v5",
   },
+  /**
+   * The three Phase 4C DesignIntent sets, wired at T19 while none of their cases exists.
+   *
+   * Each carries its evidence class in `§3.4`'s own words, and the three labels are deliberately
+   * hard to confuse: the single most expensive mistake available here is reading a rerun of known
+   * cases as generalization evidence, and 4A made a version of it. None of them writes to a
+   * protected directory yet, because none of them has run; each directory joins
+   * `PROTECTED_RESULT_DIRS` in the same change that commits its evidence, never as a follow-up.
+   */
+  designIntentRegression: {
+    runner: "design-intent",
+    corpus: corpusPath("designIntentRegression"),
+    out: "docs/model-evals/results/design-intent-regression-v1",
+    label:
+      "REGRESSION CORPUS (4C DesignIntent) — authored before the prompt and readable freely; it " +
+      "catches regressions, forever. NOT validation evidence and NOT generalization evidence",
+  },
+  designIntentValidation: {
+    runner: "design-intent",
+    corpus: corpusPath("designIntentValidation"),
+    out: "docs/model-evals/results/design-intent-validation-v1",
+    label:
+      "PRE-REGISTERED VALIDATION SET (4C DesignIntent) — authored and frozen before the " +
+      "DesignIntent prompt was written, by an author who implemented none of the harness, and " +
+      "independently reviewed for fairness and leakage. Validation against pre-registered " +
+      "invariants; NOT generalization evidence, and NOT the sealed challenge",
+  },
+  designIntentChallenge: {
+    runner: "design-intent",
+    corpus: corpusPath("designIntentChallenge"),
+    out: "docs/model-evals/results/design-intent-sealed-challenge-v1",
+    label:
+      "SEALED CHALLENGE (4C DesignIntent) — authored after the T21 implementation and this " +
+      "harness froze, by an author who saw neither the prompt nor prior outputs nor known " +
+      "failures. It is the generalization evidence the §3.7 gate is applied to. One run, then " +
+      "spent",
+  },
 } as const;
 
 export type EvalSet = keyof typeof EVAL_SETS;
@@ -308,4 +375,83 @@ export function validateCorpusShape(parsed: unknown): string[] {
   });
 
   return problems;
+}
+
+/* ------------------------------------------------------------------ leakage probes */
+
+/**
+ * Every string in one corpus case that must not appear in model-visible text.
+ *
+ * Split out of `prompt-leakage.test.ts` at Phase 4C T19, because the scan now reads corpora of two
+ * different shapes. A Phase 4A/4B case is a host `prompt` plus assertions about it. A Phase 4C
+ * DesignIntent case has no host prompt at all — the frozen input is an authoritative
+ * `identity` brief — so a scanner that reached for `.prompt` would either throw on the first 4C
+ * case or, worse, quietly scan nothing. Both were live outcomes the moment T20 lands a corpus, and
+ * a control that stops covering something is the defect this project's leakage claim already
+ * turned out to be once.
+ *
+ * Pure, and unit-tested in `corpus.test.ts`, for the reason every other rule here lives outside the
+ * runner: a rule inside the eval runner cannot be tested without running the thing it guards.
+ *
+ * - **`verbatim`** — text the model must not have been shown at all. Whole-string matches are
+ *   reported, and distinctive spans of each entry are too.
+ * - **`claims`** — expected answers, probes, host phrases and notes. Whole-string matches only;
+ *   these are short and a span check would report English.
+ */
+export interface LeakageProbes {
+  verbatim: string[];
+  claims: string[];
+}
+
+/** Every string of at least `min` characters reachable inside a value, deduplicated. */
+function stringsIn(value: unknown, min: number, seen = new Set<unknown>()): string[] {
+  if (typeof value === "string") return value.trim().length >= min ? [value] : [];
+  if (value === null || typeof value !== "object" || seen.has(value)) return [];
+  seen.add(value);
+  return Object.values(value as Record<string, unknown>).flatMap((child) =>
+    stringsIn(child, min, seen),
+  );
+}
+
+export function leakageProbes(testCase: unknown): LeakageProbes {
+  const value = (testCase ?? {}) as Record<string, unknown>;
+  const text = (input: unknown): string | null =>
+    typeof input === "string" && input.trim().length > 0 ? input : null;
+
+  const verbatim: string[] = [];
+  const claims: string[] = [];
+
+  const prompt = text(value.prompt);
+  if (prompt) verbatim.push(prompt);
+
+  // A 4C case: the frozen authoritative brief is what the run is built on, so every word of it is
+  // text the DesignIntent prompt must not already contain. Six characters, matching the floor the
+  // claims list has always used — below it a "match" is a word of English.
+  if (value.identity !== null && typeof value.identity === "object") {
+    verbatim.push(...stringsIn(value.identity, 6));
+  }
+
+  const list = (input: unknown) =>
+    Array.isArray(input) ? input.filter((entry): entry is string => typeof entry === "string") : [];
+
+  claims.push(...list(value.mustAvoid));
+  claims.push(...list(value.mustNotBeClaimedAsHostConstraint));
+  claims.push(
+    ...(Array.isArray(value.hostPhrases) ? value.hostPhrases : [])
+      .map((phrase) => (phrase as { phrase?: unknown })?.phrase)
+      .filter((phrase): phrase is string => typeof phrase === "string"),
+  );
+  // The gating answers themselves: showing the model these is the worst form.
+  claims.push(...stringsIn(value.expectedFacts, 1));
+  claims.push(...stringsIn(value.facts, 1));
+  claims.push(...stringsIn(value.suppliedFacts, 1));
+  for (const note of [value.notes, value.rationale, value.eventType]) {
+    const entry = text(note);
+    if (entry) claims.push(entry);
+  }
+
+  return {
+    verbatim: [...new Set(verbatim)],
+    claims: [...new Set(claims.filter((claim) => claim.trim().length >= 6))],
+  };
 }
