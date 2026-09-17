@@ -613,18 +613,23 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
   });
 
   /**
-   * The replacement validation corpus, absent exactly as the other two slots were at T19.
+   * The replacement validation slot points where T19B pointed it, and refuses without its file.
    *
-   * Written the same way as the absence tests above and for the same reason: T20B must be a commit
-   * that adds one corpus file and changes nothing else. The refusal is asserted from the runner's
-   * **source**, never by importing it — importing a runner with an API key present is what starts
-   * paying a provider.
+   * T19B wrote this as a hard `existsSync(...) === false`, which was true when it was written and
+   * was the wrong shape: it made T20B a commit that adds a corpus **and edits a test**, when the
+   * whole point of the `describe.each` pair above is that a corpus's arrival flips absence into
+   * contract-checking with no source edit. T20B found it by going red, and this is the correction
+   * — the absence half now lives only in that pair, for this slot exactly as for the other two.
+   *
+   * What is asserted here is what stays true in both worlds: the slot's path is the one T19B
+   * froze, and the runner refuses at module scope without a file. The refusal is read from the
+   * runner's **source**, never by importing it — importing a runner with an API key present is
+   * what starts paying a provider.
    */
-  it("has no replacement validation corpus yet, and the slot refuses without one", () => {
+  it("points at the frozen replacement path, and the slot refuses without its file", () => {
     expect(EVAL_SETS.designIntentValidation.corpus).toBe(
       "docs/model-evals/design-intent-validation-v2.json",
     );
-    expect(existsSync(`${ROOT}docs/model-evals/design-intent-validation-v2.json`)).toBe(false);
     // The same module-scope refusal that covers the other two slots, located before `describe(`.
     const absence = RUNNER.indexOf("if (!existsSync(CORPUS))");
     expect(absence).toBeGreaterThan(-1);
