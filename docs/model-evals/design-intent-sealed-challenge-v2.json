@@ -1,0 +1,390 @@
+{
+  "version": "design_intent_sealed_challenge_v2",
+  "cases": [
+    {
+      "id": "SC2-01",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "Two people marrying in the manner of Friends: an hour of shared silence in a plain hall, no officiant, and words only from whoever is moved to stand. The one object at the centre is the certificate every guest signs before the meal. Build this around stillness and around the act of signing, not around a ceremony to watch.",
+        "toneKeywords": ["still", "plain-spoken", "unhurried", "shared silence", "quietly glad"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["oat", "unbleached cloth", "iron grey", "window daylight blue"],
+          "avoidColors": [],
+          "dominanceNotes": "One near-white should carry most of the page, with everything else arriving as weight rather than as colour."
+        },
+        "tonalIntent": "Daylight rather than candlelight. Keep to the lighter end, with enough weight in the text that nothing floats.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["invitation", "editorial"],
+        "compatibleTypographyCategories": ["oldstyle", "transitional", "heritage", "soft_serif"],
+        "visualMotifs": ["a ruled line waiting for a signature", "the long grain of a scrubbed bench", "a plain window with nothing in the glass"],
+        "textureDirection": "Paper and wood: a faint woven tooth, wax-rubbed bench grain, nothing glossy anywhere.",
+        "typographyDirection": "Small and calm. The largest thing on the page should not shout; set the names near reading size rather than display size, with wide leading and far more margin than looks sensible.",
+        "copyTone": "Direct, warm, unadorned. Short sentences, no endearments, no flourish.",
+        "hostConstraints": [],
+        "creativeGuidance": ["Resist decoration of any kind; a single rule, or none, does more here.", "Let the signed certificate be the emblem rather than the couple.", "Stay out of the vocabulary of the wedding trade."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "Abiah Renfrew and Tobias Lund",
+        "venueText": "the meetinghouse on Cresson Pike"
+      },
+      "notes": "Named dimension: 4 (creativeGuidance stays advisory), with 7. Three strong taste statements sit in creativeGuidance and the host said nothing at all; hostConstraints is empty and both explicit-constraint flags are false. A system that treats guidance as law will produce three variations of one austere page and will never let a sibling be ornamented, warm or ceremonious; a correct batch may have one sibling depart from the guidance without penalty. Deliberately the zero-constraint half of the wedding pair, opposite SC2-02. Structurally unusual: no processional, no order of service, the artefact is a document everyone signs. Fairness: nothing here is unsatisfiable, and plainness still admits austerity, warmth and luminousness as three genuinely different worlds. Supplied names appear nowhere in the brief prose."
+    },
+    {
+      "id": "SC2-02",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "Two scallop-boat crew marrying at first light on the working dock, forty-odd people in oilskins, coffee and fried dough, a retired harbourmaster saying the words before the boats go out. It has to look like their actual life at twenty to six in the morning: cold, hard-edged, unsentimental and completely happy.",
+        "toneKeywords": ["salt-cold", "first light", "working", "blunt", "elated"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["#E8541B, their pot-buoy orange"],
+          "preferredColors": ["wet dock grey", "pre-dawn slate", "raw rope tan", "black water"],
+          "avoidColors": ["navy-and-white harbour decor", "coastal pastels", "rope-and-anchor prettiness"],
+          "dominanceNotes": "The orange is a signal colour and not a field: one hit you could see from a long way off, against a lot of grey."
+        },
+        "tonalIntent": "Deep and cold, the way the sky looks twenty minutes before sunrise, with the orange doing all the lifting.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["dark", "mid"],
+        "compatibleFamilies": ["statement", "editorial"],
+        "compatibleTypographyCategories": ["grotesk_led", "transitional", "high_contrast_editorial"],
+        "visualMotifs": ["a painted band around a buoy", "the hard edge of a horizon before sunrise", "block numbers painted straight onto a hull"],
+        "textureDirection": "Wet, scraped and industrial: salt haze, steel that has been repainted four times, no sheen on anything.",
+        "typographyDirection": "Big, heavy and plain. Push the display hard, let the small text stay small and workmanlike, and let there be nothing decorative between the two.",
+        "copyTone": "Terse and dry, the way people talk on a boat: short, funny, no ceremony in the sentences.",
+        "hostConstraints": ["The buoy orange, #E8541B, has to be on there somewhere. That is our colour.", "It cannot end up looking like a seafood restaurant. No navy and white, no anchors.", "The tide time goes on plainly and it does not get rounded. People are actually sailing on it."],
+        "creativeGuidance": ["Let the cold do the emotional work; warmth here would read as costume.", "One colour incident is plenty. The rest can stay grey."],
+        "inspirationSummary": "She sent a phone photo taken from the wheelhouse at twenty past five: black water, a grey-violet sky, and one orange buoy on the deck catching the deck light. She said that photograph is the wedding."
+      },
+      "suppliedFacts": {
+        "hostNames": "Dessa Vanterpool and Rory Achterberg",
+        "venueText": "the Quillback Co-op north pier"
+      },
+      "notes": "Named dimension: 3 (hostConstraint preservation across all three), with 9. Carries the machine-decidable required hex in the host's own voice, a natural-language exclusion, and one genuinely downstream-only constraint about the tide time, which this stage has no field for and which must be deferred to the reviewer rather than failed for absence. The constrained half of the wedding pair against SC2-01, and the pair is the corpus's sharpest per-type templating probe: a house wedding answer cannot serve a silent meetinghouse and a freezing dock at once. Fairness: required hex has no hex in the avoid list, so no exclusion neighbourhood is touched."
+    },
+    {
+      "id": "SC2-03",
+      "eventType": "retirement party",
+      "identity": {
+        "creativeDirection": "A man who has rung the tower bells at noon for thirty-eight years plays them one last time. His audience is a whole town standing wherever it happens to be standing; the party afterwards is sixty people up a stone stair, eating off their knees. Hold both scales at once: something that carries a mile, and something the size of a small warm room.",
+        "toneKeywords": ["resonant", "civic", "a town that will miss noon", "vertical", "unfussy"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["weathered bronze", "limestone", "slate roof grey", "midday gold on stone"],
+          "avoidColors": [],
+          "dominanceNotes": "Stone should hold the page. Metal appears only where something is meant to ring."
+        },
+        "tonalIntent": "Mid, with real weight: stone in flat daylight rather than anything dim or reverential.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "light"],
+        "compatibleFamilies": ["editorial", "statement"],
+        "compatibleTypographyCategories": ["transitional", "heritage", "oldstyle", "high_contrast_editorial"],
+        "visualMotifs": ["bells stacked in descending size", "the ruled staves of a bell score", "stone stairs turning out of sight"],
+        "textureDirection": "Quarried stone, rubbed bronze and old rope. A little grain, nothing decorative on top of it.",
+        "typographyDirection": "Let size do the ringing: one very large thing and then a long drop to small, even text, the way a bell sounds and the town goes back to its lunch.",
+        "copyTone": "Warm, civic and slightly wry, like a town notice written by somebody who loves the man.",
+        "hostConstraints": ["He is not dying and he is not leaving town. This cannot read as a farewell service.", "His name does not go above the bells. The bells are the thing."],
+        "creativeGuidance": ["Keep the sentiment in the facts rather than in the adjectives."],
+        "inspirationSummary": "The tower sent a scan of a printed recital card from 1961 out of its own files: ruled lines, a stamped number, no decoration at all. They said the new thing should feel like a later card from the same drawer."
+      },
+      "suppliedFacts": {
+        "honoreeName": "Ansel Brackenridge",
+        "venueText": "the bell chamber at Hodgins Tower"
+      },
+      "notes": "Named dimension: 8 (useful differences in organizing idea and experience), with 2. The event has two incompatible scales, so the interesting variation between siblings is which scale organizes the page, not which colours they pick. Constraint one is a correction with an observable tone subject and must be visibly honoured here; constraint two is placement, which is downstream-only and deferred. Paired with SC2-04 on the type a lazy system most wants to answer with one gently valedictory template."
+    },
+    {
+      "id": "SC2-04",
+      "eventType": "retirement party",
+      "identity": {
+        "creativeDirection": "Forty-five years of a one-man taxidermy shop, closing. His daughter is holding it in the workshop, and guests are bringing back the pieces he mounted for them, so the room will be full of borrowed animals looking at everybody. The register is a crowded, jokey, faintly macabre workshop, not a tribute evening.",
+        "toneKeywords": ["macabre", "deadpan", "cluttered", "handmade", "jokes he would make himself"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["tannin brown", "sawdust", "glass-eye amber", "old enamel green"],
+          "avoidColors": ["#D8D2C6 and anything beside it", "hotel-lobby neutrals", "soft blush"],
+          "dominanceNotes": "Brown does most of the work, warm and a little dirty, with amber only where something catches the light."
+        },
+        "tonalIntent": "Mid to dark: a lamplit workbench rather than a gallery wall.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "dark"],
+        "compatibleFamilies": ["editorial", "statement"],
+        "compatibleTypographyCategories": ["heritage", "grotesk_led", "oldstyle"],
+        "visualMotifs": ["a wall of small numbered tags", "pinned rows of things in sizes", "the check of a worn shop apron"],
+        "textureDirection": "Sawdust on a bench, oiled steel, brown paper and twine. Everything worn, and not a precious object in the room.",
+        "typographyDirection": "Crowded and confident: heavy display, cramped spacing, and small print doing far too much talking underneath. It may look like a shop sign rather than a card.",
+        "copyTone": "Deadpan and affectionate, with the jokes he would make himself. Nothing reverent.",
+        "hostConstraints": ["Do not make it tasteful. Dad calls that the dentist waiting room and we would never hear the end of it.", "No cream and no beige. I looked up the paint code for that greige everything is now, #D8D2C6. Not that, and not near it."],
+        "creativeGuidance": ["If it feels one notch too much, it is probably right for this room.", "The humour should come out of specifics, never out of cartoon Halloween imagery."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "honoreeName": "Gunther Balliet",
+        "venueText": "the shop on Deverell Row"
+      },
+      "notes": "Named dimension: 6 (personalization versus generic premium output), with 5. This is the anti-house-style case: the host has explicitly forbidden the register most systems default to, and has given the exclusion as an exact hex in her own voice, so the palette check has something decidable to decide. A system with premium taste baked in will produce three muted, well-mannered workshops and fail visibly. Against SC2-03 it forms the retirement-party pair: same label, opposite everything. No required colours, so the excluded hex cannot collide with one."
+    },
+    {
+      "id": "SC2-05",
+      "eventType": "memorial planting day",
+      "identity": {
+        "creativeDirection": "Two years after the fire, the crew and the family spend a Saturday putting four hundred seedlings into the burn scar, then eat together off the tailgates. It is a work day first and a remembrance second: gloves, thermoses, a sore back by four o'clock. Grief is present here and is not the subject.",
+        "toneKeywords": ["earthbound", "practical", "steady", "companionable", "raw"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["char black", "new-needle green", "ash grey", "high-desert dust"],
+          "avoidColors": ["mourning purple", "white-and-gold remembrance"],
+          "dominanceNotes": "Green should be a small quantity against an enormous area of burnt ground, in the proportion the hillside actually has."
+        },
+        "tonalIntent": "Dark ground with hard daylight on it. Never dim, never softened.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["dark", "mid"],
+        "compatibleFamilies": ["editorial", "statement"],
+        "compatibleTypographyCategories": ["grotesk_led", "transitional", "oldstyle"],
+        "visualMotifs": ["a planting grid walked across a slope", "standing burnt trunks", "a tally sheet counting upward"],
+        "textureDirection": "Charcoal, ash dust and wet duff. Matte and gritty, with nothing polished anywhere on it.",
+        "typographyDirection": "Plain and sturdy at working size, nearer a job sheet than a card, with the shape of the day readable at arm's length.",
+        "copyTone": "Practical and unflinching: what to bring, what we are doing, who it is for, in that order.",
+        "hostConstraints": ["No money is collected here. If people want to give, they give to the crew fund themselves.", "Say plainly that children are welcome and that it is real work."],
+        "creativeGuidance": ["Keep the green scarce; abundance would be a lie about that hillside.", "Nothing that reads as an order of service."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "honoreeName": "Teodoro Quintanilla",
+        "localityText": "the Sawbuck Ridge burn"
+      },
+      "notes": "Named dimension: 5 (emotional and aesthetic range), with 2. Grief-adjacent with an entirely non-elegiac correct answer, which is where a system that has learned one grammar of respect will look fine to a casual reader and wrong to a careful one: three tender, softened, candle-lit pages would be a real failure here. Both host constraints are downstream-only by subject (payment behaviour, event-detail copy); neither may be contradicted, and neither may be mechanically failed for absence at this stage. Colour flag is false because the exclusions are the interpreter's reading, not the host's words."
+    },
+    {
+      "id": "SC2-06",
+      "eventType": "80th birthday",
+      "identity": {
+        "creativeDirection": "Her five children are throwing the party their mother never got: a ballroom, a seventeen-piece band, a cake with more tiers than sense, three hundred people, and her in gold. She raised them on an aide's wage and has been to everyone else's everything. Excess is the message, and restraint would read as one more thing she was asked to do without.",
+        "toneKeywords": ["opulent", "triumphant", "a band you cannot talk over", "paid for by her five children", "unembarrassed", "grand"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["gold, a real one, not champagne and not antique"],
+          "preferredColors": ["deep wine", "black lacquer", "hot coral"],
+          "avoidColors": ["dusty pastels", "muted tasteful neutrals", "anything pale or washed out"],
+          "dominanceNotes": "Gold is allowed to dominate. If it looks like a great deal of gold, that is the correct amount of gold."
+        },
+        "tonalIntent": "Deep and rich, evening light indoors, with nothing washed out or faded anywhere in it.",
+        "toneExplicitlyConstrained": true,
+        "compatibleTonalDirections": ["dark", "mid"],
+        "compatibleFamilies": ["statement", "invitation"],
+        "compatibleTypographyCategories": ["high_contrast_editorial", "heritage", "transitional"],
+        "visualMotifs": ["a stepped cake seen from the side", "sequinned light moving across a floor", "a broad ribbon worn like a sash"],
+        "textureDirection": "Lame, lacquer and satin: surfaces that catch light and are not shy about catching it.",
+        "typographyDirection": "Large, formal and sharply contrasted. Push the display as far as it will go and keep the small text crisp, so the whole thing still reads as engraved rather than merely shouted.",
+        "copyTone": "Proud, formal and a little grand. The wording of a big night, with no irony in it at all.",
+        "hostConstraints": ["Gold has to be in it. Not champagne, not antique gold. Gold.", "Nothing pale or washed out. She says pale is for people who are hiding.", "Her sister is named as a host on it even though she cannot travel."],
+        "creativeGuidance": ["Hold the gold to a few large surfaces so it reads as wealth rather than as glitter.", "A little formality will keep the excess from tipping into costume."],
+        "inspirationSummary": "Her daughter sent a photograph of a supper-club menu card from 1974, from the hotel where their mother used to clean: black card, a gilt edge, everything centred and engraved. She said, that, except we are the guests this time."
+      },
+      "suppliedFacts": {
+        "honoreeName": "Ottilie Brasfield",
+        "venueText": "the Crest Ballroom at the Vandermeer"
+      },
+      "notes": "Named dimension: 5 and 4, with 6. This is the case where lavishness, expense and formality are the correct answer and restraint is the wrong one, which inverts the failure mode every other case punishes. The creativeGuidance deliberately pulls half a step against the host, recommending gold be held back, without contradicting the requirement that gold be present; a sibling that follows the host over the guidance must not be penalised, and a batch that treats the guidance as law will under-deliver on all three. Third constraint is downstream-only. The tonal flag is true because the host explicitly ruled out the pale end."
+    },
+    {
+      "id": "SC2-07",
+      "eventType": "reunion concert",
+      "identity": {
+        "creativeDirection": "Between 1993 and 1995, four teenagers rehearsed nine times in a garage and never played a single show. Thirty years on, three of them and a borrowed drummer are playing that show, in that garage, to sixty people, with a two-dollar cover that really does go to the school music room. The joke and the sincerity are the same thing and neither of them should win.",
+        "toneKeywords": ["scrappy", "self-mocking", "nostalgic", "amplifier in a small garage", "warmth under the mockery"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["photocopy black", "flyer-paper yellow", "garage-door white", "highlighter pink"],
+          "avoidColors": [],
+          "dominanceNotes": "Paper white and toner black carry almost the whole thing, with one shrill colour used badly on purpose."
+        },
+        "tonalIntent": "Light and glaring, like a flyer stapled to a pole in the sun, rather than club darkness.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["statement", "editorial"],
+        "compatibleTypographyCategories": ["grotesk_led", "high_contrast_editorial"],
+        "visualMotifs": ["a taped-up flyer with the tabs torn off", "a photocopy losing its detail by the third generation", "a strip of tape holding something together"],
+        "textureDirection": "Cheap paper, toner speckle, tape and a little garage-floor grime. Nothing in it that was paid for.",
+        "typographyDirection": "Loud and badly behaved on purpose: display set far too big for the space it is in, small text squeezed underneath, everything crowded out toward the edges.",
+        "copyTone": "Deadpan self-deprecation with real affection under it. The nine rehearsals are fair game.",
+        "hostConstraints": [],
+        "creativeGuidance": ["The nostalgia is for having been bad at something, not for the nineties as a look.", "Keep it cheap-looking. Money would spoil the joke."],
+        "inspirationSummary": "One of them still has the flyer they photocopied for the show that never happened: a hand-ruled border, the wrong date, and a phone number crossed out and rewritten. They sent a picture of it, creased, and said that is the whole brief."
+      },
+      "suppliedFacts": {
+        "hostNames": "Deshawn Pilkey and Marguerite Vosburgh",
+        "venueText": "the garage on Ostrander Lane"
+      },
+      "notes": "Named dimension: 7 (no convergence onto one house style), with 5. Defiantly unserious, and the second zero-constraint brief: the host asked for nothing, so every quality here has to come out of interpretation. The inspiration artefact is deliberately something the stage cannot literally reproduce, a hand-ruled photocopied flyer; the interpreter has already translated it into scale, weight and crowding, which are qualities the twelve available pairings can differ on, so a lawful output is not being asked for lettering it has no way to make. A system that cannot be cheap on purpose will produce three polished posters."
+    },
+    {
+      "id": "SC2-08",
+      "eventType": "navjote",
+      "identity": {
+        "creativeDirection": "A nine-year-old's initiation, in a community of maybe two hundred families spread across four countries, most of whom will fly in. The morning is the investiture with the sacred shirt and cord before the fire; the afternoon is a very long lunch. The family were firm that the fire is the centre of this and is not decoration.",
+        "toneKeywords": ["ceremonial", "luminous", "ancient", "hospitable", "precise"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["silver, and the family were firm that it is not gold"],
+          "preferredColors": ["sandalwood", "pomegranate red", "unbleached cream", "cold grey"],
+          "avoidColors": ["gold", "flame colours used as a scattered pattern"],
+          "dominanceNotes": "White and silver hold the page. Warm colour arrives once, and only where it means something."
+        },
+        "tonalIntent": "Light and clear: a room in the morning where the fire is the only source of heat and not the only source of light.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["invitation", "editorial"],
+        "compatibleTypographyCategories": ["transitional", "oldstyle", "high_contrast_editorial", "heritage"],
+        "visualMotifs": ["a cord wound and knotted", "a plain silver vessel", "the narrow braid of a woven cord"],
+        "textureDirection": "Fine white cotton, hand-braided lambswool, polished silver and sandal ash. Clean, and not one thing in it new.",
+        "typographyDirection": "Formal, measured and unhurried: generous spacing, capitals used sparingly, and nothing anywhere that looks improvised.",
+        "copyTone": "Gracious and explanatory. Many guests have travelled a long way and a few have never seen this, and the words should welcome both without lecturing either.",
+        "hostConstraints": ["The fire is not decoration. No flames scattered about as a pattern, and no candle imagery.", "Silver, not gold. Gold is for other people's weddings.", "Both grandmothers are named as hosts, and in that order."],
+        "creativeGuidance": ["If anything decorative appears, let it come from the cord and the braid rather than from anything burning."],
+        "inspirationSummary": "The family brought in the card printed for the boy's grandmother's own initiation in 1968: silver ink on soft white stock, a narrow braided border, and an enormous amount of empty space. They would like that dignity, and not that decade."
+      },
+      "suppliedFacts": {
+        "honoreeName": "Feroze Dastoor-Pithawalla",
+        "venueText": "Sethna Hall on Wraysbury Road"
+      },
+      "notes": "Named dimension: 3 (constraint preservation), with 2. The religious case, and the most useful constraint in the corpus is the first one: a prohibition on the obvious visual reading of the event's own central symbol. A system reaching for warmth will fill three concepts with flames and candlelight and contradict the host while looking entirely reasonable. The subject is motif and imagery, which this stage can observe, so it must be visibly conformed to. Second constraint is colour in both directions and is decidable; third is naming order and is downstream-only. Fairness: no hex anywhere, so no exclusion neighbourhood question arises."
+    },
+    {
+      "id": "SC2-09",
+      "eventType": "joint installation dinner",
+      "identity": {
+        "creativeDirection": "Two volunteer fire companies that have competed since 1931 are merging, and the first joint installation dinner is the night they have to look like one thing. Four hundred people in a school gym, both old colours on the walls, and a room watching to see whose name is bigger. Scrupulously even-handed, and still a good night out.",
+        "toneKeywords": ["even-handed", "proud", "institutional", "watchful", "hearty"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": ["#7A1F2B, the Colbyville maroon", "#14543A, the Hartwell green"],
+          "preferredColors": ["engine chrome", "gym-floor maple", "flat white"],
+          "avoidColors": ["gold braid and ceremonial gilt", "anything that reads as one company's dress uniform"],
+          "dominanceNotes": "Neither of the two colours may lead. Equal weight and equal placement, or the room will notice inside ten seconds and talk about it for twenty years."
+        },
+        "tonalIntent": "Mid and solid: a bright gym with the lights on, not a candlelit banquet room.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "light"],
+        "compatibleFamilies": ["editorial", "statement"],
+        "compatibleTypographyCategories": ["grotesk_led", "heritage", "transitional"],
+        "visualMotifs": ["two bands of exactly equal width", "a mirrored pair with nothing placed between them", "a coupling joining two lines of hose"],
+        "textureDirection": "Painted steel, varnished gym floor and heavy canvas. Sturdy and municipal rather than refined.",
+        "typographyDirection": "Even, squared and legible from the back of a gym: a strong display, plain body text, and no decorative weight sitting on one side of anything.",
+        "copyTone": "Plain-spoken and scrupulously fair. Both companies get named whenever either one is, and no winner is implied anywhere.",
+        "hostConstraints": ["Both colours, #7A1F2B and #14543A, and neither one on top of the other.", "Nobody's company name goes first twice running. We alternate, everywhere.", "No gold braid and no crossed axes. That is what the old dinners looked like and half the room hated them."],
+        "creativeGuidance": ["Symmetry will do more here than any clever unifying emblem.", "Resist inventing a merged badge. Nobody has agreed on one yet."],
+        "inspirationSummary": "They sent two scans: a banquet programme from 1962 from one company and one from 1978 from the other. Identical layouts, different colours, both printed by the same shop in town. Somebody said the joke is that they have always been the same thing."
+      },
+      "suppliedFacts": {
+        "venueText": "the Ostrand Regional gymnasium",
+        "rsvpDeadlineText": null
+      },
+      "notes": "Named dimension: 3, with 1. Two required hexes plus an equal-dominance requirement is the hardest palette problem in the set and it is fully decidable: both must be present in all three, and neither may be allowed to lead. The civic and awkward case, where the design has a political job. The distinctness test is sharpened rather than weakened by the constraint, because three batches cannot all solve evenness the same way. Second constraint, alternating name order, is downstream-only; third is a motif prohibition and is observable here. Fairness: the two required hexes are far apart in hue and neither avoid entry is a hex. No host names are carried as supplied facts, because the company names are already in the brief and would produce a false invention report."
+    },
+    {
+      "id": "SC2-10",
+      "eventType": "homecoming supper",
+      "identity": {
+        "creativeDirection": "A man comes home after nine years away and his sisters are cooking for thirty people in the back yard. Everyone invited already knows where he has been and none of it needs writing down. What the family asked for is a Sunday, but the good one: ordinary, abundant and entirely without ceremony or explanation.",
+        "toneKeywords": ["homely", "abundant", "unannounced", "nobody makes a speech", "matter-of-fact"],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["tomato red", "cut-grass green", "melamine blue", "warm bulb yellow"],
+          "avoidColors": ["institutional beige", "corridor green"],
+          "dominanceNotes": "Warm and food-coloured throughout, with nothing clinical and no surface that looks wiped down."
+        },
+        "tonalIntent": "Light and warm: late afternoon running into the first hour of dark.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["light", "mid"],
+        "compatibleFamilies": ["invitation", "editorial"],
+        "compatibleTypographyCategories": ["soft_serif", "oldstyle", "grotesk_led", "transitional"],
+        "visualMotifs": ["a long table made out of two tables", "checked oilcloth thrown over the join", "strung bulbs sagging between a fence and a tree"],
+        "textureDirection": "Oilcloth, foil trays, paper napkins and grass that has just been cut. Homely, and a bit worn.",
+        "typographyDirection": "Friendly and plain at a comfortable reading size, with a little softness in the letterforms and no formality in the way the page is ordered.",
+        "copyTone": "Ordinary and warm, like a message from a sister: come at four, bring nothing, there is plenty.",
+        "hostConstraints": ["Nothing on the page mentions prison. Everyone who is coming already knows.", "Do not call it a party. It is supper."],
+        "creativeGuidance": ["Abundance is the whole emotional argument, so show the amount of food rather than the reunion.", "Avoid anything that looks like a fresh start. This is a continuation."],
+        "inspirationSummary": "His sister photographed the oilcloth their mother used, faded almost to nothing along the fold, and said the only instruction is that it should look like that cloth is on the table."
+      },
+      "suppliedFacts": {
+        "hostNames": "Loretta and Zipporah Ackley",
+        "honoreeName": "Curtis Ackley",
+        "venueText": "the yard on Tulliver Street"
+      },
+      "notes": "Named dimension: 10 (no invented host facts, no guidance promoted to constraint), with 6. Awkward in a way no template covers: the design has to be warm without narrating anything. Both constraints have subjects this stage can partly observe, because concept-card language is on the DesignIntent surface, so a concept name or description that narrates the absence or calls it a party is a real failure. Three supplied facts, all long and distinctive, none of them present in the brief prose, so a name surfacing in a presentation card is an invention rather than an echo. Fairness: the first constraint bites only on the specific fact, not on ordinary warm prose about coming home."
+    },
+    {
+      "id": "SC2-11",
+      "eventType": "ice-out party",
+      "identity": {
+        "creativeDirection": "The lake association's oldest habit: everyone bets on when the ice goes out, a cinder block sits out there on a rope tied to a clock, and whenever it drops through, the party happens, that night or the next, by text message, whatever day it lands on. There is no date and there will not be one. Make something that waits, and then goes off.",
+        "toneKeywords": ["suspenseful", "northern", "offhand", "the whole lake in on it", "slightly daft"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["rotting-ice grey", "open black water", "thaw blue-green", "birch"],
+          "avoidColors": ["#9DC7E0 and its neighbours", "cottage-decor cuteness", "summer-lake blue"],
+          "dominanceNotes": "Grey and black should hold nearly all of it, with the thaw colour arriving late and small, the way it does on the water."
+        },
+        "tonalIntent": "Mid to dark and genuinely cold: thawing ice under a flat sky, never a summer afternoon.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": ["mid", "dark"],
+        "compatibleFamilies": ["editorial", "statement"],
+        "compatibleTypographyCategories": ["grotesk_led", "transitional", "oldstyle"],
+        "visualMotifs": ["a cracked sheet with black water showing through", "a taut rope going straight down", "a betting grid of names against dates"],
+        "textureDirection": "Granular rotting ice, wet rope and weathered dock board. Cold, matte, and nothing pretty about any of it.",
+        "typographyDirection": "Set it like something posted on a shed wall: plain heavy display, a lot of small ruled-looking text, nothing precious anywhere.",
+        "copyTone": "Dry northern humour, entirely practical about the fact that nobody knows when this is happening.",
+        "hostConstraints": ["There is no date and you are not to invent one. It says when it goes, and that is the truth.", "Not that porch blue, #9DC7E0. My sister painted her porch that colour and I have never recovered."],
+        "creativeGuidance": ["The waiting is the subject; the party itself is the smaller half of it.", "Keep the humour dry. No cartoon ice, no shivering jokes."],
+        "inspirationSummary": "No visual inspiration supplied."
+      },
+      "suppliedFacts": {
+        "hostNames": "the Nipigosh Lake Association",
+        "localityText": "the north shore road"
+      },
+      "notes": "Named dimension: 1 (sibling distinctness beyond palette and font swaps), with 9. Structurally unusual rather than tonally unusual: an event with no date at all, which a downstream composition has to be able to carry, so the three worlds must differ in how they organise waiting. The excluded hex is given in the host's own voice and is machine-decidable; there are no required colours, so it cannot collide. The first constraint is about content this stage has no field for and is deferred to the reviewer, but a DesignIntent that presupposes a fixed date would contradict it."
+    },
+    {
+      "id": "SC2-12",
+      "eventType": "decannulation party",
+      "identity": {
+        "creativeDirection": "A three-year-old's breathing tube comes out for good on a Thursday and by Saturday her parents have forty people in a hall: both sets of grandparents, six night nurses, and every neighbour who ever helped carry equipment up the stairs. It is pure relief in a family that has been frightened for three years.",
+        "toneKeywords": ["the tube is out for good", "colour turned all the way up", "grateful", "giddy", "tender"],
+        "colorsExplicitlyConstrained": true,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": ["clear yellow", "leaf green", "hot pink", "open sky"],
+          "avoidColors": ["ward blue-green", "pale nursery pastels", "anything dim or dusty"],
+          "dominanceNotes": "Bright and saturated, with the empty areas kept genuinely white rather than tinted warm or grey."
+        },
+        "tonalIntent": "Light, high and clean: daylight with the blinds pulled all the way up.",
+        "toneExplicitlyConstrained": true,
+        "compatibleTonalDirections": ["light"],
+        "compatibleFamilies": ["invitation", "statement"],
+        "compatibleTypographyCategories": ["soft_serif", "grotesk_led", "transitional"],
+        "visualMotifs": ["a paper chain counting days off", "one big star cut out unevenly", "confetti that has not landed yet"],
+        "textureDirection": "Poster paint, crepe paper and cheap foil. Made at a kitchen table rather than styled by anybody.",
+        "typographyDirection": "Big, round and unembarrassed. Use scale for happiness: one enormous line, and everything else small and cheerful underneath it.",
+        "copyTone": "Overjoyed and plain about why: she does not need it any more, come and see her.",
+        "hostConstraints": ["She has had three years of grey rooms — nothing dim", "No medical imagery at all. No tubing, no ribbons, nothing that says brave."],
+        "creativeGuidance": ["Thank the nurses through the generosity of the design rather than through a list of names.", "Sentiment can be very direct here. Irony would be wrong."],
+        "inspirationSummary": "Her mother sent a photo of the sign the nurses taped above the cot on the last night: a sheet of printer paper, a marker, a great many exclamation marks and a sticker of a frog. She would like the whole thing to have exactly that much restraint, which is none."
+      },
+      "suppliedFacts": {
+        "honoreeName": "Tavia Szczepanik",
+        "venueText": "the Lindenhurst Grange hall"
+      },
+      "notes": "Named dimension: 1, with 3. The only brief with a single compatible lightness, which is honest, because the host ruled out the dim end outright; all three concepts therefore receive the same assigned lightness and distinctness has to be earned in palette, density, composition and motifs rather than handed over by the planner. The second constraint is a motif and imagery prohibition and is observable here, and it sits exactly where a system will reach by reflex, for ribbons and awareness iconography. Joy on the far side of fear is a register premium taste has no setting for."
+    }
+  ]
+}
