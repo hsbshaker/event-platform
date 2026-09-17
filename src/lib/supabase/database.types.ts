@@ -60,6 +60,35 @@ export type IdentityClaimOutcome =
   | "cap_account"
   | "rate_limited";
 
+/**
+ * The batch lifecycle (20260917000000_phase4c_t16_generation_batches.sql,
+ * `docs/phase-4b-plan.md §H.2`, `§I`).
+ *
+ * `planned` and `running` are the in-flight pair the partial unique index is written over, so at
+ * most one batch per event can hold either at a time. There is deliberately no `cancelled`: §C says
+ * an in-flight batch is never cancelled, and a state nothing may reach is an invitation to reach it.
+ */
+export type GenerationBatchStatus = "planned" | "running" | "completed" | "failed";
+
+/** Per-sibling status. `succeeded` holds iff a successful run row is named (a check constraint). */
+export type GenerationBatchSiblingStatus = "pending" | "running" | "succeeded" | "failed";
+
+/** Outcomes of public.plan_generation_batch. Only `planned` creates a batch. */
+export type PlanGenerationBatchOutcome =
+  | "planned"
+  | "in_flight"
+  | "duplicate_key"
+  | "stale_round"
+  | "not_authoritative"
+  | "ceiling"
+  | "cap_event"
+  | "cap_account"
+  | "rate_limited";
+
+/** Outcomes of public.record_batch_sibling_run. */
+export type RecordSiblingRunOutcome =
+  "recorded" | "duplicate_key" | "already_succeeded" | "stale_attempt";
+
 type ProfileRow = {
   id: string;
   email: string | null;
@@ -234,6 +263,16 @@ type GenerationRunRow = {
    */
   input_assembly_version: string | null;
   schema_version: string;
+  /**
+   * Which deterministic sibling planner chose this run's assignment
+   * (20260917000000_phase4c_t16_generation_batches, `docs/phase-4b-plan.md §G.5`).
+   *
+   * Nullable and never backfilled: an `event_identity` call is not planned, and every row written
+   * before Phase 4C has no planner. Replay identity for a batch is the identity revision plus this
+   * version (`§D`), which is only checkable because it is recorded per run rather than inferred
+   * from whatever `PLANNER_VERSION` happens to be today.
+   */
+  planner_version: string | null;
   primitive_set_version: string | null;
   compiler_version: string | null;
   diversity_assignment: Json | null;
@@ -435,6 +474,53 @@ type EventIdentityCallClaimRow = {
   recovery_attempts: number;
 };
 
+/**
+ * One planned concept batch
+ * (supabase/migrations/20260917000000_phase4c_t16_generation_batches.sql,
+ * `docs/phase-4b-plan.md §G.5`, `§H.2`).
+ *
+ * Every column but `status` and the timestamps is an input, and a trigger refuses to let an input
+ * change after insert — which is §C's "not cancelled, mutated or re-based" as a database fact
+ * rather than a rule reviewers have to remember.
+ */
+type GenerationBatchRow = {
+  id: string;
+  event_id: string;
+  /** The revision this batch was planned from: one answer to "which identity produced this". */
+  identity_revision_id: string;
+  planner_version: string;
+  /** Derived server-side as max(round) + 1; never supplied by a client. */
+  round: number;
+  status: GenerationBatchStatus;
+  /** sha256 over (event_id, 'concept_batch', identity_revision_id, planner_version, round). */
+  idempotency_key: string;
+  created_at: string;
+  /** When the first sibling was issued. Null while the batch is still `planned`. */
+  started_at: string | null;
+  /** Set iff the batch is settled; the table's check constraint ties the two together. */
+  settled_at: string | null;
+};
+
+/**
+ * One sibling of a batch: the planner's assignment, persisted at plan time, and its status.
+ *
+ * `plan` is immutable. Resumption asks "which siblings have no successful run", which is exactly
+ * `status <> 'succeeded'`, and `attempt` is the ordinal that — with the batch id, the operation and
+ * the concept index — derives that sibling's `generation_runs.idempotency_key` (§H.2 row 4).
+ */
+type GenerationBatchSiblingRow = {
+  batch_id: string;
+  /** 0, 1 or 2 — the planner's index (`spec.md §7.7`). */
+  concept_index: number;
+  plan: Json;
+  status: GenerationBatchSiblingStatus;
+  attempt: number;
+  /** The successful run, and only a successful one. */
+  generation_run_id: string | null;
+  started_at: string | null;
+  settled_at: string | null;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -557,6 +643,7 @@ export type Database = {
           | "cost_estimate_usd"
           | "error_code"
           | "input_assembly_version"
+          | "planner_version"
           | "primitive_set_version"
           | "compiler_version"
           | "diversity_assignment"
@@ -574,6 +661,8 @@ export type Database = {
         >
       >;
       event_identity_call_claims: RpcWrittenTable<EventIdentityCallClaimRow>;
+      generation_batches: RpcWrittenTable<GenerationBatchRow>;
+      generation_batch_siblings: RpcWrittenTable<GenerationBatchSiblingRow>;
       rate_limits: Table<RateLimitRow, Insert<RateLimitRow, "count">>;
       human_test_1_responses: Table<
         HumanTest1ResponseRow,
@@ -760,6 +849,78 @@ export type Database = {
       };
       /** Nulls aged evidence, skipping every run a non-terminal claim still needs. */
       purge_identity_response_evidence: { Args: { p_cutoff: string }; Returns: number };
+
+      /* ------------- Phase 4C T16: batch and sibling caps and idempotency (§G.5, §H.2) --------- */
+
+      /** True for the two in-flight batch states the uniqueness index is written over. */
+      generation_batch_is_in_flight: {
+        Args: { p_status: GenerationBatchStatus };
+        Returns: boolean;
+      };
+      /**
+       * Ceiling, batch-level caps, the batch row and its three siblings — one transaction, so a
+       * refusal rolls back every unit it consumed and costs the host nothing.
+       */
+      plan_generation_batch: {
+        Args: {
+          p_event_id: string;
+          p_user_id: string;
+          p_identity_revision_id: string;
+          p_planner_version: string;
+          p_round: number;
+          p_idempotency_key: string;
+          /** `{ siblings: [ … ] }` — an object, so node-postgres and PostgREST agree it is jsonb. */
+          p_plan: Json;
+          p_event_cap_bucket: string;
+          p_event_cap_key: string;
+          p_event_cap_window: number;
+          p_event_cap_max: number;
+          p_account_cap_bucket: string;
+          p_account_cap_key: string;
+          p_account_cap_window: number;
+          p_account_cap_max: number;
+          p_rate_bucket: string;
+          p_rate_key: string;
+          p_rate_window: number;
+          p_rate_max: number;
+          p_ceiling_window_seconds: number;
+          p_ceiling_usd: number;
+          p_run_max_usd: number;
+          p_batch_reservation_usd: number;
+        };
+        Returns: {
+          outcome: PlanGenerationBatchOutcome;
+          batch_id: string | null;
+          recorded_spend_usd: number;
+        }[];
+      };
+      /** `planned` to `running`. True only for the transition. */
+      start_generation_batch: { Args: { p_batch_id: string }; Returns: boolean };
+      /** Marks a sibling issued. Telemetry, never mutual exclusion — the key does that (§H.2 row 6). */
+      issue_batch_sibling: {
+        Args: { p_batch_id: string; p_concept_index: number };
+        Returns: boolean;
+      };
+      /** The sibling's run row and its status, in one transaction, under the derived key. */
+      record_batch_sibling_run: {
+        Args: {
+          p_batch_id: string;
+          p_concept_index: number;
+          p_attempt: number;
+          p_idempotency_key: string;
+          p_success: boolean;
+          p_run: Json;
+        };
+        Returns: { outcome: RecordSiblingRunOutcome; run_id: string | null }[];
+      };
+      /**
+       * Settles a batch from its siblings (§I). Returns `in_flight` and changes nothing while any
+       * sibling is unfinished.
+       */
+      settle_generation_batch: {
+        Args: { p_batch_id: string };
+        Returns: GenerationBatchStatus | "in_flight";
+      };
     };
     Enums: {
       event_status: EventStatus;
@@ -767,6 +928,8 @@ export type Database = {
       event_member_role: EventMemberRole;
       model_operation: ModelOperation;
       identity_call_claim_state: IdentityCallClaimState;
+      generation_batch_status: GenerationBatchStatus;
+      generation_batch_sibling_status: GenerationBatchSiblingStatus;
     };
     CompositeTypes: Record<string, never>;
   };

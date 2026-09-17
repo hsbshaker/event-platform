@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { asActor, connect, createAuthUser, errorCode, resetDatabase } from "./harness";
@@ -1176,15 +1179,10 @@ describe("a captured response that can never be completed releases the event", (
 });
 
 describe("nothing batch- or sibling-shaped arrived early", () => {
-  it("introduces no generation_batches table and no planner columns", async () => {
+  it("leaves the claim knowing about one identity call and nothing else", async () => {
     // `spec.md §10`'s one-batch-in-flight rule and the (batch_id, operation, concept_index,
-    // attempt) sibling key are Phase 4C, T16. The claim knows about one identity call and
-    // nothing else.
-    const { rows } = await db.query(
-      `select table_name from information_schema.tables
-        where table_schema='public' and table_name in ('generation_batches','design_intent_artifacts')`,
-    );
-    expect(rows).toEqual([]);
+    // attempt) sibling key are Phase 4C, T16. This is the half that stays true forever: whatever
+    // T16 builds, it builds beside the claim rather than inside it.
     const { rows: columns } = await db.query(
       `select column_name from information_schema.columns
         where table_schema='public' and table_name='event_identity_call_claims'`,
@@ -1193,5 +1191,28 @@ describe("nothing batch- or sibling-shaped arrived early", () => {
     expect(names).not.toContain("batch_id");
     expect(names).not.toContain("planner_version");
     expect(names).not.toContain("concept_index");
+  });
+
+  it("creates generation_batches from Phase 4C's migration and from no earlier one", async () => {
+    // The original form of this assertion said `generation_batches` did not exist at all, which
+    // was true until T16 created it and is not a claim that can survive T16 landing. What it was
+    // actually protecting — that no Phase 4B migration anticipated batches — is asserted at the
+    // migration files instead, where it stays checkable afterwards.
+    const dir = path.resolve(import.meta.dirname, "../../supabase/migrations");
+    const creators = readdirSync(dir)
+      .filter((name) => name.endsWith(".sql"))
+      .filter((name) =>
+        /create\s+table\s+public\.generation_batches\b/i.test(
+          readFileSync(path.join(dir, name), "utf8"),
+        ),
+      );
+    expect(creators).toEqual(["20260917000000_phase4c_t16_generation_batches.sql"]);
+
+    // T17 is still ahead of us; nothing has reached forward to it either.
+    const { rows } = await db.query(
+      `select table_name from information_schema.tables
+        where table_schema='public' and table_name='design_intent_artifacts'`,
+    );
+    expect(rows).toEqual([]);
   });
 });

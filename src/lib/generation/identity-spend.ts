@@ -216,7 +216,13 @@ export const IDENTITY_REFUSAL_PAYLOAD = Object.freeze({
 });
 
 export interface CeilingAlert {
-  kind: "identity_spend_warn" | "identity_spend_refused";
+  /**
+   * `batch_spend_refused` is Phase 4C's: the project ceiling refusing a **new concept batch**
+   * (`docs/phase-4b-plan.md §H.2` row 3). It is a distinct kind rather than a reuse of
+   * `identity_spend_refused` because an operator reading the alert needs to know which admission
+   * refused; it changes nothing about the call-level controls above.
+   */
+  kind: "identity_spend_warn" | "identity_spend_refused" | "batch_spend_refused";
   windowSeconds: number;
   ceilingUsd: number;
   recordedSpendUsd: number;
