@@ -357,6 +357,42 @@ This project now has **real, running infrastructure**, and a session may hold cr
 reach it. A hosted Supabase project carries the schema and live rows; a Vercel project serves the
 app. Both are reachable from an agent session over HTTPS. Treat every rule below as binding.
 
+## 13.0 What exists, and which is which
+
+None of these are secrets — they are in the browser bundle, the deployment URL and the git remote.
+They are written down because a session that has to rediscover them wastes a turn, and because
+confusing the two Supabase projects is the expensive mistake.
+
+| | |
+| --- | --- |
+| Repository | `hsbshaker/event-platform` |
+| Vercel project | `prj_wGMRvLWWgCPkNIDlxv1lBSjaUqY5`, one project, two targets |
+| Production URL | `https://event-platform-two-rho.vercel.app` |
+| Supabase **production** | ref `oirndvezdrvdnudjicdk`, us-east-2 — built entirely from `supabase/migrations`, ledger complete |
+| Supabase **preview** | ref `ihdaifbyvlvivuctkrwn`, us-east-2 — schema applied by hand before the migrations were trusted, **no `supabase_migrations.schema_migrations` ledger**, so `supabase db push` there would try to replay Phase 1 |
+
+Credentials arrive through the environment and nowhere else (§13.3). What a session may hold:
+`SUPABASE_ACCESS_TOKEN` (Management API, org-wide) and `VERCEL_TOKEN`. `OPENAI_API_KEY` is
+deliberately absent unless a live run is authorised, because it is the only credential that spends
+money.
+
+**Which Supabase key to use, and why it matters.** A project issues two generations of keys. The
+newer `sb_secret_…` key is **rejected by PostgREST with 401**, so `SUPABASE_SERVICE_ROLE_KEY` must
+be the legacy `service_role` JWT; the newer publishable key is fine for the anon role. A wrong
+service key does not announce itself — sign-in returns a 500 that looks like a redirect-URL
+problem, because the signup throttle and draft binding both use the service-role client and run
+*before* `signInWithOtp`, whose own errors are caught and returned as a message rather than thrown.
+
+**Writing Vercel environment variables** is blocked by the auto-mode classifier as a secret-store
+write. `scripts/ops/vercel-env-split.mjs` exists for this: it is dry-run by default, its plan file
+holds no secrets (each entry says how to *source* its value), and a scoped rule in
+`.claude/settings.local.json` permits that one script. Use it rather than raw `curl`, and keep the
+grant narrow.
+
+**Production and preview must not share a secret.** `APP_ENCRYPTION_KEY` is the HMAC key for draft
+tokens and rate-limit keys, so one value across both targets means a token minted in preview
+validates in production. They are split today; keep them split.
+
 ## 13.1 The test database is never a real database
 
 Every test under `tests/db/` begins by dropping `public`, `auth` and `extensions`. Against a real
