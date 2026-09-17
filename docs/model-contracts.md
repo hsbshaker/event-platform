@@ -485,6 +485,13 @@ array. Each case is one **batch** — one event, three concepts — and needs:
   `presentation` is a fact the model invented. Absent, the check reports `n/a`;
 - optionally `notes`: the author's own, never sent to the model and never shown to the reviewer.
 
+**A brief must be satisfiable.** If a hex under `paletteIntent.requiredColors` is within ΔE 10 — the
+neighbourhood an exclusion covers — of a hex under `paletteIntent.avoidColors`, the case is refused.
+No output could honour both: carrying the required colour puts the palette inside the exclusion and
+omitting it breaks the requirement, so the case would fail every sibling whatever the model
+returned. The contract uses the same frozen neighbourhood the check uses, so the two cannot
+disagree about what "too near" means.
+
 **Every prose field of the brief is leakage-scanned** against the model-visible surfaces, so a
 distinctive phrase an author writes must not already appear in a prompt or a wire schema — and a
 collision is resolved at the corpus, never at the scanner (`phase-4b-plan.md §3.5`). The three

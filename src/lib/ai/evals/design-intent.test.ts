@@ -64,6 +64,7 @@ import {
   MINIMUM_WOWABLE_STAYS_QUALITATIVE,
   REVIEWER_PRODUCTS,
   REVIEWER_WITHHELD,
+  normalizeBatchId,
   SAME_EVENT_TYPE_PAIR_MINIMUM,
   SEALED_CORPUS_BATCHES,
   SYSTEMIC_CATEGORIES,
@@ -240,6 +241,79 @@ describe("the gate is the plan's own words, not a paraphrase of them", () => {
       ).toBe("daa9c9f64ea3a2dd200afb4b3860f0e53cb70e18b0b5c77ae1f153055d238f0b");
     });
   });
+
+  /**
+   * §3.8 and §3.2 get the same treatment, and §3.8 is the one that matters most.
+   *
+   * §3.8 is the blinding contract. A withheld item added to the plan and never implemented in the
+   * packet builder is a reviewer being shown something canon says to withhold, with every existing
+   * test green — the subset pinning above proves only that what the module carries is still in the
+   * plan, never that the plan carries nothing more. §3.2 has the same shape one layer down: a
+   * mechanical invariant added there and never implemented is a measurement canon claims and the
+   * harness does not take.
+   */
+  describe("and §3.8 and §3.2 have not grown one either", () => {
+    const slice = (start: string, end: string) =>
+      PLAN.slice(PLAN.indexOf(start), PLAN.indexOf(end));
+    const BLINDING = slice("## 3.8 ", "## 3.9 ");
+    const MECHANICAL = slice("## 3.2 ", "## 3.3 ");
+
+    it("withholds exactly the items the packet builder is tested against", () => {
+      // The exclusion sentence, split into its items. Everything §3.8 names here has to be in
+      // `REVIEWER_WITHHELD`, which the blinding scan then searches the rendered packet for; an
+      // eighth item added to the plan and not to the module fails here rather than silently
+      // shipping to a reviewer.
+      const sentence = flat(BLINDING).match(/It excludes (.+?)\. \(The reviewer necessarily/);
+      expect(sentence, "§3.8's exclusion sentence is no longer where this test reads it").not.toBe(
+        null,
+      );
+      const items = (sentence?.[1] ?? "")
+        .split(/,\s*(?:and\s+)?/)
+        .map((item) => item.replace(/^the\s+/, "").trim())
+        .filter(Boolean);
+      expect(items).toHaveLength(7);
+      const withheld = REVIEWER_WITHHELD.map((item) => item.replace(/^the\s+/, ""));
+      for (const item of items) {
+        expect(withheld, `§3.8 withholds "${item}" and the module does not`).toContain(item);
+      }
+      // Plus the document exclusion, which §3.8 states in its own paragraph rather than the list.
+      expect(REVIEWER_WITHHELD).toHaveLength(8);
+      expect(flat(BLINDING)).toContain("not `model-contracts.md` and not this document");
+    });
+
+    it("enumerates exactly the mechanical invariants the harness implements", () => {
+      // The within-batch run is a semicolon list; the corpus-wide block is bullets. Both are
+      // counted, because an invariant added to either is one the checker would not be taking.
+      const within = (
+        flat(MECHANICAL).match(
+          /\*\*Within a batch of three:\*\* (.+?)\. \*\*Across batches/,
+        )?.[1] ?? ""
+      ).split(";");
+      expect({
+        withinBatchInvariants: within.length,
+        acrossBatchMeasurements: (MECHANICAL.match(/^- /gm) ?? []).length,
+      }).toEqual({ withinBatchInvariants: 11, acrossBatchMeasurements: 5 });
+    });
+
+    it("does not change at all — §3.8", () => {
+      expect(
+        createHash("sha256").update(BLINDING, "utf8").digest("hex"),
+        "docs/phase-4b-plan.md §3.8 changed. It is the blinding contract: what the artifact " +
+          "carries, what the reviewer packet carries, and what it withholds. A withheld item added " +
+          "here has to be added to REVIEWER_WITHHELD and to the packet's blinding scan in the same " +
+          "change — do not update this hash on its own.",
+      ).toBe("bb5bf02c6823deca13764f3595bb6fbd470052b91791296bc721b4ed22fcad75");
+    });
+
+    it("does not change at all — §3.2", () => {
+      expect(
+        createHash("sha256").update(MECHANICAL, "utf8").digest("hex"),
+        "docs/phase-4b-plan.md §3.2 changed. It is the mechanical block the per-batch checks and " +
+          "the corpus-wide measurements implement. An invariant added here is one the harness does " +
+          "not take — do not update this hash on its own.",
+      ).toBe("db0842608c506fdb5c2ec8e7f4875453b081a8edeebab9f3d892f9c921a61856");
+    });
+  });
 });
 
 /* ------------------------------------------------------------------ the freeze */
@@ -340,7 +414,7 @@ describe("nothing frozen at T19 changes afterwards", () => {
         "Excellent's six requirements, the minimum-wowable question and its five criteria, S1–S9, " +
         "the class thresholds, the corpus size and composition, and the GO/NO-GO rule. All of it " +
         "was frozen at T19 before any case existed. Do not update this hash to silence the failure.",
-    ).toBe("cc680344f9b60bac7c5d9c5239eb89f95f4524fe80e4d01ccb7ebd1d0d43f345");
+    ).toBe("8f5ca5abbbbbf4eb57082dd3ea15b4f428d07d00d7de1a51ad3862e52db20172");
   });
 
   /**
@@ -359,7 +433,7 @@ describe("nothing frozen at T19 changes afterwards", () => {
         "corpus structural contract, the mechanical checks and their frozen floors, the blind " +
         "artifact and the reviewer packet, all frozen at T19 before the cases existed. Changing a " +
         "criterion after seeing the cases is the thing this set exists not to do.",
-    ).toBe("cb6d3c286e0fc15a455287b541910602321dbb4cb1a8ac5657fbdecb6aefaffa");
+    ).toBe("4752eb5c39fb8afc54995b7a8a98d2963e5fc2eb94b918eafbac486954fd69de");
   });
 
   it("does not change at all — the runner", () => {
@@ -1013,6 +1087,62 @@ describe("the GO/NO-GO function applies §3.7 and nothing else", () => {
     expect(decision.decision).toBe("GO");
   });
 
+  /**
+   * A batch is a batch however the reviewer spelled it.
+   *
+   * The threshold counts distinct cited batches, so a raw string comparison lets a transcription
+   * slip — `"batch 4"` beside `"Batch 4"`, or a trailing space — count one batch twice and turn a
+   * taste finding into a veto. That errs toward failing the gate, which is the opposite direction
+   * from the defect the threshold work fixed and exactly as wrong.
+   */
+  it("counts one batch once however it was spelled", () => {
+    const decision = decideDesignIntentGate(
+      review({ systemic: present("S8", ["Batch 4", "batch 4", " Batch  4 "]) }),
+    );
+    const verdict = decision.systemic.find((entry) => entry.category === "S8");
+    expect(verdict?.citedBatches).toEqual(["Batch 4"]);
+    expect(verdict?.meetsThreshold).toBe(false);
+    expect(decision.reasons.map((entry) => entry.kind)).not.toContain("systemic_veto");
+    expect(decision.findings.map((entry) => entry.kind)).toContain(
+      "systemic_present_below_threshold",
+    );
+    expect(decision.decision).toBe("GO");
+    expect(normalizeBatchId(" Batch  4 ")).toBe(normalizeBatchId("batch 4"));
+  });
+
+  /**
+   * A citation of a batch nobody judged is a reviewer error, not evidence.
+   *
+   * Unresolved, it counted toward a threshold while being silently skipped by the
+   * correctness-contradiction check, which reads the same id out of the band map — so `"Batch 13"`
+   * in a twelve-batch review could carry a category over its threshold on nothing at all.
+   */
+  it("returns the review when a citation names a batch that was not judged", () => {
+    const decision = decideDesignIntentGate(
+      review({ systemic: present("S5", ["Batch 4", "Batch 13"]) }),
+    );
+    expect(decision.mustReturnToReviewer).toBe(true);
+    expect(decision.decision).toBe("NO-GO");
+    expect(decision.reasons.find((entry) => entry.kind === "review_incomplete")?.detail).toContain(
+      "a citation names Batch 13, which is not one of the batches this review judged",
+    );
+    // And it contributes to no count: one real batch cited, so no veto on top of the return.
+    const verdict = decision.systemic.find((entry) => entry.category === "S5");
+    expect(verdict?.citedBatches).toEqual(["Batch 4"]);
+    expect(decision.reasons.map((entry) => entry.kind)).not.toContain("systemic_veto");
+  });
+
+  it("finds a correctness contradiction through a differently spelled citation", () => {
+    // The other half of the same defect: the contradiction check used to miss any citation whose
+    // spelling did not match the judged id exactly.
+    const decision = decideDesignIntentGate(review({ systemic: present("S4", ["batch 6"]) }));
+    const finding = decision.findings.find(
+      (entry) => entry.kind === "correctness_band_contradiction",
+    );
+    expect(finding?.batchIds).toEqual(["Batch 6"]);
+    expect(finding?.detail).toContain("rated Excellent");
+  });
+
   it("requires reasons beside every band, because a NO-GO built on labels is not actionable", () => {
     const decision = decideDesignIntentGate(
       review({ batches: twelve((index) => (index === 4 ? { reasons: "  " } : {})) }),
@@ -1206,6 +1336,79 @@ describe("the corpus contract, published before any case existed", () => {
         { gated: false },
       ).join(" "),
     ).toContain("is not a supplied-fact field");
+  });
+
+  /**
+   * A case no correct output could satisfy is refused here, while refusing it is still cheap.
+   *
+   * A `requiredColors` hex inside the avoided neighbourhood of an `avoidColors` hex makes
+   * `hostConstraintColoursHonoured` unsatisfiable: carrying the required colour puts the palette
+   * inside the exclusion, omitting it breaks the requirement. Same shape as the palette-separation
+   * and constraint-direction defects — a check no correct model can pass — except the cause is the
+   * case. After T20 nobody is positioned to catch it: the fairness reviewer reads for leakage and
+   * bias and has no reason to compute ΔE between two hex strings by hand.
+   */
+  it("refuses a brief whose required colour sits inside an excluded one", () => {
+    const contradictory = (required: string, avoided: string) =>
+      validateDesignIntentCorpusShape(
+        corpusOf([
+          corpusCase({
+            identity: brief({
+              colorsExplicitlyConstrained: true,
+              paletteIntent: {
+                requiredColors: [required],
+                preferredColors: [],
+                avoidColors: [avoided],
+                dominanceNotes: "Both, somehow.",
+              },
+            }),
+          }),
+        ]),
+        { gated: false },
+      );
+
+    // The same colour, and a near neighbour — an exclusion "covers near neighbours", so both are
+    // unsatisfiable and both are refused.
+    expect(contradictory("#2B1B12", "#2B1B12").join(" ")).toContain(
+      "required colour #2B1B12 is ΔE 0.0 from excluded #2B1B12",
+    );
+    const near = contradictory("#2B1B12", "#2C1C13");
+    expect(near.join(" ")).toContain("No output could honour both");
+    expect(hexDeltaE("#2B1B12", "#2C1C13")).toBeLessThanOrEqual(
+      MECHANICAL_FLOORS.avoidedColourNeighbourhoodDeltaE,
+    );
+
+    // A genuinely different excluded colour is an ordinary, satisfiable brief.
+    expect(contradictory("#2B1B12", "#0B1F3A")).toEqual([]);
+  });
+
+  it("uses the same neighbourhood the check uses, so the two cannot disagree", () => {
+    // The contract refuses exactly what `hostConstraintColoursHonoured` would have failed, rather
+    // than a second number that could drift away from it.
+    const satisfiable = corpusCase({
+      identity: brief({
+        colorsExplicitlyConstrained: true,
+        paletteIntent: {
+          requiredColors: ["#2B1B12"],
+          preferredColors: [],
+          avoidColors: ["#0B1F3A"],
+          dominanceNotes: "One in, one out.",
+        },
+      }),
+    });
+    expect(validateDesignIntentCorpusShape(corpusOf([satisfiable]), { gated: false })).toEqual([]);
+    // And a model can in fact satisfy it: sibling 0 carries the required colour and no sibling is
+    // near the excluded one — the check is decidable and passes.
+    const batch = [0, 1, 2].reduce(
+      (acc, index) =>
+        withResponse(acc, index, {
+          palette: { colors: ["#2B1B12", ...PALETTES[index].colors.slice(1)], dominant: "#2B1B12" },
+        }),
+      healthyBatch(satisfiable),
+    );
+    expect(
+      status(checkDesignIntentBatch(satisfiable, batch), "hostConstraintColoursHonoured"),
+    ).toBe("pass");
   });
 
   it("holds the gated corpus to twelve batches and two same-type pairs", () => {

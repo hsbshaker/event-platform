@@ -222,6 +222,46 @@ export function validateDesignIntentCorpusShape(
       }
     }
 
+    /**
+     * A brief that no correct output could satisfy is refused here, while it is still cheap.
+     *
+     * If a `requiredColors` hex sits inside the avoided neighbourhood of an `avoidColors` hex, then
+     * `hostConstraintColoursHonoured` fails whatever the model returns: carrying the required colour
+     * puts a palette inside the exclusion, and omitting it breaks the requirement. That is the same
+     * shape as the palette-separation and constraint-direction defects — a check no correct model
+     * can pass — except the cause is the case rather than the metric, so it belongs to the contract.
+     *
+     * It is caught now because after T20 nobody is positioned to catch it: the fairness reviewer
+     * reads the cases for leakage and bias, and has no reason to compute ΔE between two hex strings
+     * by hand. The neighbourhood is the same frozen floor the check uses, so the contract and the
+     * check cannot disagree about what "too near" means.
+     */
+    const brief = testCase?.identity;
+    if (brief?.paletteIntent) {
+      // Read defensively: the brief has not been parsed yet at this point, so a malformed one
+      // reaches here as `unknown` and must contribute no colours rather than throw.
+      const hexesIn = (value: unknown) =>
+        (Array.isArray(value) ? value : [])
+          .filter((entry): entry is string => typeof entry === "string")
+          .flatMap(hexColorsIn);
+      const intent = brief.paletteIntent as { requiredColors?: unknown; avoidColors?: unknown };
+      const required = [...new Set(hexesIn(intent.requiredColors))];
+      const avoided = [...new Set(hexesIn(intent.avoidColors))];
+      for (const wanted of required) {
+        for (const excluded of avoided) {
+          const distance = hexDeltaE(wanted, excluded);
+          if (distance <= MECHANICAL_FLOORS.avoidedColourNeighbourhoodDeltaE) {
+            problems.push(
+              `${where}: required colour ${wanted} is ΔE ${distance.toFixed(1)} from excluded ` +
+                `${excluded}, within the ${MECHANICAL_FLOORS.avoidedColourNeighbourhoodDeltaE} ` +
+                "neighbourhood an exclusion covers. No output could honour both, so the case would " +
+                "fail every sibling whatever the model returned.",
+            );
+          }
+        }
+      }
+    }
+
     const facts = testCase?.suppliedFacts;
     if (facts !== undefined) {
       if (typeof facts !== "object" || facts === null || Array.isArray(facts)) {

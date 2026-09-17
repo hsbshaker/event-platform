@@ -556,6 +556,21 @@ export interface GateDecision {
   readonly mustReturnToReviewer: boolean;
 }
 
+/**
+ * One batch id, folded so two spellings of the same batch are the same batch.
+ *
+ * The threshold counts **distinct cited batches**, so the comparison decides whether a pattern is a
+ * finding or a veto. Compared as raw strings, a transcription slip — `"Batch 4"` against
+ * `"batch 4"`, or a trailing space — counts one batch twice and flips a taste finding into a veto.
+ * That errs toward failing the gate, which is the opposite direction from the defect the threshold
+ * work fixed and exactly as wrong: a number that decides something must not decide it on whitespace.
+ *
+ * Exported so the rule is testable on its own rather than only through a decision.
+ */
+export function normalizeBatchId(batchId: string | undefined | null): string {
+  return (batchId ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 const countBy = <T extends string>(keys: readonly T[], values: readonly T[]) =>
   Object.fromEntries(
     keys.map((key) => [key, values.filter((value) => value === key).length]),
@@ -597,14 +612,16 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
   const incomplete: string[] = [];
 
   const batches = review.batches ?? [];
-  const seen = new Set<string>();
+  /** Normalised id → the batch id exactly as the reviewer judged it. */
+  const judged = new Map<string, string>();
   for (const batch of batches) {
-    if (!batch.batchId || batch.batchId.trim().length === 0) {
+    const key = normalizeBatchId(batch.batchId);
+    if (key.length === 0) {
       incomplete.push("a batch judgement carries no batch id");
-    } else if (seen.has(batch.batchId)) {
+    } else if (judged.has(key)) {
       incomplete.push(`batch ${batch.batchId} is judged more than once`);
     } else {
-      seen.add(batch.batchId);
+      judged.set(key, batch.batchId);
     }
     if (!BAND_IDS.includes(batch.band)) {
       incomplete.push(`batch ${batch.batchId}: ${String(batch.band)} is not one of the four bands`);
@@ -756,20 +773,41 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
     }
 
     const citations = assessment.citations ?? [];
-    const citedBatches = [...new Set(citations.map((citation) => citation.batchId))].filter(
-      (batchId) => batchId && batchId.trim().length > 0,
-    );
     const present = assessment.verdict === "present";
 
+    /**
+     * Distinct cited batches, resolved against the batches actually judged.
+     *
+     * Two things happen here that the threshold depends on. Ids are **normalised**, so one batch
+     * cited twice in two spellings counts once. And each one is **resolved to a judged batch**, so
+     * the count is of real batches rather than of strings: a citation of `"Batch 13"` in a
+     * twelve-batch review used to count toward a threshold while being silently skipped by the
+     * correctness-contradiction check below, which reads the same id out of the band map.
+     *
+     * An id that resolves to nothing is a reviewer error, not evidence, so it is `review_incomplete`
+     * and contributes to no count.
+     */
+    const citedBatches: string[] = [];
+    const citedKeys = new Set<string>();
     if (present) {
       for (const citation of citations) {
-        if (!citation.batchId || citation.batchId.trim().length === 0) {
-          // The threshold counts distinct cited batch ids, so an unattributed citation silently
+        const key = normalizeBatchId(citation.batchId);
+        if (key.length === 0) {
+          // The threshold counts distinct cited batches, so an unattributed citation silently
           // lowers the count that decides whether this is a veto. It has to be visible, not
-          // quietly dropped by the filter above.
+          // quietly dropped.
           incomplete.push(
             `${category}: a citation names no batch, and §3.7 requires each batch by id`,
           );
+        } else if (!judged.has(key)) {
+          incomplete.push(
+            `${category}: a citation names ${citation.batchId}, which is not one of the batches ` +
+              "this review judged",
+          );
+        } else if (!citedKeys.has(key)) {
+          citedKeys.add(key);
+          // The judged spelling, not the cited one, so the decision artifact reads consistently.
+          citedBatches.push(judged.get(key) as string);
         }
         if (!citation.sibling || citation.sibling.trim().length === 0) {
           incomplete.push(
@@ -863,17 +901,23 @@ export function decideDesignIntentGate(review: ReviewerReturn): GateDecision {
     .flatMap((entry) =>
       entry.citedBatches.map((batchId) => ({ batchId, category: entry.category })),
     );
-  const bandOf = new Map(batches.map((batch) => [batch.batchId, batch.band]));
-  const contradictions = correctnessCited.filter(
-    ({ batchId }) => bandOf.has(batchId) && bandOf.get(batchId) !== "Fail",
-  );
+  // Keyed the same way the citations were resolved, so this reads the band of the batch that was
+  // actually cited. `citedBatches` already holds judged ids, so every lookup hits.
+  const bandOf = new Map(batches.map((batch) => [normalizeBatchId(batch.batchId), batch.band]));
+  const contradictions = correctnessCited.filter(({ batchId }) => {
+    const key = normalizeBatchId(batchId);
+    return bandOf.has(key) && bandOf.get(key) !== "Fail";
+  });
   if (contradictions.length > 0) {
     findings.push({
       kind: "correctness_band_contradiction",
       detail:
         "cited under a correctness category but not rated `Fail`: " +
         contradictions
-          .map(({ batchId, category }) => `${batchId} (${category}, rated ${bandOf.get(batchId)})`)
+          .map(
+            ({ batchId, category }) =>
+              `${batchId} (${category}, rated ${bandOf.get(normalizeBatchId(batchId))})`,
+          )
           .join(", ") +
         ". §3.7: any occurrence of S3 or S4 also forces that batch to `Fail`. Recorded verbatim " +
         "rather than resolved in favour of either side.",
