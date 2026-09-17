@@ -1,9 +1,10 @@
 # Model Contracts
 ## Event Identity, DesignIntent and Composition prompts and structured-output schemas
 
-**Status:** Revision 2 — composition-language baseline  
-**Prompt versions:** `event_identity_v2`, `design_intent_v4`, `composition_v1_p2`  
-**Schema versions:** `event_identity_schema_v2`, `design_intent_schema_v4`, `composition_schema_v1`  
+**Status:** Revision 2 — composition-language baseline. Event Identity is in production at `v5`
+(Phase 4A closed **GO**, `§4.6`); DesignIntent and Composition are contracts on paper, unbuilt.  
+**Prompt versions:** `event_identity_v5`, `design_intent_v4`, `composition_v1_p2`  
+**Schema versions:** `event_identity_schema_v5`, `design_intent_schema_v4`, `composition_schema_v1`  
 **PRD:** `../spec.md` Revision 6  
 **Renderer:** `event-renderer-system.md` Revision 2
 
@@ -44,8 +45,8 @@ Strong models are used only for Event Identity, DesignIntent and Composition. Th
 Prompts and schemas are versioned production assets:
 
 ```ts
-export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v2"
-export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v2"
+export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5"
+export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
 export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v4"
 export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v4"
 export const COMPOSITION_PROMPT_VERSION    = "composition_v1_p2"
@@ -53,6 +54,10 @@ export const COMPOSITION_SCHEMA_VERSION    = "composition_schema_v1"
 export const PRIMITIVE_SET_VERSION         = "composition_v1"
 export const COMPILER_VERSION              = "…"
 ```
+
+`src/lib/ai/versions.ts` is where these live; the Event Identity pair reached `v5` through Phase 4A
+and its history is recorded there, prompt by prompt. The DesignIntent and Composition values are
+the contract as designed and have never been exercised against a provider.
 
 Record every version with generation telemetry. Do not silently edit a production prompt while keeping the same version. The primitive set is versioned separately from the compiler because the renderer must support every set that has a live spec.
 
@@ -81,6 +86,90 @@ inferred; a date, a venue, a dress code or any other fact is quoted from the hos
 
 Unchanged from Revision 1 except the catalogs: `availableHeroArchetypes` becomes `availableFamilies` (`editorial`, `invitation`, `statement`, each with an intent sentence) and `compatibleHeroArchetypes` becomes `compatibleFamilies`. Runtime narrowing, semantic invariants, the untrusted-input rules and evals EI-01…EI-10 stand with that substitution. `docs/model-prompts/event-identity.system.md` carries the family catalog.
 
+### 4.1 The result envelope (`event_identity_schema_v5`, Phase 4A)
+
+`spec.md §7.5` left the supplied-fact mechanism to Phase 4 and named two options. Phase 4A took
+the second in schema terms and neither in call terms: **one call returns three siblings**, so the
+creative brief keeps `additionalProperties: false` and carries no operational field, exactly as its
+prompt has always promised.
+
+| | |
+| --- | --- |
+| `identity` | the creative brief. Inference expected and generous — except in `hostConstraints` |
+| `suppliedFacts` | ten `*Text` fields — hosts, honoree, type, date, time, venue, address, locality, RSVP deadline — each a **verbatim quotation from the host or `null`** |
+| `clarification` | `needed`, plus questions on one of two routes: up to three **creative** questions, or exactly one **boundary** question (`spec.md §7.6b`) |
+
+Facts and identity share one round trip because a second call would roughly double latency
+(`spec.md §7.10`) to separate what the schema has already separated. Two details exist so that
+requirements are checkable rather than inferred from wording: the `You decide` option `§7.6b #4`
+requires is a structural `isDefer` boolean, not a phrase to pattern-match; and every fact field is
+named `*Text` and described as a quotation, because **normalization is the application's job, never
+the model's** — `1pm` stays `1pm`.
+
+### The clarification routes (`v5`)
+
+The first sealed challenge returned zero questions on all twelve cases, and a human reviewer found
+one where proceeding required the system to settle a matter it had no authority to settle. The
+cause was structural rather than dispositional: every model-visible instruction scoped clarification
+to taste, so the correct behaviour was unreachable. `v5` splits the routes.
+
+| | |
+| --- | --- |
+| **Route A — creative** (`kind: "creative"`) | a taste call that is genuinely open. Up to three, governed by the five conditions. **Exactly one `isDefer` option each**, which is why it never blocks: the host can always hand the call back |
+| **Route B — boundary** (`kind: "boundary"`) | a decision the system has no authority to make — a consequential position on behalf of a real person that the host never settled. Governed by four conditions. **Zero `isDefer` options**, because offering to decide it would contradict the reason for asking |
+
+`kind` is required on every question, so a question cannot be asked without declaring the authority
+it rests on, and the two routes stay separable in evidence. **Exclusivity:** a decision holds zero
+questions, or 1–3 creative questions, or exactly one boundary question asked alone. There is **no
+lifetime cap** on boundary questions — a later call may raise a new one if all four conditions hold
+again, because a spent quota is not authority.
+
+Two rules live only in runtime validation, not in the wire schema, because the strict
+structured-output subset admits no conditionals and no length keywords: the per-`kind` defer count,
+and exclusivity. The model therefore learns them from the field descriptions, and a violation is
+caught by the single repair retry (`§8`).
+
+**Provisional identity.** When a response carries a boundary question, the `identity` beside it is
+**provisional**: Route B fires only when the brief could not do its job without settling the
+position, so that brief is a working interpretation, not an authoritative one. It must not be
+consumed by the sibling planner (`spec.md §7.7`), DesignIntent, composition generation or any
+downstream creative stage, and concept generation is blocked until the host answers. Event Identity
+then **runs again** with the answer as current host input; only a result with no boundary question
+becomes authoritative, and a rerun that raises another boundary question is provisional in turn. No
+field marks this — the presence of a boundary-kind question is the signal. Phase 4A implemented
+none of this orchestration and never claimed to: it built and evidenced the call, not the lifecycle
+around it. The lifecycle is a binding obligation of the phase that follows, recorded in
+`development-plan.md` and planned in `phase-4b-plan.md §A`–`§C`, along with the requirement that a
+clarification answer be carried as first-class host input rather than concatenated into the
+original prompt.
+
+### The authority boundary (`v4`)
+
+`designConstraints` is gone. In its place:
+
+| | |
+| --- | --- |
+| `hostConstraints` | **authoritative.** Grounded in an explicit phrase from the host's own words. Respected unless the host changes them |
+| `creativeGuidance` | **advisory.** The model's own recommendations; later creative stages may reconsider, override or evolve them |
+
+Platform rules belong in neither. The gating check is prompt-grounding — every
+`hostConstraints` entry must be quotable from the raw prompt — chosen because it is decidable
+without a semantic classifier, and a probe that guesses at entailment is what produced the
+baseline's only mechanical failure.
+
+`suppliedFacts` gains `honoreeDescriptionText`, and both honoree fields populate when a name
+and a relationship co-occur. `spec.md §7.5` carries the requirement and the evidence.
+
+Source of truth is `src/lib/ai/event-identity/contract.ts`. The three files under
+`model-schemas/` — the envelope, the brief nested inside it, and the reduced strict-mode projection
+actually sent to the provider — are generated from it and drift-tested, as the composition schema
+is (`§2`). Never hand-edit them.
+
+Provider: OpenAI `gpt-5.6-sol` via the Responses API with strict structured output
+(`docs/technology-decisions.md §8`). Strict mode guarantees shape and enum membership only; `§3`
+still applies and the application validator remains the authority for lengths, counts and the
+cross-field rules.
+
 ## 4.5 Creative-understanding evaluation contract
 
 Everything else in this document measures whether output is **legal**. This measures whether it is
@@ -93,7 +182,154 @@ carrying a negative constraint, prompts already clear enough that the right numb
 zero, prompts carrying facts that must survive verbatim, one open delegation, and one genuinely
 ambiguous case where a question should earn its place. Each case declares its class, the facts the
 host actually supplied, whether clarification is expected, and what would count as an outright
-failure. It is data; **no runner exists yet, and this pass does not build one.**
+failure.
+
+**Three evidence classes, and they are not interchangeable.**
+
+| Set | Class | What it supports |
+| --- | --- | --- |
+| `creative-understanding.json`, 14 cases | **regression suite** — every output inspected and discussed | catching regressions; never fresh evidence again |
+| `creative-understanding-holdout.json`, 12 cases | **pre-registered validation set** — frozen and independently reviewed before the remediation, but authored by the same person who then wrote the prompt | validation against pre-registered invariants; not the strongest evidence of generalization |
+| `creative-understanding-sealed-challenge.json`, 12 cases (`sealed_challenge_v1`) | **spent.** It was a sealed challenge — authored independently, unseen while `v4` was written — and it was run once at `v4`, where it failed its human gate. `v5` was written knowing these cases | regression from `v5` onward. **Never generalization evidence again** |
+| `creative-understanding-sealed-challenge-v2.json`, 12 cases (`sealed_challenge_v2`) | **spent.** The fresh sealed challenge for `v5`: independently authored after the implementation and harness froze at `19f1ec8`, input-frozen at `9053b6d`, run once at that SHA, evidence at `acc9846`. It carried the Phase 4A GO | it *was* the generalization evidence. **Never generalization evidence again** |
+| *(none)* | a sealed challenge for any future prompt version | generalization. **A new corpus and a new slot must be authored; no existing set can stand in** |
+
+Every set in this table has now been run, so none of them can produce fresh evidence for a future
+prompt version. That is the intended terminal state, not an obstacle: the cost of authoring a new
+sealed corpus is exactly what stops a rerun of known cases from being quietly accepted as
+generalization.
+
+**A limit the go/no-go record must carry, not just the blind reviewer.** The clarification
+check gates only against *over*-asking: `expectClarification: "no"` fails a question that
+should not have been asked, and the other labels are advisory because whether a question
+earned its place is a judgement. The baseline failure was *under*-asking — zero questions on
+all fourteen cases. So a remediation that fixes authority correctly and still asks nothing
+anywhere passes both sets mechanically, and only a human reading the briefs can see it. Do not
+read a clean mechanical run as evidence on clarification.
+
+The middle row is the one most easily overstated, and `results/creative-understanding-v1/process-notes.md`
+records why, along with the one semantic axis inside it that is not novel.
+
+**Where evidence and incidents live.** A `results/*/` directory holding a completed run is
+immutable in full — the machine evidence and the narrative files beside it. **Six** such directories
+now exist — the `v3` baseline, the `v1` sealed challenge, and the four `v5` runs — and
+`PROTECTED_RESULT_DIRS` refuses every one as an output path. A directory is added to that list as
+part of finishing the run that produced it, never as a follow-up: until it is, the only guard is
+the write-once check, which `EVAL_OVERWRITE=1` exists to override. No eval set now has a writable
+output path. `process-notes.md` under
+`creative-understanding-v1/` is a **frozen historical record**, not a current append target.
+Operational incidents from here on are recorded only in `docs/model-evals/eval-incidents.md`,
+which sits outside every protected directory and carries the rule those incidents produced:
+**never execute the eval runner to verify the harness** — its paths, guards, schemas, reports and
+refusals are verified by pure, unit and static checks, and a live eval command runs only after
+explicit authorization for that exact evidence run.
+
+**Runner:** `tests/eval/creative-understanding.eval.ts`, added in Phase 4A. The sets and their
+evidence classes are defined once in `src/lib/ai/evals/corpus.ts`, which both this runner and the
+leakage scan read, so they cannot disagree about which file a set means:
+
+| script | `EVAL_SET` | corpus | output | state |
+| --- | --- | --- | --- | --- |
+| `eval:regression` | `regression` | the original 14 | `…-v1-regression` | **run at `v5`, refused** |
+| `eval:holdout` | `holdout` | the 12 pre-registered | `…-holdout-v1` | **run at `v5`, refused** |
+| `eval:spent-challenge` | `spentChallenge` | `sealed_challenge_v1` | `…-sealed-challenge-v1-v5-regression` | **run at `v5`, refused** |
+| `eval:challenge2` | `challenge2` | `sealed_challenge_v2` | `…-sealed-challenge-v2` | **run at `v5`, refused**. It was the fresh generalization evidence |
+| ~~`eval:challenge`~~ | `challenge` | `sealed_challenge_v1` | *(refused)* | historical; its first run is the immutable evidence |
+
+All five now stop at the protected-path refusal instead of writing. Each is still invokable, and
+each still names its corpus and directory, so the refusal is targeted rather than a generic
+"unknown set". A future prompt version needs a new corpus and a new slot.
+
+`eval:challenge` was kept and always refused, naming the two paths that replaced it, because the
+command is still printed in this document's history and in operators' shells. Every other set has
+since joined it in refusing, for the opposite reason: not that its path was always wrong, but that
+its run is done.
+
+It runs the cases **sequentially** against the live model — concurrent calls
+would report a latency no host will ever experience — records failures rather than retrying
+them away, and writes four files to the directory its `EVAL_SET` names — never a directory holding
+a completed run's evidence, which it refuses along with anything inside or above one:
+`raw-responses.jsonl` (below), `run.json` (every response and its telemetry),
+`mechanical-report.md` (for us), and `blind-review.md` (for an independent qualitative reviewer).
+It is excluded from `npm test`: it costs money and measures the creative stack, not the compiler.
+
+**A paid response is durable before our own code can destroy it.** `raw-responses.jsonl` is
+appended the moment each response arrives, ahead of any deterministic evaluation, because a bug
+in the checker used to abort the loop before `run.json` existed and take every response already
+paid for with it — unrecoverable on a one-shot sealed challenge. Text the provider returned and
+our validation then rejected is journaled too, on `EventIdentityError.rawResponses`: `invalid_output`
+is a call that was answered and billed, not one that produced nothing, and no status may say
+otherwise. Nor may `kind` decide that on its own — a provider failure on the *repair* attempt
+also follows a response that was returned and billed, so what the error carries decides, not what
+it is called. The three reports are rewritten on each run; the journal is rotated aside — kept
+under a stamped name, never appended to and never deleted — so two runs can never blend into one
+file. `run.json` is written only on a clean finish, so a journal with no `run.json` beside it is
+visibly an aborted run.
+
+**What the journal must contain, so that recovery is possible at all.** If deterministic
+evaluation or report generation crashes after a case has finished its provider interaction, that
+case's journal entry plus the frozen corpus and code must be enough to reconstruct it faithfully,
+with no second model call and nothing guessed. So each entry carries the case's identity and the
+corpus it indexes into (`caseId`, `evalSet`, `corpusVersion`), the run it came from
+(`runStartedAt`), and the fully-built telemetry the report itself records — `promptVersion` and
+`schemaVersion` among it, kept in one place rather than duplicated, because two copies of a
+version are two chances to disagree. A successful entry adds the raw provider text and the
+validated output; a failed one adds the error kind, message and validation issues, and every paid
+raw response. Fields the provider never returned stay absent: a zero token count would be a
+measurement nobody made. Every field is required, so a call site that forgets one does not
+compile.
+
+Recovering a *report* from a journal is still a manual job: `readJournal` returns the intact
+entries and reports damaged lines, and nothing rebuilds `run.json` or the two documents from them.
+That is a known tooling gap, recorded rather than implied — the journal guarantees the evidence is
+recoverable, not that it rebuilds itself.
+
+Two things a manual reconstruction must not get wrong. `run.json`'s `complete: true` is a
+constant written only on a clean finish, so a report rebuilt from an aborted run's journal must
+not carry it. And `corpusVersion` is a version string the corpus declares about itself, not a
+hash — a corpus edited without bumping it defeats the join, which is why the corpora are frozen.
+
+**The sealed challenge path was wired before its cases existed, and the arrangement held twice.**
+`EVAL_SET=challenge` names a corpus and an output directory fixed once and never since; when
+`sealed_challenge_v1` was written the corpus file was deliberately absent, authored independently
+after the implementation froze, and dropped in unchanged. The same arrangement is already in place for the
+corpus the `v5` GO required: `EVAL_SET=challenge2` named
+`creative-understanding-sealed-challenge-v2.json` and its own output directory, wired at the `v5`
+freeze before its cases were known, and when the corpus arrived the input freeze `9053b6d` changed
+**one file and nothing else** — 288 added lines, no runner, checker, prompt, schema, model or
+script. The property the dormant slot existed to make true was therefore observed, not asserted. `EVAL_SET=spentChallenge` reruns
+the spent `v1` cases into a separate `-v5-regression` directory as diagnostic evidence, and the
+`v1` first-run evidence is refused as an output by every set. A challenge invocation before a corpus lands fails at
+module scope — before the API-key check, before a client is constructed, and with no provider call
+— and the runner refuses any set whose corpus is missing, uniformly. `prompt-leakage.test.ts`
+already names the challenge filename behind an existence check, so the independently authored
+corpus is scanned against the frozen prompt and wire schema the moment it lands, without anyone
+editing benchmark-integrity tooling after seeing the cases. Adding the file is then the entire
+change: no runner, checker, prompt, schema or model code moves, because moving any of it after
+seeing the cases is precisely what a sealed challenge exists to prevent.
+
+**The corpus contract, published so an independent author can satisfy it without reading the
+runner.** A corpus is a JSON object with a non-empty `version` string and a non-empty `cases`
+array. Every case needs a unique non-empty `id` (the journal's join key), a non-empty `prompt`
+(the host's own words, the only thing sent to the model), and an `expectClarification` of exactly
+`"no"`, `"likely"`, `"acceptable"` or `"expected"`. Everything else is optional and each check
+reports `n/a` when its input is absent: `facts` and `mustAvoid` in the regression style,
+`hostPhrases`, `expectedFacts`, `mustNotBeClaimedAsHostConstraint` and `tests` in the validation
+style, or any mix. The runner asserts this shape at module scope, before any provider call,
+because a malformed case in a one-shot corpus would otherwise spend a sealed case on a prompt of
+`undefined`. The rule itself lives in `src/lib/ai/evals/corpus.ts`, not in the runner, so it can
+be unit-tested — against the real corpora — without importing the module that spends money.
+
+The deterministic checks live in `src/lib/ai/evals/creative-understanding.ts` and decide exactly
+one thing — whether an **outright failure** was committed. Two of them are derived from the host's
+prompt rather than from the corpus, so they would work on any prompt and are not tuned to these
+fourteen: every claimed fact must be quotable from the host's words, and a term the host negated
+must not reappear as a positive part of the brief.
+
+`blind-review.md` carries the prompt and the response and nothing else — no expected verdict, no
+`mustAvoid` list, no mechanical result, no notes. That blinding is asserted by test against every
+case in the corpus, because a reviewer shown our expectations is no longer evidence about the
+model.
 
 ### The rubric
 
@@ -126,6 +362,57 @@ not grow the corpus to chase coverage, do not build a scoring service, and do no
 code changes on it — it measures the creative stack, not the compiler.
 
 ---
+
+---
+
+## 4.6 Phase 4A close — the `v5` go/no-go record
+
+**PHASE 4A — GO.** `event_identity_v5` / `event_identity_schema_v5` is the accepted production
+interpretation contract for the phases that follow. Recorded here, beside the contract it judges,
+so a reader of §4 does not have to reconstruct the decision from a changelog.
+
+| | |
+| --- | --- |
+| Final `v5` pre-eval freeze | `19f1ec8ee6b7634592fa248cc4a44d24f973c470` |
+| `v5` regression evidence | `20a7490bf89fdbc089bf405986a83732f2f300e7` |
+| Spent-challenge diagnostic | `6822ef727ce139b68e11ad95d81dc8498345ccbd` |
+| Pre-registered holdout | `15d7ed871f70ed3e20c4ed83b0917d06b655a5c1` |
+| Sealed challenge v2 input freeze | `9053b6d5f7f670d9444e900b20bee676108de72b` |
+| Fresh challenge2 evidence | `acc9846e27cd234f7fbc8d33591b489e4ed77484` |
+
+The decisive run is the fresh sealed challenge: 12/12 completed, 10/12 structured on the first call
+with one successful repair each on SC2-11 and SC2-12, 11/12 mechanical, 28/28 expected-fact
+assertions holding, `factsGrounded` 12/12, no transient retries, latency min 22.3 s / median 30.0 s
+/ mean 31.1 s / max 54.2 s. Both clarification routes fired and neither misfired: Route A on
+SC2-11, Route B on SC2-12, no response mixed routes, the creative question carried exactly one
+defer, the boundary question carried none and was asked alone, and all eight cases the corpus
+labels `no` asked nothing. The independent blind review returned 7 Excellent, 5 Good, 0 Borderline,
+0 Fail, passed the premium-product test, and found nothing serious enough to block the next phase.
+
+**SC2-04 stands at 11/12 and is not to be rewritten.** The host wrote one compound prohibition —
+*"No rings or 'Mr & Mrs'."* — and the model split it faithfully into two host constraints, `"No
+rings."` and `"No 'Mr & Mrs'."`. The frozen containment rule (`§4`, prompt-grounding) cannot
+recognise a faithful split and reads each half as ungrounded. Both halves are the host's own words
+and nothing was invented, so this is a checker/contract edge rather than the authority failure the
+check exists to catch — but the recorded evidence is the evidence, and the distinction lives here
+in the reading, never in the artifact.
+
+**What the GO does not license.** It is not a finding that `v5` interpretation is finished, and
+7/12 Excellent is not a standing target. Four qualities recurred in the blind review and are
+carried forward as **excellence watch** items for the phases that consume this contract, not as
+`v5` defects to remediate now:
+
+1. unsupported anti-sentimentality, anti-theatricality and anti-kitsch taste restrictions;
+2. reusable finishing language in typography, texture, hierarchy and copy;
+3. verbal identity sometimes less distinctive than the visual organizing idea;
+4. a visible preference for polished composition and emotional moderation.
+
+They are watched through DesignIntent, Composition and rendered-concept evaluation, because where
+the highest-leverage fix belongs is not yet known and changing the interpreter first would be a
+guess. **Latency is explicit debt on the same terms:** a ~30 s median is materially above the
+destination in `spec.md §7.10`, and it is addressed after the creative pipeline is proven, not
+before. The north star is that every interpretation is Excellent — and the way not to get there is
+to manufacture a 12/12 by tuning against spent cases.
 
 ---
 

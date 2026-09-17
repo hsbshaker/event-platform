@@ -322,6 +322,95 @@ cases at 60–90 s. **The canonical numbers are unchanged.** §7.10 now records 
 unbudgeted there, and they are re-set deliberately against a measured imagery path rather than
 widened quietly to match what gets built. `product-doctrine.md §14` conflict 9.
 
+## Revision 6.7 — Phase 4A closed GO; Event Identity is in production at `v5`
+
+**Status change, not a requirements change.** No product requirement, guardrail, acceptance
+criterion, prompt, schema or line of production code moves in this revision. What changes is what
+canon *says is true*.
+
+**`event_identity_v5` / `event_identity_schema_v5` is the accepted production interpretation
+contract.** Phase 4A closed **GO** on 2026-09-15 after six live evidence runs: `v3` against the
+fourteen-case regression suite (13/14 mechanical) and `v4` against the first sealed challenge
+(11/12), both of which failed their independent qualitative gate and produced the `v4` and `v5`
+remediations; then four at `v5` — regression 14/14, the spent-challenge diagnostic 11/12, the
+pre-registered holdout 12/12, and a freshly authored sealed challenge at 11/12 with a blind review
+of 7 Excellent, 5 Good, 0 Borderline, 0 Fail. The go/no-go record, its six SHAs and the numbers are
+in `model-contracts.md §4.6`; `development-plan.md` carries the status; `product-doctrine.md §15`
+carries what it means against the product bar.
+
+**Stale text corrected.** `model-contracts.md` advertised Event Identity at `v2`, headed its result
+envelope `event_identity_schema_v4`, listed the fresh sealed corpus as *(pending)* and *(not yet
+authored)*, described its runner slot as dormant, and counted two protected evidence directories.
+All six statements were true when written and are now false. The evidence-class table gains the
+`sealed_challenge_v2` row, marked spent by the run that carried the GO.
+
+**Every eval set is spent.** `sealed_challenge_v1` was spent at `v4`; `sealed_challenge_v2` was
+spent by its single run. All five eval sets now point at protected directories and none can write.
+That is the intended terminal state: a future prompt version needs a newly authored sealed corpus
+and its own slot, and the cost of authoring one is exactly what stops a rerun of known cases from
+being accepted as generalization.
+
+**SC2-04 stands as recorded.** The fresh challenge's one mechanical failure — a host's compound
+prohibition faithfully split into two constraints, which the frozen containment rule cannot
+recognise — is preserved at 11/12. The reading that it is a checker/contract edge rather than an
+authority failure lives in `§4.6`, never in the artifact.
+
+**What the GO does not license.** 7/12 Excellent is a pass, not a standing target. Four recurring
+qualities — unsupported anti-sentimental and anti-theatrical restriction, reusable finishing
+language, a verbal identity thinner than the visual idea, and a visible preference for polish and
+emotional moderation — are recorded as **excellence watch** items to be observed through
+DesignIntent, Composition and rendered concepts, not as `v5` defects to remediate now. Event
+Identity's ~30 s median is recorded as **latency debt** against `spec.md §7.10`, addressed after the
+creative pipeline is proven. Neither reopens `v5`.
+
+**`phase-4b-plan.md` is added**, planning the clarification lifecycle, the deterministic sibling
+planner and `DesignIntent × 3`, with that phase's evidence strategy designed before its prompt is
+written and four decisions listed as requiring approval. It orders work and defines no
+requirements.
+
+## Revision 6.8 — `§9.6` is a floor, and the spend controls that reading unblocks
+
+**The change.** One sentence added to `spec.md §9.6`: *"These fields are a minimum, not an
+allowlist: an implementation may persist additional server-only telemetry needed for reliability,
+cost attribution, recovery and auditability, subject to the same privacy and access-control
+requirements."*
+
+**Why it was needed.** Phase 4B T9A had to give paid provider responses a durable home.
+`EventIdentityError.rawResponses` exists because an `invalid_output` is a call that was answered
+and billed, and the plan requires every paid response preserved — but `generation_runs` had no
+field for them, and §9.6's list did not name one. Two readings were available: a record *minimum*,
+or a closed allowlist. Nothing in canon closes it, its neighbour §9.5 is explicitly optional
+(*"may emit"*), and the prohibitions that do exist — §7.10's *"never model reasoning or
+chain-of-thought"* and §32 #41's *"do not expose backend generation/spend counters"* — govern what
+the **surface shows**, not what server-only telemetry stores. The floor reading was already the one
+the plan took; this records it so the question does not cost a third review round.
+
+**What it does not do.** It does not weaken any privacy or access-control requirement, and it is
+not a licence to persist reasoning content: that prohibition is separate and unchanged. The
+evidence column stores `response.output_text` only, which carries no reasoning item, on a table
+with RLS on, no policies, and revoked from `anon` and `authenticated`.
+
+**Consequence in the build.** `generation_runs.provider_response_evidence` (ordered paid response
+texts, 30-day retention) and the EventIdentity call-claim machinery that makes uniqueness happen
+before spend. Recorded here because `CLAUDE.md §12` treats a `spec.md` edit as a product change
+rather than cleanup, even a clarifying one.
+
+## Revision 6.9 — `ChoiceGroup` joins the component system
+
+**What changed.** `docs/design-system.md §10.5a` adds `ChoiceGroup`, the canonical single-choice
+control: a real radio group named by its `<legend>`.
+
+**Why it is canon rather than a feature component.** `§23.1` forbids page-local forks of shared
+controls, and this one could not be `Field`: a group of radios is named by a `<legend>`, which
+`Field`'s `<label for>` cannot provide. It was written for T11's clarification question and shipped
+under `src/components/app/` from the start, with its source and README saying it was not yet
+canonical — a known mismatch, and not one to freeze a phase with.
+
+**What it does not do.** It introduces no token, colour, variant or second choice component, and
+its entry documents only behaviour the component already has. It is explicitly not a
+card-selection or template-picking primitive: concept selection is `ConceptCard` (`§10.14`), and a
+template gallery is forbidden outright (`spec.md §32 #5`).
+
 ## Documentation hierarchy
 
-`spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
+`spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

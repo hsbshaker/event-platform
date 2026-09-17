@@ -12,6 +12,8 @@
  * so no code path can call a model by accident (spec.md §32 #4).
  */
 
+import type { CarriedClarification, PriorRevision } from "@/lib/ai/openai/event-identity-input";
+
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Typed narrowly in Phase 4. */
 export type EventIdentity = Record<string, unknown>;
 export type DesignIntentResponse = Record<string, unknown>;
@@ -42,6 +44,18 @@ export interface ModelResult<T> {
 export interface GenerateEventIdentityInput {
   prompt: string;
   inspiration?: { mimeType: string; bytes: Uint8Array }[];
+  /**
+   * A rerun after one or more clarification rounds (`spec.md §7.6b`).
+   *
+   * Absent on a first call, and then the assembled request is `event_identity_input_v1` byte for
+   * byte. Present on a rerun, carrying every answer still in scope together with the revisions
+   * that asked the questions — the assembly reads each question out of its revision rather than
+   * trusting a question string from the caller.
+   */
+  clarification?: {
+    priorRevisions: PriorRevision[];
+    answers: CarriedClarification[];
+  };
 }
 
 export interface GenerateDesignIntentInput {

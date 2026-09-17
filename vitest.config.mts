@@ -19,6 +19,17 @@ export default defineConfig({
         test: { name: "unit", include: ["src/**/*.test.ts", "tests/unit/**/*.test.ts"] },
       },
       {
+        // Component behaviour in a DOM, where interaction can actually be driven: state
+        // transitions, keyboard, focus, and what does and does not reach the document. Layout is
+        // **not** here — jsdom has none — and is proven in the browser suite instead.
+        extends: true,
+        test: {
+          name: "component",
+          environment: "jsdom",
+          include: ["src/**/*.component.test.tsx"],
+        },
+      },
+      {
         extends: true,
         test: {
           name: "db",
@@ -35,6 +46,19 @@ export default defineConfig({
           include: ["tests/e2e/**/*.test.ts"],
           testTimeout: 120_000,
           hookTimeout: 120_000,
+          fileParallelism: false,
+        },
+      },
+      {
+        // Real model calls against a live provider. Never part of `npm test`: it costs
+        // money and measures the creative stack rather than the compiler
+        // (docs/model-contracts.md §4.5). Run it deliberately.
+        extends: true,
+        test: {
+          name: "eval",
+          include: ["tests/eval/**/*.eval.ts"],
+          testTimeout: 15 * 60_000,
+          hookTimeout: 60_000,
           fileParallelism: false,
         },
       },

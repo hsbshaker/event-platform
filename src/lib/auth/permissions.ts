@@ -20,6 +20,18 @@ export const CAPABILITIES = [
   "manage_native_item_purchase_state",
   "send_messages",
   "use_design_controls",
+  /**
+   * Run the EventIdentity call for this event (`spec.md §7.2`, `§7.6b`).
+   *
+   * Not in §25's table, which enumerates redesign rather than the first interpretation, but
+   * governed by the sentence under it: "Owner/co-host design generation consumes the same
+   * event-level generation pool/limits. After publish, AI generation and concept switching are
+   * disabled for both." So: owner and co-host alike, and pre-publish only. It is deliberately not
+   * folded into `generate_redesign_concepts` — identity generation is a different act with
+   * different downstream consequences, and sharing a capability would make one impossible to
+   * withdraw without the other.
+   */
+  "generate_event_identity",
   "add_redesign_inspiration",
   "enter_redesign_feedback",
   "generate_redesign_concepts",
@@ -48,6 +60,7 @@ const OWNER_ONLY: ReadonlySet<Capability> = new Set([
 ]);
 
 const PRE_PUBLISH_ONLY: ReadonlySet<Capability> = new Set([
+  "generate_event_identity",
   "generate_redesign_concepts",
   "browse_select_concepts",
 ]);

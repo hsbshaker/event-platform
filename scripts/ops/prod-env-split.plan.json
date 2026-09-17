@@ -1,0 +1,22 @@
+{
+  "NEXT_PUBLIC_SUPABASE_URL": {
+    "type": "encrypted",
+    "value": "https://oirndvezdrvdnudjicdk.supabase.co"
+  },
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
+    "type": "encrypted",
+    "fromSupabase": "anon"
+  },
+  "SUPABASE_SERVICE_ROLE_KEY": {
+    "type": "sensitive",
+    "fromSupabase": "service_role"
+  },
+  "APP_ENCRYPTION_KEY": {
+    "type": "sensitive",
+    "generate": "base64:48"
+  },
+  "NEXT_PUBLIC_APP_URL": {
+    "type": "encrypted",
+    "value": "https://event-platform-two-rho.vercel.app"
+  }
+}

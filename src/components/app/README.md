@@ -7,3 +7,6 @@ styling locally (§23.1, §23.4). Styling uses the semantic tokens in
 
 Nothing in this directory may import from `src/components/event-renderer` or
 `src/styles/event-tokens.css` (§23.7).
+
+`ChoiceGroup` is the canonical single-choice control — a real radio group named by its `<legend>`,
+which `Field`'s `<label for>` cannot provide. It is documented in `docs/design-system.md §10.5a`.

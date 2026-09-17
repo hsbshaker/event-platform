@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://event-platform.local/schemas/event-identity-result.wire.schema.json",
+  "title": "EventIdentityResult (provider strict-mode projection)",
+  "description": "What is actually sent to the provider: the canonical schema reduced to the subset OpenAI structured outputs accept in strict mode — every property required, additionalProperties false everywhere, no length/count/format keywords. Committed so the request payload is reviewable. Generated — do not hand-edit. The dropped constraints are enforced by the application validator, which is the authority (docs/model-contracts.md §3).",
+  "type": "object",
+  "properties": {
+    "identity": {
+      "type": "object",
+      "properties": {
+        "creativeDirection": {
+          "type": "string",
+          "description": "Concise 1-3 sentence creative thesis. No renderer implementation choices."
+        },
+        "toneKeywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ranked/curated tone adjectives or short phrases with minimal synonym redundancy."
+        },
+        "colorsExplicitlyConstrained": {
+          "type": "boolean",
+          "description": "True only when the host explicitly narrows/requires/excludes palette families."
+        },
+        "paletteIntent": {
+          "type": "object",
+          "properties": {
+            "requiredColors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Hard color requirements in short natural language; preserve exact user hex strings."
+            },
+            "preferredColors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Softer palette preferences."
+            },
+            "avoidColors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Explicit color exclusions. An exclusion is absolute and covers near neighbours."
+            },
+            "dominanceNotes": {
+              "type": "string",
+              "description": "How palette families should dominate/recede; empty string when unspecified."
+            }
+          },
+          "required": [
+            "requiredColors",
+            "preferredColors",
+            "avoidColors",
+            "dominanceNotes"
+          ],
+          "additionalProperties": false
+        },
+        "tonalIntent": {
+          "type": "string",
+          "description": "Natural-language brightness/depth/contrast intent."
+        },
+        "toneExplicitlyConstrained": {
+          "type": "boolean",
+          "description": "True only when the host explicitly constrains light/mid/dark tonal space."
+        },
+        "compatibleTonalDirections": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "light",
+              "mid",
+              "dark"
+            ]
+          },
+          "description": "Ranked best-first compatible tonal directions. Do not pad with incompatible values."
+        },
+        "compatibleFamilies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "editorial",
+              "invitation",
+              "statement"
+            ]
+          },
+          "description": "Ranked best-first compatible design families. A family is a compositional character."
+        },
+        "compatibleTypographyCategories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "heritage",
+              "high_contrast_editorial",
+              "oldstyle",
+              "grotesk_led",
+              "soft_serif",
+              "transitional"
+            ]
+          },
+          "description": "Ranked compatible broad typography categories, not a font choice."
+        },
+        "visualMotifs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Natural-language motif ideas, not renderer motif IDs."
+        },
+        "textureDirection": {
+          "type": "string",
+          "description": "Tactile/visual texture character. Never an image asset."
+        },
+        "typographyDirection": {
+          "type": "string",
+          "description": "Typographic character/hierarchy, not a raw font-family choice."
+        },
+        "copyTone": {
+          "type": "string",
+          "description": "Voice of guest-facing event copy."
+        },
+        "hostConstraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "AUTHORITATIVE, and narrow. A prohibition, an explicit requirement of a specific thing, or a correction the host made — grounded in an explicit phrase from their own words and kept verbatim or near-verbatim. Positive style direction is NOT a constraint: a named aesthetic or a tone adjective the host wants shapes the brief itself (creativeDirection, toneKeywords, palette), which is where later stages read it. If interpretation was needed to get here it is creativeGuidance. Empty is the common and correct answer."
+        },
+        "creativeGuidance": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "ADVISORY. Your own creative recommendations. Later design stages may reconsider, override or evolve any of these when they find something better. This is where your taste belongs — never in hostConstraints."
+        },
+        "inspirationSummary": {
+          "type": "string",
+          "description": "Compact summary of inspiration evidence; exactly 'No visual inspiration supplied.' when none exists."
+        }
+      },
+      "required": [
+        "creativeDirection",
+        "toneKeywords",
+        "colorsExplicitlyConstrained",
+        "paletteIntent",
+        "tonalIntent",
+        "toneExplicitlyConstrained",
+        "compatibleTonalDirections",
+        "compatibleFamilies",
+        "compatibleTypographyCategories",
+        "visualMotifs",
+        "textureDirection",
+        "typographyDirection",
+        "copyTone",
+        "hostConstraints",
+        "creativeGuidance",
+        "inspirationSummary"
+      ],
+      "additionalProperties": false,
+      "description": "The creative brief. Inference is expected and generous. Carries no operational data."
+    },
+    "suppliedFacts": {
+      "type": "object",
+      "properties": {
+        "hostNames": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Who is hosting, as written. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "honoreeName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The NAME of whoever the event is for, as written. A relationship is not a name. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "honoreeDescriptionText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How the host DESCRIBED who the event is for — 'my nephew', 'our neighbour', 'for the twins'. Populate this even when honoreeName is also present: 'my nephew Arthur' gives honoreeName 'Arthur' and honoreeDescriptionText 'my nephew'. Quoted from the host verbatim, or null. Never inferred, and never a reason to impose a stereotyped palette."
+        },
+        "eventType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The kind of GATHERING the host named — a dinner, a shower, a birthday. A theme, an aesthetic or a mood is never an event type, however literally the host stated it. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "dateText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The date exactly as written, however partial. Never expanded into a fuller date. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "timeText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The time exactly as written. Do not reformat: '1pm' stays '1pm'. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "venueText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The venue as named or described. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "addressText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A street address, only if the host gave one. Never derived from a described place. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "localityText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Town/city/region as written. A city named as aesthetic flavour is not a location. Quoted from the host verbatim, or null. Never inferred."
+        },
+        "rsvpDeadlineText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The RSVP deadline as written. Quoted from the host verbatim, or null. Never inferred."
+        }
+      },
+      "required": [
+        "hostNames",
+        "honoreeName",
+        "honoreeDescriptionText",
+        "eventType",
+        "dateText",
+        "timeText",
+        "venueText",
+        "addressText",
+        "localityText",
+        "rsvpDeadlineText"
+      ],
+      "additionalProperties": false,
+      "description": "What the host actually said. Every value is a quotation or null."
+    },
+    "clarification": {
+      "type": "object",
+      "properties": {
+        "needed": {
+          "type": "boolean",
+          "description": "True when and only when `questions` is non-empty. Prefer zero questions."
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "description": "A question about taste only. Never logistics, never a low-level design choice."
+              },
+              "whyItMatters": {
+                "type": "string",
+                "description": "How the answers would diverge creatively. Not shown to the host as written."
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "description": "The option as the host would read it."
+                    },
+                    "isDefer": {
+                      "type": "boolean",
+                      "description": "True on the single 'You decide' / 'Surprise me' option every question must offer."
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "isDefer"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Answer options. Exactly one must have isDefer: true."
+              }
+            },
+            "required": [
+              "question",
+              "whyItMatters",
+              "options"
+            ],
+            "additionalProperties": false
+          },
+          "description": "At most three, and usually none. Ask only when different answers would produce meaningfully different creative identities."
+        }
+      },
+      "required": [
+        "needed",
+        "questions"
+      ],
+      "additionalProperties": false,
+      "description": "Whether a creative question would materially improve understanding. Usually not."
+    }
+  },
+  "required": [
+    "identity",
+    "suppliedFacts",
+    "clarification"
+  ],
+  "additionalProperties": false
+}

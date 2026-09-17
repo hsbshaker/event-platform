@@ -1,0 +1,187 @@
+{
+  "version": "sealed_challenge_v1",
+  "cases": [
+    {
+      "id": "SC-01",
+      "prompt": "Milo is turning 7! He's really into beetles and moths, so please use actual insects on the invite, just no cartoon faces. Saturday 18 May, 2–4 pm, in the Willow Room.",
+      "expectClarification": "no",
+      "expectedFacts": {
+        "honoreeName": "Milo",
+        "dateText": "Saturday 18 May",
+        "timeText": "2–4 pm",
+        "venueText": "the Willow Room"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "please use actual insects on the invite",
+          "kind": "constraint"
+        },
+        {
+          "phrase": "no cartoon faces",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "No illustrations",
+        "No bright colours"
+      ],
+      "tests": [
+        "literal_subject_matter",
+        "narrow_exclusion",
+        "exact_logistical_facts"
+      ]
+    },
+    {
+      "id": "SC-02",
+      "prompt": "My mum's retiring after 32 years driving the number 8 bus. The whole depot calls her 'Captain', and she thinks that nickname is hilarious. I'd love the party to feel proud and affectionate, with a bit of her cheek.",
+      "expectClarification": "no",
+      "expectedFacts": {
+        "honoreeName": null,
+        "honoreeDescriptionText": "My mum"
+      },
+      "mustAvoid": [
+        "Presenting Captain as her given name."
+      ],
+      "rationale": "A personal history and affectionate nickname carry emotional meaning without prescribing a visual solution."
+    },
+    {
+      "id": "SC-03",
+      "prompt": "Having a few neighbors over for dinner. I don't have a theme in mind; you pick something and give the evening a personality.",
+      "expectClarification": "no",
+      "rationale": "The host explicitly delegates the creative choice; asking them to choose the theme would return that work to them."
+    },
+    {
+      "id": "SC-04",
+      "prompt": "Need an idea for the welcome lunch at work next Friday. Nine new hires, mostly meeting each other for the first time.",
+      "expectClarification": "no"
+    },
+    {
+      "id": "SC-05",
+      "prompt": "My 40th needs an old-school club feel. Make it a proper night.",
+      "expectClarification": "acceptable",
+      "hostPhrases": [
+        {
+          "phrase": "old-school club feel",
+          "kind": "direction"
+        }
+      ],
+      "rationale": "The shorthand supports materially different interpretations. A focused question or a clearly presented creative choice is defensible."
+    },
+    {
+      "id": "SC-06",
+      "prompt": "Trying to get some friends together for my sister before treatment starts. A few don't know what's going on. I'd like the invite to explain why we're doing this, but she's pretty private.",
+      "expectClarification": "expected",
+      "mustAvoid": [
+        "Inventing a diagnosis, treatment type, or prognosis."
+      ],
+      "rationale": "Clarify what the sister is comfortable sharing in the invitation before committing to its framing. Learning medical details is unnecessary."
+    },
+    {
+      "id": "SC-07",
+      "prompt": "We're having a wedding welcome dinner. Our families are Punjabi and Tamil, and we'd like both sides to feel at home in the design. No religious symbols please.",
+      "expectClarification": "acceptable",
+      "hostPhrases": [
+        {
+          "phrase": "No religious symbols please",
+          "kind": "constraint"
+        }
+      ],
+      "mustAvoid": [
+        "Including religious symbols despite the explicit exclusion.",
+        "Presenting an inferred religion, nationality, or family tradition as a fact supplied by the host."
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "No cultural references",
+        "No traditional patterns"
+      ],
+      "rationale": "A thoughtful creative proposal or a focused question about meaningful family references can work; cultural identity alone does not require clarification."
+    },
+    {
+      "id": "SC-08",
+      "prompt": "Tenth anniversary gala for our drama society. We're thinking swags, gold lettering, ridiculous grandeur. Everyone here loves making an entrance.",
+      "expectClarification": "no",
+      "hostPhrases": [
+        {
+          "phrase": "ridiculous grandeur",
+          "kind": "direction"
+        }
+      ],
+      "tests": [
+        "ornate_direction",
+        "playful_formality"
+      ]
+    },
+    {
+      "id": "SC-09",
+      "prompt": "Housewarming at last! My daughter and I have spent two years moving between short-term rentals, and now we have somewhere we can settle into. I want it to feel like a real celebration, even with just a few people.",
+      "expectClarification": "no",
+      "hostPhrases": [
+        {
+          "phrase": "a real celebration",
+          "kind": "direction"
+        }
+      ],
+      "rationale": "The host gives a small gathering substantial emotional significance. The brief should respond to that meaning without inventing reasons for the moves or prescribing sentimental imagery."
+    },
+    {
+      "id": "SC-10",
+      "prompt": "Launch party for our ceramics studio. Our work is loud and a little ugly in a way we love—think wonky fruit bowls and clashing glazes. The invitation can be funny, but no jokes about us being amateurs.",
+      "expectClarification": "no",
+      "hostPhrases": [
+        {
+          "phrase": "loud and a little ugly in a way we love",
+          "kind": "direction"
+        },
+        {
+          "phrase": "no jokes about us being amateurs",
+          "kind": "constraint"
+        }
+      ],
+      "mustNotBeClaimedAsHostConstraint": [
+        "No humour"
+      ],
+      "tests": [
+        "unconventional_aesthetic_intent",
+        "humour_with_a_specific_boundary"
+      ]
+    },
+    {
+      "id": "SC-11",
+      "prompt": "It's black tie with a space-age feel. Wednesday 6 November, 7.15 for 7.45, at the Glasshouse.",
+      "expectClarification": "likely",
+      "expectedFacts": {
+        "eventType": null,
+        "dateText": "Wednesday 6 November",
+        "timeText": "7.15 for 7.45",
+        "venueText": "the Glasshouse"
+      },
+      "hostPhrases": [
+        {
+          "phrase": "black tie",
+          "kind": "constraint"
+        },
+        {
+          "phrase": "space-age feel",
+          "kind": "direction"
+        }
+      ],
+      "mustAvoid": [
+        "Claiming a specific occasion as a host-supplied fact.",
+        "Adding an unsupported year or a.m./p.m. designation to the host-supplied facts."
+      ],
+      "rationale": "The occasion is unstated, and knowing it would materially improve the brief. The dress code and aesthetic are compatible and do not identify the occasion."
+    },
+    {
+      "id": "SC-12",
+      "prompt": "We're making invitations for a neighborhood garden tour. I keep coming back to a storybook feel.",
+      "expectClarification": "acceptable",
+      "hostPhrases": [
+        {
+          "phrase": "storybook feel",
+          "kind": "direction"
+        }
+      ],
+      "rationale": "The shorthand leaves substantially different visual traditions open. Either a focused question about a reference or a confident creative proposal is defensible."
+    }
+  ]
+}

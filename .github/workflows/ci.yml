@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   app:
-    name: Lint, typecheck, unit tests, build
+    name: Lint, typecheck, unit, component, build, browser
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
@@ -28,7 +28,18 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:component
+      # Before the browser suite, and not only as its own check: the browser gate measures the
+      # stylesheet this build emits, and the hydrated harness is bundled from the same source.
       - run: npm run build
+      # The interaction gate. `playwright-core` is the dependency this repository actually declares,
+      # and its own CLI installs the Chromium revision that version expects. `npx playwright …`
+      # would fetch whatever the registry's latest `playwright` happens to be, install *its*
+      # revision, and leave `chromium.executablePath()` — resolved by playwright-core 1.63 —
+      # pointing at a directory that does not exist, so the browser gate would silently stop
+      # running the moment the two drifted apart.
+      - run: npx playwright-core install --with-deps chromium
+      - run: npm run test:e2e
 
   db:
     name: Migrations and RLS

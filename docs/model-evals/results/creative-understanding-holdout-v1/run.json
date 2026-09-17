@@ -1,0 +1,2416 @@
+{
+  "evalSet": "holdout",
+  "label": "PRE-REGISTERED VALIDATION SET — frozen before remediation, but known to the implementation author; useful validation evidence, not the strongest evidence of generalization",
+  "corpusVersion": "creative_understanding_holdout_v1",
+  "startedAt": "2026-09-15T07:39:00.055Z",
+  "complete": true,
+  "runs": [
+    {
+      "caseData": {
+        "id": "HO-01",
+        "prompt": "40th for my wife. Absolutely no balloons — she'd hate that.",
+        "tests": [
+          "host-prohibition-vs-recommendation"
+        ],
+        "hostPhrases": [
+          {
+            "phrase": "no balloons",
+            "kind": "constraint"
+          }
+        ],
+        "mustNotBeClaimedAsHostConstraint": [
+          "no confetti",
+          "no streamers",
+          "avoid party clichés",
+          "no novelty decoration",
+          "nothing childish"
+        ],
+        "expectClarification": "no",
+        "rationale": "One unmistakable prohibition, stated with force, about a single object. The neighbourhood around it is wide open. Tests whether an explicit prohibition survives intact without recruiting the model's opinions about adjacent party decoration into the same authority.",
+        "expectedFacts": {
+          "honoreeDescriptionText": "my wife"
+        }
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A polished milestone celebration built around the graphic power of forty: luminous, confident, and grown-up, with warmth and personality rather than generic party decoration. Draw the atmosphere from jewel-toned glass, low golden light, and the elegance of a beautifully produced commemorative edition.",
+          "toneKeywords": [
+            "confident",
+            "luminous",
+            "grown-up",
+            "affectionate",
+            "editorial",
+            "celebratory"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "ink or midnight neutrals",
+              "deep wine or aubergine accents",
+              "warm ivory",
+              "restrained pewter or champagne-metal highlights"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let deep neutrals and rich jewel tones lead, with warm pale contrast and limited reflective highlights."
+          },
+          "tonalIntent": "Rich mid-to-dark depth with crisp contrast and selective warmth; atmospheric rather than somber.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "dark",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "high_contrast_editorial",
+            "transitional",
+            "grotesk_led"
+          ],
+          "visualMotifs": [
+            "the number 40 treated as a bold commemorative emblem",
+            "four subtle decade markers",
+            "faceted glass and reflected-light geometry",
+            "abstract rings suggesting time and continuity"
+          ],
+          "textureDirection": "Velvety color depth balanced by lightly toothy paper character and restrained glass-and-metal gleam.",
+          "typographyDirection": "Confident editorial display lettering with a clean, composed supporting hierarchy; celebratory scale without novelty styling.",
+          "copyTone": "Affectionate, assured, and lightly witty; celebratory without leaning on age jokes or stock milestone language.",
+          "hostConstraints": [
+            "Absolutely no balloons"
+          ],
+          "creativeGuidance": [
+            "Let the number 40 provide the primary celebratory energy instead of conventional party symbols.",
+            "Use luminous reflections and material richness to create occasion and glamour without becoming flashy.",
+            "Keep the emotional register warm and admiring, making the milestone feel worth commemorating rather than teasing."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": "my wife",
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-01",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeDescriptionText=\"my wife\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [balloons] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 27871,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7627,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1434,
+        "reasoningTokens": 940,
+        "providerRequestId": "resp_0f2e685b1f1a6eae006aa8f614f84c87d19351f49957d095f9"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-02",
+        "prompt": "housewarming, we're completely obsessed with our cat Miso",
+        "tests": [
+          "literal-subject-matter",
+          "sentiment-not-suppressed"
+        ],
+        "hostPhrases": [],
+        "expectedFacts": {
+          "eventType": "housewarming"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid literal cat imagery",
+          "keep the cat reference abstract",
+          "no pet illustration",
+          "avoid cute animal graphics",
+          "nothing twee"
+        ],
+        "expectClarification": "no",
+        "rationale": "The host volunteers an affectionate, thoroughly literal subject and no constraint whatsoever. Tests whether the model can take delight seriously. Whether Miso is best filed as honoree context is genuinely arguable for a housewarming, so it is deliberately not asserted here."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A witty “new house, ruled by Miso” world that treats the beloved cat as the home’s charismatic resident-in-chief. Blend modern housewarming polish with the charm of an eccentric household crest—affectionate, graphic, and proudly cat-forward rather than cutesy.",
+          "toneKeywords": [
+            "affectionate",
+            "witty",
+            "cat-forward",
+            "graphic",
+            "welcoming",
+            "stylishly eccentric"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm cream",
+              "paprika red",
+              "inky brown-black",
+              "moss green"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let warm domestic tones lead, grounded by a dark graphic neutral and one lively accent."
+          },
+          "tonalIntent": "Warm mid-tone contrast with enough depth for graphic personality while remaining convivial and approachable.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "light",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "soft_serif",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "Miso as the household sovereign",
+            "eccentric feline house crest",
+            "cat-and-roofline silhouette",
+            "keys and threshold symbols",
+            "whisker-like graphic flourishes"
+          ],
+          "textureDirection": "Crisp, poster-like color with subtle paper grain and occasional hand-drawn character.",
+          "typographyDirection": "Bold, characterful display lettering balanced by a friendly, highly legible supporting hierarchy.",
+          "copyTone": "Warm, concise, and knowingly funny, with playful references to Miso presiding over the new home.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Make Miso the organizing personality without implying a literal portrait, since no visual details of the cat were supplied.",
+            "Favor smart domestic humor—such as the new home belonging to Miso—over generic paw-print party styling.",
+            "Keep the housewarming message clear even while giving the cat a starring role."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "housewarming",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-02",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "n/a",
+            "detail": "the case declares no phrases"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"housewarming\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 20075,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7625,
+        "cachedInputTokens": 7559,
+        "outputTokens": 997,
+        "reasoningTokens": 516,
+        "providerRequestId": "resp_0f0b86b14ea27e92006aa8f63033dc87d1a75faed85600c6d8"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-03",
+        "prompt": "30th anniversary party, we want it art deco",
+        "tests": [
+          "consequential-ambiguity",
+          "shorthand-multiple-worlds"
+        ],
+        "hostPhrases": [
+          {
+            "phrase": "art deco",
+            "kind": "direction"
+          }
+        ],
+        "expectedFacts": {
+          "eventType": "anniversary party"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid gold",
+          "keep the deco restrained",
+          "nothing theatrical",
+          "no period pastiche"
+        ],
+        "expectClarification": "expected",
+        "rationale": "A named movement whose plausible readings are far enough apart to produce different evenings. Also the set's clearest test of the mirror defect: 'art deco' is positive direction and belongs in the creative brief, so filing it as a host constraint is over-correction rather than compliance."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A polished Art Deco celebration built around the glamour and optimism of a major milestone: architectural geometry, confident contrast, and luminous accents balanced with warmth. It should feel festive and transportive rather than like a period-theme pastiche.",
+          "toneKeywords": [
+            "glamorous",
+            "architectural",
+            "celebratory",
+            "polished",
+            "confident",
+            "warmly nostalgic"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "deep ink or midnight tones",
+              "warm ivory",
+              "champagne metallic accents",
+              "rich jewel tones"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Deep neutrals and rich tones should provide structure, with pale contrast and restrained metallic warmth adding luminosity."
+          },
+          "tonalIntent": "High-contrast and dimensional, with dark or mid-toned interpretations strongest; a crisp ivory-led treatment could also preserve the Deco character.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "dark",
+            "mid",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "high_contrast_editorial",
+            "grotesk_led",
+            "heritage"
+          ],
+          "visualMotifs": [
+            "stepped architectural geometry",
+            "radiating fan and sunburst forms",
+            "streamlined arches",
+            "faceted jewel-like shapes",
+            "stylized chevrons and parallel lines"
+          ],
+          "textureDirection": "Smooth lacquer-like depth, fine paper grain, and sparing metallic luminosity; tactile and polished without excessive sparkle.",
+          "typographyDirection": "A commanding, geometric display character paired with an elegant high-contrast hierarchy and clear supporting text.",
+          "copyTone": "Joyful, assured, and polished, with a warm sense of occasion and minimal period affectation.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Let the milestone read through confident scale and celebratory rhythm rather than relying on generic anniversary symbols.",
+            "Use Art Deco geometry with disciplined repetition and strong proportion so the result feels authentic in spirit, not costume-like.",
+            "Keep metallic effects selective so richness comes from contrast, depth, and finish rather than all-over shine."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "30th anniversary party",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-03",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"30th anniversary party\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"expected\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 20753,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7624,
+        "cachedInputTokens": 7559,
+        "outputTokens": 980,
+        "reasoningTokens": 482,
+        "providerRequestId": "resp_0cad9e00e33261dc006aa8f6443c5887d1b8edc3af1d2562b2"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-04",
+        "prompt": "graduation party, something summery",
+        "tests": [
+          "bet-rather-than-ask"
+        ],
+        "hostPhrases": [
+          {
+            "phrase": "something summery",
+            "kind": "direction"
+          }
+        ],
+        "expectedFacts": {
+          "eventType": "graduation party"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "nothing formal"
+        ],
+        "expectClarification": "no",
+        "rationale": "Loose, but the plausible readings converge. The correct move is to commit. Paired with HO-03 so the two together test discrimination rather than a blanket policy in either direction."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A sunlit commencement fête inspired by striped summer awnings, fresh garden color, and crisp academic keepsakes. The mood should feel buoyant and accomplished—seasonal and celebratory without relying on a stock graduation-party kit.",
+          "toneKeywords": [
+            "sunny",
+            "fresh",
+            "accomplished",
+            "breezy",
+            "joyful",
+            "youthful but polished"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "sun-washed citrus tones",
+              "clear sky blue",
+              "leafy green",
+              "warm cream"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let fresh, bright seasonal color lead, balanced by warm pale neutrals for clarity."
+          },
+          "tonalIntent": "Bright and sunlit with clean contrast, lively color, and enough visual crispness to convey achievement.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "transitional",
+            "grotesk_led",
+            "soft_serif"
+          ],
+          "visualMotifs": [
+            "summer awning stripes",
+            "loose seasonal botanicals",
+            "radiating sun forms",
+            "abstract diploma ribbons",
+            "small celebratory stars"
+          ],
+          "textureDirection": "Crisp paper character with lightly tactile, sun-warmed print texture and clean areas of flat color.",
+          "typographyDirection": "Confident celebratory display type paired with a clear, modern supporting hierarchy; polished but not overly formal.",
+          "copyTone": "Upbeat, proud, concise, and warmly congratulatory.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Build the identity around a summer-awning-and-garden-fête idea rather than generic graduation icons.",
+            "Use academic references as selective accents, allowing seasonal color and energetic typography to carry most of the celebration.",
+            "Keep the youthful energy polished enough to honor the graduate’s achievement."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "graduation party",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-04",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"graduation party\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 15062,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7621,
+        "cachedInputTokens": 7559,
+        "outputTokens": 816,
+        "reasoningTokens": 357,
+        "providerRequestId": "resp_09a3608c83617a0b006aa8f658fdd487d1988e3356f605ac67"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-05",
+        "prompt": "baby naming ceremony. honestly I have zero taste, just make it beautiful",
+        "tests": [
+          "creative-delegation",
+          "organizing-premise"
+        ],
+        "hostPhrases": [],
+        "expectedFacts": {
+          "eventType": "baby naming ceremony"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "the host wants understated design",
+          "avoid bold choices",
+          "keep it simple"
+        ],
+        "expectClarification": "no",
+        "rationale": "Explicit delegation, phrased as self-deprecation rather than as an instruction. Tests that the system does not hand the work back, and that what it produces is an actual premise rather than a description of beauty. A host with no design vocabulary must not get a worse result for saying so."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A first-light botanical ceremony inspired by unfurling leaves, seed forms and the soft mineral colours of dawn. The world should feel intimate and quietly radiant—tender enough for the occasion, yet ceremonial and artful rather than nursery-themed.",
+          "toneKeywords": [
+            "quietly radiant",
+            "tender",
+            "ceremonial",
+            "organic",
+            "artful",
+            "modern"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm ivory",
+              "pale mineral green",
+              "soft clay blush",
+              "inky charcoal"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let luminous warm neutrals and mineral green lead, with clay warmth used sparingly and charcoal providing definition."
+          },
+          "tonalIntent": "Predominantly light and softly luminous, with grounded dark accents and gentle contrast rather than sugary pastels.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "oldstyle",
+            "soft_serif",
+            "high_contrast_editorial",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "unfurling leaves and seed forms",
+            "radiating dawn arcs",
+            "delicate botanical studies",
+            "small points of light"
+          ],
+          "textureDirection": "Tactile, softly fibrous paper character with delicate ink-like detail and restrained natural grain.",
+          "typographyDirection": "Graceful serif-led hierarchy with expressive capitals and calm, highly legible supporting text; ceremonial without becoming ornate or sentimental.",
+          "copyTone": "Warm, sincere and gently celebratory, with simple language that feels meaningful rather than precious.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Build the identity around first light and new growth as a concrete metaphor for the naming ceremony.",
+            "Let beauty come from assured typography, tactile character and thoughtfully drawn natural forms rather than generic baby iconography.",
+            "Keep the emotional register openly tender while maintaining clarity and composure."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "baby naming ceremony",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-05",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "n/a",
+            "detail": "the case declares no phrases"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"baby naming ceremony\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 26793,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7628,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1453,
+        "reasoningTokens": 983,
+        "providerRequestId": "resp_03abae1bc6faa175006aa8f668017487d19760f7e836b74bc6"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-06",
+        "prompt": "Tết dinner for my parents — we're Vietnamese, not Chinese, please",
+        "tests": [
+          "cultural-specificity",
+          "host-prohibition-vs-recommendation"
+        ],
+        "hostPhrases": [
+          {
+            "phrase": "we're Vietnamese, not Chinese",
+            "kind": "constraint"
+          }
+        ],
+        "expectedFacts": {
+          "eventType": "Tết dinner",
+          "honoreeDescriptionText": "my parents"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid red",
+          "no lanterns",
+          "keep cultural references subtle",
+          "avoid traditional motifs"
+        ],
+        "expectClarification": "no",
+        "rationale": "A correction the host took the trouble to make, and one that is genuinely a constraint. Tests precision on cultural ground, and whether 'subtlety' gets applied as a reflex to a culture the host is celebrating rather than hedging. Checker note: a naive negation probe extracts 'Chinese' as a negated term and would fail a brief for the legitimate act of distinguishing Tết from Lunar New Year elsewhere; the checker must not do that."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A warm, proudly Vietnamese Tết dinner identity rooted in family reunion, spring renewal, and the tactile richness of lacquer, woven bamboo, and festive Vietnamese symbolism. Celebratory and abundant without collapsing Vietnamese culture into generalized East Asian styling.",
+          "toneKeywords": [
+            "familial warmth",
+            "festive abundance",
+            "culturally grounded",
+            "springlike",
+            "dignified",
+            "tactile"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "lacquer red",
+              "warm golden yellow",
+              "jade green",
+              "natural bamboo and rice-paper neutrals"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let warm festive color and natural material tones lead, with richer accents providing celebratory depth."
+          },
+          "tonalIntent": "Warm and luminous with confident festive accents, balanced by enough mid-depth to suit an intimate dinner.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "transitional",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "bánh chưng-inspired square geometry",
+            "Vietnamese spring blossom branches",
+            "lì xì envelope forms",
+            "woven-bamboo and lacquer references",
+            "kumquat foliage and fruit"
+          ],
+          "textureDirection": "Tactile paper and woven-fiber character enriched by selective lacquer-like depth and polish.",
+          "typographyDirection": "A dignified, celebratory display voice paired with highly legible supporting type, treating Vietnamese diacritics clearly and gracefully rather than relying on faux-exotic styling.",
+          "copyTone": "Warm, respectful, family-centered, and joyfully celebratory.",
+          "hostConstraints": [
+            "Vietnamese, not Chinese"
+          ],
+          "creativeGuidance": [
+            "Use distinctly Vietnamese Tết references rather than generalized Lunar New Year symbolism.",
+            "Build cultural specificity through recognizable materials, foods, spring botanicals, and family-reunion symbolism.",
+            "Avoid faux-Asian typography or ornamental shorthand; let Vietnamese language and diacritics carry authentic visual character."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": "my parents",
+          "eventType": "Tết dinner",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-06",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "2 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 2 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeDescriptionText=\"my parents\"; eventType=\"Tết dinner\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [chinese] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 25415,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7628,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1317,
+        "reasoningTokens": 824,
+        "providerRequestId": "resp_0422a36f841b241d006aa8f682d3c887d1910a0fdbf2e1df6e"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-07",
+        "prompt": "memorial gathering for my grandmother. she grew roses her whole life and we want it to feel like her.",
+        "tests": [
+          "sentiment-not-suppressed",
+          "literal-subject-matter",
+          "honoree-context-preserved"
+        ],
+        "hostPhrases": [],
+        "expectedFacts": {
+          "eventType": "memorial gathering",
+          "honoreeDescriptionText": "my grandmother"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid literal roses",
+          "keep botanical references abstract",
+          "no sentimentality",
+          "restrained floral linework",
+          "nothing ornate"
+        ],
+        "expectClarification": "no",
+        "rationale": "The one case where suppressing warmth would be most obviously wrong, and where the literal subject is the entire point. 'Feel like her' is a brief, not a vague wish. Tests the failure mode most directly: whether the system reaches for abstraction as a proxy for taste when the assignment asks for the opposite."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "An affectionate rose-garden memorial shaped by a lifetime of tending and growing. Let recognizable roses, natural garden structure, and gently timeworn materials create a personal atmosphere that celebrates her life without defaulting to conventional funeral imagery.",
+          "toneKeywords": [
+            "affectionate",
+            "garden-grown",
+            "reflective",
+            "graceful",
+            "lived-in",
+            "celebratory remembrance"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "mature rose tones",
+              "natural leaf greens",
+              "warm parchment and stone neutrals"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let botanical greens and warm neutrals provide the foundation, with rose-derived color bringing life and emotional focus."
+          },
+          "tonalIntent": "Soft light-to-mid tonal depth with gentle contrast; reflective and tender rather than stark or heavy.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "light",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "oldstyle",
+            "transitional",
+            "soft_serif",
+            "high_contrast_editorial"
+          ],
+          "visualMotifs": [
+            "recognizable garden roses at varied stages of bloom",
+            "arching rose stems and natural leaf forms",
+            "subtle gardener’s notebook or plant-label references"
+          ],
+          "textureDirection": "Warm, tactile paper character with delicate botanical detail and a lightly timeworn, handled quality.",
+          "typographyDirection": "A graceful, humanist serif-led hierarchy with quiet supporting type; dignified and readable without ceremonial stiffness.",
+          "copyTone": "Warm, plainspoken, and gently reflective, with affection taking precedence over formality.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Treat the roses as evidence of a life spent cultivating and caring, not as generic sympathy florals.",
+            "Allow blooms to feel natural and recognizable rather than overly polished or abstract.",
+            "Keep the emotional emphasis on loving remembrance and the garden she tended, avoiding an atmosphere dominated by mourning conventions."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": "my grandmother",
+          "eventType": "memorial gathering",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-07",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "n/a",
+            "detail": "the case declares no phrases"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "2 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 2 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeDescriptionText=\"my grandmother\"; eventType=\"memorial gathering\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 23149,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7635,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1133,
+        "reasoningTokens": 660,
+        "providerRequestId": "resp_00311d80978d1d0b006aa8f69c458c87d18f3fa6ffd6e85224"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-08",
+        "prompt": "50th birthday, western",
+        "tests": [
+          "shorthand-multiple-worlds"
+        ],
+        "hostPhrases": [
+          {
+            "phrase": "western",
+            "kind": "direction"
+          }
+        ],
+        "expectedFacts": {
+          "eventType": "50th birthday"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid literal western iconography",
+          "nothing kitsch",
+          "keep it understated"
+        ],
+        "expectClarification": "acceptable",
+        "rationale": "One word admitting several genuine registers. Either a question or a confident bet is defensible; what is not defensible is quietly resolving it toward whichever reading is most muted."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A milestone celebration rooted in the visual culture of the American West: spirited, tactile, and confidently grown-up. Draw from vintage ranch ledgers, tooled leather, and sun-faded rodeo ephemera rather than novelty cowboy clichés.",
+          "toneKeywords": [
+            "ruggedly celebratory",
+            "warm",
+            "confident",
+            "heritage-rich",
+            "sociable",
+            "polished"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "saddle-leather brown",
+              "sun-baked clay",
+              "aged parchment",
+              "deep indigo",
+              "oxblood accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "Warm mid-depth tones with earthy richness, strong legibility, and selective darker accents.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "invitation",
+            "editorial"
+          ],
+          "compatibleTypographyCategories": [
+            "heritage",
+            "oldstyle",
+            "grotesk_led",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "tooled-leather floral ornament",
+            "Western star geometry",
+            "ranch-brand-inspired abstract marks",
+            "coiled rope linework",
+            "sun-faded rodeo print references"
+          ],
+          "textureDirection": "Tactile and timeworn, with the character of uncoated stock, worn leather, dry timber, and lightly distressed ink.",
+          "typographyDirection": "Bold heritage display lettering balanced by sturdy, highly readable supporting type; characterful and assured without becoming costume-like.",
+          "copyTone": "Warm, direct, lively, and milestone-worthy, with dry Western wit rather than exaggerated cowboy slang.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Keep the Western theme recognizable and generous, but ground it in authentic materials and print traditions rather than novelty props.",
+            "Let the 50th milestone carry confidence and presence through scale, depth, and strong typographic character.",
+            "Use ornament selectively so the overall identity feels festive, crafted, and adult."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": "50th birthday",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-08",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 1 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: eventType=\"50th birthday\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"acceptable\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 16581,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7619,
+        "cachedInputTokens": 7559,
+        "outputTokens": 755,
+        "reasoningTokens": 277,
+        "providerRequestId": "resp_0e1077388bb856f8006aa8f6b381a887d184d7c1860125a6b7"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-09",
+        "prompt": "a night at the opera",
+        "tests": [
+          "theme-is-not-event-type",
+          "organizing-premise"
+        ],
+        "hostPhrases": [],
+        "expectedFacts": {
+          "eventType": null
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "formal dress"
+        ],
+        "expectClarification": "acceptable",
+        "rationale": "Pure theme with no event type stated anywhere. `eventType` must be absent rather than filled with the theme — a promotion that a grounding check alone cannot catch, because the theme is quotable from the prompt. This is the baseline's confirmed CU-08 defect on fresh ground."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "Operatic grandeur shaped by the atmosphere of a historic theatre: ceremonial, emotionally charged, and richly cultured, with the poised drama of velvet curtains, illuminated marquees, and printed libretti. The result should feel transporting and theatrical rather than costume-like.",
+          "toneKeywords": [
+            "dramatic",
+            "ceremonial",
+            "cultured",
+            "romantic",
+            "old-world theatrical",
+            "polished"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "deep theatrical reds",
+              "velvet black",
+              "aged ivory",
+              "antique metallic accents"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let deep, stage-like tones lead, balanced by warm paper neutrals and selective luminous accents."
+          },
+          "tonalIntent": "A predominantly deep, atmospheric world with strong light-and-shadow contrast and warm highlights suggestive of a theatre after dark.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "dark",
+            "mid"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "high_contrast_editorial",
+            "transitional",
+            "heritage"
+          ],
+          "visualMotifs": [
+            "proscenium-arch geometry",
+            "sweeping theatre curtains",
+            "vintage libretto ornament",
+            "concentric balcony curves",
+            "restrained musical notation",
+            "radiant footlight-inspired forms"
+          ],
+          "textureDirection": "Plush velvet depth balanced by tactile archival paper, subtle print grain, and touches of timeworn metallic warmth.",
+          "typographyDirection": "A commanding, high-contrast display voice with stately classical proportions, supported by disciplined editorial hierarchy and finely paced secondary text.",
+          "copyTone": "Ceremonious, evocative, and concise, with a touch of theatrical anticipation rather than theatrical camp.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Build the world around the architecture and ritual of the opera house rather than relying on generic masks or costume imagery.",
+            "Use moments of scale and emotional intensity so the concept feels genuinely operatic, not merely formal.",
+            "Balance sumptuous materials with editorial discipline to keep the grandeur polished rather than ostentatious."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": null,
+          "eventType": null,
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-09",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "n/a",
+            "detail": "the case declares no phrases"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "1 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "no facts claimed"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "pass",
+            "detail": "no fact beyond those supplied"
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "advisory",
+            "detail": "corpus expects \"acceptable\"; model asked 0. Whether the question earned its place is a qualitative judgement"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 12885,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7619,
+        "cachedInputTokens": 7559,
+        "outputTokens": 717,
+        "reasoningTokens": 220,
+        "providerRequestId": "resp_094651c73ef5c9de006aa8f6c3fb7887d18bce353bdb364bc3"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-10",
+        "prompt": "party for my best friend, she's turning 25",
+        "tests": [
+          "organizing-premise",
+          "bet-rather-than-ask"
+        ],
+        "hostPhrases": [],
+        "expectedFacts": {
+          "eventType": "party",
+          "honoreeDescriptionText": "my best friend"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid anything childish",
+          "keep it grown up"
+        ],
+        "expectClarification": "no",
+        "rationale": "Almost no aesthetic signal, and nothing an honest question could recover — the host has not withheld a preference, they have not formed one. Tests whether the system can invent a specific organizing idea from a warm but empty brief instead of retreating to adjectives."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A bold quarter-century celebration built around the number 25, with flash-lit nightlife energy and affectionate best-friend warmth. Contemporary, vivid, and polished, it should feel like a real milestone without becoming formal or overly grown-up.",
+          "toneKeywords": [
+            "celebratory",
+            "confident",
+            "playful",
+            "polished",
+            "high-energy",
+            "affectionate"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "saturated berry or cherry accents",
+              "warm ivory",
+              "deep ink",
+              "small reflective silver notes"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": "Let one vivid celebratory hue lead, grounded by deep ink and warm ivory; reflective notes should remain secondary."
+          },
+          "tonalIntent": "A lively mid-to-deep tonal world with crisp contrast and bright flashes of color rather than an overwhelmingly dark mood.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark"
+          ],
+          "compatibleFamilies": [
+            "statement",
+            "editorial",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "grotesk_led",
+            "high_contrast_editorial",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "the number 25 as a bold graphic emblem",
+            "camera-flash halos and luminous glints",
+            "scattered celebratory geometry",
+            "mirrored or chrome-like reflections"
+          ],
+          "textureDirection": "Crisp coated-paper character with subtle grain and selective reflective energy.",
+          "typographyDirection": "Confident, oversized modern display typography balanced by a sharp editorial secondary hierarchy.",
+          "copyTone": "Warm, concise, affectionate, and lightly cheeky, with milestone confidence rather than sentimentality.",
+          "hostConstraints": [],
+          "creativeGuidance": [
+            "Use the quarter-century idea as the organizing concept rather than relying on generic birthday imagery.",
+            "Balance nightlife energy with personal warmth so the celebration feels made for a best friend, not like a club promotion.",
+            "Keep the milestone prominent while avoiding an overly formal or age-focused tone."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": "my best friend",
+          "eventType": "party",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-10",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "no host constraint claimed"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "n/a",
+            "detail": "the case declares no phrases"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "2 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 2 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeDescriptionText=\"my best friend\"; eventType=\"party\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 18644,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7624,
+        "cachedInputTokens": 7559,
+        "outputTokens": 986,
+        "reasoningTokens": 516,
+        "providerRequestId": "resp_07219518a49c2264006aa8f6d0dc9087d1baf7bd02a9423de2"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-11",
+        "prompt": "bat mitzvah for our daughter Noa. she wants it to feel grown up, nothing babyish.",
+        "tests": [
+          "honoree-context-preserved",
+          "host-prohibition-vs-recommendation"
+        ],
+        "hostPhrases": [
+          {
+            "phrase": "grown up",
+            "kind": "direction"
+          },
+          {
+            "phrase": "nothing babyish",
+            "kind": "constraint"
+          }
+        ],
+        "expectedFacts": {
+          "eventType": "bat mitzvah",
+          "honoreeName": "Noa",
+          "honoreeDescriptionText": "our daughter"
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid pastel",
+          "avoid pink",
+          "no playful elements",
+          "nothing decorative",
+          "avoid florals"
+        ],
+        "expectClarification": "no",
+        "rationale": "Carries a name, a relationship, and two constraints in the honoree's own voice. Tests that host-supplied human context survives verbatim, and that 'nothing babyish' is preserved as stated without being widened into a general prohibition on colour, ornament or play — the precise widening the baseline performed on a comparable prompt. The constraint wording is close to a banned baseline case; the wrapper is what is new here, and novelty of subject matter is not claimed."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A confident contemporary rite-of-passage identity with the polish of a cultural journal and the energy of a milestone celebration. Mature, graphic, and expressive, it should honor the ceremony without becoming austere or losing Noa’s youthful momentum.",
+          "toneKeywords": [
+            "confident",
+            "grown-up",
+            "joyful",
+            "contemporary",
+            "ceremonial",
+            "graphic"
+          ],
+          "colorsExplicitlyConstrained": false,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "saturated jewel tones",
+              "warm paper neutrals",
+              "crisp dark ink",
+              "one vivid celebratory accent"
+            ],
+            "avoidColors": [],
+            "dominanceNotes": ""
+          },
+          "tonalIntent": "A confident mid-to-deep range with crisp contrast and luminous accents; polished and celebratory rather than sombre.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "dark",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "editorial",
+            "statement",
+            "invitation"
+          ],
+          "compatibleTypographyCategories": [
+            "high_contrast_editorial",
+            "grotesk_led",
+            "transitional"
+          ],
+          "visualMotifs": [
+            "contemporary Jewish paper-cut geometry",
+            "bold abstract threshold or ascending forms",
+            "faceted six-point star geometry",
+            "radiant linework suggesting momentum and celebration"
+          ],
+          "textureDirection": "Crisp paper character with subtle grain, clean color fields, and occasional translucent tonal overlap.",
+          "typographyDirection": "Confident editorial display typography with decisive scale, supported by a clear modern text hierarchy; poised rather than delicate or cute.",
+          "copyTone": "Warm, proud, concise, and celebratory, with age-respectful confidence and no cutesy phrasing.",
+          "hostConstraints": [
+            "nothing babyish"
+          ],
+          "creativeGuidance": [
+            "Let maturity come through confidence, proportion, and craft rather than muting the color or joy.",
+            "Keep the identity specific to a meaningful coming-of-age milestone rather than drifting toward a wedding or corporate-gala register.",
+            "Use ceremonial and cultural motifs selectively, balancing significance with contemporary graphic energy."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": "Noa",
+          "honoreeDescriptionText": "our daughter",
+          "eventType": "bat mitzvah",
+          "dateText": null,
+          "timeText": null,
+          "venueText": null,
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-11",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "2 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "3 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 3 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeName=\"Noa\"; honoreeDescriptionText=\"our daughter\"; eventType=\"bat mitzvah\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "n/a",
+            "detail": "no negation in the prompt"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "n/a",
+            "detail": "no colors excluded"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 38297,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7634,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1983,
+        "reasoningTokens": 1505,
+        "providerRequestId": "resp_0138d982a86ef963006aa8f6e3942887d1984ee03d66a12cf6"
+      }
+    },
+    {
+      "caseData": {
+        "id": "HO-12",
+        "prompt": "Retirement dinner for my boss, Thursday March 12 at Ember & Oak. No black — he says it looks like a funeral.",
+        "tests": [
+          "verbatim-fact-discipline",
+          "explicit-colour-exclusion",
+          "host-prohibition-vs-recommendation",
+          "honoree-context-preserved"
+        ],
+        "hostPhrases": [
+          {
+            "phrase": "No black",
+            "kind": "constraint"
+          }
+        ],
+        "expectedFacts": {
+          "eventType": "Retirement dinner",
+          "dateText": "Thursday March 12",
+          "venueText": "Ember & Oak",
+          "localityText": null,
+          "honoreeDescriptionText": "my boss",
+          "timeText": null,
+          "addressText": null,
+          "rsvpDeadlineText": null
+        },
+        "mustNotBeClaimedAsHostConstraint": [
+          "avoid sombre tones",
+          "nothing funereal",
+          "avoid dark colours",
+          "keep it celebratory",
+          "no charcoal or deep grey"
+        ],
+        "expectClarification": "no",
+        "rationale": "The only fact-bearing case in the set, and the only explicit colour exclusion. Fact discipline is the sole fully deterministic rubric dimension and the remediation adds a field into `suppliedFacts`, so a regression there must be visible on fresh ground rather than only on the discussed corpus: a date must survive without a year being supplied or the weekday dropped, and a venue without an address being invented. The reason the host gave for the exclusion is the fabrication probe — 'no black' is a constraint, 'avoid sombre tones' is the model's inference from his aside and is not."
+      },
+      "result": {
+        "identity": {
+          "creativeDirection": "A warm, burnished retirement-dinner identity rooted in oak, emberlight, and gracious recognition. It should feel dignified and professional yet convivial, celebratory, and distinctly removed from a sombre corporate farewell.",
+          "toneKeywords": [
+            "gracious",
+            "warmly celebratory",
+            "dignified",
+            "congenial",
+            "mature",
+            "non-sombre"
+          ],
+          "colorsExplicitlyConstrained": true,
+          "paletteIntent": {
+            "requiredColors": [],
+            "preferredColors": [
+              "warm ivory",
+              "oak brown",
+              "ember red",
+              "burnished copper"
+            ],
+            "avoidColors": [
+              "black"
+            ],
+            "dominanceNotes": "Warm, luminous mid-tones should dominate, with deeper accents used sparingly and never approaching black."
+          },
+          "tonalIntent": "Warm, dimensional, and softly luminous, with enough contrast for ceremony but no oppressive or funereal darkness.",
+          "toneExplicitlyConstrained": false,
+          "compatibleTonalDirections": [
+            "mid",
+            "light"
+          ],
+          "compatibleFamilies": [
+            "invitation",
+            "editorial",
+            "statement"
+          ],
+          "compatibleTypographyCategories": [
+            "transitional",
+            "oldstyle",
+            "heritage"
+          ],
+          "visualMotifs": [
+            "subtle oak grain",
+            "stylized oak leaves or acorns",
+            "abstract ember glow",
+            "restrained raised-glass toast imagery"
+          ],
+          "textureDirection": "Tactile, paper-like warmth with subtle natural grain and softly burnished depth rather than glossy corporate polish.",
+          "typographyDirection": "A poised serif-led hierarchy with confident titles, highly readable supporting text, and restrained formality.",
+          "copyTone": "Appreciative, polished, and warm, with sincere recognition and light celebratory confidence rather than sentimentality.",
+          "hostConstraints": [
+            "No black — he says it looks like a funeral."
+          ],
+          "creativeGuidance": [
+            "Use oak and ember associations as a specific visual vocabulary for longevity, warmth, and a well-earned milestone.",
+            "Let the sense of occasion come through rich materials and confident hierarchy rather than sombre formality or generic retirement symbols."
+          ],
+          "inspirationSummary": "No visual inspiration supplied."
+        },
+        "suppliedFacts": {
+          "hostNames": null,
+          "honoreeName": null,
+          "honoreeDescriptionText": "my boss",
+          "eventType": "Retirement dinner",
+          "dateText": "Thursday March 12",
+          "timeText": null,
+          "venueText": "Ember & Oak",
+          "addressText": null,
+          "localityText": null,
+          "rsvpDeadlineText": null
+        },
+        "clarification": {
+          "needed": false,
+          "questions": []
+        }
+      },
+      "evaluation": {
+        "caseId": "HO-12",
+        "checks": [
+          {
+            "name": "hostConstraintsGrounded",
+            "status": "pass",
+            "detail": "all 1 host constraint(s) quotable from the prompt"
+          },
+          {
+            "name": "hostPhraseRouting",
+            "status": "pass",
+            "detail": "1 declared phrase(s) routed correctly"
+          },
+          {
+            "name": "expectedFacts",
+            "status": "pass",
+            "detail": "8 assertion(s) hold"
+          },
+          {
+            "name": "factsPreserved",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "factsGrounded",
+            "status": "pass",
+            "detail": "all 4 claimed fact(s) quotable from the prompt"
+          },
+          {
+            "name": "factFieldMapping",
+            "status": "n/a",
+            "detail": "the case supplies no facts"
+          },
+          {
+            "name": "surplusFacts",
+            "status": "advisory",
+            "detail": "carried but not listed by the case: honoreeDescriptionText=\"my boss\"; eventType=\"Retirement dinner\"; dateText=\"Thursday March 12\"; venueText=\"Ember & Oak\""
+          },
+          {
+            "name": "hostNegationRespected",
+            "status": "pass",
+            "detail": "negated term(s) [black] absent from the positive brief"
+          },
+          {
+            "name": "exclusionSelfConsistency",
+            "status": "pass",
+            "detail": "1 exclusion(s), none contradicted"
+          },
+          {
+            "name": "mustAvoid",
+            "status": "n/a",
+            "detail": "the case forbids nothing explicitly"
+          },
+          {
+            "name": "clarificationCeiling",
+            "status": "pass",
+            "detail": "0 question(s)"
+          },
+          {
+            "name": "clarificationFlagAgrees",
+            "status": "pass",
+            "detail": "needed=false, 0"
+          },
+          {
+            "name": "clarificationExpectation",
+            "status": "pass",
+            "detail": "asked nothing, as required"
+          },
+          {
+            "name": "clarificationNotLogistics",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationOffersDefer",
+            "status": "n/a",
+            "detail": "no questions"
+          },
+          {
+            "name": "clarificationRouteExclusivity",
+            "status": "n/a",
+            "detail": "no questions"
+          }
+        ],
+        "mechanicalPass": true
+      },
+      "telemetry": {
+        "model": "gpt-5.6-sol",
+        "promptVersion": "event_identity_v5",
+        "schemaVersion": "event_identity_schema_v5",
+        "latencyMs": 25656,
+        "transientRetries": 0,
+        "repairRetries": 0,
+        "schemaValidFirstCall": true,
+        "inputTokens": 7640,
+        "cachedInputTokens": 7559,
+        "outputTokens": 1507,
+        "reasoningTokens": 1034,
+        "providerRequestId": "resp_0145df1c75cfc403006aa8f709d0e487d1a205c159ba3ea31e"
+      }
+    }
+  ]
+}
