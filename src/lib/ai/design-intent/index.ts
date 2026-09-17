@@ -26,6 +26,9 @@ export {
   PALETTE_MAX_COLORS,
   PALETTE_MIN_COLORS,
   paletteSchema,
+  PRESENTATION_NAME,
+  PRESENTATION_NAME_MAX,
+  PRESENTATION_NAME_MIN,
   presentationSchema,
   RHYTHMS,
   SECTION_CONTRASTS,
@@ -38,6 +41,7 @@ export {
 export {
   allowedHierarchies,
   allowedPairings,
+  assignedHierarchies,
   narrowingFor,
   pairingHoldsAt,
   pairingsExcludedByCategory,
@@ -61,6 +65,7 @@ export {
 } from "./policy";
 
 export {
+  assignmentIssues,
   describeIssues,
   parseAndValidateDesignIntentResponse,
   semanticIssues,

@@ -21,8 +21,10 @@ import { DESIGN_INTENT_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { MOTIF_CATALOG } from "@/lib/renderer/compile/motifs";
 import { FAMILY_KEYS, TONES, TYPOGRAPHY_KEYS } from "@/lib/renderer/vocabulary";
 
+import type { SiblingAssignment } from "@/lib/renderer/planner";
+
 import { buildSchemaFiles, SCHEMA_FILES, serializeSchema } from "./schemas";
-import { strictWireSchema, UNSUPPORTED_KEYWORDS } from "./wire-schema";
+import { narrowedWireSchema, strictWireSchema, UNSUPPORTED_KEYWORDS } from "./wire-schema";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 const built = buildSchemaFiles();
@@ -73,7 +75,7 @@ describe("design intent schemas", () => {
   });
 
   it("is stamped with the schema version the constants declare", () => {
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v4");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
     expect(built.response.title).toContain(DESIGN_INTENT_SCHEMA_VERSION);
     expect(built.wire.title).toContain(DESIGN_INTENT_SCHEMA_VERSION);
   });
@@ -140,5 +142,125 @@ describe("design intent schemas", () => {
     const serialized = JSON.stringify(built.response).toLowerCase();
     for (const word of ["pagesystem", "borderlanguage", "cardlanguage", "buttonlanguage", "css"])
       expect(serialized.includes(word), `schema mentions "${word}"`).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ description hygiene */
+
+/** A real assignment, so the schema walked below is one production would actually send. */
+const SENT_FOR: SiblingAssignment = {
+  family: "editorial",
+  tonalDirection: "mid",
+  typographyCategory: "oldstyle",
+  hierarchy: "editorial",
+  typographyPairings: ["oldstyle_garamond_worksans", "oldstyle_cormorant_figtree"],
+};
+
+/**
+ * Every description the model actually reads, addressed by path.
+ *
+ * The same walker `v5-proofs.test.ts` uses for Event Identity, over `narrowedWireSchema()` rather
+ * than the committed file. `strictWireSchema()` strips the keywords a provider rejects and
+ * `description` is deliberately **not** one of them, so every `.describe()` and
+ * `meta({description})` string in `contract.ts` goes on the wire. That is how Phase 4A's leak 4
+ * reached production, and it is why `corpus.ts` declares the wire schema a model-visible surface.
+ *
+ * The committed file's own `$id`/`title`/`description` header is deliberately **not** walked: it is
+ * added by `buildSchemaFiles()` for a human reading the repository and is not part of what
+ * `narrowedWireSchema()` builds, so it may say "do not hand-edit" and name the application
+ * validator. Walking the sent schema rather than the committed one is what makes that distinction
+ * true rather than assumed.
+ */
+function wireDescriptions(schema: JsonSchema): Record<string, string> {
+  const out: Record<string, string> = {};
+  const walk = (node: unknown, at: string) => {
+    if (!node || typeof node !== "object") return;
+    const record = node as Record<string, unknown>;
+    if (typeof record.description === "string") out[at] = record.description;
+    for (const key of Object.keys(record)) walk(record[key], `${at}/${key}`);
+  };
+  walk(schema, "");
+  return out;
+}
+
+describe("what the shipped descriptions may say", () => {
+  const WIRE_DESC = wireDescriptions(narrowedWireSchema(SENT_FOR) as JsonSchema);
+
+  it("carries no header of its own — the sent schema is properties, not provenance", () => {
+    // The committed file's header is repository metadata. If it ever started reaching the wire,
+    // every rule below would have to cover it, so its absence is asserted rather than assumed.
+    expect(WIRE_DESC[""]).toBeUndefined();
+  });
+
+  it("ships descriptions at all, so the checks below are not vacuous", () => {
+    expect(Object.keys(WIRE_DESC).length).toBeGreaterThan(5);
+  });
+
+  /**
+   * No description may address an implementer.
+   *
+   * `v4` shipped "Must exactly equal one member of colors. **Enforce with post-schema semantic
+   * validation.**" — an instruction to whoever builds the pipeline, handed to a model that has no
+   * post-schema stage, on the surface declared model-visible precisely because everything on it is
+   * read by the model. It also disclosed internal validation topology for no benefit. Nothing
+   * caught it, because Event Identity had this check and DesignIntent did not.
+   */
+  it("addresses the model, never an implementer or the pipeline's internals", () => {
+    const forbidden = [
+      /\benforce\b/i,
+      /post-schema/i,
+      /semantic validation/i,
+      /\bvalidator\b/i,
+      /application code/i,
+      /\bimplementer\b/i,
+      /do not hand-edit/i,
+      /\bTODO\b|\bFIXME\b/,
+    ];
+    const offenders: string[] = [];
+    for (const [at, description] of Object.entries(WIRE_DESC))
+      for (const pattern of forbidden)
+        if (pattern.test(description)) offenders.push(`${at}: ${pattern} — "${description}"`);
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * No description may describe a narrowing that does not exist.
+   *
+   * `v4` told the model that runtime narrowing "may further constrain" the motif catalog. It does
+   * not — `narrowing.ts` narrows families, tones, pairings and hierarchies, and never motifs — and
+   * the same phantom catalogue in the prompt was one of the reasons `v4` was untrue rather than
+   * merely dated. A description that promises a constraint the request never applies teaches the
+   * model to reason about a rule it will not be given.
+   */
+  it("claims narrowing only for the four fields that are actually narrowed", () => {
+    const narrowed = ["family", "tonalDirection", "typographyPairing", "hierarchy"];
+    for (const [at, description] of Object.entries(WIRE_DESC)) {
+      if (!/narrow/i.test(description)) continue;
+      expect(
+        narrowed.some((field) => at.endsWith(`/${field}`)),
+        `${at} claims narrowing, but only ${narrowed.join(", ")} are narrowed`,
+      ).toBe(true);
+    }
+    expect(WIRE_DESC["/properties/motifs"]).not.toMatch(/narrow/i);
+  });
+
+  /**
+   * A description must stay true in the schema actually sent, not only in the committed superset.
+   *
+   * `v4`'s hierarchy description ended "the four listed here are the whole vocabulary" — true of
+   * this file, false of `narrowedWireSchema()`, where the enum is one value and there is no list of
+   * four in front of the model. The committed superset is documentation; the narrowed projection is
+   * what the model reads.
+   */
+  it("says nothing about a list of options that the narrowed schema contradicts", () => {
+    const at = "/properties/composition/properties/hierarchy";
+    const narrowed = narrowedWireSchema(SENT_FOR) as JsonSchema;
+    const hierarchy = (
+      ((narrowed.properties as Record<string, JsonSchema>).composition as JsonSchema)
+        .properties as Record<string, JsonSchema>
+    ).hierarchy;
+    expect(hierarchy.enum).toEqual([SENT_FOR.hierarchy]);
+    expect(WIRE_DESC[at]).toBeDefined();
+    expect(WIRE_DESC[at]).not.toMatch(/\bfour\b|listed here/i);
   });
 });

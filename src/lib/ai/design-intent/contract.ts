@@ -94,6 +94,33 @@ export const MOTIF_MAX = 3;
 /** Uppercase `#RRGGBB`. Lowercase is a schema failure, not something the validator folds. */
 export const HEX_COLOR = /^#[0-9A-F]{6}$/;
 
+/** `spec.md §7.8`: a host-facing concept name, two or three words. */
+export const PRESENTATION_NAME_MIN = 4;
+export const PRESENTATION_NAME_MAX = 40;
+
+/**
+ * What a host-facing concept name may be made of.
+ *
+ * Unicode letters and **combining marks**, ordinary spaces, both apostrophes in common use, and
+ * hyphen or en dash. Three consequences, each deliberate:
+ *
+ * - a decomposed name (`e` + U+0301) is accepted exactly as its precomposed form is, because the
+ *   two are the same name and which one arrives is a property of the encoder, not of the answer;
+ * - a name in a script with no case, or one carrying diacritics its language requires, is an
+ *   ordinary name and not an error;
+ * - digits, underscores and every other punctuation mark stay refused, so an enum id, a version
+ *   string or a numbered "Concept 2" still fails.
+ *
+ * Case is deliberately **not** enforced here. Title-style capitalization is a request made in
+ * model-visible description text, where a script without case can simply not apply it; enforcing
+ * it in a pattern would reject correct names in such a script outright.
+ *
+ * `spec.md §7.8` gives an invalid name a deterministic fallback, so a rejection here is not a
+ * failed call — it is a graded concept card silently replaced. That is why the rule has to admit
+ * the names hosts actually see.
+ */
+export const PRESENTATION_NAME = /^[\p{L}\p{M}][\p{L}\p{M}'’ \-–]*[\p{L}\p{M}]$/u;
+
 const hexColor = z.string().regex(HEX_COLOR);
 
 /** Keeps `z.enum` literal-typed while the values are read from the shared vocabulary tables. */
@@ -105,9 +132,7 @@ export const paletteSchema = z
       uniqueItems: true,
       description: "Creative source palette only. 3-5 unique uppercase #RRGGBB colors.",
     }),
-    dominant: hexColor.describe(
-      "Must exactly equal one member of colors. Enforce with post-schema semantic validation.",
-    ),
+    dominant: hexColor.describe("Must be exactly one of the values you return in colors."),
   })
   .strict();
 
@@ -116,16 +141,16 @@ const COMPOSITION_DESCRIPTION =
   "afterwards; selects nothing.";
 
 const HIERARCHY_DESCRIPTION =
-  "Runtime schema narrows by family: invitation excludes monumental; statement allows only " +
-  "dramatic and monumental.";
+  "Assigned, exactly like family and tonalDirection: the runtime schema narrows this enum to the " +
+  "single assigned value, and no other value is a legal answer.";
 
 const FAMILY_DESCRIPTION =
   "Design grammar. Must exactly match the deterministic assignment; runtime schema narrows this " +
   "to one value. Not a layout: the composition call authors structure.";
 
 const TONE_DESCRIPTION =
-  "Must exactly match the deterministic assignment. Runtime schema should narrow this enum to " +
-  "one value.";
+  "Must exactly match the deterministic assignment. The runtime schema narrows this enum to one " +
+  "value.";
 
 const PAIRING_DESCRIPTION =
   "A concrete curated pairing ID, not a category and not raw font names. Category and pairing " +
@@ -137,8 +162,8 @@ const PAIRING_DESCRIPTION =
 const MOTIFS_DESCRIPTION =
   "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, " +
   "linen) and three are arrangements (equestrian, botanical, celestial). Placement is the " +
-  "composition call's, not this one's. Runtime narrowing may further constrain the catalog; the " +
-  "ornament direction in `composition` caps how many actually render.";
+  "composition call's, not this one's. The ornament direction in `composition` caps how many " +
+  "actually render.";
 
 /**
  * Host-facing concept metadata. Never compiled.
@@ -152,12 +177,16 @@ export const presentationSchema = z
   .object({
     name: z
       .string()
-      .min(4)
-      .max(40)
-      .regex(/^[A-Za-z][A-Za-z' -]*[A-Za-z]$/)
+      .min(PRESENTATION_NAME_MIN)
+      .max(PRESENTATION_NAME_MAX)
+      .regex(PRESENTATION_NAME)
       .describe(
-        "Two or three Title Case words evoking the concept's character. Not a family or enum ID, " +
-          "not a brand name, and not a formula of tone plus layout word.",
+        "Two or three words evoking the concept's character, written the way the name is " +
+          "properly written: natural title-style capitalization where the language or script " +
+          "has case, natural orthography otherwise, with whatever letters, accents and marks " +
+          "that takes. Letters, spaces, apostrophes and hyphens only — no digits, no " +
+          "underscores. Not a family or enum ID, not a brand name, and not a formula of tone " +
+          "plus layout word.",
       ),
     description: z
       .string()

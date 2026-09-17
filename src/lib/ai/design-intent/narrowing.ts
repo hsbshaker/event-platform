@@ -11,16 +11,34 @@
  *
  * - `family` to the assigned value;
  * - `tonalDirection` to the assigned value;
- * - `composition.hierarchy` by **family**, from `FAMILIES[family].hierarchies` — which is already
- *   exactly §5.2's rule ("invitation excludes monumental; statement allows only dramatic and
- *   monumental"), so no second table is written here. Note this is narrowed by family and *not*
- *   to the assigned hierarchy: §5.2 and `docs/model-schemas/design-intent.schema.json` both say
- *   "narrowed by family", and the assigned hierarchy's job is to shape the pairing pool below.
- *   `composition` is also a diversity-measurable vector (`§E`, "Diversity: what is checkable"),
- *   and collapsing one of its five dimensions to a planner constant would remove a dimension the
- *   evidence has to be able to separate siblings on.
+ * - `composition.hierarchy` to the assigned value, exactly like the two above;
  * - `typographyPairing` to the assigned category **and** to pairings that hold at the assigned
  *   hierarchy.
+ *
+ * # Why hierarchy is a hard assignment field and not a choice
+ *
+ * An earlier revision of this module narrowed hierarchy **by family** and argued that collapsing
+ * it to the planner's value "would remove a dimension the evidence has to be able to separate
+ * siblings on". That rationale does not survive T19. `docs/model-contracts.md §4.7` settles the
+ * same question in the opposite direction and in its own sentence: composition-vector distinctness
+ * "counts the four dimensions the model chooses — asymmetry, rhythm, section contrast and
+ * ornament — and not `hierarchy`, which the planner assigns and actively separates; hierarchy
+ * conformance is checked by assignment conformance, where it is a statement about the right
+ * thing." The frozen evidence harness implements exactly that: `compositionVectorDistinct`
+ * excludes hierarchy *because it is planner-owned*, and `assignmentConformance` gates an **exact**
+ * match against `assignment.hierarchy`.
+ *
+ * So four production components agreed hierarchy was assigned and only this module disagreed, in a
+ * way that could only ever produce a legal response the frozen harness would then fail. The
+ * settled rule is `docs/phase-4b-plan.md §E`'s general one — "runtime narrowing restricts enums to
+ * the sibling's assignment *before* the call, so an out-of-assignment value is impossible rather
+ * than repaired" — applied to the field that carries the planner's own separation.
+ *
+ * `allowedHierarchies` stays, because `validate.ts` still needs to be able to say that a value is
+ * outside the family's vocabulary altogether, which is a different failure from drift off the
+ * assignment. And an assignment whose hierarchy its own family does not admit is refused here
+ * rather than widened back to the family's list: widening would hand the model a hierarchy nobody
+ * assigned and produce a concept that conforms to nothing.
  *
  * # Why it filters the planner's list rather than recomputing one
  *
@@ -86,9 +104,31 @@ export function pairingHoldsAt(pairing: TypographyPairingId, hierarchy: Hierarch
   return hierarchy !== "monumental" || TYPOGRAPHY[pairing].holdsAtMonumental;
 }
 
-/** §5.2's hierarchy rule, read off the family table rather than restated. */
+/**
+ * Every hierarchy the assigned family admits, read off the family table rather than restated.
+ *
+ * This is the **vocabulary** check, not the narrowing. `validate.ts` uses it to tell a hierarchy
+ * the family does not admit at all (a shape failure) from one that is merely not the assigned one
+ * (drift off the assignment), which are different defects with different dispositions.
+ */
 export function allowedHierarchies(assignment: SiblingAssignment): readonly Hierarchy[] {
   return FAMILIES[assignment.family].hierarchies;
+}
+
+/**
+ * The single hierarchy this concept may return.
+ *
+ * Refuses, rather than widening, when the assigned family does not admit the assigned hierarchy:
+ * that is an incoherent assignment, and the failure belongs where it was made.
+ */
+export function assignedHierarchies(assignment: SiblingAssignment): readonly Hierarchy[] {
+  if (!allowedHierarchies(assignment).includes(assignment.hierarchy)) {
+    throw new UnnarrowableAssignmentError(
+      `family "${assignment.family}" does not admit hierarchy "${assignment.hierarchy}" ` +
+        `(${allowedHierarchies(assignment).join(", ")})`,
+    );
+  }
+  return [assignment.hierarchy];
 }
 
 /**
@@ -136,6 +176,6 @@ export function narrowingFor(assignment: SiblingAssignment): SemanticsNarrowing 
     families: [assignment.family],
     tones: [assignment.tonalDirection],
     pairings: allowedPairings(assignment),
-    hierarchies: allowedHierarchies(assignment),
+    hierarchies: assignedHierarchies(assignment),
   };
 }

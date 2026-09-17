@@ -92,8 +92,41 @@ export const EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION = "event_identity_input_v2";
 
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5";
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5";
-export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v4";
-export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v4";
+/**
+ * `v5` is the first DesignIntent contract ever sent to a provider, and the two versions move
+ * together because model-visible text moved on both sides (`docs/model-contracts.md §5.1`, and the
+ * `v5` lesson Event Identity paid for).
+ *
+ * `v4` was a pre-provider draft. Read against the input contract T18 built, three things in it
+ * were untrue rather than merely dated, and every one of them was model-visible:
+ *
+ * - it described request channels this call does not receive — `redesignFeedback`,
+ *   `priorConceptNames`, `priorIntentSignatures` — and gave two whole sections to behaviour keyed
+ *   off them. `docs/phase-4b-plan.md §E` makes the three calls blind and parallel, and
+ *   `src/lib/ai/design-intent/input.ts` carries two channels: the brief, and this concept's own
+ *   assignment;
+ * - it named an `allowedMotifs` catalogue that does not exist — the seven curated ids are not
+ *   narrowed per concept — and named the assignment as three fields when deterministic code
+ *   assigns four;
+ * - it did not say that `composition.hierarchy` is assigned, while the planner assigns it, the
+ *   frozen 4C harness gates an exact match on it, and `§4.7` excludes it from model-owned
+ *   distinctness for exactly that reason.
+ *
+ * `v5` also restates the two-tier authority split — `hostConstraints` authoritative whatever their
+ * subject, `creativeGuidance` free to be departed from — in the terms `§3.2` requires, and asks
+ * for a concept name in natural orthography rather than in ASCII Title Case.
+ *
+ * The schema moves with it. `composition.hierarchy` narrows to the assigned value, so a response
+ * legal under the `v4` runtime schema can be illegal under this one; and the concept-name rule now
+ * admits Unicode letters and combining marks, so a name `v4` discarded into a deterministic
+ * fallback is now kept. A `v4` response is not a valid `v5` response.
+ *
+ * `v4` is preserved at `docs/model-prompts/history/design-intent.v4.system.md` and
+ * `docs/model-schemas/history/design-intent.v4{,.wire}.schema.json`. No provider call was ever
+ * attributed to it, so there is no evidence under `v4` to invalidate.
+ */
+export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v5";
+export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v5";
 
 /**
  * How the DesignIntent request envelope is built: which channels are present, how each is
@@ -125,9 +158,12 @@ export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v4";
  * brief or the assignment is rendered. It does not bump for a prompt-file edit or a schema
  * change; those have versions of their own and the three are independent.
  *
- * `v1` declares the contents. The rendering that the "representation" clause governs does not
- * exist yet — that is the prompt, which is T21 — so the first change to land under this constant
- * must decide whether it is choosing a representation for the first time or changing one.
+ * `v1` declared the contents before any rendering of them existed, and left the next task to
+ * decide whether it was choosing a representation for the first time or changing one. T21 chose
+ * one for the first time: `src/lib/ai/openai/design-intent-input.ts` is the whole of it — the
+ * labels, the delimiters, the order, and the sentence that states which half of the brief is
+ * authoritative and which is advisory. The contents are unchanged, still exactly the two channels
+ * `§E` names, so this stays `v1`. It bumps the first time any of that rendering changes.
  */
 export const DESIGN_INTENT_INPUT_ASSEMBLY_VERSION = "design_intent_input_v1";
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";

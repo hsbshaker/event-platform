@@ -101,11 +101,19 @@ describe("the raw-prompt boundary", () => {
     expect(importers).toEqual([INTERPRETER, path.join("lib", "ai", "provider.ts")].sort());
   });
 
-  it("has exactly one model call site today, and says what adding another costs", () => {
+  it("has two model call sites today, and says what adding another costs", () => {
     // Kept as a separate, extensible inventory rather than folded into the invariant above.
     // Adding a module here is allowed — 4C and 4D will — but it is the moment to re-prove
     // that the new call site reads the persisted identity and not the words behind it.
-    expect(modelCallers()).toEqual([INTERPRETER]);
+    //
+    // Phase 4C T21 added the second. It is re-proved rather than waved through: the invariant
+    // above already shows it names no prompt and reads no raw inspiration, and
+    // `src/lib/ai/design-intent/boundary.test.ts` proves the envelope it is handed is the brief
+    // and one assignment. What it sends is assembled in `openai/design-intent-input.ts`, from
+    // those two values and nothing else.
+    expect(modelCallers().sort()).toEqual(
+      [INTERPRETER, path.join("lib", "ai", "openai", "design-intent.ts")].sort(),
+    );
   });
 
   it("keeps the downstream call inputs free of prompt text", () => {

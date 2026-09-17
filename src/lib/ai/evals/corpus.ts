@@ -210,10 +210,10 @@ export const MODEL_VISIBLE_SURFACES = {
    */
   "input assembly": "src/lib/ai/openai/event-identity-input.ts",
   /**
-   * The DesignIntent prompt. It exists today as `design_intent_v4`, a pre-provider draft that no
-   * model has ever been sent, and **T21 rewrites it**. Declared here at T19 — before the 4C
-   * corpora are authored and before the prompt is written — so the scan covers it from the moment
-   * either changes, rather than being widened after someone has seen the cases.
+   * The DesignIntent prompt, now `design_intent_v5`. Declared here at T19 — before the 4C corpora
+   * were authored and before the prompt was written — so the scan covered it from the moment
+   * either changed, rather than being widened after someone had seen the cases. T21 rewrote the
+   * file under that standing declaration, which is the arrangement working as intended.
    */
   "design intent prompt": "docs/model-prompts/design-intent.system.md",
   /**
@@ -221,6 +221,21 @@ export const MODEL_VISIBLE_SURFACES = {
    * `.describe()` string ships to the model, which is how Phase 4A's leak 4 reached production.
    */
   "design intent wire schema": "docs/model-schemas/design-intent.wire.schema.json",
+  /**
+   * The DesignIntent provider boundary and the assembly beside it, added at T21 for exactly the
+   * reason the Event Identity pair above is here: both carry static model-visible text.
+   *
+   * `design-intent-input.ts` holds all of it deliberately — the labels, the delimiters, the
+   * preambles, the sentence that says `hostConstraints` is authoritative and `creativeGuidance`
+   * advisory. The boundary is scanned as well, and not as ceremony: an implementer who put a label
+   * or a correction turn in the caller instead would otherwise satisfy the declaration and leave
+   * the strings unscanned, which is the same hole the Event Identity entry closes.
+   *
+   * Declared here rather than listed in `prompt-leakage.test.ts`, which reads this map, so adding
+   * a surface does not mean editing benchmark-integrity tooling.
+   */
+  "design intent provider boundary": "src/lib/ai/openai/design-intent.ts",
+  "design intent input assembly": "src/lib/ai/openai/design-intent-input.ts",
 } as const;
 
 /** The assembly version at which the third surface above is still legitimately absent. */

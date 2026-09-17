@@ -41,7 +41,7 @@ const designIntentSchema = JSON.parse(
 
 const prompt = readFileSync(`${DOCS}model-prompts/design-intent.system.md`, "utf8");
 
-describe("DesignIntent schema v4 ↔ production vocabulary", () => {
+describe("DesignIntent schema v5 ↔ production vocabulary", () => {
   it("offers exactly the twelve production typography pairings, in catalog order", () => {
     expect(designIntentSchema.properties.typographyPairing.enum).toEqual([...TYPOGRAPHY_KEYS]);
     expect(TYPOGRAPHY_KEYS).toHaveLength(12);
@@ -148,14 +148,15 @@ describe("runtime narrowing of the pairing enum", () => {
 });
 
 describe("version constants", () => {
-  it("are at v4, and the prompt and schema say so too", () => {
-    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v4");
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v4");
-    expect(prompt).toContain("**Prompt version:** `design_intent_v4`");
-    expect(designIntentSchema.title).toContain("design_intent_schema_v4");
+  it("are at v5, and the prompt and schema say so too", () => {
+    // `§5.1`'s paired rule: model-visible text moved on both sides at T21, so both versions moved.
+    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v5");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
+    expect(prompt).toContain("**Prompt version:** `design_intent_v5`");
+    expect(designIntentSchema.title).toContain("design_intent_schema_v5");
   });
 
-  it("preserve v3 rather than rewriting it", () => {
+  it("preserve v3 and v4 rather than rewriting them", () => {
     const v3Schema = JSON.parse(
       readFileSync(`${DOCS}model-schemas/history/design-intent.v3.schema.json`, "utf8"),
     ) as JsonSchema;
@@ -165,15 +166,33 @@ describe("version constants", () => {
     expect(
       readFileSync(`${DOCS}model-prompts/history/design-intent.v3.system.md`, "utf8"),
     ).toContain("design_intent_v3");
+
+    // v4 is kept as the bytes it was, never relabelled: it was a pre-provider draft, and the
+    // history is what makes "no provider call was ever attributed to it" checkable.
+    const v4Prompt = readFileSync(
+      `${DOCS}model-prompts/history/design-intent.v4.system.md`,
+      "utf8",
+    );
+    expect(v4Prompt).toContain("**Prompt version:** `design_intent_v4`");
+    const v4Schema = JSON.parse(
+      readFileSync(`${DOCS}model-schemas/history/design-intent.v4.schema.json`, "utf8"),
+    ) as JsonSchema;
+    expect(v4Schema.title).toContain("design_intent_schema_v4");
+    expect(
+      JSON.parse(
+        readFileSync(`${DOCS}model-schemas/history/design-intent.v4.wire.schema.json`, "utf8"),
+      ).title,
+    ).toContain("design_intent_schema_v4");
   });
 });
 
-describe("the v4 prompt speaks Revision 6", () => {
-  it("says family, never archetype, outside its own changelog note", () => {
-    const body = prompt
-      .split("\n")
-      .filter((l) => !l.startsWith("_v4 reconciles") && !l.includes("replaces `archetype`"))
-      .join("\n");
+describe("the v5 prompt matches the contract it is sent under", () => {
+  const body = prompt
+    .split("\n")
+    .filter((line) => !line.startsWith("_v5 is the first version"))
+    .join("\n");
+
+  it("says family, never archetype", () => {
     expect(body.toLowerCase()).not.toContain("archetype");
   });
 
@@ -182,9 +201,58 @@ describe("the v4 prompt speaks Revision 6", () => {
     expect(prompt).toMatch(/composition call (that runs after|authors)/i);
   });
 
+  it("names all four assigned dimensions, hierarchy among them", () => {
+    // `hierarchy` is planner-assigned, the frozen 4C harness gates an exact match on it, and
+    // runtime narrowing offers only the assigned value. A prompt that presented it as a choice
+    // would be describing a contract that does not exist.
+    expect(prompt).toMatch(/`hierarchy`[^\n]*inside `composition`/);
+    expect(prompt).toMatch(/four decisions/i);
+  });
+
+  it("states the authority split the evidence turns on", () => {
+    // `docs/phase-4b-plan.md §3.2` and `docs/model-contracts.md §4.7`: every host constraint is
+    // authoritative whatever its subject, and creative guidance may be departed from freely.
+    expect(prompt).toMatch(/`hostConstraints` is \*\*authoritative\*\*/);
+    expect(prompt).toMatch(/`creativeGuidance` is \*\*advisory\*\*/);
+    expect(prompt).toMatch(/departing from it costs you nothing/);
+    // And the stage-scope half: a constraint this object cannot express is still binding, and its
+    // absence here is not an omission to be papered over with an invented field.
+    expect(prompt).toMatch(/belongs to a later stage, it is still binding there/);
+  });
+
+  it("asks for a concept name in natural orthography, never for ASCII", () => {
+    expect(prompt).toMatch(
+      /natural title-style capitalisation where the language or script has case/,
+    );
+    expect(prompt).toMatch(/accents and marks/);
+    // The specific instruction item B forbids: nothing may tell the model to avoid accents.
+    expect(prompt.toLowerCase()).not.toMatch(/avoid (accents|diacritics)|ascii|plain letters only/);
+  });
+
+  it("describes only the two channels this call receives", () => {
+    // `docs/phase-4b-plan.md §E`: the brief, plus only this concept's own assignment. v4 named
+    // three channels that do not exist and gave two whole sections to behaviour keyed off them.
+    for (const absent of [
+      "redesignFeedback",
+      "priorConceptNames",
+      "priorIntentSignatures",
+      "allowedMotifs",
+      "allowedTypographyPairings",
+      "contentProfile",
+      "capabilities",
+    ])
+      expect(prompt, `prompt still names \`${absent}\``).not.toContain(absent);
+  });
+
   it("keeps the creative responsibilities it always had", () => {
-    expect(prompt).toContain("`family` MUST exactly equal `assignment.family`");
-    expect(prompt).toContain("`typographyPairing` MUST come from `allowedTypographyPairings`");
-    expect(prompt).toContain("Motifs are requests, not placements.");
+    expect(prompt).toMatch(/Motifs are \*\*requests, not placements\*\*/);
+    expect(prompt).toMatch(/creative source colours only/i);
+    expect(prompt).toMatch(/three to five unique uppercase six-digit hex/i);
+  });
+
+  it("carries no recipe, silhouette or template identifier", () => {
+    // `CLAUDE.md §5.1`, the Library Boundary Invariant, reaches model-visible text too.
+    for (const word of ["silhouette", "recipe", "template", "surfacePlan", "heroKeys"])
+      expect(prompt.toLowerCase().includes(word.toLowerCase()), word).toBe(false);
   });
 });

@@ -20,7 +20,7 @@
  *  1. exactly the eight keys; no unknown key, at any depth;
  *  2. every enum value in the vocabulary, and `family` / `tonalDirection` / `typographyPairing`
  *     within the sibling's narrowing;
- *  3. `composition.hierarchy` within the family's hierarchies;
+ *  3. `composition.hierarchy` equal to the sibling's assigned hierarchy;
  *  4. 3–5 palette colors, each matching `^#[0-9A-F]{6}$`;
  *  5. at most three motifs, each a curated id.
  *
@@ -31,13 +31,16 @@
  *  9. `tonalDirection` equals the assignment's;
  * 10. `typographyPairing` belongs to the **assigned** typography category (`§5.1`, `§E`);
  * 11. `typographyPairing` holds at the **assigned** hierarchy (`docs/event-renderer-system.md §8`);
- * 12. `typographyPairing` holds at the **returned** `composition.hierarchy` too — the model may
- *     pick a hierarchy within its family that the planner did not assign, and a monumental
- *     composition set against a pairing that does not hold there is the incompatibility
- *     `spec.md §31` has the compiler repair deterministically;
- * 13. `motifs` has no duplicate.
+ * 12. `composition.hierarchy` equals the assignment's. Hierarchy is a hard assignment field, like
+ *     `family` and `tonalDirection`: the planner assigns it and separates the batch on it, the
+ *     frozen evidence harness gates an exact match, and `docs/model-contracts.md §4.7` excludes it
+ *     from model-owned composition distinctness for exactly that reason. Drift is therefore an
+ *     `assignment` failure, never a taste disagreement to repair;
+ * 13. `typographyPairing` holds at the **returned** `composition.hierarchy` too. Reachable only
+ *     alongside 12, and reported alongside it;
+ * 14. `motifs` has no duplicate.
  *
- * 8–11 are unreachable through `validateDesignIntentResponse`, because narrowing already made
+ * 8–12 are unreachable through `validateDesignIntentResponse`, because narrowing already made
  * them impossible. They are checked anyway: the validator is the authority (`§3`), and an
  * assignment check that only runs when someone remembers to narrow is not one.
  *
@@ -53,7 +56,7 @@
 import { z } from "zod";
 
 import type { SiblingAssignment } from "@/lib/renderer/planner";
-import { TYPOGRAPHY } from "@/lib/renderer/vocabulary";
+import { TYPOGRAPHY, type TypographyPairingId } from "@/lib/renderer/vocabulary";
 
 import {
   designIntentEnvelopeSchemaFor,
@@ -97,7 +100,102 @@ function issuesOf(error: z.ZodError, cls: IssueClass = "schema"): ValidationIssu
   );
 }
 
-/** Invariants 6–13. Separated so they can be run over an already-parsed value. */
+const readString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+/**
+ * Invariants 8–12: the ones that compare a response against the assignment it was made under.
+ *
+ * Deliberately takes `unknown` and reads defensively. A response can be **schema-invalid and out
+ * of assignment at once**, and the strict envelope parse fails before `semanticIssues` ever runs —
+ * so an assignment check that only worked on an already-parsed value would be invisible in exactly
+ * that case, and the provider boundary would spend its single model repair on a response it
+ * already knew it must refuse. `spec.md §32 #21` permits asking again only about schema-invalid
+ * output, and an assignment mismatch is not made repairable by arriving beside one.
+ *
+ * Each field is compared only where it is present and a string, because everything else about the
+ * shape is the schema's to report and reporting it twice helps nobody.
+ */
+export function assignmentIssues(value: unknown, assignment: SiblingAssignment): ValidationIssue[] {
+  const out: ValidationIssue[] = [];
+  const body = (value ?? {}) as {
+    family?: unknown;
+    tonalDirection?: unknown;
+    typographyPairing?: unknown;
+    composition?: { hierarchy?: unknown } | null;
+  };
+
+  const family = readString(body.family);
+  if (family !== undefined && family !== assignment.family) {
+    out.push(
+      issue(
+        "family",
+        `family "${family}" is not the assigned "${assignment.family}"`,
+        "assignment",
+      ),
+    );
+  }
+
+  const tone = readString(body.tonalDirection);
+  if (tone !== undefined && tone !== assignment.tonalDirection) {
+    out.push(
+      issue(
+        "tonalDirection",
+        `tonalDirection "${tone}" is not the assigned "${assignment.tonalDirection}"`,
+        "assignment",
+      ),
+    );
+  }
+
+  const pairingId = readString(body.typographyPairing);
+  const pairing =
+    pairingId !== undefined && Object.hasOwn(TYPOGRAPHY, pairingId)
+      ? TYPOGRAPHY[pairingId as TypographyPairingId]
+      : undefined;
+  if (pairingId !== undefined && pairing !== undefined) {
+    if (pairing.category !== assignment.typographyCategory) {
+      out.push(
+        issue(
+          "typographyPairing",
+          `pairing "${pairingId}" is in category "${pairing.category}", not the ` +
+            `assigned "${assignment.typographyCategory}"`,
+          "assignment",
+        ),
+      );
+    }
+    if (!pairingHoldsAt(pairingId as TypographyPairingId, assignment.hierarchy)) {
+      out.push(
+        issue(
+          "typographyPairing",
+          `pairing "${pairingId}" does not hold at the assigned hierarchy ` +
+            `"${assignment.hierarchy}"`,
+          "assignment",
+        ),
+      );
+    }
+  }
+
+  // Only where the family admits the returned value at all. A hierarchy outside the family's own
+  // vocabulary is a shape failure, and `semanticIssues` reports it as one.
+  const hierarchy = readString(body.composition?.hierarchy);
+  if (
+    hierarchy !== undefined &&
+    (allowedHierarchies(assignment) as readonly string[]).includes(hierarchy) &&
+    hierarchy !== assignment.hierarchy
+  ) {
+    out.push(
+      issue(
+        "composition.hierarchy",
+        `hierarchy "${hierarchy}" is not the assigned "${assignment.hierarchy}"`,
+        "assignment",
+      ),
+    );
+  }
+
+  return out;
+}
+
+/** Invariants 6–14. Separated so they can be run over an already-parsed value. */
 export function semanticIssues(
   value: DesignSemantics,
   assignment: SiblingAssignment,
@@ -118,47 +216,7 @@ export function semanticIssues(
     );
   }
 
-  if (value.family !== assignment.family) {
-    out.push(
-      issue(
-        "family",
-        `family "${value.family}" is not the assigned "${assignment.family}"`,
-        "assignment",
-      ),
-    );
-  }
-  if (value.tonalDirection !== assignment.tonalDirection) {
-    out.push(
-      issue(
-        "tonalDirection",
-        `tonalDirection "${value.tonalDirection}" is not the assigned ` +
-          `"${assignment.tonalDirection}"`,
-        "assignment",
-      ),
-    );
-  }
-
-  const pairing = TYPOGRAPHY[value.typographyPairing];
-  if (pairing.category !== assignment.typographyCategory) {
-    out.push(
-      issue(
-        "typographyPairing",
-        `pairing "${value.typographyPairing}" is in category "${pairing.category}", not the ` +
-          `assigned "${assignment.typographyCategory}"`,
-        "assignment",
-      ),
-    );
-  }
-  if (!pairingHoldsAt(value.typographyPairing, assignment.hierarchy)) {
-    out.push(
-      issue(
-        "typographyPairing",
-        `pairing "${value.typographyPairing}" does not hold at the assigned hierarchy ` +
-          `"${assignment.hierarchy}"`,
-        "assignment",
-      ),
-    );
-  }
+  out.push(...assignmentIssues(value, assignment));
 
   const hierarchies = allowedHierarchies(assignment);
   if (!hierarchies.includes(value.composition.hierarchy)) {
@@ -170,7 +228,14 @@ export function semanticIssues(
         "schema",
       ),
     );
-  } else if (!pairingHoldsAt(value.typographyPairing, value.composition.hierarchy)) {
+  } else if (
+    // Drift itself is reported by `assignmentIssues` above. What is added here is the *second*,
+    // genuinely different defect drift can create: a returned hierarchy the chosen pairing does
+    // not hold at. Naming both keeps the boundary's precedence rule exercised by a case that
+    // carries two classes at once.
+    value.composition.hierarchy !== assignment.hierarchy &&
+    !pairingHoldsAt(value.typographyPairing, value.composition.hierarchy)
+  ) {
     out.push(
       issue(
         "typographyPairing",

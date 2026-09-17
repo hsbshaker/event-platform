@@ -2,9 +2,11 @@
 ## Event Identity, DesignIntent and Composition prompts and structured-output schemas
 
 **Status:** Revision 2 — composition-language baseline. Event Identity is in production at `v5`
-(Phase 4A closed **GO**, `§4.6`); DesignIntent and Composition are contracts on paper, unbuilt.  
-**Prompt versions:** `event_identity_v5`, `design_intent_v4`, `composition_v1_p2`  
-**Schema versions:** `event_identity_schema_v5`, `design_intent_schema_v4`, `composition_schema_v1`  
+(Phase 4A closed **GO**, `§4.6`). DesignIntent is built at `v5` and **has never been sent to a
+provider**: T21 is the implementation freeze before the first live call, which needs explicit
+authorization (`phase-4b-plan.md` Part IV, "The stop point"). Composition is a contract on paper.  
+**Prompt versions:** `event_identity_v5`, `design_intent_v5`, `composition_v1_p2`  
+**Schema versions:** `event_identity_schema_v5`, `design_intent_schema_v5`, `composition_schema_v1`  
 **PRD:** `../spec.md` Revision 6  
 **Renderer:** `event-renderer-system.md` Revision 2
 
@@ -47,8 +49,8 @@ Prompts and schemas are versioned production assets:
 ```ts
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5"
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
-export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v4"
-export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v4"
+export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v5"
+export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v5"
 export const COMPOSITION_PROMPT_VERSION    = "composition_v1_p2"
 export const COMPOSITION_SCHEMA_VERSION    = "composition_schema_v1"
 export const PRIMITIVE_SET_VERSION         = "composition_v1"
@@ -607,7 +609,7 @@ outputs can satisfy every distance metric and still be one idea.
 
 ---
 
-# 5. DesignIntent (design_intent_v4)
+# 5. DesignIntent (design_intent_v5)
 
 ## 5.1 Contract
 
@@ -640,9 +642,19 @@ DesignIntent {
 
 Creative responsibilities are unchanged: the planner assigns family, tone, typography category and hierarchy; the strong model returns the DesignIntent; the composition call authors structure. v3 is preserved at `docs/model-schemas/history/design-intent.v3.schema.json` and `docs/model-prompts/history/design-intent.v3.system.md`.
 
+**v5 — the first version sent to a provider (T21).** `v4` was a pre-provider draft and no provider call was ever attributed to it, so there is no `v4` evidence to invalidate. Prompt and schema move together, as §2's paired rule requires, because model-visible text moved on both sides:
+
+- **`composition.hierarchy` is a hard assignment field**, like `family` and `tonalDirection`, and runtime narrowing offers exactly the assigned value. Four components already treated it that way and only the narrowing disagreed: the planner assigns it and separates the batch on it, §4.7's mechanical block gates an *exact* match under assignment conformance, and the same block excludes hierarchy from model-owned composition distinctness **because it is planner-owned**. An assignment whose family does not admit its hierarchy is refused rather than widened back to the family's list.
+- **The concept name admits Unicode letters and combining marks**, so a decomposed accent is equivalent to a precomposed one and a name in a script without case is ordinary rather than invalid. `spec.md §7.8` gives an invalid name a deterministic fallback, so the old ASCII-only rule discarded graded concept cards *after* the model had answered. Capitalization is asked for in description text as natural title-style capitalization where the language or script has case, and never as a pattern.
+- **The prompt describes only the two channels this call receives.** `v4` named `redesignFeedback`, `priorConceptNames`, `priorIntentSignatures` and an `allowedMotifs` catalogue, none of which exist (`docs/phase-4b-plan.md §E`: the three calls are blind and parallel, and the envelope is the brief plus one assignment). It also named the assignment as three fields where deterministic code assigns four, and restates the two-tier authority split — `hostConstraints` authoritative whatever its subject, `creativeGuidance` free to be departed from — in §3.2's terms.
+
+A `v4` response is not a valid `v5` response. v4 is preserved at `docs/model-prompts/history/design-intent.v4.system.md` and `docs/model-schemas/history/design-intent.v4.schema.json` (with its wire projection beside it), and old bytes are never relabelled.
+
 ## 5.2 Input, assembly, narrowing, validation
 
-As Revision 1 §9–§12 with `assignment.family` in place of `assignment.heroArchetype`, `family` narrowed to the assigned value, the compatible hierarchies narrowed by family (`invitation` excludes `monumental`; `statement` allows only `dramatic` and `monumental`), and typography pairings filtered by category and by whether they hold at the assigned hierarchy. The one-retry rule stands: one repair retry for structurally invalid output; no model calls for compatibility repair.
+As Revision 1 §9–§12 with `assignment.family` in place of `assignment.heroArchetype`; `family`, `tonalDirection` and `composition.hierarchy` each narrowed to the assigned value; and typography pairings filtered by category and by whether they hold at the assigned hierarchy. The family table (`invitation` excludes `monumental`; `statement` allows only `dramatic` and `monumental`) remains the *vocabulary* check the application validator uses to tell a hierarchy the family does not admit at all from one that is merely not the assigned one; it is no longer the narrowing. The one-retry rule stands: one repair retry for structurally invalid output; no model calls for compatibility repair, and **none for an assignment mismatch either** — that class fails visibly, and a response that is malformed *and* out of assignment must not spend the single repair.
+
+The production boundary is `src/lib/ai/openai/design-intent.ts`, and the model-visible request text is assembled in `src/lib/ai/openai/design-intent-input.ts` under `design_intent_input_v1`. Both are leakage-scanned surfaces. Every request pins its model configuration rather than inheriting it — reasoning effort, `service_tier`, `store: false` and an explicit output ceiling — because the verified cost bound in `src/lib/generation/design-intent-cost.ts` is derived from exactly that request shape rather than inherited from Event Identity's.
 
 ## 5.3 Evals
 

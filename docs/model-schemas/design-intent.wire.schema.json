@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://event-platform.local/schemas/design-intent.v4.wire.schema.json",
-  "title": "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v4)",
-  "description": "The canonical schema reduced to the subset OpenAI structured outputs accept in strict mode — every property required, additionalProperties false everywhere, no length/count/pattern/uniqueness keywords. Committed so the reduction is reviewable. This is the UNNARROWED superset: the schema actually sent for one concept is this reduction applied to the sibling's narrowed contract, where family and tonalDirection are single-value enums and typographyPairing is filtered to the assigned category and hierarchy (docs/model-contracts.md §5.2). Generated — do not hand-edit. The dropped constraints are enforced by the application validator, which is the authority (docs/model-contracts.md §3).",
+  "$id": "https://event-platform.local/schemas/design-intent.v5.wire.schema.json",
+  "title": "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v5)",
+  "description": "The canonical schema reduced to the subset OpenAI structured outputs accept in strict mode — every property required, additionalProperties false everywhere, no length/count/pattern/uniqueness keywords. Committed so the reduction is reviewable. This is the UNNARROWED superset: the schema actually sent for one concept is this reduction applied to the sibling's narrowed contract, where family, tonalDirection and composition.hierarchy are single-value enums and typographyPairing is filtered to the assigned category and hierarchy (docs/model-contracts.md §5.2). Generated — do not hand-edit. The dropped constraints are enforced by the application validator, which is the authority (docs/model-contracts.md §3).",
   "type": "object",
   "properties": {
     "family": {
@@ -21,7 +21,7 @@
         "mid",
         "dark"
       ],
-      "description": "Must exactly match the deterministic assignment. Runtime schema should narrow this enum to one value."
+      "description": "Must exactly match the deterministic assignment. The runtime schema narrows this enum to one value."
     },
     "palette": {
       "type": "object",
@@ -35,7 +35,7 @@
         },
         "dominant": {
           "type": "string",
-          "description": "Must exactly equal one member of colors. Enforce with post-schema semantic validation."
+          "description": "Must be exactly one of the values you return in colors."
         }
       },
       "required": [
@@ -89,7 +89,7 @@
             "dramatic",
             "monumental"
           ],
-          "description": "Runtime schema narrows by family: invitation excludes monumental; statement allows only dramatic and monumental."
+          "description": "Assigned, exactly like family and tonalDirection: the runtime schema narrows this enum to the single assigned value, and no other value is a legal answer."
         },
         "rhythm": {
           "type": "string",
@@ -140,14 +140,14 @@
           "celestial"
         ]
       },
-      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. Runtime narrowing may further constrain the catalog; the ornament direction in `composition` caps how many actually render."
+      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. The ornament direction in `composition` caps how many actually render."
     },
     "presentation": {
       "type": "object",
       "properties": {
         "name": {
           "type": "string",
-          "description": "Two or three Title Case words evoking the concept's character. Not a family or enum ID, not a brand name, and not a formula of tone plus layout word."
+          "description": "Two or three words evoking the concept's character, written the way the name is properly written: natural title-style capitalization where the language or script has case, natural orthography otherwise, with whatever letters, accents and marks that takes. Letters, spaces, apostrophes and hyphens only — no digits, no underscores. Not a family or enum ID, not a brand name, and not a formula of tone plus layout word."
         },
         "description": {
           "type": "string",

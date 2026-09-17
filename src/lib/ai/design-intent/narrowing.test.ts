@@ -34,10 +34,12 @@ import {
 import {
   allowedHierarchies,
   allowedPairings,
+  assignedHierarchies,
   narrowingFor,
   pairingsExcludedByCategory,
   UnnarrowableAssignmentError,
 } from "./narrowing";
+import { narrowedWireSchema } from "./wire-schema";
 
 /** Every non-empty subset of the six categories — the range a brief's compatible set can take. */
 const CATEGORY_SUBSETS: TypographyCategory[][] = (() => {
@@ -114,7 +116,9 @@ const REACHABLE = reachableAssignments();
 const REFERENCE = Array.from({ length: 4000 }, (_, seed) => assignmentFor(seed, emptyAvoidList()));
 
 describe("hierarchy narrowing", () => {
-  it("is §5.2's rule, read off the family table rather than restated", () => {
+  it("keeps the family table available as the vocabulary check", () => {
+    // `allowedHierarchies` is no longer the narrowing — it is what `validate.ts` uses to tell a
+    // hierarchy the family does not admit at all from one that is merely not the assigned one.
     expect(allowedHierarchies({ family: "invitation" } as SiblingAssignment)).not.toContain(
       "monumental",
     );
@@ -131,6 +135,38 @@ describe("hierarchy narrowing", () => {
         allowedHierarchies(assignment),
         `${assignment.family}/${assignment.hierarchy}`,
       ).toContain(assignment.hierarchy);
+  });
+
+  it("offers exactly the assigned hierarchy, and nothing else the family admits", () => {
+    // Hierarchy is a hard assignment field, like family and tonalDirection. `§4.7`: composition
+    // distinctness counts "the four dimensions the model chooses … and not `hierarchy`, which the
+    // planner assigns and actively separates", and the frozen harness gates an exact match on it.
+    for (const assignment of REACHABLE) {
+      const where = `${assignment.family}/${assignment.hierarchy}`;
+      expect(assignedHierarchies(assignment), where).toEqual([assignment.hierarchy]);
+      expect(narrowingFor(assignment).hierarchies, where).toEqual([assignment.hierarchy]);
+    }
+    // And the offered set really is narrower than the family's, wherever the family admits more.
+    const wider = REACHABLE.filter((a) => FAMILIES[a.family].hierarchies.length > 1);
+    expect(wider.length).toBeGreaterThan(0);
+    for (const assignment of wider)
+      expect(narrowingFor(assignment).hierarchies.length).toBeLessThan(
+        FAMILIES[assignment.family].hierarchies.length,
+      );
+  });
+
+  it("refuses an assignment whose family does not admit its hierarchy, rather than widening", () => {
+    // Widening back to the family's list would hand the model a hierarchy nobody assigned and
+    // produce a concept that conforms to nothing — the same failure `allowedPairings` refuses.
+    const impossible = {
+      family: "invitation",
+      tonalDirection: "mid",
+      typographyCategory: "heritage",
+      hierarchy: "monumental",
+      typographyPairings: ["heritage_caslon_karla"],
+    } as SiblingAssignment;
+    expect(() => assignedHierarchies(impossible)).toThrow(UnnarrowableAssignmentError);
+    expect(() => narrowingFor(impossible)).toThrow(/does not admit hierarchy "monumental"/);
   });
 });
 
@@ -228,13 +264,25 @@ describe("the category guard", () => {
 });
 
 describe("narrowingFor", () => {
-  it("pins family and tone to the assignment, and nothing else to a single value", () => {
+  it("pins all three hard assignment fields to a single value each", () => {
     const assignment = assignmentFor(7, emptyAvoidList());
     const narrowing = narrowingFor(assignment);
     expect(narrowing.families).toEqual([assignment.family]);
     expect(narrowing.tones).toEqual([assignment.tonalDirection]);
-    // `composition.hierarchy` is narrowed by family, not to the assigned hierarchy: it is one of
-    // the five diversity-measurable composition dimensions (`docs/phase-4b-plan.md §E`).
-    expect(narrowing.hierarchies).toEqual([...FAMILIES[assignment.family].hierarchies]);
+    expect(narrowing.hierarchies).toEqual([assignment.hierarchy]);
+    // The pairing pool is the one narrowing that is legitimately a choice.
+    expect(narrowing.pairings.length).toBeGreaterThan(0);
+  });
+
+  it("makes hierarchy drift structurally impossible in the schema that is sent", () => {
+    // Not a validator claim — a claim about the request. §5.2's whole point is that an
+    // out-of-assignment value is never offered, so it cannot come back and be argued about.
+    const assignment = REACHABLE.find(
+      (a) => FAMILIES[a.family].hierarchies.length > 1,
+    ) as SiblingAssignment;
+    const schema = narrowedWireSchema(assignment) as {
+      properties: { composition: { properties: { hierarchy: { enum: string[] } } } };
+    };
+    expect(schema.properties.composition.properties.hierarchy.enum).toEqual([assignment.hierarchy]);
   });
 });

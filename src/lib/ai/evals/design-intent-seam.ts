@@ -7,7 +7,7 @@
  * binding the runner to an implementation also means importing it, and the import block is inside
  * the hash. So the indirection lives here instead.
  *
- * This file is **not** frozen. At T21 exactly one thing changes: the export below points at the
+ * This file is **not** frozen. At T21 exactly one thing changed: the export below points at the
  * production DesignIntent boundary rather than at the refusal. Nothing else in the frozen harness
  * is touched — not the runner, not the gate, not the checks, not the artifact.
  *
@@ -17,11 +17,11 @@
  * harness would let the set pass while production sent something else, which is the one outcome
  * that makes the whole exercise worthless."*
  *
- * It stays one binding on purpose, so what this file does is reviewable at a glance.
+ * It stays one binding on purpose, so what this file does is reviewable at a glance. The adapter
+ * lives in `openai/design-intent-runner.ts` and the assembly in `openai/design-intent-input.ts`.
  */
-import {
-  designIntentRunnerUnavailable,
-  type DesignIntentCallRunner,
-} from "./design-intent-evidence";
+import { designIntentRunner as productionDesignIntentRunner } from "@/lib/ai/openai/design-intent-runner";
 
-export const designIntentRunner: DesignIntentCallRunner = designIntentRunnerUnavailable;
+import type { DesignIntentCallRunner } from "./design-intent-evidence";
+
+export const designIntentRunner: DesignIntentCallRunner = productionDesignIntentRunner;

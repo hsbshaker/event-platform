@@ -16,7 +16,7 @@
 import { describe, expect, it } from "vitest";
 
 import { assignmentFor, emptyAvoidList, type SiblingAssignment } from "@/lib/renderer/planner";
-import { TYPOGRAPHY, TYPOGRAPHY_KEYS } from "@/lib/renderer/vocabulary";
+import { FAMILIES, TYPOGRAPHY, TYPOGRAPHY_KEYS } from "@/lib/renderer/vocabulary";
 
 import { MOTIF_IDS, UNNARROWED } from "./contract";
 import { allowedPairings } from "./narrowing";
@@ -246,9 +246,42 @@ describe("the assignment is the contract, not a suggestion", () => {
     if (!outcome.ok) expect(paths(outcome.issues)).toContain("composition.hierarchy");
   });
 
-  it("refuses a pairing that does not hold at the hierarchy it was returned with", () => {
-    // `docs/event-renderer-system.md §8`: the two oldstyle pairings do not hold at monumental.
-    const monumental: SiblingAssignment = {
+  it("makes a hierarchy other than the assigned one unrepresentable in the narrowed schema", () => {
+    // Hierarchy is a hard assignment field like family and tonalDirection: narrowing offers only
+    // the assigned value, so another one cannot arrive at all.
+    const other = FAMILIES[ASSIGNMENT.family].hierarchies.find((h) => h !== ASSIGNMENT.hierarchy);
+    expect(other, "pick an assignment whose family admits more than one hierarchy").toBeDefined();
+    const outcome = validateDesignIntentResponse(
+      valid({ composition: { ...(valid().composition as object), hierarchy: other } }),
+      ASSIGNMENT,
+    );
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(paths(outcome.issues)).toContain("composition.hierarchy");
+  });
+
+  it("rejects hierarchy drift independently, when narrowing is deliberately bypassed", () => {
+    // `§3`: the validator is the authority. An assignment check that only runs when someone
+    // remembers to narrow is not one — and hierarchy is checked the same way family and tone are,
+    // with the same disposition: fail visibly, never repaired into agreement.
+    const other = FAMILIES[ASSIGNMENT.family].hierarchies.find((h) => h !== ASSIGNMENT.hierarchy)!;
+    const outcome = validateDesignIntentResponse(
+      valid({ composition: { ...(valid().composition as object), hierarchy: other } }),
+      ASSIGNMENT,
+      UNNARROWED,
+    );
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(paths(outcome.issues)).toContain("composition.hierarchy");
+    const drift = outcome.issues.find((i) => i.path === "composition.hierarchy")!;
+    expect(drift.class).toBe("assignment");
+    expect(drift.disposition).toBe("fail_visibly");
+  });
+
+  it("reports the pairing incompatibility that hierarchy drift creates, beside the drift", () => {
+    // `docs/event-renderer-system.md §8`: the two oldstyle pairings do not hold at monumental. A
+    // drifted hierarchy the chosen pairing cannot carry is a second, genuinely different defect,
+    // and the two classes travel together so the boundary's precedence rule has a real case.
+    const oldstyle: SiblingAssignment = {
       family: "editorial",
       tonalDirection: "mid",
       typographyCategory: "oldstyle",
@@ -262,12 +295,13 @@ describe("the assignment is the contract, not a suggestion", () => {
         typographyPairing: "oldstyle_garamond_worksans",
         composition: { ...(valid().composition as object), hierarchy: "monumental" },
       }),
-      monumental,
+      oldstyle,
+      UNNARROWED,
     );
     expect(outcome.ok).toBe(false);
     if (outcome.ok) return;
-    expect(paths(outcome.issues)).toEqual(["typographyPairing"]);
-    expect(outcome.issues[0].class).toBe("compatibility");
+    expect(paths(outcome.issues)).toEqual(["composition.hierarchy", "typographyPairing"]);
+    expect(outcome.issues.map((i) => i.class)).toEqual(["assignment", "compatibility"]);
   });
 });
 
@@ -340,6 +374,57 @@ describe("presentation, validated separately", () => {
       validatePresentation({ name: "Pressed Garden", description: "x".repeat(40), tagline: "t" })
         .ok,
     ).toBe(false);
+  });
+
+  describe("the concept name accepts the names hosts actually see", () => {
+    // Why this matters more than it looks: the wire schema carries no pattern, so a name this
+    // rule rejects is discarded into `spec.md §7.8`'s deterministic fallback *after* the model has
+    // answered — silently, and the thing thrown away is the graded concept card.
+    const description = "x".repeat(40);
+    const name = (value: string) => validatePresentation({ name: value, description }).ok;
+
+    it("accepts precomposed accented Latin", () => {
+      expect(name("Café Lumière")).toBe(true);
+      expect(name("Jardín Cálido")).toBe(true);
+    });
+
+    it("accepts the same name decomposed, because it is the same name", () => {
+      const precomposed = "Café Lumière";
+      const decomposed = precomposed.normalize("NFD");
+      expect(decomposed).not.toBe(precomposed);
+      expect(name(precomposed)).toBe(true);
+      expect(name(decomposed)).toBe(true);
+    });
+
+    it("accepts a non-ASCII name, including in a script with no case", () => {
+      expect(name("Зимний Сад")).toBe(true);
+      expect(name("雪の庭園")).toBe(true);
+      expect(name("Πρωινό Φως")).toBe(true);
+    });
+
+    it("accepts ordinary apostrophes and dashes, straight and typographic", () => {
+      expect(name("Winter's Edge")).toBe(true);
+      expect(name("Winter’s Edge")).toBe(true);
+      expect(name("Half-Light Terrace")).toBe(true);
+      expect(name("Half–Light Terrace")).toBe(true);
+    });
+
+    it("still refuses an identifier, a number and stray punctuation", () => {
+      for (const bad of [
+        "editorial_v2",
+        "Concept 2",
+        "Direction #1",
+        "Winter Estate!",
+        "Winter/Estate",
+        "Winter.Estate",
+        "'Winter Estate",
+        "Winter Estate-",
+        "Ab",
+        "A".repeat(41),
+        "",
+      ])
+        expect(name(bad), JSON.stringify(bad)).toBe(false);
+    });
   });
 });
 

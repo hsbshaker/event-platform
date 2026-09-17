@@ -24,9 +24,15 @@ import { SCHEMA_MANIFEST } from "@/lib/supabase/schema-manifest";
 import { designIntentInputAssemblyVersion } from "./input";
 
 describe("the DesignIntent version constants", () => {
-  it("are three independent values, and the assembly one is new at T18", () => {
-    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v4");
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v4");
+  it("are three independent values, and only two of them moved at T21", () => {
+    // Prompt and schema bump **together** (`§5.1`'s paired rule, and the `v5` lesson Event
+    // Identity paid for): T21 changed model-visible text on both sides, and a `v4` response is not
+    // a valid `v5` response — `composition.hierarchy` narrows to the assigned value.
+    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v5");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
+    // The assembly version did **not** move. `§B.3`'s rule bumps it for a change to the envelope's
+    // contents, precedence, ordering or representation; T21 chose a representation for the first
+    // time under a constant that had never rendered anything, and the contents are unchanged.
     expect(DESIGN_INTENT_INPUT_ASSEMBLY_VERSION).toBe("design_intent_input_v1");
     // Three labels, three things. `§B.3`: the assembly version "does not bump for a prompt-file
     // edit or a schema change; those have versions of their own and the three are independent."

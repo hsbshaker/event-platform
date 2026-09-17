@@ -25,45 +25,47 @@ export const SCHEMA_FILES = {
 
 type JsonSchema = Record<string, unknown>;
 
-const V4_DESCRIPTION =
-  "Canonical superset schema for the DesignIntent model response: the six design fields (family, " +
-  "tonalDirection, palette, typographyPairing, density, composition) plus motifs plus a " +
-  "non-design `presentation` object. The application splits the response into DesignIntent (six " +
-  "fields, consumed by the compiler) and ConceptPresentation (name/description, never read by the " +
-  "compiler). At runtime narrow hard-assignment/catalog enums before sending to the " +
-  "structured-output provider. v4 reconciles this schema with the Revision 6 production " +
-  "vocabulary: the twelve concrete typography pairing IDs replace six category-shaped IDs, the " +
-  "seven canonical motif IDs replace a ten-item catalog that no longer exists, and Revision 1 " +
-  "bundle wording is replaced by family. v3 is preserved at history/design-intent.v3.schema.json.";
+const V5_DESCRIPTION =
+  "Canonical superset schema for the DesignIntent model response: the seven design fields " +
+  "(family, tonalDirection, palette, typographyPairing, density, composition, motifs) plus a " +
+  "non-design `presentation` object. The application splits the response into DesignIntent (the " +
+  "seven fields, consumed by the compiler) and ConceptPresentation (name/description, never read " +
+  "by the compiler). At runtime the hard-assignment enums are narrowed before the request is " +
+  "sent. v5 is the first version sent to a provider: composition.hierarchy is a hard assignment " +
+  "field like family and tonalDirection and narrows to the assigned value, and the concept-name " +
+  "rule admits Unicode letters and combining marks so an ordinary host-facing name is not " +
+  "discarded into a deterministic fallback. v4 is preserved at " +
+  "history/design-intent.v4.schema.json and v3 at history/design-intent.v3.schema.json.";
 
-const V4_COMMENT =
-  "design_intent_schema_v4: the twelve concrete typography pairing IDs replace six " +
-  "category-shaped IDs, the seven curated motif IDs replace a retired ten-item catalog, and " +
-  "family wording replaces the last of Revision 1's bundle language. v3 is preserved under " +
-  "history/. Generated from src/lib/ai/design-intent/contract.ts — do not hand-edit.";
+const V5_COMMENT =
+  "design_intent_schema_v5: composition.hierarchy is planner-assigned and narrows to the assigned " +
+  "value; the presentation name accepts Unicode letters and combining marks. v4 and v3 are " +
+  "preserved under history/. Generated from src/lib/ai/design-intent/contract.ts — do not " +
+  "hand-edit.";
 
 export function buildSchemaFiles(): Record<keyof typeof SCHEMA_FILES, JsonSchema> {
   return {
     response: {
       $schema: "https://json-schema.org/draft/2020-12/schema",
-      $id: "https://event-platform.local/schemas/design-intent.v4.schema.json",
-      title: "DesignIntentResponse (design_intent_schema_v4)",
-      description: V4_DESCRIPTION,
+      $id: "https://event-platform.local/schemas/design-intent.v5.schema.json",
+      title: "DesignIntentResponse (design_intent_schema_v5)",
+      description: V5_DESCRIPTION,
       ...stripMeta(canonicalJsonSchema()),
-      $comment: V4_COMMENT,
+      $comment: V5_COMMENT,
     },
     wire: {
       $schema: "https://json-schema.org/draft/2020-12/schema",
-      $id: "https://event-platform.local/schemas/design-intent.v4.wire.schema.json",
-      title: "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v4)",
+      $id: "https://event-platform.local/schemas/design-intent.v5.wire.schema.json",
+      title: "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v5)",
       description:
         "The canonical schema reduced to the subset OpenAI structured outputs accept in strict " +
         "mode — every property required, additionalProperties false everywhere, no " +
         "length/count/pattern/uniqueness keywords. Committed so the reduction is reviewable. " +
         "This is the UNNARROWED superset: the schema actually sent for one concept is this " +
-        "reduction applied to the sibling's narrowed contract, where family and tonalDirection " +
-        "are single-value enums and typographyPairing is filtered to the assigned category and " +
-        "hierarchy (docs/model-contracts.md §5.2). Generated — do not hand-edit. The dropped " +
+        "reduction applied to the sibling's narrowed contract, where family, tonalDirection and " +
+        "composition.hierarchy are single-value enums and typographyPairing is filtered to the " +
+        "assigned category and hierarchy (docs/model-contracts.md §5.2). Generated — do not " +
+        "hand-edit. The dropped " +
         "constraints are enforced by the application validator, which is the authority " +
         "(docs/model-contracts.md §3).",
       ...stripMeta(strictWireSchema()),
