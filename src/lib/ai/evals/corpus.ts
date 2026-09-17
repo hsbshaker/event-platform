@@ -210,10 +210,10 @@ export const MODEL_VISIBLE_SURFACES = {
    */
   "input assembly": "src/lib/ai/openai/event-identity-input.ts",
   /**
-   * The DesignIntent prompt. Declared here at T19 — while it was still `design_intent_v4`, a
-   * pre-provider draft no model had been sent, and before the 4C corpora were authored — so the
-   * scan covered it from the moment either changed, rather than being widened after someone had
-   * seen the cases. T21 rewrote it as `design_intent_v5` and this scan read the result.
+   * The DesignIntent prompt. It exists today as `design_intent_v4`, a pre-provider draft that no
+   * model has ever been sent, and **T21 rewrites it**. Declared here at T19 — before the 4C
+   * corpora are authored and before the prompt is written — so the scan covers it from the moment
+   * either changes, rather than being widened after someone has seen the cases.
    */
   "design intent prompt": "docs/model-prompts/design-intent.system.md",
   /**
@@ -221,24 +221,6 @@ export const MODEL_VISIBLE_SURFACES = {
    * `.describe()` string ships to the model, which is how Phase 4A's leak 4 reached production.
    */
   "design intent wire schema": "docs/model-schemas/design-intent.wire.schema.json",
-  /**
-   * The DesignIntent provider boundary. It carries static model-visible text of its own — the
-   * correction turn a repair retry appends — and it is where an implementer would most naturally
-   * put a label that belongs in the assembly. Declared for the same reason `provider boundary` is
-   * above it: naming only the future file would let text put in the existing one go unscanned.
-   */
-  "design intent provider boundary": "src/lib/ai/openai/design-intent.ts",
-  /**
-   * Where T21's assembly text lives: the labels, the delimiters, the authority headings and the
-   * empty-value marker that render the brief and the assignment. Every static string T21 adds
-   * outside the prompt and the wire schema is in this file or the one above, which is what makes
-   * the scan's coverage of this call complete rather than nearly complete.
-   *
-   * 4C has no deadline problem here and 4B did: the two DesignIntent corpora were frozen at T20 and
-   * T20B, *before* this text was written, so a collision is fixed at the prompt — which is where
-   * `§3.5` puts it once the corpus is the older artifact.
-   */
-  "design intent input assembly": "src/lib/ai/openai/design-intent-input.ts",
 } as const;
 
 /** The assembly version at which the third surface above is still legitimately absent. */

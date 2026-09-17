@@ -28,17 +28,6 @@ const SRC = new URL("../../", import.meta.url).pathname;
 const INTERPRETER = path.join("lib", "ai", "openai", "event-identity.ts");
 
 /**
- * Phase 4C T21's call site: the DesignIntent provider boundary.
- *
- * Named because the inventory below said adding one was allowed and was "the moment to re-prove
- * that the new call site reads the persisted identity and not the words behind it". It is proved
- * rather than asserted: the invariant above still applies to it unchanged — it may not name a
- * prompt — and its input type is `DesignIntentCallInput`, whose two channels
- * `design-intent/boundary.test.ts` pins to the brief and one assignment.
- */
-const DESIGN_INTENT = path.join("lib", "ai", "openai", "design-intent.ts");
-
-/**
  * The module that composes that request, since T9 split it out of the caller.
  *
  * The invariant below binds "reads host prose" to "calls a model", which was the whole boundary
@@ -86,13 +75,8 @@ describe("the raw-prompt boundary", () => {
       .filter((file) => file !== INTERPRETER)
       .filter((file) => {
         const source = readFileSync(path.join(SRC, file), "utf8")
-          // Not host prose: our own system prompt, the retry kind, the version stamp. The
-          // two-word phrase is exempt for the same reason the identifiers are — "system prompt"
-          // names the committed file this repository wrote, which is the opposite of host prose —
-          // and it is the whole phrase or nothing, so `input.prompt` and a draft's prompt column
-          // are still caught.
-          .replace(/systemPrompt|PROMPT_PATH|re-?prompt|promptVersion|PROMPT_VERSION/g, "")
-          .replace(/system prompt/gi, "");
+          // Not host prose: our own system prompt, the retry kind, the version stamp.
+          .replace(/systemPrompt|PROMPT_PATH|reprompt|promptVersion|PROMPT_VERSION/g, "");
         return /\bprompt\b/i.test(source);
       });
 
@@ -117,22 +101,11 @@ describe("the raw-prompt boundary", () => {
     expect(importers).toEqual([INTERPRETER, path.join("lib", "ai", "provider.ts")].sort());
   });
 
-  it("has two model call sites today, and says what adding another costs", () => {
+  it("has exactly one model call site today, and says what adding another costs", () => {
     // Kept as a separate, extensible inventory rather than folded into the invariant above.
-    // Adding a module here is allowed — 4C did, and 4D will — but it is the moment to re-prove
+    // Adding a module here is allowed — 4C and 4D will — but it is the moment to re-prove
     // that the new call site reads the persisted identity and not the words behind it.
-    //
-    // T21 added the DesignIntent boundary. The re-proof is the two assertions after it: its input
-    // is the branded creative brief plus one assignment and has no other channel, and the brief
-    // is `AuthoritativeIdentity`, which brands the `identity` sibling rather than the envelope —
-    // so the host's own words are not reachable from a value of that type at all.
-    expect(modelCallers().sort()).toEqual([DESIGN_INTENT, INTERPRETER].sort());
-
-    const designIntentSource = readFileSync(path.join(SRC, DESIGN_INTENT), "utf8");
-    expect(designIntentSource).toMatch(/input: DesignIntentCallInput/);
-    // It reaches the host's words through no other door either: the only assembly it imports is
-    // its own, and that module takes the brief and the assignment and nothing else.
-    expect(designIntentSource).not.toMatch(/event-identity-input/);
+    expect(modelCallers()).toEqual([INTERPRETER]);
   });
 
   it("keeps the downstream call inputs free of prompt text", () => {

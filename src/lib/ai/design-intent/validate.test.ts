@@ -335,41 +335,6 @@ describe("presentation, validated separately", () => {
     );
   });
 
-  it("accepts a name in any script, because an accent decides nothing the rule is for", () => {
-    // The pattern used to be `^[A-Za-z][A-Za-z' -]*[A-Za-z]$`, and the wire schema carries no
-    // `pattern` at all — so the model was free to return an accented name, this validator then
-    // rejected it, and a perfectly good concept card fell to a deterministic fallback silently.
-    // It punished correct behaviour hardest on exactly the events whose best card carries an
-    // accent, and minimum-wowable criterion 4 is graded from that card.
-    const description = "x".repeat(40);
-    for (const name of [
-      "Quinceañera Luz", // precomposed
-      "José Verde", // the same accent, decomposed into a combining mark
-      "Winter’s Eve", // a typographic apostrophe, which Title Case English invites
-      "Sangeet Nights",
-      "Ìlú Àárọ̀", // Yoruba tone marks
-      "Fête Champêtre",
-      "灯籠の夜",
-    ]) {
-      expect(validatePresentation({ name, description }).ok, name).toBe(true);
-    }
-  });
-
-  it("still refuses what the rule is actually for", () => {
-    const description = "x".repeat(40);
-    for (const name of [
-      "editorial_v2", // an enum id
-      "Concept 2", // a number
-      " Pressed Garden", // no letter at the start
-      "Pressed Garden-", // no letter or mark at the end
-      "́Pressed", // a combining mark cannot begin a name
-      "Pressed & Garden",
-      "Pressed/Garden",
-    ]) {
-      expect(validatePresentation({ name, description }).ok, name).toBe(false);
-    }
-  });
-
   it("refuses an unknown key", () => {
     expect(
       validatePresentation({ name: "Pressed Garden", description: "x".repeat(40), tagline: "t" })

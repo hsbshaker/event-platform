@@ -92,35 +92,8 @@ export const EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION = "event_identity_input_v2";
 
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5";
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5";
-/**
- * `v5` is the first DesignIntent prompt and schema pair that is actually sent to a provider, and
- * they move together because `docs/model-contracts.md §5.1` and `docs/phase-4b-plan.md §E` require
- * it whenever model-visible text changes — the `event_identity_v5` lesson, where two instructions
- * living inside the wire schema meant a prompt-only fix could never have reached them.
- *
- * `design_intent_v4` was a **pre-provider draft**. It addressed three inputs this call has never
- * had — `redesignFeedback`, `priorConceptNames`, `priorIntentSignatures` — and told the model to
- * differentiate itself from concepts it cannot see, which is both impossible for a blind parallel
- * call and a measurement of the planner rather than the model (`docs/phase-4b-plan.md §E`). Those
- * sections are removed. What replaces them is the part the draft never stated: that
- * `hostConstraints` are authoritative and `creativeGuidance` is advisory in the full sense, that
- * no fact may be invented because none is supplied, and that `composition.hierarchy` must equal
- * the assigned hierarchy.
- *
- * The schema moves for its own reasons and not only to keep the pair aligned, which is what makes
- * the bump honest rather than a relabelling of old bytes: several `.describe()` strings addressed
- * the *implementer* while shipping to the model ("Enforce with post-schema semantic validation",
- * "Runtime schema should narrow this enum to one value"), and `composition.hierarchy` carried no
- * statement of the assignment requirement that `./design-intent/narrowing.ts` deliberately does
- * not enforce in the enum.
- *
- * `design_intent_v4` is preserved at `docs/model-prompts/history/design-intent.v4.system.md`,
- * `docs/model-schemas/history/design-intent.v4.schema.json` and
- * `docs/model-schemas/history/design-intent.v4.wire.schema.json`. No evidence exists under `v4`:
- * no DesignIntent call has ever been made.
- */
-export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v5";
-export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v5";
+export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v4";
+export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v4";
 
 /**
  * How the DesignIntent request envelope is built: which channels are present, how each is
@@ -152,14 +125,9 @@ export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v5";
  * brief or the assignment is rendered. It does not bump for a prompt-file edit or a schema
  * change; those have versions of their own and the three are independent.
  *
- * `v1` declared the contents before any rendering existed. T21 chose that rendering — the labels,
- * the order, the delimiters and the authority wording in
- * `src/lib/ai/openai/design-intent-input.ts` — and this constant stays at `v1` because choosing a
- * representation for the first time is not changing one. The test that keeps that honest is the
- * absence of evidence rather than an argument: no DesignIntent request has ever been sent, so
- * there is no earlier rendering for `v1` to have described, and nothing recorded under this label
- * means anything other than what `design_intent_input_v1/` now pins. The next change to any of
- * those four things is a bump, with its own fixture directory beside the old one.
+ * `v1` declares the contents. The rendering that the "representation" clause governs does not
+ * exist yet — that is the prompt, which is T21 — so the first change to land under this constant
+ * must decide whether it is choosing a representation for the first time or changing one.
  */
 export const DESIGN_INTENT_INPUT_ASSEMBLY_VERSION = "design_intent_input_v1";
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";

@@ -106,7 +106,7 @@ export const paletteSchema = z
       description: "Creative source palette only. 3-5 unique uppercase #RRGGBB colors.",
     }),
     dominant: hexColor.describe(
-      "Must exactly equal one member of colors, character for character.",
+      "Must exactly equal one member of colors. Enforce with post-schema semantic validation.",
     ),
   })
   .strict();
@@ -116,49 +116,29 @@ const COMPOSITION_DESCRIPTION =
   "afterwards; selects nothing.";
 
 const HIERARCHY_DESCRIPTION =
-  "Must exactly match the hierarchy named in the assignment. The enum offers every hierarchy the " +
-  "assigned family admits, so a departure from the assignment is visible rather than impossible; " +
-  "that is not an invitation to depart from it.";
+  "Runtime schema narrows by family: invitation excludes monumental; statement allows only " +
+  "dramatic and monumental.";
 
 const FAMILY_DESCRIPTION =
-  "Design grammar. Must exactly match the family named in the assignment. Not a layout: the " +
-  "composition call authors structure.";
+  "Design grammar. Must exactly match the deterministic assignment; runtime schema narrows this " +
+  "to one value. Not a layout: the composition call authors structure.";
 
-const TONE_DESCRIPTION = "Must exactly match the tonal direction named in the assignment.";
+const TONE_DESCRIPTION =
+  "Must exactly match the deterministic assignment. Runtime schema should narrow this enum to " +
+  "one value.";
 
 const PAIRING_DESCRIPTION =
   "A concrete curated pairing ID, not a category and not raw font names. Category and pairing " +
-  "are different things: each of the six typography categories holds two pairings. Choose one of " +
-  "the pairings offered in the assignment; they are already filtered to the assigned typography " +
-  "category and to the pairings that hold at the assigned hierarchy.";
+  "are different things: each of the six typography categories holds two pairings. The runtime " +
+  "schema narrows this enum to the pairings in the planner-assigned typography category, and " +
+  "further to pairings that hold at the assigned hierarchy — when hierarchy is monumental, " +
+  "only monumental-capable pairings are offered.";
 
 const MOTIFS_DESCRIPTION =
   "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, " +
   "linen) and three are arrangements (equestrian, botanical, celestial). Placement is the " +
-  "composition call's, not this one's; the ornament value in `composition` caps how many " +
-  "actually render.";
-
-/**
- * A concept name's shape: a letter at each end, and letters, marks, apostrophes, hyphens and
- * spaces between them.
- *
- * **Unicode letters, not `A-Za-z`.** The ASCII class this replaces rejected every accented name,
- * and it did so silently — the wire schema carries no `pattern`, so the model was free to return
- * one, and application validation then dropped a perfectly good concept card into a deterministic
- * fallback. That is the defect class this programme keeps paying for: a rule that punishes correct
- * behaviour. It bit hardest exactly where the product most needs to be good, because the events
- * whose best card carries an accent are the ones a character class was never deciding anything
- * about. What the rule is actually for — Title Case words, not an enum id, not a formula of tone
- * plus layout word — is unaffected by an accent, and is stated in the field's own description.
- *
- * `\p{M}` is in the inner and trailing classes because a decomposed accent is a combining mark
- * following its letter: without it, `José` fails where `José` passes, which is the same
- * defect one normalization form along. A mark cannot begin a name, so the leading anchor is a
- * letter alone. `’` sits beside `'` for the same reason: a model writing Title Case English
- * may reasonably reach for a typographic apostrophe, and rejecting it decides nothing the rule
- * cares about.
- */
-export const PRESENTATION_NAME = /^\p{L}[\p{L}\p{M}'’ -]*[\p{L}\p{M}]$/u;
+  "composition call's, not this one's. Runtime narrowing may further constrain the catalog; the " +
+  "ornament direction in `composition` caps how many actually render.";
 
 /**
  * Host-facing concept metadata. Never compiled.
@@ -174,7 +154,7 @@ export const presentationSchema = z
       .string()
       .min(4)
       .max(40)
-      .regex(PRESENTATION_NAME)
+      .regex(/^[A-Za-z][A-Za-z' -]*[A-Za-z]$/)
       .describe(
         "Two or three Title Case words evoking the concept's character. Not a family or enum ID, " +
           "not a brand name, and not a formula of tone plus layout word.",

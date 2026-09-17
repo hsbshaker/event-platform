@@ -7,9 +7,9 @@
  * binding the runner to an implementation also means importing it, and the import block is inside
  * the hash. So the indirection lives here instead.
  *
- * This file is **not** frozen. At T21 exactly one thing changed: the export below now points at the
+ * This file is **not** frozen. At T21 exactly one thing changes: the export below points at the
  * production DesignIntent boundary rather than at the refusal. Nothing else in the frozen harness
- * was touched — not the runner, not the gate, not the checks, not the artifact.
+ * is touched — not the runner, not the gate, not the checks, not the artifact.
  *
  * **Why T21 and not the harness owns the call.** `docs/phase-4b-plan.md`, after "The stop point":
  * a sealed challenge is generalization evidence *about an implementation*, so the eval seam must
@@ -17,12 +17,11 @@
  * harness would let the set pass while production sent something else, which is the one outcome
  * that makes the whole exercise worthless."*
  *
- * It stays one binding on purpose, so what this file does is reviewable at a glance. The adapter
- * lives in `src/lib/ai/openai/design-intent-runner.ts` and the request itself in
- * `src/lib/ai/openai/design-intent.ts`.
+ * It stays one binding on purpose, so what this file does is reviewable at a glance.
  */
-import { designIntentRunner as productionRunner } from "@/lib/ai/openai/design-intent-runner";
+import {
+  designIntentRunnerUnavailable,
+  type DesignIntentCallRunner,
+} from "./design-intent-evidence";
 
-import { type DesignIntentCallRunner } from "./design-intent-evidence";
-
-export const designIntentRunner: DesignIntentCallRunner = productionRunner;
+export const designIntentRunner: DesignIntentCallRunner = designIntentRunnerUnavailable;
