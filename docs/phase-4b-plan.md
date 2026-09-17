@@ -1,10 +1,12 @@
 # Phase 4B and 4C plan — clarification lifecycle, then planner and DesignIntent × 3
 
-**Status:** in implementation. Phase 4B **T1–T9 have shipped** — the identity-revision and
-clarification-answer migrations, the frozen T4/T5 validation machinery, the T8 corpus frozen at its
-own SHA, `event_identity_input_v2`, and **T9A** — the call-level spend, idempotency, claim and
-telemetry controls, with their migration and the non-model-visible boundary accounting fix. T10
-onward, and the whole of Phase 4C, are still plan only.
+**Status:** Phase 4B is **closed — GO** (Part V, *The Phase 4B close*). **T1–T14 have shipped** —
+the identity-revision and clarification-answer migrations, the frozen T4/T5 validation machinery,
+the T8 corpus frozen at its own SHA, `event_identity_input_v2`, **T9A**'s call-level spend,
+idempotency, claim and telemetry controls, T10's orchestration, T11's clarification surface, the
+T12 implementation freeze, the one authorized T13 validation run, and T14's evidence commit and
+protection. **The whole of Phase 4C is still plan only**, and does not begin until it is separately
+authorized.
 The original header read *"plan only … no production code, prompt, schema, migration or corpus
 exists for any of it"*; that stopped being true at T1 and is corrected here rather than left to
 mislead a reader deciding what 4B still owes.
@@ -1715,6 +1717,70 @@ live run; it contradicted the table below it and the `T12` and `T13` rows.)
 
 Plus the standing gate: deterministic checks green, independent engineering review, and an explicit
 go/no-go recorded with its SHA chain.
+
+## The Phase 4B close — the go/no-go record
+
+**PHASE 4B — GO.** Recorded here, beside the gate it answers, so a reader does not have to
+reconstruct the decision from a changelog. This is a **closure record, not a new evaluation**: it
+adds no requirement, and it neither softens nor strengthens a frozen criterion. Nothing below was
+decided after the results were seen.
+
+| | |
+| --- | --- |
+| Implementation freeze (T12) | `4d168ed45455495acd8e2acbaad5c47feeb4843b` |
+| Operational lineage carrying T13 into T14 | `5993c52993dfbf3a0ec1c4f250c94975e50dc0be` |
+| T13 evidence committed and protected (T14) | `356eb245a991a49daa2903d95dafa9f8f72b56ec` |
+
+Gate items 1–14 were proven offline at the implementation freeze and its reviewed lineage, item 12
+on PostgreSQL 17 as that row requires. Item 15 passed under the criteria frozen at T5, **before the
+cases existed**, applied unchanged.
+
+**T13 — one authorized invocation.** The set ran once, from a detached worktree pinned to the
+implementation freeze, so the evidence cites the frozen implementation rather than operational
+HEAD. Ten logical calls and ten provider responses, one attempt each: **0 transient retries, 0
+repair retries**, every response schema-valid on the first call. Recorded cost approximately
+**$0.4987**, priced from recorded telemetry against the verified `gpt-5.6-sol` profile. No attempt
+had unknown usage.
+
+**Mechanical — 10/10.** Every case passes; **no frozen check reports `fail`**, and none reports
+`advisory`. The five absolute checks decided on every case they apply to, `answerBoundToItsQuestion`
+on the four cases carrying two or more answers.
+
+**Independent blind qualitative — 30/30 Yes, 0 No.** A fresh GPT Astra session with no prior
+project context read `blind-review.md` **alone** — no mechanical report, no corpus, no case ids, no
+dimensions, no rationales, no expected outcome, and no position-to-case mapping — and answered the
+three frozen questions on each of the ten cases, citing the text.
+
+The generated evidence was committed **unchanged** and its directory joined
+`PROTECTED_RESULT_DIRS` in the same change (T14). No criterion was altered after the results were
+seen, and there was no rerun and no tuning.
+
+### What this GO does not license
+
+Five limits are part of the record, not caveats to be dropped when it is cited later.
+
+1. **T13 validates the clarification-answer input shape and lifecycle, not EventIdentity's creative
+   quality.** Design and interpretation quality are evidenced by the `v5` sealed challenge
+   (`model-contracts.md §4.6`), and by nothing here.
+2. **The prior clarification rounds in the T13 cases are hand-authored fixture state.** Only the
+   rerun was a live call, so T13 does **not** show that EventIdentity chooses good questions, or
+   chooses to ask at the right time. No frozen check in this set observes question generation.
+3. **Cumulative history is verified as rendering, not as selection.** The harness hands the
+   assembly the full history, so the production query that gathers every prior answer sits *above*
+   that seam and is not evidenced by T13. That production behaviour is owned by Phase 4B's
+   deterministic orchestration and provenance coverage (gate items 4, 5, 8 and 9), which is where
+   it is proven.
+4. **The T13 command's Vitest process exited nonzero, and that is preserved as history.** The
+   sibling `creative-understanding.eval.ts` runner refused `EVAL_SET=rerunBehaviour` during
+   collection, exactly as its guard is written to, and made no provider call. The clarification
+   runner itself completed all ten cases and wrote `mechanical-report.md`, this set's completion
+   artifact. The ergonomics of a shared eval project are recorded as future debt; they were not
+   "fixed" at T14 or here, because doing so would edit frozen machinery after a run it graded.
+5. **The `response_captured` long-recovery behaviour remains held debt**, technical and product
+   both. A durably captured paid response whose deterministic completion keeps failing for a
+   non-deterministic reason can sit in recovery until the 48-hour terminaliser while polling
+   retries, costing no second model call and losing no evidence. What the host should be told, and
+   after how long, is an open product decision. This GO does **not** declare it solved.
 
 ## The Phase 4C exit gate
 

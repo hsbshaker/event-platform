@@ -211,9 +211,17 @@ The middle row is the one most easily overstated, and `results/creative-understa
 records why, along with the one semantic axis inside it that is not novel.
 
 **Where evidence and incidents live.** A `results/*/` directory holding a completed run is
-immutable in full — the machine evidence and the narrative files beside it. **Six** such directories
-now exist — the `v3` baseline, the `v1` sealed challenge, and the four `v5` runs — and
-`PROTECTED_RESULT_DIRS` refuses every one as an output path. A directory is added to that list as
+immutable in full — the machine evidence and the narrative files beside it. **Seven** such
+directories now exist. Six are the creative-understanding runs this section is about — the `v3`
+baseline, the `v1` sealed challenge, and the four `v5` runs. The seventh,
+`clarification-rerun-behaviour-v1`, came from Phase 4B and belongs to **none** of the classes in
+the table above: it is pre-registered validation evidence for the clarification-answer input shape
+and lifecycle (`phase-4b-plan.md §3.9`), it is **not** fresh generalization evidence for
+`event_identity_v5`, it does **not** replace or reopen the spent `v5` sealed challenge, and because
+the prior clarification rounds in its cases are hand-authored fixture state it is **not** evidence
+about whether EventIdentity asks good questions, asks at the right time, or produces good design.
+It is listed here because it is protected evidence, not because it evidences the same thing.
+`PROTECTED_RESULT_DIRS` refuses all seven as an output path. A directory is added to that list as
 part of finishing the run that produced it, never as a follow-up: until it is, the only guard is
 the write-once check, which `EVAL_OVERWRITE=1` exists to override. No eval set now has a writable
 output path. `process-notes.md` under
