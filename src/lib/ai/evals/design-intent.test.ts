@@ -403,12 +403,12 @@ describe("nothing frozen at T19 changes afterwards", () => {
       corpora: [
         "docs/model-evals/design-intent-regression.json",
         "docs/model-evals/design-intent-validation-v2.json",
-        "docs/model-evals/design-intent-sealed-challenge.json",
+        "docs/model-evals/design-intent-sealed-challenge-v2.json",
       ],
       outputs: [
         "docs/model-evals/results/design-intent-regression-v1",
         "docs/model-evals/results/design-intent-validation-v2",
-        "docs/model-evals/results/design-intent-sealed-challenge-v1",
+        "docs/model-evals/results/design-intent-sealed-challenge-v2",
       ],
     });
   });
@@ -579,7 +579,7 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
     // Unconditional: the names are fixed now so that adding a file later is the entire change.
     expect(CORPUS_FILES.designIntentRegression).toBe("design-intent-regression.json");
     expect(CORPUS_FILES.designIntentValidation).toBe("design-intent-validation-v2.json");
-    expect(CORPUS_FILES.designIntentChallenge).toBe("design-intent-sealed-challenge.json");
+    expect(CORPUS_FILES.designIntentChallenge).toBe("design-intent-sealed-challenge-v2.json");
   });
 
   /**
@@ -642,6 +642,33 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
    * Deleting the thing a correction cost is how a programme loses the ability to say what the
    * correction cost. It stays on disk, byte for byte, and `INVALIDATED_CORPORA` carries its digest.
    */
+  /**
+   * The invalidated T22 sealed-challenge candidate, preserved for the same reason and by the same
+   * mechanism as the validation corpus above.
+   *
+   * It was mechanically clean and was never run. It is invalid because a *reviewer who had read
+   * the implementation* read its cases, which is a thing no later packet correction can undo: a
+   * sealed challenge is sealed by who has seen it, not by what the packet says.
+   */
+  it("preserves the invalidated sealed-challenge candidate unchanged", () => {
+    const file = `${ROOT}docs/model-evals/design-intent-sealed-challenge.json`;
+    expect(existsSync(file)).toBe(true);
+    const bytes = readFileSync(file);
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
+      "080cbaa15590ef8e790fe6f371c98304366deb705ac6f9a908491ef63266ce63",
+    );
+    const record = INVALIDATED_CORPORA.find(
+      (entry) => entry.path === "docs/model-evals/design-intent-sealed-challenge.json",
+    );
+    expect(record?.sha256).toBe("080cbaa15590ef8e790fe6f371c98304366deb705ac6f9a908491ef63266ce63");
+    expect(record?.bytes).toBe(bytes.byteLength);
+    expect(record?.invalidatedAt).toBe("T22-candidate-1");
+    // Nothing points at it, and the gated slot now names its replacement.
+    expect(EVAL_SETS.designIntentChallenge.corpus).not.toBe(
+      "docs/model-evals/design-intent-sealed-challenge.json",
+    );
+  });
+
   it("preserves the invalidated validation corpus unchanged", () => {
     const file = `${ROOT}docs/model-evals/design-intent-validation.json`;
     expect(existsSync(file)).toBe(true);

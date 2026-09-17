@@ -92,7 +92,7 @@ export const CORPUS_FILES = {
    * unknown, is what keeps its arrival from requiring an edit anywhere — exactly the arrangement
    * `challenge2` proved twice.
    */
-  designIntentChallenge: "design-intent-sealed-challenge.json",
+  designIntentChallenge: "design-intent-sealed-challenge-v2.json",
 } as const;
 
 export type CorpusSet = keyof typeof CORPUS_FILES;
@@ -337,7 +337,7 @@ export const EVAL_SETS = {
   designIntentChallenge: {
     runner: "design-intent",
     corpus: corpusPath("designIntentChallenge"),
-    out: "docs/model-evals/results/design-intent-sealed-challenge-v1",
+    out: "docs/model-evals/results/design-intent-sealed-challenge-v2",
     label:
       "SEALED CHALLENGE (4C DesignIntent) — authored after the T21 implementation and this " +
       "harness froze, by an author who saw neither the prompt nor prior outputs nor known " +
@@ -396,6 +396,22 @@ export const INVALIDATED_CORPORA = [
       "traceable into all three' — which required conformance this stage cannot express, and read " +
       "while that criterion was being corrected. Preserved unchanged; no eval set points at it; " +
       "never run as pre-registered evidence for the corrected contract",
+  },
+  {
+    path: "docs/model-evals/design-intent-sealed-challenge.json",
+    sha256: "080cbaa15590ef8e790fe6f371c98304366deb705ac6f9a908491ef63266ce63",
+    bytes: 43482,
+    invalidatedAt: "T22-candidate-1",
+    why:
+      "authored at T22 and mechanically clean \u2014 gated contract, leakage scan, recurrence and " +
+      "overlap checks all passed \u2014 then invalidated **before** its freeze and before any " +
+      "provider call, because the system-aware fairness review exposed two defects in the " +
+      "reviewer context rather than in the cases: the packet never stated the bounded typography " +
+      "and motif vocabularies, and never said which DesignIntent fields the planner assigns. " +
+      "Correcting the packet and reusing the same corpus was refused: a sealed challenge read by " +
+      "a reviewer who has seen the implementation is no longer sealed, whatever the packet later " +
+      "says. The same review also found premise-level overlap with the pre-registered set that " +
+      "lexical scanning cannot see. Zero provider calls, zero eval runs. Never used as evidence",
   },
 ] as const;
 

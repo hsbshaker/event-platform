@@ -1928,6 +1928,37 @@ problem is well-trodden rather than evidence of reuse, and which is exactly why 
 **T21 is therefore written without reading `docs/model-evals/design-intent-validation.json`**, and
 that is a condition of the task rather than a courtesy.
 
+**The first sealed challenge was invalidated before it was frozen, and it was the reviewer's
+context that failed rather than the cases.** `c6ccf2a` authored twelve cases, `DSC-01`–`DSC-12`,
+digest `080cbaa1…`, 43,482 bytes. They passed the gated structural contract, the leakage scan
+across all eight model-visible surfaces, the cross-case recurrence checks and the cross-corpus
+overlap check, and their author's isolation was audited clean across fifteen commands. The
+system-aware fairness review then accepted every case and asked instead for two things the
+**reviewer packet** does not say: that typography is chosen from a bounded curated table and
+motifs from a fixed set, and that `family`, `tonalDirection` and `composition.hierarchy` are
+planner-assigned rather than model-chosen. A blind reviewer without those facts can mark a lawful
+output down for a capability this stage does not have, or read a planner-assigned value as the
+model eroding a host constraint.
+
+Correcting the packet and reusing the same corpus was refused, and the reason is worth stating
+plainly because it is not obvious: **a sealed challenge is sealed by who has read it, not by what
+its packet says.** Once a reviewer who has seen the prompt, the schema and the provider boundary
+has read the cases, no later correction to the packet makes those cases unseen again. Repairing
+the corpus in response to that reviewer's findings would have been the same move, one step
+further on. So the candidate is invalidated, preserved at its authored path, recorded in
+`INVALIDATED_CORPORA` with its digest, pointed at by nothing, and never used as evidence — and
+the challenge slot now names a replacement path and a replacement result directory, so its v1
+evidence identity is not reused either.
+
+Two further things the review established, both kept: the **zero-provider-call** state was never
+broken — no run happened, no money was spent, and the T22 authorization is therefore unconsumed;
+and lexical overlap controls **cannot see premise-level duplication**. Two cases reproduced the
+shape of cases in the pre-registered set closely enough to measure in-distribution recall rather
+than generalization, while sharing no n-gram the scanner could catch. The replacement therefore
+adds a **semantic premise-overlap review, run before the system-aware fairness review**, by a
+reviewer who compares corpora but does not see the implementation — so a premise defect can still
+be repaired by the still-isolated author, while a system-aware finding cannot.
+
 **Two freeze commits described themselves more tidily than they were, and both corrections are
 kept here rather than in a conversation.** A record that rounds off its own edges is worth less
 than one that does not, and in both cases the overstatement was caught by review rather than by
