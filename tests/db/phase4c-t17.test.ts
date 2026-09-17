@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "pg";
 
+import {
+  DESIGN_INTENT_INPUT_ASSEMBLY_VERSION,
+  DESIGN_INTENT_PROMPT_VERSION,
+  DESIGN_INTENT_SCHEMA_VERSION,
+} from "@/lib/ai/versions";
+
 import { asActor, connect, createAuthUser, errorCode, resetDatabase } from "./harness";
 
 /**
@@ -49,9 +55,17 @@ const ALLOTMENT = { allowed: ["rule"], forbidden: ["monogram"] };
 const ASSIGNMENT = { family: "editorial", tonalDirection: "quiet", typographyCategory: "serif" };
 const PRESENTATION = { name: "Pressed Garden", description: "A quiet editorial direction." };
 
-const PROMPT_VERSION = "design_intent_v4";
-const SCHEMA_VERSION = "design_intent_schema_v4";
-const ASSEMBLY_VERSION = "design_intent_input_v1";
+/**
+ * The versions the artifact records are the production constants, not literals beside them.
+ *
+ * Phase 4C T18 added `DESIGN_INTENT_INPUT_ASSEMBLY_VERSION` and `docs/phase-4b-plan.md §G.2`
+ * is what this column is for, so the column and the constant have to be the same thing. A
+ * literal here would let the code bump its version while the persistence test kept asserting
+ * the old one — which is precisely the drift `§B.3`'s bump rule exists to prevent.
+ */
+const PROMPT_VERSION = DESIGN_INTENT_PROMPT_VERSION;
+const SCHEMA_VERSION = DESIGN_INTENT_SCHEMA_VERSION;
+const ASSEMBLY_VERSION = DESIGN_INTENT_INPUT_ASSEMBLY_VERSION;
 
 /** Every column of `design_intent_artifacts`, so the immutability sweep cannot go stale. */
 const ARTIFACT_COLUMNS = [

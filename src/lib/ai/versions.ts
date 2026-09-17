@@ -94,6 +94,42 @@ export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5";
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5";
 export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v4";
 export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v4";
+
+/**
+ * How the DesignIntent request envelope is built: which channels are present, how each is
+ * labelled to the model, in what order they appear, how precedence between them is expressed.
+ *
+ * The same rule as `EVENT_IDENTITY_INPUT_ASSEMBLY_VERSION`, and here for the same reason. The
+ * prompt version names the accepted contract; the *effective model input* can change underneath
+ * it, and hiding a behaviour change under an unchanged label is what this project has already
+ * paid for once. `design_intent_artifacts.design_intent_input_assembly_version` records this
+ * constant, `not null`, so "produced before this was recorded" and "the writer forgot" cannot be
+ * the same value (`docs/phase-4b-plan.md §G.2`).
+ *
+ * **`v1` is the authoritative creative brief plus one sibling assignment**, and nothing else.
+ * `docs/phase-4b-plan.md §E`: each call receives "the **creative brief** from the same
+ * authoritative identity — the `identity` sibling of the envelope, including
+ * `inspirationSummary` — plus **only its own sibling assignment**". The brief is the branded
+ * `AuthoritativeIdentity`, so the envelope around it does not travel: `suppliedFacts` and
+ * `clarification` stay in the identity layer. The raw host prompt and raw inspiration assets
+ * never reach this call at all (`spec.md §7.5`, `§F`), the structural directive and the
+ * attractive-token allotment are the composition call's (`spec.md §7.7`), and capabilities, the
+ * content profile, another sibling's output and any library recipe or silhouette identifier are
+ * excluded by `§E` and `CLAUDE.md §5.1`. An earlier draft of the plan sent the directive, the
+ * allotment and capabilities; it was withdrawn, and T17 persisting the first two on the artifact
+ * for lineage is not a route back in. `src/lib/ai/design-intent/input.ts` is the typed form of
+ * this paragraph and `boundary.test.ts` is its proof.
+ *
+ * It bumps for any change to that envelope's **contents, precedence, ordering or representation**
+ * — adding or removing an input channel, relabelling one, reordering them, or changing how the
+ * brief or the assignment is rendered. It does not bump for a prompt-file edit or a schema
+ * change; those have versions of their own and the three are independent.
+ *
+ * `v1` declares the contents. The rendering that the "representation" clause governs does not
+ * exist yet — that is the prompt, which is T21 — so the first change to land under this constant
+ * must decide whether it is choosing a representation for the first time or changing one.
+ */
+export const DESIGN_INTENT_INPUT_ASSEMBLY_VERSION = "design_intent_input_v1";
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";
 export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
 export const PRIMITIVE_SET_VERSION = "composition_v1";

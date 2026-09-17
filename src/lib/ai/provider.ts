@@ -13,6 +13,7 @@
  */
 
 import type { CarriedClarification, PriorRevision } from "@/lib/ai/openai/event-identity-input";
+import type { SiblingAssignment } from "@/lib/renderer/planner";
 
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Typed narrowly in Phase 4. */
 export type EventIdentity = Record<string, unknown>;
@@ -58,10 +59,22 @@ export interface GenerateEventIdentityInput {
   };
 }
 
+/**
+ * `docs/phase-4b-plan.md §E`: the creative brief plus **only this sibling's assignment**.
+ *
+ * Two fields, and adding a third is a decision this type exists to make visible. Not here: the
+ * raw host prompt, raw inspiration assets, `suppliedFacts`, `clarification`, the structural
+ * directive, the token allotment, capabilities, the content profile, another sibling's output, or
+ * any library recipe or silhouette identifier. `src/lib/ai/design-intent/input.ts` carries the
+ * reason for each exclusion and `design-intent/boundary.test.ts` proves them.
+ */
 export interface GenerateDesignIntentInput {
   eventIdentity: EventIdentity;
-  /** Sibling-planner assignment; see spec.md §7.7. */
-  diversityAssignment: Record<string, unknown>;
+  /**
+   * Sibling-planner assignment; see spec.md §7.7. The planner's own type rather than a bag, so
+   * the directive and the allotment beside it in `PlannedConcept` cannot arrive by accident.
+   */
+  diversityAssignment: SiblingAssignment;
 }
 
 export interface GenerateCompositionInput {

@@ -113,7 +113,16 @@ describe("the raw-prompt boundary", () => {
     // assignment below stops type-checking and this file fails to build.
     const designIntent: GenerateDesignIntentInput = {
       eventIdentity: {},
-      diversityAssignment: {},
+      // Phase 4C T18 tightened this from `Record<string, unknown>` to the planner's own
+      // assignment type. A bag would have let the directive and the token allotment arrive
+      // without anything noticing; five named fields cannot.
+      diversityAssignment: {
+        family: "editorial",
+        tonalDirection: "mid",
+        typographyCategory: "heritage",
+        hierarchy: "editorial",
+        typographyPairings: ["heritage_caslon_karla"],
+      },
     };
     const composition: GenerateCompositionInput = {
       designIntent: {},
@@ -132,6 +141,52 @@ describe("the raw-prompt boundary", () => {
     const compositionPromptFields: HasPrompt<GenerateCompositionInput>[] = [];
     expect(designIntentPromptFields).toEqual([]);
     expect(compositionPromptFields).toEqual([]);
+  });
+
+  it("refuses the DesignIntent call site raw inspiration bytes as well", () => {
+    // `docs/phase-4b-plan.md §F`, the one additive guard it names: "extend
+    // `raw-prompt-boundary.test.ts` so the DesignIntent call site is refused raw inspiration
+    // bytes as well as raw prompt text — the same boundary, the other input."
+    //
+    // §F settles the rule from canon: EventIdentity receives the raw prompt *and* the private
+    // inspiration assets and is the only stage that does (`spec.md §7.5`, `§9.4`); it emits
+    // `inspirationSummary` inside the identity, and the planner and the DesignIntent call receive
+    // the identity, therefore the summary, and never the raw assets. `§9.4`: "Do not re-send
+    // original raw inspiration for routine redesign after its summary is available."
+    //
+    // Compile-time first: any inspiration-shaped field on either downstream input widens the
+    // extraction below off `never` and this file stops building.
+    type Bytes<T> = Extract<
+      keyof T,
+      "inspiration" | "inspirationAssets" | "assets" | "attachments" | "images" | "uploads"
+    >;
+    const designIntentBytes: Bytes<GenerateDesignIntentInput>[] = [];
+    const compositionBytes: Bytes<GenerateCompositionInput>[] = [];
+    expect(designIntentBytes).toEqual([]);
+    expect(compositionBytes).toEqual([]);
+
+    // And field-level at the provider boundary, the same way the prompt field is checked below:
+    // `inspiration` may be declared on the interpreter's input and nowhere else.
+    const source = readFileSync(path.join(SRC, "lib", "ai", "provider.ts"), "utf8");
+    const withInspirationField: string[] = [];
+    for (const match of source.matchAll(
+      /export interface (\w+)\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/g,
+    )) {
+      const [, name, body] = match;
+      if (/(^|\s)inspiration\??\s*:/m.test(body)) withInspirationField.push(name);
+    }
+    expect(withInspirationField).toEqual(["GenerateEventIdentityInput"]);
+
+    // And no module that reaches a model may read inspiration bytes but the interpreter — the
+    // same shape as the prompt invariant above, because it is the same boundary.
+    const offenders = modelCallers()
+      .filter((file) => file !== INTERPRETER)
+      .filter((file) =>
+        /\binspiration\b/i.test(
+          readFileSync(path.join(SRC, file), "utf8").replace(/inspirationSummary/g, ""),
+        ),
+      );
+    expect(offenders).toEqual([]);
   });
 
   it("declares a prompt field on the interpreter's input and nowhere else", () => {
