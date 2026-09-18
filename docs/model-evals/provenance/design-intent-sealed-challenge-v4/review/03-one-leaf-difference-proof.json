@@ -1,0 +1,74 @@
+{
+  "claim": "The new Half-B artifact is the frozen Half-B artifact with exactly one leaf changed.",
+  "method": "Recursive deep comparison of the two parsed documents over every key, index, value and key order, plus an independent flattened path-set cross-check and a per-case canonical-serialization comparison.",
+  "source": {
+    "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/half-b/05-stage-2-eventidentity-cases-corrected.json",
+    "sha256": "ee5a9b8040d90d1f5ac8ee94e20ceb0c8dc94817c2055f799a75176e2f8f8b51"
+  },
+  "result": {
+    "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/half-b/06-stage-2-eventidentity-cases-faithfulness-corrected.json",
+    "sha256": "3d05d1ccc03e953eb3dafb704ad93a56bed8a56e87b45737d8d6e4a6c56c523c"
+  },
+  "authorizedLeaf": {
+    "path": "$.cases[3].identity.hostConstraints",
+    "caseId": "DIC4-Q04",
+    "before": [
+      "no loud music"
+    ],
+    "after": []
+  },
+  "differencesFound": [
+    {
+      "path": "$.cases[3].identity.hostConstraints",
+      "kind": "value",
+      "before": [
+        "no loud music"
+      ],
+      "after": []
+    }
+  ],
+  "differenceCount": 1,
+  "perCaseIdentity": [
+    {
+      "id": "DIC4-Q01",
+      "identical": true
+    },
+    {
+      "id": "DIC4-Q02",
+      "identical": true
+    },
+    {
+      "id": "DIC4-Q03",
+      "identical": true
+    },
+    {
+      "id": "DIC4-Q04",
+      "identical": false
+    },
+    {
+      "id": "DIC4-Q05",
+      "identical": true
+    },
+    {
+      "id": "DIC4-Q06",
+      "identical": true
+    }
+  ],
+  "versionKeyUnchanged": true,
+  "caseCount": {
+    "before": 6,
+    "after": 6
+  },
+  "halfAUnchanged": {
+    "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/half-a/06-stage-2-eventidentity-cases-corrected.json",
+    "sha256": "9da421a9cde036b79f09f975a5957b48c7f18a24568810b5c20b4b56b5d0630d",
+    "pinnedDigestInFrozenTest": "9da421a9cde036b79f09f975a5957b48c7f18a24568810b5c20b4b56b5d0630d",
+    "matchesPin": true
+  },
+  "preCorrectionHalfBPreserved": {
+    "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/half-b/05-stage-2-eventidentity-cases-corrected.json",
+    "sha256": "ee5a9b8040d90d1f5ac8ee94e20ceb0c8dc94817c2055f799a75176e2f8f8b51",
+    "pinnedDigestInFrozenTest": "ee5a9b8040d90d1f5ac8ee94e20ceb0c8dc94817c2055f799a75176e2f8f8b51",
+    "matchesPin": true
+  }
+}

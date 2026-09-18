@@ -1,0 +1,91 @@
+{
+  "schema": "eventIdentitySchema (src/lib/ai/event-identity/contract.ts)",
+  "halves": {
+    "A": {
+      "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/half-a/06-stage-2-eventidentity-cases-corrected.json",
+      "digest": "9da421a9cde036b79f09f975a5957b48c7f18a24568810b5c20b4b56b5d0630d",
+      "version": "design_intent_sealed_challenge_v4_half_a_eventidentity_cases",
+      "cases": [
+        {
+          "id": "DIC4-P01",
+          "eventType": "family reunion",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-P02",
+          "eventType": "family reunion",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-P03",
+          "eventType": "community town hall",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-P04",
+          "eventType": "academic dissertation defense",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-P05",
+          "eventType": "volunteer orientation",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-P06",
+          "eventType": "product post-mortem meeting",
+          "valid": true,
+          "issues": []
+        }
+      ]
+    },
+    "B": {
+      "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/half-b/06-stage-2-eventidentity-cases-faithfulness-corrected.json",
+      "digest": "3d05d1ccc03e953eb3dafb704ad93a56bed8a56e87b45737d8d6e4a6c56c523c",
+      "version": "design_intent_sealed_challenge_v4_half_b_eventidentity_cases",
+      "cases": [
+        {
+          "id": "DIC4-Q01",
+          "eventType": "retirement party",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-Q02",
+          "eventType": "community potluck",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-Q03",
+          "eventType": "funeral",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-Q04",
+          "eventType": "birthday celebration",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-Q05",
+          "eventType": "community potluck",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "id": "DIC4-Q06",
+          "eventType": "wedding",
+          "valid": true,
+          "issues": []
+        }
+      ]
+    }
+  }
+}
