@@ -458,3 +458,93 @@ describe("checkSubstitutionApplied proves nothing else moved", () => {
     expect(JSON.stringify(before)).toBe(snapshot);
   });
 });
+
+/**
+ * Round 1 of the controlled correction: applied, proved, and then **gated** by the frozen scan on
+ * one residual collision (`leakage/14-RESIDUAL-COLLISION.md`).
+ *
+ * The candidates are pinned here precisely because they were not adopted. An artifact that failed
+ * a gate is evidence, and the way a programme loses the ability to say what a gate cost is by
+ * deleting the thing it stopped.
+ */
+describe("controlled correction round 1", () => {
+  const L = `${PROV}leakage/`;
+  const officialA = (): CorrectionResponseEntry[] => {
+    const out: CorrectionResponseEntry[] = [];
+    let cur = "";
+    for (const line of readFileSync(
+      `${L}10-half-a-controlled-correction-response.txt`,
+      "utf8",
+    ).split("\n")) {
+      const t = line.trim();
+      if (/^DIC4-P\d\d$/.test(t)) {
+        cur = t;
+        continue;
+      }
+      const m = t.match(/^(.+?)\s*→\s*(.+)$/);
+      if (m) out.push({ caseId: cur, keyword: m[1].trim(), replacement: m[2].trim() });
+    }
+    return out;
+  };
+  const officialB = (): CorrectionResponseEntry[] =>
+    (
+      JSON.parse(readFileSync(`${L}11-half-b-controlled-correction-response.json`, "utf8")) as {
+        replacements: { id: string; old: string; new: string }[];
+      }
+    ).replacements.map((r) => ({ caseId: r.id, keyword: r.old, replacement: r.new }));
+
+  it("pins the two official responses", () => {
+    expect(digest("leakage/10-half-a-controlled-correction-response.txt")).toBe(
+      "5fa85c09550fd2e851430685081f3361d571003cf822def55d7c6a321b01c34a",
+    );
+    expect(digest("leakage/11-half-b-controlled-correction-response.json")).toBe(
+      "cbb35c18f13e72592434d757776182a897dc5b4e5960166e0242534a233ca7aa",
+    );
+  });
+
+  it("both official responses validate against the pinned targets", () => {
+    expect(checkCorrectionResponse("A", officialA())).toEqual([]);
+    expect(checkCorrectionResponse("B", officialB())).toEqual([]);
+  });
+
+  it("pins the two gated candidates", () => {
+    expect(digest("leakage/12-half-a-corrected-candidate-r1.json")).toBe(
+      "9da421a9cde036b79f09f975a5957b48c7f18a24568810b5c20b4b56b5d0630d",
+    );
+    expect(digest("leakage/13-half-b-corrected-candidate-r1.json")).toBe(
+      "8094022603a97d8b4e3d414cd208df8c5593c70e92186aa5a05ccd1addfcf7fa",
+    );
+  });
+
+  it("each candidate is its canonical artifact plus only the authorized substitutions", () => {
+    expect(
+      checkSubstitutionApplied(
+        "A",
+        read(HALF_A),
+        read("leakage/12-half-a-corrected-candidate-r1.json"),
+        officialA(),
+      ),
+    ).toEqual([]);
+    expect(
+      checkSubstitutionApplied(
+        "B",
+        read(HALF_B),
+        read("leakage/13-half-b-corrected-candidate-r1.json"),
+        officialB(),
+      ),
+    ).toEqual([]);
+  });
+
+  /** The gate held: neither candidate replaced the canonical artifact. */
+  it("the canonical Stage-2 artifacts are untouched", () => {
+    expect(digest(HALF_A)).toBe("824706333d94ce70fc50edc685a4b5e92f4d8bb64cae506e1fb553964a7a94fa");
+    expect(digest(HALF_B)).toBe("62cff57645b9ee65c0a444270c677a3a2bb794993e212da814b83504b2099c2e");
+  });
+
+  it("records the residual collision rather than only the clean half", () => {
+    const record = readFileSync(`${L}14-RESIDUAL-COLLISION.md`, "utf8");
+    expect(record).toContain("DIC4-Q01");
+    expect(record).toContain("restrained");
+    expect(record).toContain("design intent wire schema");
+  });
+});

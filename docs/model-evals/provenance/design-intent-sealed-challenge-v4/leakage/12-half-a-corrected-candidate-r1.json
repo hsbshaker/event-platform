@@ -1,0 +1,369 @@
+{
+  "version": "design_intent_sealed_challenge_v4_half_a_eventidentity_cases",
+  "cases": [
+    {
+      "id": "DIC4-P01",
+      "eventType": "family reunion",
+      "identity": {
+        "creativeDirection": "This design grounds an emotional family crossroads in shared lineage, memory preservation, and clear spatial accessibility. It balances warm intergenerational storytelling with the solemnity needed for property decisions, without taking sides.",
+        "toneKeywords": [
+          "anchored",
+          "contemplative",
+          "enduring",
+          "tender",
+          "intergenerational",
+          "solemn"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "barnwood gray",
+            "faded sage",
+            "warm linen",
+            "weathered iron",
+            "dried clover"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Warm linen and faded sage create a welcoming base for family storytelling, while barnwood gray and weathered iron anchor formal document review sections."
+        },
+        "tonalIntent": "Warm afternoon daylight filtering through farm oaks shifting into quiet, direct evening light around a shared dining table.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "soft_serif",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "archival audio waveforms",
+          "farm property boundary lines",
+          "porch floorboard grain",
+          "family memory trees",
+          "dried meadow grasses"
+        ],
+        "textureDirection": "Sun-washed linen, matte paper stock with slight tooth, and soft press finishes that feel warm to touch and free of harsh glare.",
+        "typographyDirection": "Generous leading and high contrast for effortless legibility across generations, using warm classical serifs for memory collection and sturdy transitional types for legal document review.",
+        "copyTone": "Respectful, clear, emotionally grounded, and neutral regarding property outcomes.",
+        "hostConstraints": [
+          "The eldest uncle relies on a heavy motorized wheelchair, requiring step-free access across the sloped lawn and home."
+        ],
+        "creativeGuidance": [
+          "Ensure high contrast and generous font sizing to support older family members during evening document review.",
+          "Provide subtle visual separation between narrative memory collection areas and formal real estate deliberation materials.",
+          "Maintain a calm, balanced tone that honors family heritage without favoring either selling or keeping the farm."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-P02",
+      "eventType": "family reunion",
+      "identity": {
+        "creativeDirection": "A flexible identity centered on chosen kinship, safe boundaries, and low-pressure adult reconnection. It avoids traditional genealogical tropes to celebrate the active creation of new shared traditions.",
+        "toneKeywords": [
+          "welcoming",
+          "intentional",
+          "considerate",
+          "open",
+          "self-selected",
+          "adaptive"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "sunlit amber",
+            "soft terracotta",
+            "warm oat",
+            "eucalyptus green",
+            "sky blue"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Warm oat and sunlit amber dominate to create a bright, inviting park feel, while eucalyptus green and soft terracotta define contact directory elements."
+        },
+        "tonalIntent": "Bright, diffuse park daylight filtering through leaves, creating an open, unhurried, and safe visual atmosphere.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "soft_serif",
+          "transitional",
+          "grotesk_led"
+        ],
+        "visualMotifs": [
+          "overlapping photo frames",
+          "park picnic bench slats",
+          "open journal pages",
+          "interconnected directory nodes",
+          "modular grid lines"
+        ],
+        "textureDirection": "Uncoated recycled paper, smooth matte cardstock, and soft natural fibers that feel unpretentious and easy to handle outdoors.",
+        "typographyDirection": "Warm, friendly soft serifs for welcome elements paired with clean, accessible sans-serifs that keep contact directories and activity schedules simple and clear.",
+        "copyTone": "Warm, open-ended, respecting personal boundaries, and emphasizing mutual support.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Avoid multi-generational legacy imagery or traditional family tree metaphors in favor of flexible network concepts.",
+          "Design directory and activity materials with clear opt-in choices to respect varying individual comfort levels.",
+          "Keep visual hierarchy relaxed and modular to suit an informal outdoor picnic setting."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-P03",
+      "eventType": "community town hall",
+      "identity": {
+        "creativeDirection": "A highly functional, dual-language civic identity that balances official municipal presentation with community grassroots participation. It ensures full structural parity between English and Spanish while providing clarity for public debate.",
+        "toneKeywords": [
+          "civic",
+          "bilingual",
+          "transparent",
+          "resolute",
+          "forthright",
+          "participatory"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "park canopy green",
+            "municipal slate",
+            "paper white",
+            "signal yellow",
+            "earth brown"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Paper white and municipal slate carry the primary information for maximum legibility, while park canopy green and signal yellow highlight bilingual markers and feedback areas."
+        },
+        "tonalIntent": "Direct, high-contrast hall lighting where official zoning plans meet public community engagement.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional",
+          "high_contrast_editorial"
+        ],
+        "visualMotifs": [
+          "side-by-side bilingual columns",
+          "park contour maps",
+          "floor microphone icon",
+          "protest placard silhouettes",
+          "feedback card grid lines"
+        ],
+        "textureDirection": "High-contrast matte paper stock and clean newsprint textures that feel utilitarian, urgent, and accessible.",
+        "typographyDirection": "Rigorous grotesk and transitional typography establishing clean side-by-side English and Spanish layouts with equal font sizes, line heights, and visual prominence.",
+        "copyTone": "Direct, neutral, transparent, and fully accessible across languages.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Provide strict side-by-side bilingual symmetry across all printed agenda and feedback materials.",
+          "Ensure clear layout spacing to accommodate the slower, extended pace of live sentence-by-sentence translation.",
+          "Maintain an authoritative yet neutral civic frame that supports both formal presentations and written resident input."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-P04",
+      "eventType": "academic dissertation defense",
+      "identity": {
+        "creativeDirection": "An authoritative academic identity that captures five years of rigorous doctoral scholarship while accommodating a complex hybrid committee format and theoretical debate between advisors.",
+        "toneKeywords": [
+          "scholarly",
+          "exacting",
+          "analytical",
+          "official",
+          "articulate",
+          "disciplined"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "deep navy",
+            "parchment beige",
+            "ink black",
+            "signal blue",
+            "warm ivory"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Parchment beige and deep navy form the primary scholarly foundation, accented by ink black structure and signal blue for remote connection markers."
+        },
+        "tonalIntent": "Focused, formal indoor hall lighting intersected by cool digital displays for remote participation.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "high_contrast_editorial",
+          "heritage",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "theoretical model diagrams",
+          "satellite signal lines",
+          "lecture podium outlines",
+          "academic paper margin guides",
+          "citation brackets"
+        ],
+        "textureDirection": "Heavyweight matte paper, subtle eggshell finish, and smooth bound booklet textures that evoke institutional permanence.",
+        "typographyDirection": "Elegant high-contrast editorial serifs for document titles and candidate designation, paired with crisp transitional body type for structured research outlines and agenda steps.",
+        "copyTone": "Scholarly, precise, elevated, and restrained.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Structure the defense program with clear visual demarcations for presentation, questioning, and deliberation phases.",
+          "Incorporate subtle indicators for remote committee participation order to help manage audio lag during Q&A.",
+          "Maintain a disciplined, neutral framing that honors the candidate's work amidst theoretical disagreement."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-P05",
+      "eventType": "volunteer orientation",
+      "identity": {
+        "creativeDirection": "A clear, practical orientation identity for a wildlife rehabilitation center that bridges diverse volunteer backgrounds with clear safety protocols and hands-on facility walkthroughs.",
+        "toneKeywords": [
+          "pragmatic",
+          "protective",
+          "approachable",
+          "instructional",
+          "clear",
+          "welcoming"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "forest green",
+            "safety amber",
+            "canvas tan",
+            "charcoal",
+            "warm clay"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Canvas tan and forest green dominate to create a natural, welcoming tone, with safety amber highlighting critical animal handling protocols."
+        },
+        "tonalIntent": "Bright, functional daylight across indoor clinic rooms and outdoor animal enclosures.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional",
+          "soft_serif"
+        ],
+        "visualMotifs": [
+          "animal transport crate outlines",
+          "safety gear silhouettes",
+          "facility trail maps",
+          "checklist clipboard grids",
+          "protective glove icons"
+        ],
+        "textureDirection": "Durable, semi-coated moisture-resistant paper stock suitable for outdoors, clipboards, and active facility tours.",
+        "typographyDirection": "Bold, highly legible grotesk headings for safety alerts paired with readable transitional body text that makes operational rules effortless to scan for all age groups.",
+        "copyTone": "Direct, encouraging, clear, and safety-focused.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Use step-by-step numbered guides and visual icons for transport and gear demonstrations.",
+          "Ensure layout contrast remains crisp and legible under both indoor fluorescent lights and bright sunlight.",
+          "Structure liability and safety documents so they are easily understood by participants ranging from teens to retirees."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-P06",
+      "eventType": "product post-mortem meeting",
+      "identity": {
+        "creativeDirection": "An analog, blameless post-mortem framework designed for a strict no-device environment. It converts team tension into structured, whiteboard-centered systemic analysis and technical timeline mapping.",
+        "toneKeywords": [
+          "objective",
+          "diagnostic",
+          "analog",
+          "constructive",
+          "disciplined",
+          "purposeful"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "whiteboard marker black",
+            "alert red",
+            "slate gray",
+            "dry-erase blue",
+            "neutral off-white"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Neutral off-white and slate gray create a calm, neutral backdrop; dry-erase blue and alert red pinpoint failure nodes and timeline events."
+        },
+        "tonalIntent": "Stark, focused conference room lighting stripped of laptop and screen glows.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "whiteboard marker strokes",
+          "incident timeline nodes",
+          "systemic flowchart arrows",
+          "analog sticky note grids",
+          "diagnostic bracket frames"
+        ],
+        "textureDirection": "Smooth matte paper worksheets and dry-erase whiteboard surfaces engineered for rapid hand-written diagrams and marker notes.",
+        "typographyDirection": "Utilitarian, high-contrast grotesk typography arranged in clean tabular structures and failure-tree diagrams for instant analog scanning.",
+        "copyTone": "Blameless, objective, process-driven, and structurally focused.",
+        "hostConstraints": [
+          "The session leader institutes a strict no-device policy during the discussion."
+        ],
+        "creativeGuidance": [
+          "Design all incident mapping templates specifically for physical printed sheets and whiteboard projection.",
+          "Frame prompt headers around root-cause process questions rather than individual decision-making.",
+          "Provide clear timeline grids to assist cross-functional teams in mapping deployment sequences by hand."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    }
+  ]
+}

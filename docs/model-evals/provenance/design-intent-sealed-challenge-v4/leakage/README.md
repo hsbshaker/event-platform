@@ -177,3 +177,13 @@ They are preserved and excluded (`06-EXCLUDED-OUTPUTS.md`).
 
 The controlled round is frozen in `09-controlled-correction-round.md`, with the two exact requests
 at `07-` and `08-`. Nothing has been sent, nothing applied, and the scanner has not been re-run.
+
+## Correction round 1 — gated
+
+The controlled requests were sent, both authors replied (`10-`, `11-`), and the substitutions were
+applied and proved. The frozen scan then gated on **one residual collision**: `DIC4-Q01`'s
+replacement `restrained` matches the EventIdentity prompt and, as a literal `composition.hierarchy`
+and `composition.ornament` enum token, the DesignIntent wire schema.
+
+Half A cleared completely (17 → 0); half B went 11 → 2. Neither candidate was adopted — including
+the clean half. `14-RESIDUAL-COLLISION.md` has the finding and what was deliberately not done.

@@ -1,0 +1,361 @@
+{
+  "version": "design_intent_sealed_challenge_v4_half_b_eventidentity_cases",
+  "cases": [
+    {
+      "id": "DIC4-Q01",
+      "eventType": "retirement party",
+      "identity": {
+        "creativeDirection": "Honor quiet mentorship and collective respect without centering gifts—elevate shared history, craftsmanship, and understated gratitude.",
+        "toneKeywords": [
+          "earnest",
+          "restrained",
+          "warm",
+          "industrial-tinged",
+          "communal",
+          "unpretentious"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "worn denim blue",
+            "oil-stained gray",
+            "soft rust",
+            "faded khaki",
+            "muted copper"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Muted industrials dominate; warmth in accents."
+        },
+        "tonalIntent": "A grounded, respectful warmth that acknowledges loss (the factory) while celebrating legacy.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "oldstyle",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "machine gears as subtle patterns",
+          "thread or stitching lines",
+          "shared tool silhouettes",
+          "faded blueprints",
+          "communal table textures"
+        ],
+        "textureDirection": "Worn, tactile surfaces—linen, aged paper, brushed metal—evoking workshop and time.",
+        "typographyDirection": "Sturdy, slightly mechanical letterforms with a human touch; hierarchy favors clarity over ornament.",
+        "copyTone": "Direct, heartfelt, and free of hyperbole. Celebrate the person, not the occasion.",
+        "hostConstraints": [
+          "no gifts"
+        ],
+        "creativeGuidance": [
+          "Avoid literal factory imagery that feels cold or corporate.",
+          "Emphasize the *group’s* voice over the retiree’s solitary figure.",
+          "Subtle nods to craftsmanship (e.g., precision, patience) over nostalgia."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-Q02",
+      "eventType": "community potluck",
+      "identity": {
+        "creativeDirection": "Bridge generational and cultural divides through shared sustenance—highlight authenticity over performance, and history over novelty.",
+        "toneKeywords": [
+          "inclusive",
+          "unpolished",
+          "rooted",
+          "slightly wary",
+          "nourishing"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "earthy terracotta",
+            "sun-bleached yellow",
+            "deep green",
+            "charcoal",
+            "muted lavender"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Earth tones anchor; pops of warm color for energy."
+        },
+        "tonalIntent": "A cautious optimism—warm but not naive, inviting but not forced.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "soft_serif",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "handwritten recipe fragments",
+          "shared bowl silhouettes",
+          "patchwork tablecloths",
+          "faded neighborhood maps"
+        ],
+        "textureDirection": "Handmade, slightly irregular—like clay, linen, or hand-painted signs.",
+        "typographyDirection": "Approachable, slightly imperfect serifs; mix of sizes to mirror diverse voices.",
+        "copyTone": "Conversational, with room for multiple perspectives. Avoid slick or overly curated language.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Avoid imagery that centers the chef or their dish.",
+          "Prioritize visuals that feel collaborative (e.g., communal serving, overlapping contributions).",
+          "Acknowledge tension subtly—e.g., through layered or uneven textures."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-Q03",
+      "eventType": "funeral",
+      "identity": {
+        "creativeDirection": "Unite through absence of ritual—focus on the parent’s role as a bridge, not the siblings’ faiths or estrangement.",
+        "toneKeywords": [
+          "solemn",
+          "muted",
+          "unifying",
+          "quiet",
+          "resolute"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "pale slate",
+            "dusty rose",
+            "soft taupe",
+            "faded indigo",
+            "ivory"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Neutrals dominate; subtle color as a nod to individuality."
+        },
+        "tonalIntent": "A serene, almost austere calm that holds space for both grief and reconciliation.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "light",
+          "mid"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "editorial"
+        ],
+        "compatibleTypographyCategories": [
+          "transitional",
+          "oldstyle",
+          "high_contrast_editorial"
+        ],
+        "visualMotifs": [
+          "interwoven lines (bridge metaphor)",
+          "abstract water or horizon",
+          "minimalist floral",
+          "shared light sources"
+        ],
+        "textureDirection": "Smooth but organic—like stone, polished wood, or unbleached linen.",
+        "typographyDirection": "Clean, timeless serifs with generous spacing; no religious or cultural ornamentation.",
+        "copyTone": "Plainspoken, with no allusions to faith or doctrine. Focus on the parent’s life and connections.",
+        "hostConstraints": [
+          "no religious elements"
+        ],
+        "creativeGuidance": [
+          "Avoid any motif or symbol tied to a specific faith or tradition.",
+          "Design should feel inclusive to all attendees, regardless of belief.",
+          "Use symmetry or balance to subtly reinforce unity."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-Q04",
+      "eventType": "birthday celebration",
+      "identity": {
+        "creativeDirection": "Celebrate a century of stories through tactile, visual, and spatial clarity—prioritize lip-reading and intimacy over volume.",
+        "toneKeywords": [
+          "intimate",
+          "vivid",
+          "haptic",
+          "warm",
+          "patient"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "rich burgundy",
+            "golden ochre",
+            "cream",
+            "deep teal",
+            "soft sage"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Warm, saturated tones for visibility; avoid glare."
+        },
+        "tonalIntent": "A cozy, storybook richness that feels close and personal, never overwhelming.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "invitation",
+          "statement"
+        ],
+        "compatibleTypographyCategories": [
+          "oldstyle",
+          "soft_serif",
+          "transitional"
+        ],
+        "visualMotifs": [
+          "open book spines",
+          "quilted patterns",
+          "magnified text fragments",
+          "gentle light sources"
+        ],
+        "textureDirection": "Soft but defined—linen, suede, or embossed paper to aid touch and sight.",
+        "typographyDirection": "High-contrast, slightly enlarged letterforms; avoid thin strokes. Serifs with personality but no ornamentation.",
+        "copyTone": "Expressive but legible. Use short, vivid phrases that evoke storytelling.",
+        "hostConstraints": [
+          "no loud music"
+        ],
+        "creativeGuidance": [
+          "Design for close-range interaction (e.g., large print, clear hierarchies).",
+          "Avoid visual noise—keep patterns subtle and backgrounds matte.",
+          "Incorporate elements that feel like a 'story' (e.g., chapters, margins, illustrations)."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-Q05",
+      "eventType": "community potluck",
+      "identity": {
+        "creativeDirection": "Lower barriers through shared ground—emphasize the trail, the collective, and the quiet courage of showing up.",
+        "toneKeywords": [
+          "approachable",
+          "anchored",
+          "resilient",
+          "open",
+          "unassuming"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "forest green",
+            "sunset orange",
+            "slate gray",
+            "sandy beige",
+            "muted crimson"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Earthy tones lead; accents in terrain-inspired hues."
+        },
+        "tonalIntent": "A steady, reassuring warmth—adventurous but not reckless, communal but not performative.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "light"
+        ],
+        "compatibleFamilies": [
+          "editorial",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "grotesk_led",
+          "transitional",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "trail markers",
+          "overlapping footprints",
+          "shared campfire silhouettes",
+          "topographic lines"
+        ],
+        "textureDirection": "Rough-hewn but welcoming—like canvas, weathered wood, or trail dust.",
+        "typographyDirection": "Sturdy, legible sans or slab serifs; hierarchy favors clarity and approachability.",
+        "copyTone": "Encouraging, with a focus on shared experiences over individual achievements.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Avoid imagery that glorifies risk or extreme hiking.",
+          "Use composition to suggest safety in numbers (e.g., clustered elements, overlapping shapes).",
+          "Subtly acknowledge the accident’s shadow—e.g., through muted or layered textures."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    },
+    {
+      "id": "DIC4-Q06",
+      "eventType": "wedding",
+      "identity": {
+        "creativeDirection": "Celebrate a bond forged in strategy and mutual respect—playful but precise, with nods to the game without literal board game motifs.",
+        "toneKeywords": [
+          "clever",
+          "warm",
+          "harmonized",
+          "whimsical",
+          "intimate"
+        ],
+        "colorsExplicitlyConstrained": false,
+        "paletteIntent": {
+          "requiredColors": [],
+          "preferredColors": [
+            "deep navy",
+            "ivory",
+            "burnt sienna",
+            "muted gold",
+            "soft olive"
+          ],
+          "avoidColors": [],
+          "dominanceNotes": "Rich, saturated tones with metallic or matte contrasts."
+        },
+        "tonalIntent": "A refined yet lively equilibrium—sophisticated enough for skeptics, joyful enough for believers.",
+        "toneExplicitlyConstrained": false,
+        "compatibleTonalDirections": [
+          "mid",
+          "dark"
+        ],
+        "compatibleFamilies": [
+          "statement",
+          "invitation"
+        ],
+        "compatibleTypographyCategories": [
+          "transitional",
+          "grotesk_led",
+          "oldstyle"
+        ],
+        "visualMotifs": [
+          "interlocking shapes",
+          "subtle grid patterns",
+          "paired symmetries",
+          "abstract move counters"
+        ],
+        "textureDirection": "Smooth with tactile contrasts—like cardstock, felt, or polished wood.",
+        "typographyDirection": "Clean, geometric letterforms with a hint of personality; hierarchy is logical and balanced.",
+        "copyTone": "Witty but sincere. Use metaphors of strategy, partnership, and shared victory.",
+        "hostConstraints": [],
+        "creativeGuidance": [
+          "Avoid literal board game imagery (e.g., dice, cards, boards).",
+          "Design should feel inclusive to both personalities (outgoing/reserved).",
+          "Use duality or pairing in visuals to reflect the couple’s dynamic."
+        ],
+        "inspirationSummary": "No visual inspiration supplied."
+      }
+    }
+  ]
+}

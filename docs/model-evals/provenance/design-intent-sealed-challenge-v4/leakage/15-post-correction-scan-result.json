@@ -1,0 +1,126 @@
+{
+  "surfacesScanned": [
+    {
+      "surface": "prompt",
+      "file": "docs/model-prompts/event-identity.system.md"
+    },
+    {
+      "surface": "wire schema",
+      "file": "docs/model-schemas/event-identity-result.wire.schema.json"
+    },
+    {
+      "surface": "provider boundary",
+      "file": "src/lib/ai/openai/event-identity.ts"
+    },
+    {
+      "surface": "input assembly",
+      "file": "src/lib/ai/openai/event-identity-input.ts"
+    },
+    {
+      "surface": "design intent prompt",
+      "file": "docs/model-prompts/design-intent.system.md"
+    },
+    {
+      "surface": "design intent wire schema",
+      "file": "docs/model-schemas/design-intent.wire.schema.json"
+    },
+    {
+      "surface": "design intent provider boundary",
+      "file": "src/lib/ai/openai/design-intent.ts"
+    },
+    {
+      "surface": "design intent input assembly",
+      "file": "src/lib/ai/openai/design-intent-input.ts"
+    }
+  ],
+  "surfacesAbsent": [],
+  "halves": {
+    "A": {
+      "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/leakage/12-half-a-corrected-candidate-r1.json",
+      "cases": 6,
+      "probeCounts": [
+        {
+          "id": "DIC4-P01",
+          "verbatim": 26,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-P02",
+          "verbatim": 24,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-P03",
+          "verbatim": 24,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-P04",
+          "verbatim": 25,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-P05",
+          "verbatim": 24,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-P06",
+          "verbatim": 26,
+          "claims": 0
+        }
+      ],
+      "hits": []
+    },
+    "B": {
+      "file": "docs/model-evals/provenance/design-intent-sealed-challenge-v4/leakage/13-half-b-corrected-candidate-r1.json",
+      "cases": 6,
+      "probeCounts": [
+        {
+          "id": "DIC4-Q01",
+          "verbatim": 25,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-Q02",
+          "verbatim": 23,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-Q03",
+          "verbatim": 21,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-Q04",
+          "verbatim": 21,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-Q05",
+          "verbatim": 22,
+          "claims": 0
+        },
+        {
+          "id": "DIC4-Q06",
+          "verbatim": 21,
+          "claims": 0
+        }
+      ],
+      "hits": [
+        {
+          "check": "verbatim",
+          "surface": "prompt",
+          "id": "DIC4-Q01",
+          "value": "restrained"
+        },
+        {
+          "check": "verbatim",
+          "surface": "design intent wire schema",
+          "id": "DIC4-Q01",
+          "value": "restrained"
+        }
+      ]
+    }
+  }
+}
