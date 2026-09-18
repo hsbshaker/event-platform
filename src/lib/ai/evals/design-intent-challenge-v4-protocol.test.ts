@@ -395,6 +395,29 @@ describe("the v4 sealed-challenge protocol, frozen before any situation card exi
      * B's row can be added the same way. What it asserts when they exist is the whole contract:
      * the frozen composition, and that the raw response they were mapped from is unaltered.
      */
+    /**
+     * Half B arrived as valid JSON in the required shape, so there is no normalization round to
+     * verify — the artifact preserved is the artifact validated, and only its digest and its
+     * conformance need holding.
+     */
+    it("holds half B's frozen cards", () => {
+      const cards = `${ROOT}${V4_PROVENANCE}half-b/01-situation-cards.json`;
+      if (!existsSync(cards)) return;
+      expect(createHash("sha256").update(readFileSync(cards)).digest("hex")).toBe(
+        "969be131f15a5619218646746eb1edffb569c384cca85b0d8088d5ef13c76b9c",
+      );
+      const parsed = JSON.parse(readFileSync(cards, "utf8")) as {
+        cards: { id: string; eventType: string; complication: string | null }[];
+      };
+      expect(checkSituationCards(half(1), parsed.cards)).toEqual({ problems: [], advisory: [] });
+
+      // The one value a reader could mistake for its own opposite: a card that declines to state a
+      // complication must hold JSON `null`, never the string "None", or the floor would miscount.
+      const declined = parsed.cards.filter((card) => card.complication === null);
+      expect(declined).toHaveLength(1);
+      expect(parsed.cards.some((card) => card.complication === "None")).toBe(false);
+    });
+
     it("holds half A's frozen cards and the raw response they came from", () => {
       const raw = `${ROOT}${V4_PROVENANCE}half-a/01-original-raw.txt`;
       const cards = `${ROOT}${V4_PROVENANCE}half-a/02-situation-cards.json`;

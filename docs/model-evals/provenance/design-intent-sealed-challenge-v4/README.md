@@ -169,6 +169,100 @@ common surnames there are, and the protocol counts name reuse as substantive onl
 distinctive to be coincidence. Recorded here so the semantic reviewer weighs it with everything
 else in front of it, rather than discovering it and wondering whether anyone noticed.
 
+## Half B — Stage 1 received and frozen, `DIC4-Q01`…`DIC4-Q06`
+
+Received 2026-09-18. Six situation cards, accepted without correction.
+
+| file | role | sha256 | bytes | commit |
+| --- | --- | --- | --- | --- |
+| `half-b/01-situation-cards.json` | **the frozen cards**, verbatim | `969be131f15a5619218646746eb1edffb569c384cca85b0d8088d5ef13c76b9c` | 4,041 | `eddcb36` |
+
+The response arrived as valid JSON in the required shape, so there was no normalization round at all
+and nothing to diff: the artifact preserved is the artifact validated.
+
+**Generation provenance, as supplied by the operator:** family Mistral, displayed model
+`Mistral Medium`, alias `mistral-medium-latest`, Mistral Studio Playground, 2026-09-18, temperature
+`0.7`, `max_tokens` 4096, `top_p` 1, JSON response format, no capabilities, **one generation only**,
+triggered by the user message `Proceed.`, with no files, connectors, web, repository access, tools or
+prior conversation context. That matches every forbidden affordance the protocol lists. As
+everywhere in this programme, it is provenance the operator supplies and this repository cannot
+verify — and the alias limitation recorded above applies: `Mistral Medium` displayed in the picker
+and `mistral-medium-latest` selected are read as Mistral Medium 3.5 on the strength of a dated
+documentation mapping, not of the identifier.
+
+### Structural facts, verified rather than assumed
+
+| expected | verified |
+| --- | --- |
+| six cards | 6 |
+| ids exactly `DIC4-Q01`…`DIC4-Q06` | exact, in order |
+| exactly one same-`eventType` pair, `community potluck` on Q02 and Q05 | one pair, and it is that pair |
+| five distinct event types | 5 — retirement party, community potluck, funeral, birthday celebration, wedding |
+| five non-null complications | 5; `DIC4-Q06`'s is genuine JSON `null`, not the string `"None"` |
+| no hard Stage-2 design vocabulary | none |
+| no advisory design-language finding | none |
+
+`checkSituationCards()` returned `{ problems: [], advisory: [] }`. Half A, re-run in the same pass,
+still returns the same.
+
+### Human Stage-1 review
+
+**Verdict: PASS on all three checks.**
+
+*Each complication is non-aesthetic and materially affects interpretation.* A retiree who asked for
+no gifts because they embarrass him, against a group determined to acknowledge him tangibly — a
+direct conflict between the honoree's stated wish and the gathering's purpose. A new resident's
+elaborate dish read as performative by long-time residents, which is the exact fault line the
+potluck exists to cross. A will specifying no religious elements against a sibling whose faith
+requires particular rites. A centenarian who dislikes loud music, in a home whose staff reach for it
+by default. A recent accident on a club hike that has made members wary of telling their own
+stories, at an event whose point is sharing them. Each changes what the event has to accommodate;
+none is a matter of taste.
+
+*No card proposes a visual or design solution.* Confirmed by reading and independently by both
+screens returning empty. Half B names no objects at all, ordinary or otherwise.
+
+*The event type does not substantially determine the answer.* A retirement party three months after
+the factory closed, for a man who refuses recognition. A potluck about gentrification and erased
+history. A funeral whose deceased legislated against religion and whose children have not spoken in
+a decade. A hundredth birthday organised around lip-reading. And a second potluck that shares its
+label with the first and almost nothing else — an intimidation gradient in a hiking club, chilled by
+an accident — which is the same-type pair doing exactly what it is for.
+
+**The weakest card is `DIC4-Q06`, recorded rather than glossed.** Its complication is legitimately
+`null`, and its differentiator is a shared hobby plus friends who doubted the relationship. Of the
+six it sits closest to its genre default, and it carries a specific risk the others do not: "couple
+who met over competitive board games" is the one premise here that a Stage-2 author could answer by
+theming the event around the hobby, which would let the event type plus one noun determine the
+direction. It passes the floor — the floor permits a card without a complication, and the friends'
+skepticism and the personality contrast are real social facts — but it is the card to watch when
+Stage 2 maps it. Half A has an exact counterpart in `DIC4-P05`, for the same structural reason.
+
+### Diagnostics for the eventual semantic review — not findings, not acted on
+
+**Half B's cards are markedly more uniform in shape than half A's.** Context runs 28–36 words
+across all six (a range of 8) against half A's 47–62 (a range of 15); complications run 21–26 words
+(range 5) against half A's 30–56 (range 26). Every half-B complication is a single sentence naming
+one interpersonal tension, where half A's `DIC4-P01` carries two distinct ones — an inheritance
+conflict *and* a wheelchair access need. That is mild authorial-template pressure of exactly the
+kind the v3 reviews learned to look for, it is recorded for the semantic reviewer to weigh with
+everything else in front of it, and it is **not** grounds for action: the protocol's floor is met on
+every card and uniformity of length is not overlap.
+
+**Half B contains no proper nouns at all** — no names, no places, no venues. Half A names a Miller
+family. Neither is a defect; the contrast is recorded because a reviewer comparing the halves will
+see it and should know it was noticed rather than missed.
+
+**Zero cross-half `eventType` overlap.** The twelve carry nine distinct types with one pair in each
+half. Legal either way, and worth stating as a fact rather than leaving to be recomputed.
+
+No comparison against prior corpora was performed beyond these per-half diagnostics, and no
+semantic-overlap finding has been or will be returned to Mistral.
+
+### Both Stage-1 halves are now frozen
+
+Twelve situation cards exist and no v4 case does. Stage 2 has not begun for either author.
+
 ## Review order
 
 1. mechanical and schema validation;
