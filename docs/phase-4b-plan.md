@@ -2158,6 +2158,15 @@ freeze reconfirms that every model-visible T21 artifact is byte-identical to the
 `be016f8`, that `design-intent-gate.ts` is byte-identical at `8f5ca5ab…`, and that no prompt,
 schema, provider, seam, planner or validator change occurred.
 
+**Where the halves and their results are recorded.**
+`docs/model-evals/provenance/design-intent-sealed-challenge-v3/README.md` is the ledger: the raw
+supplied artifacts preserved byte-for-byte with digests, byte counts, source family and date
+received, and the mechanical result each half got. Digests are pinned by test, so "preserved" is
+checkable rather than claimed. That status is deliberately **not** pinned into this document — it
+changes as halves arrive, and a canon sentence that has to be edited on every delivery is a canon
+sentence that will eventually be edited under pressure. Nothing under `provenance/` is a corpus:
+no eval set points there, and the canonical sealed slot stays absent until assembly.
+
 **No paid run is authorised by any of this.** The earlier T22 authorisation was never consumed —
 no provider invocation occurred — and it does not transfer to this corpus. After v3 survives every
 review and freezes, the task stops and returns for an explicit new run authorisation.

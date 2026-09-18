@@ -19,6 +19,7 @@
  * Acceptance criteria: N/A — test-only, evidence machinery. `docs/phase-4b-plan.md` Part IV (the
  * mixed-author protocol freeze), `§3.4`–`§3.6`; `docs/model-contracts.md §4.7`.
  */
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -241,6 +242,57 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
       const file = `${ROOT}${corpusPath("designIntentChallenge")}`;
       if (!existsSync(file)) return;
       expect(checkAssembledSealedChallengeV3(JSON.parse(readFileSync(file, "utf8")))).toEqual([]);
+    });
+  });
+
+  /**
+   * The raw external halves, pinned so "preserved byte-for-byte" is checkable rather than claimed.
+   *
+   * Each entry is an artifact the record already quotes a digest for, so a file edited after it
+   * was received fails here instead of silently becoming a different half. Entries are added as
+   * halves arrive; an artifact that has not arrived is simply absent from this list, which is why
+   * the list is data rather than a required set — the ChatGPT half's row is added by the commit
+   * that receives it, not by an edit under pressure afterwards.
+   */
+  describe("the raw external halves, as supplied", () => {
+    const PROVENANCE = "docs/model-evals/provenance/design-intent-sealed-challenge-v3/";
+    const SUPPLIED = [
+      {
+        path: `${PROVENANCE}gemini/01-original.json`,
+        sha256: "7d7587069a20fc333bb813328a39acdf5ec02dd72dd639490c8c167f6ec3ead7",
+        bytes: 15842,
+      },
+      {
+        path: `${PROVENANCE}gemini/02-contract-correction.json`,
+        sha256: "c3e400ac31f7e9786e5091ddde3b9de62f686ecbaaed46670cebf86c5923d8ba",
+        bytes: 15926,
+      },
+      {
+        path: `${PROVENANCE}gemini/03-final-candidate.json`,
+        sha256: "56ad64b072900428603b0b4f545db8118549e3c4d81705573c86c630ed5373d2",
+        bytes: 15739,
+      },
+    ] as const;
+
+    it.each(SUPPLIED)("$path is byte-identical to what was received", ({ path, sha256, bytes }) => {
+      const file = readFileSync(`${ROOT}${path}`);
+      expect({
+        sha256: createHash("sha256").update(file).digest("hex"),
+        bytes: file.byteLength,
+      }).toEqual({ sha256, bytes });
+    });
+
+    it("keeps the candidate conformant to the precommitted Gemini namespace", () => {
+      const candidate = JSON.parse(
+        readFileSync(`${ROOT}${PROVENANCE}gemini/03-final-candidate.json`, "utf8"),
+      ) as { cases: unknown[] };
+      expect(checkHalfComposition(SEALED_CHALLENGE_V3_HALVES[1], candidate.cases)).toEqual([]);
+    });
+
+    it("has not turned a provenance artifact into a corpus", () => {
+      // Nothing under `provenance/` is ever run. The canonical slot stays absent until assembly,
+      // and assembly waits for both halves.
+      expect(Object.values(CORPUS_FILES).some((name) => name.includes("provenance"))).toBe(false);
     });
   });
 
