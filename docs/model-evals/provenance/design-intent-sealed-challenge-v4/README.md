@@ -263,6 +263,70 @@ semantic-overlap finding has been or will be returned to Mistral.
 
 Twelve situation cards exist and no v4 case does. Stage 2 has not begun for either author.
 
+## Stage 2 author packets — assembled, committed before either author receives one
+
+| file | role | sha256 | bytes |
+| --- | --- | --- | --- |
+| `stage-2/00-shared-semantic-contract.md` | the rules both authors get, written once | `68f64184fdb635cb8c0991f766873ed8d12edf4d95dc56827602e7fae47261a0` | 5,470 |
+| `stage-2/01-half-a-packet.md` | half A's packet — worksheet form | `77f05df076472446070a70325acac7e0df6ab3f42101c6cf9adc81c54ae7951d` | 23,645 |
+| `stage-2/02-half-b-packet.md` | half B's packet — JSON form | `b99177cc4f06db5c77cc898724bba99ee164eb91c19d29ab44d2d7b7327b610e` | 11,484 |
+
+**No case content was authored here.** The packets are assembly: the shared contract, plus each
+half's own six frozen cards reproduced from its Stage-1 artifact.
+
+### The shared contract is identical, and that is checked rather than intended
+
+Both packets embed the same file between the markers `shared-semantic-contract:begin/end`.
+Extracting that span from each and hashing it gives
+`879d60b7acde6d050568deded8534f4ddcbfd2bb7b119bd94e2f732c4cfdcd41` from both, equal to the source
+file's content. Writing the rules once and embedding them is what makes "the same rules" a fact
+rather than a claim about two documents someone compared by eye.
+
+### Each packet carries its own half, and only its own
+
+Half A's packet cites `4f49b176…` and half B's cites `969be131…` — each its own Stage-1 digest, and
+neither cites the other's. Every `whoIsGathering`, `whyItMatters`, `context` and non-null
+`complication` appears verbatim in its own packet. Half A's packet contains no `DIC4-Q` id and no
+half-B card text; half B's contains no `DIC4-P` id and no half-A card text. Neither packet mentions
+the other author, the other author's family, or that another half exists.
+
+### What is deliberately absent
+
+No worked example. No lesson from v3 — the packets contain no reference to a prior corpus, a prior
+review, an invalidation, a sealed challenge, the gate, or any subject, genre or device to avoid;
+checked by scanning both for every such term. No implementation, no schema source, no prompt.
+
+### Two corrections made to the packets before they were committed
+
+**A null complication is rendered `*(none)*`, not as a sentence.** The first draft wrote "None
+stated." — which is prose, and prose is content the card does not contain. A bare marker says the
+field is empty without putting words in the author's mouth.
+
+**The half-B JSON skeleton needed a disclaimer.** Every authored array in it shows `["..."]` while
+`hostConstraints` shows `[]`, because the three fields above it are mandated empty and JSON carries
+no placeholder for "empty or not, depending". Sitting alone among filled placeholders, `[]` reads as
+an instruction. The packet now says explicitly that it is not a hint in either direction and that
+the authority rule decides each card on its own. Left as it was, a formatting artefact would have
+steered the one field with a hard authority rule.
+
+### Output surfaces differ, because the authors do
+
+Half A is a **worksheet**: each frozen card printed verbatim, the five mechanically fixed values
+shown as read-only, and labeled plain-text spaces for the rest. It states that the later conversion
+to JSON is mechanical and that the author's wording will not be edited, tightened or improved —
+which is a promise the custodian then has to keep. Half B is the same semantics with a JSON-only
+output contract, six cases `DIC4-Q01`–`DIC4-Q06` in order, version
+`design_intent_sealed_challenge_v4_half_b_eventidentity_cases`.
+
+Half A's normalized artifact will carry
+`version = design_intent_sealed_challenge_v4_half_a_eventidentity_cases`, six cases `P01`–`P06` in
+order.
+
+### State
+
+**No Stage-2 response exists** for either half — the only files under `stage-2/` are the three
+packets. **No v4 case exists**; the canonical slot is absent. Neither author has been commissioned.
+
 ## Review order
 
 1. mechanical and schema validation;

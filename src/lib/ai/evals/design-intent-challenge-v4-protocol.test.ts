@@ -400,6 +400,53 @@ describe("the v4 sealed-challenge protocol, frozen before any situation card exi
      * verify — the artifact preserved is the artifact validated, and only its digest and its
      * conformance need holding.
      */
+    /**
+     * The property that makes "both authors got the same rules" a fact: the shared contract is one
+     * file, embedded between markers in both packets. Compared by extraction rather than by eye,
+     * because two documents that merely look alike are exactly what this check exists to distrust.
+     */
+    it("gives both Stage-2 packets a byte-identical semantic contract", () => {
+      const packet = (rel: string) => `${ROOT}${V4_PROVENANCE}stage-2/${rel}`;
+      if (!existsSync(packet("01-half-a-packet.md"))) return;
+      const between = (text: string) => {
+        const open = "<!-- shared-semantic-contract:begin -->";
+        const close = "<!-- shared-semantic-contract:end -->";
+        const from = text.indexOf(open);
+        const to = text.indexOf(close);
+        expect(from, "packet has no shared-contract marker").toBeGreaterThan(-1);
+        expect(to).toBeGreaterThan(from);
+        return text.slice(from + open.length, to);
+      };
+      const a = between(readFileSync(packet("01-half-a-packet.md"), "utf8"));
+      const b = between(readFileSync(packet("02-half-b-packet.md"), "utf8"));
+      expect(a).toBe(b);
+      expect(a.trim()).toBe(readFileSync(packet("00-shared-semantic-contract.md"), "utf8").trim());
+    });
+
+    /** Neither author may learn that the other exists, let alone what it was given. */
+    it("keeps each Stage-2 packet to its own half", () => {
+      const read = (rel: string) => {
+        const file = `${ROOT}${V4_PROVENANCE}stage-2/${rel}`;
+        return existsSync(file) ? readFileSync(file, "utf8") : null;
+      };
+      const a = read("01-half-a-packet.md");
+      const b = read("02-half-b-packet.md");
+      if (a === null || b === null) return;
+      expect(a).not.toContain("DIC4-Q");
+      expect(b).not.toContain("DIC4-P");
+      for (const forbidden of [
+        "Mistral",
+        "Gemini",
+        "ChatGPT",
+        "Claude",
+        "DIC3",
+        "sealed challenge",
+      ]) {
+        expect(a, `half A packet mentions ${forbidden}`).not.toContain(forbidden);
+        expect(b, `half B packet mentions ${forbidden}`).not.toContain(forbidden);
+      }
+    });
+
     it("holds half B's frozen cards", () => {
       const cards = `${ROOT}${V4_PROVENANCE}half-b/01-situation-cards.json`;
       if (!existsSync(cards)) return;
