@@ -318,6 +318,11 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
         bytes: 12945,
       },
       {
+        path: `${PROVENANCE}gemini-replacement/03-final-leakage-corrected-candidate.json`,
+        sha256: "381c9b8ac0d7ffc2cdfae7825a752c9a56a0127e5f29512b88da6caafcebc112",
+        bytes: 12366,
+      },
+      {
         path: `${PROVENANCE}gemini/INVALIDATION.md`,
         sha256: "5eff8fe456e2668fe034ce736f0a9d7e425487c9dd5626df2325a255b6113331",
         bytes: 5124,
@@ -346,6 +351,11 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
           ".cases[0].identity.creativeGuidance[0]",
           ".cases[0].identity.hostConstraints[1]",
         ],
+      },
+      {
+        before: "gemini-replacement/02-contract-corrected-candidate.json",
+        after: "gemini-replacement/03-final-leakage-corrected-candidate.json",
+        changed: [".cases[0].identity.toneKeywords[3]"],
       },
       {
         before: "chatgpt/02-normalized-candidate.json",
@@ -429,20 +439,20 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
       expect(moved).toEqual([]);
     });
 
-    it("keeps each candidate conformant to its precommitted namespace", () => {
-      const candidate = (rel: string) =>
-        (JSON.parse(readFileSync(`${ROOT}${PROVENANCE}${rel}`, "utf8")) as { cases: unknown[] })
-          .cases;
-      for (const [index, rel] of [
-        "chatgpt/02-normalized-candidate.json",
-        "gemini/03-final-candidate.json",
-        "chatgpt/04-leakage-correction-normalized.json",
-        "gemini/04-leakage-correction.json",
-      ].entries()) {
-        expect(
-          checkHalfComposition(SEALED_CHALLENGE_V3_HALVES[index % 2 === 0 ? 0 : 1], candidate(rel)),
-        ).toEqual([]);
-      }
+    // Paired explicitly rather than by alternating index: the list is not alternating any more
+    // (the replacement half contributes two entries), and an index trick that silently pairs a
+    // candidate with the wrong half would report a namespace violation that does not exist.
+    it.each([
+      { half: 0 as const, rel: "chatgpt/02-normalized-candidate.json" },
+      { half: 0 as const, rel: "chatgpt/04-leakage-correction-normalized.json" },
+      { half: 1 as const, rel: "gemini/04-leakage-correction.json" },
+      { half: 1 as const, rel: "gemini-replacement/02-contract-corrected-candidate.json" },
+      { half: 1 as const, rel: "gemini-replacement/03-final-leakage-corrected-candidate.json" },
+    ])("$rel conforms to its precommitted namespace", ({ half: index, rel }) => {
+      const cases = (
+        JSON.parse(readFileSync(`${ROOT}${PROVENANCE}${rel}`, "utf8")) as { cases: unknown[] }
+      ).cases;
+      expect(checkHalfComposition(SEALED_CHALLENGE_V3_HALVES[index], cases)).toEqual([]);
     });
 
     /**

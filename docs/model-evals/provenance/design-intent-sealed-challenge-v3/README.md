@@ -344,10 +344,38 @@ not the custodian's, and none of them is a gate.
    (also the surviving `DIC3-G03`, where ChatGPT chose it during *its* correction round), `sunlit`,
    `nocturnal`, `dignified`.
 
+### Final leakage correction: one leaf, and the half is mechanically clean
+
+| file | role | sha256 | bytes | commit |
+| --- | --- | --- | --- | --- |
+| `gemini-replacement/03-final-leakage-corrected-candidate.json` | **the accepted replacement half** | `381c9b8ac0d7ffc2cdfae7825a752c9a56a0127e5f29512b88da6caafcebc112` | 12,366 | `9d04927` |
+
+Verified independently rather than accepted on report: comparing every leaf against `02`, **exactly
+one** changed, at exactly `.cases[0].identity.toneKeywords[3]` — `tactile` becomes `sculptural` —
+with no key added and none removed. Nothing else in any of the six cases moved.
+
+**A provenance limitation, stated rather than glossed.** This file was reconstructed mechanically
+from the previous candidate plus that one verified substitution, so its JSON whitespace and key
+serialization are **not** asserted to be byte-identical to the author's own rendering. The parsed
+content is the candidate, and the one-leaf property is what was checked. That is weaker than the
+byte-for-byte preservation the other artifacts carry, and the record says so plainly rather than
+letting a digest imply more than it proves.
+
+Re-running the full frozen battery on `03`: the real structural contract with `gated: false`, the
+protocol composition check — exact namespace, unique ids, **exactly one** same-`eventType` pair
+(`wedding`) across five distinct types — no id collision with any corpus, no supplied-fact value
+surfaced into its own identity prose, and the **frozen leakage scan clean across all eight
+registered model-visible surfaces**. No scanner or frozen machinery was touched.
+
+**Author correction is over.** No semantic-review finding goes back to that author from here.
+
 ### Status
 
-Not mechanically clean, so **the semantic premise-overlap review has not been run**, and the
-system-aware fairness review remains unspent. Nothing was assembled and nothing was frozen.
+Mechanically clean, so the independent semantic premise-overlap review runs next, comparing these
+six against the surviving ChatGPT half, the invalidated first Gemini half, both earlier invalidated
+sealed challenges and the earlier programme corpora. The ceramics/gallery recurrence noted above was
+**not** pre-classified for that reviewer: the required corpora go in, and the reviewer decides
+independently whether it is substantive. The system-aware fairness review remains unspent.
 
 ## The scan defect, recorded as debt rather than fixed
 
