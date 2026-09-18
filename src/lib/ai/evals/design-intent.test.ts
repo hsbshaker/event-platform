@@ -406,12 +406,12 @@ describe("nothing frozen at T19 changes afterwards", () => {
       corpora: [
         "docs/model-evals/design-intent-regression.json",
         "docs/model-evals/design-intent-validation-v2.json",
-        "docs/model-evals/design-intent-sealed-challenge-v3.json",
+        "docs/model-evals/design-intent-sealed-challenge-v4.json",
       ],
       outputs: [
         "docs/model-evals/results/design-intent-regression-v1",
         "docs/model-evals/results/design-intent-validation-v2",
-        "docs/model-evals/results/design-intent-sealed-challenge-v3",
+        "docs/model-evals/results/design-intent-sealed-challenge-v4",
       ],
     });
   });
@@ -582,7 +582,10 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
     // Unconditional: the names are fixed now so that adding a file later is the entire change.
     expect(CORPUS_FILES.designIntentRegression).toBe("design-intent-regression.json");
     expect(CORPUS_FILES.designIntentValidation).toBe("design-intent-validation-v2.json");
-    expect(CORPUS_FILES.designIntentChallenge).toBe("design-intent-sealed-challenge-v3.json");
+    // v4: v3 was closed and invalidated as an authoring programme before any provider call, so
+    // the slot names the version its protocol was frozen for. Repointing the empty slot is what
+    // keeps the arrival of a corpus a one-file change, exactly as the v2 and v3 repoints did.
+    expect(CORPUS_FILES.designIntentChallenge).toBe("design-intent-sealed-challenge-v4.json");
   });
 
   /**

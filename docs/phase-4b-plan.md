@@ -2007,6 +2007,71 @@ model configuration and cost profile are unchanged, and **T21 was not "improved"
 the correction** — which was the point of checking. The correction moved what a human reviewer is
 told; it moved nothing the model is sent.
 
+**v3 is closed and invalidated as an authoring programme, and v4 replaces the method rather than
+the author.** Three sealed-challenge corpora were disqualified in a row, and the third one settled
+what the second only suggested. The first Gemini half failed independent semantic review with
+multiple substantive premise and device overlaps. A fresh, isolated Gemini recommission — shown no
+prior corpus, no v3 case, no review finding and, deliberately, no list of subjects to avoid — failed
+again and harder: five of its six cases re-landed on the discarded half almost slot for slot, down
+to a `moss green`/`aged brass` phrase pairing, an `Oak ___ Neighborhood Association` on a street
+`& 4th Ave`, and a structured `avoidColors` token reproduced verbatim. One case asked for
+"professional academic respect" for a maritime craftsman — template residue from the superseded
+half's professor, in a session that never saw it.
+
+**The surviving ChatGPT half passed both reviews, and is still not carried forward.** That is the
+decision most worth recording, because it costs something real: retaining it while swapping only
+the failed family would make the corpus adaptive to review outcomes, which is selection after the
+fact wearing a thriftier hat. Neither v3 half enters v4, and no v3 case may appear in the next
+challenge.
+
+**What v3's failure is evidence about.** It is evidence about **benchmark authoring distributions**,
+not about DesignIntent quality: v3 never reached the system-aware fairness review, never reached a
+provider call, and generated **zero paid model evidence**. Every v3 artifact, review, invalidation
+record and failed assembly is preserved exactly as evidence
+(`docs/model-evals/provenance/design-intent-sealed-challenge-v3/CLOSURE.md`).
+
+**v4 changes the method, not just the author.** The diagnosis the third failure supports is
+*repertoire*: a source asked for six hard cases returns the six mood boards it always returns, and
+the independent reviewer named what was missing rather than what was duplicated — no host with a
+reason, no rule that costs the design something, no structural oddity. So in v4 the human situation
+is authored and frozen **before the design vocabulary is shown at all**. Stage 1 is six *situation
+cards* per half carrying only the event type, who is gathering, why it matters to them, the specific
+activity or relationship, and a concrete non-aesthetic complication where there honestly is one.
+A card may not name a colour, a typeface, a motif, a texture, a style, a family, a tonal direction,
+a layout, a mood board, an art movement, a material finish or any proposed visual solution. A card
+that cannot name a palette cannot be a mood board. All twelve cards freeze before Stage 2 begins;
+only then does an author see the EventIdentity contract, only its own six cards, and map each
+situation into a case whose situation may not materially change.
+
+The quality floor is precommitted and split honestly between what a checker can decide and what it
+cannot: exactly one same-`eventType` pair and four further distinct types per half, and **at least
+four of six cards carrying a complication** — declared per card and counted mechanically, while
+whether a stated complication is genuine stays an independent reviewer's judgement. A card fails the
+floor if the event type alone substantially determines the obvious design direction, and that too is
+a judgement rather than a regex. Six cards are commissioned and six proceed: no larger pool, no
+best-six.
+
+**No lesson from v3 travels into either packet.** Not "avoid ceramics", not "avoid greenhouses", not
+"avoid nautical", not "avoid galleries", and nothing equivalent however phrased. Coaching a
+benchmark against cases its authors must not know exist converts a sealed challenge into a
+construction aimed at known answers, and a corpus that avoids what we already found would be
+evidence that we edited the test.
+
+**Half A is one fresh human author**; half B is **one fresh model family that has authored no corpus
+in this programme and is not OpenAI-, Anthropic- or Google-family**, chosen and recorded *before*
+commissioning. Claude authors nothing. The namespaces — `DIC4-P01`–`DIC4-P06` and
+`DIC4-Q01`–`DIC4-Q06` — are deliberately neutral: case ids never reach the blind qualitative
+reviewer, but they do reach the semantic and fairness reviewers, and a reviewer who knows which half
+a human wrote is no longer reading the cases. `src/lib/ai/evals/design-intent-challenge-v4-protocol.ts`
+carries all of it as checkable values, frozen while no card exists.
+
+The review order is unchanged in spirit and gains one step: mechanical and schema validation, the
+frozen leakage scan, **verification that each final case is still faithful to its frozen situation
+card**, independent semantic premise and device overlap review against every readable corpus, every
+invalidated sealed challenge, all v3 artifacts and the other new half, then — only if that passes —
+the still-unspent system-aware fairness review, then freeze, then stop for explicit paid-run
+authorisation.
+
 **The v3 sealed challenge is authored by two external model families, and this protocol is frozen
 before either of them has written a case.** That ordering is the whole point of the record: a
 provenance claim made after the artifact arrives is worth nothing, so the namespace, the split, the

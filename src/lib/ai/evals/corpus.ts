@@ -92,7 +92,16 @@ export const CORPUS_FILES = {
    * unknown, is what keeps its arrival from requiring an edit anywhere — exactly the arrangement
    * `challenge2` proved twice.
    *
-   * **Two predecessors were invalidated, and the second one changed who may author this file.**
+   * **Three predecessors were invalidated, and the third closed a whole authoring programme.**
+   * v3 was commissioned from two external model families and failed as a *method*: a fresh isolated
+   * session, shown nothing, reproduced a discarded half of its own almost slot for slot. Its
+   * surviving half passed both reviews and is still not carried forward, because keeping it while
+   * swapping only the failed family would make the corpus adaptive to review outcomes. v4 freezes
+   * the human situation before the design vocabulary is shown at all
+   * (`design-intent-challenge-v4-protocol.ts`), and is authored by one fresh human and one fresh
+   * model family from neither of the two already represented here.
+   *
+   * **The earlier two invalidations, and what the second one changed.**
    * Every prior corpus in this programme came from one authoring-model distribution, and
    * independent semantic review found whole-premise duplicates and a house idiom across corpora
    * written in separately sealed sessions: a fresh session buys a fresh context, not a fresh
@@ -101,7 +110,7 @@ export const CORPUS_FILES = {
    * lead — under a protocol frozen in `design-intent-challenge-protocol.ts` before either wrote a
    * case.
    */
-  designIntentChallenge: "design-intent-sealed-challenge-v3.json",
+  designIntentChallenge: "design-intent-sealed-challenge-v4.json",
 } as const;
 
 export type CorpusSet = keyof typeof CORPUS_FILES;
@@ -346,7 +355,7 @@ export const EVAL_SETS = {
   designIntentChallenge: {
     runner: "design-intent",
     corpus: corpusPath("designIntentChallenge"),
-    out: "docs/model-evals/results/design-intent-sealed-challenge-v3",
+    out: "docs/model-evals/results/design-intent-sealed-challenge-v4",
     label:
       "SEALED CHALLENGE (4C DesignIntent) — authored after the T21 implementation and this " +
       "harness froze, by an author who saw neither the prompt nor prior outputs nor known " +
