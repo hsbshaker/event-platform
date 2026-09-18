@@ -20,6 +20,8 @@ import {
   SEALED_CHALLENGE_V4_CASE_IDS,
   SEALED_CHALLENGE_V4_EXCLUDED_FAMILIES,
   SEALED_CHALLENGE_V4_HALF_B_FAMILY,
+  SEALED_CHALLENGE_V4_HALF_B_FORBIDDEN_AFFORDANCES,
+  SEALED_CHALLENGE_V4_HALF_B_MODEL,
   SEALED_CHALLENGE_V4_HALVES,
   SEALED_CHALLENGE_V4_HUMAN_AUTHOR_EXCLUSIONS,
   SEALED_CHALLENGE_V4_VERSION,
@@ -129,6 +131,37 @@ describe("the v4 sealed-challenge protocol, frozen before any situation card exi
     it("has either no chosen half-B family yet, or an eligible one", () => {
       if (SEALED_CHALLENGE_V4_HALF_B_FAMILY === null) return;
       expect(isEligibleHalfBFamily(SEALED_CHALLENGE_V4_HALF_B_FAMILY)).toBe(true);
+    });
+
+    /**
+     * Pinned because the point of naming a snapshot is that it stays named. An alias that advanced
+     * silently would make "which model authored this corpus" unanswerable later, which is the same
+     * defect as a digest that no longer matches its file.
+     */
+    it("pins half B to one snapshot rather than a moving alias", () => {
+      expect(SEALED_CHALLENGE_V4_HALF_B_FAMILY).toBe("Mistral");
+      expect(SEALED_CHALLENGE_V4_HALF_B_MODEL).toEqual({
+        family: "Mistral",
+        model: "Mistral Medium 3.5",
+        modelId: "mistral-medium-3-5",
+        surface: "Mistral Studio Playground",
+      });
+      expect(SEALED_CHALLENGE_V4_HALF_B_MODEL.family).toBe(SEALED_CHALLENGE_V4_HALF_B_FAMILY);
+      expect(SEALED_CHALLENGE_V4_HALF_B_MODEL.modelId).not.toContain("latest");
+      expect(isEligibleHalfBFamily(SEALED_CHALLENGE_V4_HALF_B_MODEL.family)).toBe(true);
+    });
+
+    it("closes the routes by which half B could reach what it must not see", () => {
+      expect(SEALED_CHALLENGE_V4_HALF_B_FORBIDDEN_AFFORDANCES).toHaveLength(8);
+      for (const forbidden of [
+        "mistral-medium-latest, or any moving alias in place of the pinned id",
+        "Vibe automatic model routing",
+        "repository access",
+        "web search",
+        "prior conversation context",
+      ]) {
+        expect(SEALED_CHALLENGE_V4_HALF_B_FORBIDDEN_AFFORDANCES).toContain(forbidden);
+      }
     });
 
     it("names every route by which the challenge would stop being sealed", () => {

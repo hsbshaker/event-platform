@@ -92,15 +92,56 @@ export const SEALED_CHALLENGE_V4_CASE_IDS: readonly string[] = SEALED_CHALLENGE_
 export const SEALED_CHALLENGE_V4_EXCLUDED_FAMILIES = ["OpenAI", "Anthropic", "Google"] as const;
 
 /**
- * The chosen half-B family, recorded **before** commissioning or not at all.
+ * The chosen half-B family, recorded **before** commissioning — which is what happened here.
  *
- * `null` means unchosen, and that is a real state rather than a placeholder: this protocol may be
- * frozen before the family is picked, but half B may not be commissioned or accepted while it is
- * `null`. Filling it in is a one-line change to this file, made before any card exists, and the
- * test beside it refuses a half-B artifact until then. That ordering is the whole point — a family
- * named after seeing a case is a family selected for its output.
+ * It was `null` at the protocol freeze and is `"Mistral"` now, set while **no `DIC4` situation card
+ * or case exists anywhere**. `git` carries that ordering rather than a comment: the freeze commit's
+ * tree holds no card, and so does this one. A family named after seeing a case is a family selected
+ * for its output, which is the whole reason this value has its own decision point.
+ *
+ * Mistral is eligible on the stated rule — it authored no corpus in this programme and is none of
+ * the three excluded families — and that is the only claim being made. Nothing here says Mistral
+ * writes better cases than the families it replaces.
  */
-export const SEALED_CHALLENGE_V4_HALF_B_FAMILY: string | null = null;
+export const SEALED_CHALLENGE_V4_HALF_B_FAMILY: string | null = "Mistral";
+
+/**
+ * The exact authoring surface for half B, pinned **for provenance and reproducibility only**.
+ *
+ * `modelId` is the pinned snapshot rather than a moving alias, and the distinction is the point: an
+ * alias that silently advances would make "which model authored this corpus" unanswerable a month
+ * later, which is the same class of defect as a digest that no longer matches its file. It is not a
+ * quality claim and not a capability claim.
+ *
+ * Attribution remains **user-supplied provenance**: nothing in this repository can prove which
+ * model produced a JSON file, and this record never pretends otherwise.
+ */
+export const SEALED_CHALLENGE_V4_HALF_B_MODEL = {
+  family: "Mistral",
+  model: "Mistral Medium 3.5",
+  modelId: "mistral-medium-3-5",
+  surface: "Mistral Studio Playground",
+} as const;
+
+/**
+ * What half B's authoring session may not use, and why the list is this shape.
+ *
+ * Every entry closes a route by which the session would stop being the thing the record claims:
+ * a moving alias or automatic routing makes the authoring model unknowable; an agent, connector,
+ * repository access, web search or uploaded file could reach the material the author must never
+ * see; carried-over conversation context makes "fresh session" false. The seal is not only about
+ * what an author is told — it is also about what it can go and find.
+ */
+export const SEALED_CHALLENGE_V4_HALF_B_FORBIDDEN_AFFORDANCES = [
+  "mistral-medium-latest, or any moving alias in place of the pinned id",
+  "Vibe automatic model routing",
+  "an agent",
+  "connectors",
+  "repository access",
+  "web search",
+  "uploaded files",
+  "prior conversation context",
+] as const;
 
 /** Is this family eligible to author half B at all? Case-insensitive on the family name. */
 export function isEligibleHalfBFamily(family: string): boolean {

@@ -19,15 +19,40 @@ The record says who it is attributed to and on what basis, and never more.
 | half | namespace | source class | chosen source |
 | --- | --- | --- | --- |
 | A | `DIC4-P01`…`DIC4-P06` | one fresh human author | *(recorded here before commissioning)* |
-| B | `DIC4-Q01`…`DIC4-Q06` | one fresh model family, not OpenAI-, Anthropic- or Google-family, and no prior corpus in this programme | **unchosen** — `SEALED_CHALLENGE_V4_HALF_B_FAMILY` is `null` |
+| B | `DIC4-Q01`…`DIC4-Q06` | one fresh model family, not OpenAI-, Anthropic- or Google-family, and no prior corpus in this programme | **Mistral** — see below |
 
 The namespaces are neutral by design: `P` and `Q` say nothing about which half a human wrote. Case
 ids never reach the blind qualitative reviewer, but they do reach the semantic and fairness
 reviewers, and a reviewer who knows which half is human-authored is no longer reading the cases.
 
-Half B's family is recorded **before** commissioning or half B is not commissioned. The slot is a
-declared `null` rather than a placeholder string, so "unchosen" is a state the code can be asked
-about rather than a fact someone has to remember.
+Half B's family is recorded **before** commissioning or half B is not commissioned, and that is
+what happened: the slot was a declared `null` at the protocol freeze and was set to `Mistral` in a
+later commit whose tree still contains **no `DIC4` situation card or case**. `git` carries the
+ordering rather than a claim in prose.
+
+### Half B, pinned
+
+| | |
+| --- | --- |
+| family | `Mistral` |
+| model | `Mistral Medium 3.5` |
+| pinned model id | `mistral-medium-3-5` |
+| authoring surface | Mistral Studio Playground |
+
+**The pin is for provenance and reproducibility only.** It is not a quality claim, not a capability
+claim, and not a statement that Mistral writes better cases than the families it replaces — the only
+claim is eligibility: it authored no corpus in this programme and is none of the three excluded
+families. A snapshot id rather than a moving alias, because an alias that advanced silently would
+make "which model authored this corpus" unanswerable a month later, which is the same class of
+defect as a digest that no longer matches its file.
+
+The authoring session may not use: `mistral-medium-latest` or any moving alias in place of the
+pinned id; Vibe automatic model routing; an agent; connectors; repository access; web search;
+uploaded files; or prior conversation context. Every entry closes a route by which the session would
+stop being what this record says it is — the first two make the authoring model unknowable, the
+middle five could reach material the author must never see, and the last makes "fresh session"
+false. **The seal is not only about what an author is told; it is also about what it can go and
+find.**
 
 ## What gets recorded, per half
 
