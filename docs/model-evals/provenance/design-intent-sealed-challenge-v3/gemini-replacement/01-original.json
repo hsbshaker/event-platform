@@ -1,0 +1,416 @@
+{
+"version": "design_intent_sealed_challenge_v3_gemini_half",
+"cases": [
+{
+"id": "DIC3-M01",
+"eventType": "gallery opening",
+"identity": {
+"creativeDirection": "A stark, tactile gallery showcase for hand-thrown architectural ceramics, emphasizing material depth, clay body variations, and quiet structural rhythm rather than polished ornament.",
+"toneKeywords": [
+"contemplative",
+"earthen",
+"architectural",
+"tactile"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [
+"#8B4513",
+"#2B2B2B"
+],
+"preferredColors": [
+"raw linen",
+"sandstone",
+"muted ochre"
+],
+"avoidColors": [
+"neon red",
+"#00FFFF"
+],
+"dominanceNotes": "Dark basalt and raw warm earth tones should dominate structural elements, while soft sandstone serves as a neutral ground."
+},
+"tonalIntent": "Deep grounded contrast with warm midtone body and dark structural framing, avoiding clinical stark white backgrounds.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"mid",
+"dark"
+],
+"compatibleFamilies": [
+"editorial",
+"statement"
+],
+"compatibleTypographyCategories": [
+"high_contrast_editorial",
+"transitional"
+],
+"visualMotifs": [
+"chiseled clay contours",
+"unglazed ceramic textures",
+"architectural elevation grids"
+],
+"textureDirection": "Matte grainy paper, unglazed stoneware grain, and subtle raw linen weave.",
+"typographyDirection": "Generous letter-spacing, authoritative serif headlines paired with quiet high-contrast secondary labels.",
+"copyTone": "Restrained, archival, and intellectually curious.",
+"hostConstraints": [
+"Do not use glossy or high-shine synthetic background finishes.",
+"Must retain dark basalt framing across all visual touchpoints."
+],
+"creativeGuidance": [
+"Consider structural column grids that mirror ceramic display pedestals.",
+"Highlight raw clay tone transitions."
+],
+"inspirationSummary": "A portfolio of matte stoneware vessels photographed against raw concrete and dark slate slabs under directional natural daylight."
+},
+"suppliedFacts": {
+"hostNames": "Soren & Kaelen",
+"honoreeName": null,
+"honoreeDescriptionText": null,
+"eventType": null,
+"dateText": "October 24, 2026",
+"timeText": "6:00 PM - 9:30 PM",
+"venueText": "Kiln & Vault Gallery",
+"addressText": "742 Foundry St",
+"localityText": "Seattle, WA",
+"rsvpDeadlineText": "October 10, 2026"
+},
+"notes": "Exercises material-focused palette enforcement and dark-leaning tonal consistency. Fair because constraints focus on texture and color without mandating custom font rendering or specific code implementation."
+},
+{
+"id": "DIC3-M02",
+"eventType": "wedding",
+"identity": {
+"creativeDirection": "An intimate evening greenhouse celebration balancing lush botanical deep shadow with warm candlelight, aged brass hardware, and vintage botanical typography.",
+"toneKeywords": [
+"atmospheric",
+"botanical dusk",
+"warm candlelight",
+"intimate"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"deep burgundy",
+"moss green",
+"warm amber",
+"aged brass"
+],
+"avoidColors": [
+"bright pastel pink",
+"electric blue"
+],
+"dominanceNotes": "Deep forest shadows and rich wine tones form the background depth, accented by soft amber glow."
+},
+"tonalIntent": "Rich dark and midtone depth capturing dusk transition into candlelight.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"dark",
+"mid"
+],
+"compatibleFamilies": [
+"invitation",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"oldstyle",
+"heritage",
+"soft_serif"
+],
+"visualMotifs": [
+"dusk greenhouse glass",
+"pressed botanical leaf silhouettes",
+"vintage brass rules"
+],
+"textureDirection": "Soft velvet sheen, pressed heavy cardstock with subtle fiber inclusions, and faint glass refraction.",
+"typographyDirection": "Classic oldstyle serif hierarchy with delicate italic accent lines and generous line spacing.",
+"copyTone": "Warm, poetic, and quietly hospitable.",
+"hostConstraints": [],
+"creativeGuidance": [
+"Emphasize the moody evening transition rather than bright daytime floral aesthetics.",
+"Use rich dark grounds to let amber and brass accents glow."
+],
+"inspirationSummary": "No visual inspiration supplied."
+},
+"suppliedFacts": null,
+"notes": "Tests dark/mid mood creation without explicit hard constraints. Evaluates how the model handles atmospheric botanical themes without defaulting to daytime pastels."
+},
+{
+"id": "DIC3-M03",
+"eventType": "wedding",
+"identity": {
+"creativeDirection": "A crisp daytime alpine meadow ceremony rooted in sun-bleached wild grasses, high-elevation daylight, clear open sky, and clean elemental simplicity.",
+"toneKeywords": [
+"sunlit",
+"alpine daylight",
+"breeze",
+"unadorned"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [
+"#F5F5F0"
+],
+"preferredColors": [
+"alpine sky blue",
+"sun-bleached straw",
+"sage green",
+"granite grey"
+],
+"avoidColors": [
+"deep black",
+"heavy burgundy",
+"#000000"
+],
+"dominanceNotes": "Airy off-white (#F5F5F0) and open sky hues dominate the visual field, with soft sage and straw as gentle structural accents."
+},
+"tonalIntent": "High brightness, open daylight feel with low shadow weight and high visual breathability.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"light"
+],
+"compatibleFamilies": [
+"invitation",
+"statement"
+],
+"compatibleTypographyCategories": [
+"transitional",
+"soft_serif"
+],
+"visualMotifs": [
+"contour topography lines",
+"wild alpine flora outlines",
+"clean horizon rule"
+],
+"textureDirection": "Uncoated cotton paper, delicate toothy watercolor wash, and crisp light-filtering openness.",
+"typographyDirection": "Clean transitional serif headers with light-weight, highly readable body prose and ample margins.",
+"copyTone": "Fresh, joyful, and understated.",
+"hostConstraints": [
+"Do not use black or dark background panels anywhere in the design.",
+"Must preserve a high-brightness light tonal palette."
+],
+"creativeGuidance": [
+"Highlight open mountain horizon lines and fresh natural light.",
+"Keep decorative ornament light and sparse."
+],
+"inspirationSummary": "A collection of 35mm film photos showing high-altitude grasslands, pale granite boulders, and clear midday skies."
+},
+"suppliedFacts": {
+"hostNames": "Clara & David",
+"honoreeName": null,
+"honoreeDescriptionText": null,
+"eventType": "wedding",
+"dateText": "July 18, 2027",
+"timeText": "11:30 AM",
+"venueText": "Granite Ridge Pass",
+"addressText": "Milepost 14 Alpine Way",
+"localityText": "Ouray, CO",
+"rsvpDeadlineText": "June 1, 2027"
+},
+"notes": "Pairs with DIC3-M02's identical eventType 'wedding' to test template resistance. DIC3-M02 is dark/intimate/industrial greenhouse while DIC3-M03 is light/airy/alpine daylight."
+},
+{
+"id": "DIC3-M04",
+"eventType": "album launch",
+"identity": {
+"creativeDirection": "A high-energy, raw electronic vinyl release night channeling analog synth grids, cathode-ray flicker, industrial print press texture, and stark graphic contrast.",
+"toneKeywords": [
+"pulsing",
+"raw industrial",
+"analog electronic",
+"nocturnal"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [
+"#111111",
+"#FF3300"
+],
+"preferredColors": [
+"signal amber",
+"monochrome grey",
+"tape black"
+],
+"avoidColors": [
+"pastel lavender",
+"soft dusty rose",
+"#E6E6FA"
+],
+"dominanceNotes": "#111111 black dominates all background surfaces, with electric #FF3300 signal red providing sharp focal punctuation."
+},
+"tonalIntent": "Stark, high-contrast dark tone with crisp luminous highlight points.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"dark"
+],
+"compatibleFamilies": [
+"statement",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"grotesk_led",
+"high_contrast_editorial"
+],
+"visualMotifs": [
+"waveform signal lines",
+"analog tape reel alignment marks",
+"modular synth patch grids"
+],
+"textureDirection": "Screenprinted ink buildup, matte dark vinyl grain, and sharp CRT raster lines.",
+"typographyDirection": "Bold, tight-strung, high-impact typography with compressed vertical rhythm and stark hierarchy.",
+"copyTone": "Direct, energetic, and unapologetic.",
+"hostConstraints": [
+"Do not use scripted, calligraphic, or soft cursive fonts.",
+"Required color #FF3300 must be used for primary accent elements."
+],
+"creativeGuidance": [
+"Lean into industrial club poster heritage rather than luxury lounge branding.",
+"Maintain high contrast for low-light venue viewing."
+],
+"inspirationSummary": "Scans of 1980s Swiss poster design and vintage synthesizer patch manuals."
+},
+"suppliedFacts": {
+"hostNames": "Signal-9 Records",
+"honoreeName": "Vespera",
+"honoreeDescriptionText": "Underground synth-wave composer releasing debut LP 'Frequency Loss'",
+"eventType": null,
+"dateText": "November 13, 2026",
+"timeText": "10:00 PM - 3:00 AM",
+"venueText": "The Sub-Basement",
+"addressText": "108 Industrial Loop",
+"localityText": "Berlin",
+"rsvpDeadlineText": "November 5, 2026"
+},
+"notes": "Exercises sharp contrast statement design with rigid typography category exclusions (no script/cursive) and strict dark palette enforcement."
+},
+{
+"id": "DIC3-M05",
+"eventType": "retirement dinner",
+"identity": {
+"creativeDirection": "A warm, dignified celebratory evening honoring a lifetime of maritime craft, brass nautical instruments, weathered chart paper, and deep ocean heritage.",
+"toneKeywords": [
+"honored",
+"maritime heritage",
+"warm wood",
+"dignified"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"deep navy blue",
+"warm brass",
+"parchment cream",
+"driftwood grey"
+],
+"avoidColors": [
+"neon lime",
+"magenta"
+],
+"dominanceNotes": "Deep navy and parchment balance primary grounds, with rich brass and warm wood tones anchoring accents."
+},
+"tonalIntent": "Mid to light warm parchment tones complemented by deep maritime blue contrast structures.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"mid",
+"light"
+],
+"compatibleFamilies": [
+"invitation",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"heritage",
+"oldstyle",
+"transitional"
+],
+"visualMotifs": [
+"maritime compass rosette",
+"latitudinal coordinate grids",
+"shipbuilder draftsman lines"
+],
+"textureDirection": "Heavy deckle-edge paper, warm parchment grain, and subtle brass foil sheen.",
+"typographyDirection": "Classic heritage serif headlines with elegant proportions, supported by refined transitional subheadings.",
+"copyTone": "Warmly respectful, nostalgic, and narrative.",
+"hostConstraints": [
+"Do not refer to the event as an 'old age' party or use humorous aging tropes."
+],
+"creativeGuidance": [
+"Incorporate subtle draftsmanship and cartography lines in border details.",
+"Balance celebratory warmth with professional academic respect."
+],
+"inspirationSummary": "Architectural rigging blueprints, brass sextant cases, and antique navigational charts."
+},
+"suppliedFacts": null,
+"notes": "Tests respectful tone discipline and social sensitivity. Includes a host constraint prohibiting ageist trope language without dictating visual assets."
+},
+{
+"id": "DIC3-M06",
+"eventType": "neighborhood block party",
+"identity": {
+"creativeDirection": "A buoyant, sun-filled street festival bringing generations together through bold community graphics, bright neighborhood banners, and friendly energetic optimism.",
+"toneKeywords": [
+"buoyant",
+"welcoming",
+"festive community",
+"vibrant"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"warm marigold yellow",
+"terracotta orange",
+"sky blue",
+"fresh leafy green"
+],
+"avoidColors": [
+"stark dark black",
+"monochrome grey"
+],
+"dominanceNotes": "Bright, cheerful primary and secondary hues shared across playful geometric structures over clean light grounds."
+},
+"tonalIntent": "Bright, high-energy light tones evoking sunny summer afternoon festivities.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"light"
+],
+"compatibleFamilies": [
+"statement",
+"invitation"
+],
+"compatibleTypographyCategories": [
+"transitional",
+"soft_serif",
+"grotesk_led"
+],
+"visualMotifs": [
+"interlocking neighborhood street blocks",
+"festive pennant bunting",
+"sunburst geometry"
+],
+"textureDirection": "Risograph print texture, matte butcher paper texture, and clean crisp ink overlap.",
+"typographyDirection": "Friendly, approachable, bold headlines with high legibility and playful size contrast.",
+"copyTone": "Enthusiastic, welcoming, and community-spirited.",
+"hostConstraints": [],
+"creativeGuidance": [
+"Ensure layout feels accessible and inviting to all ages rather than slick or corporate.",
+"Use vibrant color blocking to organize schedule and activity areas."
+],
+"inspirationSummary": "No visual inspiration supplied."
+},
+"suppliedFacts": {
+"hostNames": "Oak Street Neighborhood Association",
+"honoreeName": null,
+"honoreeDescriptionText": null,
+"eventType": "neighborhood block party",
+"dateText": "August 8, 2026",
+"timeText": "1:00 PM - 7:00 PM",
+"venueText": "Oak Street between 4th & 8th Aves",
+"addressText": "400-800 Oak St",
+"localityText": "Portland, OR",
+"rsvpDeadlineText": null
+},
+"notes": "Evaluates high-accessibility, multi-generational community design. Exercises light tonal constraints with broad color palette flexibility."
+}
+]
+}
