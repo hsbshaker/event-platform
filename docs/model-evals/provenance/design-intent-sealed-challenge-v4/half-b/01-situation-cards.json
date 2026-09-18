@@ -1,0 +1,53 @@
+{
+  "version": "design_intent_sealed_challenge_v4_half_b_situation_cards",
+  "cards": [
+    {
+      "id": "DIC4-Q01",
+      "eventType": "retirement party",
+      "whoIsGathering": "a group of former factory workers and their families",
+      "whyItMatters": "to honor the last shift of a 40-year employee who quietly mentored dozens of coworkers",
+      "context": "The factory closed three months ago, and this is the first time the team has reunited since. The retiree, a soft-spoken machinist, never sought recognition but is deeply respected for his patience and skill.",
+      "complication": "The retiree has requested that no gifts be given, as he finds them embarrassing, but the group insists on acknowledging his impact in some tangible way."
+    },
+    {
+      "id": "DIC4-Q02",
+      "eventType": "community potluck",
+      "whoIsGathering": "a neighborhood watch group in a rapidly gentrifying area",
+      "whyItMatters": "to rebuild trust after a series of misunderstandings between long-time residents and new arrivals",
+      "context": "The neighborhood has seen tension rise as property values soar, and older residents feel their history is being erased. The potluck is an attempt to share stories and food, but many are skeptical.",
+      "complication": "One of the new residents, a chef, wants to bring an elaborate dish to impress, while long-time residents see this as performative rather than genuine."
+    },
+    {
+      "id": "DIC4-Q03",
+      "eventType": "funeral",
+      "whoIsGathering": "a divided family with estranged siblings and their children",
+      "whyItMatters": "to honor a parent who was a bridge between the siblings, despite their personal conflicts",
+      "context": "The parent passed away suddenly, leaving behind a will that specifies no religious elements in the service. The siblings have not spoken in over a decade, but the parent’s wish for unity in death is clear.",
+      "complication": "One sibling is a devout practitioner of a faith that requires specific rites, and they struggle to reconcile this with the parent’s wishes."
+    },
+    {
+      "id": "DIC4-Q04",
+      "eventType": "birthday celebration",
+      "whoIsGathering": "a group of elderly friends from a nursing home and their younger caregivers",
+      "whyItMatters": "to celebrate the 100th birthday of a woman who has outlived most of her contemporaries",
+      "context": "The birthday honoree has a sharp memory and loves storytelling, but her hearing is poor, and she relies on lip-reading. The caregivers want to make the day special but are unsure how to include her fully.",
+      "complication": "The honoree has a strong dislike for loud music, which the nursing home staff typically use to liven up such events."
+    },
+    {
+      "id": "DIC4-Q05",
+      "eventType": "community potluck",
+      "whoIsGathering": "a local hiking club with members ranging from beginners to seasoned mountaineers",
+      "whyItMatters": "to welcome new members and share experiences from the past year’s expeditions",
+      "context": "The club has grown rapidly, and newer members often feel intimidated by the more experienced hikers. This potluck is meant to break down those barriers and foster camaraderie.",
+      "complication": "A recent accident on a club hike has left some members wary of sharing their own stories, fearing they might be judged or blamed."
+    },
+    {
+      "id": "DIC4-Q06",
+      "eventType": "wedding",
+      "whoIsGathering": "a couple who met through a mutual hobby (competitive board games) and their close-knit but opinionated friends",
+      "whyItMatters": "to celebrate a relationship built on shared passions and mutual respect, despite initial skepticism from their social circle",
+      "context": "The couple’s friends initially doubted their relationship would last, as they had very different personalities—one is outgoing and the other is reserved. Their bond over board games, however, proved stronger than anyone expected.",
+      "complication": null
+    }
+  ]
+}
