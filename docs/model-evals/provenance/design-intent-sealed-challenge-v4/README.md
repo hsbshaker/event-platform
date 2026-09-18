@@ -397,6 +397,80 @@ faithfulness review's call and not this step's.
 Half B Stage 2 has **not** been commissioned and nothing from it has been observed. No v4 corpus
 exists. The human was not contacted again at any point in this step.
 
+## Half B — Stage 2 received and normalized
+
+| file | role | sha256 | bytes | commit |
+| --- | --- | --- | --- | --- |
+| `half-b/02-stage-2-original-raw.json` | the response, verbatim | `26b4bb5b043cfe7a96b81d2a1040f2de3f9011c1be5439b3ddee7d7e9474eb39` | 11,533 | `1351e84` |
+| `half-b/03-stage-2-eventidentity-cases.json` | **the canonical artifact** | `62cff57645b9ee65c0a444270c677a3a2bb794993e212da814b83504b2099c2e` | 13,306 | this commit |
+
+### Normalization was identity-preserving, and that is proven rather than described
+
+The response already arrived in the requested shape, so the canonical artifact is the same object
+re-serialized with canonical key order and indentation. The proof is a single assertion: **the
+canonical artifact is deep-equal to the parsed raw**. Not "no differences were noticed" — equal.
+
+Alongside it, 197 authored strings were extracted and every one is present verbatim in the raw
+file. No authored string rewritten, no authored array reordered, no design choice changed. The
+byte-count difference between the two files is whitespace.
+
+### Validation
+
+| check | result |
+| --- | --- |
+| top-level shape | `version` + `cases`, nothing else |
+| `version` | `design_intent_sealed_challenge_v4_half_b_eventidentity_cases` |
+| ids and order | `DIC4-Q01`–`DIC4-Q06`, exact |
+| `id` / `eventType` vs the frozen Stage-1 cards | all six match |
+| identity field names | exactly the sixteen, `paletteIntent` exactly its four |
+| real `eventIdentityResultSchema`, all six | **no problems** — every string length, array count and enum member legal |
+| the five fixed Stage-2 values | present and correct on every case |
+| `checkStage2Faithfulness()` | **`[]`** |
+| top-level keys per case | exactly `id`, `eventType`, `identity` |
+
+**Zero mechanical defects.** Nothing had to be stopped on and nothing was rewritten around.
+
+`hostConstraints` counts: `Q01` 1, `Q03` 1, `Q04` 1, and `[]` for `Q02`, `Q05`, `Q06`.
+
+### Qualitative diagnostics — recorded, not adjudicated, not returned to Mistral
+
+Six operator-supplied observations, recorded exactly as flagged. Normalization acted on none of
+them.
+
+| case | observation |
+| --- | --- |
+| `Q01` | strong literal occupation/factory mapping — machine gears, shared tool silhouettes, faded blueprints, brushed metal and related workshop vocabulary — despite the Stage-2 warning against automatically converting occupation into themed decoration |
+| `Q02` | introduces "cultural divides", which the frozen card does not explicitly state; also leans into potluck/food imagery through recipe fragments, bowls, patchwork tablecloths, clay and hand-painted signs |
+| `Q03` | `creativeDirection` says "absence of ritual", while the frozen authority is specifically "no religious elements" — absence of religion and absence of ritual are not equivalent |
+| `Q04` | places `no loud music` in `hostConstraints`, while the card states the honoree "has a strong dislike for loud music". Later review decides whether that meets the packet's requirement/prohibition/correction rule or promotes a preference to binding authority |
+| `Q05` | strong direct hiking mapping — trail markers, footprints, campfire silhouettes, topographic lines, weathered wood, trail dust |
+| `Q06` | says "without literal board game motifs" but includes abstract move counters; also reads the social-circle skepticism through "sophisticated enough for skeptics" |
+
+What the custodian checked, because a diagnostic record should be accurate about its own anchors
+without judging them: every flagged phrase is present in the normalized identity where stated, and
+none appears in the corresponding frozen card — except `skeptic`, which the `Q06` card does contain,
+so that half of the `Q06` observation is an interpretation of card material rather than an addition.
+
+Two strings are recorded here in full because the questions raised about them turn on exact wording,
+and a later reviewer should not have to reconstruct them:
+
+- `Q04` card: *"The honoree has a strong dislike for loud music, which the nursing home staff
+  typically use to liven up such events."* → `hostConstraints: ["no loud music"]`.
+- `Q03` card: *"a will that specifies no religious elements in the service"* →
+  `hostConstraints: ["no religious elements"]`, with `creativeDirection` opening *"Unite through
+  absence of ritual…"*.
+
+All three of half B's `hostConstraints` entries are compressed paraphrases rather than the card's
+own words — `["no gifts"]`, `["no religious elements"]`, `["no loud music"]` — where the packet asks
+for verbatim or near-verbatim. That is one more thing for the faithfulness review to weigh, and it
+is **not** adjudicated here: compression is not the same defect as promotion, and which of the three
+is which is exactly the judgement normalization must not make.
+
+### State
+
+Mistral was not re-contacted. No assembled v4 corpus exists. Half A's Stage-1 and Stage-2 artifacts
+are untouched.
+
 ## Review order
 
 1. mechanical and schema validation;

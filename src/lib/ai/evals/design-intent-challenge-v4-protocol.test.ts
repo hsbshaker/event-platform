@@ -452,6 +452,61 @@ describe("the v4 sealed-challenge protocol, frozen before any situation card exi
      * commit message, and the normalized cases are held to the shape the packet promised: exactly
      * three top-level keys, and the five fixed values inserted unchanged.
      */
+    /**
+     * Half B's Stage-2 artifacts. The canonical file is the response re-serialized, so the check
+     * that matters is equality with the raw rather than a diff anyone eyeballed.
+     */
+    it("holds half B's Stage-2 response and a canonical artifact equal to it", () => {
+      const raw = `${ROOT}${V4_PROVENANCE}half-b/02-stage-2-original-raw.json`;
+      const cases = `${ROOT}${V4_PROVENANCE}half-b/03-stage-2-eventidentity-cases.json`;
+      if (!existsSync(cases)) return;
+      const digest = (file: string) =>
+        createHash("sha256").update(readFileSync(file)).digest("hex");
+      expect(digest(raw)).toBe("26b4bb5b043cfe7a96b81d2a1040f2de3f9011c1be5439b3ddee7d7e9474eb39");
+      expect(digest(cases)).toBe(
+        "62cff57645b9ee65c0a444270c677a3a2bb794993e212da814b83504b2099c2e",
+      );
+
+      const parsed = JSON.parse(readFileSync(cases, "utf8")) as {
+        version: string;
+        cases: { id: string; eventType: string; identity: Record<string, never> }[];
+      };
+      // Identity-preserving: the canonical artifact and the raw response are the same object.
+      expect(parsed).toEqual(JSON.parse(readFileSync(raw, "utf8")));
+      expect(parsed.version).toBe("design_intent_sealed_challenge_v4_half_b_eventidentity_cases");
+      expect(parsed.cases.map((c) => c.id)).toEqual(half(1).caseIds);
+
+      const cards = (
+        JSON.parse(
+          readFileSync(`${ROOT}${V4_PROVENANCE}half-b/01-situation-cards.json`, "utf8"),
+        ) as { cards: SituationCard[] }
+      ).cards;
+      expect(checkStage2Faithfulness(cards, parsed.cases)).toEqual([]);
+
+      for (const one of parsed.cases) {
+        expect(Object.keys(one).sort()).toEqual(["eventType", "id", "identity"]);
+        const identity = one.identity as unknown as {
+          colorsExplicitlyConstrained: boolean;
+          toneExplicitlyConstrained: boolean;
+          inspirationSummary: string;
+          paletteIntent: { requiredColors: string[]; avoidColors: string[] };
+        };
+        expect({
+          colors: identity.colorsExplicitlyConstrained,
+          tone: identity.toneExplicitlyConstrained,
+          required: identity.paletteIntent.requiredColors,
+          avoided: identity.paletteIntent.avoidColors,
+          inspiration: identity.inspirationSummary,
+        }).toEqual({
+          colors: false,
+          tone: false,
+          required: [],
+          avoided: [],
+          inspiration: "No visual inspiration supplied.",
+        });
+      }
+    });
+
     it("holds half A's Stage-2 raw response and normalized cases", () => {
       const raw = `${ROOT}${V4_PROVENANCE}half-a/03-stage-2-original-raw.txt`;
       const cases = `${ROOT}${V4_PROVENANCE}half-a/04-stage-2-eventidentity-cases.json`;
