@@ -271,6 +271,84 @@ semantic overlap passes, and semantic overlap did not pass. A system-aware revie
 these cases is the one thing that cannot be un-spent, and spending it on a corpus that is already
 going to change would waste it.
 
+## Replacement Gemini half — `DIC3-M01`…`DIC3-M06`, second commission
+
+Received 2026-09-18 from a new fresh Gemini session, into the same six preregistered slots. The
+half is accepted whole or rejected whole; nothing from the invalidated half is mixed in.
+
+| file | role | sha256 | bytes | commit |
+| --- | --- | --- | --- | --- |
+| `gemini-replacement/01-original.json` | raw replacement attempt, provenance only | `d20654358767c8b87295f2b391eced9c861293b50d657572b75cdc39256ee718` | 13,213 | `e7248db` |
+| `gemini-replacement/02-contract-corrected-candidate.json` | **the replacement candidate** | `68158c50f7538902e774429c01f8f7bc0ca72fe5195ba17f2073d49eec5cfd3b` | 12,945 | `5a522f9` |
+
+### The contract correction was narrow, and that is verified rather than trusted
+
+Comparing every leaf of `01` against `02`: seventeen leaves removed, eleven changed, none added.
+Every one of them sits in the palette/tone contract mechanics:
+
+- `paletteIntent.avoidColors` and `requiredColors` entries removed or rewritten, including hexes
+  replaced by colour names;
+- `toneExplicitlyConstrained` lowered from `true` to `false` on three cases;
+- two `dominanceNotes` losing a literal hex they quoted;
+- `suppliedFacts: null` removed as a key on two cases, which is a schema-shape fix — the contract
+  has the field optional, and a literal `null` is not an object.
+
+**Nothing protected moved.** Checked field by field across all six cases: every `id`, every
+`eventType`, and every `creativeDirection`, `toneKeywords`, `visualMotifs`, `inspirationSummary`,
+`textureDirection`, `typographyDirection`, `copyTone`, `hostConstraints`, `creativeGuidance`,
+`tonalIntent`, `colorsExplicitlyConstrained` and all three compatibility enums are identical. No
+premise, name, motif or inspiration concept moved. Two `notes` changed, both consequentially: one
+had described "strict dark palette enforcement" for a required hex that the correction removed, the
+other "light tonal constraints" for a lock the correction released.
+
+One residual inconsistency, disclosed rather than repaired: `DIC3-M01`'s notes still say
+"dark-leaning tonal consistency" while its `toneExplicitlyConstrained` is now `false`. Notes are
+never sent to the model and never shown to the blind reviewer, so this changes no measurement — and
+it is not the custodian's to rewrite.
+
+### Mechanical result: one leakage collision, otherwise clean
+
+Clean: the real structural contract with `gated: false`; the protocol composition check — exact
+namespace, unique ids, **exactly one** same-`eventType` pair (`wedding`) across five distinct types;
+no id collision with any corpus; no supplied-fact value surfaced into its own identity prose.
+
+**One collision blocks it**, against two surfaces:
+
+`DIC3-M01.identity.toneKeywords[3]` is the single word `tactile`. The EventIdentity prompt uses it
+inside a worked "good" example, and the wire schema uses it in the `textureDirection` description
+("tactile/visual texture character"). It is the same ordinary-vocabulary class as the seven that
+forced the first correction round — a one-word tone keyword is not benchmark content and cannot leak
+anything — and it blocks all the same, because the scanner is frozen and is not weakened to admit a
+corpus. `creativeDirection` also contains the word, but only inside a longer string that matches
+nothing; the standalone keyword is the whole collision.
+
+That is a narrow leakage-collision repair, it needs authorial prose, and **no replacement prose is
+written here**.
+
+### Diagnostics for the semantic reviewer — recorded, not acted on, and never returned to the author
+
+These are observations from the mechanical pass. Classifying them is the semantic reviewer's job,
+not the custodian's, and none of them is a gate.
+
+1. **`DIC3-M01` is a gallery opening for hand-thrown architectural ceramics at a venue named
+   "Kiln & Vault Gallery".** The invalidated half's `DIC3-M04` was a ceramics studio at
+   "Kiln & Clay Gallery" — and that case was invalidated for duplicating `DIV-12`'s ceramics
+   premise. This session saw none of that: not the old half, not the review, not `DIV-12`, and no
+   avoid-list. So a fresh Gemini session, told nothing, returned a ceramics-gallery premise with a
+   near-identical venue name. That is exactly the question the ruling said including the invalidated
+   half in review would answer.
+2. **Three supplied-fact values reappear from the invalidated half**, redistributed across different
+   cases: `October 24, 2026` and `Seattle, WA` (now in `DIC3-M01`) and `Portland, OR` (now in
+   `DIC3-M06`). Individually ordinary; the pattern is what is worth weighing.
+3. **Cross-corpus `toneKeywords` matches**, diagnostic only under the protocol: `contemplative`
+   (also the surviving `DIC3-G03`, where ChatGPT chose it during *its* correction round), `sunlit`,
+   `nocturnal`, `dignified`.
+
+### Status
+
+Not mechanically clean, so **the semantic premise-overlap review has not been run**, and the
+system-aware fairness review remains unspent. Nothing was assembled and nothing was frozen.
+
 ## The scan defect, recorded as debt rather than fixed
 
 Seven of the eight collisions that forced the correction round carried no benchmark content. That

@@ -308,6 +308,16 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
         bytes: 14846,
       },
       {
+        path: `${PROVENANCE}gemini-replacement/01-original.json`,
+        sha256: "d20654358767c8b87295f2b391eced9c861293b50d657572b75cdc39256ee718",
+        bytes: 13213,
+      },
+      {
+        path: `${PROVENANCE}gemini-replacement/02-contract-corrected-candidate.json`,
+        sha256: "68158c50f7538902e774429c01f8f7bc0ca72fe5195ba17f2073d49eec5cfd3b",
+        bytes: 12945,
+      },
+      {
         path: `${PROVENANCE}gemini/INVALIDATION.md`,
         sha256: "5eff8fe456e2668fe034ce736f0a9d7e425487c9dd5626df2325a255b6113331",
         bytes: 5124,
@@ -370,6 +380,53 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
           .filter((key) => a[key] !== b[key])
           .sort(),
       ).toEqual([...changed].sort());
+    });
+
+    /**
+     * The replacement's correction round touched palette and tone contract mechanics, so the check
+     * that matters is the inverse one: that nothing an *author* owns moved with them. A correction
+     * allowed to carry a premise, a name or a motif alongside it would be a re-authoring wearing a
+     * contract fix's clothes, and no leaf-count assertion would notice.
+     */
+    it("moved no authored field in the replacement's contract correction", () => {
+      const cases = (rel: string) =>
+        (
+          JSON.parse(readFileSync(`${ROOT}${PROVENANCE}${rel}`, "utf8")) as {
+            cases: Record<string, never>[];
+          }
+        ).cases;
+      const before = cases("gemini-replacement/01-original.json");
+      const after = cases("gemini-replacement/02-contract-corrected-candidate.json");
+      expect(after).toHaveLength(before.length);
+
+      const AUTHORED = [
+        "creativeDirection",
+        "toneKeywords",
+        "visualMotifs",
+        "inspirationSummary",
+        "textureDirection",
+        "typographyDirection",
+        "copyTone",
+        "hostConstraints",
+        "creativeGuidance",
+        "tonalIntent",
+        "compatibleTonalDirections",
+        "compatibleFamilies",
+        "compatibleTypographyCategories",
+      ] as const;
+      const moved: string[] = [];
+      before.forEach((original, index) => {
+        const corrected = after[index] as Record<string, unknown>;
+        const from = original as Record<string, unknown>;
+        if (from.id !== corrected.id) moved.push(`${String(from.id)}.id`);
+        if (from.eventType !== corrected.eventType) moved.push(`${String(from.id)}.eventType`);
+        for (const field of AUTHORED) {
+          const a = (from.identity as Record<string, unknown>)[field];
+          const b = (corrected.identity as Record<string, unknown>)[field];
+          if (JSON.stringify(a) !== JSON.stringify(b)) moved.push(`${String(from.id)}.${field}`);
+        }
+      });
+      expect(moved).toEqual([]);
     });
 
     it("keeps each candidate conformant to its precommitted namespace", () => {
