@@ -106,34 +106,76 @@ export const SEALED_CHALLENGE_V4_EXCLUDED_FAMILIES = ["OpenAI", "Anthropic", "Go
 export const SEALED_CHALLENGE_V4_HALF_B_FAMILY: string | null = "Mistral";
 
 /**
- * The exact authoring surface for half B, pinned **for provenance and reproducibility only**.
+ * The exact authoring surface for half B, recorded **for provenance only** — and, since the
+ * correction below, no longer for reproducibility. The difference is the whole comment.
  *
- * `modelId` is the pinned snapshot rather than a moving alias, and the distinction is the point: an
- * alias that silently advances would make "which model authored this corpus" unanswerable a month
- * later, which is the same class of defect as a digest that no longer matches its file. It is not a
- * quality claim and not a capability claim.
+ * The original pin named the fixed snapshot `mistral-medium-3-5`, chosen precisely so that "which
+ * model authored this corpus" would stay answerable. It could not be used: the precommitted
+ * authoring surface, the Mistral Studio Playground, does not expose the fixed identifier in its
+ * model picker. Only the alias is selectable, so the pin was corrected to the alias before half B
+ * was commissioned and before any `DIC4-Q` card existed.
  *
- * Attribution remains **user-supplied provenance**: nothing in this repository can prove which
- * model produced a JSON file, and this record never pretends otherwise.
+ * **What that costs is stated rather than absorbed.** `mistral-medium-latest` is a *moving* alias.
+ * Mistral's documentation on `2026-09-18` identifies it as Mistral Medium 3.5, and that dated
+ * mapping plus the operator's attestation is now the entire basis for the model attribution — the
+ * identifier itself guarantees nothing, because the same string may resolve to a different model
+ * later. A reader a year from now cannot recover the authoring model from this record alone. That
+ * is a real weakening of the property the original pin existed for, it is accepted because the
+ * surface leaves no alternative, and pretending otherwise would be worse than the limitation.
+ *
+ * Attribution was already **user-supplied provenance** — nothing here can prove which model
+ * produced a JSON file — and this correction widens that gap rather than creating it.
  */
 export const SEALED_CHALLENGE_V4_HALF_B_MODEL = {
   family: "Mistral",
   model: "Mistral Medium 3.5",
-  modelId: "mistral-medium-3-5",
+  /** The Studio-exposed alias. **Moving**, not a snapshot — see the comment above. */
+  modelId: "mistral-medium-latest",
   surface: "Mistral Studio Playground",
+  /** The dated basis for reading that alias as Mistral Medium 3.5. */
+  aliasResolvedFrom: "Mistral documentation, 2026-09-18",
+  /** Stated in the data, so no reader has to infer it from prose. */
+  identifierIsMoving: true,
 } as const;
+
+/**
+ * The superseded pin, kept because a corrected record that hides its earlier state is worth less
+ * than one that shows the correction.
+ *
+ * Nothing was observed from Mistral when this changed: half B was not commissioned, no `DIC4-Q`
+ * card or case existed, and no authoring result had been seen. So this is a surface-availability
+ * correction, not a choice made in response to output — which is the property that would have been
+ * fatal, and is the reason the ordering is recorded rather than asserted.
+ */
+export const SEALED_CHALLENGE_V4_HALF_B_MODEL_PIN_HISTORY = [
+  {
+    modelId: "mistral-medium-3-5",
+    recordedAt: "commit ca98f93",
+    supersededAt: "2026-09-18",
+    reason:
+      "the precommitted Mistral Studio Playground surface does not expose the fixed identifier " +
+      "in its model picker, so the snapshot id could not be selected. Superseded before half B " +
+      "was commissioned and before any DIC4-Q card existed; no authoring result had been observed",
+  },
+] as const;
 
 /**
  * What half B's authoring session may not use, and why the list is this shape.
  *
  * Every entry closes a route by which the session would stop being the thing the record claims:
- * a moving alias or automatic routing makes the authoring model unknowable; an agent, connector,
- * repository access, web search or uploaded file could reach the material the author must never
- * see; carried-over conversation context makes "fresh session" false. The seal is not only about
- * what an author is told — it is also about what it can go and find.
+ * selecting a different model makes the attribution false; automatic routing makes it unknowable;
+ * an agent, connector, repository access, web search or uploaded file could reach the material the
+ * author must never see; carried-over conversation context makes "fresh session" false. The seal is
+ * not only about what an author is told — it is also about what it can go and find.
+ *
+ * The first entry used to forbid the moving alias outright. It cannot, now that the alias is the
+ * only selectable identifier, so it forbids the thing still within anyone's control: choosing
+ * something other than what the picker labels Mistral Medium 3.5. The risk the old entry guarded
+ * against has not gone away — it has moved into `SEALED_CHALLENGE_V4_HALF_B_MODEL` as a stated
+ * limitation, which is the honest place for a risk nobody can close.
  */
 export const SEALED_CHALLENGE_V4_HALF_B_FORBIDDEN_AFFORDANCES = [
-  "mistral-medium-latest, or any moving alias in place of the pinned id",
+  "any model other than the one the Studio picker exposes as Mistral Medium 3.5",
   "Vibe automatic model routing",
   "an agent",
   "connectors",

@@ -23,6 +23,7 @@ import {
   SEALED_CHALLENGE_V4_HALF_B_FAMILY,
   SEALED_CHALLENGE_V4_HALF_B_FORBIDDEN_AFFORDANCES,
   SEALED_CHALLENGE_V4_HALF_B_MODEL,
+  SEALED_CHALLENGE_V4_HALF_B_MODEL_PIN_HISTORY,
   SEALED_CHALLENGE_V4_HALVES,
   SEALED_CHALLENGE_V4_HUMAN_AUTHOR_EXCLUSIONS,
   SEALED_CHALLENGE_V4_VERSION,
@@ -135,27 +136,54 @@ describe("the v4 sealed-challenge protocol, frozen before any situation card exi
     });
 
     /**
-     * Pinned because the point of naming a snapshot is that it stays named. An alias that advanced
-     * silently would make "which model authored this corpus" unanswerable later, which is the same
-     * defect as a digest that no longer matches its file.
+     * This test used to assert the opposite, and the change is worth a sentence.
+     *
+     * The original version asserted a fixed snapshot and that `modelId` never contained `latest` —
+     * written specifically to stop a moving alias creeping in. It fired against a legitimate
+     * correction: the precommitted Studio surface does not expose the fixed identifier at all, so
+     * the alias is the only selectable value. The guard was right about the risk and wrong about
+     * who could avoid it.
+     *
+     * So the assertion moves rather than disappears. What is pinned now is that the record **says**
+     * the identifier is moving, and carries the dated basis for reading it as Mistral Medium 3.5 —
+     * because the failure this guards against is no longer "an alias sneaks in" but "the record
+     * implies a reproducibility it does not have".
      */
-    it("pins half B to one snapshot rather than a moving alias", () => {
+    it("records half B's identifier honestly, moving alias and all", () => {
       expect(SEALED_CHALLENGE_V4_HALF_B_FAMILY).toBe("Mistral");
       expect(SEALED_CHALLENGE_V4_HALF_B_MODEL).toEqual({
         family: "Mistral",
         model: "Mistral Medium 3.5",
-        modelId: "mistral-medium-3-5",
+        modelId: "mistral-medium-latest",
         surface: "Mistral Studio Playground",
+        aliasResolvedFrom: "Mistral documentation, 2026-09-18",
+        identifierIsMoving: true,
       });
       expect(SEALED_CHALLENGE_V4_HALF_B_MODEL.family).toBe(SEALED_CHALLENGE_V4_HALF_B_FAMILY);
-      expect(SEALED_CHALLENGE_V4_HALF_B_MODEL.modelId).not.toContain("latest");
       expect(isEligibleHalfBFamily(SEALED_CHALLENGE_V4_HALF_B_MODEL.family)).toBe(true);
+
+      // An identifier ending in a moving suffix must never be recorded as though it were fixed.
+      expect(
+        SEALED_CHALLENGE_V4_HALF_B_MODEL.identifierIsMoving,
+        "a `latest` identifier is recorded as if it were a snapshot",
+      ).toBe(SEALED_CHALLENGE_V4_HALF_B_MODEL.modelId.includes("latest"));
+      expect(SEALED_CHALLENGE_V4_HALF_B_MODEL.aliasResolvedFrom).toMatch(/\d{4}-\d{2}-\d{2}/);
+    });
+
+    /** The superseded pin stays visible: a corrected record that hides its earlier state is worth less. */
+    it("preserves the superseded pin and why it was superseded", () => {
+      expect(SEALED_CHALLENGE_V4_HALF_B_MODEL_PIN_HISTORY).toHaveLength(1);
+      const [previous] = SEALED_CHALLENGE_V4_HALF_B_MODEL_PIN_HISTORY;
+      expect(previous.modelId).toBe("mistral-medium-3-5");
+      expect(previous.modelId).not.toBe(SEALED_CHALLENGE_V4_HALF_B_MODEL.modelId);
+      expect(previous.reason).toContain("does not expose the fixed identifier");
+      expect(previous.reason).toContain("no authoring result had been observed");
     });
 
     it("closes the routes by which half B could reach what it must not see", () => {
       expect(SEALED_CHALLENGE_V4_HALF_B_FORBIDDEN_AFFORDANCES).toHaveLength(8);
       for (const forbidden of [
-        "mistral-medium-latest, or any moving alias in place of the pinned id",
+        "any model other than the one the Studio picker exposes as Mistral Medium 3.5",
         "Vibe automatic model routing",
         "repository access",
         "web search",

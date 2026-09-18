@@ -48,44 +48,46 @@ Three separate facts, kept separate because collapsing them would overstate the 
 The limitation attaches to the attribution, not to the cards. It is not grounds to alter, replace
 or re-solicit anything, and the cards stand exactly as authored.
 
-### Half B, pinned
+### Half B, and the pin that had to be corrected
 
 | | |
 | --- | --- |
 | family | `Mistral` |
 | model | `Mistral Medium 3.5` |
-| pinned model id | `mistral-medium-3-5` |
+| identifier used | `mistral-medium-latest` — **a moving alias, not a snapshot** |
+| basis for reading it as Medium 3.5 | Mistral documentation, 2026-09-18 |
 | authoring surface | Mistral Studio Playground |
+| superseded pin | `mistral-medium-3-5`, recorded at `ca98f93` |
 
-**The pin is for provenance and reproducibility only.** It is not a quality claim, not a capability
-claim, and not a statement that Mistral writes better cases than the families it replaces — the only
-claim is eligibility: it authored no corpus in this programme and is none of the three excluded
-families. A snapshot id rather than a moving alias, because an alias that advanced silently would
-make "which model authored this corpus" unanswerable a month later, which is the same class of
-defect as a digest that no longer matches its file.
+The original pin named the fixed snapshot `mistral-medium-3-5`, chosen precisely so that "which
+model authored this corpus" would stay answerable. **It could not be used**: the precommitted Studio
+Playground does not expose the fixed identifier in its model picker, so the alias is the only
+selectable value. The pin was corrected before half B was commissioned, before any `DIC4-Q` card
+existed, and with no authoring result observed — which is the ordering that matters, since a pin
+changed in response to output would be fatal rather than administrative.
 
-The authoring session may not use: `mistral-medium-latest` or any moving alias in place of the
-pinned id; Vibe automatic model routing; an agent; connectors; repository access; web search;
-uploaded files; or prior conversation context. Every entry closes a route by which the session would
-stop being what this record says it is — the first two make the authoring model unknowable, the
-middle five could reach material the author must never see, and the last makes "fresh session"
-false. **The seal is not only about what an author is told; it is also about what it can go and
-find.**
+**What the correction costs, stated plainly.** The whole reason to name a snapshot is that it stays
+named. An alias does not: `mistral-medium-latest` may resolve to a different model later, so the
+dated documentation mapping plus the operator's attestation is now the *entire* basis for the model
+attribution, and a reader a year from now cannot recover the authoring model from this record alone.
+That is a genuine weakening of the property the pin existed for. It is accepted because the surface
+leaves no alternative, and it is written down because a record that quietly keeps the word "pinned"
+while losing the property would be worse than the limitation itself. `identifierIsMoving: true` sits
+in the data so no reader has to infer it from prose.
 
-## What gets recorded, per half
+The superseded pin is preserved in `SEALED_CHALLENGE_V4_HALF_B_MODEL_PIN_HISTORY` with its reason
+and date, rather than overwritten as though it had never been chosen.
 
-Stage 1 and Stage 2 are separate artifacts, and both are preserved:
-
-| | |
-| --- | --- |
-| `<half>/01-situation-cards.json` | the six frozen situation cards, raw, before the EventIdentity contract was shown |
-| `<half>/02-eventidentity-candidate.json` | the six cases mapped from those exact cards |
-| further numbered files | any allowed syntax or contract correction, each preserved as its own round |
-
-Plus, for each: source class and family or human attribution, date received, namespace, SHA256 and
-byte count of every artifact, and every correction round with its leaf-level diff. **No case
-selection is ever recorded, because none is ever made**: six cards are commissioned, those exact six
-proceed to Stage 2, and the half is accepted whole or rejected whole.
+**One forbidden affordance changed with it.** The list used to forbid `mistral-medium-latest`
+outright — it cannot, now that the alias is the only selectable identifier — so it forbids what is
+still within anyone's control: selecting any model other than the one the picker labels Mistral
+Medium 3.5. The risk the old entry guarded against has not gone away; it has moved into the model
+record as a stated limitation, which is the honest place for a risk nobody can close. The other
+seven entries are unchanged: Vibe automatic model routing, an agent, connectors, repository access,
+web search, uploaded files, prior conversation context. The first two would make the authoring model
+unknowable, the middle four could reach material the author must never see, and the last makes
+"fresh session" false. **The seal is not only about what an author is told; it is also about what it
+can go and find.**
 
 ## Half A — Stage 1 received, `DIC4-P01`…`DIC4-P06`
 
