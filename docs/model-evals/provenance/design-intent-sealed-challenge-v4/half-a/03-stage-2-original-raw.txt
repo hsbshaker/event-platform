@@ -1,0 +1,290 @@
+DIC4-P01
+Situation card DIC4-P01 — frozen, verbatim
+ * Event type: family reunion
+ * Who is gathering: Three generations of the extended Miller family (around 30 people), ranging in age from 4 to 82.
+ * Why it matters to them: It is the first time the family has gathered since the matriarch passed away six months prior, and they need to make decisions regarding the future of the ancestral family farm.
+ * What happens / context: A potluck lunch, unstructured outdoor time for children, and a formal evening meeting around the main dining table to review property documents and discuss selling versus preserving the land. Younger cousins are using handheld audio recorders to document older relatives’ stories and memories of the house throughout the afternoon before any real estate decisions are finalized.
+ * Complication: High emotional tension exists between two siblings—one who wants to sell the farm immediately to cover personal debt, and another who lived on site as the primary caregiver for their mother and wants to preserve the home. Additionally, the eldest uncle relies on a heavy motorized wheelchair, requiring step-free access across the sloped lawn and home.
+Your EventIdentity for DIC4-P01
+ * Creative direction: This design grounds an emotional family crossroads in shared lineage, memory preservation, and clear spatial accessibility. It balances warm intergenerational storytelling with the solemnity needed for property decisions, without taking sides.
+ * Tone keywords:
+   * grounded
+   * reflective
+   * enduring
+   * delicate
+   * intergenerational
+   * solemn
+ * Preferred colors:
+   * barnwood gray
+   * faded sage
+   * warm linen
+   * weathered iron
+   * dried clover
+ * Dominance notes: Warm linen and faded sage create a welcoming base for family storytelling, while barnwood gray and weathered iron anchor formal document review sections.
+ * Tonal intent: Warm afternoon daylight filtering through farm oaks shifting into quiet, direct evening light around a shared dining table.
+ * Compatible tonal directions:
+   * light
+   * mid
+ * Compatible families:
+   * editorial
+   * invitation
+ * Compatible typography categories:
+   * oldstyle
+   * soft_serif
+   * transitional
+ * Visual motifs:
+   * archival audio waveforms
+   * farm property boundary lines
+   * porch floorboard grain
+   * family memory trees
+   * dried meadow grasses
+ * Texture direction: Sun-washed linen, matte paper stock with slight tooth, and soft press finishes that feel warm to touch and free of harsh glare.
+ * Typography direction: Generous leading and high contrast for effortless legibility across generations, using warm classical serifs for memory collection and sturdy transitional types for legal document review.
+ * Copy tone: Respectful, clear, emotionally grounded, and neutral regarding property outcomes.
+ * Host constraints:
+   * The eldest uncle relies on a heavy motorized wheelchair, requiring step-free access across the sloped lawn and home.
+ * Creative guidance:
+   * Ensure high contrast and generous font sizing to support older family members during evening document review.
+   * Provide subtle visual separation between narrative memory collection areas and formal real estate deliberation materials.
+   * Maintain a calm, balanced tone that honors family heritage without favoring either selling or keeping the farm.
+DIC4-P02
+Situation card DIC4-P02 — frozen, verbatim
+ * Event type: family reunion
+ * Who is gathering: A group of ten former foster siblings, now adults in their late 20s and 30s, along with their former foster parents.
+ * Why it matters to them: They lived in the same household at overlapping times across a fifteen-year period, but many have not seen each other since leaving care. It marks their first intentional effort to establish a formal support network as adults.
+ * What happens / context: An informal afternoon picnic in a public park, swapping life updates, sharing a group photo-scanning session, and creating a shared contact directory. Because there are no shared multi-generational ancestral traditions or inherited family legacies, the group is intentionally inventing new shared traditions for the very first time.
+ * Complication: Several attendees carry complex personal trauma connected to their early lives, resulting in varying comfort levels with personal questions. Two specific attendees have an unresolved interpersonal fallout, requiring careful group coordination to keep conversations comfortable for everyone.
+Your EventIdentity for DIC4-P02
+ * Creative direction: A flexible identity centered on chosen kinship, safe boundaries, and low-pressure adult reconnection. It avoids traditional genealogical tropes to celebrate the active creation of new shared traditions.
+ * Tone keywords:
+   * welcoming
+   * intentional
+   * gentle
+   * open
+   * chosen
+   * adaptive
+ * Preferred colors:
+   * sunlit amber
+   * soft terracotta
+   * warm oat
+   * eucalyptus green
+   * sky blue
+ * Dominance notes: Warm oat and sunlit amber dominate to create a bright, inviting park feel, while eucalyptus green and soft terracotta define contact directory elements.
+ * Tonal intent: Bright, diffuse park daylight filtering through leaves, creating an open, unhurried, and safe visual atmosphere.
+ * Compatible tonal directions:
+   * light
+   * mid
+ * Compatible families:
+   * invitation
+   * editorial
+ * Compatible typography categories:
+   * soft_serif
+   * transitional
+   * grotesk_led
+ * Visual motifs:
+   * overlapping photo frames
+   * park picnic bench slats
+   * open journal pages
+   * interconnected directory nodes
+   * modular grid lines
+ * Texture direction: Uncoated recycled paper, smooth matte cardstock, and soft natural fibers that feel unpretentious and easy to handle outdoors.
+ * Typography direction: Warm, friendly soft serifs for welcome elements paired with clean, accessible sans-serifs that keep contact directories and activity schedules simple and clear.
+ * Copy tone: Warm, open-ended, respecting personal boundaries, and emphasizing mutual support.
+ * Host constraints: None.
+ * Creative guidance:
+   * Avoid multi-generational legacy imagery or traditional family tree metaphors in favor of flexible network concepts.
+   * Design directory and activity materials with clear opt-in choices to respect varying individual comfort levels.
+   * Keep visual hierarchy relaxed and modular to suit an informal outdoor picnic setting.
+DIC4-P03
+Situation card DIC4-P03 — frozen, verbatim
+ * Event type: community town hall
+ * Who is gathering: Local residents, municipal city planners, and representatives from a commercial real estate developer (approximately 75 people total).
+ * Why it matters to them: The city is proposing to rezone a long-standing public park into a mixed-use commercial center, directly impacting neighborhood green space, noise levels, and property values.
+ * What happens / context: A 20-minute presentation by city planners outlining the development plan, followed by a moderated public Q&A at a floor microphone, and a written feedback card submission. A youth-led local environmental organization orchestrates a silent protest inside the room, holding informational placards rather than speaking during the microphone period.
+ * Complication: The venue lacks official audio translation systems, but roughly 30% of attending neighborhood residents are native Spanish speakers with limited English proficiency. A local community organizer steps in to provide live sentence-by-sentence translation, doubling the length of the presentation and Q&A.
+Your EventIdentity for DIC4-P03
+ * Creative direction: A highly functional, dual-language civic identity that balances official municipal presentation with community grassroots participation. It ensures full structural parity between English and Spanish while providing clarity for public debate.
+ * Tone keywords:
+   * civic
+   * bilingual
+   * transparent
+   * resolute
+   * direct
+   * participatory
+ * Preferred colors:
+   * park canopy green
+   * municipal slate
+   * paper white
+   * signal yellow
+   * earth brown
+ * Dominance notes: Paper white and municipal slate carry the primary information for maximum legibility, while park canopy green and signal yellow highlight bilingual markers and feedback areas.
+ * Tonal intent: Direct, high-contrast hall lighting where official zoning plans meet public community engagement.
+ * Compatible tonal directions:
+   * light
+   * mid
+ * Compatible families:
+   * statement
+   * editorial
+ * Compatible typography categories:
+   * grotesk_led
+   * transitional
+   * high_contrast_editorial
+ * Visual motifs:
+   * side-by-side bilingual columns
+   * park contour maps
+   * floor microphone icon
+   * protest placard silhouettes
+   * feedback card grid lines
+ * Texture direction: High-contrast matte paper stock and clean newsprint textures that feel utilitarian, urgent, and accessible.
+ * Typography direction: Rigorous grotesk and transitional typography establishing clean side-by-side English and Spanish layouts with equal font sizes, line heights, and visual prominence.
+ * Copy tone: Direct, neutral, transparent, and fully accessible across languages.
+ * Host constraints: None.
+ * Creative guidance:
+   * Provide strict side-by-side bilingual symmetry across all printed agenda and feedback materials.
+   * Ensure clear layout spacing to accommodate the slower, extended pace of live sentence-by-sentence translation.
+   * Maintain an authoritative yet neutral civic frame that supports both formal presentations and written resident input.
+DIC4-P04
+Situation card DIC4-P04 — frozen, verbatim
+ * Event type: academic dissertation defense
+ * Who is gathering: A doctoral candidate, a four-person faculty dissertation committee, and fifteen invited peers and family members.
+ * Why it matters to them: It is the culmination of five years of research for the candidate, determining whether they earn their doctorate and qualify for a pending university teaching appointment.
+ * What happens / context: A 45-minute research presentation by the candidate, a 60-minute questioning round by the committee, a brief public Q&A session, a closed-door committee deliberation, and the public announcement of the verdict. The candidate’s primary advisor and co-advisor hold opposing public stances on the core theoretical model used in the research, leading to spirited debate between the committee members during the candidate’s defense period.
+ * Complication: One critical committee member is joining remotely via satellite connection from a field research vessel in a distant time zone, creating significant audio lag and potential connection drops during questioning.
+Your EventIdentity for DIC4-P04
+ * Creative direction: An authoritative academic identity that captures five years of rigorous doctoral scholarship while accommodating a complex hybrid committee format and theoretical debate between advisors.
+ * Tone keywords:
+   * scholarly
+   * rigorous
+   * analytical
+   * formal
+   * articulate
+   * disciplined
+ * Preferred colors:
+   * deep navy
+   * parchment beige
+   * ink black
+   * signal blue
+   * warm ivory
+ * Dominance notes: Parchment beige and deep navy form the primary scholarly foundation, accented by ink black structure and signal blue for remote connection markers.
+ * Tonal intent: Focused, formal indoor hall lighting intersected by cool digital displays for remote participation.
+ * Compatible tonal directions:
+   * mid
+   * light
+   * dark
+ * Compatible families:
+   * editorial
+   * statement
+ * Compatible typography categories:
+   * high_contrast_editorial
+   * heritage
+   * transitional
+ * Visual motifs:
+   * theoretical model diagrams
+   * satellite signal lines
+   * lecture podium outlines
+   * academic paper margin guides
+   * citation brackets
+ * Texture direction: Heavyweight matte paper, subtle eggshell finish, and smooth bound booklet textures that evoke institutional permanence.
+ * Typography direction: Elegant high-contrast editorial serifs for document titles and candidate designation, paired with crisp transitional body type for structured research outlines and agenda steps.
+ * Copy tone: Scholarly, precise, elevated, and restrained.
+ * Host constraints: None.
+ * Creative guidance:
+   * Structure the defense program with clear visual demarcations for presentation, questioning, and deliberation phases.
+   * Incorporate subtle indicators for remote committee participation order to help manage audio lag during Q&A.
+   * Maintain a disciplined, neutral framing that honors the candidate's work amidst theoretical disagreement.
+DIC4-P05
+Situation card DIC4-P05 — frozen, verbatim
+ * Event type: volunteer orientation
+ * Who is gathering: Twelve newly onboarded volunteers and two staff program coordinators at a regional wildlife rehabilitation center.
+ * Why it matters to them: Volunteers require mandatory safety training and operational knowledge before they are permitted to handle injured animals or work independently on site.
+ * What happens / context: A presentation on facility rules and safety protocols, a guided walkthrough of the facility enclosures, a hands-on demonstration of safety gear and transport crates, and the completion of liability waivers. The participant group ranges from high school students completing required service hours to retired veterinary technicians, creating a very wide spread of existing domain knowledge in the room.
+ * Complication: (none)
+Your EventIdentity for DIC4-P05
+ * Creative direction: A clear, practical orientation identity for a wildlife rehabilitation center that bridges diverse volunteer backgrounds with clear safety protocols and hands-on facility walkthroughs.
+ * Tone keywords:
+   * pragmatic
+   * protective
+   * accessible
+   * instructional
+   * clear
+   * welcoming
+ * Preferred colors:
+   * forest green
+   * safety amber
+   * canvas tan
+   * charcoal
+   * warm clay
+ * Dominance notes: Canvas tan and forest green dominate to create a natural, welcoming tone, with safety amber highlighting critical animal handling protocols.
+ * Tonal intent: Bright, functional daylight across indoor clinic rooms and outdoor animal enclosures.
+ * Compatible tonal directions:
+   * light
+   * mid
+ * Compatible families:
+   * statement
+   * editorial
+ * Compatible typography categories:
+   * grotesk_led
+   * transitional
+   * soft_serif
+ * Visual motifs:
+   * animal transport crate outlines
+   * safety gear silhouettes
+   * facility trail maps
+   * checklist clipboard grids
+   * protective glove icons
+ * Texture direction: Durable, semi-coated moisture-resistant paper stock suitable for outdoors, clipboards, and active facility tours.
+ * Typography direction: Bold, highly legible grotesk headings for safety alerts paired with readable transitional body text that makes operational rules effortless to scan for all age groups.
+ * Copy tone: Direct, encouraging, clear, and safety-focused.
+ * Host constraints: None.
+ * Creative guidance:
+   * Use step-by-step numbered guides and visual icons for transport and gear demonstrations.
+   * Ensure layout contrast remains crisp and legible under both indoor fluorescent lights and bright sunlight.
+   * Structure liability and safety documents so they are easily understood by participants ranging from teens to retirees.
+DIC4-P06
+Situation card DIC4-P06 — frozen, verbatim
+ * Event type: product post-mortem meeting
+ * Who is gathering: A cross-functional technology team of 14 people, including software engineers, product managers, user experience designers, and customer support leads.
+ * Why it matters to them: A major software release failed over the weekend, resulting in extended service downtime, lost data for end-users, and significant customer churn.
+ * What happens / context: A detailed review of the deployment timeline, a root-cause analysis mapping technical and procedural failures, and the assignment of preventive action items to team members. The session leader institutes a strict no-device policy during the discussion, forcing digital product workers to rely entirely on a physical whiteboard to map out the failure sequence together.
+ * Complication: Significant personal finger-pointing occurred in team messaging channels prior to the meeting. The engineering manager and product director strongly disagree on who authorized releasing the update without final quality testing, making psychological safety and constructive communication a central difficulty.
+Your EventIdentity for DIC4-P06
+ * Creative direction: An analog, blameless post-mortem framework designed for a strict no-device environment. It converts team tension into structured, whiteboard-centered systemic analysis and technical timeline mapping.
+ * Tone keywords:
+   * objective
+   * diagnostic
+   * analog
+   * constructive
+   * disciplined
+   * focused
+ * Preferred colors:
+   * whiteboard marker black
+   * alert red
+   * slate gray
+   * dry-erase blue
+   * neutral off-white
+ * Dominance notes: Neutral off-white and slate gray create a calm, neutral backdrop; dry-erase blue and alert red pinpoint failure nodes and timeline events.
+ * Tonal intent: Stark, focused conference room lighting stripped of laptop and screen glows.
+ * Compatible tonal directions:
+   * light
+   * mid
+ * Compatible families:
+   * statement
+   * editorial
+ * Compatible typography categories:
+   * grotesk_led
+   * transitional
+ * Visual motifs:
+   * whiteboard marker strokes
+   * incident timeline nodes
+   * systemic flowchart arrows
+   * analog sticky note grids
+   * diagnostic bracket frames
+ * Texture direction: Smooth matte paper worksheets and dry-erase whiteboard surfaces engineered for rapid hand-written diagrams and marker notes.
+ * Typography direction: Utilitarian, high-contrast grotesk typography arranged in clean tabular structures and failure-tree diagrams for instant analog scanning.
+ * Copy tone: Blameless, objective, process-driven, and structurally focused.
+ * Host constraints:
+   * The session leader institutes a strict no-device policy during the discussion.
+ * Creative guidance:
+   * Design all incident mapping templates specifically for physical printed sheets and whiteboard projection.
+   * Frame prompt headers around root-cause process questions rather than individual decision-making.
+   * Provide clear timeline grids to assist cross-functional teams in mapping deployment sequences by hand.
