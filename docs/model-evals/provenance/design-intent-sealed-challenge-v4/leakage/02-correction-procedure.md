@@ -1,10 +1,17 @@
-# v4 leakage correction — the procedure, frozen before either author was contacted
+# v4 leakage correction — the procedure
 
-**Neither author has been contacted. No replacement wording exists. Claude authored none of it and
-will author none of it** (`CLAUDE_AUTHORED_REPLACEMENT_QUOTA = 0`).
+> **Corrected.** This file was written asserting that neither author had been contacted. That was
+> false: both had already answered, 9 and 12 seconds before the freeze commit landed.
+> `05-PROVENANCE-CORRECTION.md` has the timestamps and states exactly what the packets below do and
+> do not evidence. The original text is kept below rather than rewritten.
 
-This file and `design-intent-challenge-v4-leakage-correction.ts` are the record made *before* the
-thing arrives, which is the only point at which a procedure claim is worth anything.
+**Claude authored none of the replacement wording and will author none of it**
+(`CLAUDE_AUTHORED_REPLACEMENT_QUOTA = 0`).
+
+This file and `design-intent-challenge-v4-leakage-correction.ts` were written without sight of
+either response — `f52a2ca`'s parent is `aa01382` and this session never fetched in between — so
+the procedure is not reverse-engineered from the answers. It was not, however, written before the
+answers existed. Both distinctions matter and only the first one survives.
 
 ## What is being corrected, and what is not
 
@@ -90,4 +97,4 @@ never told about is a metric that punishes correct behaviour.
 
 ## Status
 
-Frozen. Nothing sent. The next action is the user's decision to contact the two authors.
+Frozen. Both responses are preserved and unapplied; see `05-PROVENANCE-CORRECTION.md`.
