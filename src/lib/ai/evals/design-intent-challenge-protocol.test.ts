@@ -308,6 +308,11 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
         bytes: 14846,
       },
       {
+        path: `${PROVENANCE}review/02-semantic-premise-overlap-review-replacement.md`,
+        sha256: "6ed793ee9e5ab6f21f2a5e28f2e7cf388670efd27860f8a8dbdc62dfbfa52250",
+        bytes: 14084,
+      },
+      {
         path: `${PROVENANCE}gemini-replacement/01-original.json`,
         sha256: "d20654358767c8b87295f2b391eced9c861293b50d657572b75cdc39256ee718",
         bytes: 13213,

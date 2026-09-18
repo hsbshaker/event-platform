@@ -369,13 +369,52 @@ registered model-visible surfaces**. No scanner or frozen machinery was touched.
 
 **Author correction is over.** No semantic-review finding goes back to that author from here.
 
-### Status
+### Semantic premise-overlap review: ACTION REQUIRED, five of six cases
 
-Mechanically clean, so the independent semantic premise-overlap review runs next, comparing these
-six against the surviving ChatGPT half, the invalidated first Gemini half, both earlier invalidated
-sealed challenges and the earlier programme corpora. The ceramics/gallery recurrence noted above was
-**not** pre-classified for that reviewer: the required corpora go in, and the reviewer decides
-independently whether it is substantive. The system-aware fairness review remains unspent.
+`review/02-semantic-premise-overlap-review-replacement.md`, sha256
+`6ed793ee9e5ab6f21f2a5e28f2e7cf388670efd27860f8a8dbdc62dfbfa52250`, 14,084 bytes. Preserved
+verbatim. The reviewer confirmed reading only the comparison corpora, and the ceramics recurrence
+the mechanical pass had noticed was not pre-classified for it.
+
+**Class 3 on `DIC3-M01`, `M02`, `M04`, `M05`, `M06`.** Only `M03` escapes with class-2 findings.
+
+The headline is not the count. **These six re-land on the superseded Gemini half almost slot for
+slot, from a session that saw none of it** — a ceramics show in a Seattle gallery named
+`Kiln & ___ Gallery`; a glasshouse wedding whose palette again pairs the exact phrases `moss green`
+and `aged brass`; a retirement dinner honouring a life of navigation through brass instruments and
+coordinate grids, under an anti-cliché constraint; a street festival hosted by an
+`Oak ___ Neighborhood Association` on a street `& 4th Ave`, with zero constraints and no
+inspiration; and a dark no-script poster with a mandated signal hex. A superseded case's exact
+`avoidColors` token `dark background colors` reappears in a structured field, and a supplied date
+and locality migrate between cases.
+
+One detail is worth more than the rest: `DIC3-M05` calls for "professional academic respect" for an
+honoree who is a **maritime craftsman**. That phrase has no referent in the case and fits the
+superseded half's professor exactly. It is template residue — the clearest evidence available that
+the case was generated from the same slot rather than from its own premise.
+
+**Two qualifications the reviewer flagged, and neither rescues the half.** Four of the class-3
+findings are against the superseded file, which the system never reads — so the charge is not
+leakage but that the authoring source has a fixed repertoire and reproduced it, which is
+disqualifying for a sealed challenge on its own terms. And finding 8 stands on the readable prior
+corpora alone (`SC2-02`, `DSC-12`): a mandated signal hex on a dark ground with heavy grotesk and
+no script is a problem two readable corpora already pose.
+
+**Verdict on what the six measure: recall, not generalization.** The reviewer's reasoning is worth
+preserving because it names what is missing rather than what is duplicated — every case is a
+nameable genre mood board with no human situation that pushes back on the genre: no host with a
+reason, no rule that costs the design something, no structural oddity. The surviving ChatGPT half
+and every prior corpus are built from exactly such situations. A system that can render six
+recognisable genres passes these six, and whether it knows the genres is already established.
+
+### STOP AND ESCALATE
+
+Step 7 of the frozen order is unambiguous and is not a judgement call: multiple replacement-Gemini
+cases requiring substantive re-premising is a stop-and-escalate. So **no case was repaired, no
+finding went back to Gemini, nothing was assembled, the gated contract was not run, and the
+system-aware fairness review remains unspent.** The canonical slot is empty.
+
+The surviving ChatGPT half is untouched and byte-identical. Nothing about this ruling reaches it.
 
 ## The scan defect, recorded as debt rather than fixed
 
