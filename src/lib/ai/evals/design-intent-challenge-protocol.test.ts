@@ -272,6 +272,16 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
         sha256: "56ad64b072900428603b0b4f545db8118549e3c4d81705573c86c630ed5373d2",
         bytes: 15739,
       },
+      {
+        path: `${PROVENANCE}chatgpt/01-original-raw.txt`,
+        sha256: "e49d340ba0f67bcb86f2ac5a913140405996c027ff75bd1315132c1ae4e6c554",
+        bytes: 16705,
+      },
+      {
+        path: `${PROVENANCE}chatgpt/02-normalized-candidate.json`,
+        sha256: "38963c46189013e8e969ef5d706a9a5ea67089bfefb904e166d948d452f05fd5",
+        bytes: 15353,
+      },
     ] as const;
 
     it.each(SUPPLIED)("$path is byte-identical to what was received", ({ path, sha256, bytes }) => {
@@ -282,11 +292,41 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
       }).toEqual({ sha256, bytes });
     });
 
-    it("keeps the candidate conformant to the precommitted Gemini namespace", () => {
-      const candidate = JSON.parse(
-        readFileSync(`${ROOT}${PROVENANCE}gemini/03-final-candidate.json`, "utf8"),
-      ) as { cases: unknown[] };
-      expect(checkHalfComposition(SEALED_CHALLENGE_V3_HALVES[1], candidate.cases)).toEqual([]);
+    it("keeps each candidate conformant to its precommitted namespace", () => {
+      const candidate = (rel: string) =>
+        (JSON.parse(readFileSync(`${ROOT}${PROVENANCE}${rel}`, "utf8")) as { cases: unknown[] })
+          .cases;
+      expect(
+        checkHalfComposition(
+          SEALED_CHALLENGE_V3_HALVES[0],
+          candidate("chatgpt/02-normalized-candidate.json"),
+        ),
+      ).toEqual([]);
+      expect(
+        checkHalfComposition(
+          SEALED_CHALLENGE_V3_HALVES[1],
+          candidate("gemini/03-final-candidate.json"),
+        ),
+      ).toEqual([]);
+    });
+
+    /**
+     * The ChatGPT raw response is not JSON — its structural quotes are `U+201C`/`U+201D` — so a
+     * normalization stands between it and the candidate. That is a permitted syntax correction and
+     * this proves it changed nothing else: swapping only those two characters reproduces the
+     * committed candidate exactly. In-prose apostrophes are deliberately left alone, which is why
+     * the swap is two characters rather than four.
+     */
+    it("proves the ChatGPT normalization was quote-only", () => {
+      const raw = readFileSync(`${ROOT}${PROVENANCE}chatgpt/01-original-raw.txt`, "utf8");
+      const committed = readFileSync(
+        `${ROOT}${PROVENANCE}chatgpt/02-normalized-candidate.json`,
+        "utf8",
+      );
+      const swapped = raw.replaceAll("\u201c", '"').replaceAll("\u201d", '"');
+      expect(JSON.parse(swapped)).toEqual(JSON.parse(committed));
+      expect(raw).toContain("\u2019");
+      expect(committed).toContain("\u2019");
     });
 
     it("has not turned a provenance artifact into a corpus", () => {

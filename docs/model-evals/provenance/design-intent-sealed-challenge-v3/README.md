@@ -83,6 +83,87 @@ canonical sentinel used exactly as specified, which is correct behaviour rather 
 
 ## ChatGPT half — `DIC3-G01`…`DIC3-G06`
 
-Not yet received. Assembly, the gated whole-corpus contract, the cross-author semantic
-premise-overlap review and the system-aware fairness review all wait for it, by protocol: the final
-semantic comparison is not run on one half, and neither half is exposed to the other's author.
+Received 2026-09-18. Six cases, namespace exact.
+
+| file | role | sha256 | bytes | commit |
+| --- | --- | --- | --- | --- |
+| `chatgpt/01-original-raw.txt` | original raw response | `e49d340ba0f67bcb86f2ac5a913140405996c027ff75bd1315132c1ae4e6c554` | 16,705 | `dbbdaac` |
+| `chatgpt/02-normalized-candidate.json` | **the candidate** | `38963c46189013e8e969ef5d706a9a5ea67089bfefb904e166d948d452f05fd5` | 15,353 | `7d3d535` |
+
+The raw response is not parseable JSON: its structural quotes are `U+201C`/`U+201D`. The candidate
+is the normalized form, and the normalization was **verified rather than trusted**: replacing only
+those two characters in the raw file yields an object deep-equal to the committed candidate. In-prose
+apostrophes (`U+2019`) and `é` survive unchanged. That is a JSON/syntax correction, which the repair
+policy allows, and it alters no content — which is a fact this record can show rather than assert.
+
+### Mechanical result on `02`: clean but for six leakage collisions, none carrying benchmark content
+
+Clean on the same battery as the Gemini half: structural contract with `gated: false`, the
+protocol's composition check (exact namespace, unique ids, **exactly one** same-`eventType` pair —
+`birthday party` — across five distinct types), no id collision, no supplied-fact value in its own
+identity prose.
+
+Six collisions, four distinct strings:
+
+1. `DIC3-G03.toneKeywords[2]` = `reflective` — a bare adjective, matched against the EventIdentity
+   prompt's "reflective surfaces".
+2. `DIC3-G04.inspirationSummary` and `DIC3-G05.inspirationSummary` — the span `the host supplied`,
+   against the prompt's "unless the host supplied exact colors".
+3. `DIC3-G06.toneKeywords[1]` = `generous` — a bare adjective, matched on three surfaces, in three
+   unrelated senses.
+
+**None of these is benchmark content.** They are ordinary English words that a brief and a prompt
+both happen to use, which is the overlap class the protocol classes as diagnostic. They block all
+the same, because the scan asserts an empty list.
+
+One of the six is worth separating, because it says something about the scan rather than the
+corpus. `generous` matched `src/lib/ai/openai/design-intent.ts` inside a **code comment** about byte
+budgets — text that never ships to any model. The scan reads whole source files as model-visible
+surfaces when only their string literals are, so a comment can convict a corpus of leaking into a
+prompt it never touched.
+
+### Diagnostic, not a finding
+
+`unhurried` (`DIC3-G04`) appears in the regression corpus, the validation corpus and the invalidated
+second candidate; `companionable` (`DIC3-G04`) appears in that candidate. Both are ordinary English,
+both were written by an author who saw none of those files, and under the protocol ordinary
+vocabulary overlap is **diagnostic, never a gate**. Recorded for the semantic review to weigh, not
+acted on.
+
+`memorial gathering` occurs in both halves. Cross-half event-type matches are legal by protocol and
+are explicitly not grounds for editing anything. Cross-half `toneKeywords` overlap is zero, and
+cross-half supplied-fact value overlap is zero.
+
+Two of the three inspiration-bearing cases open `inspirationSummary` with "The host supplied…",
+which is mild authorial-template pressure for the semantic review to weigh with both halves in
+front of it.
+
+## Where this stands
+
+Both halves are mechanically clean except for leakage collisions, and **eight collisions across the
+two halves resolve into one substantive finding and seven ordinary-English false positives**:
+
+| | substantive | ordinary vocabulary |
+| --- | --- | --- |
+| Gemini | `botanical line art` (`DIC3-M01`) | `do not include` (`DIC3-M01`) |
+| ChatGPT | — | `reflective`, `generous` ×3, `the host supplied` ×2 |
+
+Seven of the eight are against **EventIdentity** surfaces, which the DesignIntent stage is never
+shown at all.
+
+Assembly is blocked either way, and the scan is not weakened to unblock it. What the seven should
+count as is an escalation rather than a custodian's call, because the honest options differ in what
+they cost:
+
+- **Treat them as corpus findings.** Allowed — a narrow leakage-collision rewrite is a permitted
+  repair — but both need authorial prose, so they return as abstract findings through the user. The
+  cost is that it teaches two authors to avoid ordinary English near text they have never seen,
+  which is the lexical gaming the protocol says the corpus rules exist to avoid.
+- **Treat them as a scan-design defect.** `leakageProbes` makes every identity prose string of six
+  or more characters a verbatim probe, which turns a one-word `toneKeyword` into a leak claim; and a
+  surface is a whole source file rather than the strings that ship from it. Neither is hash-pinned,
+  so both are changeable. The objection is decisive and is recorded rather than argued past: the
+  cases already exist and have been read, so any change now is a change made **with the collisions
+  in view** — the exact ordering this programme refuses everywhere else.
+
+No prose is written here for either author, and neither corpus is repaired, assembled or frozen.
