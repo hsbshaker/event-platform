@@ -231,19 +231,33 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
     });
   });
 
-  describe("the corpus itself, whenever it lands", () => {
-    /**
-     * Absence is not asserted. While the corpus is missing this test passes having checked
-     * nothing, and the record that no case existed at the protocol freeze lives in `git` — the
-     * freeze commit's tree contains no v3 corpus — rather than in an assertion someone would have
-     * to delete in order to add the file.
-     */
-    it("conforms to what was precommitted here, or does not exist yet", () => {
-      const file = `${ROOT}${corpusPath("designIntentChallenge")}`;
-      if (!existsSync(file)) return;
-      expect(checkAssembledSealedChallengeV3(JSON.parse(readFileSync(file, "utf8")))).toEqual([]);
-    });
-  });
+  /**
+   * **Retired: the canonical slot is v4's, and a v3 corpus never occupied it.**
+   *
+   * This block used to read the slot an eval set points at and require v3 composition of whatever
+   * it found — written while v3 might still land there, and tolerant of absence so that adding the
+   * corpus would not mean editing a test. v3 then closed and was invalidated as an authoring
+   * programme without ever being assembled into that slot
+   * (`provenance/design-intent-sealed-challenge-v3/CLOSURE.md`), and v4 occupies it now. A check
+   * demanding `DIC3-G*`/`DIC3-M*` ids from a corpus that is legitimately `DIC4-*` cannot pass, and
+   * the v4 protocol test asserts the opposite of it against the same file, so the two could never
+   * both be satisfied once any corpus existed. It was dormant only while the slot was empty.
+   *
+   * **No coverage is lost, which is why this is a retirement rather than a deletion under
+   * pressure.** Both halves of what it was for are asserted elsewhere, and more tightly:
+   *
+   * - `checkAssembledSealedChallengeV3` is still exercised against synthetic corpora in "the
+   *   assembled-corpus check" above, and against the **real** preserved v3 assembly in "never lets
+   *   the gate-failing assembly become the corpus" below — a fixed artifact, which is stronger
+   *   evidence than a conditional read of whatever happens to be on disk;
+   * - the canonical slot is still guarded there too, by the assertion that its digest is not the
+   *   digest of the assembly that failed semantic review. That guard is the one that was always
+   *   load-bearing, and it works correctly with v4 in the slot.
+   *
+   * v4's own conformance is asserted by `design-intent-challenge-v4-protocol.test.ts`, and its
+   * bytes by `design-intent-challenge-v4-freeze.test.ts`. Every v3 provenance pin below is
+   * untouched.
+   */
 
   /**
    * The raw external halves, pinned so "preserved byte-for-byte" is checkable rather than claimed.

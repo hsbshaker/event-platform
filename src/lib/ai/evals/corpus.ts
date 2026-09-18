@@ -356,11 +356,32 @@ export const EVAL_SETS = {
     runner: "design-intent",
     corpus: corpusPath("designIntentChallenge"),
     out: "docs/model-evals/results/design-intent-sealed-challenge-v4",
+    /**
+     * Downgraded from `SEALED CHALLENGE` by explicit operator decision, and the downgrade is the
+     * point of the string rather than a caveat inside it.
+     *
+     * The runner writes this label into the mechanical report, so it is the sentence a later
+     * reader meets first. Independent semantic premise/device-overlap review returned
+     * `ACTION REQUIRED` for four of the twelve cases; the operator declined to repair or replace
+     * them and waived semantic overlap as a blocking gate, and system-aware fairness as a
+     * prerequisite to running the corpus. A label still claiming sealed generalization evidence
+     * would have stamped that claim onto the evidence itself at run time, which is the single
+     * most expensive mistake this map's labels exist to prevent.
+     *
+     * `docs/model-evals/provenance/design-intent-sealed-challenge-v4/OPERATOR-WAIVER.md` governs
+     * how a run of this corpus may be described, and records what the waiver costs §3.7's
+     * composition requirement.
+     */
     label:
-      "SEALED CHALLENGE (4C DesignIntent) — authored after the T21 implementation and this " +
-      "harness froze, by an author who saw neither the prompt nor prior outputs nor known " +
-      "failures. It is the generalization evidence the §3.7 gate is applied to. One run, then " +
-      "spent",
+      "DIAGNOSTIC / STRESS-TEST CHALLENGE (4C DesignIntent) — carried forward under explicit " +
+      "operator waiver after semantic-overlap review identified four ACTION REQUIRED cases " +
+      "(DIC4-P01, DIC4-P03, DIC4-Q02, DIC4-Q05). Authored after the T21 implementation and this " +
+      "harness froze, by authors who saw neither the prompt nor prior outputs nor known " +
+      "failures; mechanically validated, leakage-clean and Stage-2-faithfulness-clean. NOT " +
+      "pristine sealed generalization evidence and NOT evidence that every preregistered " +
+      "corpus-integrity gate passed: the semantic-overlap gate was waived and system-aware " +
+      "fairness was never spent. See docs/model-evals/provenance/" +
+      "design-intent-sealed-challenge-v4/OPERATOR-WAIVER.md. One run, then spent",
   },
 } as const;
 

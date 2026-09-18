@@ -2605,10 +2605,20 @@ describe("the three sets are wired while their cases are unknown", () => {
     expect(EVAL_SETS.designIntentValidation.label).toMatch(
       /^PRE-REGISTERED VALIDATION SET \(4C DesignIntent\)/,
     );
-    expect(EVAL_SETS.designIntentChallenge.label).toMatch(/^SEALED CHALLENGE \(4C DesignIntent\)/);
-    // Only the sealed challenge claims generalization, and the other two say so in the negative.
+    expect(EVAL_SETS.designIntentChallenge.label).toMatch(
+      /^DIAGNOSTIC \/ STRESS-TEST CHALLENGE \(4C DesignIntent\)/,
+    );
+    // None of the three claims generalization any more, and each says so in its own terms. The
+    // challenge was downgraded by operator waiver after semantic-overlap review returned four
+    // ACTION REQUIRED cases; its label is what the runner stamps onto the report, so the
+    // disclaimer is asserted here rather than left to whoever reads the evidence later.
     expect(EVAL_SETS.designIntentRegression.label).toContain("NOT generalization evidence");
     expect(EVAL_SETS.designIntentValidation.label).toContain("NOT generalization evidence");
+    expect(EVAL_SETS.designIntentChallenge.label).toContain(
+      "NOT pristine sealed generalization evidence",
+    );
+    expect(EVAL_SETS.designIntentChallenge.label).toContain("OPERATOR-WAIVER.md");
+    // Still one-shot by construction; the downgrade changed the evidence class, not the arity.
     expect(EVAL_SETS.designIntentChallenge.label).toContain("One run, then spent");
     // None of the three may read as the `v5` fresh-challenge claim, which is a different set's.
     for (const set of CORPORA)
