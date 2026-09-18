@@ -30,7 +30,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { corpusPath, EVAL_SETS } from "./corpus";
+import { corpusPath, EVAL_SETS, isProtectedOutput, PROTECTED_RESULT_DIRS } from "./corpus";
 import {
   SEALED_CHALLENGE_V4_CASE_IDS,
   SEALED_CHALLENGE_V4_VERSION,
@@ -105,6 +105,54 @@ describe("the v4 sealed challenge is the corpus that was assembled and frozen", 
       waiver: existsSync(`${ROOT}${FREEZE.waiver}`),
       review: existsSync(`${ROOT}${FREEZE.review}`),
     }).toEqual({ waiver: true, review: true });
+  });
+
+  /**
+   * The completed run's evidence is refused in all three directions, not just by name.
+   *
+   * `isProtectedOutput` is containment in both directions on purpose, and each direction is a real
+   * way to lose this evidence: writing *to* the directory overwrites the journal of paid provider
+   * responses; writing to a path *inside* it overwrites one artifact and leaves the rest looking
+   * intact, which is worse than losing all four; and writing to an *ancestor* drops a different
+   * run's reports beside it where a reader takes them for the same run. A test that only checked
+   * the exact string would pass while two of those three stayed open.
+   *
+   * `EVAL_OVERWRITE=1` does not reach this refusal — it overrides the write-once check, which is a
+   * different guard. That separation is why the directory had to join the list at all.
+   */
+  it("refuses the completed evidence directory, its descendants and its ancestors", () => {
+    const dir = FREEZE.out;
+    expect({
+      exact: isProtectedOutput(dir),
+      trailingSlash: isProtectedOutput(`${dir}/`),
+      doubledSlash: isProtectedOutput(dir.replace("results/", "results//")),
+      journal: isProtectedOutput(`${dir}/raw-responses.jsonl`),
+      report: isProtectedOutput(`${dir}/mechanical-report.md`),
+      reviewSubdir: isProtectedOutput(`${dir}/review`),
+      blindReview: isProtectedOutput(`${dir}/review/blind-review.md`),
+      reviewerPacket: isProtectedOutput(`${dir}/review/reviewer-packet.md`),
+      ancestorResults: isProtectedOutput("docs/model-evals/results"),
+      ancestorEvals: isProtectedOutput("docs/model-evals"),
+    }).toEqual({
+      exact: true,
+      trailingSlash: true,
+      doubledSlash: true,
+      journal: true,
+      report: true,
+      reviewSubdir: true,
+      blindReview: true,
+      reviewerPacket: true,
+      ancestorResults: true,
+      ancestorEvals: true,
+    });
+
+    // The set that wrote it can no longer write there, which is what protection costs and means.
+    expect(isProtectedOutput(EVAL_SETS.designIntentChallenge.out)).toBe(true);
+    expect([...PROTECTED_RESULT_DIRS]).toContain(dir);
+
+    // A sibling directory is not swept up: containment must not degrade into prefix matching.
+    expect(isProtectedOutput(`${dir}-v2`)).toBe(false);
+    expect(isProtectedOutput("docs/model-evals/results/design-intent-regression-v1")).toBe(false);
   });
 
   it("states the waived evidence class, and names every carried finding", () => {

@@ -124,22 +124,26 @@ describe("no set can write over evidence that already exists", () => {
       "docs/model-evals/results/creative-understanding-holdout-v1",
       "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
       "docs/model-evals/results/clarification-rerun-behaviour-v1",
+      "docs/model-evals/results/design-intent-sealed-challenge-v4",
     ]);
     // Every creative-understanding set was already spent and protected. Phase 4B's rerun-behaviour
     // set was the one exception, and it stayed writable only until its own run happened: T13 ran it
     // once and T14 added its directory here in the same change that committed the evidence — the
     // rule the eval ledger states, applied again rather than remembered.
     //
-    // Phase 4C's three sets are writable now, and that is what a prewired slot looks like before
-    // its run: none of them has a corpus, none of them can reach a provider, and each joins the
-    // list above in the same change that commits its own evidence. Named exactly, so a fourth
-    // writable path cannot appear unnoticed.
+    // Phase 4C's sealed-challenge directory is the seventh, added the same way after its one
+    // authorized run. Its evidence class was downgraded to a diagnostic stress test under the
+    // operator waiver, which does not make it rewritable: the journal holds paid provider
+    // responses either way, and a second run destroys them. The other two 4C sets are unrun and
+    // deliberately absent from this list until they are not.
+    //
+    // Two of Phase 4C's three sets are still writable, which is what a prewired slot looks like
+    // before its run: each joins the list above in the same change that commits its own evidence.
+    // The third no longer belongs here — `designIntentChallenge` ran once and was protected the
+    // same way, so it moved across. Named exactly, so a third writable path cannot appear
+    // unnoticed, and so a set silently dropping back to writable after a run fails here.
     const writable = sets.filter((set) => !isProtectedOutput(EVAL_SETS[set].out));
-    expect(writable).toEqual([
-      "designIntentRegression",
-      "designIntentValidation",
-      "designIntentChallenge",
-    ]);
+    expect(writable).toEqual(["designIntentRegression", "designIntentValidation"]);
   });
 
   it("protects every directory that already holds a completed run's evidence", () => {
@@ -207,9 +211,10 @@ describe("no set can write over evidence that already exists", () => {
   });
 
   it("aims only already-run sets at protected evidence, and refuses each of them", () => {
-    // Each set joined this list as its run finished, `rerunBehaviour` last at T14. All six can
-    // still be invoked from npm; each now stops at the refusal rather than writing, which is the
-    // point.
+    // Each set joined this list as its run finished: `rerunBehaviour` at T14, and Phase 4C's
+    // `designIntentChallenge` after its one authorized run. All seven can still be invoked from
+    // npm; each now stops at the refusal rather than writing, which is the point. The two unrun
+    // 4C sets are absent because nothing of theirs exists to protect yet.
     const aimed = sets.filter((s) =>
       (PROTECTED_RESULT_DIRS as readonly string[]).includes(EVAL_SETS[s].out),
     );
@@ -220,6 +225,7 @@ describe("no set can write over evidence that already exists", () => {
       "spentChallenge",
       "rerunBehaviour",
       "challenge2",
+      "designIntentChallenge",
     ]);
     for (const set of aimed) expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(true);
     expect(EVAL_SETS.challenge.label).toMatch(/SPENT/);

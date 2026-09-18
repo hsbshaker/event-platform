@@ -2587,15 +2587,38 @@ describe("the blind artifact carries the brief and the three concepts, and nothi
 
 /* ------------------------------------------------------------------ the wiring */
 
-describe("the three sets are wired while their cases are unknown", () => {
+describe("the three sets were wired while their cases were unknown", () => {
   it("gives each its own corpus, output directory and runner", () => {
     for (const set of CORPORA) {
       expect(EVAL_SETS[set].runner).toBe("design-intent");
       expect(EVAL_SETS[set].corpus).toBe(corpusPath(set));
-      expect(isProtectedOutput(EVAL_SETS[set].out)).toBe(false);
     }
     const outs = CORPORA.map((set) => EVAL_SETS[set].out);
     expect(new Set(outs).size).toBe(outs.length);
+  });
+
+  /**
+   * Writability is now a statement about which runs have happened, not a property of the phase.
+   *
+   * This used to assert `false` for all three, which was true while none had run and is the shape
+   * T19 froze. The sealed-challenge set ran once under the operator waiver, so its directory joined
+   * `PROTECTED_RESULT_DIRS` in the change that committed that evidence — the rule
+   * `docs/phase-4b-plan.md` states, applied rather than remembered. Asserting `false` for it now
+   * would be asserting that a spent one-shot set is still free to overwrite its own paid journal.
+   *
+   * The other two are unrun and stay writable. When either runs, it joins the list the same way and
+   * moves to the protected side of this test.
+   */
+  it("leaves the unrun sets writable and refuses the one that has been spent", () => {
+    expect({
+      designIntentRegression: isProtectedOutput(EVAL_SETS.designIntentRegression.out),
+      designIntentValidation: isProtectedOutput(EVAL_SETS.designIntentValidation.out),
+      designIntentChallenge: isProtectedOutput(EVAL_SETS.designIntentChallenge.out),
+    }).toEqual({
+      designIntentRegression: false,
+      designIntentValidation: false,
+      designIntentChallenge: true,
+    });
   });
 
   it("labels each with an evidence class that cannot be mistaken for another", () => {

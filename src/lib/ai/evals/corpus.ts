@@ -132,10 +132,19 @@ export function corpusPath(set: CorpusSet): string {
  * them evidence, so a second run over any of those directories would not merely lose the record, it
  * would destroy the property the record rests on.
  *
- * With Phase 4B's clarification-rerun set run at T13, every one of the six sets now points at a
- * protected path and none of them can write. That is the correct end state for this evidence
+ * With Phase 4B's clarification-rerun set run at T13, every one of the six Phase 4A/4B sets points
+ * at a protected path and none of them can write. That is the correct end state for this evidence
  * programme, not a defect: fresh evidence for a future prompt version needs a new corpus and a new
  * slot, which is exactly the cost that keeps a rerun from quietly standing in for one.
+ *
+ * The seventh entry is Phase 4C's, and it arrived the same way. The v4 DesignIntent corpus was run
+ * once under the operator waiver recorded in
+ * `docs/model-evals/provenance/design-intent-sealed-challenge-v4/OPERATOR-WAIVER.md`, and its
+ * directory joined this list in the change that committed that evidence. Its class was downgraded
+ * from sealed generalization evidence to a diagnostic stress test, and the downgrade changes
+ * nothing here: a waived corpus is still spent after one run, and the paid provider responses in
+ * its journal are still destroyed by a second. The two remaining 4C sets have not run and stay
+ * writable until they do.
  *
  * A directory is added here as part of finishing the run that produced it, never as a follow-up:
  * until it is, the only guard is the write-once check, which `EVAL_OVERWRITE=1` overrides on
@@ -150,6 +159,7 @@ export const PROTECTED_RESULT_DIRS = [
   "docs/model-evals/results/creative-understanding-holdout-v1",
   "docs/model-evals/results/creative-understanding-sealed-challenge-v2",
   "docs/model-evals/results/clarification-rerun-behaviour-v1",
+  "docs/model-evals/results/design-intent-sealed-challenge-v4",
 ] as const;
 
 /**
