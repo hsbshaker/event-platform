@@ -2167,6 +2167,28 @@ changes as halves arrive, and a canon sentence that has to be edited on every de
 sentence that will eventually be edited under pressure. Nothing under `provenance/` is a corpus:
 no eval set points there, and the canonical sealed slot stays absent until assembly.
 
+**The first Gemini half was invalidated whole, and the ChatGPT half survived untouched.** The
+independent semantic premise-overlap review of the first assembly returned ACTION REQUIRED: no
+copying, no reused names or phrases, two visibly distinct prose hands — but convergence on the same
+unusual devices. Three findings were substantive, and on the reviewer's reading all three land on
+the Gemini half: two cases re-pose a device or premise a readable prior corpus already teaches, and
+one duplicates a brief the *other* half independently wrote. `§G` then decides it rather than a
+judgement call: multiple cases in one half requiring re-premising invalidates that half whole, no
+survivors cherry-picked, no case-by-case coaching. Preserved at
+`docs/model-evals/provenance/design-intent-sealed-challenge-v3/` with the review verbatim, the
+failed assembly, and an invalidation record; a test refuses any corpus that smuggles one of those
+six cases back.
+
+**Three things that ruling deliberately does not do.** It does not move the namespace —
+`DIC3-M01`–`DIC3-M06` are six preregistered *slots*, and the protocol module stays byte-identical
+rather than minting a new one because a half was recommissioned. It does not reopen the surviving
+ChatGPT half. And it adds **no avoid-list** to the replacement author's packet: not conservatories,
+not bookbinding, not ceramics, nothing equivalent. Coaching a benchmark against cases its author
+must not know exist turns a sealed challenge into a construction aimed at known answers, which is
+the failure the whole protocol is built to prevent. The replacement is compared against the
+invalidated half precisely to find out whether a fresh session of the same family regenerates the
+same premises unprompted — the question the second candidate left open.
+
 **The leakage scan convicts ordinary English, and is deliberately left alone until v3 is spent.**
 Assembly surfaced eight collisions across the two halves; exactly one carried benchmark content, and
 seven were ordinary words and phrases — a host-voice `do not include`, two `inspirationSummary`

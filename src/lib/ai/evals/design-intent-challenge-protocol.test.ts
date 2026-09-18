@@ -302,6 +302,16 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
         sha256: "1419a89093d95c50a49c4e8d413a97d9ca42e66c6dfd678cbab3c4c77ac869a3",
         bytes: 37871,
       },
+      {
+        path: `${PROVENANCE}review/01-semantic-premise-overlap-review.md`,
+        sha256: "650713803d9d12edc5544fabf1e4d07caa41a9e0ba3592670652b05119abca9a",
+        bytes: 14846,
+      },
+      {
+        path: `${PROVENANCE}gemini/INVALIDATION.md`,
+        sha256: "5eff8fe456e2668fe034ce736f0a9d7e425487c9dd5626df2325a255b6113331",
+        bytes: 5124,
+      },
     ] as const;
 
     it.each(SUPPLIED)("$path is byte-identical to what was received", ({ path, sha256, bytes }) => {
@@ -419,6 +429,39 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
         createHash("sha256").update(readFileSync(slot)).digest("hex"),
         "the assembly that failed semantic premise-overlap review is in the canonical slot",
       ).not.toBe(createHash("sha256").update(assembled).digest("hex"));
+    });
+
+    /**
+     * The first Gemini half is invalidated **whole**, so no part of it may reappear as a case.
+     *
+     * The check is by content rather than by filename: a survivor cherry-picked out of the
+     * invalidated half and pasted into a replacement would keep none of its provenance path, and
+     * the rule it would break — "accepted whole or rejected whole, never mixed" — is the one the
+     * §G invalidation exists to enforce. Identity prose is the fingerprint because it is what an
+     * author writes; ids are not, since the six `DIC3-M` ids are reserved slots that the
+     * replacement is *supposed* to reuse.
+     */
+    it("lets no case from the invalidated Gemini half return", () => {
+      const creativeDirections = (rel: string) =>
+        (
+          JSON.parse(readFileSync(`${ROOT}${PROVENANCE}${rel}`, "utf8")) as {
+            cases: { identity: { creativeDirection: string } }[];
+          }
+        ).cases.map((testCase) => testCase.identity.creativeDirection);
+      const invalidated = new Set(creativeDirections("gemini/04-leakage-correction.json"));
+      expect(invalidated.size).toBe(6);
+
+      const slot = `${ROOT}${corpusPath("designIntentChallenge")}`;
+      if (!existsSync(slot)) return;
+      const live = (
+        JSON.parse(readFileSync(slot, "utf8")) as {
+          cases: { id: string; identity: { creativeDirection: string } }[];
+        }
+      ).cases;
+      expect(
+        live.filter((testCase) => invalidated.has(testCase.identity.creativeDirection)),
+        "a case from the invalidated Gemini half is back in the corpus",
+      ).toEqual([]);
     });
 
     it("has not turned a provenance artifact into a corpus", () => {

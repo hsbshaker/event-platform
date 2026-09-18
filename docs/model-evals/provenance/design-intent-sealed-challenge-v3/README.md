@@ -225,42 +225,51 @@ action, and they are in the review for the record rather than for repair.
 The reviewer's own summary of the split: the ChatGPT half is largely fresh, and the recall risk sits
 in the Gemini half.
 
-### What the protocol makes of that
+### RULING: the Gemini half is invalidated whole
 
-`§G` is precommitted and unambiguous: one isolated case with a severable problem is reported and
-stopped on; **multiple cases in one half requiring re-premising invalidates that entire six-case
-half**, which is then recommissioned whole from the same external family. Survivors are never
-cherry-picked from a larger pool, and an author is never coached case by case into a bespoke
-benchmark.
+`§G` applied exactly as frozen. `DIC3-M03` and `DIC3-M04` both need re-premising and S1's remedy
+falls on `DIC3-M01`, so three of six in one half — not a narrow repair case. The precommitted rule
+invalidates that half whole, and survivors are not cherry-picked. **No case was repaired
+individually and no finding went back to that author.**
 
-`DIC3-M03` and `DIC3-M04` both need re-premising, and S1's remedy falls on `DIC3-M01` on the
-reviewer's own reading. That is three of six, in one half, so the rule applies on its face rather
-than by interpretation. **The ruling is the user's, not the custodian's**, and nothing was repaired,
-replaced or coached here while it is pending.
+`gemini/INVALIDATION.md` is the record: what is invalidated (all four rounds, digests listed), why,
+and what the replacement may and may not receive. The half is preserved exactly as authored — an
+invalidated **half**, never a failed final corpus and never model evidence.
+
+The replacement is a **new fresh Gemini session**, accepted whole or rejected whole, receiving only
+the same frozen packet as the first commission. **The namespace does not move**: `DIC3-M01`–`M06`
+identify six preregistered slots, not the prose that occupied them, and the protocol module stays
+byte-identical to its freeze rather than minting a new namespace because a half was recommissioned.
+The packet gains no avoid-list — not conservatories, not bookbinding, not ceramics, not anything
+equivalent — because coaching a benchmark against cases the author must not know exist converts a
+sealed challenge into a construction aimed at known answers.
+
+The surviving **ChatGPT half is untouched and byte-identical**, and is not re-opened by any of this.
 
 S1 deserves one note in fairness to both authors: two sessions that could not see each other's work
 independently produced the same conservatory brief. That is not misconduct by either, and it is a
 sharper version of the finding that ended the second candidate — convergence survives isolation.
 
-### The assembly is preserved, and the canonical slot is empty again
+### The failed assembly and the review that failed it, both preserved
 
-| | |
-| --- | --- |
-| path | `assembly/01-assembled-pre-semantic-review.json` |
-| sha256 | `1419a89093d95c50a49c4e8d413a97d9ca42e66c6dfd678cbab3c4c77ac869a3` |
-| bytes | 37,871 |
+| artifact | path | sha256 | bytes |
+| --- | --- | --- | --- |
+| the assembly the review read | `assembly/01-assembled-pre-semantic-review.json` | `1419a89093d95c50a49c4e8d413a97d9ca42e66c6dfd678cbab3c4c77ac869a3` | 37,871 |
+| the review verbatim | `review/01-semantic-premise-overlap-review.md` | `650713803d9d12edc5544fabf1e4d07caa41a9e0ba3592670652b05119abca9a` | 14,846 |
+| the invalidation record | `gemini/INVALIDATION.md` | `5eff8fe456e2668fe034ce736f0a9d7e425487c9dd5626df2325a255b6113331` | 5,124 |
 
-It was assembled at `docs/model-evals/design-intent-sealed-challenge-v3.json` to run the gated
-contract and the frozen leakage scan against it, both of which passed. It was then **moved here**
-rather than left in place or deleted: a corpus that has failed a pre-freeze gate must not sit in the
-slot an eval set points at, because the slot's refusal-without-a-file guard is what stops it being
-run, and deleting it would discard what the review actually read. The canonical path is absent
-again, and the assembly is reproducible from the two halves in any case.
+The assembly was built at `docs/model-evals/design-intent-sealed-challenge-v3.json` to run the
+gated contract and the frozen leakage scan against it, both of which passed, and was then **moved
+here** rather than left in place or deleted: a corpus that has failed a pre-freeze gate must not sit
+in the slot an eval set points at, because the slot's refusal-without-a-file guard is what stops it
+being run, and deleting it would discard what the review actually read. The canonical path is absent
+again, and a test holds that this exact content never occupies it — written to tolerate a
+*different* corpus arriving, which is the hard-absence shape T19B had to undo.
 
-**The system-aware fairness review has not been run.** `§H` places it after semantic overlap
-passes, and semantic overlap did not pass. Running it now would spend the one thing that cannot be
-un-spent — a system-aware reviewer's reading of these cases — on a corpus that is already going to
-change.
+**The system-aware fairness review has not been run, and remains unspent.** `§H` places it after
+semantic overlap passes, and semantic overlap did not pass. A system-aware reviewer's reading of
+these cases is the one thing that cannot be un-spent, and spending it on a corpus that is already
+going to change would waste it.
 
 ## The scan defect, recorded as debt rather than fixed
 
