@@ -14,6 +14,7 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { premiseFixture, validPremiseSet } from "../../../../tests/fixtures/concept-premise";
 import { allowedPairings, UnnarrowableAssignmentError } from "@/lib/ai/design-intent/narrowing";
 import { narrowedWireSchema } from "@/lib/ai/design-intent/wire-schema";
 import { eventIdentitySchema, type EventIdentity } from "@/lib/ai/event-identity/contract";
@@ -26,6 +27,8 @@ import {
   assembleDesignIntentUserMessage,
   BRIEF_LABELS,
   PALETTE_INTENT_LABELS,
+  PREMISE_LABELS,
+  PREMISE_REGISTER_LABELS,
 } from "./design-intent-input";
 
 const ASSIGNMENT: SiblingAssignment = assignmentFor(5, emptyAvoidList());
@@ -54,8 +57,13 @@ const IDENTITY: EventIdentity = {
   inspirationSummary: "No visual inspiration supplied.",
 };
 
-const message = (identity: EventIdentity = IDENTITY, assignment: SiblingAssignment = ASSIGNMENT) =>
-  assembleDesignIntentUserMessage({ identity, assignment });
+const PREMISE = premiseFixture();
+
+const message = (
+  identity: EventIdentity = IDENTITY,
+  assignment: SiblingAssignment = ASSIGNMENT,
+  premise = PREMISE,
+) => assembleDesignIntentUserMessage({ identity, assignment, premise });
 
 describe("the assembled user message", () => {
   it("is deterministic: same input, same bytes", () => {
@@ -190,7 +198,85 @@ describe("the assembled user message", () => {
   });
 
   it("is the version the artifact column records", () => {
-    expect(DESIGN_INTENT_INPUT_ASSEMBLY_VERSION).toBe("design_intent_input_v1");
+    expect(DESIGN_INTENT_INPUT_ASSEMBLY_VERSION).toBe("design_intent_input_v2");
+  });
+});
+
+describe("the premise channel", () => {
+  /**
+   * The third channel, and the two things it has to get right: the premise really reaches the
+   * model, and the **same brief** reaches all three siblings while only the premise differs.
+   *
+   * That second property is the product principle in its checkable form — one authoritative
+   * understanding, three worthwhile choices. If the brief varied per sibling, the three concepts
+   * would be answering three interpretations, which is the failure mode this stage may not have.
+   */
+  it("renders every premise field the request carries, under its own label", () => {
+    const text = message();
+    expect(text).toContain(ASSEMBLY_TEXT.premiseOpen);
+    expect(text).toContain(ASSEMBLY_TEXT.premiseClose);
+    for (const label of Object.values(PREMISE_LABELS)) {
+      expect(text).toContain(label.split(",")[0].split(" — ")[0]);
+    }
+    for (const label of Object.values(PREMISE_REGISTER_LABELS)) expect(text).toContain(label);
+    expect(text).toContain(PREMISE.title);
+    expect(text).toContain(PREMISE.organizingIdea);
+    expect(text).toContain(PREMISE.experience);
+    for (const entry of PREMISE.grounding) expect(text).toContain(entry);
+    for (const entry of PREMISE.designConsequences) expect(text).toContain(entry);
+    expect(text).toContain(PREMISE.register.pace);
+  });
+
+  it("withholds `distinctFrom`, which describes the other two concepts", () => {
+    // `§E` keeps the three calls blind to each other and the third channel does not erode that
+    // sideways: a call that learned the other concepts are calmer could compensate for them.
+    expect(message()).not.toContain(PREMISE.distinctFrom);
+  });
+
+  it("gives all three siblings the same brief, and only a different premise", () => {
+    const assignments = [0, 1, 2].map((seed) => assignmentFor(seed, emptyAvoidList()));
+    const premises = validPremiseSet().premises;
+    const messages = assignments.map((assignment, at) =>
+      message(IDENTITY, assignment, premises[at]),
+    );
+
+    // The brief block is byte-identical across all three.
+    const brief = (text: string) =>
+      text.slice(
+        text.indexOf(ASSEMBLY_TEXT.briefOpen),
+        text.indexOf(ASSEMBLY_TEXT.briefClose) + ASSEMBLY_TEXT.briefClose.length,
+      );
+    expect(new Set(messages.map(brief)).size).toBe(1);
+
+    // And each sibling's premise block is its own, holding neither of the other two.
+    messages.forEach((text, at) => {
+      expect(text).toContain(premises[at].organizingIdea);
+      for (const other of premises.filter((_, i) => i !== at)) {
+        expect(text).not.toContain(other.organizingIdea);
+        expect(text).not.toContain(other.title);
+      }
+    });
+  });
+
+  it("states the premise's authority against both halves of the brief", () => {
+    // Three sources of direction in one request, so the request has to say how they rank. Leaving
+    // it to be inferred is how blind-review pattern S3 — guidance promoted to host law — happens
+    // to a third channel.
+    const preamble = ASSEMBLY_TEXT.premisePreamble.join(" ");
+    expect(preamble).toContain("A host constraint");
+    expect(preamble).toContain("outranks it");
+    expect(preamble).toContain("outranks the creative guidance");
+    expect(preamble).toContain("not the host's instruction");
+  });
+
+  it("puts the premise between the understanding it selects from and the coordinates it works in", () => {
+    const text = message();
+    expect(text.indexOf(ASSEMBLY_TEXT.briefOpen)).toBeLessThan(
+      text.indexOf(ASSEMBLY_TEXT.premiseOpen),
+    );
+    expect(text.indexOf(ASSEMBLY_TEXT.premiseOpen)).toBeLessThan(
+      text.indexOf(ASSEMBLY_TEXT.assignmentOpen),
+    );
   });
 });
 
@@ -229,7 +315,7 @@ describe("what the message does not contain", () => {
       expect(statics.toLowerCase(), excluded).not.toContain(excluded.toLowerCase());
   });
 
-  it("renders nothing but the two channels, even when handed a wider object", () => {
+  it("renders nothing but the three channels, even when handed a wider object", () => {
     // A caller that reached past the typed envelope would still not get anything through: the
     // rendering reads named fields from exhaustive tables, never the object's own keys.
     const smuggled = {

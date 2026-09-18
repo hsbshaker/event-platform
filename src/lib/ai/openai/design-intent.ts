@@ -493,6 +493,7 @@ export async function generateDesignIntent(
   const assembledUserMessage = assembleDesignIntentUserMessage({
     identity: input.identity,
     assignment,
+    premise: input.premise,
   });
   const startedAt = Date.now();
 

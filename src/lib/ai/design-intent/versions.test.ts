@@ -24,16 +24,19 @@ import { SCHEMA_MANIFEST } from "@/lib/supabase/schema-manifest";
 import { designIntentInputAssemblyVersion } from "./input";
 
 describe("the DesignIntent version constants", () => {
-  it("are three independent values, and only two of them moved at T21", () => {
+  it("are three independent values, and all three moved at the T22 remediation", () => {
     // Prompt and schema bump **together** (`§5.1`'s paired rule, and the `v5` lesson Event
-    // Identity paid for): T21 changed model-visible text on both sides, and a `v4` response is not
-    // a valid `v5` response — `composition.hierarchy` narrows to the assigned value.
-    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v5");
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
-    // The assembly version did **not** move. `§B.3`'s rule bumps it for a change to the envelope's
-    // contents, precedence, ordering or representation; T21 chose a representation for the first
-    // time under a constant that had never rendered anything, and the contents are unchanged.
-    expect(DESIGN_INTENT_INPUT_ASSEMBLY_VERSION).toBe("design_intent_input_v1");
+    // Identity paid for): the remediation moved model-visible text on both sides. Unlike
+    // `v4` → `v5`, the *shape* did not move — a `v5` response is still structurally valid — so the
+    // pairing here is doing exactly the job it exists for, keeping the label honest about which
+    // contract produced an artifact when only the wording changed.
+    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v6");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v6");
+    // The assembly version moved too, and for its own reason: `§B.3` bumps it for a change to the
+    // envelope's **contents**, and the envelope gained a channel — this concept's `ConceptPremise`.
+    // At T21 it stayed at `v1` because a representation chosen for the first time is not a change
+    // to one; this is a change to the contents, which is the clearest case the rule has.
+    expect(DESIGN_INTENT_INPUT_ASSEMBLY_VERSION).toBe("design_intent_input_v2");
     // Three labels, three things. `§B.3`: the assembly version "does not bump for a prompt-file
     // edit or a schema change; those have versions of their own and the three are independent."
     expect(

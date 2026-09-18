@@ -44,6 +44,7 @@ Before proposing or implementing a solution, check it against these rules:
 - Setup/readiness is not a wizard.
 - Guests and Registry are not publish blockers unless `spec.md §23.1` says otherwise.
 - `Try another direction` changes design only and never event content/data.
+- **One authoritative understanding, three worthwhile creative choices.** `EventIdentity` owns the understanding and all three siblings inherit it unchanged; one premise call per batch authors three creative propositions as a set, and a premise selects emphasis from the brief without ever reinterpreting the host (`spec.md §7.7a`, `docs/designintent-sibling-convergence.md`). Correctness outranks distinctness.
 - The strong model emits a six-field `DesignIntent` (with `family` and `composition`, plus a non-design `presentation` object) and then a `CompositionTree` of trusted primitives with enum tokens. It never emits HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist.
 - The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent). The compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
 - Compiler work is deterministic: schema and structural validation, repair, attractive-token caps, canonicalization, palette compilation, layout resolution and rendered-geometry verification do not call a model. The model is re-prompted only for schema-invalid output, a token-cap violation or a selector collision, once each.
@@ -78,6 +79,7 @@ The MVP stack is already decided:
 - **Stripe-shaped payment boundary**, initially stubbed behind the mock `$49` publish gate
 - thin AI provider interface:
   - `generateEventIdentity(...)`
+  - `generateConceptPremiseSet(...)`
   - `generateDesignIntent(...)`
   - `generateComposition(...)`
 - a headless Chromium pass for rendered-geometry verification (see `docs/technology-decisions.md`)

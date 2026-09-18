@@ -238,7 +238,7 @@ export const MODEL_VISIBLE_SURFACES = {
    */
   "input assembly": "src/lib/ai/openai/event-identity-input.ts",
   /**
-   * The DesignIntent prompt, now `design_intent_v5`. Declared here at T19 — before the 4C corpora
+   * The DesignIntent prompt, now `design_intent_v6`. Declared here at T19 — before the 4C corpora
    * were authored and before the prompt was written — so the scan covered it from the moment
    * either changed, rather than being widened after someone had seen the cases. T21 rewrote the
    * file under that standing declaration, which is the arrangement working as intended.
@@ -264,6 +264,27 @@ export const MODEL_VISIBLE_SURFACES = {
    */
   "design intent provider boundary": "src/lib/ai/openai/design-intent.ts",
   "design intent input assembly": "src/lib/ai/openai/design-intent-input.ts",
+  /**
+   * The ConceptPremise stage, added by the T22 remediation
+   * (`docs/designintent-sibling-convergence.md`). Four entries, for exactly the reasons the
+   * DesignIntent four are here: the prompt and the wire schema are what the model reads, and both
+   * the boundary and the assembly beside it can carry static model-visible text — the correction
+   * turn the boundary appends is model-visible, and the assembly is where a label would go.
+   *
+   * Registering the assembly matters even though it adds no string of its own today: it renders the
+   * brief through `design-intent-input.ts`'s own labels rather than restating them, and the point of
+   * declaring an empty surface is that the first string added to it is scanned from the moment it
+   * exists rather than after someone has read a corpus.
+   *
+   * This registration is not ceremony. It caught two real collisions the moment it landed: the first
+   * drafts of this stage's `pace` and `presence` vocabularies used two words a frozen corpus carries
+   * as author-written tone keywords, and `§3.5` resolves a collision at the corpus — which was
+   * impossible here, so the vocabulary moved instead. `concept-premise/contract.ts` records that.
+   */
+  "concept premise prompt": "docs/model-prompts/concept-premise.system.md",
+  "concept premise wire schema": "docs/model-schemas/concept-premise.wire.schema.json",
+  "concept premise provider boundary": "src/lib/ai/openai/concept-premise.ts",
+  "concept premise input assembly": "src/lib/ai/openai/concept-premise-input.ts",
 } as const;
 
 /** The assembly version at which the third surface above is still legitimately absent. */
@@ -392,6 +413,38 @@ export const EVAL_SETS = {
       "corpus-integrity gate passed: the semantic-overlap gate was waived and system-aware " +
       "fairness was never spent. See docs/model-evals/provenance/" +
       "design-intent-sealed-challenge-v4/OPERATOR-WAIVER.md. One run, then spent",
+  },
+  /**
+   * The spent 4C challenge cases, rerun after the T22 remediation.
+   *
+   * `spentChallenge` is the precedent and the reasoning is identical: the corpus that produced
+   * completed evidence can no longer write at its own path — `PROTECTED_RESULT_DIRS` refuses it —
+   * so a later diagnostic rerun needs a set of its own pointing at a directory of its own. The
+   * first run's evidence is immutable and this entry cannot touch it.
+   *
+   * **The label is the whole point of this entry.** These twelve cases and all thirty-six of their
+   * failures were known while `spec.md §7.7a` was designed and implemented. A rerun therefore
+   * answers exactly one question — *did the known convergence failure improve?* — and nothing
+   * about generalization. Reading it as fresh evidence is the single most expensive mistake
+   * available here, and Phase 4A made a version of it; `docs/designintent-sibling-convergence.md
+   * §10` and `docs/model-contracts.md §4.8.4` say the same thing where a reader will look.
+   *
+   * Fresh evidence for the remediated stage needs a corpus authored by an independent process that
+   * has seen neither these cases nor this implementation. That corpus does not exist yet and no set
+   * here points at one.
+   */
+  designIntentSpentChallenge: {
+    runner: "design-intent",
+    corpus: corpusPath("designIntentChallenge"),
+    out: "docs/model-evals/results/design-intent-spent-challenge-v4-premise-regression",
+    label:
+      "KNOWN / SPENT CHALLENGE RE-RUN (4C DesignIntent) — the twelve DIC4 cases against the " +
+      "concept-premise remediation (design_intent_v6 + concept_premise_v1), as regression and " +
+      "diagnostic evidence only. These cases and their measured failures were known while the " +
+      "remediation was written. NOT fresh generalization evidence, NOT a sealed challenge, and " +
+      "NOT evidence that the remediated stage generalizes to an unseen event. Its one question " +
+      "is whether the known convergence failure improved. The first run's evidence at " +
+      "docs/model-evals/results/design-intent-sealed-challenge-v4 is immutable and is not touched",
   },
 } as const;
 

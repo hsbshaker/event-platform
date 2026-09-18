@@ -150,10 +150,10 @@ describe("runtime narrowing of the pairing enum", () => {
 describe("version constants", () => {
   it("are at v5, and the prompt and schema say so too", () => {
     // `§5.1`'s paired rule: model-visible text moved on both sides at T21, so both versions moved.
-    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v5");
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
-    expect(prompt).toContain("**Prompt version:** `design_intent_v5`");
-    expect(designIntentSchema.title).toContain("design_intent_schema_v5");
+    expect(DESIGN_INTENT_PROMPT_VERSION).toBe("design_intent_v6");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v6");
+    expect(prompt).toContain("**Prompt version:** `design_intent_v6`");
+    expect(designIntentSchema.title).toContain("design_intent_schema_v6");
   });
 
   it("preserve v3 and v4 rather than rewriting them", () => {

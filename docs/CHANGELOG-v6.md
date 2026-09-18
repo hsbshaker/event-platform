@@ -411,6 +411,56 @@ its entry documents only behaviour the component already has. It is explicitly n
 card-selection or template-picking primitive: concept selection is `ConceptCard` (`§10.14`), and a
 template gallery is forbidden outright (`spec.md §32 #5`).
 
+## Revision 6.10 — one authoritative understanding, three worthwhile choices
+
+**What changed.** `spec.md §7.7a` adds the **concept premise** stage: one model call per concept
+batch, after the deterministic sibling planner and before the three DesignIntent calls, authoring
+three creative propositions **as one set**. `§7.8` gives each DesignIntent call a third input
+channel — its own premise — and gives the concept card the job of saying what is different about
+its choice. `§9.1` and `docs/technology-decisions.md §8` name a fourth creative capability,
+`generateConceptPremiseSet(...)`. `§31` gains nine acceptance criteria and `§32` gains guardrails
+`#21a` and `#21b`. `docs/product-doctrine.md §4` gains the stage in its responsibility map and `§8`
+records that its own bar had been measured and missed.
+
+**Why, and why now.** `docs/phase-4b-plan.md §E` reserved this decision in advance: *"if fresh
+evidence shows blind siblings converge despite planner separation, that is a deliberate subsequent
+design and spec decision argued from data, not a mechanism added on suspicion."* The T22 evidence
+run is that data. Twelve batches, thirty-six DesignIntents, assignment conformance perfect and
+faithfulness intact — and 12 of 12 batches failed composition-vector distinctness, 11 of 12 failed
+motif overlap, `composition.ornament` took **one** value in all thirty-six responses, six batches
+carried a duplicate concept name, and the independent blind review found no set that cleared the
+minimum bar. `docs/designintent-sibling-convergence.md` is the causal diagnosis: three calls
+received a byte-identical brief plus four enum values, nothing in the system had ever been asked
+what an individual concept was *about*, and no stage ever saw two siblings at once.
+
+**What the decision is, precisely.** Diversity moves from style coordinates to **ideas**, and
+correctness does not move at all. All three premises inherit the same `EventIdentity` unchanged; a
+premise selects emphasis from what the brief already carries and has no field for a host fact,
+relationship, conflict, motive, constraint or emotional stake. `§32 #21a` says so as a guardrail,
+because the cheapest way to make three concepts differ is to invent a reason, and that outcome is
+worse than the convergence it would cure.
+
+**What it deliberately is not.** Not a critic loop: the premise set gets exactly one bounded
+re-prompt and the DesignIntent stage gets no convergence re-prompt at all, which `§32 #21` now
+states as a closed list. Not a distance target: `§32 #21b` forbids repairing convergence in the
+design fields, because palette ΔE and composition-vector counts are the instruments that detected
+the failure and never the objective — three numerically distant bad concepts are not the product.
+Not a catalogue: a premise is authored from the brief, never selected from a list of lenses by
+identifier, which would be `CLAUDE.md §5.1`'s template system one stage earlier. And not a silent
+degradation: a set that cannot be made legal fails the batch visibly rather than reverting to the
+premise-free calls the evidence run measured.
+
+**What it costs.** A batch goes from three model calls to four — one short serial premise call ahead
+of the three parallel DesignIntent calls. `src/lib/generation/concept-premise-cost.ts` derives the
+bound from the request's own shape and `conceptBatchMaxUsd` states the end-to-end worst case rather
+than leaving it to be inferred. The prompt, schema and input-assembly versions move to
+`design_intent_v6`, `design_intent_schema_v6` and `design_intent_input_v2`; `v5` is preserved under
+`history/` and the T22 evidence stays attributed to `v5`.
+
+**What is still owed.** The rerun of the spent T22 cases is regression and diagnostic evidence only,
+never fresh generalization evidence — those cases and their failures were known while this was
+written. Fresh evidence needs a corpus authored by an independent process that has seen neither.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

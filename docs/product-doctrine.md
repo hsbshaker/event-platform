@@ -99,8 +99,9 @@ into a single vague prompt.
 | Stage | Its question | Owns |
 | --- | --- | --- |
 | **`EventIdentity`** | *What does this host mean, and what creative world should this event belong to?* | Interpretation: category and context, emotional tone, aesthetic character, sophistication level, thematic vocabulary, objects and symbols, material and texture associations, palette territory, what to avoid, and the translation of named references into original language. |
-| **sibling planner** (deterministic) | *How do three concepts stay genuinely different?* | Distinct family, tone, typography category, hierarchy, structural directive and attractive-token allotment per sibling (`spec.md §7.7`). |
-| **`DesignIntent` ×3** | *What are three excellent and genuinely different ways a designer could express that identity?* | Family, tone, palette, typography pairing, density, composition. |
+| **sibling planner** (deterministic) | *What style coordinates keep three concepts from colliding?* | Distinct family, tone, typography category, hierarchy, structural directive and attractive-token allotment per sibling (`spec.md §7.7`). |
+| **`ConceptPremise` ×3, as one set** | *What are three worthwhile creative choices, from one understanding?* | Which supported facet each concept foregrounds, its organizing idea, the experience it creates, why it is a real alternative to the other two, and the register that follows (`spec.md §7.7a`). Never a new fact, motive, tension or constraint. |
+| **`DesignIntent` ×3** | *What is the most convincing design for **this** premise?* | Family, tone, palette, typography pairing, density, composition. |
 | **`CompositionTree` ×3** | *How is this concept actually composed?* | Structure, nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent. |
 | **`VisualArtIntent`** (Phase 4, approved — §9) | *What artwork would serve this composition?* | Art direction for a generated asset, as a sibling of the tree, never inside it. |
 | **compiler + renderer** | *Is this safe, legible, fitting and responsive?* | CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, geometry verification, business logic. |
@@ -114,6 +115,7 @@ raw prompt + optional inspiration
   → optional adaptive clarification, creative or boundary (§6)
   → refined EventIdentity
      (a boundary question makes the identity provisional and holds the rest)
+  → ConceptPremise ×3, planned as one set
   → DesignIntent ×3
   → CompositionTree ×3  (+ optional VisualArtIntent, §9)
   → deterministic compiler → ResolvedDesignSpec → renderer
@@ -250,6 +252,17 @@ restatement of another. `spec.md §7.7` and `§11.9` already enforce the mechani
 (distinct families, tones, directives, token allotments, skeleton-signature collisions below .70).
 Mechanical distinctness is necessary and not sufficient: three trees can differ structurally and
 still feel like the same idea.
+
+**This was measured, and the mechanical half really was not enough.** The T22 evidence run produced
+three concepts per event from a byte-identical brief separated only on those coordinates, and the
+independent blind review found no set that cleared the bar: the three names above are what this
+section asks for, and what came back was closer to one name three times. So `spec.md §7.7a` adds the
+stage that was missing — three creative propositions, authored as a set, before any styling —
+because the examples above are *premises*, not parameter values, and nothing in the pipeline had
+been asked to author one. `docs/designintent-sibling-convergence.md` is the record.
+
+The correctness half of this section is unchanged and outranks it: three directions must be three
+readings of one truth, never three competing claims about what the event means.
 
 ## 8a. The generation experience
 

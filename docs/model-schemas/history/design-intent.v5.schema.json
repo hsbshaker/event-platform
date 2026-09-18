@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://event-platform.local/schemas/design-intent.v6.schema.json",
-  "title": "DesignIntentResponse (design_intent_schema_v6)",
-  "description": "Canonical superset schema for the DesignIntent model response: the seven design fields (family, tonalDirection, palette, typographyPairing, density, composition, motifs) plus a non-design `presentation` object. The application splits the response into DesignIntent (the seven fields, consumed by the compiler) and ConceptPresentation (name/description, never read by the compiler). At runtime the hard-assignment enums are narrowed before the request is sent. v5 was the first version sent to a provider: composition.hierarchy is a hard assignment field like family and tonalDirection and narrows to the assigned value, and the concept-name rule admits Unicode letters and combining marks so an ordinary host-facing name is not discarded into a deterministic fallback. v6 leaves that shape untouched and moves the model-visible descriptions: density, composition, motifs and presentation now answer to this concept's ConceptPremise, which the request carries as a third channel after the T22 diagnostic showed three blind calls given a byte-identical brief converge on one creative answer. A v5 response is still structurally valid here. v5 is preserved at history/design-intent.v5.schema.json, v4 at history/design-intent.v4.schema.json and v3 at history/design-intent.v3.schema.json.",
+  "$id": "https://event-platform.local/schemas/design-intent.v5.schema.json",
+  "title": "DesignIntentResponse (design_intent_schema_v5)",
+  "description": "Canonical superset schema for the DesignIntent model response: the seven design fields (family, tonalDirection, palette, typographyPairing, density, composition, motifs) plus a non-design `presentation` object. The application splits the response into DesignIntent (the seven fields, consumed by the compiler) and ConceptPresentation (name/description, never read by the compiler). At runtime the hard-assignment enums are narrowed before the request is sent. v5 is the first version sent to a provider: composition.hierarchy is a hard assignment field like family and tonalDirection and narrows to the assigned value, and the concept-name rule admits Unicode letters and combining marks so an ordinary host-facing name is not discarded into a deterministic fallback. v4 is preserved at history/design-intent.v4.schema.json and v3 at history/design-intent.v3.schema.json.",
   "type": "object",
   "properties": {
     "family": {
@@ -73,8 +73,7 @@
         "compact",
         "balanced",
         "spacious"
-      ],
-      "description": "Chosen from this concept's premise pace, the brief and the assigned family's character. A real creative lever, not a tie-breaker: balanced is right only when this premise wants the middle."
+      ]
     },
     "composition": {
       "type": "object",
@@ -130,7 +129,7 @@
         "ornament"
       ],
       "additionalProperties": false,
-      "description": "Composition intent. Directives to the composition call and measurements taken from the tree afterwards; selects nothing. asymmetry, rhythm, sectionContrast and ornament answer to this concept's premise register rather than to generally defensible taste: presence bears on asymmetry and sectionContrast, pace on rhythm, surface richness on ornament. A bare concept and a layered one must not arrive at the same ornament."
+      "description": "Composition intent. Directives to the composition call and measurements taken from the tree afterwards; selects nothing."
     },
     "motifs": {
       "maxItems": 3,
@@ -148,7 +147,7 @@
         ]
       },
       "uniqueItems": true,
-      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. The ornament direction in `composition` caps how many actually render. How many earn a place is the premise's surface richness: zero is the considered answer for a bare concept, not an omission. Never a set that would be equally right for a concept with a different register."
+      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. The ornament direction in `composition` caps how many actually render."
     },
     "presentation": {
       "type": "object",
@@ -158,13 +157,13 @@
           "minLength": 4,
           "maxLength": 40,
           "pattern": "^[\\p{L}\\p{M}][\\p{L}\\p{M}'’ \\-–]*[\\p{L}\\p{M}]$",
-          "description": "Two or three words evoking the concept's character, written the way the name is properly written: natural title-style capitalization where the language or script has case, natural orthography otherwise, with whatever letters, accents and marks that takes. Letters, spaces, apostrophes and hyphens only — no digits, no underscores. Not a family or enum ID, not a brand name, and not a formula of tone plus layout word. Recognisably the concept this premise names: reuse that name where it is already right for a host, and write a better one for the same concept where it is not."
+          "description": "Two or three words evoking the concept's character, written the way the name is properly written: natural title-style capitalization where the language or script has case, natural orthography otherwise, with whatever letters, accents and marks that takes. Letters, spaces, apostrophes and hyphens only — no digits, no underscores. Not a family or enum ID, not a brand name, and not a formula of tone plus layout word."
         },
         "description": {
           "type": "string",
           "minLength": 20,
           "maxLength": 140,
-          "description": "One sentence describing how the concept feels, in host-facing language. No renderer or implementation terms. It says what is different about THIS choice, not what the event is: a host reads it beside two others, and a sentence that would fit all three has described the brief instead of the concept."
+          "description": "One sentence describing how the concept feels, in host-facing language. No renderer or implementation terms."
         }
       },
       "required": [
@@ -172,7 +171,7 @@
         "description"
       ],
       "additionalProperties": false,
-      "description": "Non-design presentation metadata shown to the host on concept cards. The compiler never reads it. It is the host-facing form of this concept's premise, and its job is to make the choice legible next to the other two."
+      "description": "Non-design presentation metadata shown to the host on concept cards. The compiler never reads it."
     }
   },
   "required": [
@@ -186,5 +185,5 @@
     "presentation"
   ],
   "additionalProperties": false,
-  "$comment": "design_intent_schema_v6: composition.hierarchy is planner-assigned and narrows to the assigned value; the presentation name accepts Unicode letters and combining marks; density, composition, motifs and the concept card answer to this concept's ConceptPremise. Same shape as v5, moved model-visible text. v5, v4 and v3 are preserved under history/. Generated from src/lib/ai/design-intent/contract.ts — do not hand-edit."
+  "$comment": "design_intent_schema_v5: composition.hierarchy is planner-assigned and narrows to the assigned value; the presentation name accepts Unicode letters and combining marks. v4 and v3 are preserved under history/. Generated from src/lib/ai/design-intent/contract.ts — do not hand-edit."
 }

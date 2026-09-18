@@ -7,7 +7,9 @@
  * number, or inventing one, are both refused."
  *
  * A bound is only worth the inputs it rests on, so the tests below rebuild each input rather than
- * restating it: the worst user message is reassembled from the identity contract's own maxima, the
+ * restating it: the worst user message is reassembled from the identity **and premise** contracts'
+ * own maxima — the request carries three channels now, and a bound derived from two of them would
+ * be a bound on a request that is no longer sent — the
  * instruction file is measured on disk, and the attempt count is read from the boundary's own
  * constants. A brief that grows a field, an instruction file that doubles, or a retry bound that
  * moves all fail here instead of silently invalidating the arithmetic.
@@ -30,6 +32,8 @@ import { assembleDesignIntentUserMessage } from "@/lib/ai/openai/design-intent-i
 import { EVENT_IDENTITY_SERVICE_TIER } from "@/lib/ai/openai/event-identity";
 import { describeIssues, type ValidationIssue } from "@/lib/ai/design-intent/validate";
 import type { EventIdentity } from "@/lib/ai/event-identity/contract";
+import { canonicalJsonSchema as canonicalPremiseJsonSchema } from "@/lib/ai/concept-premise/wire-schema";
+import type { ConceptPremise } from "@/lib/ai/concept-premise/contract";
 import { canonicalJsonSchema as canonicalIdentityJsonSchema } from "@/lib/ai/event-identity/wire-schema";
 import type { SiblingAssignment } from "@/lib/renderer/planner";
 
@@ -115,6 +119,22 @@ function identitySchemaNode(): JsonSchema {
 const WORST_IDENTITY = worstValue(identitySchemaNode(), "identity") as EventIdentity;
 
 /**
+ * The worst single premise, read out of the premise contract's own canonical schema.
+ *
+ * One premise, not the set: the request carries exactly one (`design-intent/boundary.test.ts`), so
+ * reserving for three would bound a request nobody sends. Built from the schema for the same reason
+ * the identity is — a `.max()` that widens grows this fixture and fails the byte bound directly,
+ * rather than leaving a correct-looking literal describing a contract that has moved.
+ */
+function premiseSchemaNode(): JsonSchema {
+  const root = canonicalPremiseJsonSchema() as JsonSchema;
+  const properties = root.properties as Record<string, JsonSchema>;
+  return (properties.premises as JsonSchema).items as JsonSchema;
+}
+
+const WORST_PREMISE = worstValue(premiseSchemaNode(), "premise") as ConceptPremise;
+
+/**
  * The worst assignment, which is small and not part of the identity contract.
  *
  * Coherent on purpose — `high_contrast_editorial` at a non-monumental hierarchy, so both of its
@@ -142,10 +162,11 @@ describe("the inputs the bound rests on", () => {
     expect(bytes).toBeGreaterThan(INSTRUCTION_BYTES / 4);
   });
 
-  it("rebuilds the worst legal user message from the identity contract's own maxima", () => {
+  it("rebuilds the worst legal user message from the identity and premise contracts' maxima", () => {
     const worst = assembleDesignIntentUserMessage({
       identity: WORST_IDENTITY,
       assignment: WORST_ASSIGNMENT,
+      premise: WORST_PREMISE,
     });
     expect(Buffer.byteLength(worst, "utf8")).toBeLessThanOrEqual(WORST_USER_MESSAGE_BYTES);
   });
@@ -212,16 +233,16 @@ describe("the inputs the bound rests on", () => {
 
 describe("the derived bound", () => {
   it("is $2.00 an attempt for gpt-5.6-sol, from the long-context cache-write and output rates", () => {
-    // input   83,500 × $10 / 1M = $0.835
+    // input   97,500 × $10 / 1M = $0.975
     // output  32,000 × $30 / 1M = $0.96
     //                             ------
-    //                             $1.795 → $2.00
+    //                             $1.935 → $2.00
     const raw =
       (PER_ATTEMPT_INPUT_TOKEN_BOUND * GPT_5_6_SOL.longContext.cacheWriteInput +
         PER_ATTEMPT_OUTPUT_TOKEN_BOUND * GPT_5_6_SOL.longContext.output) /
       1_000_000;
-    expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBe(83_500);
-    expect(raw).toBeCloseTo(1.795, 3);
+    expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBe(97_500);
+    expect(raw).toBeCloseTo(1.935, 3);
     expect(designIntentAttemptMaxUsd(MODEL)).toBe(2);
   });
 

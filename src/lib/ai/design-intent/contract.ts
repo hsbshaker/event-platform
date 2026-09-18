@@ -28,8 +28,15 @@
  *
  * See `./input.ts`. The raw host prompt, raw inspiration bytes, `suppliedFacts`, `clarification`,
  * the structural directive, the token allotment, capabilities, the content profile, another
- * sibling's output and any library recipe or silhouette identifier are all out
- * (`docs/phase-4b-plan.md §E`, `§F`; `spec.md §32 #12`).
+ * sibling's output, **another concept's premise** and any library recipe or silhouette identifier
+ * are all out (`docs/phase-4b-plan.md §E`, `§F`; `spec.md §32 #12`).
+ *
+ * What it does receive, since the T22 remediation, is **its own** `ConceptPremise` alongside the
+ * brief and the assignment. The shape below does not change for it: a premise is direction into
+ * this call, never a field out of it, and the compiler still reads exactly seven design fields
+ * (`spec.md §32 #21`). What changed is what several of those fields answer to, which is stated in
+ * the model-visible descriptions because that is where the model reads it
+ * (`docs/designintent-sibling-convergence.md`).
  *
  * Acceptance criteria: `spec.md §31 — DesignIntent, composition and compiler`, first bullet.
  * Plan: `docs/phase-4b-plan.md §E`, T18.
@@ -138,7 +145,10 @@ export const paletteSchema = z
 
 const COMPOSITION_DESCRIPTION =
   "Composition intent. Directives to the composition call and measurements taken from the tree " +
-  "afterwards; selects nothing.";
+  "afterwards; selects nothing. asymmetry, rhythm, sectionContrast and ornament answer to this " +
+  "concept's premise register rather than to generally defensible taste: presence bears on " +
+  "asymmetry and sectionContrast, pace on rhythm, surface richness on ornament. A bare concept " +
+  "and a layered one must not arrive at the same ornament.";
 
 const HIERARCHY_DESCRIPTION =
   "Assigned, exactly like family and tonalDirection: the runtime schema narrows this enum to the " +
@@ -163,7 +173,9 @@ const MOTIFS_DESCRIPTION =
   "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, " +
   "linen) and three are arrangements (equestrian, botanical, celestial). Placement is the " +
   "composition call's, not this one's. The ornament direction in `composition` caps how many " +
-  "actually render.";
+  "actually render. How many earn a place is the premise's surface richness: zero is the " +
+  "considered answer for a bare concept, not an omission. Never a set that would be equally " +
+  "right for a concept with a different register.";
 
 /**
  * Host-facing concept metadata. Never compiled.
@@ -186,7 +198,9 @@ export const presentationSchema = z
           "has case, natural orthography otherwise, with whatever letters, accents and marks " +
           "that takes. Letters, spaces, apostrophes and hyphens only — no digits, no " +
           "underscores. Not a family or enum ID, not a brand name, and not a formula of tone " +
-          "plus layout word.",
+          "plus layout word. Recognisably the concept this premise names: reuse that name where " +
+          "it is already right for a host, and write a better one for the same concept where it " +
+          "is not.",
       ),
     description: z
       .string()
@@ -194,13 +208,16 @@ export const presentationSchema = z
       .max(140)
       .describe(
         "One sentence describing how the concept feels, in host-facing language. No renderer or " +
-          "implementation terms.",
+          "implementation terms. It says what is different about THIS choice, not what the event " +
+          "is: a host reads it beside two others, and a sentence that would fit all three has " +
+          "described the brief instead of the concept.",
       ),
   })
   .strict()
   .describe(
     "Non-design presentation metadata shown to the host on concept cards. The compiler never " +
-      "reads it.",
+      "reads it. It is the host-facing form of this concept's premise, and its job is to make the " +
+      "choice legible next to the other two.",
   );
 
 /** What `./narrowing.ts` replaces when it builds one sibling's schema. */
@@ -231,7 +248,11 @@ export function designSemanticsShape(narrowing: SemanticsNarrowing = UNNARROWED)
     tonalDirection: enumOf(narrowing.tones).describe(TONE_DESCRIPTION),
     palette: paletteSchema,
     typographyPairing: enumOf(narrowing.pairings).describe(PAIRING_DESCRIPTION),
-    density: enumOf(DENSITIES),
+    density: enumOf(DENSITIES).describe(
+      "Chosen from this concept's premise pace, the brief and the assigned family's character. A " +
+        "real creative lever, not a tie-breaker: balanced is right only when this premise wants " +
+        "the middle.",
+    ),
     composition: z
       .object({
         asymmetry: enumOf(ASYMMETRIES),

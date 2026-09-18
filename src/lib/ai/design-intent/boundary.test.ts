@@ -2,8 +2,9 @@
  * What the DesignIntent call may receive, proved rather than promised — and what T18 must not ship.
  *
  * `docs/phase-4b-plan.md §E`: each call receives the creative brief from the same authoritative
- * identity plus **only its own sibling assignment**, and nothing else. Ten exclusions follow from
- * that sentence and from `spec.md §7.5`, `§7.7`, `§F` and `CLAUDE.md §2`/`§5.1`. Prose does not
+ * identity, **only its own sibling assignment**, and — since the T22 evidence §E required before a
+ * third channel could exist — **only its own concept premise**. Eleven exclusions follow from that
+ * sentence and from `spec.md §7.5`, `§7.7`, `§F` and `CLAUDE.md §2`/`§5.1`. Prose does not
  * enforce any of them, and the cheapest way for a later stage to seem to work is to pass one
  * along "for context", so each is proved here — by the type system where a type can carry it, by a
  * scan of this module's own source where it cannot.
@@ -16,6 +17,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import type { ConceptPremise } from "@/lib/ai/concept-premise/contract";
 import type { AuthoritativeIdentity } from "@/lib/ai/event-identity/lifecycle";
 import type { GenerateDesignIntentInput } from "@/lib/ai/provider";
 import type { SiblingAssignment } from "@/lib/renderer/planner";
@@ -74,21 +76,44 @@ function importClosure(): Set<string> {
 }
 
 describe("the input envelope", () => {
-  it("is the brief and one assignment, and exactly those two", () => {
+  it("is the brief, one assignment and one premise, and exactly those three", () => {
     // Compile-time: adding a field to `DesignIntentCallInput` fails this assignment, and adding
     // one to the provider boundary fails the one below it.
     const input: DesignIntentCallInput = {
       identity: {} as AuthoritativeIdentity,
       assignment: {} as SiblingAssignment,
+      premise: {} as ConceptPremise,
     };
-    expect(Object.keys(input)).toEqual(["identity", "assignment"]);
-    expect([...DESIGN_INTENT_INPUT_CHANNELS]).toEqual(["identity", "assignment"]);
+    expect(Object.keys(input)).toEqual(["identity", "assignment", "premise"]);
+    expect([...DESIGN_INTENT_INPUT_CHANNELS]).toEqual(["identity", "assignment", "premise"]);
 
     const provider: GenerateDesignIntentInput = {
       eventIdentity: {},
       diversityAssignment: {} as SiblingAssignment,
+      conceptPremise: {} as ConceptPremise,
     };
-    expect(Object.keys(provider)).toEqual(["eventIdentity", "diversityAssignment"]);
+    expect(Object.keys(provider)).toEqual([
+      "eventIdentity",
+      "diversityAssignment",
+      "conceptPremise",
+    ]);
+  });
+
+  it("carries one premise, not the set the premise came from", () => {
+    // The premise stage authors three as a set; exactly one of them travels. A field typed as the
+    // set, or as an array, would hand a blind call the other two concepts — which is the thing
+    // §E's blindness forbids, arriving through the new channel instead of the old one.
+    const premise: DesignIntentCallInput["premise"] = {} as ConceptPremise;
+    type IsArray = DesignIntentCallInput["premise"] extends readonly unknown[] ? never : true;
+    const notAnArray: IsArray = true;
+    expect(notAnArray).toBe(true);
+    type SetShaped = Extract<
+      keyof DesignIntentCallInput["premise"],
+      "premises" | "constrainedAxes"
+    >;
+    const setShaped: SetShaped[] = [];
+    expect(setShaped).toEqual([]);
+    expect(premise).toBeDefined();
   });
 
   it("cannot carry the raw host prompt, `suppliedFacts` or `clarification`", () => {
@@ -169,6 +194,10 @@ describe("the input envelope", () => {
     type Carrier = Extract<
       keyof DesignIntentCallInput | keyof AuthoritativeIdentity | keyof SiblingAssignment,
       | "siblings"
+      | "siblingPremises"
+      | "otherPremises"
+      | "premises"
+      | "premiseSet"
       | "otherConcepts"
       | "designIntent"
       | "designIntents"
@@ -198,8 +227,9 @@ describe("the input envelope", () => {
       "capabilities",
       "content profile",
       "another sibling's output",
+      "another concept's premise",
       "library recipe or silhouette identifier",
-    ]).toHaveLength(10);
+    ]).toHaveLength(11);
   });
 });
 

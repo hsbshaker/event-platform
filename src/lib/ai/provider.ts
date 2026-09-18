@@ -1,7 +1,8 @@
 /**
  * Thin model-provider boundary — docs/technology-decisions.md §8, spec.md §9.1.
  *
- * These three capabilities are the only frontier creative operations in MVP.
+ * These four capabilities are the only frontier creative operations in MVP — three until the T22
+ * diagnostic, which is recorded in `docs/designintent-sibling-convergence.md`.
  * Provider SDK calls, model names, request formatting, usage parsing and
  * request IDs live behind them. The compiler/renderer is NOT part of this
  * layer (spec.md §9.3): validation, repair, palette, layout and geometry
@@ -13,14 +14,16 @@
  */
 
 import type { CarriedClarification, PriorRevision } from "@/lib/ai/openai/event-identity-input";
+import type { ConceptPremise } from "@/lib/ai/concept-premise/contract";
 import type { SiblingAssignment } from "@/lib/renderer/planner";
 
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Typed narrowly in Phase 4. */
 export type EventIdentity = Record<string, unknown>;
+export type ConceptPremiseSetResponse = Record<string, unknown>;
 export type DesignIntentResponse = Record<string, unknown>;
 export type CompositionTree = Record<string, unknown>;
 
-export type ModelOperation = "event_identity" | "design_intent" | "composition";
+export type ModelOperation = "event_identity" | "concept_premise" | "design_intent" | "composition";
 
 export interface ModelUsage {
   provider: string;
@@ -60,13 +63,15 @@ export interface GenerateEventIdentityInput {
 }
 
 /**
- * `docs/phase-4b-plan.md §E`: the creative brief plus **only this sibling's assignment**.
+ * `docs/phase-4b-plan.md §E`: the creative brief, **only this sibling's assignment**, and — under
+ * the evidence §E required before a third channel could be added — **only this concept's premise**.
  *
- * Two fields, and adding a third is a decision this type exists to make visible. Not here: the
+ * Three fields, and adding a fourth is a decision this type exists to make visible. Not here: the
  * raw host prompt, raw inspiration assets, `suppliedFacts`, `clarification`, the structural
- * directive, the token allotment, capabilities, the content profile, another sibling's output, or
- * any library recipe or silhouette identifier. `src/lib/ai/design-intent/input.ts` carries the
- * reason for each exclusion and `design-intent/boundary.test.ts` proves them.
+ * directive, the token allotment, capabilities, the content profile, another sibling's output,
+ * another concept's premise, or any library recipe or silhouette identifier.
+ * `src/lib/ai/design-intent/input.ts` carries the reason for each exclusion and
+ * `design-intent/boundary.test.ts` proves them.
  */
 export interface GenerateDesignIntentInput {
   eventIdentity: EventIdentity;
@@ -75,6 +80,17 @@ export interface GenerateDesignIntentInput {
    * the directive and the allotment beside it in `PlannedConcept` cannot arrive by accident.
    */
   diversityAssignment: SiblingAssignment;
+  /**
+   * This concept's premise, from the batch's set of three
+   * (`docs/designintent-sibling-convergence.md`). The premise type rather than a bag, so the two
+   * siblings' premises beside it in a `ConceptPremiseSet` cannot arrive by accident.
+   */
+  conceptPremise: ConceptPremise;
+}
+
+/** One model call per batch: three premises, authored as a set from one authoritative identity. */
+export interface GenerateConceptPremiseSetInput {
+  eventIdentity: EventIdentity;
 }
 
 export interface GenerateCompositionInput {
@@ -87,6 +103,14 @@ export interface GenerateCompositionInput {
 
 export interface AiProvider {
   generateEventIdentity(input: GenerateEventIdentityInput): Promise<ModelResult<EventIdentity>>;
+  /**
+   * The premise stage, added after the T22 diagnostic showed three blind DesignIntent calls given
+   * a byte-identical brief converge on one creative answer
+   * (`docs/designintent-sibling-convergence.md`). It runs once per batch, ahead of the three.
+   */
+  generateConceptPremiseSet(
+    input: GenerateConceptPremiseSetInput,
+  ): Promise<ModelResult<ConceptPremiseSetResponse>>;
   generateDesignIntent(
     input: GenerateDesignIntentInput,
   ): Promise<ModelResult<DesignIntentResponse>>;

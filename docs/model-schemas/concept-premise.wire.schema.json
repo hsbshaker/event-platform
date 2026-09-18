@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://event-platform.local/schemas/concept-premise.v1.wire.schema.json",
+  "title": "ConceptPremiseSet (provider strict-mode projection, concept_premise_schema_v1)",
+  "description": "The canonical schema reduced to the subset OpenAI structured outputs accept in strict mode — every property required, additionalProperties false everywhere, no length/count/pattern/uniqueness keywords. Unlike the DesignIntent wire schema this is the schema actually sent: the premise set is authored blind to the sibling assignments, so there is nothing to narrow. The dropped constraints, and the set-level and fidelity rules no JSON Schema can express, are enforced by the application validator, which is the authority (docs/model-contracts.md §3). Generated — do not hand-edit.",
+  "type": "object",
+  "properties": {
+    "premises": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Two or three words naming this concept, written the way the name is properly written. It is the anchor for the host-facing card a later call writes, so it must name this concept rather than restate the event. Letters, spaces, apostrophes and hyphens only."
+          },
+          "foregrounds": {
+            "type": "string",
+            "description": "Which aspect of the brief this concept brings forward. It must already be in the brief: you are choosing emphasis, not adding meaning."
+          },
+          "organizingIdea": {
+            "type": "string",
+            "description": "The idea this concept is organized around, in one or two sentences. This is the concept, and it is what makes it a choice rather than a variation. Never a restatement of the brief's own thesis, and never a list of design settings."
+          },
+          "experience": {
+            "type": "string",
+            "description": "What arriving on this site should feel like. Written about the guest's experience, not about the page's construction."
+          },
+          "distinctFrom": {
+            "type": "string",
+            "description": "Why this is a worthwhile alternative to the other two premises in this set — what a host gains by choosing it over them. You are authoring all three, so answer it against the two you actually wrote."
+          },
+          "designConsequences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What follows visually from this premise, in the language of design character rather than of implementation. No CSS, no pixels, no font names, no hex colours, no renderer vocabulary."
+          },
+          "grounding": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What in the brief supports this emphasis — quote or closely paraphrase the brief. This is the field that makes the premise checkable: an emphasis with nothing behind it in the brief is refused."
+          },
+          "register": {
+            "type": "object",
+            "properties": {
+              "pace": {
+                "type": "string",
+                "enum": [
+                  "lingering",
+                  "measured",
+                  "propulsive"
+                ],
+                "description": "How quickly this concept moves a guest through the event. Not a spacing value."
+              },
+              "presence": {
+                "type": "string",
+                "enum": [
+                  "understated",
+                  "poised",
+                  "commanding"
+                ],
+                "description": "How much room this concept takes up. Not an alignment or a size."
+              },
+              "surfaceRichness": {
+                "type": "string",
+                "enum": [
+                  "bare",
+                  "considered",
+                  "layered"
+                ],
+                "description": "How much the surfaces themselves carry. Not an ornament setting and not a motif list."
+              }
+            },
+            "required": [
+              "pace",
+              "presence",
+              "surfaceRichness"
+            ],
+            "additionalProperties": false,
+            "description": "The concept's register, in three axes. A later call translates these into its own design fields; nothing here selects one."
+          }
+        },
+        "required": [
+          "title",
+          "foregrounds",
+          "organizingIdea",
+          "experience",
+          "distinctFrom",
+          "designConsequences",
+          "grounding",
+          "register"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Exactly three premises, authored together as one set of choices for one understanding."
+    },
+    "constrainedAxes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "axis": {
+            "type": "string",
+            "enum": [
+              "pace",
+              "presence",
+              "surfaceRichness"
+            ]
+          },
+          "why": {
+            "type": "string",
+            "description": "What in the brief leaves this axis no room. Grounded, like every other claim."
+          }
+        },
+        "required": [
+          "axis",
+          "why"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Axes the brief leaves no room to vary, each with its reason. Empty is the common and correct answer. At most two, because at least one axis must always separate the set."
+    }
+  },
+  "required": [
+    "premises",
+    "constrainedAxes"
+  ],
+  "additionalProperties": false
+}

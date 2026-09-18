@@ -794,9 +794,23 @@ Never the same intent with different seeds: Phase B showed that identical intent
 
 The assignment is passed to the DesignIntent call; the directive, allotment and DesignIntent are passed to the composition call.
 
+#### 7.7a Concept premises — three creative propositions, planned as a set
+
+The deterministic planner separates three concepts on **style coordinates**. It cannot separate them on **ideas**, and §7.8's evidence run showed that coordinates alone do not: given a byte-identical brief and four enum values, three blind DesignIntent calls returned one creative answer three times — `composition.ornament` took a single value in all thirty-six responses, and one batch returned the same concept name from all three siblings. `docs/designintent-sibling-convergence.md` is the causal record.
+
+So one model call per batch, after planning and before the three DesignIntent calls, authors three **concept premises as one set**. This is the stage `docs/product-doctrine.md §8` already asked for — *"three genuinely different creative directions that a good designer could defend from the same brief"* — and `§4` already assigned its question.
+
+A premise carries what the concept foregrounds, its organizing idea, the experience it should create, why it is a worthwhile alternative to the other two, the design consequences that follow, the brief content that supports it, a two-or-three-word concept name, and a **register** in three axes (`pace`, `presence`, `surfaceRichness`). The register is not a design value: the DesignIntent call still chooses density, asymmetry, rhythm, section contrast, ornament and motifs.
+
+**One authoritative understanding, three worthwhile choices.** All three premises inherit the same `EventIdentity`, unchanged. A premise may select emphasis from what the brief already carries and may infer creative expression from it. It may **not** add a host fact, a relationship, a conflict, a motive, a constraint or an emotional stake, and may not resolve a tension the brief leaves open — its schema has no field for any of them, and the validator refuses grounding that is not anchored in the brief. Correctness outranks distinctness: one correct concept plus two unsupported ones is a worse outcome than three that converge.
+
+The call receives **the authoritative brief and nothing else** — not the raw prompt, not `suppliedFacts`, not the sibling assignments. Deterministic code then binds premise *k* to planned sibling *k*, and each DesignIntent call receives the same brief, its own assignment and **its own premise only**; the three remain blind to each other's premises and outputs.
+
+Validation is deterministic and set-level: the premises must be distinct in name and in organizing idea, at least one register axis must take three distinct values across the set, and any axis the set declares constrained must really be uniform. The set may be re-prompted **once**, with the validator's own findings quoted; a set that is still unusable fails the batch visibly rather than reverting to three premise-free calls, because that reversion is the known-defective behaviour the evidence run measured.
+
 ### 7.8 DesignIntent and composition generation
 
-The strong model returns the creative intent surface below, then, in a second call per concept, the composition.
+The strong model returns the creative intent surface below, then, in a second call per concept, the composition. Each DesignIntent call is conditioned on the authoritative brief, its own sibling assignment and its own concept premise (§7.7a) — and on nothing else. Palette, typography pairing, density, composition and motifs answer to that premise rather than to generally defensible taste.
 
 ```ts
 DesignIntent {
@@ -823,7 +837,9 @@ The composition call is conditioned on the DesignIntent, the event's capabilitie
 
 **No model-emitted style overrides exist in MVP.** A tree carries no colors, fonts, sizes, pixels or free text.
 
-The same response also carries a `presentation` object (`name`, `description`) for the concept card. It is host-facing metadata, validated separately, persisted on `DesignConcept`, and never read by the compiler. If it is missing, invalid, or duplicates another concept's name, a deterministic fallback name is derived (see `docs/model-contracts.md` §21).
+The same response also carries a `presentation` object (`name`, `description`) for the concept card. It is host-facing metadata, validated separately, persisted on `DesignConcept`, and never read by the compiler. Its job is to say **what is different about this choice**, not what the event is: a description that would fit all three concepts has described the brief instead of the concept.
+
+If a name is missing, invalid, or duplicates another concept's name, a deterministic fallback is derived from that concept's premise — its title, which the premise set's own validation has already refused to let collide. The same fallback covers a description that is missing, invalid, near-duplicates a sibling's, or restates the identity's creative thesis. Every substitution is logged as a deviation. This is a deterministic set-level review over the three returned concepts; convergence in the **design** fields — an identical composition vector, overlapping motif sets, a shared dominant colour — is reported there as evidence and never repaired, because rewriting a creative decision to widen a distance would fabricate a decision nobody made (see `docs/model-contracts.md` §21).
 
 The model cannot emit:
 - HTML, CSS, JSX, JavaScript, SVG;
@@ -1066,10 +1082,11 @@ AI cost is a product constraint from day one, but creative quality materially af
 Use the strongest appropriate multimodal/reasoning model for:
 
 1. `generateEventIdentity(...)`
-2. `generateDesignIntent(...)` for each concept
-3. `generateComposition(...)` for each concept
+2. `generateConceptPremiseSet(...)` once per concept batch (§7.7a)
+3. `generateDesignIntent(...)` for each concept
+4. `generateComposition(...)` for each concept
 
-These are the only frontier creative operations in MVP.
+These are the only frontier creative operations in MVP. A batch of three concepts therefore costs **one premise call plus three DesignIntent calls plus three composition calls**; the premise call is serial ahead of the three DesignIntent calls, which run in parallel as before.
 
 The model does **not** generate the final renderer schema. Application code compiles the DesignIntent and CompositionTree to a verified ResolvedDesignSpec.
 
@@ -1077,6 +1094,7 @@ A thin provider capability layer is sufficient:
 
 ```ts
 generateEventIdentity(...)
+generateConceptPremiseSet(...)
 generateDesignIntent(...)
 generateComposition(...)
 ```
@@ -2464,12 +2482,21 @@ The host should feel:
 - [ ] The sibling planner assigns three distinct compatible families whenever possible, then distinct tones, typography categories and hierarchies when the brief allows.
 - [ ] Siblings receive distinct structural directives (at least structure and opening differ) and attractive-token allotments (each token to at most one sibling in three).
 - [ ] Siblings never share an identical DesignIntent.
+- [ ] One premise call per batch authors three concept premises as a set, and premise *k* binds to planned sibling *k* (§7.7a).
+- [ ] All three siblings inherit the same authoritative `EventIdentity`, byte-identical; only the assignment and the premise differ.
+- [ ] A premise selects emphasis from what the brief already carries and introduces no host fact, relationship, conflict, motive, constraint or emotional stake; grounding that is not anchored in the brief is refused.
+- [ ] The premise set is refused unless the three are distinct in name and in organizing idea and at least one register axis takes three distinct values; a declared axis constraint is checked against the set.
+- [ ] The premise set may be re-prompted once with the validator's findings; a still-unusable set fails the batch visibly rather than reverting to premise-free DesignIntent calls.
 - [ ] Tone diversity is used only when compatible with the brief.
 - [ ] Skeleton-signature collisions with siblings or redesign history at or above .70 are re-prompted once, then fall back to the library, and are recorded.
 
 ### DesignIntent, composition and compiler
 - [ ] Strong model returns `family`, `tonalDirection`, `palette`, `typographyPairing`, `density`, `composition`, `motifs`, plus a `presentation` object (`name`, `description`) that the compiler never reads.
+- [ ] Each DesignIntent call receives the authoritative brief, its own sibling assignment and its own concept premise, and nothing else — not another concept's premise or output.
+- [ ] Palette, typography pairing, density, composition and motifs answer to the concept's premise rather than to generally defensible taste.
 - [ ] Duplicate or invalid concept names fall back deterministically and are logged as compiler repairs.
+- [ ] A concept card that near-duplicates a sibling's description, or restates the identity's creative thesis, falls back deterministically from that concept's premise and is logged.
+- [ ] Convergence in the design fields — identical composition vectors, overlapping motif sets, a shared dominant colour — is reported by the deterministic set review and never repaired or re-prompted.
 - [ ] The composition response validates against the strict schema; unknown keys, non-enum values, free text and unknown node types are rejected.
 - [ ] A schema-invalid composition is re-prompted exactly once with the validator's errors; a second failure falls back to a library page and is recorded.
 - [ ] The tree references only capabilities the event has; references to disabled capabilities are removed and logged as `capability` repairs; no disabled capability is required.
@@ -2590,7 +2617,7 @@ The host should feel:
 9. Do not turn readiness into a wizard. Adaptive clarification (§7.6b) is the one permitted pre-concept question and is bounded on both of its routes. Route A: taste only, never logistics, always a `You decide` option, never a gate on concepts appearing. Route B: only a decision the system has no authority to make, never triggered by sensitivity/emotion/culture/family/logistics/missing taste alone, asked alone and at most once per response, no `You decide` option, and the only route permitted to block concepts — behind which the identity is provisional and must not flow downstream (§7.7).
 10. Do not count optional Guests/Registry as publish blockers.
 11. Do not build token/chat-level AI editing.
-12. Strong model returns a six-field DesignIntent (`family`, `composition`, no `heroArchetype`) plus non-design presentation metadata, and a `CompositionTree` of trusted primitives; nothing else.
+12. Strong model returns a six-field DesignIntent (`family`, `composition`, no `heroArchetype`) plus non-design presentation metadata, and a `CompositionTree` of trusted primitives; nothing else. Each DesignIntent call receives the authoritative brief, its own sibling assignment and its own concept premise (§7.7a), and never another concept's premise or output.
 13. Do not add a model `overrides` block or any per-node color, font, size, pixel or free-text field.
 14. The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent); the compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
 15. Do not add a primitive, prop or token to the composition language without a proof run and a primitive-set version bump; never generate arbitrary HTML/layout/CSS/SVG.
@@ -2599,7 +2626,9 @@ The host should feel:
 18. Persist DesignIntent + CompositionTree (raw and canonical) + every ResolvedDesignSpec revision with prompt, schema, primitive-set and compiler versions; content edits append revisions, never mutate one.
 19. Render generated concept base from the resolved spec, one fixed component per primitive; derive no CSS text from model output.
 20. Generated design data is immutable; a content edit re-fits into a new revision of the same concept without a model call; renderer code bug/accessibility/responsive fixes are allowed.
-21. Repair structural, coverage, capability, responsive, box-depth, motif-kind and fit defects deterministically and log them by kind; re-prompt the model only for schema-invalid output, a token-cap violation or a selector collision, once each.
+21. Repair structural, coverage, capability, responsive, box-depth, motif-kind and fit defects deterministically and log them by kind; re-prompt the model only for schema-invalid output, a token-cap violation or a selector collision, once each. The **concept premise set** adds exactly one further bounded re-prompt, once per batch, for a set that is schema-invalid, collapsed or unsupported (§7.7a) — and nothing else anywhere may be re-prompted for sibling convergence, motif overlap, palette proximity, a duplicated concept card, or a premise a DesignIntent did not visibly express.
+21a. Do not make a premise stage that reinterprets the host. A premise selects emphasis from what the brief already carries; it has no field for a host fact, relationship, conflict, motive, constraint or emotional stake, and diversity never outranks correctness.
+21b. Do not repair convergence in the design fields. An identical composition vector, overlapping motif sets or a shared dominant colour are reported by the deterministic set review as evidence; rewriting one would fabricate a creative decision, and palette distance and vector counts are never the product objective.
 22. Motifs must declare kind, roles and bounded opacity/scale steps; the tree places them in one of five structural slots, and the ornament direction is a hard cap on how many render. Suppression is explicit, logged and kept in the resolved spec.
 23. A motif of the wrong kind for its slot is swapped and logged; never dropped silently.
 24. Rendered-geometry verification at 390 and 1280 is authoritative; the static fit estimate never finalizes a spec; residual overflow must be zero.

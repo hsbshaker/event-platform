@@ -32,7 +32,7 @@ Do not replace, abstract away, or introduce competing infrastructure unless a co
 | SMS / OTP / event messaging | **Twilio** |
 | Payments | **Stripe**, initially **stubbed behind the MVP mock publish gate** |
 | AI/model provider | Provider kept behind a **thin capability interface** |
-| Primary AI capabilities | `generateEventIdentity(...)`, `generateDesignIntent(...)` and `generateComposition(...)` |
+| Primary AI capabilities | `generateEventIdentity(...)`, `generateConceptPremiseSet(...)`, `generateDesignIntent(...)` and `generateComposition(...)` |
 
 ---
 
@@ -152,9 +152,16 @@ Keep the creative-model boundary deliberately thin:
 
 ```ts
 generateEventIdentity(...)
+generateConceptPremiseSet(...)
 generateDesignIntent(...)
 generateComposition(...)
 ```
+
+`generateConceptPremiseSet` is the fourth and last, added by the T22 remediation
+(`spec.md §7.7a`, `docs/designintent-sibling-convergence.md`). It is one call per concept batch and
+does not widen the boundary in kind: same thin shape, same provider-specific concerns below, no
+orchestration framework. The stack decision is unchanged — this is a fourth creative operation, not
+a fifth kind of infrastructure.
 
 Provider-specific:
 - SDK calls;

@@ -137,13 +137,26 @@ describe("no set can write over evidence that already exists", () => {
     // responses either way, and a second run destroys them. The other two 4C sets are unrun and
     // deliberately absent from this list until they are not.
     //
-    // Two of Phase 4C's three sets are still writable, which is what a prewired slot looks like
-    // before its run: each joins the list above in the same change that commits its own evidence.
-    // The third no longer belongs here — `designIntentChallenge` ran once and was protected the
-    // same way, so it moved across. Named exactly, so a third writable path cannot appear
-    // unnoticed, and so a set silently dropping back to writable after a run fails here.
+    // Two of Phase 4C's three original sets are still writable, which is what a prewired slot looks
+    // like before its run: each joins the list above in the same change that commits its own
+    // evidence. The third no longer belongs here — `designIntentChallenge` ran once and was
+    // protected the same way, so it moved across.
+    //
+    // `designIntentSpentChallenge` is the fourth and is writable for the same reason the other two
+    // are: it has not run. It points at the **same spent corpus** as `designIntentChallenge` and at
+    // a directory of its own, which is exactly what protection costs and what `spentChallenge`
+    // established — the set that wrote a protected path can never write there again, so a later
+    // diagnostic rerun needs its own output. When it runs, its directory joins the list above in
+    // the same change that commits its evidence.
+    //
+    // Named exactly, so a fourth writable path cannot appear unnoticed, and so a set silently
+    // dropping back to writable after a run fails here.
     const writable = sets.filter((set) => !isProtectedOutput(EVAL_SETS[set].out));
-    expect(writable).toEqual(["designIntentRegression", "designIntentValidation"]);
+    expect(writable).toEqual([
+      "designIntentRegression",
+      "designIntentValidation",
+      "designIntentSpentChallenge",
+    ]);
   });
 
   it("protects every directory that already holds a completed run's evidence", () => {
@@ -270,6 +283,7 @@ describe("the runner and the leakage scan cannot disagree about a corpus", () =>
       "designIntentRegression",
       "designIntentValidation",
       "designIntentChallenge",
+      "designIntentSpentChallenge",
     ]);
   });
 });

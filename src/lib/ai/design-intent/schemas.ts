@@ -1,6 +1,13 @@
 /**
  * The committed DesignIntent JSON Schemas, and the single place their content is defined.
  *
+ * At `v6` after the T22 remediation. The **shape** is `v5`'s exactly — same seven fields, same
+ * enums, same bounds — and the version moved because the model-visible descriptions did:
+ * `docs/model-contracts.md §5.1`'s paired rule bumps prompt and schema together when model-visible
+ * text moves on both sides, and it moved on both. A `v5` response is therefore still a structurally
+ * valid `v6` response, which is a different situation from `v4` → `v5` and is said so in the
+ * description rather than left for a reader to discover.
+ *
  * `docs/model-contracts.md §2` already makes generated schemas this repository's practice for the
  * composition call — "generated from the same table. Never hand-edit either" — and
  * `src/lib/ai/event-identity/schemas.ts` applies it to Event Identity. This applies it to
@@ -25,38 +32,44 @@ export const SCHEMA_FILES = {
 
 type JsonSchema = Record<string, unknown>;
 
-const V5_DESCRIPTION =
+const V6_DESCRIPTION =
   "Canonical superset schema for the DesignIntent model response: the seven design fields " +
   "(family, tonalDirection, palette, typographyPairing, density, composition, motifs) plus a " +
   "non-design `presentation` object. The application splits the response into DesignIntent (the " +
   "seven fields, consumed by the compiler) and ConceptPresentation (name/description, never read " +
   "by the compiler). At runtime the hard-assignment enums are narrowed before the request is " +
-  "sent. v5 is the first version sent to a provider: composition.hierarchy is a hard assignment " +
+  "sent. v5 was the first version sent to a provider: composition.hierarchy is a hard assignment " +
   "field like family and tonalDirection and narrows to the assigned value, and the concept-name " +
   "rule admits Unicode letters and combining marks so an ordinary host-facing name is not " +
-  "discarded into a deterministic fallback. v4 is preserved at " +
-  "history/design-intent.v4.schema.json and v3 at history/design-intent.v3.schema.json.";
+  "discarded into a deterministic fallback. v6 leaves that shape untouched and moves the " +
+  "model-visible descriptions: density, composition, motifs and presentation now answer to this " +
+  "concept's ConceptPremise, which the request carries as a third channel after the T22 " +
+  "diagnostic showed three blind calls given a byte-identical brief converge on one creative " +
+  "answer. A v5 response is still structurally valid here. v5 is preserved at " +
+  "history/design-intent.v5.schema.json, v4 at history/design-intent.v4.schema.json and v3 at " +
+  "history/design-intent.v3.schema.json.";
 
-const V5_COMMENT =
-  "design_intent_schema_v5: composition.hierarchy is planner-assigned and narrows to the assigned " +
-  "value; the presentation name accepts Unicode letters and combining marks. v4 and v3 are " +
-  "preserved under history/. Generated from src/lib/ai/design-intent/contract.ts — do not " +
-  "hand-edit.";
+const V6_COMMENT =
+  "design_intent_schema_v6: composition.hierarchy is planner-assigned and narrows to the assigned " +
+  "value; the presentation name accepts Unicode letters and combining marks; density, composition, " +
+  "motifs and the concept card answer to this concept's ConceptPremise. Same shape as v5, moved " +
+  "model-visible text. v5, v4 and v3 are preserved under history/. Generated from " +
+  "src/lib/ai/design-intent/contract.ts — do not hand-edit.";
 
 export function buildSchemaFiles(): Record<keyof typeof SCHEMA_FILES, JsonSchema> {
   return {
     response: {
       $schema: "https://json-schema.org/draft/2020-12/schema",
-      $id: "https://event-platform.local/schemas/design-intent.v5.schema.json",
-      title: "DesignIntentResponse (design_intent_schema_v5)",
-      description: V5_DESCRIPTION,
+      $id: "https://event-platform.local/schemas/design-intent.v6.schema.json",
+      title: "DesignIntentResponse (design_intent_schema_v6)",
+      description: V6_DESCRIPTION,
       ...stripMeta(canonicalJsonSchema()),
-      $comment: V5_COMMENT,
+      $comment: V6_COMMENT,
     },
     wire: {
       $schema: "https://json-schema.org/draft/2020-12/schema",
-      $id: "https://event-platform.local/schemas/design-intent.v5.wire.schema.json",
-      title: "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v5)",
+      $id: "https://event-platform.local/schemas/design-intent.v6.wire.schema.json",
+      title: "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v6)",
       description:
         "The canonical schema reduced to the subset OpenAI structured outputs accept in strict " +
         "mode — every property required, additionalProperties false everywhere, no " +

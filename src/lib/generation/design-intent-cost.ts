@@ -22,7 +22,7 @@ import "server-only";
  * | part | bound | why it is a bound |
  * | --- | --- | --- |
  * | the instruction file | `INSTRUCTION_BYTES` | a committed file, measured |
- * | the assembled user message | `WORST_USER_MESSAGE_BYTES` | the identity contract's own `max()`s at three UTF-8 bytes per UTF-16 code unit, which is the worst a BMP character can be, plus the assignment's five fixed lines |
+ * | the assembled user message | `WORST_USER_MESSAGE_BYTES` | the identity **and premise** contracts' own `max()`s at three UTF-8 bytes per UTF-16 code unit, which is the worst a BMP character can be, plus the assignment's five fixed lines |
  * | the repair pass's extra turns | `REPAIR_OVERHEAD_TOKENS` | the assistant echo is the previous response verbatim, and re-tokenizing an identical string yields an identical count, so `DESIGN_INTENT_MAX_OUTPUT_TOKENS` caps it; the correction turn is capped **at the boundary** by `REPAIR_FEEDBACK_MAX_BYTES` plus its fixed framing |
  * | message framing | `FRAMING_TOKENS` | role markers and separators the provider adds |
  *
@@ -80,17 +80,30 @@ type _TiersAgree = typeof DESIGN_INTENT_SERVICE_TIER extends typeof EVENT_IDENTI
 const _tiersAgree: _TiersAgree = true;
 void _tiersAgree;
 
-/** Measured from the committed instruction file, and pinned by test against the file itself. */
-export const INSTRUCTION_BYTES = 12_000;
+/**
+ * Measured from the committed instruction file, and pinned by test against the file itself.
+ *
+ * It moved from 12,000 with `design_intent_v6`, which is about 16,000 bytes: the premise channel,
+ * the register it carries and the concept-card rules are all new model-visible text. The allowance
+ * is the next round number that leaves real headroom, and `design-intent-cost.test.ts` fails both
+ * when the file outgrows it and when it shrinks far below — a stale allowance is not a safe one.
+ */
+export const INSTRUCTION_BYTES = 20_000;
 
 /**
  * The worst assembled user message, in UTF-8 bytes.
  *
- * Derived from the identity contract's own maxima rather than guessed; `design-intent-cost.test.ts`
- * rebuilds that worst message from the contract and fails if it grows past this. A field added to
- * the brief therefore moves this number deliberately instead of invalidating the bound quietly.
+ * Derived from the identity **and premise** contracts' own maxima rather than guessed;
+ * `design-intent-cost.test.ts` rebuilds that worst message from both contracts and fails if it
+ * grows past this. A field added to either therefore moves this number deliberately instead of
+ * invalidating the bound quietly.
+ *
+ * It moved from 30,000 when the request gained its third channel. The premise block at the premise
+ * contract's maxima measures about 4,900 bytes of the 34,841 the rebuilt worst message now comes
+ * to; the allowance is the next round number above that, which leaves headroom without pretending
+ * to a precision the three-bytes-per-code-unit assumption does not have.
  */
-export const WORST_USER_MESSAGE_BYTES = 30_000;
+export const WORST_USER_MESSAGE_BYTES = 36_000;
 
 /**
  * The two turns a repair pass adds, each bounded by something the boundary actually enforces.
@@ -183,18 +196,21 @@ function roundUp(usd: number): number {
  *
  * For `gpt-5.6-sol` this is $2.00:
  *
- *   input    83,500 tokens × $10 / 1M (long-context cache write) = $0.835
+ *   input    97,500 tokens × $10 / 1M (long-context cache write) = $0.975
  *   output   32,000 tokens × $30 / 1M (long-context output)      = $0.96
  *                                                                 ------
- *                                                                 $1.795 → $2.00
+ *                                                                 $1.935 → $2.00
  *
  * Six attempts per logical call puts the logical-call ceiling at $12.00 and a batch of three at
- * $36.00.
+ * $36.00. The premise call this request is now preceded by is bounded separately, in
+ * `concept-premise-cost.ts`, whose `conceptBatchMaxUsd` is the honest end-to-end sum.
  *
- * The input figure is 83,500 rather than the 107,000 an earlier draft reserved, because the
- * correction turn is now capped at the boundary instead of being assumed to be capped by the
- * output ceiling. The bound went **down** because it became provable, which is the only direction
- * a bound should ever move for that reason.
+ * The input figure was 83,500 before the request gained its premise channel and its longer
+ * instruction file, and 107,000 in an earlier draft that assumed the correction turn was capped by
+ * the output ceiling rather than at the boundary. It went **down** when it became provable and up
+ * when the request actually grew, which is the only pair of reasons a bound should ever move. The
+ * attempt price is unchanged at $2.00 because the rounding absorbs it — which is a fact about the
+ * rounding, not a reason to stop re-deriving.
  */
 export function designIntentAttemptMaxUsd(model: string, now: Date = new Date()): number {
   const profile = requireCostProfile(model, now);

@@ -19,6 +19,7 @@
     "test:e2e": "vitest run --project e2e",
     "schemas:event-identity": "UPDATE_SCHEMAS=1 vitest run --project unit src/lib/ai/event-identity/schema-drift.test.ts",
     "schemas:design-intent": "UPDATE_SCHEMAS=1 vitest run --project unit src/lib/ai/design-intent/schema-drift.test.ts",
+    "schemas:concept-premise": "UPDATE_SCHEMAS=1 vitest run --project unit src/lib/ai/concept-premise/schema-drift.test.ts",
     "eval:regression": "EVAL_SET=regression vitest run --project eval",
     "eval:holdout": "EVAL_SET=holdout vitest run --project eval",
     "eval:challenge": "EVAL_SET=challenge vitest run --project eval",
@@ -27,7 +28,8 @@
     "eval:rerun-behaviour": "EVAL_SET=rerunBehaviour vitest run --project eval",
     "eval:design-intent-regression": "EVAL_SET=designIntentRegression vitest run --project eval",
     "eval:design-intent-validation": "EVAL_SET=designIntentValidation vitest run --project eval",
-    "eval:design-intent-challenge": "EVAL_SET=designIntentChallenge vitest run --project eval"
+    "eval:design-intent-challenge": "EVAL_SET=designIntentChallenge vitest run --project eval",
+    "eval:design-intent-spent-challenge": "EVAL_SET=designIntentSpentChallenge vitest run --project eval"
   },
   "dependencies": {
     "@sparticuz/chromium": "^153.0.0",

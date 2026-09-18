@@ -125,8 +125,50 @@ export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5";
  * `docs/model-schemas/history/design-intent.v4{,.wire}.schema.json`. No provider call was ever
  * attributed to it, so there is no evidence under `v4` to invalidate.
  */
-export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v5";
-export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v5";
+/**
+ * `v6` is the first contract to carry a **concept premise**, and prompt and schema move together
+ * again because model-visible text moved on both sides.
+ *
+ * The T22 diagnostic run measured what `v5` actually produced: 12 of 12 batches failed
+ * composition-vector distinctness, `composition.ornament` was `restrained` in 36 of 36 responses,
+ * and one batch returned the same concept name three times.
+ * `docs/designintent-sibling-convergence.md` is the causal diagnosis; the short form is that `v5`
+ * asked three calls the same question from a byte-identical brief, told each of them to *"make
+ * this one as good as it can be"*, and asserted that four planner-assigned enums were *"how three
+ * concepts for one event are held genuinely apart"*. They are not, which `CLAUDE.md §2`'s closing
+ * line already said.
+ *
+ * What moved on the prompt side:
+ *
+ * - **a third channel is described**: this concept's own `ConceptPremise`, authored for the batch
+ *   as a set of three by the stage in `src/lib/ai/concept-premise/`. The prompt states its
+ *   authority precisely — below `hostConstraints`, above `creativeGuidance`, and this system's own
+ *   direction rather than the host's;
+ * - **the independent-optimization instruction is gone.** `v5 §1`'s "do not hold an idea back for
+ *   them. Make this one as good as it can be" is replaced by the accurate statement: the set was
+ *   planned, this concept is one member of it, and fulfilling *this* premise well is the job;
+ * - **the sufficiency claim is corrected.** The four assignment dimensions are described as what
+ *   they are — style coordinates the concept works within — rather than as the diversity
+ *   mechanism;
+ * - **the free dimensions are tied to the premise.** `density`, `asymmetry`, `rhythm`,
+ *   `sectionContrast`, `ornament` and `motifs` are to follow from the premise's register rather
+ *   than from generally defensible taste, which is what 36-of-36 `restrained` was;
+ * - **the concept card must communicate the choice** rather than restate the brief, which is blind
+ *   review pattern S7.
+ *
+ * The schema moves with it: `presentation`'s model-visible descriptions now require the card to
+ * name and explain *this* concept against the premise it came from, and the `composition` and
+ * `motifs` descriptions say they answer to the premise. The seven design fields, every enum and
+ * every bound are unchanged, so a `v5` response is still a structurally valid `v6` response — this
+ * bump is about model-visible text, which is the thing `§5.1`'s paired rule exists to keep
+ * honest, and the label is what lets evidence say which contract produced an artifact.
+ *
+ * `v5` is preserved at `docs/model-prompts/history/design-intent.v5.system.md` and
+ * `docs/model-schemas/history/design-intent.v5{,.wire}.schema.json`. The T22 evidence stays
+ * attributed to `v5` and is never relabelled.
+ */
+export const DESIGN_INTENT_PROMPT_VERSION = "design_intent_v6";
+export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v6";
 
 /**
  * How the DesignIntent request envelope is built: which channels are present, how each is
@@ -164,8 +206,39 @@ export const DESIGN_INTENT_SCHEMA_VERSION = "design_intent_schema_v5";
  * labels, the delimiters, the order, and the sentence that states which half of the brief is
  * authoritative and which is advisory. The contents are unchanged, still exactly the two channels
  * `§E` names, so this stays `v1`. It bumps the first time any of that rendering changes.
+ * **`v2` is `v1` plus this concept's own premise**, rendered as a third delimited block after the
+ * brief and before the assignment, under a preamble that states its authority against the other
+ * two: below `hostConstraints`, above `creativeGuidance`, and never the host's instruction. The
+ * contents changed — a channel was added — so the rule above requires this bump, and it is what
+ * lets a persisted artifact say whether a DesignIntent was authored with a premise or without one.
+ *
+ * The premise is produced by `src/lib/ai/concept-premise/`, which reads the same authoritative
+ * brief and nothing else. It is still true that no sibling receives **another sibling's output**:
+ * each call sees its own premise and neither of the other two.
  */
-export const DESIGN_INTENT_INPUT_ASSEMBLY_VERSION = "design_intent_input_v1";
+export const DESIGN_INTENT_INPUT_ASSEMBLY_VERSION = "design_intent_input_v2";
+
+/**
+ * The ConceptPremise stage — one model call per batch, three premises authored as a set.
+ *
+ * `docs/phase-4b-plan.md §E` reserved this decision in advance: *"if fresh evidence shows blind
+ * siblings converge despite planner separation, that is a deliberate subsequent design and spec
+ * decision argued from data, not a mechanism added on suspicion."* The T22 run is that data and
+ * `docs/designintent-sibling-convergence.md` is that argument.
+ *
+ * Three constants from the first version, for the same three reasons the other two stages have
+ * three: the prompt names the accepted contract, the schema names the shape, and the assembly
+ * names the effective model input, which can change underneath either of the other two.
+ *
+ * `v1` sends **one channel** — the authoritative creative brief — and nothing else. Not the raw
+ * prompt, not `suppliedFacts`, not the sibling assignments, not capabilities. The exclusion of
+ * `suppliedFacts` is load-bearing rather than tidy: the validator refuses a premise that asserts a
+ * specific the brief does not carry, and a stage that could see the host's literal names and dates
+ * would turn that check into a test of whether the model copied a field.
+ */
+export const CONCEPT_PREMISE_PROMPT_VERSION = "concept_premise_v1";
+export const CONCEPT_PREMISE_SCHEMA_VERSION = "concept_premise_schema_v1";
+export const CONCEPT_PREMISE_INPUT_ASSEMBLY_VERSION = "concept_premise_input_v1";
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";
 export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
 export const PRIMITIVE_SET_VERSION = "composition_v1";

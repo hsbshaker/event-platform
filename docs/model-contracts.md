@@ -450,6 +450,7 @@ transcribes that section verbatim, is hash-pinned, and is checked against the pl
 | `eval:design-intent-regression` | `designIntentRegression` | `design-intent-regression.json` | `docs/model-evals/results/design-intent-regression-v1` | **regression** — authored before the prompt, readable freely, catches regressions forever |
 | `eval:design-intent-validation` | `designIntentValidation` | `design-intent-validation-v2.json` | `docs/model-evals/results/design-intent-validation-v2` | **pre-registered validation, the replacement** — its predecessor `design-intent-validation.json` was invalidated at T19B for a stage-observability mismatch: it was authored under a host-constraint criterion this stage cannot always meet, and was read while that criterion was being corrected. This one is authored and frozen against the corrected contract before the prompt was written, by a second independent author who implemented none of the harness and saw none of the invalidated cases, independently reviewed for fairness and leakage |
 | `eval:design-intent-challenge` | `designIntentChallenge` | `design-intent-sealed-challenge-v4.json` | `docs/model-evals/results/design-intent-sealed-challenge-v4` | **DIAGNOSTIC / STRESS-TEST CHALLENGE, under explicit operator waiver — not sealed generalization evidence.** Authored after the implementation freeze under a protocol frozen before any case existed (half A one fresh human author, half B one fresh model family from none already represented here; Claude authored nothing), mechanically validated, leakage-clean and Stage-2-faithfulness-clean. It is **not** clean sealed generalization evidence and **has not** passed every preregistered corpus-integrity gate: independent semantic premise/device-overlap review returned `ACTION REQUIRED` for `DIC4-P01`, `DIC4-P03`, `DIC4-Q02` and `DIC4-Q05`, and the operator elected to carry all four forward rather than repair or replace them, waiving semantic overlap as a blocking gate and waiving system-aware fairness as a prerequisite to running it. The findings stand unchanged in `provenance/design-intent-sealed-challenge-v4/review/07-semantic-premise-device-overlap-review.md`; the decision and what it costs are recorded in `provenance/design-intent-sealed-challenge-v4/OPERATOR-WAIVER.md`, which governs how a run of this corpus may be described. One run, then spent |
+| `eval:design-intent-spent-challenge` | `designIntentSpentChallenge` | `design-intent-sealed-challenge-v4.json` | `docs/model-evals/results/design-intent-spent-challenge-v4-premise-regression` | **known / spent re-run — regression and diagnostic evidence only.** The same twelve DIC4 cases against the concept-premise remediation (`design_intent_v6` + `concept_premise_v1`). These cases and all thirty-six of their measured failures were known while `spec.md §7.7a` was designed and implemented, so this run answers exactly one question — *did the known convergence failure improve?* — and nothing about generalization. Not a sealed challenge, not fresh evidence, and not evidence that the remediated stage generalizes to an unseen event; fresh evidence needs a corpus authored by an independent process that has seen neither these cases nor this implementation. The first run's evidence is immutable and is written to a different directory |
 
 **All three corpora are now on disk, and a slot still refuses at module scope without its file** —
 before an API key is read and before a client is constructed. The sealed-challenge slot was the last
@@ -611,7 +612,97 @@ outputs can satisfy every distance metric and still be one idea.
 
 ---
 
-# 5. DesignIntent (design_intent_v5)
+# 4.8 ConceptPremise (concept_premise_v1)
+
+One model call per concept batch, between the deterministic sibling planner and the three
+DesignIntent calls. It answers the question `docs/product-doctrine.md §4` assigns and the pipeline
+had nobody to ask: **what are three worthwhile creative choices, from one understanding?**
+
+`docs/phase-4b-plan.md §E` reserved the decision and the T22 evidence run supplied the data that
+triggers it — 12 of 12 batches failed composition-vector distinctness and `composition.ornament`
+took one value in all thirty-six responses. `docs/designintent-sibling-convergence.md` is the causal
+diagnosis and `spec.md §7.7a` is the requirement. Prompt, schema and assembly:
+`docs/model-prompts/concept-premise.system.md`, `docs/model-schemas/concept-premise{,.wire}.schema.json`
+(generated from `src/lib/ai/concept-premise/contract.ts`), `src/lib/ai/openai/concept-premise-input.ts`.
+
+## 4.8.1 Contract
+
+```ts
+ConceptPremiseSet {
+  premises: [ConceptPremise, ConceptPremise, ConceptPremise]   // bound to sibling k by index
+  constrainedAxes: { axis, why }[]                             // at most 2; each one checked
+}
+
+ConceptPremise {
+  title                 // 2–3 words; the concept card's anchor
+  foregrounds           // which aspect of the brief this concept brings forward
+  organizingIdea        // the concept itself
+  experience            // what arriving on the site should feel like
+  distinctFrom          // why a host would choose this over the other two
+  designConsequences[]  // 2–4; what follows visually
+  grounding[]           // 1–4; what in the brief supports this emphasis
+  register: { pace, presence, surfaceRichness }
+}
+```
+
+The register is **not** the DesignIntent enums, and that separation is load-bearing.
+`pace` ∈ `lingering | measured | propulsive`, `presence` ∈ `understated | poised | commanding`,
+`surfaceRichness` ∈ `bare | considered | layered`. The DesignIntent call still chooses `density`,
+`asymmetry`, `rhythm`, `sectionContrast`, `ornament` and `motifs`; the register says what those
+choices have to serve. Two consequences follow, and both are the point: "these three are
+experientially different" becomes a checkable claim, and requiring variation on an axis cannot
+manufacture meaning, because an axis describes the *design's* register and never the event's facts.
+
+## 4.8.2 Input
+
+**One channel: the authoritative creative brief.** Not the raw prompt, not raw inspiration, not
+`suppliedFacts`, not `clarification`, not the sibling assignments, not the directive or the token
+allotment, not capabilities or the content profile, and no library identifier. The exclusion of
+`suppliedFacts` is load-bearing rather than tidy: the validator refuses a premise asserting a
+specific the brief does not carry, and a stage that could see the host's literal names and dates
+would turn that check into a test of whether the model copied a field.
+
+The assignments are excluded so that semantic distinction stays primary and visual distinction
+follows from it — and `family`, `tonalDirection` and `hierarchy` remain planner-owned either way.
+
+## 4.8.3 Validation
+
+Deterministic, application-side, three classes, and the precedence between them is stated because
+it has to outrank taste: **`fidelity` ranks above `set`, which ranks above `schema`.** A run that
+failed on both fidelity and distinctness is not a diversity problem.
+
+- **`fidelity`** — grounding not anchored in the brief; a specific (a name, a number, a date) the
+  brief does not carry; a hex colour, which belongs to a later stage; an excluded colour the brief
+  mentions only in order to exclude it.
+- **`set`** — duplicate titles, in either spelling or word order; two organizing ideas that are one
+  idea reworded; **no register axis taking three distinct values**; a declared axis constraint the
+  set does not actually honour.
+- **`schema`** — shape, enums, bounds, counts, malformed JSON.
+
+The gating set-level rule is stated over the register axes and never over palette distance, motif
+overlap or composition vectors. Those three are the instruments that detected the T22 failure;
+making one the requirement would reward three arbitrary palettes.
+
+**Repair policy: one pass, for the whole response, covering every class, then fail visibly.** This
+is the only re-prompt the T22 remediation adds anywhere, and `spec.md §32 #21` now names the closed
+list of things that may never be re-prompted. A set that is still unusable fails the batch — it does
+not revert to three premise-free DesignIntent calls, because that is the known-defective behaviour
+the evidence run measured, and a silent reversion would be invisible.
+
+## 4.8.4 Evals
+
+The spent T22 cases are rerun as **regression and diagnostic evidence only** (`§3.4`'s classing):
+those cases and their failures were known while this stage was written, so a rerun answers *"did
+the known convergence failure improve?"* and nothing about generalization. Fresh evidence requires a
+corpus authored by an independent process that has seen neither the cases nor this implementation.
+
+The premise call's own telemetry is not representable in the frozen 4C harness's
+`DesignIntentTelemetry`, so `src/lib/ai/openai/design-intent-runner.ts` writes one parseable line
+per batch to stdout. That is a recorded limitation, not a solution.
+
+---
+
+# 5. DesignIntent (design_intent_v6)
 
 ## 5.1 Contract
 
@@ -652,11 +743,25 @@ Creative responsibilities are unchanged: the planner assigns family, tone, typog
 
 A `v4` response is not a valid `v5` response. v4 is preserved at `docs/model-prompts/history/design-intent.v4.system.md` and `docs/model-schemas/history/design-intent.v4.schema.json` (with its wire projection beside it), and old bytes are never relabelled.
 
+**v6 — the concept premise arrives (T22 remediation).** Prompt and schema move together again because model-visible text moved on both sides, and this time the **shape did not**: a `v5` response is still a structurally valid `v6` response. What moved:
+
+- **a third input channel is described**: this concept's own `ConceptPremise` (§4.8), with its authority stated precisely — a `hostConstraint` outranks it, it outranks `creativeGuidance`, and it is never the host's instruction. The assembly version moves to `design_intent_input_v2` for the same reason, under `§B.3`'s contents rule.
+- **the independent-optimization instruction is gone.** `v5 §1` told each of three blind calls *"do not hold an idea back for them. Make this one as good as it can be"* — three independent argmax over one objective, which is one answer three times. `v6` says the set was planned and this concept is one member of it.
+- **the sufficiency claim is corrected.** `v5 §4` called the four assignment dimensions *"how three concepts for one event are held genuinely apart"*. They are the coordinates a concept works within; the premises are what hold the three apart. `CLAUDE.md §2`'s closing line had already said so.
+- **the free dimensions answer to the premise.** `density`, `asymmetry`, `rhythm`, `sectionContrast`, `ornament` and `motifs` follow from the premise's register rather than from generally defensible taste — which is what one ornament value in thirty-six responses was.
+- **the concept card must communicate the choice**, not restate the brief: blind-review pattern S7, addressed at the stage that produces the card and again in the deterministic set review (§21).
+
+`v5` is preserved at `docs/model-prompts/history/design-intent.v5.system.md` and `docs/model-schemas/history/design-intent.v5{,.wire}.schema.json`. The T22 evidence stays attributed to `v5`.
+
 ## 5.2 Input, assembly, narrowing, validation
 
 As Revision 1 §9–§12 with `assignment.family` in place of `assignment.heroArchetype`; `family`, `tonalDirection` and `composition.hierarchy` each narrowed to the assigned value; and typography pairings filtered by category and by whether they hold at the assigned hierarchy. The family table (`invitation` excludes `monumental`; `statement` allows only `dramatic` and `monumental`) remains the *vocabulary* check the application validator uses to tell a hierarchy the family does not admit at all from one that is merely not the assigned one; it is no longer the narrowing. The one-retry rule stands: one repair retry for structurally invalid output; no model calls for compatibility repair, and **none for an assignment mismatch either** — that class fails visibly, and a response that is malformed *and* out of assignment must not spend the single repair.
 
-The production boundary is `src/lib/ai/openai/design-intent.ts`, and the model-visible request text is assembled in `src/lib/ai/openai/design-intent-input.ts` under `design_intent_input_v1`. Both are leakage-scanned surfaces. Every request pins its model configuration rather than inheriting it — reasoning effort, `service_tier`, `store: false` and an explicit output ceiling — because the verified cost bound in `src/lib/generation/design-intent-cost.ts` is derived from exactly that request shape rather than inherited from Event Identity's.
+The input is now **three channels**: the authoritative brief, this sibling's assignment, and this concept's premise — and never another concept's premise or output, which keeps `§E`'s blindness exact. `distinctFrom` is the one premise field deliberately withheld from the request, because its content describes the other two concepts.
+
+**The deterministic set review** (`src/lib/generation/concept-set.ts`) runs once over the three returned concepts and is the first stage in the system where three siblings meet. It repairs the host-facing card and only the card: a missing, invalid or duplicate name, and a description that is missing, invalid, near-duplicates a sibling's or restates the identity's own creative thesis, all fall back deterministically from that concept's premise and are logged as deviations. This is `spec.md §7.8`'s long-standing fallback rule, which had no implementation before the premise gave it a non-numbered source. Convergence in the **design** fields is reported and never repaired, for the reason `§32 #21b` states.
+
+The production boundary is `src/lib/ai/openai/design-intent.ts`, and the model-visible request text is assembled in `src/lib/ai/openai/design-intent-input.ts` under `design_intent_input_v2`. Both are leakage-scanned surfaces. Every request pins its model configuration rather than inheriting it — reasoning effort, `service_tier`, `store: false` and an explicit output ceiling — because the verified cost bound in `src/lib/generation/design-intent-cost.ts` is derived from exactly that request shape rather than inherited from Event Identity's.
 
 ## 5.3 Evals
 

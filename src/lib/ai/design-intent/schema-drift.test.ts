@@ -75,7 +75,7 @@ describe("design intent schemas", () => {
   });
 
   it("is stamped with the schema version the constants declare", () => {
-    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v5");
+    expect(DESIGN_INTENT_SCHEMA_VERSION).toBe("design_intent_schema_v6");
     expect(built.response.title).toContain(DESIGN_INTENT_SCHEMA_VERSION);
     expect(built.wire.title).toContain(DESIGN_INTENT_SCHEMA_VERSION);
   });

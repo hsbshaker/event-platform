@@ -20,6 +20,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { premiseFixture } from "../../../tests/fixtures/concept-premise";
 import type { GenerateCompositionInput, GenerateDesignIntentInput } from "@/lib/ai/provider";
 
 const SRC = new URL("../../", import.meta.url).pathname;
@@ -101,18 +102,30 @@ describe("the raw-prompt boundary", () => {
     expect(importers).toEqual([INTERPRETER, path.join("lib", "ai", "provider.ts")].sort());
   });
 
-  it("has two model call sites today, and says what adding another costs", () => {
+  it("has three model call sites today, and says what adding another costs", () => {
     // Kept as a separate, extensible inventory rather than folded into the invariant above.
     // Adding a module here is allowed — 4C and 4D will — but it is the moment to re-prove
     // that the new call site reads the persisted identity and not the words behind it.
     //
     // Phase 4C T21 added the second. It is re-proved rather than waved through: the invariant
     // above already shows it names no prompt and reads no raw inspiration, and
-    // `src/lib/ai/design-intent/boundary.test.ts` proves the envelope it is handed is the brief
-    // and one assignment. What it sends is assembled in `openai/design-intent-input.ts`, from
-    // those two values and nothing else.
+    // `src/lib/ai/design-intent/boundary.test.ts` proves the envelope it is handed is the brief,
+    // one assignment and one premise. What it sends is assembled in
+    // `openai/design-intent-input.ts`, from those three values and nothing else.
+    //
+    // The T22 remediation added the third, and it is the cheapest of the three to re-prove: the
+    // premise stage's envelope is **one** channel, the authoritative brief
+    // (`src/lib/ai/concept-premise/input.ts`), so there is nothing else it could be reading. It
+    // receives no raw prompt, no raw inspiration and — load-bearing rather than tidy — no
+    // `suppliedFacts`, because its validator refuses a premise asserting a specific the brief does
+    // not carry, and a stage that could see the host's literal names would turn that check into a
+    // test of whether the model copied a field.
     expect(modelCallers().sort()).toEqual(
-      [INTERPRETER, path.join("lib", "ai", "openai", "design-intent.ts")].sort(),
+      [
+        INTERPRETER,
+        path.join("lib", "ai", "openai", "design-intent.ts"),
+        path.join("lib", "ai", "openai", "concept-premise.ts"),
+      ].sort(),
     );
   });
 
@@ -131,6 +144,10 @@ describe("the raw-prompt boundary", () => {
         hierarchy: "editorial",
         typographyPairings: ["heritage_caslon_karla"],
       },
+      // T22's remediation added the third channel. It is the premise contract's own type for the
+      // same reason the assignment is the planner's: a bag would let the other two concepts'
+      // premises arrive without anything noticing.
+      conceptPremise: premiseFixture(),
     };
     const composition: GenerateCompositionInput = {
       designIntent: {},
@@ -138,7 +155,11 @@ describe("the raw-prompt boundary", () => {
       directive: {},
     };
 
-    expect(Object.keys(designIntent)).toEqual(["eventIdentity", "diversityAssignment"]);
+    expect(Object.keys(designIntent)).toEqual([
+      "eventIdentity",
+      "diversityAssignment",
+      "conceptPremise",
+    ]);
     expect(Object.keys(composition)).toEqual(["designIntent", "capabilities", "directive"]);
 
     // `eventIdentity` is `Record<string, unknown>` until Phase 4C types it, so the type

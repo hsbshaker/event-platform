@@ -20,6 +20,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { premiseFixture } from "../../../../tests/fixtures/concept-premise";
 import { assignmentFor, emptyAvoidList, type SiblingAssignment } from "@/lib/renderer/planner";
 import { FAMILIES } from "@/lib/renderer/vocabulary";
 
@@ -92,6 +93,8 @@ function ok(value: unknown = body()) {
   };
 }
 
+const PREMISE = premiseFixture();
+
 function providerError(status?: number) {
   return Object.assign(new Error("boom"), { status });
 }
@@ -106,6 +109,7 @@ async function run() {
   const promise = generateDesignIntent({
     identity: IDENTITY as never,
     assignment: ASSIGNMENT,
+    premise: PREMISE,
   });
   const settled = promise.then(
     (value) => ({ value, error: undefined }),
@@ -189,7 +193,11 @@ describe("the OpenAI DesignIntent call", () => {
       expect(messages[0]).toEqual({ role: "system", content: systemPrompt() });
       expect(messages[1].role).toBe("user");
       expect(messages[1].content).toBe(
-        assembleDesignIntentUserMessage({ identity: IDENTITY as never, assignment: ASSIGNMENT }),
+        assembleDesignIntentUserMessage({
+          identity: IDENTITY as never,
+          assignment: ASSIGNMENT,
+          premise: PREMISE,
+        }),
       );
       // `requestText` is the user message and only that — not the system message, and never the
       // correction turn or the assistant echo a repair adds between them.
@@ -212,9 +220,9 @@ describe("the OpenAI DesignIntent call", () => {
         "typographyPairing",
       ]);
       expect(value!.presentation.ok).toBe(true);
-      expect(value!.promptVersion).toBe("design_intent_v5");
-      expect(value!.schemaVersion).toBe("design_intent_schema_v5");
-      expect(value!.inputAssemblyVersion).toBe("design_intent_input_v1");
+      expect(value!.promptVersion).toBe("design_intent_v6");
+      expect(value!.schemaVersion).toBe("design_intent_schema_v6");
+      expect(value!.inputAssemblyVersion).toBe("design_intent_input_v2");
       expect(value!.deviations).toEqual([]);
       expect(value!.usage.schemaValidFirstCall).toBe(true);
       expect(value!.usage.repairRetries).toBe(0);

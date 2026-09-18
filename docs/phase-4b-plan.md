@@ -1167,6 +1167,20 @@ distinctness are first-class telemetry, checked mechanically where honest and ju
 where not; if fresh evidence shows blind siblings converge despite planner separation, that is a
 deliberate subsequent design and spec decision argued from data, not a mechanism added on suspicion.
 
+> **This reservation was exercised.** The T22 evidence run produced the data: 12 of 12 batches failed
+> composition-vector distinctness, 11 of 12 failed motif overlap, `composition.ornament` took one
+> value in all 36 responses, six batches carried a duplicate concept name, and the independent blind
+> review found no set clearing the minimum bar — with assignment conformance perfect and
+> faithfulness intact throughout. The resulting decision is `spec.md §7.7a` and
+> `docs/model-contracts.md §4.8`, argued in `docs/designintent-sibling-convergence.md`.
+>
+> It is **not** the convergence re-prompt this paragraph refuses. The intervention is a missing
+> **stage** — three concept premises authored as one set, before any styling — and the DesignIntent
+> stage still gets no convergence re-prompt of any kind (`spec.md §32 #21`'s closed list). The input
+> envelope this section describes gains a third channel, `design_intent_input_v2`: each call receives
+> its own premise, and *"another sibling's output"* stays excluded, as does another concept's
+> premise. Everything else in §E stands.
+
 **Schema responsibilities and invariants.** The schema owns shape and enum membership; the
 application validator owns lengths, counts and cross-field rules (`model-contracts.md §3`).
 Deterministic semantic invariants: `palette.dominant ∈ palette.colors`; 3–5 validated hex colours;

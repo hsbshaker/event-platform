@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://event-platform.local/schemas/design-intent.v6.wire.schema.json",
-  "title": "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v6)",
+  "$id": "https://event-platform.local/schemas/design-intent.v5.wire.schema.json",
+  "title": "DesignIntentResponse (provider strict-mode projection, design_intent_schema_v5)",
   "description": "The canonical schema reduced to the subset OpenAI structured outputs accept in strict mode — every property required, additionalProperties false everywhere, no length/count/pattern/uniqueness keywords. Committed so the reduction is reviewable. This is the UNNARROWED superset: the schema actually sent for one concept is this reduction applied to the sibling's narrowed contract, where family, tonalDirection and composition.hierarchy are single-value enums and typographyPairing is filtered to the assigned category and hierarchy (docs/model-contracts.md §5.2). Generated — do not hand-edit. The dropped constraints are enforced by the application validator, which is the authority (docs/model-contracts.md §3).",
   "type": "object",
   "properties": {
@@ -68,8 +68,7 @@
         "compact",
         "balanced",
         "spacious"
-      ],
-      "description": "Chosen from this concept's premise pace, the brief and the assigned family's character. A real creative lever, not a tie-breaker: balanced is right only when this premise wants the middle."
+      ]
     },
     "composition": {
       "type": "object",
@@ -125,7 +124,7 @@
         "ornament"
       ],
       "additionalProperties": false,
-      "description": "Composition intent. Directives to the composition call and measurements taken from the tree afterwards; selects nothing. asymmetry, rhythm, sectionContrast and ornament answer to this concept's premise register rather than to generally defensible taste: presence bears on asymmetry and sectionContrast, pace on rhythm, surface richness on ornament. A bare concept and a layered one must not arrive at the same ornament."
+      "description": "Composition intent. Directives to the composition call and measurements taken from the tree afterwards; selects nothing."
     },
     "motifs": {
       "type": "array",
@@ -141,18 +140,18 @@
           "celestial"
         ]
       },
-      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. The ornament direction in `composition` caps how many actually render. How many earn a place is the premise's surface richness: zero is the considered answer for a bare concept, not an omission. Never a set that would be equally right for a concept with a different register."
+      "description": "Motif requests only, from the seven curated IDs. Four are patterns (plaid, stripe, gingham, linen) and three are arrangements (equestrian, botanical, celestial). Placement is the composition call's, not this one's. The ornament direction in `composition` caps how many actually render."
     },
     "presentation": {
       "type": "object",
       "properties": {
         "name": {
           "type": "string",
-          "description": "Two or three words evoking the concept's character, written the way the name is properly written: natural title-style capitalization where the language or script has case, natural orthography otherwise, with whatever letters, accents and marks that takes. Letters, spaces, apostrophes and hyphens only — no digits, no underscores. Not a family or enum ID, not a brand name, and not a formula of tone plus layout word. Recognisably the concept this premise names: reuse that name where it is already right for a host, and write a better one for the same concept where it is not."
+          "description": "Two or three words evoking the concept's character, written the way the name is properly written: natural title-style capitalization where the language or script has case, natural orthography otherwise, with whatever letters, accents and marks that takes. Letters, spaces, apostrophes and hyphens only — no digits, no underscores. Not a family or enum ID, not a brand name, and not a formula of tone plus layout word."
         },
         "description": {
           "type": "string",
-          "description": "One sentence describing how the concept feels, in host-facing language. No renderer or implementation terms. It says what is different about THIS choice, not what the event is: a host reads it beside two others, and a sentence that would fit all three has described the brief instead of the concept."
+          "description": "One sentence describing how the concept feels, in host-facing language. No renderer or implementation terms."
         }
       },
       "required": [
@@ -160,7 +159,7 @@
         "description"
       ],
       "additionalProperties": false,
-      "description": "Non-design presentation metadata shown to the host on concept cards. The compiler never reads it. It is the host-facing form of this concept's premise, and its job is to make the choice legible next to the other two."
+      "description": "Non-design presentation metadata shown to the host on concept cards. The compiler never reads it."
     }
   },
   "required": [
