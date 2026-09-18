@@ -1,0 +1,42 @@
+Situation 1
+ * Event type: Family Reunion
+ * Who is gathering?: Three generations of the extended Miller family (around 30 people), ranging in age from 4 to 82.
+ * Why does this event matter to them?: It is the first time the family has gathered since the matriarch passed away six months prior, and they need to make decisions regarding the future of the ancestral family farm.
+ * What actually happens at the event?: A potluck lunch, unstructured outdoor time for children, and a formal evening meeting around the main dining table to review property documents and discuss selling versus preserving the land.
+ * Is there a particular complication, tension, accessibility need, relationship dynamic, unusual sequence of activities, or practical requirement that matters?: High emotional tension exists between two siblings—one who wants to sell the farm immediately to cover personal debt, and another who lived on site as the primary caregiver for their mother and wants to preserve the home. Additionally, the eldest uncle relies on a heavy motorized wheelchair, requiring step-free access across the sloped lawn and home.
+ * Anything else about the people or situation that makes this gathering different from a generic event of this type?: Younger cousins are using handheld audio recorders to document older relatives' stories and memories of the house throughout the afternoon before any real estate decisions are finalized.
+Situation 2
+ * Event type: Family Reunion
+ * Who is gathering?: A group of ten former foster siblings, now adults in their late 20s and 30s, along with their former foster parents.
+ * Why does this event matter to them?: They lived in the same household at overlapping times across a fifteen-year period, but many have not seen each other since leaving care. It marks their first intentional effort to establish a formal support network as adults.
+ * What actually happens at the event?: An informal afternoon picnic in a public park, swapping life updates, sharing a group photo-scanning session, and creating a shared contact directory.
+ * Is there a particular complication, tension, accessibility need, relationship dynamic, unusual sequence of activities, or practical requirement that matters?: Several attendees carry complex personal trauma connected to their early lives, resulting in varying comfort levels with personal questions. Two specific attendees have an unresolved interpersonal fallout, requiring careful group coordination to keep conversations comfortable for everyone.
+ * Anything else about the people or situation that makes this gathering different from a generic event of this type?: Because there are no shared multi-generational ancestral traditions or inherited family legacies, the group is intentionally inventing new shared traditions for the very first time.
+Situation 3
+ * Event type: Community Town Hall
+ * Who is gathering?: Local residents, municipal city planners, and representatives from a commercial real estate developer (approximately 75 people total).
+ * Why does this event matter to them?: The city is proposing to rezone a long-standing public park into a mixed-use commercial center, directly impacting neighborhood green space, noise levels, and property values.
+ * What actually happens at the event?: A 20-minute presentation by city planners outlining the development plan, followed by a moderated public Q&A at a floor microphone, and a written feedback card submission.
+ * Is there a particular complication, tension, accessibility need, relationship dynamic, unusual sequence of activities, or practical requirement that matters?: The venue lacks official audio translation systems, but roughly 30% of attending neighborhood residents are native Spanish speakers with limited English proficiency. A local community organizer steps in to provide live sentence-by-sentence translation, doubling the length of the presentation and Q&A.
+ * Anything else about the people or situation that makes this gathering different from a generic event of this type?: A youth-led local environmental organization orchestrates a silent protest inside the room, holding informational placards rather than speaking during the microphone period.
+Situation 4
+ * Event type: Academic Dissertation Defense
+ * Who is gathering?: A doctoral candidate, a four-person faculty dissertation committee, and fifteen invited peers and family members.
+ * Why does this event matter to them?: It is the culmination of five years of research for the candidate, determining whether they earn their doctorate and qualify for a pending university teaching appointment.
+ * What actually happens at the event?: A 45-minute research presentation by the candidate, a 60-minute questioning round by the committee, a brief public Q&A session, a closed-door committee deliberation, and the public announcement of the verdict.
+ * Is there a particular complication, tension, accessibility need, relationship dynamic, unusual sequence of activities, or practical requirement that matters?: One critical committee member is joining remotely via satellite connection from a field research vessel in a distant time zone, creating significant audio lag and potential connection drops during questioning.
+ * Anything else about the people or situation that makes this gathering different from a generic event of this type?: The candidate’s primary advisor and co-advisor hold opposing public stances on the core theoretical model used in the research, leading to spirited debate between the committee members during the candidate's defense period.
+Situation 5
+ * Event type: Volunteer Orientation
+ * Who is gathering?: Twelve newly onboarded volunteers and two staff program coordinators at a regional wildlife rehabilitation center.
+ * Why does this event matter to them?: Volunteers require mandatory safety training and operational knowledge before they are permitted to handle injured animals or work independently on site.
+ * What actually happens at the event?: A presentation on facility rules and safety protocols, a guided walkthrough of the facility enclosures, a hands-on demonstration of safety gear and transport crates, and the completion of liability waivers.
+ * Is there a particular complication, tension, accessibility need, relationship dynamic, unusual sequence of activities, or practical requirement that matters?: None.
+ * Anything else about the people or situation that makes this gathering different from a generic event of this type?: The participant group ranges from high school students completing required service hours to retired veterinary technicians, creating a very wide spread of existing domain knowledge in the room.
+Situation 6
+ * Event type: Product Post-Mortem Meeting
+ * Who is gathering?: A cross-functional technology team of 14 people, including software engineers, product managers, user experience designers, and customer support leads.
+ * Why does this event matter to them?: A major software release failed over the weekend, resulting in extended service downtime, lost data for end-users, and significant customer churn.
+ * What actually happens at the event?: A detailed review of the deployment timeline, a root-cause analysis mapping technical and procedural failures, and the assignment of preventive action items to team members.
+ * Is there a particular complication, tension, accessibility need, relationship dynamic, unusual sequence of activities, or practical requirement that matters?: Significant personal finger-pointing occurred in team messaging channels prior to the meeting. The engineering manager and product director strongly disagree on who authorized releasing the update without final quality testing, making psychological safety and constructive communication a central difficulty.
+ * Anything else about the people or situation that makes this gathering different from a generic event of this type?: The session leader institutes a strict no-device policy during the discussion, forcing digital product workers to rely entirely on a physical whiteboard to map out the failure sequence together.

@@ -12,6 +12,7 @@
  * Acceptance criteria: N/A — test-only, evidence machinery. `docs/phase-4b-plan.md` Part IV;
  * `docs/model-contracts.md §4.7`.
  */
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -357,6 +358,29 @@ describe("the v4 sealed-challenge protocol, frozen before any situation card exi
       const file = `${ROOT}${corpusPath("designIntentChallenge")}`;
       if (!existsSync(file)) return;
       expect(checkAssembledSealedChallengeV4(JSON.parse(readFileSync(file, "utf8")))).toEqual([]);
+    });
+
+    /**
+     * Half A's cards, pinned by digest and re-checked here rather than only in a commit message.
+     *
+     * Tolerant of absence so this file did not have to change shape when they landed, and so half
+     * B's row can be added the same way. What it asserts when they exist is the whole contract:
+     * the frozen composition, and that the raw response they were mapped from is unaltered.
+     */
+    it("holds half A's frozen cards and the raw response they came from", () => {
+      const raw = `${ROOT}${V4_PROVENANCE}half-a/01-original-raw.txt`;
+      const cards = `${ROOT}${V4_PROVENANCE}half-a/02-situation-cards.json`;
+      if (!existsSync(cards)) return;
+
+      const digest = (file: string) =>
+        createHash("sha256").update(readFileSync(file)).digest("hex");
+      expect(digest(raw)).toBe("42436cdc391609d3891a7abcdb0db986ac8d2a581d5ba752f7b44e3eebc9bdc8");
+      expect(digest(cards)).toBe(
+        "4f49b176ee5da81ab0bcc3b3460efc4d3f6af7c47ae24c02b54beb519c43e0ab",
+      );
+
+      const parsed = JSON.parse(readFileSync(cards, "utf8")) as { cards: unknown[] };
+      expect(checkSituationCards(half(0), parsed.cards)).toEqual({ problems: [], advisory: [] });
     });
 
     it("has no v4 case or card on disk at the protocol freeze, or conforms once it does", () => {

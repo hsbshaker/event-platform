@@ -18,7 +18,7 @@ The record says who it is attributed to and on what basis, and never more.
 
 | half | namespace | source class | chosen source |
 | --- | --- | --- | --- |
-| A | `DIC4-P01`…`DIC4-P06` | one fresh human author | *(recorded here before commissioning)* |
+| A | `DIC4-P01`…`DIC4-P06` | one fresh human author | no identifying attribution supplied — see below |
 | B | `DIC4-Q01`…`DIC4-Q06` | one fresh model family, not OpenAI-, Anthropic- or Google-family, and no prior corpus in this programme | **Mistral** — see below |
 
 The namespaces are neutral by design: `P` and `Q` say nothing about which half a human wrote. Case
@@ -29,6 +29,24 @@ Half B's family is recorded **before** commissioning or half B is not commission
 what happened: the slot was a declared `null` at the protocol freeze and was set to `Mistral` in a
 later commit whose tree still contains **no `DIC4` situation card or case**. `git` carries the
 ordering rather than a claim in prose.
+
+### Half A's provenance, stated as it actually happened
+
+Three separate facts, kept separate because collapsing them would overstate the record:
+
+1. **The source class `human` was frozen before any card existed.** That is checkable: commit
+   `3d65086` declares half A's `sourceClass` as `human`, and its tree contains no `DIC4` card or
+   case. So is the fact that nothing in the protocol was edited after the cards arrived.
+2. **The author is represented by the user as satisfying the eligibility restrictions** — not the
+   user, not Claude, not a prior reviewer, and having seen no repository, corpus, v3 case, review
+   finding, prompt or implementation. That is a representation carried in the commissioning ruling,
+   and this repository cannot verify any part of it.
+3. **No identifying attribution has been supplied, and none was registered before commissioning.**
+   There is no name, role or description of the person on record — before, during or after. This is
+   recorded as a **provenance limitation** rather than backdated or implied away.
+
+The limitation attaches to the attribution, not to the cards. It is not grounds to alter, replace
+or re-solicit anything, and the cards stand exactly as authored.
 
 ### Half B, pinned
 
@@ -68,6 +86,86 @@ Plus, for each: source class and family or human attribution, date received, nam
 byte count of every artifact, and every correction round with its leaf-level diff. **No case
 selection is ever recorded, because none is ever made**: six cards are commissioned, those exact six
 proceed to Stage 2, and the half is accepted whole or rejected whole.
+
+## Half A — Stage 1 received, `DIC4-P01`…`DIC4-P06`
+
+Received 2026-09-18. Six situation cards, accepted without substantive correction.
+
+| file | role | sha256 | bytes |
+| --- | --- | --- | --- |
+| `half-a/01-original-raw.txt` | the author's response, verbatim | `42436cdc391609d3891a7abcdb0db986ac8d2a581d5ba752f7b44e3eebc9bdc8` | 8,111 |
+| `half-a/02-situation-cards.json` | **the frozen cards**, syntax-only mapping | `4f49b176ee5da81ab0bcc3b3460efc4d3f6af7c47ae24c02b54beb519c43e0ab` | 6,671 |
+
+### The normalization was syntax only, and it is reproducible rather than transcribed
+
+Produced by a script that parses the raw file and emits the JSON, so the mapping can be re-run
+against the preserved raw rather than believed. What it does, and nothing else:
+
+| rule | what changed |
+| --- | --- |
+| 1 | `eventType` lowercased — `Family Reunion` → `family reunion`, and so on |
+| 2, 3 | `whoIsGathering` and `whyItMatters` carried verbatim |
+| 4 | `context` = the "What actually happens" text, one space, the "Anything else" text |
+| 5 | `complication` carried verbatim |
+| 6 | Situation 5's `None.` became JSON `null` |
+
+The join in rule 4 is a single `U+0020` and nothing else — no added punctuation, conjunction or
+connective, because both source sentences already end in a full stop. Every other value is byte-
+identical to its source span, asserted card by card: lowercase-fold equality for `eventType`,
+string equality for the two verbatim fields, `contextA + " " + contextB` for `context`, and both
+context halves confirmed present as substrings of the raw file. Nothing was added, removed,
+shortened, generalized, reinterpreted or improved.
+
+### `checkSituationCards()` — clean
+
+**Zero problems and zero advisory hits.** Exact namespace, six cards, unique ids, one same-
+`eventType` pair (`family reunion`) across five distinct types, every required field present, five
+non-null complications against a floor of four. The advisory design-language screen returned
+nothing at all, which is worth noting: the cards contain no design-adjacent vocabulary even at the
+level that would only have been reported for a person to weigh.
+
+### Human Stage-1 review
+
+**Verdict: PASS on all three checks.**
+
+*Each stated complication is genuinely non-aesthetic and materially relevant.* P01 pairs a sibling
+conflict over selling versus keeping an inherited farm with a wheelchair user needing step-free
+access across a sloped lawn — interpersonal and accessibility, both bearing on how the event may be
+addressed. P02 is trauma-varying comfort with personal questions plus an unresolved falling-out
+needing coordination. P03 is a missing translation system against 30% limited-English attendance,
+solved by volunteer sentence-by-sentence translation that doubles the runtime. P04 is a committee
+member on satellite from a research vessel, with lag and drop risk. P06 is blame that already
+happened in messaging channels and a disagreement over who authorized the release, making
+psychological safety the central difficulty. None is a matter of taste; each changes what the event
+has to accommodate.
+
+*No card proposes a visual or design solution.* Confirmed by reading, and independently by the
+advisory screen returning empty. The ordinary objects — property documents, audio recorders, a
+floor microphone, feedback cards, informational placards, safety gear, transport crates, a physical
+whiteboard — are situation facts about what people do, not design vocabulary, and are treated as
+such.
+
+*The premise floor.* Five of six carry a complication and all six carry specificity the event type
+alone would not supply: two family reunions that share a label and almost nothing else — one a
+grief-shadowed inheritance negotiation, the other foster siblings with no inherited tradition
+inventing one — a town hall whose real constraint is bilingual delivery, a defense with a lagged
+remote examiner and publicly opposed advisors, a post-mortem where the blame preceded the meeting.
+
+**The weakest card against that floor is `DIC4-P05`, and it is recorded rather than glossed.** Its
+complication is honestly `None.`, and its differentiator is an audience spread from high-school
+students to retired veterinary technicians. That is a real audience-composition fact, and the floor
+explicitly permits a card with no complication — but of the six, this is the one where the event
+type does most of the work in suggesting an obvious direction. It passes; it is the one to watch at
+Stage 2. That the author wrote `None.` rather than manufacturing a complication to fill a quota is
+itself a point in the half's favour.
+
+### Diagnostic for the eventual semantic review — not a finding, not acted on
+
+`DIC4-P01` names an "extended Miller family". The **invalidated** first Gemini v3 half used
+`hostNames: "The Miller Children"`. The human author saw no v3 artifact, `Miller` is among the most
+common surnames there are, and the protocol counts name reuse as substantive only when it is too
+distinctive to be coincidence. Recorded here so the semantic reviewer weighs it with everything
+else in front of it, rather than discovering it and wondering whether anyone noticed.
 
 ## Review order
 
