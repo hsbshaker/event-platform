@@ -1,0 +1,449 @@
+{
+"version": "design_intent_sealed_challenge_v3_gemini_half",
+"cases": [
+{
+"id": "DIC3-M01",
+"eventType": "anniversary party",
+"identity": {
+"creativeDirection": "An heirloom glasshouse celebration honoring half a century of shared life through botanical quietude, sun-dappled foliage, and classic refined serif weight.",
+"toneKeywords": [
+"botanical heritage",
+"sun-dappled",
+"filial warmth",
+"translucent",
+"heirloom grace"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [
+"#2D4030"
+],
+"preferredColors": [
+"moss green",
+"pressed fern green",
+"warm ivory",
+"aged brass"
+],
+"avoidColors": [
+"hot pink",
+"synthetic neon colors"
+],
+"dominanceNotes": "Deep moss green forms the ground, balanced with warm ivory surfaces and subtle brass accents."
+},
+"tonalIntent": "Soft mid-tone contrast reflecting natural glasshouse light, leaning into warm earthy shadows.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"light",
+"mid"
+],
+"compatibleFamilies": [
+"editorial",
+"invitation"
+],
+"compatibleTypographyCategories": [
+"oldstyle",
+"heritage",
+"transitional"
+],
+"visualMotifs": [
+"pressed botanicals",
+"conservatory glass panes",
+"heirloom garden sketches",
+"layered vellum textures"
+],
+"textureDirection": "Fibrous handmade paper, morning mist glazes, fine etched glass lines.",
+"typographyDirection": "Generous line spacing, delicate serif headers with moderate weight contrast, paired with crisp track-spaced small capitals for event details.",
+"copyTone": "Warmly intimate, reflective, and gently celebratory.",
+"hostConstraints": [
+"Must use forest green #2D4030 as the anchor shade.",
+"Avoid any bright hot pink or synthetic neon colors."
+],
+"creativeGuidance": [
+"Consider subtle botanical illustration accents to reinforce the glasshouse location.",
+"A multi-column editorial layout works well for displaying the decades timeline."
+],
+"inspirationSummary": "Photos of Victorian conservatories, pressed fern leaves in antique brass frames, and deckle-edged heavy cotton paper invitations."
+},
+"suppliedFacts": {
+"hostNames": "The Miller Children",
+"honoreeName": "Arthur and Clara Pendelton",
+"honoreeDescriptionText": null,
+"eventType": null,
+"dateText": "October 14, 2026",
+"timeText": "5:30 PM",
+"venueText": "The Conservatory at Oakridge",
+"addressText": "450 Conservatory Way",
+"localityText": "Portland, OR",
+"rsvpDeadlineText": "September 20, 2026"
+},
+"notes": "Tests adherence to an explicit required color hex (#2D4030) and botanical heritage aesthetics without forcing a rigid layout. Evaluates how the model distinguishes an intimate 50th glasshouse anniversary from an urban rooftop anniversary. The host constraints are strictly color-focused while creative guidance suggests layout style."
+},
+{
+"id": "DIC3-M02",
+"eventType": "anniversary party",
+"identity": {
+"creativeDirection": "A high-octane rooftop night celebrating ten turbulent and joyful years with bold neon contrast, raw street culture typography, and energetic night-market warmth.",
+"toneKeywords": [
+"rooftop dusk",
+"bold night market",
+"raw urban energy",
+"festive punch",
+"unfiltered joy"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"charcoal black",
+"electric orange",
+"warm mezcal amber",
+"distressed white"
+],
+"avoidColors": [
+"bright white",
+"pastel colors"
+],
+"dominanceNotes": "Deep charcoal night fills the background, punctured by high-contrast electric orange and amber visual anchors."
+},
+"tonalIntent": "Dark and saturated with vivid highlight accents, capturing dynamic nighttime rooftop string lighting.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"dark",
+"mid"
+],
+"compatibleFamilies": [
+"statement",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"grotesk_led",
+"high_contrast_editorial"
+],
+"visualMotifs": [
+"rooftop string lights",
+"distressed stencil stamps",
+"woodcut food graphics",
+"layered paper wheatpaste flyers"
+],
+"textureDirection": "Raw charcoal canvas, weathered brick grit, halogen glows on dark surfaces.",
+"typographyDirection": "Heavyweight display sans with tight tracking, balanced by ultra-clean high-contrast secondary detail lines in all-caps.",
+"copyTone": "Punchy, irreverent, direct, and celebratory.",
+"hostConstraints": [
+"It needs to feel dark and atmospheric, definitely not a bright white or pastel design.",
+"Please avoid any formal cursive, script lettering, or traditional wedding-like monograms."
+],
+"creativeGuidance": [
+"A high-impact headline block creates immediate event energy.",
+"Incorporate geometric frame accents to mimic urban signage."
+],
+"inspirationSummary": "No visual inspiration supplied."
+},
+"suppliedFacts": {
+"hostNames": "Maya and Jax",
+"honoreeName": null,
+"honoreeDescriptionText": null,
+"eventType": null,
+"dateText": "June 12, 2026",
+"timeText": "8:00 PM",
+"venueText": "Skyline Loft & Terrace",
+"addressText": "880 Industrial Pkwy",
+"localityText": "Austin, TX",
+"rsvpDeadlineText": "May 25, 2026"
+},
+"notes": "Tests the system's ability to render an urban, high-contrast, dark-tonal anniversary that strongly contrasts with DIC3-M01 despite sharing the 'anniversary party' eventType. Explicitly restricts bright/pastel tones via host constraints, testing compliance with tone constraints while allowing advisory creative guidance on layout structure."
+},
+{
+"id": "DIC3-M03",
+"eventType": "memorial gathering",
+"identity": {
+"creativeDirection": "A dignified reflection on a life dedicated to woodworking and preservation, conveyed through architectural symmetry, warm timber tones, and classic bookbinding typographic elegance.",
+"toneKeywords": [
+"archival dignity",
+"timber warmth",
+"reverent symmetry",
+"tactile quietude",
+"enduring craftsman"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"deep walnut brown",
+"linen white",
+"warm ochre",
+"charcoal gray"
+],
+"avoidColors": [
+"neon colors"
+],
+"dominanceNotes": "Warm dark timber tones anchor the base, balanced by quiet linen-toned reading areas."
+},
+"tonalIntent": "Mid to dark tonal depth evoking aged wood libraries and quiet study rooms.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"mid",
+"dark"
+],
+"compatibleFamilies": [
+"invitation",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"transitional",
+"oldstyle",
+"soft_serif"
+],
+"visualMotifs": [
+"wood grain silhouettes",
+"archival stamp borders",
+"bookbinder endpaper patterns",
+"pressmark rule lines"
+],
+"textureDirection": "Hand-rubbed wood grain, heavy felted paper stock, subtle blind embossed rules.",
+"typographyDirection": "Classical centered hierarchy with moderate contrast transitional serifs, ample margins, and formal small caps for dates.",
+"copyTone": "Quietly respectful, solemn, articulate, and understated.",
+"hostConstraints": [
+"Please don't use flashy animations, neon colors, or playful casual phrasing.",
+"Do not refer to this event as a party or celebration."
+],
+"creativeGuidance": [
+"Symmetrical layout alignment creates a sense of stability and reverence.",
+"Thin horizontal rule dividers help structure biographical details."
+],
+"inspirationSummary": "Scans of hand-bound leather journals, grain patterns from quartersawn white oak, and vintage letterpress memorial cards from the 1920s."
+},
+"suppliedFacts": {
+"hostNames": "The Vane Family",
+"honoreeName": "Julian Sterling Vane",
+"honoreeDescriptionText": "Master woodworker and rare book conservator",
+"eventType": null,
+"dateText": "November 7, 2026",
+"timeText": "2:00 PM",
+"venueText": "Craftsman Guild Hall",
+"addressText": "112 Heritage Lane",
+"localityText": "Asheville, NC",
+"rsvpDeadlineText": null
+},
+"notes": "Evaluates solemnity, restraint, and sensitive handling of a memorial context. Exercises classic transitional typography and archival aesthetic tones without resorting to somber black-and-white clichés. Tests downstream-only language constraints ('do not refer to this event as a party')."
+},
+{
+"id": "DIC3-M04",
+"eventType": "product launch",
+"identity": {
+"creativeDirection": "A tactile celebration of small-batch ceramic craftsmanship, pairing raw studio terracotta and cobalt glaze accents with generous editorial white space.",
+"toneKeywords": [
+"artisanal precision",
+"studio pottery",
+"tactile glaze",
+"curated batch",
+"modern earthiness"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"terracotta orange",
+"cobalt glaze blue",
+"chalk white",
+"raw clay beige"
+],
+"avoidColors": [
+"metallic gold",
+"dark background colors"
+],
+"dominanceNotes": "Chalky white and raw clay beige dominate as negative space, punctuated by deep cobalt blue and warm terracotta."
+},
+"tonalIntent": "Light, sunlit ceramic studio feel with clean, high-contrast focal points.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"light",
+"mid"
+],
+"compatibleFamilies": [
+"editorial",
+"statement"
+],
+"compatibleTypographyCategories": [
+"high_contrast_editorial",
+"grotesk_led",
+"soft_serif"
+],
+"visualMotifs": [
+"pottery wheel rings",
+"ceramic stamp marks",
+"glaze drip outlines",
+"grid-based studio inventory tags"
+],
+"textureDirection": "Matte bisque stoneware, grainy linen aprons, glossy cobalt enamel sheen.",
+"typographyDirection": "Sharp high-contrast editorial serif headers paired with crisp, unstyled sans-serif product specs and catalog numbers.",
+"copyTone": "Design-focused, precise, understated, and authentically artisanal.",
+"hostConstraints": [
+"The background must remain light and clean—do not use dark backgrounds.",
+"No metallic gold or foil effects."
+],
+"creativeGuidance": [
+"Grid-based layout mimics studio exhibition cataloging.",
+"Asymmetrical image placement reflects organic pottery forms.",
+"Lean into natural matte surfaces and tactile studio textures."
+],
+"inspirationSummary": "High-key gallery photographs of unglazed ceramic vessels on concrete pedestals alongside exhibition cards from Scandinavian pottery studios."
+},
+"suppliedFacts": {
+"hostNames": "KILN & CLAY Studio",
+"honoreeName": null,
+"honoreeDescriptionText": null,
+"eventType": null,
+"dateText": "April 18, 2026",
+"timeText": "6:00 PM - 9:00 PM",
+"venueText": "Kiln & Clay Gallery",
+"addressText": "304 Arts District Way",
+"localityText": "Seattle, WA",
+"rsvpDeadlineText": "April 10, 2026"
+},
+"notes": "Tests product launch framing for a craft/design audience. Validates explicit light tone requirement (toneExplicitlyConstrained: true, compatibleTonalDirections: ['light', 'mid']) and matte palette intent. Demonstrates how host constraints against dark tones and gold metallic finishes shape a refined, minimalist result."
+},
+{
+"id": "DIC3-M05",
+"eventType": "retirement dinner",
+"identity": {
+"creativeDirection": "An astronomical evening celebrating forty years of stargazing and discovery through deep starlit navy hues, precise vector geometry, and refined high-contrast editorial hierarchy.",
+"toneKeywords": [
+"celestial depth",
+"astronomical scale",
+"scholarly elegance",
+"midnight horizon",
+"precision geometry"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"midnight blue",
+"deep indigo",
+"starlight gold",
+"stark white"
+],
+"avoidColors": [
+"pastel colors"
+],
+"dominanceNotes": "Deep midnight blue engulfs the visual space, with high-contrast starlight white text and precise gold accents."
+},
+"tonalIntent": "Dark and vast like the night sky, featuring crisp illumination for primary typographic elements.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"dark"
+],
+"compatibleFamilies": [
+"statement",
+"editorial",
+"invitation"
+],
+"compatibleTypographyCategories": [
+"high_contrast_editorial",
+"grotesk_led",
+"transitional"
+],
+"visualMotifs": [
+"constellation diagrams",
+"orbital ellipses",
+"astronomical grid lines",
+"lens flare rings"
+],
+"textureDirection": "Velvet night sky, fine optical instrument metal work, smooth dark matte paper.",
+"typographyDirection": "Ultra-clean high-contrast editorial headlines with spacious letter-spacing, accompanied by precise, small-scale secondary detail lines with wide tracking and structured alignment.",
+"copyTone": "Intellectually rich, inspiring, respectful, and cosmic.",
+"hostConstraints": [
+"Must use a dark night sky theme—do not make this a daylight or pastel design.",
+"Avoid cliché retirement tropes like golf clubs, rocking chairs, or retirement clocks."
+],
+"creativeGuidance": [
+"Framing sections with thin celestial coordinate lines can structure event timelines.",
+"Consider a central focal statement surrounded by wide dark margins."
+],
+"inspirationSummary": "19th-century astronomical atlases, star maps printed on dark blue cardstock, and modern planetarium exhibition graphics."
+},
+"suppliedFacts": {
+"hostNames": "Department of Astrophysics",
+"honoreeName": "Dr. Rosalind Vance",
+"honoreeDescriptionText": "Professor of Observational Cosmology",
+"eventType": null,
+"dateText": "December 4, 2026",
+"timeText": "7:00 PM",
+"venueText": "Mount Prospect Observatory Hall",
+"addressText": "1 Observatory Ridge Rd",
+"localityText": "Flagstaff, AZ",
+"rsvpDeadlineText": "November 15, 2026"
+},
+"notes": "Tests handling of a high-concept retirement dinner centered on physics/astronomy. Strictly constrains tone to 'dark' while testing the anti-cliché host constraint ('no golf clubs or rocking chairs'). Supplied facts are kept distinct from identity prose."
+},
+{
+"id": "DIC3-M06",
+"eventType": "community festival",
+"identity": {
+"creativeDirection": "A vibrant neighborhood autumn gathering celebrating local orchards, harvest music, and cider presses through bold blocky print typography and warm cider-hued earth tones.",
+"toneKeywords": [
+"autumn harvest",
+"community warmth",
+"woodcut rustic",
+"cider press",
+"festive gathering"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"rust red",
+"spiced cider gold",
+"cinnamon brown",
+"warm cream"
+],
+"avoidColors": [],
+"dominanceNotes": "Warm rust red and cider gold drive the primary brand accents against a rich warm cream background."
+},
+"tonalIntent": "Warm, bright-to-mid autumn sunlight with cozy, golden-hour richness.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"light",
+"mid"
+],
+"compatibleFamilies": [
+"statement",
+"invitation"
+],
+"compatibleTypographyCategories": [
+"heritage",
+"oldstyle",
+"grotesk_led"
+],
+"visualMotifs": [
+"woodblock apple prints",
+"woven bushel baskets",
+"festive harvest bunting",
+"cider press gears"
+],
+"textureDirection": "Coarse kraft paper, ink-stamped woodblock prints, burlap canvas grain.",
+"typographyDirection": "Sturdy heritage display lettering with bold weight and characterful serifs, balanced by friendly readable sans or soft serif details.",
+"copyTone": "Welcoming, energetic, folk-inspired, and joyous.",
+"hostConstraints": [],
+"creativeGuidance": [
+"Incorporate woodblock print aesthetics for event schedule blocks.",
+"Bold headers help capture the informal community street-fair mood."
+],
+"inspirationSummary": "No visual inspiration supplied."
+},
+"suppliedFacts": {
+"hostNames": "Oak Valley Neighborhood Association",
+"honoreeName": null,
+"honoreeDescriptionText": null,
+"eventType": null,
+"dateText": "October 24, 2026",
+"timeText": "11:00 AM - 5:00 PM",
+"venueText": "Town Square & Park",
+"addressText": "Main Street & 4th Ave",
+"localityText": "Oak Valley, VT",
+"rsvpDeadlineText": null
+},
+"notes": "Tests open-ended creative interpretation with zero host constraints (hostConstraints: []). Evaluates whether the system can produce a warm, heritage/folk community festival feel without needing explicit prohibitions. Tests statement/heritage typography compatibility."
+}
+]
+}

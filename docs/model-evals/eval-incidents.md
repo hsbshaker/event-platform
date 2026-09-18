@@ -109,3 +109,59 @@ the top of this file: nothing about the eval runner may be verified by running i
 **Deliberately not done:** no arming token, confirmation secret or two-key execution was added.
 Three incidents were procedural failures, and the discipline stays procedural — the remedy is that
 there is no longer any reason to run the thing to check it.
+
+## Debt 1 — the leakage scan convicts ordinary English, and is deliberately not fixed yet
+
+Not an incident: nothing was run and nothing was lost. It is recorded here because it is the only
+append-only home for how the harness behaves, and because the decision to **leave it alone** is
+the part worth being able to point at later.
+
+Assembling the v3 sealed challenge, the frozen leakage scan reported eight collisions across the
+two independently authored halves. Exactly one carried benchmark content: a case's
+`creativeGuidance` contained `botanical line art`, and the EventIdentity prompt uses
+`"soft botanical line art"` as a worked motif example. That is the scan doing its job on the class
+it exists to catch.
+
+The other seven were ordinary English:
+
+| string | where it came from | what it matched |
+| --- | --- | --- |
+| `do not include` | a host-voice prohibition in `hostConstraints` | the prompt's own instruction boilerplate, twice |
+| `the host supplied` | two `inspirationSummary` fields narrating that the host gave a reference | the prompt's "unless the host supplied exact colors" |
+| `reflective` | a one-word `toneKeyword` | the prompt's "reflective surfaces" |
+| `generous` | a one-word `toneKeyword` | three surfaces, in three unrelated senses — one of them a **code comment about byte budgets** |
+
+Two design facts produce these, and both are real:
+
+1. **`leakageProbes` makes every identity prose string of six or more characters a verbatim
+   probe.** The six-character floor was written for *claims* — expected answers, host phrases,
+   supplied facts — where a short string really is benchmark content. Applied to a 4C identity it
+   sweeps in `toneKeywords`, whose entries are routinely one ordinary word. A one-word tone keyword
+   is not benchmark content and cannot leak anything.
+2. **A "model-visible surface" is a whole source file**, when only the string literals in it ever
+   reach a model. A comment about byte budgets convicted a corpus of leaking into a prompt it never
+   touched.
+
+The second is worse than a false positive in principle: it means the scan's coverage claim and its
+actual reading disagree, in the direction that looks safe.
+
+**Fixed prospectively, after v3 is spent — not now.** The cases already exist and have been read,
+so changing the scan today would be changing the referee with this game's collisions in view. That
+is the ordering this programme refuses everywhere else, and the fact that seven of the eight hits
+are nonsense does not buy an exception — it is exactly the argument someone would make if the
+hits were real. So v3 stays governed by the scan as frozen, the authors made narrow wording
+corrections through the operator, and the redesign waits.
+
+**What the redesign has to do**, recorded now while the reasoning is fresh and before any result
+can shape it:
+
+- scan the strings a model is actually sent, not whole source files — comments and identifiers are
+  not model-visible and must not be scanned as if they were;
+- stop treating single-word or ordinary-phrase overlap as substantive leakage, while keeping
+  verbatim reuse of distinctive multi-word content a hard failure;
+- keep the property that made the current scan worth having: a corpus is scanned the moment it
+  lands, from the shared corpus map, with no edit to benchmark tooling after anyone has seen the
+  cases.
+
+The one substantive finding is the evidence that the scan is worth keeping while it is redesigned.
+Seven false positives are the cost of a control that has never missed a real one.

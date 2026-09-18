@@ -2167,6 +2167,23 @@ changes as halves arrive, and a canon sentence that has to be edited on every de
 sentence that will eventually be edited under pressure. Nothing under `provenance/` is a corpus:
 no eval set points there, and the canonical sealed slot stays absent until assembly.
 
+**The leakage scan convicts ordinary English, and is deliberately left alone until v3 is spent.**
+Assembly surfaced eight collisions across the two halves; exactly one carried benchmark content, and
+seven were ordinary words and phrases — a host-voice `do not include`, two `inspirationSummary`
+fields saying `the host supplied`, and the one-word tone keywords `reflective` and `generous`, one
+of which matched a **code comment about byte budgets**. Two design facts cause it: `leakageProbes`
+treats every identity prose string of six or more characters as a verbatim probe, which sweeps in
+one-word `toneKeywords`; and a model-visible surface is a whole source file when only its string
+literals ever reach a model.
+
+**It is not fixed now, and the reason is the ordering rather than the merits.** The cases exist and
+have been read, so moving the scan today would be moving the referee with this game's collisions in
+view — and "the hits are obviously nonsense" is exactly the argument someone would make if they were
+not. So v3 stays governed by the scan as frozen, the two authors made narrow wording corrections
+through the operator, and the redesign is booked as prospective debt in
+`docs/model-evals/eval-incidents.md` with its requirements written down before any result can shape
+them. The one substantive finding is why the scan is worth keeping while it is redesigned.
+
 **No paid run is authorised by any of this.** The earlier T22 authorisation was never consumed —
 no provider invocation occurred — and it does not transfer to this corpus. After v3 survives every
 review and freezes, the task stops and returns for an explicit new run authorisation.

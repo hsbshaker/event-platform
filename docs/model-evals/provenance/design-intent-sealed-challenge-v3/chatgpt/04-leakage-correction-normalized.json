@@ -1,0 +1,350 @@
+{
+"version": "design_intent_sealed_challenge_v3_chatgpt_half",
+"cases": [
+{
+"id": "DIC3-G01",
+"eventType": "birthday party",
+"identity": {
+"creativeDirection": "Twelve children will spend a ninth birthday building a cardboard town together before cake. Capture the delight of trying an idea, finding room for a friend’s addition, and making something nobody could have made alone.",
+"toneKeywords": [
+"shared invention",
+"birthday excitement",
+"cheerful disorder",
+"everyone has a part"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"tomato red",
+"lemon yellow",
+"sky blue"
+],
+"avoidColors": [],
+"dominanceNotes": "Clear areas of lively color could carry the energy, with quieter space helping the individual elements remain readable."
+},
+"tonalIntent": "Cheerful contrast and visible energy, with either light surroundings or a more saturated middle-value setting.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"light",
+"mid"
+],
+"compatibleFamilies": [
+"statement",
+"invitation",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"grotesk_led",
+"soft_serif",
+"transitional"
+],
+"visualMotifs": [
+"stacked geometric forms",
+"openings and connections",
+"irregular groups of simple shapes"
+],
+"textureDirection": "Papery, cut-and-assembled character with slightly uneven edges and the tactile pleasure of ordinary making materials.",
+"typographyDirection": "Bold, approachable display scale and clear supporting text. Changes in weight or size can suggest playful assembly while preserving an easy reading order.",
+"copyTone": "Warm and energetic, with a clear invitation to join in. Give children something to anticipate and parents an easy sense of what the afternoon involves.",
+"hostConstraints": [],
+"creativeGuidance": [
+"A clustered, busy visual rhythm seems particularly promising for the cooperative building activity.",
+"Simple abstract forms could carry the town-making idea without needing a literal illustrated town."
+],
+"inspirationSummary": "No visual inspiration supplied."
+},
+"notes": "Exercises sibling distinctness and personalization through a shared activity. Cooperative construction, a small group of children and the birthday sequence provide concrete meaning without requiring a particular town illustration or unusual typography. There are no hard constraints or downstream-only requirements; the suggested density is deliberately advisory."
+},
+{
+"id": "DIC3-G02",
+"eventType": "wedding",
+"identity": {
+"creativeDirection": "Romance here lives in generous hospitality: sixty wedding guests sharing a conservatory supper at long tables. Make it feel gracious and celebratory, with the ease of a meal that nobody is in a hurry to leave.",
+"toneKeywords": [
+"gracious",
+"shared abundance",
+"romantic",
+"at ease"
+],
+"colorsExplicitlyConstrained": true,
+"paletteIntent": {
+"requiredColors": [
+"#245B4A"
+],
+"preferredColors": [
+"warm ivory",
+"soft blush"
+],
+"avoidColors": [
+"metallic gold"
+],
+"dominanceNotes": "Pale surfaces carry most of the area. The required green supplies contrast; blush may provide a smaller warm note."
+},
+"tonalIntent": "The overall setting stays pale and filled with daylight. Deep green details and readable text provide contrast within that light environment.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"light"
+],
+"compatibleFamilies": [
+"invitation",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"oldstyle",
+"high_contrast_editorial",
+"soft_serif",
+"transitional"
+],
+"visualMotifs": [
+"loose foliage groupings",
+"slender connecting lines",
+"open oval forms"
+],
+"textureDirection": "Smooth, delicate surfaces with subtle translucent qualities and an understated sense of occasion.",
+"typographyDirection": "Graceful display contrast paired with comfortable reading text. Clear hierarchy and generous spacing can give the celebration both presence and ease.",
+"copyTone": "Sincere, welcoming and quietly celebratory, with the warmth of hosts looking forward to having everyone at their table.",
+"hostConstraints": [
+"Our printed invitations use #245B4A. That exact green needs to carry through.",
+"Please leave out gold foil or other metallic gold effects.",
+"The background needs to stay pale throughout.",
+"Guests need to be able to tell us about dietary requirements with their RSVP."
+],
+"creativeGuidance": [
+"A continuous botanical thread could connect the invitation to the conservatory.",
+"The shared meal may be the most useful emotional anchor for the sense of welcome."
+],
+"inspirationSummary": "The hosts supplied their printed invitation, which has a deep green border, and a photograph of the conservatory showing pale stone, long tables and foliage overhead."
+},
+"notes": "Exercises preservation of host authority and distinctness within a constrained tonal range. The exact green is compatible with pale backgrounds, and the metallic exclusion creates no color conflict. Shared hospitality and the conservatory make the wedding specific while leaving several visual interpretations available. Collecting dietary requirements with the RSVP is intentionally downstream-only."
+},
+{
+"id": "DIC3-G03",
+"eventType": "memorial gathering",
+"identity": {
+"creativeDirection": "Sunday lunches, terrible puns and long games of dominoes are how the family remembers their much-loved uncle. His memorial brings thirty relatives and friends together for food and short memories, with room for affection, laughter and quieter pauses.",
+"toneKeywords": [
+"ordinary affection",
+"gently funny",
+"contemplative",
+"familiar company"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"dusty blue",
+"warm gray",
+"muted berry"
+],
+"avoidColors": [],
+"dominanceNotes": "A settled base with a few warmer notes could support the mixture of reflection and familiar humor."
+},
+"tonalIntent": "Gentle contrast and a feeling of shelter. A lighter, middle-value or deeper setting can hold the gathering’s warmth and reflection without becoming visually severe.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"mid",
+"light",
+"dark"
+],
+"compatibleFamilies": [
+"invitation",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"soft_serif",
+"oldstyle",
+"transitional"
+],
+"visualMotifs": [
+"small playful interruptions",
+"loosely gathered shapes",
+"gently irregular borders"
+],
+"textureDirection": "A soft, quiet surface with a little visual warmth. Texture can recede almost completely while retaining a familiar, settled quality.",
+"typographyDirection": "Comfortable reading scale, gentle differences in weight and a conversational display presence. The hierarchy can feel composed and personal.",
+"copyTone": "Affectionate, plainspoken and gently funny where natural. Welcome stories and feelings without assigning everyone the same emotional response.",
+"hostConstraints": [
+"Please don’t use phrases about closure or telling us to move on."
+],
+"creativeGuidance": [
+"The pace of a leisurely Sunday lunch could give the gathering a coherent emotional rhythm.",
+"A restrained amount of visual detail seems appropriate, with much of the warmth carried by spacing and voice."
+],
+"inspirationSummary": "No visual inspiration supplied."
+},
+"notes": "Exercises emotional range and fidelity to a personal identity. Familiar rituals provide enough character for an affectionate memorial without requiring literal domino imagery or uniformly solemn treatment. The wording restriction is compatible with every listed tonal direction and applies wherever relevant language appears. There is no separate downstream-only feature requirement."
+},
+{
+"id": "DIC3-G04",
+"eventType": "birthday party",
+"identity": {
+"creativeDirection": "For a fiftieth birthday, six longtime friends are taking a gentle seafront walk before coffee and pastries. The invitation should feel like a little more time opened up for familiar company, with the freshness of beginning another decade.",
+"toneKeywords": [
+"unhurried",
+"companionable",
+"a fresh decade",
+"quiet excitement"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"mist blue",
+"pale peach",
+"sand"
+],
+"avoidColors": [],
+"dominanceNotes": "A broad, quiet color field with a smaller warm note could echo the morning reference. The particular balance remains open."
+},
+"tonalIntent": "Open and breathable, ranging from pale morning light to a somewhat fuller middle-value atmosphere with gentle contrast.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"light",
+"mid"
+],
+"compatibleFamilies": [
+"editorial",
+"invitation"
+],
+"compatibleTypographyCategories": [
+"transitional",
+"grotesk_led",
+"oldstyle"
+],
+"visualMotifs": [
+"horizontal bands",
+"soft arcs",
+"open intervals",
+"a small warm interruption in a broad cool field"
+],
+"textureDirection": "Fine grain and soft atmospheric transitions, with enough clarity to keep the morning feeling fresh.",
+"typographyDirection": "An assured but easygoing display presence, generous intervals and a relaxed relationship between the main invitation and its supporting details.",
+"copyTone": "Direct, affectionate and lightly celebratory, as if inviting close friends to spend a lovely morning together.",
+"hostConstraints": [],
+"creativeGuidance": [
+"An expansive horizon feels like the strongest visual starting point in the supplied reference.",
+"Wide intervals and a slowly unfolding reading rhythm could echo the pace of the morning."
+],
+"inspirationSummary": "The host shared a phone photograph taken on the planned seafront route: a wide pale sky, gray-blue water and a narrow peach band near the horizon. They liked its spaciousness and gentle warmth."
+},
+"notes": "Exercises resistance to event-type templating and the distinction between advice and authority. This birthday is specific through its small social scale, longstanding friendships and walk-to-café sequence, materially differing from the children’s making party. The horizon recommendation is intentionally strong but optional; no photograph recreation or particular composition is necessary. There are no downstream-only constraints."
+},
+{
+"id": "DIC3-G05",
+"eventType": "book launch",
+"identity": {
+"creativeDirection": "After the shop closes, a debut novelist meets readers for an intimate launch of a mystery set in a hotel during a blackout. Give the evening the charge of discovering a new voice: suspenseful, sociable and a little theatrical.",
+"toneKeywords": [
+"curiosity",
+"contained suspense",
+"literary excitement",
+"after-hours company"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"midnight blue",
+"burnt orange"
+],
+"avoidColors": [],
+"dominanceNotes": "Dark colors occupy most of the visual field. A contained brighter accent could carry some of the jacket’s tension without requiring its exact palette."
+},
+"tonalIntent": "A consistently dark setting with contained highlights and clear reading contrast, sustaining the atmosphere of a bookshop open after hours.",
+"toneExplicitlyConstrained": true,
+"compatibleTonalDirections": [
+"dark"
+],
+"compatibleFamilies": [
+"editorial",
+"statement"
+],
+"compatibleTypographyCategories": [
+"grotesk_led",
+"high_contrast_editorial",
+"transitional"
+],
+"visualMotifs": [
+"partial concealment",
+"broken repetitions",
+"frames within frames"
+],
+"textureDirection": "Light print grain against otherwise smooth, dense surfaces.",
+"typographyDirection": "Large, self-possessed display type with a close, deliberate rhythm, balanced by inviting and comfortably spaced reading text.",
+"copyTone": "A knowing invitation with a little intrigue and the easy warmth of a bookshop conversation.",
+"hostConstraints": [
+"Keep the backgrounds dark throughout.",
+"Leave out weapons, blood and crime-scene tape.",
+"The invitation must not reveal any twists or the ending."
+],
+"creativeGuidance": [
+"Selective concealment could help carry the sense of anticipation.",
+"A compact, forceful display treatment seems well suited to the jacket reference."
+],
+"inspirationSummary": "The host shared the novel’s jacket: dark blue fields, a narrow orange interruption and large, tightly set type. Its tension and economy appealed to them."
+},
+"suppliedFacts": {
+"honoreeName": "Leila Marr",
+"honoreeDescriptionText": "Author of The Seventh Landing"
+},
+"notes": "Exercises grounded personalization and separation of hard constraints from reference-derived preferences. The required darkness and imagery exclusions leave ample abstract means of expressing anticipation with conventional typography. The author’s name and book title are withheld facts, not information needed to interpret the identity. The spoiler restriction chiefly concerns later invitation copy and requires no synopsis at this stage."
+},
+{
+"id": "DIC3-G06",
+"eventType": "fundraising gala",
+"identity": {
+"creativeDirection": "The community music program’s annual benefit supports instrument lending and volunteer tuition for teenagers. Beginning players perform alongside their mentors before two hundred guests sit down to dinner. Celebrate the thrill of the stage and the generosity that makes a first performance possible.",
+"toneKeywords": [
+"shared ambition",
+"giving",
+"performance energy",
+"festive polish"
+],
+"colorsExplicitlyConstrained": false,
+"paletteIntent": {
+"requiredColors": [],
+"preferredColors": [
+"claret",
+"copper",
+"warm cream"
+],
+"avoidColors": [],
+"dominanceNotes": "A confident base with selective warmth or sheen could convey occasion. The suggested colors need not all appear."
+},
+"tonalIntent": "Richness and occasion matter more than fixed brightness. Deep, middle-value and luminous settings can each carry the evening’s optimism and sense of performance.",
+"toneExplicitlyConstrained": false,
+"compatibleTonalDirections": [
+"dark",
+"mid",
+"light"
+],
+"compatibleFamilies": [
+"statement",
+"invitation",
+"editorial"
+],
+"compatibleTypographyCategories": [
+"high_contrast_editorial",
+"transitional",
+"grotesk_led"
+],
+"visualMotifs": [
+"rhythmic repetitions",
+"radiating forms",
+"expanding intervals"
+],
+"textureDirection": "Rich, smooth surfaces with small moments of sheen and enough tactile depth to give the evening a celebratory finish.",
+"typographyDirection": "Confident display scale and a clear, poised reading hierarchy. Strong contrasts in size or weight can express the energy of a live performance.",
+"copyTone": "Assured, appreciative and forward-looking. Convey excitement about the young performers and welcome guests as participants in the program’s future.",
+"hostConstraints": [],
+"creativeGuidance": [
+"A concert-program sensibility seems an especially useful starting point for this benefit.",
+"The exchange between learners and mentors could provide an emotional thread through the design."
+],
+"inspirationSummary": "No visual inspiration supplied."
+},
+"notes": "Exercises personalization within formal celebration and freedom from a single aesthetic default. Instrument access and performances shared by learners and mentors give the benefit a purpose beyond generic luxury. Broad compatible pools and the absence of mandatory colors or literal musical symbols make several interpretations feasible. The concert-program suggestion is advisory, and there are no downstream-only constraints."
+}
+]
+}

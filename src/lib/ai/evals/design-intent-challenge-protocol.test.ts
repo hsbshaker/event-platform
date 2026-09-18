@@ -282,6 +282,26 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
         sha256: "38963c46189013e8e969ef5d706a9a5ea67089bfefb904e166d948d452f05fd5",
         bytes: 15353,
       },
+      {
+        path: `${PROVENANCE}gemini/04-leakage-correction.json`,
+        sha256: "89fc79fba1afe4471f977d750eead96fcc57961c0e3d807766d63211be2b88c2",
+        bytes: 15743,
+      },
+      {
+        path: `${PROVENANCE}chatgpt/03-leakage-correction-raw.txt`,
+        sha256: "9547fc272debb426e87a79912dec46a5979136894b6b0be3d7655195498dbcad",
+        bytes: 16703,
+      },
+      {
+        path: `${PROVENANCE}chatgpt/04-leakage-correction-normalized.json`,
+        sha256: "74f31e7d5f6001dc3851f5a8114c9d4b565da5d2d0bbefef91c229e543047ada",
+        bytes: 15351,
+      },
+      {
+        path: `${PROVENANCE}assembly/01-assembled-pre-semantic-review.json`,
+        sha256: "1419a89093d95c50a49c4e8d413a97d9ca42e66c6dfd678cbab3c4c77ac869a3",
+        bytes: 37871,
+      },
     ] as const;
 
     it.each(SUPPLIED)("$path is byte-identical to what was received", ({ path, sha256, bytes }) => {
@@ -292,22 +312,70 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
       }).toEqual({ sha256, bytes });
     });
 
+    /**
+     * The corrections were meant to be narrow, so narrowness is checked rather than taken on
+     * trust: same key set, nothing added or removed, and only leaves the leakage scan had flagged
+     * allowed to differ. This is the check that would catch a "correction" that quietly re-premised
+     * a case, which is the repair the policy forbids.
+     */
+    it.each([
+      {
+        before: "gemini/03-final-candidate.json",
+        after: "gemini/04-leakage-correction.json",
+        changed: [
+          ".cases[0].identity.creativeGuidance[0]",
+          ".cases[0].identity.hostConstraints[1]",
+        ],
+      },
+      {
+        before: "chatgpt/02-normalized-candidate.json",
+        after: "chatgpt/04-leakage-correction-normalized.json",
+        changed: [
+          ".cases[2].identity.toneKeywords[2]",
+          ".cases[3].identity.inspirationSummary",
+          ".cases[4].identity.inspirationSummary",
+          ".cases[5].identity.toneKeywords[1]",
+        ],
+      },
+    ])("$after changed only the flagged spans", ({ before, after, changed }) => {
+      const flatten = (value: unknown, path = ""): Record<string, unknown> => {
+        if (Array.isArray(value)) {
+          return Object.assign({}, ...value.map((entry, i) => flatten(entry, `${path}[${i}]`)));
+        }
+        if (value !== null && typeof value === "object") {
+          return Object.assign(
+            {},
+            ...Object.entries(value).map(([key, entry]) => flatten(entry, `${path}.${key}`)),
+          );
+        }
+        return { [path]: value };
+      };
+      const load = (rel: string) =>
+        flatten(JSON.parse(readFileSync(`${ROOT}${PROVENANCE}${rel}`, "utf8")));
+      const a = load(before);
+      const b = load(after);
+      expect(Object.keys(a).sort()).toEqual(Object.keys(b).sort());
+      expect(
+        Object.keys(a)
+          .filter((key) => a[key] !== b[key])
+          .sort(),
+      ).toEqual([...changed].sort());
+    });
+
     it("keeps each candidate conformant to its precommitted namespace", () => {
       const candidate = (rel: string) =>
         (JSON.parse(readFileSync(`${ROOT}${PROVENANCE}${rel}`, "utf8")) as { cases: unknown[] })
           .cases;
-      expect(
-        checkHalfComposition(
-          SEALED_CHALLENGE_V3_HALVES[0],
-          candidate("chatgpt/02-normalized-candidate.json"),
-        ),
-      ).toEqual([]);
-      expect(
-        checkHalfComposition(
-          SEALED_CHALLENGE_V3_HALVES[1],
-          candidate("gemini/03-final-candidate.json"),
-        ),
-      ).toEqual([]);
+      for (const [index, rel] of [
+        "chatgpt/02-normalized-candidate.json",
+        "gemini/03-final-candidate.json",
+        "chatgpt/04-leakage-correction-normalized.json",
+        "gemini/04-leakage-correction.json",
+      ].entries()) {
+        expect(
+          checkHalfComposition(SEALED_CHALLENGE_V3_HALVES[index % 2 === 0 ? 0 : 1], candidate(rel)),
+        ).toEqual([]);
+      }
     });
 
     /**
@@ -327,6 +395,30 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
       expect(JSON.parse(swapped)).toEqual(JSON.parse(committed));
       expect(raw).toContain("\u2019");
       expect(committed).toContain("\u2019");
+    });
+
+    /**
+     * The assembly failed the semantic premise-overlap review, so it lives here rather than in the
+     * slot an eval set points at — the refusal-without-a-file guard is what stops a corpus being
+     * run, and a gate-failing corpus must not disarm it. Preserved rather than deleted, because
+     * deleting it would discard what the review actually read.
+     */
+    it("never lets the gate-failing assembly become the corpus", () => {
+      const assembled = readFileSync(
+        `${ROOT}${PROVENANCE}assembly/01-assembled-pre-semantic-review.json`,
+      );
+      // It was a correctly assembled corpus; what it failed was a judgement, not a mechanic.
+      expect(checkAssembledSealedChallengeV3(JSON.parse(assembled.toString("utf8")))).toEqual([]);
+
+      // Absence is deliberately not asserted — that is the shape T19B had to undo, because it
+      // makes adding the corpus require editing a test. What is asserted is the thing that must
+      // never be true: this exact content sitting in the slot an eval set runs.
+      const slot = `${ROOT}${corpusPath("designIntentChallenge")}`;
+      if (!existsSync(slot)) return;
+      expect(
+        createHash("sha256").update(readFileSync(slot)).digest("hex"),
+        "the assembly that failed semantic premise-overlap review is in the canonical slot",
+      ).not.toBe(createHash("sha256").update(assembled).digest("hex"));
     });
 
     it("has not turned a provenance artifact into a corpus", () => {

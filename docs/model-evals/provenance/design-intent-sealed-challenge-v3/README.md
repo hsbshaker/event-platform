@@ -138,32 +138,134 @@ Two of the three inspiration-bearing cases open `inspirationSummary` with "The h
 which is mild authorial-template pressure for the semantic review to weigh with both halves in
 front of it.
 
-## Where this stands
+## The leakage-correction round, and what it was allowed to touch
 
-Both halves are mechanically clean except for leakage collisions, and **eight collisions across the
-two halves resolve into one substantive finding and seven ordinary-English false positives**:
+Both authors were sent an abstract finding through the user — the colliding span, and nothing about
+the system, the prompt, the other half or what the corpus is for. Neither was shown replacement
+prose, because none was written here.
 
-| | substantive | ordinary vocabulary |
+| file | role | sha256 | bytes |
+| --- | --- | --- | --- |
+| `gemini/04-leakage-correction.json` | **the Gemini candidate** | `89fc79fba1afe4471f977d750eead96fcc57961c0e3d807766d63211be2b88c2` | 15,743 |
+| `chatgpt/03-leakage-correction-raw.txt` | raw ChatGPT response | `9547fc272debb426e87a79912dec46a5979136894b6b0be3d7655195498dbcad` | 16,703 |
+| `chatgpt/04-leakage-correction-normalized.json` | **the ChatGPT candidate** | `74f31e7d5f6001dc3851f5a8114c9d4b565da5d2d0bbefef91c229e543047ada` | 15,351 |
+
+The ChatGPT response again arrived with `U+201C`/`U+201D` structural quotes, and the same two-character
+swap again reproduces the candidate exactly, apostrophes untouched.
+
+**The corrections are narrow, and that is checked rather than asked for.** Comparing every leaf of
+the corrected halves against their predecessors: the key sets are identical, nothing was added or
+removed, and exactly six leaves changed across twelve cases — two in the Gemini half, four in the
+ChatGPT half, every one of them a string the scan had flagged.
+
+| case | field | before | after |
+| --- | --- | --- | --- |
+| `DIC3-M01` | `creativeGuidance[0]` | `…subtle botanical line art to reinforce…` | `…subtle botanical illustration accents to reinforce…` |
+| `DIC3-M01` | `hostConstraints[1]` | `Do not include any bright hot pink or synthetic neon colors.` | `Avoid any bright hot pink or synthetic neon colors.` |
+| `DIC3-G03` | `toneKeywords[2]` | `reflective` | `contemplative` |
+| `DIC3-G04` | `inspirationSummary` | `The host supplied a phone photograph…` | `The host shared a phone photograph…` |
+| `DIC3-G05` | `inspirationSummary` | `The host supplied the novel's jacket…` | `The host shared the novel's jacket…` |
+| `DIC3-G06` | `toneKeywords[1]` | `generous` | `giving` |
+
+No premise, palette, enum, name, supplied fact, inspiration, note, id or event type moved. The
+`DIC3-M01` constraint keeps exactly its authority — bright hot pink and synthetic neon colours
+remain prohibited, neither weakened nor strengthened.
+
+**The frozen scan is clean on both corrected halves**, across all eight registered model-visible
+surfaces. That ends author correction.
+
+## Assembly
+
+Mechanical, in the order precommitted at `9da8010`: `DIC3-G01`–`DIC3-G06`, then
+`DIC3-M01`–`DIC3-M06`, top-level version `design_intent_sealed_challenge_v3`. Nothing was reordered
+by quality, difficulty or content, and no author's prose was touched to make the halves sound
+alike — every assembled case is deep-equal to the object its author supplied, which is checked
+rather than asserted.
+
+| | |
+| --- | --- |
+| path | `docs/model-evals/design-intent-sealed-challenge-v3.json` |
+| sha256 | `1419a89093d95c50a49c4e8d413a97d9ca42e66c6dfd678cbab3c4c77ac869a3` |
+| bytes | 37,871 |
+| cases | 12 |
+
+The **gated** whole-corpus contract passes: twelve batches, and three same-`eventType` pairs
+against a required minimum of two — `birthday party` and `memorial gathering` from the ChatGPT
+half's own pair plus the cross-half match, and `anniversary party` from the Gemini half. The frozen
+leakage scan now covers the corpus at its canonical path with no edit to any benchmark tooling,
+which is the arrangement the protocol freeze existed to produce.
+
+**This is not a freeze.** The corpus is assembled and mechanically clean; the semantic
+premise-overlap review and the system-aware fairness review still stand between it and a freeze,
+and no result directory has been protected because no run exists.
+
+## Semantic premise-overlap review: ACTION REQUIRED
+
+Run before any system-aware review, by a reviewer restricted to the new corpus and the five prior
+corpora, forbidden from opening the prompt, the schemas, `src/`, the results directories or the
+plan — and told nothing about which cases anyone suspected. It confirmed reading only those six
+files.
+
+**No copying was found.** No reused venue names, no reused distinctive phrasing, no evidence either
+author saw anything they should not have. The two prose hands are visibly different, which supports
+the independence claim. What it found instead is convergence on the same unusual devices, which is
+the thing a sealed corpus has to be free of.
+
+Three findings were classed substantive:
+
+| | cases | what is shared |
 | --- | --- | --- |
-| Gemini | `botanical line art` (`DIC3-M01`) | `do not include` (`DIC3-M01`) |
-| ChatGPT | — | `reflective`, `generous` ×3, `the host supplied` ×2 |
+| S1 | `DIC3-G02` ↔ `DIC3-M01` | **Inside the new corpus, across the two independent halves.** One brief written twice: a pale, daylit, botanical page in a glass-roofed venue, anchored by a required deep forest-green hex the host supplies as the one non-negotiable colour, `warm ivory` as the ground in both, a loud-finish exclusion, overlapping family and typography pools, foliage motifs. A system that solves one solves the other from the same lesson |
+| S2 | `DIC3-M03` ↔ `DIR-04` (regression corpus) | The central device: a book-repair honoree rendered through bookbinding materials. `endpaper` appears in both motif lists and nowhere else in six corpora |
+| S3 | `DIC3-M04` ↔ `DIV-12` (invalidated validation corpus, still readable) | The premise: a ceramics studio receiving the public around its kiln and wares, with the same earthy-matte clay-and-glaze material vocabulary |
 
-Seven of the eight are against **EventIdentity** surfaces, which the DesignIntent stage is never
-shown at all.
+Eight further similarities were classed noteworthy and five harmless; none of those is grounds for
+action, and they are in the review for the record rather than for repair.
 
-Assembly is blocked either way, and the scan is not weakened to unblock it. What the seven should
-count as is an escalation rather than a custodian's call, because the honest options differ in what
-they cost:
+The reviewer's own summary of the split: the ChatGPT half is largely fresh, and the recall risk sits
+in the Gemini half.
 
-- **Treat them as corpus findings.** Allowed — a narrow leakage-collision rewrite is a permitted
-  repair — but both need authorial prose, so they return as abstract findings through the user. The
-  cost is that it teaches two authors to avoid ordinary English near text they have never seen,
-  which is the lexical gaming the protocol says the corpus rules exist to avoid.
-- **Treat them as a scan-design defect.** `leakageProbes` makes every identity prose string of six
-  or more characters a verbatim probe, which turns a one-word `toneKeyword` into a leak claim; and a
-  surface is a whole source file rather than the strings that ship from it. Neither is hash-pinned,
-  so both are changeable. The objection is decisive and is recorded rather than argued past: the
-  cases already exist and have been read, so any change now is a change made **with the collisions
-  in view** — the exact ordering this programme refuses everywhere else.
+### What the protocol makes of that
 
-No prose is written here for either author, and neither corpus is repaired, assembled or frozen.
+`§G` is precommitted and unambiguous: one isolated case with a severable problem is reported and
+stopped on; **multiple cases in one half requiring re-premising invalidates that entire six-case
+half**, which is then recommissioned whole from the same external family. Survivors are never
+cherry-picked from a larger pool, and an author is never coached case by case into a bespoke
+benchmark.
+
+`DIC3-M03` and `DIC3-M04` both need re-premising, and S1's remedy falls on `DIC3-M01` on the
+reviewer's own reading. That is three of six, in one half, so the rule applies on its face rather
+than by interpretation. **The ruling is the user's, not the custodian's**, and nothing was repaired,
+replaced or coached here while it is pending.
+
+S1 deserves one note in fairness to both authors: two sessions that could not see each other's work
+independently produced the same conservatory brief. That is not misconduct by either, and it is a
+sharper version of the finding that ended the second candidate — convergence survives isolation.
+
+### The assembly is preserved, and the canonical slot is empty again
+
+| | |
+| --- | --- |
+| path | `assembly/01-assembled-pre-semantic-review.json` |
+| sha256 | `1419a89093d95c50a49c4e8d413a97d9ca42e66c6dfd678cbab3c4c77ac869a3` |
+| bytes | 37,871 |
+
+It was assembled at `docs/model-evals/design-intent-sealed-challenge-v3.json` to run the gated
+contract and the frozen leakage scan against it, both of which passed. It was then **moved here**
+rather than left in place or deleted: a corpus that has failed a pre-freeze gate must not sit in the
+slot an eval set points at, because the slot's refusal-without-a-file guard is what stops it being
+run, and deleting it would discard what the review actually read. The canonical path is absent
+again, and the assembly is reproducible from the two halves in any case.
+
+**The system-aware fairness review has not been run.** `§H` places it after semantic overlap
+passes, and semantic overlap did not pass. Running it now would spend the one thing that cannot be
+un-spent — a system-aware reviewer's reading of these cases — on a corpus that is already going to
+change.
+
+## The scan defect, recorded as debt rather than fixed
+
+Seven of the eight collisions that forced the correction round carried no benchmark content. That
+is a real defect in the scan, and it is **deliberately not fixed during v3**: the cases exist and
+have been read, so changing the scan now would be changing the referee with this game's collisions
+in view. `docs/model-evals/eval-incidents.md` holds the analysis and the requirements for the
+prospective redesign, written before any result can shape them.
