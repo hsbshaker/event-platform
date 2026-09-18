@@ -1,0 +1,28 @@
+You are making a narrow mechanical wording correction to six EventIdentity cases you authored.
+
+Replace ONLY the listed toneKeywords values with semantically equivalent short tone keywords or short tone phrases.
+
+Do not alter any other field, value, ordering, premise, creative direction, palette, motif, constraint, guidance or wording.
+
+Required replacements:
+
+* DIC4-Q01: reserved
+* DIC4-Q03: neutral
+* DIC4-Q04: tactile
+* DIC4-Q05: grounded
+* DIC4-Q06: balanced
+* DIC4-Q06: playful
+
+Return JSON only:
+
+{
+  "replacements": [
+    {
+      "id": "DIC4-Q01",
+      "old": "reserved",
+      "new": "…"
+    }
+  ]
+}
+
+Return exactly six replacement objects in the order listed above.

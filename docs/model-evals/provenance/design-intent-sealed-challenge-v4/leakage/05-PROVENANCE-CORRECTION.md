@@ -1,5 +1,12 @@
 # Provenance correction — the correction-round freeze was not pre-contact
 
+> **Superseded in one direction.** This file infers from the timestamps that both authors had
+> already been contacted and had answered. That inference is wrong: the user has since established
+> that **no author was ever contacted**, and the two preserved outputs are not responses to
+> anything. `06-EXCLUDED-OUTPUTS.md` records that and excludes them. What stands below is the
+> timestamp record and the fact that `f52a2ca`'s title is false; what does not stand is the reading
+> that the authors had replied. The text is kept as written rather than edited.
+
 `f52a2ca` is titled **"Freeze the v4 leakage-correction procedure before either author is
 contacted"**, and its body states: *"Neither author has been contacted and no replacement wording
 exists."*

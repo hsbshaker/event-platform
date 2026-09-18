@@ -97,4 +97,7 @@ never told about is a metric that punishes correct behaviour.
 
 ## Status
 
-Frozen. Both responses are preserved and unapplied; see `05-PROVENANCE-CORRECTION.md`.
+Frozen, and now carried out through `09-controlled-correction-round.md`. The two preserved outputs
+are **not** responses to this procedure and are excluded — `06-EXCLUDED-OUTPUTS.md`. The packets
+below (`03-`, `04-`) were drafted here and never sent; the requests actually to be sent are `07-`
+and `08-`, whose wording the user specified exactly. No author has been contacted.

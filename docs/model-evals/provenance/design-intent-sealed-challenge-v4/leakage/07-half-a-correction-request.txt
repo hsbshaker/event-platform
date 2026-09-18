@@ -1,0 +1,59 @@
+I need one narrow mechanical wording correction to your Stage-2 responses.
+
+Please replace only the following tone keywords with semantically equivalent short tone keywords or short tone phrases:
+
+DIC4-P01
+
+* delicate
+* reflective
+* grounded
+
+DIC4-P02
+
+* chosen
+* gentle
+
+DIC4-P03
+
+* direct
+
+DIC4-P04
+
+* formal
+* rigorous
+
+DIC4-P05
+
+* accessible
+
+DIC4-P06
+
+* focused
+
+Return one replacement for each item.
+
+Do not change, rewrite, or comment on any other part of any case.
+
+Please respond only in this format:
+
+DIC4-P01
+delicate → …
+reflective → …
+grounded → …
+
+DIC4-P02
+chosen → …
+gentle → …
+
+DIC4-P03
+direct → …
+
+DIC4-P04
+formal → …
+rigorous → …
+
+DIC4-P05
+accessible → …
+
+DIC4-P06
+focused → …

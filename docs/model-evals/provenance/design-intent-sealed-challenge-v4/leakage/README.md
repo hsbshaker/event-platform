@@ -168,3 +168,12 @@ disclosure denylist and its two proofs while no replacement exists. The two auth
 The open question this file left — whose problem the 28 are — was answered: they are a scanner
 false-positive class, already documented, and the corpus is corrected around it without the referee
 moving.
+
+## Correction round, as it actually stands
+
+The two replacement outputs committed at `6d5a5cf` and `7c368f9` are **not** responses to the frozen
+correction procedure — no correction prompt had been written when they landed, and none was sent.
+They are preserved and excluded (`06-EXCLUDED-OUTPUTS.md`).
+
+The controlled round is frozen in `09-controlled-correction-round.md`, with the two exact requests
+at `07-` and `08-`. Nothing has been sent, nothing applied, and the scanner has not been re-run.
