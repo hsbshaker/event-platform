@@ -1936,7 +1936,7 @@ case exists.**
 | **T20B** | **A replacement pre-registered validation corpus**, written by a **fresh** independent author who has not seen the invalidated one, from the corrected published dimensions alone. The author is told the stage-scope rule, so a case may legitimately carry a downstream-only host constraint — DesignIntent must not contradict it — but no case may define success as a DesignIntent emitting site content it has no field for. Independent fairness and leakage review again; frozen at its own path and digest | the new corpus file alone | T19B | the corrected T19B structural contract accepts it; leakage scan clean; no case reused from the invalidated corpus | `model-contracts.md §4.5` | no | **yes** | no |
 | **T21** | The DesignIntent prompt **and the production provider boundary it is sent through** — request assembly, the narrowed structured-output schema, model configuration with explicit reasoning effort, `service_tier` and `store: false`, transient-retry bounds, the single schema-invalid repair retry, application validation, request-id capture, usage and latency telemetry, raw paid-response preservation, and a **verified DesignIntent cost bound derived from the model's verified rate table** rather than inherited from EventIdentity's attempt shape. It repoints the T19 seam, and prompt and schema versions bump together if model-visible text changes (§5.1's rule). **This is the implementation freeze before the first live call** | `docs/model-prompts/design-intent.system.md`, `src/lib/ai/openai/design-intent*.ts`, `src/lib/ai/versions.ts`, `src/lib/generation/*-cost.ts`, the T19 seam | T19, T20 | leakage scan; independent engineering read for benchmark integrity; deterministic validation of the boundary with the provider mocked — **never by calling it** | `spec.md §31 — DesignIntent, composition and compiler`; `model-contracts.md §5`, `§8`; `product-doctrine.md` | **yes** | **yes** | no |
 | | **▶ STOP — APPROVAL REQUIRED BEFORE THE FIRST LIVE DesignIntent CALL** | | | | | | | |
-| **T22** | Freeze; an independent author writes the **sealed** challenge, unseen while T21 was written; one run; blind review; evidence protected in the same change | — | T21 + authorization | the 4A protocol exactly | `model-contracts.md §4.5`; §3.7 | no | **yes** | **yes — one authorized run per set** |
+| **T22** | Freeze; **two external model families** write the **sealed** challenge, six cases each and none from Claude, unseen while T21 was written (protocol frozen before either authored a case, below); one run; blind review; evidence protected in the same change | — | T21 + authorization | the 4A protocol exactly | `model-contracts.md §4.5`; §3.7 | no | **yes** | **yes — one authorized run per set** |
 
 > **The stop point.** No live DesignIntent provider call may happen before T21 is complete, frozen,
 > independently reviewed and explicitly approved — and the gate (§3.7) is frozen at **T19**, before
@@ -2006,6 +2006,145 @@ Also identical, checked the same way: both generated schemas, the runner adapter
 model configuration and cost profile are unchanged, and **T21 was not "improved" in response to
 the correction** — which was the point of checking. The correction moved what a human reviewer is
 told; it moved nothing the model is sent.
+
+**The v3 sealed challenge is authored by two external model families, and this protocol is frozen
+before either of them has written a case.** That ordering is the whole point of the record: a
+provenance claim made after the artifact arrives is worth nothing, so the namespace, the split, the
+per-half composition rule, the assembly order and the corpus version are fixed here while **no case
+exists**. `src/lib/ai/evals/design-intent-challenge-protocol.ts` carries the same facts as checkable
+values, and `git` carries the proof of the ordering: the protocol commit adds no corpus file, and
+`docs/model-evals/design-intent-sealed-challenge-v3.json` does not exist in its tree.
+
+**The author split, precommitted.** Six cases `DIC3-G01`–`DIC3-G06` from a fresh ChatGPT session;
+six cases `DIC3-M01`–`DIC3-M06` from a fresh Gemini session; **zero from Claude**, which authored
+every prior corpus in this programme and is therefore prohibited from supplying prose, premises,
+identity content, names, event concepts, constraints, inspiration devices or notes for any v3 case.
+The lead's role here is custodian and operator only: receive the halves, preserve provenance,
+validate, assemble mechanically, run the corpus-integrity reviews, freeze if clean, stop. It does
+not author, rewrite, complete, creatively repair or substitute a case, and `DIC3-` collides with no
+prior namespace (`CU`, `DIR`, `DIV`, `DIV2`, `DSC`, `HO`, `RB`, `SC`, `SC2`).
+
+The source labels are **provenance only** and must never reach the DesignIntent model or the blind
+qualitative reviewer — a reviewer who knows which family wrote a case is no longer rating the case.
+And the attribution is **user-supplied provenance, not a cryptographic claim**: nothing in a JSON
+file proves which model produced it, the record says so plainly, and no later reader is entitled to
+treat the label as stronger than that.
+
+**What neither author sees.** Any previous corpus; any invalidated sealed challenge; any prior model
+output; the DesignIntent prompt; wire schemas beyond the published author-facing field contract;
+provider code; input assembly; the planner or validator implementation; known model failures; prior
+qualitative reviews; §3.7's arithmetic; the expected outcome; any statement about what would produce
+GO; and the other author's half before both are complete. Each author receives only the same
+published author-facing capability, structural and expressive-surface contract, with the namespace
+changed for its half, and **no examples drawn from existing corpora**.
+
+**Composition, fixed before the cases so that nothing is selected after them.** Each half is exactly
+six cases. Within each half, exactly one pair shares an `eventType` — two materially different
+instances of that type — and the other four types are distinct within that half. That guarantees at
+least two same-event-type pairs in the final twelve without anyone choosing cases after reading
+them. Cross-half accidental matches are legal and are not on their own grounds for editing
+anything. There is **no "best six from a larger pool"**: one commission, exactly six cases.
+
+**The author-facing expressive surface is the already-accepted published contract** (§3.8, T19C),
+restated for the external packet rather than rewritten. The author writes authoritative
+`EventIdentity` fixture state — not a host prompt and not a DesignIntent. `family`, `tonalDirection`
+and `composition.hierarchy` are planner-assigned; typography is chosen downstream from twelve
+conventional pairings across six categories, and motifs from a bounded curated vocabulary; the model
+still owns palette, the pairing within its narrowed category, density, the four non-hierarchy
+composition dimensions, motifs within the allowed surface and the host-facing presentation. So a
+case must not turn on the model inventing a specific typeface, script, handwritten, stencil,
+proprietary or custom lettering system: `typographyDirection` describes scale, weight, contrast,
+case, spacing and hierarchy character, and natural-language `visualMotifs` may inspire downstream
+interpretation without a literal unavailable motif being the only acceptable answer. A planner-owned
+value is never scored as though the model chose it. **Planner ownership never excuses correctness**:
+a concept that contradicts an authoritative `hostConstraint` is a genuine failure whatever produced
+it.
+
+**The quality rules carried forward, both halves.** Authoritative `hostConstraints` come only from
+explicit host voice; positive style direction belongs in the creative brief rather than
+automatically in constraints; `creativeGuidance` is advisory; a case may correctly carry zero
+constraints; briefs must be satisfiable; `suppliedFacts` are never shown to DesignIntent, and where
+they are invention traps their literal values must not also appear in the identity prose; no
+manufactured impossible colour combination; ordinary real-world events are welcome; not all six
+cases quirky, tragic, anti-premium, anti-restraint, maximalist or benchmark-clever; range emerging
+from genuinely different events rather than a checklist of opposites; varied presence of visual
+inspiration; no one inspiration-device formula repeated across a half; no authorial house template
+for `creativeDirection`, `hostConstraints`, `creativeGuidance` or notes.
+
+On tone keywords the guidance is deliberately guidance. Event-rooted particulars are preferable to
+generic category adjectives *when natural*, because generic adjectives have repeatedly collided with
+model-visible language — but **"no bare adjective ever" and "no cross-corpus word overlap ever" are
+not acceptance criteria**. Cross-corpus ordinary vocabulary overlap stays diagnostic: "practical",
+"working", "proud" and "warm" recurring across unrelated events invalidate nothing. The goal is
+natural briefs, not lexical gaming, and a mechanical zero-overlap rule would buy the second at the
+cost of the first.
+
+**Receiving, and what is recorded.** Each half arrives as one JSON object — version plus exactly its
+six ids. The raw external response is preserved byte-for-byte as provenance before any
+normalization, and the record carries source family, date received, namespace, SHA256 of the raw
+artifact and byte count. A half that arrives first may be inspected for syntax, schema and mechanics
+immediately; the final semantic comparison waits for both, and neither half's contents are exposed
+to the other author.
+
+**Mechanical checks per half, then assembly.** Exactly six cases; the exact namespace; unique ids;
+exactly one within-half same-`eventType` pair with the other four distinct; `EventIdentity` schema
+validity; legal `suppliedFacts` keys; required and avoided hex satisfiable; no literal supplied-fact
+value improperly echoed into identity prose where the case relies on invention detection; the
+leakage scan against every registered model-visible surface; within-half recurring-phrase
+diagnostics; no repeated names or identifiers; no authorial template collapse. Assembly is then
+mechanical and predeclared: top-level version `design_intent_sealed_challenge_v3`, cases in the order
+`DIC3-G01`–`DIC3-G06` then `DIC3-M01`–`DIC3-M06`, **never reordered by quality, difficulty or
+content**, neither author's prose edited to make the halves sound alike, and the whole-corpus
+structural contract run with `gated: true`.
+
+**Semantic premise-overlap review, before the system-aware one.** Lexical comparison is diagnostic,
+not dispositive — that is the lesson the second candidate cost, and the review that found it is now
+a standing gate. The semantic reviewer may read the new twelve and the prior corpus premises and
+notes needed for comparison, and must not read the DesignIntent prompt, provider implementation,
+model-visible request assembly, known outputs or prior qualitative failures. Nobody tells that
+reviewer which cases either author suspects. It looks for whole-premise duplication, the same event
+imagined twice, distinctive device reuse, the same unusual emotional or design problem, the same
+solved creative problem under different wording, unusual phrase reuse, name or identifier reuse too
+distinctive to dismiss, recognisable benchmark-author house patterns, ChatGPT/Gemini cross-half
+overlap, and overlap with readable prior corpora that makes a new case answerable from known
+benchmark patterns. Ordinary archetypes and generic English are not enough. The verdict separates
+harmless common-domain similarity, noteworthy but non-disqualifying overlap, and substantive
+teachable overlap requiring action.
+
+**Repair policy, and the line it draws.** Mechanical, corpus-only repairs are allowed: JSON, syntax
+or schema correction, exact id and namespace correction, a narrow leakage-collision rewrite, a
+narrow accidental duplicated name. Where such a repair needs authorial prose, an **abstract** finding
+goes back to the same external author through the user — **Claude supplies no replacement prose**.
+One isolated case with a clearly severable premise or device problem is reported and stopped on
+rather than silently replaced. If several cases in one half need re-premising, or that author's
+distribution is visibly converging again, the **entire six-case half is invalidated and
+recommissioned from the same precommitted family**; survivors are never cherry-picked from a larger
+pool, because iteratively coaching an author produces a bespoke benchmark, which is the failure this
+protocol exists to avoid.
+
+**The system-aware fairness review is final, and it is the last gate before freeze.** It runs only
+after semantic overlap passes. That reviewer may understand the true expressive surface and must
+explicitly consider satisfiability — whether a correct Phase 4C system could succeed on each case
+without capabilities outside its contract. PASS with no case change required freezes the corpus
+unchanged. **Any required case change invalidates the assembled corpus**: a system-aware finding is
+never returned to an author and the corpus then reused, because a corpus a system-aware reviewer has
+read is no longer sealed whatever the packet later says — which is exactly what the first candidate
+cost. A reviewer-packet or benchmark-machinery defect is a stop-and-escalate, not an edit. And **no
+implementation remediation is permitted in response to the cases**, in either direction.
+
+**Freeze, and then stop.** If every pre-run gate passes, `docs/model-evals/design-intent-sealed-challenge-v3.json`
+is frozen with its final SHA256, byte count, twelve ids, author split, per-half raw-artifact
+digests, structural result, leakage result, lexical diagnostics, semantic-overlap verdict,
+system-aware fairness verdict, and the isolation and provenance limitations stated rather than
+smoothed over. **No result directory joins `PROTECTED_RESULT_DIRS`**, because no evidence run
+exists and a directory joins that list in the same change that commits the evidence it holds. The
+freeze reconfirms that every model-visible T21 artifact is byte-identical to the accepted state at
+`be016f8`, that `design-intent-gate.ts` is byte-identical at `8f5ca5ab…`, and that no prompt,
+schema, provider, seam, planner or validator change occurred.
+
+**No paid run is authorised by any of this.** The earlier T22 authorisation was never consumed —
+no provider invocation occurred — and it does not transfer to this corpus. After v3 survives every
+review and freezes, the task stops and returns for an explicit new run authorisation.
 
 **The second sealed challenge was invalidated too, and for a reason no repair reaches: a fresh
 session is a fresh context, not a fresh distribution.** `819e5fc` authored twelve cases,

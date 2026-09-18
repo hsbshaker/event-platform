@@ -87,10 +87,19 @@ export const CORPUS_FILES = {
   designIntentValidation: "design-intent-validation-v2.json",
   /**
    * Phase 4C's sealed challenge. **Deliberately absent, and for longer than the other two**: it is
-   * written at T22 by an author who has seen neither the prompt nor prior outputs nor known
+   * written at T22 by authors who have seen neither the prompt nor prior outputs nor known
    * failures, after the T21 implementation freeze. Naming it here now, while its cases are
    * unknown, is what keeps its arrival from requiring an edit anywhere — exactly the arrangement
    * `challenge2` proved twice.
+   *
+   * **Two predecessors were invalidated, and the second one changed who may author this file.**
+   * Every prior corpus in this programme came from one authoring-model distribution, and
+   * independent semantic review found whole-premise duplicates and a house idiom across corpora
+   * written in separately sealed sessions: a fresh session buys a fresh context, not a fresh
+   * distribution. So v3 is authored externally by two model families that have authored none of
+   * these corpora — six cases each, `DIC3-G01`–`DIC3-G06` and `DIC3-M01`–`DIC3-M06`, none by the
+   * lead — under a protocol frozen in `design-intent-challenge-protocol.ts` before either wrote a
+   * case.
    */
   designIntentChallenge: "design-intent-sealed-challenge-v3.json",
 } as const;
