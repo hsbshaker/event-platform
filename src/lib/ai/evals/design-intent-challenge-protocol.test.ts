@@ -273,6 +273,14 @@ describe("the v3 sealed-challenge protocol, frozen before either author wrote a 
       expect(PLAN).toContain("**Planner ownership never excuses correctness**");
     });
 
+    it("still carries the corrected reading of the freeze commit's own claim", () => {
+      // `9da8010` said the tree held "no `DIC3-` id anywhere", which the preregistered namespace
+      // makes false on its face. The narrower claim underneath it is the one that matters, and it
+      // is the one canon now states.
+      expect(PLAN).toContain("**A wording correction to that freeze commit, recorded rather than");
+      expect(PLAN).toContain("**namespace reservation only**");
+    });
+
     it("still says no paid run is authorised", () => {
       expect(PLAN).toContain("**No paid run is authorised by any of this.**");
     });

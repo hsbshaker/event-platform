@@ -2015,6 +2015,22 @@ exists**. `src/lib/ai/evals/design-intent-challenge-protocol.ts` carries the sam
 values, and `git` carries the proof of the ordering: the protocol commit adds no corpus file, and
 `docs/model-evals/design-intent-sealed-challenge-v3.json` does not exist in its tree.
 
+**A wording correction to that freeze commit, recorded rather than amended.** `9da8010`'s message
+says the tree at the freeze contains "no `DIC3-` id anywhere". That is literally overstated, and
+overstated in the direction that flatters the record, so it is corrected in canon and the commit is
+left exactly as written. The protocol *deliberately* preregisters `DIC3-G01`–`DIC3-G06` and
+`DIC3-M01`–`DIC3-M06`, so those twelve identifiers necessarily appear in the protocol module, in
+this document and in the protocol's own tests — that is what reserving a namespace before authoring
+means, and it is the point of the freeze rather than a leak from it.
+
+What the commit was actually claiming is narrower and is true as stated: at `9da8010` no
+`docs/model-evals/design-intent-sealed-challenge-v3.json` exists; no `DIC3` case object exists; no
+event premise exists; no identity prose exists; no name, `hostConstraint`, `creativeGuidance`,
+inspiration content or note for a v3 case exists; and every `DIC3` string in that tree is a
+**namespace reservation only**. The ordering claim the protocol rests on is unaffected. Recorded
+here because a benchmark whose provenance messages are read years later cannot afford a sentence
+that is easier to disprove than the claim underneath it.
+
 **The author split, precommitted.** Six cases `DIC3-G01`–`DIC3-G06` from a fresh ChatGPT session;
 six cases `DIC3-M01`–`DIC3-M06` from a fresh Gemini session; **zero from Claude**, which authored
 every prior corpus in this programme and is therefore prohibited from supplying prose, premises,
