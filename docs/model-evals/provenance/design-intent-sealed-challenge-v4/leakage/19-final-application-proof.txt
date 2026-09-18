@@ -1,0 +1,6 @@
+HALF A adopted from candidate r1, byte-identical: 9da421a9cde036b79f09f975a5957b48c7f18a24568810b5c20b4b56b5d0630d
+NET B: ["DIC4-Q01 reserved -> quietly understated","DIC4-Q03 neutral -> muted","DIC4-Q04 tactile -> haptic","DIC4-Q05 grounded -> anchored","DIC4-Q06 balanced -> harmonized","DIC4-Q06 playful -> whimsical"]
+OPERATOR-AUTHORED ENTRIES: 1
+PROVE B vs canonical: []
+DIFF vs candidate r1 (expect exactly one): ["DIC4-Q01.toneKeywords[1] restrained -> quietly understated"]
+HALF B written: ee5a9b8040d90d1f5ac8ee94e20ceb0c8dc94817c2055f799a75176e2f8f8b51

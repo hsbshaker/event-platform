@@ -26,6 +26,10 @@ import {
   V4_LEAKAGE_CORRECTION_WITHHELD_FROM_AUTHORS,
   type CorrectionResponseEntry,
 } from "./design-intent-challenge-v4-leakage-correction";
+import {
+  V4_OPERATOR_AUTHORED_VALUE_COUNT,
+  V4_OPERATOR_AUTHORED_VALUES,
+} from "./design-intent-challenge-v4-operator-exception";
 import { eventIdentitySchema } from "@/lib/ai/event-identity/contract";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
@@ -546,5 +550,140 @@ describe("controlled correction round 1", () => {
     expect(record).toContain("DIC4-Q01");
     expect(record).toContain("restrained");
     expect(record).toContain("design intent wire schema");
+  });
+});
+
+/**
+ * The adopted Stage-2 artifacts, frozen after a clean scan.
+ *
+ * Pinned against the **canonical** artifacts rather than against correction candidate r1, so the
+ * whole chain — author response, operator exception, adoption — is provable from the two frozen
+ * originals in one step and does not depend on an intermediate file surviving.
+ */
+describe("the frozen corrected Stage-2 artifacts", () => {
+  const FINAL_A = "half-a/06-stage-2-eventidentity-cases-corrected.json";
+  const FINAL_B = "half-b/05-stage-2-eventidentity-cases-corrected.json";
+
+  it("are pinned by digest", () => {
+    expect(digest(FINAL_A)).toBe(
+      "9da421a9cde036b79f09f975a5957b48c7f18a24568810b5c20b4b56b5d0630d",
+    );
+    expect(digest(FINAL_B)).toBe(
+      "ee5a9b8040d90d1f5ac8ee94e20ceb0c8dc94817c2055f799a75176e2f8f8b51",
+    );
+  });
+
+  it("leave the canonical pre-correction artifacts untouched", () => {
+    expect(digest(HALF_A)).toBe("824706333d94ce70fc50edc685a4b5e92f4d8bb64cae506e1fb553964a7a94fa");
+    expect(digest(HALF_B)).toBe("62cff57645b9ee65c0a444270c677a3a2bb794993e212da814b83504b2099c2e");
+  });
+
+  it("each is its canonical artifact plus exactly the pinned substitutions", () => {
+    const netA: CorrectionResponseEntry[] = V4_LEAKAGE_CORRECTION_TARGETS.filter(
+      (t) => t.slot === "A",
+    ).map((t) => {
+      const doc = read(FINAL_A) as {
+        cases: { id: string; identity: { toneKeywords: string[] } }[];
+      };
+      return {
+        caseId: t.caseId,
+        keyword: t.keyword,
+        replacement: doc.cases.find((c) => c.id === t.caseId)!.identity.toneKeywords[t.index],
+      };
+    });
+    const netB: CorrectionResponseEntry[] = V4_LEAKAGE_CORRECTION_TARGETS.filter(
+      (t) => t.slot === "B",
+    ).map((t) => {
+      const doc = read(FINAL_B) as {
+        cases: { id: string; identity: { toneKeywords: string[] } }[];
+      };
+      return {
+        caseId: t.caseId,
+        keyword: t.keyword,
+        replacement: doc.cases.find((c) => c.id === t.caseId)!.identity.toneKeywords[t.index],
+      };
+    });
+    expect(checkSubstitutionApplied("A", read(HALF_A), read(FINAL_A), netA)).toEqual([]);
+    expect(checkSubstitutionApplied("B", read(HALF_B), read(FINAL_B), netB)).toEqual([]);
+  });
+
+  it("half A is the clean candidate adopted byte for byte", () => {
+    expect(digest(FINAL_A)).toBe(digest("leakage/12-half-a-corrected-candidate-r1.json"));
+  });
+
+  it("carry every author-supplied replacement verbatim", () => {
+    const a = read(FINAL_A) as { cases: { id: string; identity: { toneKeywords: string[] } }[] };
+    const b = read(FINAL_B) as { cases: { id: string; identity: { toneKeywords: string[] } }[] };
+    const at = (doc: typeof a, id: string, i: number) =>
+      doc.cases.find((c) => c.id === id)!.identity.toneKeywords[i];
+
+    // Half A: all ten are the human author's.
+    for (const [id, i, value] of [
+      ["DIC4-P01", 0, "anchored"],
+      ["DIC4-P01", 1, "contemplative"],
+      ["DIC4-P01", 3, "tender"],
+      ["DIC4-P02", 2, "considerate"],
+      ["DIC4-P02", 4, "self-selected"],
+      ["DIC4-P03", 4, "forthright"],
+      ["DIC4-P04", 1, "exacting"],
+      ["DIC4-P04", 3, "official"],
+      ["DIC4-P05", 2, "approachable"],
+      ["DIC4-P06", 5, "purposeful"],
+    ] as const) {
+      expect(at(a, id, i)).toBe(value);
+    }
+    // Half B: five are Mistral's; index 1 of Q01 is the operator's and is asserted below.
+    for (const [id, i, value] of [
+      ["DIC4-Q03", 1, "muted"],
+      ["DIC4-Q04", 2, "haptic"],
+      ["DIC4-Q05", 1, "anchored"],
+      ["DIC4-Q06", 2, "harmonized"],
+      ["DIC4-Q06", 3, "whimsical"],
+    ] as const) {
+      expect(at(b, id, i)).toBe(value);
+    }
+  });
+
+  /**
+   * The authorship claim, asserted rather than narrated. `restrained` was Mistral's word and must
+   * not survive anywhere; `quietly understated` is the operator's and must appear exactly once, at
+   * the one recorded coordinate.
+   */
+  it("carries exactly one operator-authored value, at the recorded coordinate", () => {
+    expect(V4_OPERATOR_AUTHORED_VALUES).toHaveLength(V4_OPERATOR_AUTHORED_VALUE_COUNT);
+    const [exception] = V4_OPERATOR_AUTHORED_VALUES;
+    expect(exception.authoredBy).toBe("operator");
+    expect(exception.replacedAuthorValue).toBe("restrained");
+
+    const b = read(FINAL_B) as { cases: { id: string; identity: { toneKeywords: string[] } }[] };
+    expect(
+      b.cases.find((c) => c.id === exception.caseId)!.identity.toneKeywords[exception.index],
+    ).toBe(exception.value);
+
+    const everyString = (doc: unknown): string[] =>
+      typeof doc === "string"
+        ? [doc]
+        : doc && typeof doc === "object"
+          ? Object.values(doc as Record<string, unknown>).flatMap(everyString)
+          : [];
+    for (const final of [FINAL_A, FINAL_B]) {
+      expect(everyString(read(final)).filter((s) => s === exception.value)).toHaveLength(
+        final === FINAL_B ? 1 : 0,
+      );
+      expect(everyString(read(final))).not.toContain(exception.replacedAuthorValue);
+    }
+  });
+
+  it("the preserved final scan is clean on every declared surface", () => {
+    const scan = JSON.parse(
+      readFileSync(`${PROV}leakage/18-final-clean-leakage-scan.json`, "utf8"),
+    ) as {
+      surfacesScanned: unknown[];
+      surfacesAbsent: unknown[];
+      halves: Record<string, { hits: unknown[] }>;
+    };
+    expect(scan.surfacesScanned).toHaveLength(8);
+    expect(scan.surfacesAbsent).toEqual([]);
+    for (const half of Object.values(scan.halves)) expect(half.hits).toEqual([]);
   });
 });

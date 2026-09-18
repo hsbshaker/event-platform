@@ -187,3 +187,19 @@ and `composition.ornament` enum token, the DesignIntent wire schema.
 
 Half A cleared completely (17 → 0); half B went 11 → 2. Neither candidate was adopted — including
 the clean half. `14-RESIDUAL-COLLISION.md` has the finding and what was deliberately not done.
+
+## Correction round 2 — clean, adopted, frozen
+
+The operator supplied one replacement directly — `DIC4-Q01`'s `restrained` → `quietly understated`
+— to terminate the loop, and that is the **only** identity string in v4 not written by its half's
+author (`17-OPERATOR-AUTHORED-EXCEPTION.md`; `V4_OPERATOR_AUTHORED_VALUES`). Half A was adopted from
+the clean candidate byte for byte.
+
+The frozen scanner then returned **zero hits** across both halves and all eight surfaces
+(`18-final-clean-leakage-scan.json`). The adopted artifacts are
+`half-a/06-stage-2-eventidentity-cases-corrected.json` (`9da421a9…`) and
+`half-b/05-stage-2-eventidentity-cases-corrected.json` (`ee5a9b80…`). The pre-correction artifacts
+are untouched at `82470633…` and `62cff576…`.
+
+Stopped at the leakage stage: no faithfulness, semantic-overlap or fairness review, no corpus
+assembly, no provider call.
