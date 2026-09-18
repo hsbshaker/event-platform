@@ -92,7 +92,7 @@ export const CORPUS_FILES = {
    * unknown, is what keeps its arrival from requiring an edit anywhere — exactly the arrangement
    * `challenge2` proved twice.
    */
-  designIntentChallenge: "design-intent-sealed-challenge-v2.json",
+  designIntentChallenge: "design-intent-sealed-challenge-v3.json",
 } as const;
 
 export type CorpusSet = keyof typeof CORPUS_FILES;
@@ -337,7 +337,7 @@ export const EVAL_SETS = {
   designIntentChallenge: {
     runner: "design-intent",
     corpus: corpusPath("designIntentChallenge"),
-    out: "docs/model-evals/results/design-intent-sealed-challenge-v2",
+    out: "docs/model-evals/results/design-intent-sealed-challenge-v3",
     label:
       "SEALED CHALLENGE (4C DesignIntent) — authored after the T21 implementation and this " +
       "harness froze, by an author who saw neither the prompt nor prior outputs nor known " +
@@ -412,6 +412,22 @@ export const INVALIDATED_CORPORA = [
       "a reviewer who has seen the implementation is no longer sealed, whatever the packet later " +
       "says. The same review also found premise-level overlap with the pre-registered set that " +
       "lexical scanning cannot see. Zero provider calls, zero eval runs. Never used as evidence",
+  },
+  {
+    path: "docs/model-evals/design-intent-sealed-challenge-v2.json",
+    sha256: "296245d5543d7741a24dba5822dc6c28e76e0661a1438940e9385327ee3b45c4",
+    bytes: 39465,
+    invalidatedAt: "T22-candidate-2",
+    why:
+      "mechanically clean before semantic review \u2014 gated contract, leakage scan, within-corpus " +
+      "recurrence and author command isolation all passed \u2014 and invalidated before freeze and " +
+      "before any provider call. **Not** for process contamination: the isolation audit shows the " +
+      "author read no prior corpus. The defect is distributional. Independent semantic review " +
+      "found whole-premise duplicates, reused organizing devices, recurring authorial sentence " +
+      "shapes, reused surnames and a programme-wide house idiom across corpora written in " +
+      "separately sealed sessions by the same authoring-model distribution. A fresh session buys " +
+      "a fresh context, not a fresh distribution, and for the strongest generalization evidence " +
+      "that is not enough. Zero provider calls, zero eval runs. Never used as evidence",
   },
 ] as const;
 

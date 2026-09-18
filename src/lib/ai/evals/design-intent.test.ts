@@ -406,12 +406,12 @@ describe("nothing frozen at T19 changes afterwards", () => {
       corpora: [
         "docs/model-evals/design-intent-regression.json",
         "docs/model-evals/design-intent-validation-v2.json",
-        "docs/model-evals/design-intent-sealed-challenge-v2.json",
+        "docs/model-evals/design-intent-sealed-challenge-v3.json",
       ],
       outputs: [
         "docs/model-evals/results/design-intent-regression-v1",
         "docs/model-evals/results/design-intent-validation-v2",
-        "docs/model-evals/results/design-intent-sealed-challenge-v2",
+        "docs/model-evals/results/design-intent-sealed-challenge-v3",
       ],
     });
   });
@@ -582,7 +582,7 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
     // Unconditional: the names are fixed now so that adding a file later is the entire change.
     expect(CORPUS_FILES.designIntentRegression).toBe("design-intent-regression.json");
     expect(CORPUS_FILES.designIntentValidation).toBe("design-intent-validation-v2.json");
-    expect(CORPUS_FILES.designIntentChallenge).toBe("design-intent-sealed-challenge-v2.json");
+    expect(CORPUS_FILES.designIntentChallenge).toBe("design-intent-sealed-challenge-v3.json");
   });
 
   /**
@@ -669,6 +669,30 @@ describe("no 4C corpus exists, and the slots refuse without one", () => {
     // Nothing points at it, and the gated slot now names its replacement.
     expect(EVAL_SETS.designIntentChallenge.corpus).not.toBe(
       "docs/model-evals/design-intent-sealed-challenge.json",
+    );
+  });
+
+  /**
+   * The second invalidated sealed-challenge candidate, and the one whose reason is least obvious.
+   *
+   * Its author's isolation audit was clean: no prior corpus was read. It is invalid because the
+   * *distribution* it was drawn from is the one that wrote the readable corpora, so parts of it
+   * were answerable from patterns already in the repository. A fresh session is a fresh context,
+   * not a fresh distribution.
+   */
+  it("preserves the second invalidated sealed-challenge candidate unchanged", () => {
+    const file = `${ROOT}docs/model-evals/design-intent-sealed-challenge-v2.json`;
+    expect(existsSync(file)).toBe(true);
+    expect(createHash("sha256").update(readFileSync(file)).digest("hex")).toBe(
+      "296245d5543d7741a24dba5822dc6c28e76e0661a1438940e9385327ee3b45c4",
+    );
+    const record = INVALIDATED_CORPORA.find(
+      (entry) => entry.path === "docs/model-evals/design-intent-sealed-challenge-v2.json",
+    );
+    expect(record?.invalidatedAt).toBe("T22-candidate-2");
+    expect(record?.why).toContain("distributional");
+    expect(EVAL_SETS.designIntentChallenge.corpus).not.toBe(
+      "docs/model-evals/design-intent-sealed-challenge-v2.json",
     );
   });
 

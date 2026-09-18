@@ -2007,6 +2007,49 @@ model configuration and cost profile are unchanged, and **T21 was not "improved"
 the correction** — which was the point of checking. The correction moved what a human reviewer is
 told; it moved nothing the model is sent.
 
+**The second sealed challenge was invalidated too, and for a reason no repair reaches: a fresh
+session is a fresh context, not a fresh distribution.** `819e5fc` authored twelve cases,
+`SC2-01`–`SC2-12`, digest `296245d5…`, 39,465 bytes. It was mechanically clean before semantic
+review — gated contract, leakage scan, within-corpus recurrence, and an author-command isolation
+audit showing no prior corpus was read. **Preserve that distinction: this was not process
+contamination.** The author obeyed its seal.
+
+The independent semantic premise-overlap review — the control added precisely because lexical
+scanning had missed this class once already — found two whole-premise duplicates of existing
+cases, four more reusing a distinctive device or landing on a design problem a readable corpus
+already teaches, reused surnames, and a programme-wide house idiom visible across corpora written
+in separately sealed sessions: the archival printed artefact as inspiration, the anti-elegiac
+memorial, "the object not the person", the host who forbids the premium default, "do not name the
+painful fact".
+
+Those are one authoring distribution showing through six independent contexts. For the strongest
+generalization evidence in the programme that is not enough, because the regression corpus is
+**readable during implementation** — so a sealed case drawn from the same distribution measures
+in-distribution recall rather than generalization. Repairing the cited cases would clean the
+symptoms and leave the cause, so the candidate is invalidated whole: preserved at its authored
+path, recorded in `INVALIDATED_CORPORA`, pointed at by nothing, never used as evidence. The slot
+now names a third path and a third result directory.
+
+**The next sealed challenge must come from a genuinely different source distribution** — a human
+author who has seen none of the implementation or prior cases, or a model family that has authored
+no corpus in this programme. Another fresh session of the family that wrote the earlier corpora
+does not qualify, which is the whole finding.
+
+**One nuance, so this does not become its own defect.** Ordinary vocabulary recurring across
+unrelated events — "practical", "proud", "working", "deadpan" — is *diagnostic*, never a hard
+gate. Twenty-two of this candidate's tone keywords appear in other corpora and that fact alone
+convicts nothing; real events share ordinary words. What is disqualifying is whole-premise
+duplication, distinctive device reuse, unusual phrase or name reuse, recognisable
+benchmark-author house patterns, and anything else making a new challenge answerable from what is
+already readable. A mechanical zero-overlap rule would push authors into lexical gaming and buy
+nothing.
+
+**Also recorded, because the lead's own control was narrower than its description.** Tone-keyword
+uniqueness had been checked *within* a corpus and reported as though it settled recurrence. Across
+corpora it does not, and the gap was invisible until a reviewer with no lexical tooling read the
+cases and saw the idiom. Cross-corpus lexical comparison is now part of the pipeline as a
+diagnostic feeding the semantic review, not as an acceptance criterion.
+
 **The first sealed challenge was invalidated before it was frozen, and it was the reviewer's
 context that failed rather than the cases.** `c6ccf2a` authored twelve cases, `DSC-01`–`DSC-12`,
 digest `080cbaa1…`, 43,482 bytes. They passed the gated structural contract, the leakage scan
