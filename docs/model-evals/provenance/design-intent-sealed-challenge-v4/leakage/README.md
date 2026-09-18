@@ -154,3 +154,17 @@ the Stage-2 packet's wording is a judgement, and it is left open.
 
 `01-frozen-scan-result.json` holds the machine-readable result: surfaces scanned, surfaces absent,
 per-case probe counts, and every hit as `{check, surface, id, value}`.
+
+## What happened next
+
+The user ruled: do not change or relax the scanner, do not invalidate or re-premise any case, and
+apply Debt 1's recorded remedy — narrow corpus-side wording correction through the original authors.
+
+`02-correction-procedure.md` records that procedure, frozen before either author was contacted, and
+`src/lib/ai/evals/design-intent-challenge-v4-leakage-correction.ts` pins its coordinates, its
+disclosure denylist and its two proofs while no replacement exists. The two author packets are
+`03-half-a-correction-packet.md` and `04-half-b-correction-packet.md`, pinned by digest.
+
+The open question this file left — whose problem the 28 are — was answered: they are a scanner
+false-positive class, already documented, and the corpus is corrected around it without the referee
+moving.
