@@ -447,6 +447,60 @@ describe("the v4 sealed-challenge protocol, frozen before any situation card exi
       }
     });
 
+    /**
+     * Half A's Stage-2 artifacts. The faithfulness check is re-run here rather than trusted from a
+     * commit message, and the normalized cases are held to the shape the packet promised: exactly
+     * three top-level keys, and the five fixed values inserted unchanged.
+     */
+    it("holds half A's Stage-2 raw response and normalized cases", () => {
+      const raw = `${ROOT}${V4_PROVENANCE}half-a/03-stage-2-original-raw.txt`;
+      const cases = `${ROOT}${V4_PROVENANCE}half-a/04-stage-2-eventidentity-cases.json`;
+      if (!existsSync(cases)) return;
+      const digest = (file: string) =>
+        createHash("sha256").update(readFileSync(file)).digest("hex");
+      expect(digest(raw)).toBe("f11181a5032654382410b7a21fe7f0bf49e93624f8e99333e0206fe8bd87e95b");
+      expect(digest(cases)).toBe(
+        "824706333d94ce70fc50edc685a4b5e92f4d8bb64cae506e1fb553964a7a94fa",
+      );
+
+      const parsed = JSON.parse(readFileSync(cases, "utf8")) as {
+        version: string;
+        cases: { id: string; eventType: string; identity: Record<string, never> }[];
+      };
+      expect(parsed.version).toBe("design_intent_sealed_challenge_v4_half_a_eventidentity_cases");
+      expect(parsed.cases.map((c) => c.id)).toEqual(half(0).caseIds);
+
+      const cards = (
+        JSON.parse(
+          readFileSync(`${ROOT}${V4_PROVENANCE}half-a/02-situation-cards.json`, "utf8"),
+        ) as { cards: SituationCard[] }
+      ).cards;
+      expect(checkStage2Faithfulness(cards, parsed.cases)).toEqual([]);
+
+      for (const one of parsed.cases) {
+        expect(Object.keys(one).sort()).toEqual(["eventType", "id", "identity"]);
+        const identity = one.identity as unknown as {
+          colorsExplicitlyConstrained: boolean;
+          toneExplicitlyConstrained: boolean;
+          inspirationSummary: string;
+          paletteIntent: { requiredColors: string[]; avoidColors: string[] };
+        };
+        expect({
+          colors: identity.colorsExplicitlyConstrained,
+          tone: identity.toneExplicitlyConstrained,
+          required: identity.paletteIntent.requiredColors,
+          avoided: identity.paletteIntent.avoidColors,
+          inspiration: identity.inspirationSummary,
+        }).toEqual({
+          colors: false,
+          tone: false,
+          required: [],
+          avoided: [],
+          inspiration: "No visual inspiration supplied.",
+        });
+      }
+    });
+
     it("holds half B's frozen cards", () => {
       const cards = `${ROOT}${V4_PROVENANCE}half-b/01-situation-cards.json`;
       if (!existsSync(cards)) return;

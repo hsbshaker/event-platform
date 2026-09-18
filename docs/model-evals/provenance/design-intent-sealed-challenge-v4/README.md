@@ -327,6 +327,76 @@ order.
 **No Stage-2 response exists** for either half — the only files under `stage-2/` are the three
 packets. **No v4 case exists**; the canonical slot is absent. Neither author has been commissioned.
 
+## Half A — Stage 2 received and normalized
+
+| file | role | sha256 | bytes | commit |
+| --- | --- | --- | --- | --- |
+| `half-a/03-stage-2-original-raw.txt` | the author's response, verbatim | `f11181a5032654382410b7a21fe7f0bf49e93624f8e99333e0206fe8bd87e95b` | 18,415 | `bf2fbbc` |
+| `half-a/04-stage-2-eventidentity-cases.json` | **the machine artifact**, syntax-only mapping | `824706333d94ce70fc50edc685a4b5e92f4d8bb64cae506e1fb553964a7a94fa` | 16,343 | this commit |
+
+`version` is `design_intent_sealed_challenge_v4_half_a_eventidentity_cases`, six cases
+`DIC4-P01`–`DIC4-P06` in order.
+
+### The promise the packet made, and how it was kept
+
+The worksheet told the author their wording would not be edited, tightened or improved. That is a
+promise a custodian can only keep literally, so the mapping is a script over the preserved raw file
+rather than a transcription, and it is proven rather than asserted:
+
+- **194 authored strings** were extracted — every inline value and every list item across all six
+  cases — and **all 194 appear verbatim in the raw response**. Not one was reflowed, retyped or
+  tidied.
+- Ordering is the author's throughout: list items keep the sequence they were written in.
+- `id` and `eventType` are taken from the **frozen Stage-1 card**, and equal what the author
+  reproduced.
+- `Host constraints: None.` maps to `[]`. Four of six cases carry `[]`; `DIC4-P01` and `DIC4-P06`
+  carry one each.
+- The only values inserted are the five the packet showed as fixed:
+  `colorsExplicitlyConstrained: false`, `requiredColors: []`, `avoidColors: []`,
+  `toneExplicitlyConstrained: false`, and the exact `inspirationSummary`.
+
+Nothing else was added, removed, repaired or reinterpreted. No substantive design choice was
+touched.
+
+### Validation
+
+| check | result |
+| --- | --- |
+| real `eventIdentityResultSchema`, all six identities | **no problems** |
+| `checkStage2Faithfulness()` against the frozen cards | **`[]`** |
+| top-level keys per case | exactly `id`, `eventType`, `identity` — no `suppliedFacts`, no `notes`, no clarification |
+| version and case order | exact |
+
+**Zero mechanical defects.** Nothing was invalid on length, enum membership, missing field or
+anything else, so nothing had to be stopped on.
+
+### Qualitative diagnostics — recorded, not adjudicated, not returned to the author
+
+Five observations were supplied by the operator for the later Stage-2 faithfulness and semantic
+review. They are recorded here **exactly as flagged**, and normalization did not act on any of them
+— adjudicating them through a mechanical mapping is precisely what a mechanical mapping must not
+do. The human was not re-contacted.
+
+| case | observation |
+| --- | --- |
+| `DIC4-P03` | specifies full structural English/Spanish parity and side-by-side bilingual layout treatment beyond the supplied live-translation fact |
+| `DIC4-P04` | introduces indoor-hall/digital-display imagery and a remote committee participation order not stated by the frozen card |
+| `DIC4-P05` | strongly maps wildlife/safety nouns into literal visual vocabulary, and introduces indoor clinic rooms, outdoor enclosures, fluorescent lighting and bright sunlight not stated by the frozen card |
+| `DIC4-P06` | uses the phrase `whiteboard projection`, which may conflict with the explicit strict no-device policy and physical-whiteboard-only context |
+| `DIC4-P01` | includes inferred farm-oak, porch and meadow visual material — an **inference** diagnostic, not automatically a defect |
+
+What the custodian did check, because a diagnostic record should be accurate about its own anchors
+without judging them: each flagged phrase is present in the normalized identity where stated, and
+**none of the five appears in the corresponding frozen card**. So all five are genuinely Stage-2
+additions rather than carried-over card text. Whether an addition is legitimate creative inference,
+an overreach, or in `DIC4-P06`'s case a contradiction of the card's own no-device fact, is the
+faithfulness review's call and not this step's.
+
+### State
+
+Half B Stage 2 has **not** been commissioned and nothing from it has been observed. No v4 corpus
+exists. The human was not contacted again at any point in this step.
+
 ## Review order
 
 1. mechanical and schema validation;
