@@ -1,0 +1,83 @@
+[
+  {
+    "index": 0,
+    "premise": {
+      "title": "Courtyard Embrace",
+      "register": {
+        "pace": "lingering",
+        "presence": "poised",
+        "surfaceRichness": "layered"
+      },
+      "grounding": [
+        "A courtyard garden interpreted with elegant ease",
+        "Intimate and celebratory rather than themed or ceremonious",
+        "Climbing Mediterranean greenery, garden arches, and trellises",
+        "Aged tile rhythm and climbing foliage preserve an easy domestic welcome"
+      ],
+      "experience": "Arriving should feel immediately welcomed and surrounded by cultivated life—intimate without becoming hushed or formal.",
+      "foregrounds": "The immersive courtyard garden as an intimate, easy welcome.",
+      "distinctFrom": "It offers the most enveloping and hospitable choice, prioritizing the feeling of being held within the garden over citrus-led vivacity or timeworn geometric order.",
+      "organizingIdea": "The garden becomes a hospitable enclosure, drawing guests inward through cultivated growth, architectural forms, and tactile age. The celebration feels already gathered around them rather than presented as a destination theme.",
+      "designConsequences": [
+        "Greenery and architectural garden forms create a gentle sense of enclosure.",
+        "Tactile, time-softened surfaces make refinement feel lived in.",
+        "Botanical detail feels immersive rather than scenic or illustrative.",
+        "Formal cues remain relaxed and domestic rather than ceremonial."
+      ]
+    }
+  },
+  {
+    "index": 1,
+    "premise": {
+      "title": "Ripe Radiance",
+      "register": {
+        "pace": "propulsive",
+        "presence": "poised",
+        "surfaceRichness": "considered"
+      },
+      "grounding": [
+        "Ripe lemons with leaves",
+        "Keep lemons recognizable and richly drawn",
+        "The atmosphere should feel intimate and celebratory",
+        "Warm, gracious, and convivial, with polished simplicity rather than precious baby-themed language"
+      ],
+      "experience": "Guests should feel an immediate lift of warmth and sociability—polished but cheerful, vivid without becoming juvenile.",
+      "foregrounds": "Recognizable ripe lemons as the most convivial and celebratory expression of the garden.",
+      "distinctFrom": "It gives the event its most animated expression, favoring recognizable botanical character and convivial momentum over immersive enclosure or the quieter authority of age and pattern.",
+      "organizingIdea": "Ripeness becomes the pulse: fruit and leaves recur as concentrated moments of sunlit abundance, turning cultivated botanical detail into a lively invitation to gather.",
+      "designConsequences": [
+        "Ripe fruit and leaves carry confident, carefully crafted detail.",
+        "Botanical moments arrive in a lively, selective cadence rather than as blanket decoration.",
+        "Refinement comes from composition and restraint while warmth remains unmistakable.",
+        "The character stays elegant and adult, never cartoonish."
+      ]
+    }
+  },
+  {
+    "index": 2,
+    "premise": {
+      "title": "Weathered Rhythm",
+      "register": {
+        "pace": "measured",
+        "presence": "understated",
+        "surfaceRichness": "considered"
+      },
+      "grounding": [
+        "Time-softened tile",
+        "Weathered courtyard tile geometry",
+        "Softened, timeworn contrast with enough depth to feel established",
+        "Tactile surfaces inspired by limewashed plaster, aged paper, natural linen, and restrained glazed-tile richness"
+      ],
+      "experience": "Arriving should feel grounded and unhurried, with the quiet pleasure of discovering detail that seems softened rather than staged.",
+      "foregrounds": "Time-softened tile geometry and tactile patina as the source of old-world character.",
+      "distinctFrom": "It offers the most structured and quietly enduring choice, drawing character from rhythm, patina, and depth rather than an enveloping garden welcome or citrus-forward energy.",
+      "organizingIdea": "Repetition supplies order, but age and growth loosen it. Weathered geometry becomes a calm underlying rhythm through which patina and cultivated greenery suggest an established, lived-in world.",
+      "designConsequences": [
+        "Geometric rhythm gives the visual world calm, established order.",
+        "Patina softens structure so it feels relaxed rather than ceremonial.",
+        "Tactile surfaces reward close attention without becoming ornate.",
+        "Cultivated greenery gently interrupts the underlying order."
+      ]
+    }
+  }
+]

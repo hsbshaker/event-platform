@@ -1,0 +1,427 @@
+{
+  "index": 1,
+  "presentation": {
+    "name": "Ripe Radiance",
+    "description": "Sunlit lemons punctuate the garden with a polished, convivial energy that feels vivid, grown-up, and warmly inviting."
+  },
+  "premise": {
+    "title": "Ripe Radiance",
+    "register": {
+      "pace": "propulsive",
+      "presence": "poised",
+      "surfaceRichness": "considered"
+    },
+    "grounding": [
+      "Ripe lemons with leaves",
+      "Keep lemons recognizable and richly drawn",
+      "The atmosphere should feel intimate and celebratory",
+      "Warm, gracious, and convivial, with polished simplicity rather than precious baby-themed language"
+    ],
+    "experience": "Guests should feel an immediate lift of warmth and sociability—polished but cheerful, vivid without becoming juvenile.",
+    "foregrounds": "Recognizable ripe lemons as the most convivial and celebratory expression of the garden.",
+    "distinctFrom": "It gives the event its most animated expression, favoring recognizable botanical character and convivial momentum over immersive enclosure or the quieter authority of age and pattern.",
+    "organizingIdea": "Ripeness becomes the pulse: fruit and leaves recur as concentrated moments of sunlit abundance, turning cultivated botanical detail into a lively invitation to gather.",
+    "designConsequences": [
+      "Ripe fruit and leaves carry confident, carefully crafted detail.",
+      "Botanical moments arrive in a lively, selective cadence rather than as blanket decoration.",
+      "Refinement comes from composition and restraint while warmth remains unmistakable.",
+      "The character stays elegant and adult, never cartoonish."
+    ]
+  },
+  "designIntent": {
+    "family": "invitation",
+    "motifs": [
+      "botanical",
+      "linen"
+    ],
+    "density": "compact",
+    "palette": {
+      "colors": [
+        "#F4E7CC",
+        "#8198A3",
+        "#4F6B45",
+        "#E5B72E",
+        "#B66F50"
+      ],
+      "dominant": "#F4E7CC"
+    },
+    "composition": {
+      "rhythm": "punctuated",
+      "ornament": "restrained",
+      "asymmetry": "gentle",
+      "hierarchy": "dramatic",
+      "sectionContrast": "moderate"
+    },
+    "tonalDirection": "light",
+    "typographyPairing": "transitional_newsreader_tight"
+  },
+  "capabilities": {
+    "rsvp": true,
+    "time": true,
+    "gifts": true,
+    "hosts": true,
+    "artwork": true,
+    "cashFund": true,
+    "deadline": true,
+    "location": true,
+    "registry": true,
+    "description": true,
+    "externalRegistry": true
+  },
+  "contentProfile": {
+    "hostsChars": 0,
+    "titleChars": 13,
+    "titleWords": 3,
+    "venueChars": 21,
+    "registryCounts": {
+      "gift": 6,
+      "cashfund": 1,
+      "external": 4
+    },
+    "descriptionChars": 0,
+    "provisionalFields": [
+      "title",
+      "venue",
+      "registry"
+    ]
+  },
+  "compositionRaw": {
+    "version": "composition_v1",
+    "sections": [
+      {
+        "fill": "screen",
+        "kind": "hero",
+        "root": {
+          "t": "Frame",
+          "rule": "hairline",
+          "child": {
+            "t": "Surface",
+            "role": "contrast",
+            "child": {
+              "t": "Split",
+              "align": "stretch",
+              "ratio": "38",
+              "mobile": "stack-reverse",
+              "divider": "none",
+              "children": [
+                {
+                  "t": "Stack",
+                  "gap": "normal",
+                  "align": "start",
+                  "children": [
+                    {
+                      "t": "EventTitle",
+                      "case": "none",
+                      "layout": "block",
+                      "emphasis": "primary"
+                    },
+                    {
+                      "t": "Date",
+                      "form": "numeral",
+                      "emphasis": "display"
+                    },
+                    {
+                      "t": "Date",
+                      "form": "month-year",
+                      "emphasis": "secondary"
+                    },
+                    {
+                      "t": "Rule",
+                      "glyphs": "botanical",
+                      "weight": "hairline"
+                    },
+                    {
+                      "t": "Time",
+                      "emphasis": "primary"
+                    },
+                    {
+                      "t": "Venue",
+                      "emphasis": "primary"
+                    },
+                    {
+                      "t": "Location",
+                      "emphasis": "secondary"
+                    }
+                  ]
+                },
+                {
+                  "t": "MotifField",
+                  "motif": {
+                    "id": "linen",
+                    "role": "field"
+                  },
+                  "extent": "full"
+                }
+              ]
+            },
+            "inset": "deep"
+          },
+          "inset": "normal"
+        },
+        "align": "start",
+        "surface": "base"
+      },
+      {
+        "kind": "rsvp",
+        "root": {
+          "t": "Split",
+          "align": "start",
+          "ratio": "38",
+          "mobile": "stack",
+          "divider": "hairline",
+          "children": [
+            {
+              "t": "Stack",
+              "gap": "normal",
+              "align": "start",
+              "children": [
+                {
+                  "t": "SectionHeading",
+                  "for": "rsvp",
+                  "emphasis": "display"
+                },
+                {
+                  "t": "Deadline",
+                  "emphasis": "secondary"
+                }
+              ]
+            },
+            {
+              "t": "RSVP"
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "alt"
+      },
+      {
+        "kind": "registry",
+        "root": {
+          "t": "Stack",
+          "gap": "normal",
+          "align": "start",
+          "children": [
+            {
+              "t": "SectionHeading",
+              "for": "registry",
+              "emphasis": "primary"
+            },
+            {
+              "t": "Registry",
+              "layout": {
+                "t": "Stack",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "RegistryItem",
+                    "kind": "gift",
+                    "emphasis": "standard"
+                  },
+                  {
+                    "t": "RegistryItem",
+                    "kind": "external",
+                    "emphasis": "standard"
+                  },
+                  {
+                    "t": "RegistryItem",
+                    "kind": "cashfund",
+                    "emphasis": "standard"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "base"
+      }
+    ]
+  },
+  "compositionCanonical": {
+    "version": "composition_v1",
+    "sections": [
+      {
+        "id": "s0",
+        "fill": "screen",
+        "kind": "hero",
+        "root": {
+          "t": "Frame",
+          "id": "s0",
+          "rule": "hairline",
+          "child": {
+            "t": "Surface",
+            "id": "s0.c",
+            "role": "contrast",
+            "child": {
+              "t": "Split",
+              "id": "s0.c.c",
+              "align": "stretch",
+              "ratio": "38",
+              "mobile": "stack-reverse",
+              "divider": "none",
+              "children": [
+                {
+                  "t": "Stack",
+                  "id": "s0.c.c.0",
+                  "gap": "normal",
+                  "align": "start",
+                  "children": [
+                    {
+                      "t": "EventTitle",
+                      "id": "s0.c.c.0.0",
+                      "case": "none",
+                      "layout": "block",
+                      "emphasis": "primary"
+                    },
+                    {
+                      "t": "Date",
+                      "id": "s0.c.c.0.1",
+                      "form": "numeral",
+                      "emphasis": "display"
+                    },
+                    {
+                      "t": "Date",
+                      "id": "s0.c.c.0.2",
+                      "form": "month-year",
+                      "emphasis": "secondary"
+                    },
+                    {
+                      "t": "Rule",
+                      "id": "s0.c.c.0.3",
+                      "glyphs": "botanical",
+                      "weight": "hairline",
+                      "orientation": "h"
+                    },
+                    {
+                      "t": "Time",
+                      "id": "s0.c.c.0.4",
+                      "emphasis": "primary"
+                    },
+                    {
+                      "t": "Venue",
+                      "id": "s0.c.c.0.5",
+                      "emphasis": "primary"
+                    },
+                    {
+                      "t": "Location",
+                      "id": "s0.c.c.0.6",
+                      "emphasis": "secondary"
+                    }
+                  ]
+                },
+                {
+                  "t": "MotifField",
+                  "id": "s0.c.c.1",
+                  "motif": {
+                    "id": "linen",
+                    "role": "field"
+                  },
+                  "extent": "full"
+                }
+              ]
+            },
+            "inset": "deep"
+          },
+          "inset": "normal"
+        },
+        "align": "start",
+        "surface": "base"
+      },
+      {
+        "id": "s1",
+        "fill": "auto",
+        "kind": "rsvp",
+        "root": {
+          "t": "Split",
+          "id": "s1",
+          "align": "start",
+          "ratio": "38",
+          "mobile": "stack",
+          "divider": "hairline",
+          "children": [
+            {
+              "t": "Stack",
+              "id": "s1.0",
+              "gap": "normal",
+              "align": "start",
+              "children": [
+                {
+                  "t": "SectionHeading",
+                  "id": "s1.0.0",
+                  "for": "rsvp",
+                  "emphasis": "display"
+                },
+                {
+                  "t": "Deadline",
+                  "id": "s1.0.1",
+                  "emphasis": "secondary"
+                }
+              ]
+            },
+            {
+              "t": "RSVP",
+              "id": "s1.1"
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "alt"
+      },
+      {
+        "id": "s2",
+        "fill": "auto",
+        "kind": "registry",
+        "root": {
+          "t": "Stack",
+          "id": "s2",
+          "gap": "normal",
+          "align": "start",
+          "children": [
+            {
+              "t": "SectionHeading",
+              "id": "s2.0",
+              "for": "registry",
+              "emphasis": "primary"
+            },
+            {
+              "t": "Registry",
+              "id": "s2.1",
+              "layout": {
+                "t": "Stack",
+                "id": "s2.1.l",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "RegistryItem",
+                    "id": "s2.1.l.0",
+                    "kind": "gift",
+                    "emphasis": "standard"
+                  },
+                  {
+                    "t": "RegistryItem",
+                    "id": "s2.1.l.1",
+                    "kind": "external",
+                    "emphasis": "standard"
+                  },
+                  {
+                    "t": "RegistryItem",
+                    "id": "s2.1.l.2",
+                    "kind": "cashfund",
+                    "emphasis": "standard"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "base"
+      }
+    ]
+  },
+  "compositionHash": "fd010d14",
+  "fallback": null,
+  "artwork": []
+}

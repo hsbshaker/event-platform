@@ -1,0 +1,339 @@
+{
+  "label": "Phase 4G end-to-end creative smoke — Mediterranean shower, from the raw host prompt. Diagnostic/product evidence only. Not a benchmark, not scored, one run.",
+  "live": true,
+  "startedAt": "2026-09-19T14:09:08.342Z",
+  "wallMs": 71756,
+  "outcomeState": "generated",
+  "prompt": {
+    "file": "raw-prompt.txt",
+    "chars": 305
+  },
+  "identity": {
+    "state": "ready",
+    "revisions": 1,
+    "latencyMs": 22930,
+    "clarificationAsked": false,
+    "clarificationRounds": 0
+  },
+  "providerCalls": {
+    "text": 8,
+    "byOperation": {
+      "event_identity": 1,
+      "concept_premise": 1,
+      "design_intent": 3,
+      "composition": 3
+    },
+    "image": {
+      "attempted": 0,
+      "limit": 8,
+      "delivered": 0,
+      "failed": 0
+    }
+  },
+  "latencyMs": {
+    "eventIdentity": 22930,
+    "conceptPremise": [
+      35450
+    ],
+    "designIntent": [
+      6420,
+      7520,
+      9779
+    ],
+    "composition": [
+      25060,
+      25056,
+      25542
+    ],
+    "artwork": [],
+    "firstPreviewableMs": {
+      "0": 71756,
+      "1": 71756,
+      "2": 71756
+    }
+  },
+  "spend": {
+    "textUsd": 0.181403,
+    "imageUsd": 0,
+    "totalUsd": 0.181403,
+    "imageCeilingUsd": 1.5,
+    "imagePerRequestReservationUsd": 0.25,
+    "budget": {
+      "batchCeilingUsd": 1.5,
+      "perRequestEstimateUsd": 0.25,
+      "committedUsd": 0,
+      "settledUsd": 0,
+      "outstanding": 0,
+      "requestsReserved": 0,
+      "closed": false
+    }
+  },
+  "artworkStore": {
+    "id": "diagnostic-local-directory:/home/user/event-platform/docs/model-evals/results/phase-4g-e2e-mediterranean-shower/artwork",
+    "supabaseUploadExercised": false
+  },
+  "imageProvider": {
+    "provider": "openai-images",
+    "model": "gpt-image-2.5-sunburst-2026-09-08"
+  },
+  "concepts": [
+    {
+      "index": 0,
+      "name": "Courtyard Embrace",
+      "description": "A lush, lived-in garden welcome that draws guests close with leafy enclosure, softened age, and easy warmth.",
+      "compositionHash": "5b9dd1e5",
+      "fallback": null,
+      "specId": "b0d7f5b3-4e05-428e-9bc9-b430ac30aa09"
+    },
+    {
+      "index": 1,
+      "name": "Ripe Radiance",
+      "description": "Sunlit lemons punctuate the garden with a polished, convivial energy that feels vivid, grown-up, and warmly inviting.",
+      "compositionHash": "fd010d14",
+      "fallback": null,
+      "specId": "4f0dcb48-5645-4350-a8f0-c23768037a98"
+    },
+    {
+      "index": 2,
+      "name": "Weathered Rhythm",
+      "description": "A calm, tactile world where time-softened geometry is gently loosened by cultivated greenery.",
+      "compositionHash": "97c66ba1",
+      "fallback": null,
+      "specId": "71dba0ae-9ea9-46fc-b58c-71178ffe703f"
+    }
+  ],
+  "resolvedSpecs": [
+    {
+      "conceptIndex": 0,
+      "id": "b0d7f5b3-4e05-428e-9bc9-b430ac30aa09",
+      "revision": 1,
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "EB Garamond",
+            "Work Sans"
+          ],
+          "required": [
+            "EB Garamond",
+            "Work Sans"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 688.8,
+          "clientWidth": 390,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 5,
+          "textOverLimit": 0,
+          "documentHeight": 844,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 900.66,
+          "clientWidth": 1280,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 5,
+          "textOverLimit": 0,
+          "documentHeight": 949,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      }
+    },
+    {
+      "conceptIndex": 1,
+      "id": "4f0dcb48-5645-4350-a8f0-c23768037a98",
+      "revision": 1,
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "Newsreader",
+            "Inter Tight"
+          ],
+          "required": [
+            "Newsreader",
+            "Inter Tight"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 779.66,
+          "clientWidth": 390,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 5,
+          "textOverLimit": 0,
+          "documentHeight": 844,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 1021.45,
+          "clientWidth": 1280,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 5,
+          "textOverLimit": 0,
+          "documentHeight": 1021,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      }
+    },
+    {
+      "conceptIndex": 2,
+      "id": "71dba0ae-9ea9-46fc-b58c-71178ffe703f",
+      "revision": 1,
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "Fraunces",
+            "Manrope"
+          ],
+          "required": [
+            "Fraunces",
+            "Manrope"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 607.67,
+          "clientWidth": 390,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 4,
+          "textOverLimit": 0,
+          "documentHeight": 844,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 640,
+          "clientWidth": 1280,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 4,
+          "textOverLimit": 0,
+          "documentHeight": 800,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      }
+    }
+  ],
+  "pageSizes": {
+    "concept-1-mobile": {
+      "width": 390,
+      "height": 900
+    },
+    "concept-1-desktop": {
+      "width": 1280,
+      "height": 949
+    },
+    "concept-2-mobile": {
+      "width": 390,
+      "height": 900
+    },
+    "concept-2-desktop": {
+      "width": 1280,
+      "height": 1021
+    },
+    "concept-3-mobile": {
+      "width": 390,
+      "height": 900
+    },
+    "concept-3-desktop": {
+      "width": 1280,
+      "height": 900
+    }
+  },
+  "content": {
+    "title": "A baby shower",
+    "date": "Saturday, December 12, 2026",
+    "dayNumeral": "12",
+    "monthShort": "Dec",
+    "year": "2026",
+    "weekday": "Saturday",
+    "time": "1:00 PM",
+    "venue": "Venue to be announced",
+    "deadline": "Kindly respond by November 28"
+  }
+}

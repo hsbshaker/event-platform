@@ -1,0 +1,89 @@
+{
+  "revisions": 1,
+  "state": "ready",
+  "hasAuthoritativeIdentity": true,
+  "latencyMs": 22930,
+  "promptVersion": "event_identity_v5",
+  "schemaVersion": "event_identity_schema_v5",
+  "inputAssemblyVersion": "event_identity_input_v2",
+  "result": {
+    "identity": {
+      "copyTone": "Warm, gracious, and convivial, with polished simplicity rather than precious baby-themed language.",
+      "tonalIntent": "A luminous light-to-mid tonal world with softened, timeworn contrast and enough depth in the greenery and tile colors to feel established rather than pastel.",
+      "toneKeywords": [
+        "sun-warmed",
+        "elegant",
+        "relaxed",
+        "old-world",
+        "garden-rich",
+        "intimate"
+      ],
+      "visualMotifs": [
+        "ripe lemons with leaves",
+        "climbing Mediterranean greenery",
+        "weathered courtyard tile geometry",
+        "garden arches and trellises",
+        "subtle citrus blossom details"
+      ],
+      "paletteIntent": {
+        "avoidColors": [],
+        "dominanceNotes": "Let warm ivory lead, with faded blue and greenery as substantial supporting colors; keep lemon yellow and terracotta as selective, sunlit accents.",
+        "requiredColors": [
+          "warm ivory",
+          "faded blue"
+        ],
+        "preferredColors": [
+          "leafy Mediterranean green",
+          "natural lemon yellow accents",
+          "weathered terracotta notes"
+        ]
+      },
+      "hostConstraints": [
+        "not nautical",
+        "not cartoonish",
+        "not overly formal"
+      ],
+      "creativeGuidance": [
+        "Treat the courtyard garden as an immersive material world rather than a literal destination theme.",
+        "Keep lemons recognizable and richly drawn; refinement should come from craft, composition, and color rather than muting their warmth.",
+        "Use aged tile rhythm and climbing foliage to provide structure while preserving an easy domestic welcome."
+      ],
+      "textureDirection": "Sun-softened, tactile surfaces inspired by limewashed plaster, aged paper, natural linen, and restrained glazed-tile richness.",
+      "creativeDirection": "A sun-warmed, old-world Mediterranean courtyard garden interpreted with elegant ease: cultivated greenery, ripe lemons, time-softened tile, warm ivory, and faded blue. The atmosphere should feel intimate and celebratory rather than themed, juvenile, or ceremonious.",
+      "compatibleFamilies": [
+        "invitation",
+        "editorial"
+      ],
+      "inspirationSummary": "No visual inspiration supplied.",
+      "typographyDirection": "Cultivated old-world serif character with graceful hierarchy and relaxed supporting text; refined but neither ornate nor ceremonious.",
+      "compatibleTonalDirections": [
+        "light",
+        "mid"
+      ],
+      "toneExplicitlyConstrained": false,
+      "colorsExplicitlyConstrained": true,
+      "compatibleTypographyCategories": [
+        "oldstyle",
+        "high_contrast_editorial",
+        "transitional",
+        "soft_serif"
+      ]
+    },
+    "clarification": {
+      "needed": false,
+      "questions": []
+    },
+    "suppliedFacts": {
+      "dateText": null,
+      "timeText": "afternoon",
+      "eventType": "afternoon shower",
+      "hostNames": null,
+      "venueText": "at home",
+      "addressText": null,
+      "honoreeName": null,
+      "localityText": null,
+      "rsvpDeadlineText": null,
+      "honoreeDescriptionText": "My sister"
+    }
+  }
+}

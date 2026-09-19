@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 4G — Mediterranean shower, end to end</title>
+<style>
+  :root { color-scheme: light dark; --ink:#1b1b1a; --bg:#fbfaf7; --line:#d9d5cc; --quiet:#6b675f; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#eee; --bg:#151513; --line:#3a3730; --quiet:#a29c92; } }
+  body { margin:0; padding:32px 16px 96px; background:var(--bg); color:var(--ink);
+         font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+         max-width:1180px; margin-inline:auto; }
+  h1 { font-size:1.55rem; margin:0 0 4px; } h2 { font-size:1.2rem; margin:0 0 2px; }
+  h3 { font-size:.95rem; margin:24px 0 8px; text-transform:uppercase; letter-spacing:.06em; color:var(--quiet); }
+  .note { border:1px solid var(--line); border-left-width:4px; padding:12px 14px; margin:14px 0; border-radius:6px; }
+  .quiet { color:var(--quiet); }
+  .blurb { margin:0 0 14px; color:var(--quiet); }
+  .concept { border-top:1px solid var(--line); padding-top:28px; margin-top:36px; }
+  dl { display:grid; grid-template-columns:max-content 1fr; gap:6px 18px; margin:0 0 8px; }
+  dt { color:var(--quiet); font-size:.85rem; } dd { margin:0; }
+  .palette { display:flex; flex-wrap:wrap; gap:8px; }
+  .sw { display:inline-flex; align-items:center; gap:6px; font:12px ui-monospace,monospace; }
+  .sw i { width:15px; height:15px; border-radius:3px; border:1px solid var(--line); display:inline-block; }
+  table { border-collapse:collapse; width:100%; font-size:.88rem; }
+  th, td { text-align:left; border-bottom:1px solid var(--line); padding:6px 10px; vertical-align:top; }
+  .renders { display:flex; flex-wrap:wrap; gap:18px; margin-top:14px; align-items:flex-start; }
+  .renders figure { margin:0; } .renders img { max-width:100%; border:1px solid var(--line); border-radius:4px; display:block; }
+  .renders figcaption, .thumb figcaption { font-size:.78rem; color:var(--quiet); padding-top:5px; }
+  .thumb { margin:12px 12px 0 0; display:inline-block;
+    background:repeating-conic-gradient(#0000 0 25%, #8884 0 50%) 0 0/18px 18px; }
+  .thumb img { max-width:200px; display:block; }
+  details { margin-top:16px; } summary { cursor:pointer; color:var(--quiet); font-size:.9rem; }
+  ol.q { counter-reset:q; list-style:none; padding:0; } ol.q li { padding:7px 0 7px 32px; position:relative; border-bottom:1px solid var(--line); }
+  ol.q li::before { counter-increment:q; content:counter(q); position:absolute; left:0; color:var(--quiet); font-variant-numeric:tabular-nums; }
+  @media (max-width:640px) { dl { grid-template-columns:1fr; } body { padding-inline:16px; } }
+</style></head><body>
+
+<h1>Phase 4G — one raw prompt, end to end</h1>
+<p class="quiet">Mediterranean shower. One run, one seed, diagnostic evidence only.</p>
+
+<div class="note"><strong>Nothing here is scored.</strong> No beauty, wow, originality,
+personalization or winner; no ranking and no recommendation. No model was asked to look at any of
+it. The twelve questions at the foot are the operator's, and they are left open on purpose.</div>
+
+<div class="note"><strong>Creative material and telemetry are kept apart.</strong> What the system
+made is above; what it cost and how long it took is below. A number folded into a judgement is a
+judgement this page is not entitled to make.</div>
+
+<div class="note"><strong>No Supabase Storage upload was exercised.</strong> The run used a
+diagnostic local-directory store behind the <code>ArtworkAssetStore</code> port
+(<code>diagnostic-local-directory:/home/user/event-platform/docs/model-evals/results/phase-4g-e2e-mediterranean-shower/artwork</code>).</div>
+
+<h3>The host's words</h3>
+<p>See <code>raw-prompt.txt</code>. The system's own reading of them:</p>
+<p><em>A sun-warmed, old-world Mediterranean courtyard garden interpreted with elegant ease: cultivated greenery, ripe lemons, time-softened tile, warm ivory, and faded blue. The atmosphere should feel intimate and celebratory rather than themed, juvenile, or ceremonious.</em></p>
+<p class="quiet">Tone: sun-warmed · elegant · relaxed · old-world · garden-rich · intimate</p>
+
+
+<section class="concept">
+  <h2>1. Courtyard Embrace</h2>
+  <p class="blurb">A lush, lived-in garden welcome that draws guests close with leafy enclosure, softened age, and easy warmth.</p>
+  <dl>
+    <dt>Premise</dt><dd><strong>Courtyard Embrace</strong> — The garden becomes a hospitable enclosure, drawing guests inward through cultivated growth, architectural forms, and tactile age. The celebration feels already gathered around them rather than presented as a destination theme.</dd>
+    <dt>Creative direction</dt><dd>A sun-warmed, old-world Mediterranean courtyard garden interpreted with elegant ease: cultivated greenery, ripe lemons, time-softened tile, warm ivory, and faded blue. The atmosphere should feel intimate and celebratory rather than themed, juvenile, or ceremonious.</dd>
+    <dt>Design family</dt><dd>editorial · density spacious · ornament decorative</dd>
+    <dt>Typography</dt><dd>oldstyle_garamond_worksans</dd>
+    <dt>Palette</dt><dd class="palette"><span class="sw" title="#1F1A10"><i style="background:#1F1A10"></i>#1F1A10</span><span class="sw" title="#78000E"><i style="background:#78000E"></i>#78000E</span><span class="sw" title="#345163"><i style="background:#345163"></i>#345163</span><span class="sw" title="#294658"><i style="background:#294658"></i>#294658</span><span class="sw" title="#5B513D"><i style="background:#5B513D"></i>#5B513D</span><span class="sw" title="#4A412D"><i style="background:#4A412D"></i>#4A412D</span><span class="sw" title="#FEEDEC"><i style="background:#FEEDEC"></i>#FEEDEC</span><span class="sw" title="#3D372B"><i style="background:#3D372B"></i>#3D372B</span><span class="sw" title="#E7F4FD"><i style="background:#E7F4FD"></i>#E7F4FD</span><span class="sw" title="#F7F1E5"><i style="background:#F7F1E5"></i>#F7F1E5</span><span class="sw" title="#B6AD9A"><i style="background:#B6AD9A"></i>#B6AD9A</span><span class="sw" title="#C9C4B7"><i style="background:#C9C4B7"></i>#C9C4B7</span><span class="sw" title="#121C23"><i style="background:#121C23"></i>#121C23</span><span class="sw" title="#99B9CE"><i style="background:#99B9CE"></i>#99B9CE</span><span class="sw" title="#F1EBDC"><i style="background:#F1EBDC"></i>#F1EBDC</span><span class="sw" title="#2B2310"><i style="background:#2B2310"></i>#2B2310</span></dd>
+    <dt>Visual vocabulary</dt><dd>botanical, linen, stripe</dd>
+    <dt>Geometry</dt><dd>clean at 390 and 1280 · 390×900 · 1280×949</dd>
+  </dl>
+  <h3>Artwork</h3>
+  <p class="quiet">No artwork was reserved for this direction. Check <code>capabilities.artwork</code> in this concept's JSON before reading that as a refusal: true means the optionality gate allowed it and the primitive, its nesting and its limits were all in the request, so the composition declined something it was shown.</p>
+  <div class="renders">
+    <figure><img src="concept-1-mobile.png" alt=""><figcaption>390</figcaption></figure>
+    <figure><img src="concept-1-desktop.png" alt=""><figcaption>1280</figcaption></figure>
+  </div>
+  
+</section>
+<section class="concept">
+  <h2>2. Ripe Radiance</h2>
+  <p class="blurb">Sunlit lemons punctuate the garden with a polished, convivial energy that feels vivid, grown-up, and warmly inviting.</p>
+  <dl>
+    <dt>Premise</dt><dd><strong>Ripe Radiance</strong> — Ripeness becomes the pulse: fruit and leaves recur as concentrated moments of sunlit abundance, turning cultivated botanical detail into a lively invitation to gather.</dd>
+    <dt>Creative direction</dt><dd>A sun-warmed, old-world Mediterranean courtyard garden interpreted with elegant ease: cultivated greenery, ripe lemons, time-softened tile, warm ivory, and faded blue. The atmosphere should feel intimate and celebratory rather than themed, juvenile, or ceremonious.</dd>
+    <dt>Design family</dt><dd>invitation · density compact · ornament restrained</dd>
+    <dt>Typography</dt><dd>transitional_newsreader_tight</dd>
+    <dt>Palette</dt><dd class="palette"><span class="sw" title="#241F14"><i style="background:#241F14"></i>#241F14</span><span class="sw" title="#9E2225"><i style="background:#9E2225"></i>#9E2225</span><span class="sw" title="#627883"><i style="background:#627883"></i>#627883</span><span class="sw" title="#465C66"><i style="background:#465C66"></i>#465C66</span><span class="sw" title="#8A7F69"><i style="background:#8A7F69"></i>#8A7F69</span><span class="sw" title="#62573F"><i style="background:#62573F"></i>#62573F</span><span class="sw" title="#FFF2F0"><i style="background:#FFF2F0"></i>#FFF2F0</span><span class="sw" title="#5E574A"><i style="background:#5E574A"></i>#5E574A</span><span class="sw" title="#E9F8FF"><i style="background:#E9F8FF"></i>#E9F8FF</span><span class="sw" title="#FBF5E8"><i style="background:#FBF5E8"></i>#FBF5E8</span><span class="sw" title="#F0E7D3"><i style="background:#F0E7D3"></i>#F0E7D3</span><span class="sw" title="#152127"><i style="background:#152127"></i>#152127</span><span class="sw" title="#CDE6F2"><i style="background:#CDE6F2"></i>#CDE6F2</span><span class="sw" title="#F5EEE0"><i style="background:#F5EEE0"></i>#F5EEE0</span><span class="sw" title="#271E08"><i style="background:#271E08"></i>#271E08</span></dd>
+    <dt>Visual vocabulary</dt><dd>botanical, linen</dd>
+    <dt>Geometry</dt><dd>clean at 390 and 1280 · 390×900 · 1280×1021</dd>
+  </dl>
+  <h3>Artwork</h3>
+  <p class="quiet">No artwork was reserved for this direction. Check <code>capabilities.artwork</code> in this concept's JSON before reading that as a refusal: true means the optionality gate allowed it and the primitive, its nesting and its limits were all in the request, so the composition declined something it was shown.</p>
+  <div class="renders">
+    <figure><img src="concept-2-mobile.png" alt=""><figcaption>390</figcaption></figure>
+    <figure><img src="concept-2-desktop.png" alt=""><figcaption>1280</figcaption></figure>
+  </div>
+  
+</section>
+<section class="concept">
+  <h2>3. Weathered Rhythm</h2>
+  <p class="blurb">A calm, tactile world where time-softened geometry is gently loosened by cultivated greenery.</p>
+  <dl>
+    <dt>Premise</dt><dd><strong>Weathered Rhythm</strong> — Repetition supplies order, but age and growth loosen it. Weathered geometry becomes a calm underlying rhythm through which patina and cultivated greenery suggest an established, lived-in world.</dd>
+    <dt>Creative direction</dt><dd>A sun-warmed, old-world Mediterranean courtyard garden interpreted with elegant ease: cultivated greenery, ripe lemons, time-softened tile, warm ivory, and faded blue. The atmosphere should feel intimate and celebratory rather than themed, juvenile, or ceremonious.</dd>
+    <dt>Design family</dt><dd>invitation · density balanced · ornament restrained</dd>
+    <dt>Typography</dt><dd>soft_fraunces_manrope</dd>
+    <dt>Palette</dt><dd class="palette"><span class="sw" title="#241F14"><i style="background:#241F14"></i>#241F14</span><span class="sw" title="#9E2225"><i style="background:#9E2225"></i>#9E2225</span><span class="sw" title="#5F7889"><i style="background:#5F7889"></i>#5F7889</span><span class="sw" title="#435C6B"><i style="background:#435C6B"></i>#435C6B</span><span class="sw" title="#8A7F69"><i style="background:#8A7F69"></i>#8A7F69</span><span class="sw" title="#615742"><i style="background:#615742"></i>#615742</span><span class="sw" title="#FFF2F0"><i style="background:#FFF2F0"></i>#FFF2F0</span><span class="sw" title="#5E574A"><i style="background:#5E574A"></i>#5E574A</span><span class="sw" title="#EBF7FF"><i style="background:#EBF7FF"></i>#EBF7FF</span><span class="sw" title="#FBF4E8"><i style="background:#FBF4E8"></i>#FBF4E8</span><span class="sw" title="#F1E7D3"><i style="background:#F1E7D3"></i>#F1E7D3</span><span class="sw" title="#162128"><i style="background:#162128"></i>#162128</span><span class="sw" title="#CAE6F8"><i style="background:#CAE6F8"></i>#CAE6F8</span><span class="sw" title="#F5EEE0"><i style="background:#F5EEE0"></i>#F5EEE0</span><span class="sw" title="#271E0B"><i style="background:#271E0B"></i>#271E0B</span></dd>
+    <dt>Visual vocabulary</dt><dd>linen, botanical</dd>
+    <dt>Geometry</dt><dd>clean at 390 and 1280 · 390×900 · 1280×900</dd>
+  </dl>
+  <h3>Artwork</h3>
+  <p class="quiet">No artwork was reserved for this direction. Check <code>capabilities.artwork</code> in this concept's JSON before reading that as a refusal: true means the optionality gate allowed it and the primitive, its nesting and its limits were all in the request, so the composition declined something it was shown.</p>
+  <div class="renders">
+    <figure><img src="concept-3-mobile.png" alt=""><figcaption>390</figcaption></figure>
+    <figure><img src="concept-3-desktop.png" alt=""><figcaption>1280</figcaption></figure>
+  </div>
+  
+</section>
+
+<section class="concept">
+<h2>Telemetry</h2>
+<table>
+  <tr><th>Total wall time</th><td>71.8s</td></tr>
+  <tr><th>EventIdentity</th><td>22.9s</td></tr>
+  <tr><th>Clarification</th><td>not asked</td></tr>
+  <tr><th>ConceptPremise</th><td>35.5s</td></tr>
+  <tr><th>DesignIntent</th><td>6.4s, 7.5s, 9.8s</td></tr>
+  <tr><th>Composition</th><td>25.1s, 25.1s, 25.5s</td></tr>
+  <tr><th>Artwork</th><td>—</td></tr>
+  <tr><th>First previewable, per concept</th><td>#1 71.8s · #2 71.8s · #3 71.8s</td></tr>
+  <tr><th>Text provider calls</th><td>8 — event_identity 1, concept_premise 1, design_intent 3, composition 3</td></tr>
+  <tr><th>Re-prompts</th><td>none</td></tr>
+  <tr><th>Image attempts</th><td>0 of 8 · delivered 0 · failed 0</td></tr>
+  <tr><th>Text cost</th><td>$0.1814</td></tr>
+  <tr><th>Image cost</th><td>$0.0000 of a $1.50 ceiling</td></tr>
+  <tr><th>Total</th><td>$0.1814</td></tr>
+  <tr><th>Geometry</th><td>clean at 390 and 1280 on every concept</td></tr>
+  <tr><th>Models</th><td>text gpt-5.6-sol · image gpt-image-2.5-sunburst-2026-09-08</td></tr>
+</table>
+</section>
+
+<section class="concept">
+<h2>For the operator</h2>
+<p class="quiet">Deliberately unanswered, here and in the report.</p>
+<ol class="q"><li>Did the system understand the original host request?</li><li>Are all three concepts faithful to that same event?</li><li>Are they genuinely different creative choices?</li><li>Do they look designed, rather than merely generated?</li><li>Does each concept feel internally coherent?</li><li>Does the visual language carry across the whole page?</li><li>Does anything feel like disconnected AI pieces stitched together?</li><li>Is artwork used where it helps rather than because it exists?</li><li>Are concepts personalized enough that the host would be excited to choose one?</li><li>Does the experience feel like watching the user's idea come to life?</li><li>Does the result require “rescue” before it feels usable?</li><li>Would a real user plausibly think “I want one of these”?</li></ol>
+</section>
+
+</body></html>

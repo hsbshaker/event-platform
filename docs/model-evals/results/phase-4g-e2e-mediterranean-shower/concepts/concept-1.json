@@ -1,0 +1,478 @@
+{
+  "index": 0,
+  "presentation": {
+    "name": "Courtyard Embrace",
+    "description": "A lush, lived-in garden welcome that draws guests close with leafy enclosure, softened age, and easy warmth."
+  },
+  "premise": {
+    "title": "Courtyard Embrace",
+    "register": {
+      "pace": "lingering",
+      "presence": "poised",
+      "surfaceRichness": "layered"
+    },
+    "grounding": [
+      "A courtyard garden interpreted with elegant ease",
+      "Intimate and celebratory rather than themed or ceremonious",
+      "Climbing Mediterranean greenery, garden arches, and trellises",
+      "Aged tile rhythm and climbing foliage preserve an easy domestic welcome"
+    ],
+    "experience": "Arriving should feel immediately welcomed and surrounded by cultivated life—intimate without becoming hushed or formal.",
+    "foregrounds": "The immersive courtyard garden as an intimate, easy welcome.",
+    "distinctFrom": "It offers the most enveloping and hospitable choice, prioritizing the feeling of being held within the garden over citrus-led vivacity or timeworn geometric order.",
+    "organizingIdea": "The garden becomes a hospitable enclosure, drawing guests inward through cultivated growth, architectural forms, and tactile age. The celebration feels already gathered around them rather than presented as a destination theme.",
+    "designConsequences": [
+      "Greenery and architectural garden forms create a gentle sense of enclosure.",
+      "Tactile, time-softened surfaces make refinement feel lived in.",
+      "Botanical detail feels immersive rather than scenic or illustrative.",
+      "Formal cues remain relaxed and domestic rather than ceremonial."
+    ]
+  },
+  "designIntent": {
+    "family": "editorial",
+    "motifs": [
+      "botanical",
+      "linen",
+      "stripe"
+    ],
+    "density": "spacious",
+    "palette": {
+      "colors": [
+        "#F2E7CF",
+        "#708FA3",
+        "#486B4A",
+        "#E3B63F",
+        "#B66F52"
+      ],
+      "dominant": "#F2E7CF"
+    },
+    "composition": {
+      "rhythm": "continuous",
+      "ornament": "decorative",
+      "asymmetry": "gentle",
+      "hierarchy": "editorial",
+      "sectionContrast": "moderate"
+    },
+    "tonalDirection": "mid",
+    "typographyPairing": "oldstyle_garamond_worksans"
+  },
+  "capabilities": {
+    "rsvp": true,
+    "time": true,
+    "gifts": true,
+    "hosts": true,
+    "artwork": true,
+    "cashFund": true,
+    "deadline": true,
+    "location": true,
+    "registry": true,
+    "description": true,
+    "externalRegistry": true
+  },
+  "contentProfile": {
+    "hostsChars": 0,
+    "titleChars": 13,
+    "titleWords": 3,
+    "venueChars": 21,
+    "registryCounts": {
+      "gift": 6,
+      "cashfund": 1,
+      "external": 4
+    },
+    "descriptionChars": 0,
+    "provisionalFields": [
+      "title",
+      "venue",
+      "registry"
+    ]
+  },
+  "compositionRaw": {
+    "version": "composition_v1",
+    "sections": [
+      {
+        "fill": "screen",
+        "kind": "hero",
+        "root": {
+          "t": "Surface",
+          "role": "contrast",
+          "child": {
+            "t": "Split",
+            "align": "center",
+            "ratio": "38",
+            "mobile": "stack-reverse",
+            "divider": "hairline",
+            "children": [
+              {
+                "t": "Stack",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Date",
+                    "form": "full",
+                    "emphasis": "primary"
+                  },
+                  {
+                    "t": "Time",
+                    "emphasis": "secondary"
+                  }
+                ]
+              },
+              {
+                "t": "Stack",
+                "gap": "normal",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Eyebrow",
+                    "case": "upper",
+                    "emphasis": "caption"
+                  },
+                  {
+                    "t": "EventTitle",
+                    "layout": "block",
+                    "emphasis": "display"
+                  },
+                  {
+                    "t": "Glyph",
+                    "motif": "botanical",
+                    "scale": "s"
+                  },
+                  {
+                    "t": "Venue",
+                    "emphasis": "primary"
+                  },
+                  {
+                    "t": "Location",
+                    "emphasis": "secondary"
+                  },
+                  {
+                    "t": "CTA",
+                    "style": "button",
+                    "target": "rsvp"
+                  }
+                ]
+              }
+            ]
+          },
+          "inset": "deep"
+        },
+        "align": "start",
+        "surface": "base"
+      },
+      {
+        "kind": "band",
+        "root": {
+          "t": "MotifBand",
+          "fill": "pattern",
+          "motif": {
+            "id": "stripe",
+            "role": "band"
+          },
+          "height": "thin"
+        },
+        "surface": "base"
+      },
+      {
+        "kind": "rsvp",
+        "root": {
+          "t": "Stack",
+          "gap": "loose",
+          "children": [
+            {
+              "t": "Surface",
+              "role": "accent",
+              "child": {
+                "t": "SectionHeading",
+                "for": "rsvp",
+                "emphasis": "display"
+              },
+              "inset": "tight"
+            },
+            {
+              "t": "Split",
+              "align": "start",
+              "ratio": "38",
+              "mobile": "stack",
+              "divider": "none",
+              "children": [
+                {
+                  "t": "Deadline",
+                  "emphasis": "primary"
+                },
+                {
+                  "t": "RSVP"
+                }
+              ]
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "alt"
+      },
+      {
+        "kind": "registry",
+        "root": {
+          "t": "Frame",
+          "rule": "hairline",
+          "child": {
+            "t": "Stack",
+            "gap": "loose",
+            "children": [
+              {
+                "t": "SectionHeading",
+                "for": "registry",
+                "emphasis": "display"
+              },
+              {
+                "t": "Registry",
+                "layout": {
+                  "t": "Stack",
+                  "gap": "normal",
+                  "children": [
+                    {
+                      "t": "RegistryItem",
+                      "kind": "gift",
+                      "emphasis": "standard"
+                    },
+                    {
+                      "t": "RegistryItem",
+                      "kind": "external",
+                      "emphasis": "standard"
+                    },
+                    {
+                      "t": "RegistryItem",
+                      "kind": "cashfund",
+                      "emphasis": "standard"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "inset": "deep",
+          "motif": {
+            "id": "linen",
+            "role": "frame"
+          }
+        },
+        "align": "start",
+        "surface": "base"
+      }
+    ]
+  },
+  "compositionCanonical": {
+    "version": "composition_v1",
+    "sections": [
+      {
+        "id": "s0",
+        "fill": "screen",
+        "kind": "hero",
+        "root": {
+          "t": "Surface",
+          "id": "s0",
+          "role": "contrast",
+          "child": {
+            "t": "Split",
+            "id": "s0.c",
+            "align": "center",
+            "ratio": "38",
+            "mobile": "stack-reverse",
+            "divider": "hairline",
+            "children": [
+              {
+                "t": "Stack",
+                "id": "s0.c.0",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Date",
+                    "id": "s0.c.0.0",
+                    "form": "full",
+                    "emphasis": "primary"
+                  },
+                  {
+                    "t": "Time",
+                    "id": "s0.c.0.1",
+                    "emphasis": "secondary"
+                  }
+                ]
+              },
+              {
+                "t": "Stack",
+                "id": "s0.c.1",
+                "gap": "normal",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Eyebrow",
+                    "id": "s0.c.1.0",
+                    "case": "upper",
+                    "emphasis": "caption"
+                  },
+                  {
+                    "t": "EventTitle",
+                    "id": "s0.c.1.1",
+                    "case": "none",
+                    "layout": "block",
+                    "emphasis": "display"
+                  },
+                  {
+                    "t": "Glyph",
+                    "id": "s0.c.1.2",
+                    "motif": "botanical",
+                    "scale": "s"
+                  },
+                  {
+                    "t": "Venue",
+                    "id": "s0.c.1.3",
+                    "emphasis": "primary"
+                  },
+                  {
+                    "t": "Location",
+                    "id": "s0.c.1.4",
+                    "emphasis": "secondary"
+                  },
+                  {
+                    "t": "CTA",
+                    "id": "s0.c.1.5",
+                    "style": "button",
+                    "target": "rsvp"
+                  }
+                ]
+              }
+            ]
+          },
+          "inset": "deep"
+        },
+        "align": "start",
+        "surface": "base"
+      },
+      {
+        "id": "s1",
+        "fill": "auto",
+        "kind": "band",
+        "root": {
+          "t": "MotifBand",
+          "id": "s1",
+          "fill": "pattern",
+          "motif": {
+            "id": "stripe",
+            "role": "band"
+          },
+          "height": "thin"
+        },
+        "align": "start",
+        "surface": "base"
+      },
+      {
+        "id": "s2",
+        "fill": "auto",
+        "kind": "rsvp",
+        "root": {
+          "t": "Stack",
+          "id": "s2",
+          "gap": "loose",
+          "children": [
+            {
+              "t": "Surface",
+              "id": "s2.0",
+              "role": "accent",
+              "child": {
+                "t": "SectionHeading",
+                "id": "s2.0.c",
+                "for": "rsvp",
+                "emphasis": "display"
+              },
+              "inset": "tight"
+            },
+            {
+              "t": "Split",
+              "id": "s2.1",
+              "align": "start",
+              "ratio": "38",
+              "mobile": "stack",
+              "divider": "none",
+              "children": [
+                {
+                  "t": "Deadline",
+                  "id": "s2.1.0",
+                  "emphasis": "primary"
+                },
+                {
+                  "t": "RSVP",
+                  "id": "s2.1.1"
+                }
+              ]
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "alt"
+      },
+      {
+        "id": "s3",
+        "fill": "auto",
+        "kind": "registry",
+        "root": {
+          "t": "Frame",
+          "id": "s3",
+          "rule": "hairline",
+          "child": {
+            "t": "Stack",
+            "id": "s3.c",
+            "gap": "loose",
+            "children": [
+              {
+                "t": "SectionHeading",
+                "id": "s3.c.0",
+                "for": "registry",
+                "emphasis": "display"
+              },
+              {
+                "t": "Registry",
+                "id": "s3.c.1",
+                "layout": {
+                  "t": "Stack",
+                  "id": "s3.c.1.l",
+                  "gap": "normal",
+                  "children": [
+                    {
+                      "t": "RegistryItem",
+                      "id": "s3.c.1.l.0",
+                      "kind": "gift",
+                      "emphasis": "standard"
+                    },
+                    {
+                      "t": "RegistryItem",
+                      "id": "s3.c.1.l.1",
+                      "kind": "external",
+                      "emphasis": "standard"
+                    },
+                    {
+                      "t": "RegistryItem",
+                      "id": "s3.c.1.l.2",
+                      "kind": "cashfund",
+                      "emphasis": "standard"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "inset": "deep",
+          "motif": {
+            "id": "linen",
+            "role": "frame"
+          }
+        },
+        "align": "start",
+        "surface": "base"
+      }
+    ]
+  },
+  "compositionHash": "5b9dd1e5",
+  "fallback": null,
+  "artwork": []
+}
