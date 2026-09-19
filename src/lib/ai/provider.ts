@@ -1,8 +1,9 @@
 /**
  * Thin model-provider boundary — docs/technology-decisions.md §8, spec.md §9.1.
  *
- * These four capabilities are the only frontier creative operations in MVP — three until the T22
- * diagnostic, which is recorded in `docs/designintent-sibling-convergence.md`.
+ * These four capabilities are the frontier creative operations in MVP — three until the T22
+ * diagnostic, which is recorded in `docs/designintent-sibling-convergence.md` — plus the optional
+ * artwork capability described below, which is the only one that is not required of a provider.
  * Provider SDK calls, model names, request formatting, usage parsing and
  * request IDs live behind them. The compiler/renderer is NOT part of this
  * layer (spec.md §9.3): validation, repair, palette, layout and geometry
@@ -11,11 +12,38 @@
  * Phase 4 supplies the implementation together with spend controls
  * (docs/development-plan.md, principle 4). Until then `getAiProvider()` throws,
  * so no code path can call a model by accident (spec.md §32 #4).
+ *
+ * # The fifth entry: artwork
+ *
+ * `spec.md §7.6a` approves optional AI-generated thematic artwork for Phase 4, so the boundary
+ * grows an artwork capability — same thin shape, same rule that SDKs, model names and usage
+ * parsing live behind it. It is the fifth creative operation, not a fifth kind of infrastructure,
+ * which is the test `docs/technology-decisions.md §8` applied when `generateConceptPremiseSet`
+ * was added as the fourth.
+ *
+ * Three things about it are deliberately unlike the other four, each for a reason canon states:
+ *
+ * - **`generateVisualArt` is optional on this interface.** `spec.md §7.6a #1` makes imagery
+ *   "optional, and chosen by the creative direction", and no image model is selected at all
+ *   (`docs/technology-decisions.md`, `docs/product-doctrine.md §10`). A provider that generates no
+ *   artwork is a legitimate provider, and today every provider is one.
+ * - **It returns an outcome rather than a `ModelResult`.** No asset is an ordinary result, not an
+ *   exception: the `ResolvedDesignSpec` is verified and frozen before any image exists, so every
+ *   page is assetless for the whole interval between verification and delivery and permanently if
+ *   the request failed. `src/lib/ai/visual-art/fallback.ts` is that contract.
+ * - **It is not usage-parsed in tokens.** An image request is billed per asset;
+ *   `src/lib/ai/visual-art/telemetry.ts` carries reserved and actual USD instead, and
+ *   `src/lib/ai/visual-art/spend.ts` is the reservation a request must pass through first.
+ *
+ * `getArtworkProvider()` lives in `src/lib/ai/visual-art/enablement.ts` and throws
+ * unconditionally: there is no configuration, environment state or default under which the
+ * artwork path in this repository reaches a network.
  */
 
 import type { CarriedClarification, PriorRevision } from "@/lib/ai/openai/event-identity-input";
 import type { ConceptPremise } from "@/lib/ai/concept-premise/contract";
 import type { CompositionCallInput } from "@/lib/ai/composition/contract";
+import type { VisualArtCallInput, VisualArtOutcome } from "@/lib/ai/visual-art/generate";
 import type { SiblingAssignment } from "@/lib/renderer/planner";
 
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Typed narrowly in Phase 4. */
@@ -24,7 +52,13 @@ export type ConceptPremiseSetResponse = Record<string, unknown>;
 export type DesignIntentResponse = Record<string, unknown>;
 export type CompositionTree = Record<string, unknown>;
 
-export type ModelOperation = "event_identity" | "concept_premise" | "design_intent" | "composition";
+export type ModelOperation =
+  | "event_identity"
+  | "concept_premise"
+  | "design_intent"
+  | "composition"
+  /** `spec.md §7.6a`. Optional, per-asset, and against a model that is not yet selected. */
+  | "visual_art";
 
 export interface ModelUsage {
   provider: string;
@@ -109,6 +143,21 @@ export interface GenerateConceptPremiseSetInput {
  */
 export type GenerateCompositionInput = CompositionCallInput;
 
+/**
+ * The artwork call's input is `VisualArtCallInput` in `@/lib/ai/visual-art/generate`, and this
+ * interface is deliberately an alias of it — the same technique `GenerateCompositionInput` uses
+ * above, for the same reason: one shape, named where the call lives, so this file cannot drift
+ * into describing a call that does not exist.
+ *
+ * Its brief is `VisualArtIntent` exactly as `@/lib/ai/visual-art/contract` defines it — not
+ * redefined, not widened, and carrying no coordinate, pixel, aspect ratio or free-text placement
+ * field, because placement is the compiler's (`spec.md §7.6a #3`, `§32 #13`). Its reservation is
+ * part of the input rather than an internal detail because a caller must pass the spend gate to
+ * reach the call at all: artwork is the first thing in this pipeline that spends per *asset*, so
+ * "did anyone check the ceiling" is answered by the type rather than by a convention.
+ */
+export type GenerateVisualArtInput = VisualArtCallInput;
+
 export interface AiProvider {
   generateEventIdentity(input: GenerateEventIdentityInput): Promise<ModelResult<EventIdentity>>;
   /**
@@ -123,6 +172,14 @@ export interface AiProvider {
     input: GenerateDesignIntentInput,
   ): Promise<ModelResult<DesignIntentResponse>>;
   generateComposition(input: GenerateCompositionInput): Promise<ModelResult<CompositionTree>>;
+  /**
+   * The artwork capability (`spec.md §7.6a`), optional on this interface — see the module header.
+   *
+   * The implementation is `generateVisualArt` in `@/lib/ai/visual-art/generate`, which owns the
+   * spend gate, the retry bound, the failure classification and the telemetry. A provider is
+   * injected into it; nothing resolves one here, because none exists.
+   */
+  generateVisualArt?(input: GenerateVisualArtInput): Promise<VisualArtOutcome>;
 }
 
 export function getAiProvider(): AiProvider {
