@@ -188,6 +188,40 @@ and not in the current build. **The handoff 4E inherits** is: a verified `Resolv
 composition is a tree of enum-token primitives, a compiler that owns placement, and a primitive-set
 version to bump when the decorative leaf is added (`spec.md §32 #15`, `#32`).
 
+**4E status: THE FOUNDATION IS BUILT AND UNREACHABLE. NO IMAGE HAS BEEN GENERATED.** Everything
+up to the point immediately before a paid image call exists, is tested and is wired into the
+production path: the versioned `VisualArtIntent` contract; the optionality decision that reads each
+direction's own answer; the `Artwork` leaf in the composition language (primitive set
+`composition_v2`, with its capability rule, caps and deterministic repairs); compiler placement
+resolution including the readability scrim; the renderer primitive and its stylesheet; participation
+in rendered-geometry verification at 390 and 1280; the brief assembled *from* that resolved
+placement; a durable slot/asset/lineage record beside the frozen spec; the provider interface,
+failure classification, retry bound, timeout, spend-reservation seam and telemetry; and the
+deterministic fallback for an asset that is late, failed or never requested.
+
+**What is deliberately absent, and is the whole remaining gap.** No image model is selected
+(`docs/technology-decisions.md §8` records the criteria a selection must measure), no provider
+implementation exists, and no spend ceiling number exists. The artwork path is unreachable from a
+network by default and that is enforced structurally rather than by a flag — no module under
+`src/lib/ai/visual-art/` reads the environment or can reach a network, `getArtworkProvider()`
+throws unconditionally, and a test drives the whole boundary with `fetch` replaced by a throwing
+spy.
+
+**What it was proved with, and what that proof is not.** Deterministic stub assets — flat
+single-colour PNGs inlined as data URIs. They establish that the path runs end to end, that all four
+roles compile, brief and render, that a page measures identically with an asset and without one
+across five awkward stub shapes at both breakpoints, and that artwork cannot enter around the
+trusted primitive and compiler system. **They are not evidence about image quality.** 4E's actual
+question — whether art-directed thematic artwork raises the visual ceiling the Phase 4D operator
+review identified — is untouched, and the first real artwork smoke is what begins to answer it.
+
+**One defect this work found before any spend.** The first implementation let the image size its
+own box: `.ev-art` sizes itself with `min-height`, so an in-flow image resolved `height: 100%`
+against an auto height and fell back to its intrinsic aspect ratio. A 64×32 stub became a 640px
+block at 1280 and took a page from 1286px to 2341px — a spec verified without an asset would have
+shipped a different page with one. An overflow-only assertion passed throughout, because a page
+growing vertically overflows nothing; asserting height equality is what caught it.
+
 **The plan for what follows is `phase-4b-plan.md`.** It decomposes **4B** (the clarification
 lifecycle, answer provenance and the minimal surface) and **4C** (the deterministic sibling planner
 and `DesignIntent × 3`) into auditable tasks, and keeps the letters above exactly as they are: the

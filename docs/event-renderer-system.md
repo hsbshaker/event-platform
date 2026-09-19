@@ -82,9 +82,11 @@ Layout containers:
 | `Cell` | `span?`, `rowSpan?`, `child` | one grid cell |
 | `Frame` | `rule` (none/hairline/strong/double), `inset`, `motif?`, `child` | ruled box with an inset margin; rule none is a plain inset |
 | `Surface` | `role`, `inset?`, `child` | switches the surface role for its subtree (panel, plate, card) |
-| `Overlay` | `content` (text-bearing Stack/Frame/Split), `decoration` (MotifField, Monogram, Glyph, Date numeral), `anchor`, `extent`, `mobile` (stack/keep) | text over one decorative object |
+| `Overlay` | `content` (text-bearing Stack/Frame/Split), `decoration` (MotifField, Monogram, Glyph, Date numeral, Artwork), `anchor`, `extent`, `mobile` (stack/keep) | text over one decorative object |
 
-Decorative leaves: `MotifField` (`motif`, `extent?`), `MotifBand` (`motif?`, `height`, `fill?`), `Rule` (`weight`, `orientation?`, `glyphs?`), `Glyph` (`motif`, `scale?`), `Monogram` (`style` ring/plain/watermark).
+Decorative leaves: `MotifField` (`motif`, `extent?`), `MotifBand` (`motif?`, `height`, `fill?`), `Rule` (`weight`, `orientation?`, `glyphs?`), `Glyph` (`motif`, `scale?`), `Monogram` (`style` ring/plain/watermark), `Artwork` (`role` anchor/object/atmosphere/framed, `extent?`).
+
+`Artwork` is the **where** of generated thematic imagery and nothing else (`spec.md §7.6a`, primitive set `composition_v2`). It carries no url, no source, no size, no coordinate and no free text: §7.6a #3 reserves placement to the compiler, so the brief — subject, medium, palette relationship, crop safety, negative space — lives in `VisualArtIntent`, assembled *afterwards from the resolved placement* and a sibling of the tree rather than a field inside it. It is a declaration, not a dependency on an asset: a tree carrying one is valid and renderable when no artwork exists or generation fails.
 
 Semantic leaves, bound to event content (the model chooses form and emphasis only): `Eyebrow`, `EventTitle` (plus `layout` block/stagger/cascade), `Hosts`, `Description`, `Deadline`, `Venue`, `Location`, `Time` (each `emphasis?`, `case?`); `Date` (`form` full/numeral/month-year/weekday, `emphasis?`); `CTA` (`target` rsvp/registry, `style?`); `SectionHeading` (`for` details/rsvp/registry; copy comes from a compiler table).
 
@@ -102,10 +104,12 @@ Considered and rejected, permanently unless a new proof says otherwise: absolute
 ## 2.3 Capabilities, content profile, presentation state
 
 ```ts
-Capabilities            { rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }   // enabled features; sent to the model
+Capabilities            { rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline, artwork? }   // enabled features; sent to the model
 ContentProfile          { titleWords, titleChars, hostsChars, venueChars, descriptionChars, registryCounts, provisionalFields[] }  // present content; sent to the model for fit
 FeaturePresentationState{ sections: { rsvp, registry }: "setup" | "visible"; leaves: { hosts, description, time, location, deadline }: "empty" | "present" }   // guest visibility; never sent to the model
 ```
+
+**`artwork` is the one capability that is per *concept* rather than per event.** Every other entry is a property of the event and is identical across a batch's three siblings. `spec.md §7.6a #1` gives imagery to the creative direction — "'every event site gets an image' is not a product rule" — so it is derived from each sibling's own `DesignIntent`, and two siblings of one batch can legitimately disagree. It is optional and absent means disabled, so a caller that has never heard of artwork cannot grant it by omission. Note what this is *not*: it is scoped to the direction, never to whether content exists, so `spec.md §32 #16` is untouched.
 
 `Capabilities` derive from enabled features, never from whether content exists; for a baby shower at first generation they are the full set, so every first composition has a designed place for RSVP and registry. The prompt lists what is not available; the validator drops any reference to a disabled capability as a `capability` repair; the coverage rules require only what is enabled. `ContentProfile` may contain bounded provisional values for fields the host has not entered yet (`spec.md §7.3`); when a real value arrives the compiler re-fits into a new resolved-spec revision. `FeaturePresentationState` decides what guests see: registry is visible once it has an external registry, native gift or cash fund; RSVP once it is configured and at least one party is invited; empty optional leaves collapse for guests while their collaborator affordance stays anchored. Content and operational state change visibility, never composition.
 
@@ -282,6 +286,38 @@ Sections 6–9, 14 and 19 of Revision 1 stand, with these deltas:
 - motifs are placed by the tree in one of five structural slots (`MotifField`, `MotifBand`, `Frame.motif`, `Glyph`, `Rule.glyphs`); each declares a **kind** (pattern or arrangement) and a **role** (field, band, frame, divider, accent), and the compiler resolves opacity and scale within bounded steps. A motif of the wrong kind for its slot is swapped and logged (`motif.kind`), never dropped silently; a motif whose declared roles do not admit its slot is swapped and logged (`motif.role`).
 - **the ornament budget is a hard rendering cap.** `composition.ornament` sets how many motifs actually render: `none` renders at most one and no arrangement motifs at all, `restrained` at most two, `decorative` at most three. Motifs are resolved in document order and consume the budget until it is spent; every motif beyond it resolves with `render: false` and a `motif.budget` deviation. The composition tree is never mutated to enforce the budget, and no suppressed motif is omitted from the `ResolvedDesignSpec` — the evidence stays, the pixels do not. The renderer reads the resolved state and must not draw a suppressed motif. "Do not silently drop motifs" (`spec.md §32` #25) requires the suppression to be explicit and logged; it does not require every placed motif to be visible;
 - density maps to gap, inset and section spacing scales that the tokens resolve against;
+- **generated thematic artwork (`spec.md §7.6a`, Phase 4E).** The ordering is fixed and acyclic:
+  composition authors the tree and owns *where*; the compiler resolves each `Artwork` leaf into a
+  reservation — role, extent, the section surface, the readability scrim and, where text crosses
+  it, the anchor that text sits at; `VisualArtIntent` is assembled from that reservation and says
+  *what*; the image model answers the brief and never reads or writes a coordinate. The tempting
+  inverse — generate artwork, then lay the page out around it — makes layout depend on an image
+  whose content is unknown until it exists, and makes the image model a layout author by the back
+  door.
+
+  **The asset cannot move the page.** A spec is compiled, geometry-verified at 390 and 1280 and
+  frozen *before* any image exists; an asset attaches to a reserved slot afterwards, or never. That
+  is sound only because the reserved box is the geometry: the box always renders and only the image
+  inside it is conditional, exactly as a `MotifField` keeps its area when its motif is suppressed.
+  The image is taken out of flow and cropped to fill, so its own dimensions contribute nothing —
+  otherwise verification would have covered one of the two pages a spec can produce and the other
+  would ship unverified. Assets are therefore **not** part of the `ResolvedDesignSpec`; they are a
+  side record keyed by `(spec revision, slot id)`, and a revision with reservations and no assets is
+  a complete artifact rather than a half-written one.
+
+  **Text readability wins, and is decided without the artwork.** §7.6a #5 is absolute and has to
+  hold at a moment when the image does not exist. A motif is safe behind text because the compiler
+  draws it at a known colour and opacity; an image is arbitrary — but its worst case is not. Every
+  image lies between pure black and pure white in every channel, so a scrim of the section's own
+  surface at alpha α puts the effective background between two computable endpoints. The compiler
+  takes the lightest approved step that clears AA against *both*, and where no step does, the
+  artwork is not drawn behind that text at all.
+
+  **Budget and optionality.** Artwork is offered per concept, never per event (§2.3). The language
+  caps it at one per section and two per page; the direction's own budget, read from
+  `composition.ornament`, is a tighter allotment beneath that ceiling. Surplus and suppressed slots
+  resolve with `render: false` and a logged deviation — the evidence stays, the pixels do not, the
+  same disposition the ornament budget takes with motifs.
 - guest components are the opaque `RSVP`, `Registry`, `RegistryItem`, `CashFund` and the compiler-owned gate, footer and confirmation surfaces; they take width from their container, surface from the nearest `Surface`, and card/button/border language from the page system.
 
 ---

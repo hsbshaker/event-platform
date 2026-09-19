@@ -618,6 +618,67 @@ CO-01…CO-11 threshold is unmeasured and 4D's own question — *can it turn eac
 excellent original composition?* — is unanswered. Imagery remains 4E and is neither built nor
 diminished here.
 
+## Revision 6.15 — Phase 4E: the whole artwork path, with no way to reach a provider
+
+The Phase 4D live smoke proved the technical path and left one honest finding: the image-free
+visual vocabulary does not yet make a theme specific or premium enough to claim minimum-wowable
+output. 4E exists to test whether art-directed imagery raises that ceiling. This revision builds
+everything up to the point immediately before the first paid image call, and stops there.
+
+**The ownership direction, fixed before any code depended on it.** Composition authors the tree and
+owns *where*. The compiler resolves each `Artwork` leaf into a reservation — role, extent, surface,
+readability scrim and, where text crosses it, the anchor that text sits at. Only then is
+`VisualArtIntent` assembled *from* that reservation to say *what*. The image model answers a brief
+and never reads or writes a coordinate. The inverse — generate artwork, then lay the page out
+around it — would make layout depend on an image nobody has seen and make the image model a layout
+author by the back door, so `FORBIDDEN_INTENT_FIELDS` is data a test asserts on rather than a
+comment that drifts.
+
+**Optionality is a gate upstream of the model, not a hope about its judgement.** `spec.md §7.6a #1`
+says "every event site gets an image" is not a product rule. The easy implementation — offer the
+primitive on every call and let the model decline — fails that invisibly, because a model offered a
+capability uses it. So a direction that did not ask for artwork is sent a primitive spec that does
+not mention artwork at all. The rule reads the two fields where the direction already stated this,
+and `docs/product-doctrine.md §10` names the exact pair of cases it has to tell apart: black-tie
+wants none, botanical may need one. It is a faithful reading of a real choice, and it is still a
+reading — `ARTWORK_DECISION_VERSION` records which reading produced a concept, and the honest fix
+when `DesignIntent` next revs is an explicit field.
+
+**Text readability is decided without the artwork.** §7.6a #5 is absolute and has to hold when the
+image does not exist, because the spec is verified and frozen first. A motif is safe behind text
+because the compiler draws it; an image is arbitrary — but its worst case is not. Every image lies
+between pure black and pure white in every channel, so a scrim of the section's own surface at
+alpha puts the effective background between two computable endpoints. Clear AA against both and you
+have cleared it against every image that could ever arrive. Where no approved step does, the
+artwork is not drawn behind that text at all.
+
+**One real bug, found by a browser before a cent was spent.** `.ev-art` sizes itself with
+`min-height`, so an in-flow image resolved `height: 100%` against an auto height, fell back to its
+own aspect ratio and set the box from its intrinsic dimensions: a 64×32 stub became a 640px block
+at 1280 and took a page from 1286px to 2341px. The reserved box was not the geometry — the image
+was, which means a spec verified without an asset would have shipped a different page with one.
+Fixed by taking the image out of flow. Worth noting what nearly hid it: an overflow-only assertion
+passed throughout, because a page growing vertically overflows nothing.
+
+**Unreachable by construction, not by configuration.** No image model is selected, no provider
+implementation exists and no spend ceiling number exists. No module under `src/lib/ai/visual-art/`
+reads the environment or can reach a network, `getArtworkProvider()` throws unconditionally, and a
+test drives the whole boundary with `fetch` replaced by a throwing spy. A 36-case environment
+matrix confirms no combination of plausible variables opens it.
+
+**What the stubs prove, and what they do not.** Flat single-colour PNGs establish that the path runs
+end to end, that all four roles compile, brief and render, that a page measures identically with an
+asset and without one across five awkward shapes at 390 and 1280, and that artwork cannot enter
+around the trusted primitive and compiler system. They are **not** evidence about image quality.
+4E's actual question is untouched until a real smoke runs.
+
+**Verification.** typecheck, lint (0 errors), format, unit, component, e2e, 480 DB tests against a
+disposable local PostgreSQL, `proof-b/test.js` green and `adv-run.js` 37/37 repair-valid with zero
+overflow at both breakpoints — identical to the pre-artwork baseline, which is the claim that
+image-free trees are undisturbed, holding in practice.
+
+---
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

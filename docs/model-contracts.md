@@ -864,7 +864,14 @@ System message: `docs/model-prompts/composition.system.md`. User message: the nu
 
 ## 6.3 Validation and repair
 
-Order, all deterministic except the two re-prompts:
+Order, all deterministic except the two re-prompts.
+
+**These are the *text* model's re-prompts, and only those.** Three exist — schema-invalid,
+attractive-token cap, selector collision — one each, against the Composition call. Artwork
+generation (`spec.md §7.6a`) is a different model, a different boundary and a different budget: its
+retry bound lives inside `src/lib/ai/visual-art/`, is counted separately, and is never one of these.
+Conflating them would let an image retry spend a re-prompt this stage was holding, or the reverse.
+
 
 1. **Strict schema** (unknown keys fail; enum-typed tokens must be strings, counts numbers, `ruled` boolean). Failure → one re-prompt with the error list. Second failure → library fallback for the whole page; telemetry `fallback: library`.
 2. **Structural validation and repair**: nesting matrix, depth, per-section and per-page limits, box depth, coverage (conditional on capabilities), capability references, component placement, surface sequence, motif kind, responsive intent. Every repair logged `{ rule, path, kind, before, after }`.
