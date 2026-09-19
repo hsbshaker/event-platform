@@ -98,6 +98,7 @@ import {
   type SiblingRunTelemetry,
 } from "./batch";
 import { compositionBrief } from "@/lib/ai/composition/brief";
+import { decideArtwork } from "@/lib/renderer/compile/artwork-decision";
 import { deriveCapabilities, deriveContentProfile, type EventContentRow } from "./content-profile";
 import { deriveEventContent } from "./event-content";
 import { openAiCompositionRunner } from "@/lib/ai/openai/composition-runner";
@@ -686,7 +687,13 @@ export async function runConceptBatch(
             call: {
               brief: compositionBrief(revision.identity),
               contentProfile,
-              capabilities,
+              // Artwork is the one capability that is per *concept* rather than per event
+              // (`spec.md §7.6a #1`): the direction chooses, so two siblings of one batch can
+              // legitimately disagree and a typography-led one is sent a primitive spec that does
+              // not mention artwork at all. Derived here from this sibling's own DesignIntent, so
+              // the flag the model is told matches the budget the compiler will enforce — both
+              // read the same `decideArtwork`.
+              capabilities: { ...capabilities, artwork: decideArtwork(call.output).allowed },
               designIntent: call.output,
               directive: sibling.planned.directive as unknown as Json,
               directiveSentence: sibling.planned.directiveSentence,

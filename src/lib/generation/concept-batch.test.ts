@@ -32,6 +32,9 @@ import { PREMISE_FIXTURE_IDENTITY, validPremiseSet } from "../../../tests/fixtur
 import { novelTree } from "../../../tests/fixtures/novel-composition";
 import { A1_SITES, page } from "@/lib/renderer/library";
 import type { CompositionTree } from "@/lib/renderer/composition";
+import type { Capabilities } from "@/lib/renderer/composition/nodes";
+import type { DesignIntent } from "@/lib/renderer/design-intent";
+import { decideArtwork } from "@/lib/renderer/compile/artwork-decision";
 
 const create = vi.fn();
 
@@ -788,6 +791,30 @@ describe("one concept batch, end to end", () => {
         expect(message).not.toContain(other.organizingIdea);
       }
     });
+  });
+
+  it("offers artwork per concept, from each sibling's own direction (spec.md §7.6a #1)", async () => {
+    // Artwork is the one capability that is not a property of the event. §7.6a #1 gives the choice
+    // to the creative direction, so it is derived per sibling from that sibling's own DesignIntent
+    // — and the flag the model is told must be the same one the compiler will enforce, or a
+    // concept is invited to compose artwork the compiler then suppresses.
+    await run(recorder());
+    const calls = compileConcept.mock.calls as [
+      { designIntent: DesignIntent; capabilities: Capabilities },
+    ][];
+    expect(calls).toHaveLength(3);
+    for (const [request] of calls) {
+      expect(request.capabilities.artwork).toBe(decideArtwork(request.designIntent).allowed);
+    }
+    // And it is genuinely read from the direction rather than pinned on: flipping the direction's
+    // ornament to "none" flips the answer for the same sibling.
+    for (const [request] of calls) {
+      const declined = {
+        ...request.designIntent,
+        composition: { ...request.designIntent.composition, ornament: "none" as const },
+      };
+      expect(decideArtwork(declined).allowed).toBe(false);
+    }
   });
 
   it("runs the premise call before any DesignIntent call", async () => {
