@@ -808,6 +808,10 @@ The call receives **the authoritative brief and nothing else** — not the raw p
 
 Validation is deterministic and set-level: the premises must be distinct in name and in organizing idea, at least one register axis must take three distinct values across the set, and any axis the set declares constrained must really be uniform. The set may be re-prompted **once**, with the validator's own findings quoted; a set that is still unusable fails the batch visibly rather than reverting to three premise-free calls, because that reversion is the known-defective behaviour the evidence run measured.
 
+**The batch runs in this order**, under the batch and sibling controls of `§10` and with no control of its own: read the authoritative identity; plan or observe the batch; one premise call; bind premise *k* to planned sibling *k*; three DesignIntent calls in parallel; the deterministic set review (§7.8); one immutable artifact per succeeded sibling; settle. The premise call is recorded as its own model operation, so the spend ceiling prices it as itself rather than as a DesignIntent. Each artifact names the premise it was authored from and the premise contract versions that produced it, because after `design_intent_input_v2` the premise is one of the things a persisted DesignIntent has to be attributable to. The set review runs **before** the artifacts are written, because a concept card is resolved across all three siblings at once and an artifact cannot be rewritten.
+
+Fewer than three concepts is a visible state. A batch where every sibling failed is reported as failed rather than as an empty set, and a failed sibling is never replaced by a fabricated one.
+
 ### 7.8 DesignIntent and composition generation
 
 The strong model returns the creative intent surface below, then, in a second call per concept, the composition. Each DesignIntent call is conditioned on the authoritative brief, its own sibling assignment and its own concept premise (§7.7a) — and on nothing else. Palette, typography pairing, density, composition and motifs answer to that premise rather than to generally defensible taste.

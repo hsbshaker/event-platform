@@ -461,6 +461,41 @@ than leaving it to be inferred. The prompt, schema and input-assembly versions m
 never fresh generalization evidence — those cases and their failures were known while this was
 written. Fresh evidence needs a corpus authored by an independent process that has seen neither.
 
+## Revision 6.11 — the premise stage reaches a host
+
+**What changed.** `spec.md §7.7a` gains the batch's running order and its persistence;
+`docs/model-contracts.md §4.8.4` records both. `20260918000000_phase4c_concept_premise_lineage.sql`
+adds `concept_premise` and its three version columns to `design_intent_artifacts`, plus
+`card_deviations`, and adds `concept_premise` to the `model_operation` enum.
+`src/lib/generation/concept-batch.ts` is the orchestrator.
+
+**Why.** Revision 6.10 built the premise stage and nothing on the production path called it. The
+plan's Phase 4C decomposition ends at T22 and defines no orchestrator, so the stage was reachable
+only through the eval seam — which means a host generating concepts would still have received three
+parameterisations of one idea, however good the new stage was. A fix that cannot reach a host is
+not a fix; this is the sequencer that closes the gap.
+
+**Two decisions worth reading.** The set review runs **before** the artifacts are written, which
+departs from `§G.2`'s "written the moment that DesignIntent completes": `presentation` is `not null`
+with a non-empty name, so the column can only ever hold a resolved card, and duplication is
+decidable only across three siblings at once. Writing per sibling would mean persisting a card the
+review is about to replace, on a table whose rows cannot be updated. And the premise call is
+recorded under its own `model_operation` rather than borrowed from `design_intent`, because the
+spend ceiling reads `generation_runs` and a misattributed call corrupts the per-operation record
+while looking fine.
+
+**What it does not do.** It composes nothing — `design_concepts` needs a composition, which is
+Phase 4D — and no UI surface calls it yet. It adds no control of its own: every cap, the ceiling,
+the one-batch-in-flight rule and both idempotency keys are `batch.ts`'s, enforced by the database.
+
+**Verification gap, stated.** The migration's own DB tests
+(`tests/db/phase4c-concept-premise.test.ts`, and the extended sweep in `phase4c-t17.test.ts`) could
+not be executed in the environment this change was written in: `tests/db` needs a scratch
+PostgreSQL on localhost and none was available. They are committed to run wherever one is. The
+orchestrator's own behaviour is covered by unit tests with the provider mocked and a recording
+database fake, which is what proves the sequence and the payloads; the transactional half was
+already proven against a real database at T16.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

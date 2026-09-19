@@ -16,6 +16,7 @@ import type {
   GenerationBatchStatus,
   Json,
   ModelOperation,
+  RecordBatchCallRunOutcome,
   RecordSiblingRunOutcome,
 } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -164,6 +165,30 @@ export function siblingIdempotencyKey(basis: SiblingKeyBasis): string {
     String(basis.conceptIndex),
     String(basis.attempt),
   ]);
+}
+
+export interface BatchCallKeyBasis {
+  batchId: string;
+  operation: ModelOperation;
+  attempt: number;
+}
+
+/**
+ * `(batch_id, operation, attempt)` — the key for a call that belongs to the **batch**.
+ *
+ * The premise call is one (`spec.md §7.7a`): one request produces the three premises the three
+ * siblings are then generated from, so it has no `concept_index` to key on and naming one would be
+ * false. Same length-prefixed construction as `siblingIdempotencyKey`, and for the same reason —
+ * these hashes decide whether money is spent twice.
+ *
+ * It cannot collide with a sibling key even at the same attempt: this basis has three parts and the
+ * sibling's has four, and the length prefix makes the two shapes unambiguous.
+ */
+export function batchCallIdempotencyKey(basis: BatchCallKeyBasis): string {
+  if (!Number.isInteger(basis.attempt) || basis.attempt < 0) {
+    throw new Error(`attempt must be a non-negative integer, got ${basis.attempt}`);
+  }
+  return sha256([basis.batchId, basis.operation, String(basis.attempt)]);
 }
 
 /* ------------------------------------------------------------------ configurable safety limits */
@@ -581,6 +606,76 @@ export async function recordSiblingRun(
   if (error) throw error;
   const row = (data ?? [])[0];
   if (!row) throw new Error("record_batch_sibling_run returned no row");
+  return { outcome: row.outcome, runId: row.run_id, idempotencyKey };
+}
+
+export interface RecordBatchCallRunRequest {
+  batchId: string;
+  operation: ModelOperation;
+  /** The attempt this run belongs to. Part of the key, so a retry is a new row. */
+  attempt: number;
+  success: boolean;
+  run: SiblingRunTelemetry;
+}
+
+export interface RecordBatchCallRunResult {
+  outcome: RecordBatchCallRunOutcome;
+  runId: string | null;
+  idempotencyKey: string;
+}
+
+/**
+ * Record a **batch-level** model call, under `(batch_id, operation, attempt)`.
+ *
+ * Deliberately not `recordSiblingRun`, and the difference is not cosmetic: that RPC also settles
+ * `generation_batch_siblings` for the `concept_index` it is given. Recording a batch-level call
+ * through it would settle a sibling that has not been called — a successful premise call would mark
+ * sibling 0 `succeeded`, that sibling's own DesignIntent run would then be refused as
+ * `already_succeeded` and never recorded at all, and the batch would settle from a lifecycle
+ * describing calls that did not happen. The ceiling reads `generation_runs` as spend, so that is
+ * unpriced money, not a reporting nit.
+ *
+ * The key is derived here and never accepted from a caller, for the reason the sibling key gives:
+ * an idempotency token a client can choose is not idempotency.
+ */
+export async function recordBatchCallRun(
+  admin: Admin,
+  request: RecordBatchCallRunRequest,
+): Promise<RecordBatchCallRunResult> {
+  const idempotencyKey = batchCallIdempotencyKey({
+    batchId: request.batchId,
+    operation: request.operation,
+    attempt: request.attempt,
+  });
+  const run = request.run;
+  const { data, error } = await admin.rpc("record_batch_call_run", {
+    p_batch_id: request.batchId,
+    p_operation: request.operation,
+    p_idempotency_key: idempotencyKey,
+    p_success: request.success,
+    p_run: {
+      provider: run.provider,
+      model: run.model,
+      latency_ms: run.latencyMs,
+      prompt_version: run.promptVersion,
+      schema_version: run.schemaVersion,
+      user_id: run.userId ?? null,
+      provider_request_id: run.providerRequestId ?? null,
+      input_tokens: run.inputTokens ?? null,
+      cached_input_tokens: run.cachedInputTokens ?? null,
+      cache_write_input_tokens: run.cacheWriteInputTokens ?? null,
+      output_tokens: run.outputTokens ?? null,
+      reasoning_tokens: run.reasoningTokens ?? null,
+      cost_estimate_usd: run.costEstimateUsd ?? null,
+      error_code: run.errorCode ?? null,
+      input_assembly_version: run.inputAssemblyVersion ?? null,
+      schema_valid_first_call: run.schemaValidFirstCall ?? null,
+      reprompts: run.reprompts ?? null,
+    } as unknown as Json,
+  });
+  if (error) throw error;
+  const row = (data ?? [])[0];
+  if (!row) throw new Error("record_batch_call_run returned no row");
   return { outcome: row.outcome, runId: row.run_id, idempotencyKey };
 }
 

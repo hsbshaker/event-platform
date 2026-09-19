@@ -46,6 +46,7 @@ const DECLARED_FUNCTIONS = {
   generation_batch_is_in_flight: true,
   issue_batch_sibling: true,
   plan_generation_batch: true,
+  record_batch_call_run: true,
   record_batch_sibling_run: true,
   settle_generation_batch: true,
   start_generation_batch: true,

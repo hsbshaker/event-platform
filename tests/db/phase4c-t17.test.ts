@@ -54,6 +54,14 @@ const DIRECTIVE = { structure: "Split", opening: "title" };
 const ALLOTMENT = { allowed: ["rule"], forbidden: ["monogram"] };
 const ASSIGNMENT = { family: "editorial", tonalDirection: "quiet", typographyCategory: "serif" };
 const PRESENTATION = { name: "Pressed Garden", description: "A quiet editorial direction." };
+/**
+ * A premise-shaped payload, and deliberately not a real one.
+ *
+ * The column is `jsonb` with no key check for the same reason `design_intent` is: the shape belongs
+ * to `src/lib/ai/concept-premise/contract.ts`, and asserting it here would be that contract written
+ * twice in the one place a correction has to ship as a whole new migration.
+ */
+const CONCEPT_PREMISE = { title: "Ordered States", organizingIdea: "one idea, stated once" };
 
 /**
  * The versions the artifact records are the production constants, not literals beside them.
@@ -88,7 +96,16 @@ const ARTIFACT_COLUMNS = [
   "provider_request_id",
   "generation_run_id",
   "design_intent",
+  // Added by `20260918000000_phase4c_concept_premise_lineage.sql` (`spec.md §7.7a`). Listed here
+  // rather than in a file of their own so the immutability sweep and the grant check below cover
+  // them: T17's whole point is that a column added later cannot silently become writable or
+  // readable.
+  "concept_premise",
+  "concept_premise_prompt_version",
+  "concept_premise_schema_version",
+  "concept_premise_input_assembly_version",
   "presentation",
+  "card_deviations",
   "created_at",
 ] as const;
 
@@ -166,6 +183,8 @@ type ArtifactOverrides = {
   schemaVersion?: string;
   presentation?: unknown;
   generationRunId?: string | null;
+  conceptPremise?: unknown;
+  cardDeviations?: unknown;
 };
 
 async function insertArtifact(batchId: string, o: ArtifactOverrides = {}): Promise<string> {
@@ -175,9 +194,13 @@ async function insertArtifact(batchId: string, o: ArtifactOverrides = {}): Promi
         assignment, directive, token_allotment,
         design_intent_prompt_version, design_intent_schema_version,
         design_intent_input_assembly_version, provider, model, provider_config,
-        provider_request_id, generation_run_id, design_intent, presentation)
+        provider_request_id, generation_run_id, design_intent, presentation,
+        concept_premise, concept_premise_prompt_version, concept_premise_schema_version,
+        concept_premise_input_assembly_version, card_deviations)
      values ($1, $2, $3, $4, $5, 'planner_v1', $6, $7, $8, $9, $10, $11, 'openai', 'gpt-5.6-sol',
-             '{"reasoningEffort":"high"}', 'resp_t17', $12, $13, $14)
+             '{"reasoningEffort":"high"}', 'resp_t17', $12, $13, $14,
+             $15, 'concept_premise_v1', 'concept_premise_schema_v1', 'concept_premise_input_v1',
+             $16)
      returning id`,
     [
       o.eventId ?? eventId,
@@ -194,6 +217,8 @@ async function insertArtifact(batchId: string, o: ArtifactOverrides = {}): Promi
       o.generationRunId ?? null,
       JSON.stringify(o.designIntent ?? DESIGN_INTENT),
       JSON.stringify(o.presentation ?? PRESENTATION),
+      JSON.stringify(o.conceptPremise ?? CONCEPT_PREMISE),
+      JSON.stringify(o.cardDeviations ?? []),
     ],
   );
   return rows[0].id as string;
@@ -322,7 +347,14 @@ describe("the artifact is written once and never again", () => {
       provider_request_id: "provider_request_id = 'resp_other'",
       generation_run_id: "generation_run_id = gen_random_uuid()",
       design_intent: `design_intent = '{"family":"statement"}'`,
+      concept_premise: `concept_premise = '{"title":"Other Premise"}'`,
+      concept_premise_prompt_version: "concept_premise_prompt_version = 'concept_premise_v2'",
+      concept_premise_schema_version:
+        "concept_premise_schema_version = 'concept_premise_schema_v2'",
+      concept_premise_input_assembly_version:
+        "concept_premise_input_assembly_version = 'concept_premise_input_v2'",
       presentation: `presentation = '{"name":"Other","description":"Other."}'`,
+      card_deviations: `card_deviations = '[{"rule":"concept-card.name"}]'`,
       created_at: "created_at = now()",
     };
     // Every column is covered, including the no-op assignments: `reject_update()` raises before it

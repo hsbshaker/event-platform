@@ -30,7 +30,12 @@ export type ClaimOutcome =
 export type AttachInspirationOutcome = "attached" | "limit_reached" | "gone";
 
 export type ModelOperation =
-  "event_identity" | "design_intent" | "composition" | "structured_extraction";
+  | "event_identity"
+  /** One per concept batch, ahead of the three DesignIntent calls (`spec.md §7.7a`). */
+  | "concept_premise"
+  | "design_intent"
+  | "composition"
+  | "structured_extraction";
 
 /**
  * Claim states for one EventIdentity call
@@ -88,6 +93,15 @@ export type PlanGenerationBatchOutcome =
 /** Outcomes of public.record_batch_sibling_run. */
 export type RecordSiblingRunOutcome =
   "recorded" | "duplicate_key" | "already_succeeded" | "stale_attempt";
+
+/**
+ * Outcomes of public.record_batch_call_run.
+ *
+ * Two, not four: with no sibling row to compare against there is no `stale_attempt`, and no
+ * per-sibling success to converge on as `already_succeeded` — a replay collides on the idempotency
+ * key instead.
+ */
+export type RecordBatchCallRunOutcome = "recorded" | "duplicate_key";
 
 type ProfileRow = {
   id: string;
@@ -237,8 +251,31 @@ type DesignIntentArtifactRow = {
   generation_run_id: string | null;
   /** The validated output, immutable. Its shape is T18's contract, not this file's. */
   design_intent: Json;
+  /**
+   * The premise this concept was authored from, and the three versions that produced it
+   * (`spec.md §7.7a`, `docs/model-contracts.md §4.8`).
+   *
+   * One member of the batch's set of three, bound by `concept_index`. Recorded because after
+   * `design_intent_input_v2` the premise is one of the things `§G.4`'s attribution tuple names:
+   * without it the row would describe a concept whose creative direction came from somewhere it
+   * cannot name. A payload snapshot, not a pointer — the artifact is evidence.
+   */
+  concept_premise: Json;
+  concept_premise_prompt_version: string;
+  concept_premise_schema_version: string;
+  concept_premise_input_assembly_version: string;
   /** Non-design, host-facing concept metadata: `{ name, description }`, both non-empty strings. */
   presentation: Json;
+  /**
+   * What the deterministic set review changed about the card above, logged by kind.
+   *
+   * `presentation` can only hold a **resolved** card, and `spec.md §7.8`'s duplicate-name fallback
+   * is decidable only across three siblings at once — so for a repaired sibling the card here is
+   * not the one the model returned. Each entry carries the rule, the path, the before and the
+   * after, which is what keeps that substitution recoverable rather than silent. `[]` is the true
+   * and complete value for a card that needed no repair.
+   */
+  card_deviations: Json;
   created_at: string;
 };
 
@@ -980,6 +1017,26 @@ export type Database = {
           p_run: Json;
         };
         Returns: { outcome: RecordSiblingRunOutcome; run_id: string | null }[];
+      };
+      /**
+       * A run row for a call that belongs to the **batch** rather than to one sibling — today, the
+       * premise call (`spec.md §7.7a`).
+       *
+       * Deliberately not `record_batch_sibling_run`: that one also settles
+       * `generation_batch_siblings`, so recording a batch-level call through it would consume a
+       * sibling's lifecycle slot and the sibling's own DesignIntent run would then be refused as
+       * `already_succeeded` and never recorded. `concept_index` is left null here, which is what
+       * the column already means for `event_identity` and what is true of a premise call.
+       */
+      record_batch_call_run: {
+        Args: {
+          p_batch_id: string;
+          p_operation: ModelOperation;
+          p_idempotency_key: string;
+          p_success: boolean;
+          p_run: Json;
+        };
+        Returns: { outcome: RecordBatchCallRunOutcome; run_id: string | null }[];
       };
       /**
        * Settles a batch from its siblings (§I). Returns `in_flight` and changes nothing while any

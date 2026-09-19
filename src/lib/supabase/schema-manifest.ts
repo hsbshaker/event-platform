@@ -104,7 +104,12 @@ export const SCHEMA_MANIFEST = {
     "provider_request_id",
     "generation_run_id",
     "design_intent",
+    "concept_premise",
+    "concept_premise_prompt_version",
+    "concept_premise_schema_version",
+    "concept_premise_input_assembly_version",
     "presentation",
+    "card_deviations",
     "created_at",
   ],
   design_concepts: [

@@ -689,7 +689,25 @@ list of things that may never be re-prompted. A set that is still unusable fails
 not revert to three premise-free DesignIntent calls, because that is the known-defective behaviour
 the evidence run measured, and a silent reversion would be invisible.
 
-## 4.8.4 Evals
+## 4.8.4 Persistence
+
+`design_intent_artifacts` carries `concept_premise` plus the three premise versions, added by
+`20260918000000_phase4c_concept_premise_lineage.sql`. `§G.4`'s attribution invariant requires a
+persisted DesignIntent to name exactly one tuple of the things that produced it, and after
+`design_intent_input_v2` the premise is one of them — without these columns a row would describe a
+concept whose creative direction came from somewhere it cannot name.
+
+`card_deviations` on the same table records what the deterministic set review changed about the
+host-facing card. `presentation` is `not null` with a non-empty name, so it can only ever hold a
+**resolved** card; for a repaired sibling that is not the card the model returned, and each entry's
+before/after is what keeps the substitution recoverable rather than silent (`spec.md §31`, repairs
+logged by kind).
+
+The premise call itself is recorded in `generation_runs` under `operation = 'concept_premise'`,
+its own enum value. Recording it as `design_intent` would corrupt the per-operation record, and not
+recording it would make it a model call the project ceiling cannot price (`§A.5`).
+
+## 4.8.5 Evals
 
 The spent T22 cases are rerun as **regression and diagnostic evidence only** (`§3.4`'s classing):
 those cases and their failures were known while this stage was written, so a rerun answers *"did

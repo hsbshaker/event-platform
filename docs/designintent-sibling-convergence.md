@@ -303,6 +303,7 @@ constrained-axis escape recorded in telemetry exactly as the planner already rec
 | | before | after |
 | --- | --- | --- |
 | provider calls per concept batch | 3 | **4** (one premise call, then three in parallel) |
+| where the premise stage is reachable | the eval seam only | **the production path** (`concept-batch.ts`) |
 | batch latency | ≈ one DesignIntent call | ≈ one premise call **then** one DesignIntent call |
 | worst-case batch spend, `gpt-5.6-sol` | $36.00 | **$48.00** (`conceptBatchMaxUsd`) |
 | repair passes available per batch | 3 (one per sibling, schema only) | 3 + **1** (the premise set, once, all classes) |
@@ -344,10 +345,13 @@ claim in a document.
    at the corpus, which was impossible here, so the vocabulary moved to `lingering` and
    `understated`. Recorded in `concept-premise/contract.ts` so a later reader does not "improve" one
    straight back into a leak.
-6. **No production batch orchestrator exists yet, and this work did not add one.** Production has the
-   planner, the batch record, both provider boundaries, the validators and the set review; the loop
-   that runs a batch end to end is still unwritten, and the premise stage is reached today only
-   through the eval seam. That was already true of the DesignIntent call before this change.
+6. ~~**No production batch orchestrator exists yet.**~~ **Closed.** This was the gap that made the
+   remediation a capability rather than a product change, and `src/lib/generation/concept-batch.ts`
+   closes it: a batch now runs end to end on the production path — identity, plan, one premise call,
+   bind by index, three parallel DesignIntent calls, the set review, immutable artifacts with the
+   premise that produced them, settle. What remains unwritten is downstream of 4C and always was:
+   the composition call and the `design_concepts` row it produces are Phase 4D, so the artifact is
+   still the end of this path, and no UI surface calls the orchestrator yet.
 7. **The bounded vocabularies were not expanded, deliberately.** `linen` and `stripe` recurring is a
    symptom of undifferentiated asks. If a remediated stage demonstrably cannot express a valid
    premise within seven motifs and twelve pairings, that is a separate limitation to record with
