@@ -184,7 +184,7 @@ describe("the Composition user message", () => {
   });
 
   it("declares its own assembly version, separate from the prompt and schema versions", () => {
-    expect(COMPOSITION_INPUT_ASSEMBLY_VERSION).toBe("composition_input_v1");
+    expect(COMPOSITION_INPUT_ASSEMBLY_VERSION).toBe("composition_input_v2");
   });
 
   describe("the host's authority", () => {

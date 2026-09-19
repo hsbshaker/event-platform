@@ -272,10 +272,10 @@ describe("the OpenAI Composition call", () => {
       expect(value!.response).toEqual(cleanTree());
       expect(value!.fallback).toBeNull();
       expect(value!.repairs).toEqual([]);
-      expect(value!.promptVersion).toBe("composition_v1_p3");
-      expect(value!.schemaVersion).toBe("composition_schema_v1");
-      expect(value!.primitiveSetVersion).toBe("composition_v1");
-      expect(value!.inputAssemblyVersion).toBe("composition_input_v1");
+      expect(value!.promptVersion).toBe("composition_v1_p4");
+      expect(value!.schemaVersion).toBe("composition_schema_v2");
+      expect(value!.primitiveSetVersion).toBe("composition_v2");
+      expect(value!.inputAssemblyVersion).toBe("composition_input_v2");
       expect(value!.usage.schemaValidFirstCall).toBe(true);
       expect(value!.usage.reprompts).toEqual({ schema: 0, token_cap: 0, collision: 0 });
       expect(value!.usage.providerAttempts).toBe(1);

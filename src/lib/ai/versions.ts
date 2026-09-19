@@ -250,8 +250,18 @@ export const CONCEPT_PREMISE_INPUT_ASSEMBLY_VERSION = "concept_premise_input_v1"
  * `src/lib/ai/composition/brief.ts`. Nothing else about `p2` changed, and the Phase B
  * confirmation-run evidence behind `p2` is evidence about `p2`.
  */
-export const COMPOSITION_PROMPT_VERSION = "composition_v1_p3";
-export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
+/**
+ * `p4` offers the `Artwork` leaf to directions that asked for artwork, and to no others.
+ *
+ * `spec.md §7.6a #1` makes imagery "optional, and chosen by the creative direction", so the
+ * primitive is a **narrowing** rather than a new universal: a typography-led direction is sent a
+ * primitive spec that does not mention artwork at all, exactly as a capability-less event is sent
+ * no RSVP node. Two concepts in one batch can therefore receive different `p4` prompts, which is
+ * what `COMPOSITION_INPUT_ASSEMBLY_VERSION` is for.
+ */
+export const COMPOSITION_PROMPT_VERSION = "composition_v1_p4";
+/** `v2` admits the `Artwork` leaf; every `composition_schema_v1` tree remains valid under it. */
+export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v2";
 /**
  * The Composition request assembly (`src/lib/ai/openai/composition-input.ts`).
  *
@@ -260,8 +270,23 @@ export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
  * because the primitive-spec and rules blocks are generated from `NODE_SPEC`: a primitive added to
  * the language changes the bytes this assembly sends without anyone editing the assembly.
  */
-export const COMPOSITION_INPUT_ASSEMBLY_VERSION = "composition_input_v1";
-export const PRIMITIVE_SET_VERSION = "composition_v1";
+export const COMPOSITION_INPUT_ASSEMBLY_VERSION = "composition_input_v2";
+/**
+ * The primitive set a concept was compiled against (`spec.md §32 #15`).
+ *
+ * **`composition_v2`** adds the `Artwork` leaf. Note what does *not* move with it: the
+ * `CompositionTree.version` wire literal stays `"composition_v1"`, because adding a member to the
+ * node union is additive — every tree a `composition_v1` model produced is still valid under the
+ * `v2` schema, and nothing persisted needs rewriting. The two strings answer different questions.
+ * The literal says *what shape arrived*; this constant says *which language was on offer*, and
+ * only the second changed.
+ *
+ * That split is what keeps "never silently recompile historical concepts against a newer primitive
+ * set" enforceable rather than aspirational: the 36 specs already persisted keep
+ * `primitive_set_version = "composition_v1"`, render from their own stored
+ * `ResolvedDesignSpec`, and are distinguishable in the ledger from anything generated since.
+ */
+export const PRIMITIVE_SET_VERSION = "composition_v2";
 /**
  * The deterministic sibling planner (`spec.md §7.7`, `src/lib/generation/planner.ts`).
  *
