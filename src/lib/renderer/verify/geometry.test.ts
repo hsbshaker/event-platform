@@ -22,6 +22,8 @@ import { assemblePreVerificationSpec } from "@/lib/renderer/compile/spec";
 import { NO_OVERRIDES } from "@/lib/renderer/compile/verification";
 import type { Capabilities, CompositionTree } from "@/lib/renderer/composition/nodes";
 import type { DesignIntent } from "@/lib/renderer/design-intent";
+import type { ArtworkAsset } from "@/components/event-renderer/artwork";
+import { ALL_STUB_ARTWORK, NEAR_BLACK, NEAR_WHITE } from "../../../../tests/fixtures/artwork-stubs";
 import { novelTree } from "../../../../tests/fixtures/novel-composition";
 import { chromiumAvailability, withGeometryPage } from "./browser";
 import { buildMeasurableDocument } from "./html";
@@ -432,6 +434,143 @@ describe("fonts", () => {
       observations.push(
         `fonts: ${families.join(" + ")} loaded (${m.fonts.faces.length} faces in the document)`,
       );
+    },
+    TIMEOUT,
+  );
+});
+
+/* --------------------------------------------------------------------------------- artwork */
+
+/**
+ * The Phase 4E invariant that everything else rests on.
+ *
+ * A `ResolvedDesignSpec` is compiled, measured at 390 and 1280, and frozen *before* any artwork
+ * exists; an asset attaches to a reserved slot afterwards, or never (`spec.md §7.6a #1`). That is
+ * only sound if the two pages a spec can produce — with the asset and without it — measure the
+ * same. Otherwise verification covered one of them and the other ships unverified.
+ *
+ * The compiler and the stylesheet are written to make that true: `.ev-art` fixes the frame and
+ * `object-fit: cover` crops the image into it. These cases hold them to it in a real browser,
+ * against deliberately awkward stub assets, rather than taking the CSS at its word.
+ */
+describe("artwork cannot move a page that was verified without it", () => {
+  const ART_TREE: CompositionTree = {
+    version: "composition_v1",
+    sections: [
+      {
+        kind: "hero",
+        surface: "base",
+        root: {
+          t: "Overlay",
+          content: {
+            t: "Stack",
+            children: [{ t: "Eyebrow" }, { t: "EventTitle" }, { t: "Hosts" }],
+          },
+          decoration: { t: "Artwork", role: "atmosphere" },
+          anchor: "center",
+          extent: "full",
+          mobile: "stack",
+        },
+      },
+      {
+        kind: "details",
+        surface: "alt",
+        root: {
+          t: "Stack",
+          children: [
+            { t: "Artwork", role: "anchor", extent: "half" },
+            { t: "Date", form: "full" },
+            { t: "Venue" },
+            { t: "Location" },
+          ],
+        },
+      },
+      {
+        kind: "band",
+        surface: "contrast",
+        root: { t: "Artwork", role: "framed", extent: "third" },
+      },
+    ],
+  } as CompositionTree;
+
+  const slots = (spec: ReturnType<typeof buildSpec>) => Object.keys(spec.artwork);
+
+  const measureAt = (
+    mode: "desktop" | "mobile",
+    artworkAssets: Record<string, ArtworkAsset> | undefined,
+  ) => {
+    const spec = buildSpec(ART_TREE, intent(), 7);
+    const { html, families } = buildMeasurableDocument({
+      spec,
+      content: CONTENT,
+      overrides: NO_OVERRIDES,
+      ...(artworkAssets ? { artworkAssets } : {}),
+    });
+    return withGeometryPage((page) =>
+      page.measure(html, {
+        mode,
+        viewport: VIEWPORTS[mode],
+        tolerancePx: TOLERANCE_PX,
+        requiredFamilies: families,
+        overflowLimit: 12,
+      }),
+    );
+  };
+
+  /** Every reserved slot filled with the same stub, so the comparison is asset-for-no-asset. */
+  const fillAll = (asset: ArtworkAsset) =>
+    Object.fromEntries(slots(buildSpec(ART_TREE, intent(), 7)).map((id) => [id, asset]));
+
+  browserIt(
+    "reserves real boxes for artwork and still comes clean at 390 and 1280 with no asset at all",
+    async () => {
+      const spec = buildSpec(ART_TREE, intent(), 7);
+      // Three slots, and the tree is legal: this is not a page that quietly lost its artwork.
+      expect(slots(spec)).toHaveLength(3);
+      expect(Object.values(spec.artwork).filter((a) => a.render)).not.toHaveLength(0);
+
+      for (const mode of ["mobile", "desktop"] as const) {
+        const m = await measureAt(mode, undefined);
+        expect(m.overflowingTotal).toBe(0);
+        observations.push(`artwork, no asset @${VIEWPORTS[mode].width}: 0 overflow`);
+      }
+    },
+    TIMEOUT,
+  );
+
+  browserIt(
+    "measures identically with an asset and without one, at both breakpoints",
+    async () => {
+      for (const mode of ["mobile", "desktop"] as const) {
+        const empty = await measureAt(mode, undefined);
+        for (const asset of ALL_STUB_ARTWORK) {
+          const filled = await measureAt(mode, fillAll(asset));
+          // The whole claim, in one assertion: an asset cannot change the page's height, and it
+          // cannot introduce an overflow. A wide asset, a tall one and a transparent one all agree.
+          expect(filled.documentHeight).toBeCloseTo(empty.documentHeight, 1);
+          expect(filled.overflowingTotal).toBe(0);
+        }
+        observations.push(
+          `artwork @${VIEWPORTS[mode].width}: ${ALL_STUB_ARTWORK.length} stub shapes, ` +
+            `document height unchanged at ${empty.documentHeight.toFixed(1)}px`,
+        );
+      }
+    },
+    TIMEOUT,
+  );
+
+  browserIt(
+    "keeps the page clean when the asset is the darkest or lightest thing a provider could return",
+    async () => {
+      // §7.6a #5 at its extremes. The scrim was chosen against exactly these two, so neither may
+      // produce an overflow or a different page.
+      for (const mode of ["mobile", "desktop"] as const) {
+        for (const asset of [NEAR_BLACK, NEAR_WHITE]) {
+          const m = await measureAt(mode, fillAll(asset));
+          expect(m.overflowingTotal).toBe(0);
+        }
+      }
+      observations.push("artwork: black and white extremes render clean at both breakpoints");
     },
     TIMEOUT,
   );

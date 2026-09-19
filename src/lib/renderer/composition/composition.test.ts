@@ -634,7 +634,6 @@ describe("signature calibration", () => {
   });
 });
 
-
 /**
  * The Artwork leaf (`spec.md §7.6a`, primitive set `composition_v2`).
  *
@@ -786,7 +785,10 @@ describe("the Artwork leaf", () => {
         ],
       ];
       for (const [rule, tree] of cases) {
-        expect(validateStructure(tree, ART_CAPS).map((v) => v.rule), rule).toContain(rule);
+        expect(
+          validateStructure(tree, ART_CAPS).map((v) => v.rule),
+          rule,
+        ).toContain(rule);
         repaired(tree, ART_CAPS);
       }
     });

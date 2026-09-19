@@ -1782,6 +1782,16 @@ h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
  * frame may be lost that way.
  */
 .ev-art-img {
+  /*
+   * Absolutely positioned, which is the whole mechanism rather than a detail. `.ev-art` sizes
+   * itself with `min-height`, so an in-flow image would resolve `height: 100%` against an auto
+   * height, fall back to its own aspect ratio and set the box's height from its intrinsic
+   * dimensions — a 64x32 asset became a 640px-tall block at 1280 and doubled the page. Taking the
+   * image out of flow makes that impossible: whatever a provider returns, it cannot contribute a
+   * pixel of layout, and the page measured without it is the page served with it.
+   */
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
