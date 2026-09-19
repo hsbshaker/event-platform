@@ -102,7 +102,7 @@ describe("the raw-prompt boundary", () => {
     expect(importers).toEqual([INTERPRETER, path.join("lib", "ai", "provider.ts")].sort());
   });
 
-  it("has three model call sites today, and says what adding another costs", () => {
+  it("has four model call sites today, and says what adding another costs", () => {
     // Kept as a separate, extensible inventory rather than folded into the invariant above.
     // Adding a module here is allowed — 4C and 4D will — but it is the moment to re-prove
     // that the new call site reads the persisted identity and not the words behind it.
@@ -120,11 +120,21 @@ describe("the raw-prompt boundary", () => {
     // `suppliedFacts`, because its validator refuses a premise asserting a specific the brief does
     // not carry, and a stage that could see the host's literal names would turn that check into a
     // test of whether the model copied a field.
+    //
+    // Phase 4D added the fourth, the composition call, and it is re-proved the same way. Its
+    // envelope is `CompositionCallInput` in `src/lib/ai/composition/contract.ts`: a closed record
+    // of the design brief, the content profile, capabilities, this concept's DesignIntent, its
+    // directive, its token allotment and its planner seed. The host's words reach it only as
+    // `CompositionBrief`, which `src/lib/ai/composition/brief.ts` projects from the persisted
+    // identity — and the event's own copy does not reach it at all: `ContentProfile` carries
+    // character counts, so there is no field on that type a prompt, a title or a guest name could
+    // travel in. The invariant above additionally shows the module names no prompt.
     expect(modelCallers().sort()).toEqual(
       [
         INTERPRETER,
         path.join("lib", "ai", "openai", "design-intent.ts"),
         path.join("lib", "ai", "openai", "concept-premise.ts"),
+        path.join("lib", "ai", "openai", "composition.ts"),
       ].sort(),
     );
   });
@@ -149,21 +159,36 @@ describe("the raw-prompt boundary", () => {
       // premises arrive without anything noticing.
       conceptPremise: premiseFixture(),
     };
-    const composition: GenerateCompositionInput = {
-      designIntent: {},
-      capabilities: {},
-      directive: {},
-    };
 
     expect(Object.keys(designIntent)).toEqual([
       "eventIdentity",
       "diversityAssignment",
       "conceptPremise",
     ]);
-    expect(Object.keys(composition)).toEqual(["designIntent", "capabilities", "directive"]);
 
-    // `eventIdentity` is `Record<string, unknown>` until Phase 4C types it, so the type
-    // system cannot yet stop prose arriving as `eventIdentity.sourcePrompt`. Say so rather
+    // Phase 4D closed the composition half of this boundary. `GenerateCompositionInput` is now an
+    // alias of `CompositionCallInput`, a closed record whose event knowledge is a
+    // `CompositionBrief` of four named fields — so the host's own words have nowhere to travel, and
+    // the assertion below is checked by the compiler rather than by a key list.
+    //
+    // The previous shape was `{designIntent, capabilities, directive}` over
+    // `Record<string, unknown>`, which is what made this note necessary: it could not stop prose
+    // arriving as `eventIdentity.sourcePrompt`, and it carried no host constraints at all.
+    type CompositionKeys = keyof GenerateCompositionInput;
+    const compositionEnvelope: CompositionKeys[] = [
+      "brief",
+      "contentProfile",
+      "capabilities",
+      "designIntent",
+      "directive",
+      "forbiddenTokens",
+      "seed",
+      "collides",
+    ];
+    expect(compositionEnvelope).toHaveLength(8);
+
+    // `eventIdentity` on the DesignIntent input is still `Record<string, unknown>`, so the type
+    // system cannot stop prose arriving there as `eventIdentity.sourcePrompt`. Say so rather
     // than let the assertion above imply a guarantee it does not give.
     type HasPrompt<T> = Extract<keyof T, `${string}rompt${string}` | `${string}Text`>;
     const designIntentPromptFields: HasPrompt<GenerateDesignIntentInput>[] = [];

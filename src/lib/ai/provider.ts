@@ -15,6 +15,7 @@
 
 import type { CarriedClarification, PriorRevision } from "@/lib/ai/openai/event-identity-input";
 import type { ConceptPremise } from "@/lib/ai/concept-premise/contract";
+import type { CompositionCallInput } from "@/lib/ai/composition/contract";
 import type { SiblingAssignment } from "@/lib/renderer/planner";
 
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Typed narrowly in Phase 4. */
@@ -93,13 +94,20 @@ export interface GenerateConceptPremiseSetInput {
   eventIdentity: EventIdentity;
 }
 
-export interface GenerateCompositionInput {
-  designIntent: DesignIntentResponse;
-  capabilities: Record<string, boolean>;
-  directive: Record<string, unknown>;
-  /** Present only on the single allowed re-prompt for schema / token-cap / collision. */
-  reprompt?: { kind: "schema" | "token-cap" | "collision"; feedback: string };
-}
+/**
+ * The Composition call's input is `CompositionCallInput` in
+ * `src/lib/ai/composition/contract.ts`, and this interface is deliberately an alias of it.
+ *
+ * It used to be a four-field bag — `{designIntent, capabilities, directive, reprompt?}` over
+ * `Record<string, unknown>` — and that shape is the Phase 4D defect: it carried no host
+ * constraints, so a constraint whose subject is *structure* could survive Event Identity and never
+ * reach the stage that authors structure. It also declared a `reprompt` the caller was to supply,
+ * which put the "once each" bound in the caller's hands rather than the adapter's.
+ *
+ * Re-pointed rather than deleted, so this interface keeps naming the call it describes and a reader
+ * arriving here is not told something false about it.
+ */
+export type GenerateCompositionInput = CompositionCallInput;
 
 export interface AiProvider {
   generateEventIdentity(input: GenerateEventIdentityInput): Promise<ModelResult<EventIdentity>>;

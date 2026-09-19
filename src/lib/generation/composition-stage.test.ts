@@ -211,89 +211,52 @@ describe("a verified concept becomes ready", () => {
 
 /* ------------------------------------------------------------- the retry budget */
 
-describe("the two post-call re-prompts happen once each, and never twice", () => {
-  it("re-prompts once for a token-cap violation, carrying the offending tokens", async () => {
+describe("the stage makes exactly one paid call, because the adapter owns the re-prompts", () => {
+  it("calls the runner once on the happy path", async () => {
     const admin = fakeAdmin();
-    compileConcept
-      .mockResolvedValueOnce({
-        state: "reprompt",
-        kind: "token_cap",
-        feedback: ["this candidate may not use watermark"],
-        repairs: [],
-      })
-      .mockResolvedValueOnce(verified());
+    compileConcept.mockResolvedValue(verified());
     const runner = vi.fn().mockResolvedValue(attempt());
-
-    const outcome = await runCompositionStage(admin, runner, request());
-
-    expect(outcome.state).toBe("ready");
-    expect(runner).toHaveBeenCalledTimes(2);
-    expect(runner.mock.calls[0][0].reprompt).toBeUndefined();
-    expect(runner.mock.calls[1][0].reprompt).toEqual({
-      kind: "token_cap",
-      feedback: ["this candidate may not use watermark"],
-    });
+    await runCompositionStage(admin, runner, request());
+    expect(runner).toHaveBeenCalledTimes(1);
   });
 
-  it("tells the compiler the allowance is spent, so a second violation is neutralized", async () => {
+  it("tells the compiler both allowances are already spent", async () => {
     const admin = fakeAdmin();
-    compileConcept
-      .mockResolvedValueOnce({ state: "reprompt", kind: "token_cap", feedback: ["x"], repairs: [] })
-      .mockResolvedValueOnce(verified());
+    compileConcept.mockResolvedValue(verified());
     await runCompositionStage(admin, vi.fn().mockResolvedValue(attempt()), request());
-    // `spent.tokenCap` true is what makes `compileConcept` neutralize deterministically instead of
-    // asking again — `§6.3` step 3.
-    expect(compileConcept.mock.calls[0][0].spent).toEqual({ tokenCap: false, collision: false });
-    expect(compileConcept.mock.calls[1][0].spent).toEqual({ tokenCap: true, collision: false });
+    // `generateComposition` spends all three of `§6.3`'s re-prompts inside one logical call. If the
+    // stage left these false, a token violation or a collision that survived the adapter would earn
+    // a *second* re-prompt of the same kind — which is the one thing canon's "once each" forbids.
+    expect(compileConcept.mock.calls[0][0].spent).toEqual({ tokenCap: true, collision: true });
   });
 
-  it("re-prompts once for a collision, naming the colliding skeleton", async () => {
+  it("reports the outcome as a failure if the compiler ever asks for a spent re-prompt", async () => {
     const admin = fakeAdmin();
-    compileConcept
-      .mockResolvedValueOnce({
-        state: "reprompt",
-        kind: "collision",
-        feedback: ["desktop hero skeleton at 0.82: Stack > Heading"],
-        repairs: [],
-      })
-      .mockResolvedValueOnce(verified());
-    const runner = vi.fn().mockResolvedValue(attempt());
-    const outcome = await runCompositionStage(admin, runner, request());
-    expect(outcome.state).toBe("ready");
-    expect(runner.mock.calls[1][0].reprompt?.kind).toBe("collision");
-    expect(compileConcept.mock.calls[1][0].spent).toEqual({ tokenCap: false, collision: true });
-  });
-
-  it("spends both allowances at most once each and then stops asking", async () => {
-    const admin = fakeAdmin();
-    compileConcept
-      .mockResolvedValueOnce({ state: "reprompt", kind: "token_cap", feedback: ["a"], repairs: [] })
-      .mockResolvedValueOnce({ state: "reprompt", kind: "collision", feedback: ["b"], repairs: [] })
-      .mockResolvedValueOnce(verified());
-    const runner = vi.fn().mockResolvedValue(attempt());
-    const outcome = await runCompositionStage(admin, runner, request());
-    // Three calls is the ceiling: one original plus one for each discoverable reason. There is no
-    // fourth, and no critic loop that could produce one.
-    expect(runner).toHaveBeenCalledTimes(3);
-    expect(outcome.state).toBe("ready");
-    expect(outcome.state === "ready" && outcome.repromptsUsed).toEqual({
-      tokenCap: true,
-      collision: true,
+    compileConcept.mockResolvedValue({
+      state: "reprompt",
+      kind: "collision",
+      feedback: ["desktop hero skeleton at 0.82"],
+      repairs: [],
     });
+    const runner = vi.fn().mockResolvedValue(attempt());
+    const outcome = await runCompositionStage(admin, runner, request());
+    // Unreachable while `spent` is both true. It degrades to one failed sibling rather than a
+    // fourth paid call or a batch-wide throw, and the detail says what went wrong.
+    expect(outcome.state).toBe("failed");
+    expect(outcome.state === "failed" && outcome.detail).toContain("already spent");
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(persistConcept).not.toHaveBeenCalled();
   });
 
-  it("records one paid run per pass, so a re-prompt is charged rather than hidden", async () => {
+  it("records exactly one run row per call, so spend matches calls", async () => {
     const admin = fakeAdmin();
-    compileConcept
-      .mockResolvedValueOnce({ state: "reprompt", kind: "token_cap", feedback: ["a"], repairs: [] })
-      .mockResolvedValueOnce(verified());
+    compileConcept.mockResolvedValue(verified());
     await runCompositionStage(admin, vi.fn().mockResolvedValue(attempt()), request());
-    const recorded = admin.calls.filter((c) => c.name === "record_sibling_stage_run");
-    expect(recorded).toHaveLength(2);
+    expect(admin.calls.filter((c) => c.name === "record_sibling_stage_run")).toHaveLength(1);
   });
 });
 
-describe("nothing else is ever re-prompted", () => {
+describe("nothing is ever re-prompted for a deterministic defect", () => {
   it("fails a structural defect without asking the model again", async () => {
     const admin = fakeAdmin();
     compileConcept.mockResolvedValue({
@@ -306,14 +269,13 @@ describe("nothing else is ever re-prompted", () => {
     });
     const runner = vi.fn().mockResolvedValue(attempt());
     const outcome = await runCompositionStage(admin, runner, request());
-    expect(outcome.state).toBe("failed");
     expect(outcome.state === "failed" && outcome.kind).toBe("structure");
     // `spec.md §32 #21`: structural, coverage, capability, responsive, box, motif-kind and fit
     // defects are repaired deterministically and never re-prompted.
     expect(runner).toHaveBeenCalledTimes(1);
   });
 
-  it("fails a geometry defect without asking the model again", async () => {
+  it("fails a geometry defect without asking the model again, and persists nothing", async () => {
     const admin = fakeAdmin();
     compileConcept.mockResolvedValue({
       state: "failed",
@@ -327,6 +289,7 @@ describe("nothing else is ever re-prompted", () => {
     const outcome = await runCompositionStage(admin, runner, request());
     expect(outcome.state === "failed" && outcome.kind).toBe("geometry");
     expect(runner).toHaveBeenCalledTimes(1);
+    // `spec.md §32 #24`: a spec that did not verify clean is not final, so there is nothing to write.
     expect(persistConcept).not.toHaveBeenCalled();
   });
 });

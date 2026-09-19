@@ -24,6 +24,7 @@ import "server-only";
  *   5. three DesignIntent calls, in parallel       each blind to the other two
  *   6. deterministic set review                    resolve the three host-facing cards
  *   7. persist one artifact per succeeded sibling   lineage, with the premise that produced it
+ *   8. three Composition calls in parallel         each compiles, verifies and persists alone
  *   8. settle the batch                            §I's failure semantics
  * ```
  *
@@ -87,7 +88,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   planConceptBatchForEvent,
   recordBatchCallRun,
-  recordSiblingRun,
+  recordSiblingStageRun,
+  settleSibling,
   settleBatch,
   startBatch,
   issueSibling,
@@ -95,6 +97,11 @@ import {
   type BatchRefusalReason,
   type SiblingRunTelemetry,
 } from "./batch";
+import { compositionBrief } from "@/lib/ai/composition/brief";
+import { deriveCapabilities, deriveContentProfile, type EventContentRow } from "./content-profile";
+import { deriveEventContent } from "./event-content";
+import { openAiCompositionRunner } from "@/lib/ai/openai/composition-runner";
+import { runCompositionStage, type CompositionRunner } from "./composition-stage";
 import {
   reviewConceptSet,
   type ConceptCard,
@@ -149,6 +156,15 @@ export type ConceptBatchOutcome =
       /** What `settle_generation_batch` decided: `completed`, or `failed` at two or more (`§I`). */
       readonly status: string;
       /**
+       * The concepts that became ready — composed, compiled, verified clean at 390 and 1280, and
+       * persisted with an active resolved spec.
+       *
+       * This is what a later surface reads to know a concept can be shown. `cards` is filtered to
+       * match, because a card for a concept with no page behind it is the thing `§I` refuses:
+       * "fewer than three concepts is a visible state, never three where one is fabricated".
+       */
+      readonly concepts: readonly ReadyConcept[];
+      /**
        * What the set review saw in the design fields: identical composition vectors, overlapping
        * motif sets, a shared dominant colour, a premise the design argues against.
        *
@@ -176,6 +192,16 @@ export type ConceptBatchOutcome =
   /** The premise set could not be made usable. No concept is generated, and that is visible. */
   | { readonly state: "premise_unusable"; readonly batch: Batch; readonly detail: string }
   | { readonly state: "refused"; readonly reason: BatchRefusalReason };
+
+/** One concept a host could be shown. */
+export interface ReadyConcept {
+  readonly index: number;
+  readonly conceptId: string;
+  readonly resolvedSpecId: string;
+  /** `"library"` when a documented fallback produced the tree; never presented as model work. */
+  readonly fallback: "library" | null;
+  readonly nearestSibling: number;
+}
 
 export interface RunConceptBatchRequest {
   eventId: string;
@@ -228,6 +254,29 @@ async function readAuthoritativeIdentity(
     identity: assertAuthoritative(revision.result, revision.schema_version),
     schemaVersion: revision.schema_version,
   };
+}
+
+/**
+ * The event's own content, read once for all three siblings.
+ *
+ * Narrow by column list rather than `select("*")`: `EventContentRow` is the shape the derivations
+ * accept, and a widening select would hand them the prompt, the access code and the spend counters.
+ * `docs/model-contracts.md §6.1` prohibits sending guest data, RSVP data, registry contents and
+ * private codes to the model, and the cheapest way to honour that is not to load them.
+ */
+async function readEventContentRow(admin: Admin, eventId: string): Promise<EventContentRow> {
+  const { data, error } = await admin
+    .from("events")
+    .select(
+      "title, description, hosts, baby_name, venue_name, address, event_date, start_time, " +
+        "timezone, rsvp_deadline",
+    )
+    .eq("id", eventId)
+    .limit(1);
+  if (error) throw error;
+  const row = (data ?? [])[0];
+  if (!row) throw new Error("event disappeared between planning and composition");
+  return row as unknown as EventContentRow;
 }
 
 /* ------------------------------------------------------------------ run telemetry */
@@ -328,9 +377,13 @@ async function runSibling(
       assignment: planned.assignment,
       premise,
     });
-    await recordSiblingRun(admin, {
+    // Recorded, not settled. A sibling is not done: its composition call, its compile and its
+    // rendered-geometry verification are all still ahead of it, and `settle_batch_sibling` runs
+    // once a concept exists (20260919000000_phase4d_composition_lineage.sql).
+    await recordSiblingStageRun(admin, {
       batchId,
       conceptIndex: planned.index,
+      operation: "design_intent",
       attempt,
       success: true,
       run: designIntentTelemetry(call),
@@ -338,13 +391,18 @@ async function runSibling(
     return { planned, premise, call, attempt };
   } catch (error) {
     if (!(error instanceof DesignIntentError)) throw error;
-    await recordSiblingRun(admin, {
+    await recordSiblingStageRun(admin, {
       batchId,
       conceptIndex: planned.index,
+      operation: "design_intent",
       attempt,
       success: false,
       run: failureTelemetry("design_intent", model, error),
     });
+    // Terminal for this sibling: with no DesignIntent there is nothing to compose. Settled here
+    // rather than left pending, so `settle_generation_batch` is not blocked by a sibling that will
+    // never report.
+    await settleSibling(admin, batchId, planned.index, false);
     return { planned, premise, call: null, attempt };
   }
 }
@@ -371,8 +429,8 @@ async function persistArtifacts(
   plan: ConceptBatchPlan,
   premiseCall: ConceptPremiseCallResult,
   inserts: readonly ArtifactInsert[],
-): Promise<void> {
-  if (inserts.length === 0) return;
+): Promise<Map<number, string>> {
+  if (inserts.length === 0) return new Map();
   const rows = inserts.map(({ sibling, card, deviations }) => {
     const call = sibling.call!;
     return {
@@ -405,8 +463,15 @@ async function persistArtifacts(
       card_deviations: deviations,
     };
   });
-  const { error } = await admin.from("design_intent_artifacts").insert(rows);
+  // `concept_index` is selected back rather than assumed positional: the composition stage links
+  // `design_concepts.design_intent_artifact_id`, and a row pointing at another sibling's artifact
+  // is refused by `validate_design_concept_artifact()` — better to be right than to be refused.
+  const { data, error } = await admin
+    .from("design_intent_artifacts")
+    .insert(rows)
+    .select("id, concept_index");
   if (error) throw error;
+  return new Map((data ?? []).map((row) => [row.concept_index, row.id]));
 }
 
 /* ------------------------------------------------------------------ the batch */
@@ -420,6 +485,14 @@ async function persistArtifacts(
 export async function runConceptBatch(
   admin: Admin,
   request: RunConceptBatchRequest,
+  /**
+   * The Composition provider call, injected.
+   *
+   * A default rather than a required argument so every existing caller keeps working, and a
+   * parameter rather than a bare import so the composition half of this function can be driven in
+   * a test without a network — the same reason `composition-stage.ts` takes a port.
+   */
+  compositionRunner: CompositionRunner = openAiCompositionRunner,
 ): Promise<ConceptBatchOutcome> {
   const { eventId, userId } = request;
   const env = openAiEnv();
@@ -511,7 +584,7 @@ export async function runConceptBatch(
   // Step 7 — persist, with each concept's own premise and whatever the review changed about its
   // card.
   const byIndex = new Map(succeeded.map((sibling) => [sibling.planned.index, sibling]));
-  await persistArtifacts(
+  const artifactIds = await persistArtifacts(
     admin,
     batch,
     plan,
@@ -526,15 +599,94 @@ export async function runConceptBatch(
     }),
   );
 
+  // Step 8 — the composition stage, three at once, each independent.
+  //
+  // `Promise.all` over `runCompositionStage`, which never rejects for a sibling-level failure: a
+  // concept that fails to compose, compile or verify settles its own sibling and leaves the other
+  // two alone. There is no barrier here on purpose — `spec.md §7.10 #5` makes concept-level
+  // readiness canonical, so concept 0 may be ready while 1 is on its one permitted re-prompt and 2
+  // is still in the browser.
+  //
+  // The set review above *is* a barrier, and canon requires that one: the card fallback is defined
+  // over the set (`spec.md §31`), so it cannot run per sibling. Composition needs the resolved
+  // card because `design_concepts` denormalizes it.
+  const contentRow = await readEventContentRow(admin, eventId);
+  const capabilities = deriveCapabilities(contentRow);
+  const now = new Date();
+  const contentProfile = deriveContentProfile(contentRow, now);
+  const content = deriveEventContent(contentRow, now);
+  const cardByIndex = new Map(review.cards.map((card) => [card.index, card]));
+
+  const composed = await Promise.all(
+    succeeded.map(async (sibling) => {
+      const index = sibling.planned.index;
+      const artifactId = artifactIds.get(index);
+      const card = cardByIndex.get(index);
+      // No artifact means persistence refused this sibling's lineage row, and a concept may not
+      // point at an artifact that does not exist (`validate_design_concept_artifact()`).
+      if (!artifactId || !card) {
+        await settleSibling(admin, batch.id, index, false);
+        return { index, outcome: null };
+      }
+      const call = sibling.call!;
+      const outcome = await runCompositionStage(admin, compositionRunner, {
+        batchId: batch.id,
+        eventId,
+        round: batch.round,
+        conceptIndex: index,
+        attempt: FIRST_ATTEMPT,
+        designIntentArtifactId: artifactId,
+        designIntent: call.output,
+        presentation: { name: card.name, description: card.description },
+        priorDeviations: call.deviations,
+        designIntentPromptVersion: call.promptVersion,
+        designIntentSchemaVersion: call.schemaVersion,
+        content,
+        tokenAllotment: {
+          allowed: sibling.planned.allowedTokens,
+          forbidden: sibling.planned.forbiddenTokens,
+        } as unknown as Json,
+        signatureCategory: sibling.planned.assignment.typographyCategory,
+        signatureTone: sibling.planned.assignment.tonalDirection,
+        call: {
+          brief: compositionBrief(revision.identity),
+          contentProfile,
+          capabilities,
+          designIntent: call.output,
+          directive: sibling.planned.directive as unknown as Json,
+          directiveSentence: sibling.planned.directiveSentence,
+          forbiddenTokens: sibling.planned.forbiddenTokens,
+          seed: sibling.planned.seed,
+        },
+      });
+      return { index, outcome };
+    }),
+  );
+
+  const ready = composed.flatMap((entry) =>
+    entry.outcome?.state === "ready"
+      ? [
+          {
+            index: entry.index,
+            conceptId: entry.outcome.conceptId,
+            resolvedSpecId: entry.outcome.resolvedSpecId,
+            fallback: entry.outcome.fallback,
+            nearestSibling: entry.outcome.nearestSibling,
+          },
+        ]
+      : [],
+  );
+
   const status = await settleBatch(admin, batch.id);
 
-  if (succeeded.length === 0) return { state: "failed", batch, status };
+  if (ready.length === 0) return { state: "failed", batch, status };
 
   return {
     state: "generated",
     batch,
-    cards: review.cards,
-    conceptCount: succeeded.length,
+    cards: review.cards.filter((card) => ready.some((entry) => entry.index === card.index)),
+    conceptCount: ready.length,
+    concepts: ready,
     status,
     signals: review.signals,
   };

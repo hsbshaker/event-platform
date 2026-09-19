@@ -560,6 +560,64 @@ and validating intermediate JSON in isolation has reached the end of what it can
 and no band distribution or minimum-wowable count is asserted. `EventIdentity`, `ConceptPremise`
 and `DesignIntent` are frozen while 4D is built.
 
+## Revision 6.14 — Phase 4D: a DesignIntent becomes a page
+
+**What changed.** The generation backend now runs end to end: `EventIdentity` → one
+`ConceptPremise` call → three `DesignIntent` calls → **three `Composition` calls** → per-sibling
+compile, rendered-geometry verification at 390 and 1280, and an immutable `ResolvedDesignSpec`.
+Seven provider calls per batch before bounded retries, up from four.
+
+**The host-constraint gap, which was real.** `docs/model-contracts.md §6.1` named the Composition
+call's first input `eventIdentity` and scoped it only in a comment; `src/lib/ai/provider.ts`
+declared the call as `{designIntent, capabilities, directive, reprompt?}` over
+`Record<string, unknown>`. Nothing in that shape carries a host constraint, so a constraint whose
+subject is **structure** — no religious imagery, keep the ceremony and the reception apart — could
+survive Event Identity and never reach the stage that authors structure. It could not be honoured,
+and could not be found to have been broken either: `§3.7`'s S4 judges erosion where the subject is
+observable.
+
+`src/lib/ai/composition/brief.ts` is the fix. Every `hostConstraint` travels **complete and
+verbatim**, because the asymmetry decides it: carrying an inapplicable constraint costs tokens, and
+dropping an applicable one loses the host's instruction with no way to detect the loss. The
+*obligation* is scoped instead of the evidence — prompt block 1a, now `composition_v1_p3` — and
+`creativeGuidance` is withheld by having no field at all, which is what makes promotion to host law
+impossible rather than merely discouraged. `BRIEF_DISPOSITION` is exhaustive over
+`keyof EventIdentity`, so adding a field upstream without deciding whether Composition may see it
+is a compile error.
+
+**A sibling now makes two calls, so recording and settling split.** `record_batch_sibling_run`
+settles the sibling it records, which was right while a sibling *was* one DesignIntent call.
+Settling there now would mark a sibling ready whose concept does not exist and may never exist —
+`§32 #24` decides that only after geometry verification. `record_sibling_stage_run` records and
+settles nothing; `settle_batch_sibling` settles once the concept is persisted. The old function is
+untouched and still correct for a single-stage sibling.
+
+**Concept-level readiness is real, not aspirational.** The three composition stages run in
+parallel and none waits for another: concept 0 can be ready while 1 is retrying and 2 is in the
+browser. The one barrier is the set review, which canon requires — the card fallback is defined
+over the set.
+
+**The retry budget is one counter.** All three of `§6.3`'s re-prompts — schema-invalid, token-cap,
+selector collision — are spent inside `generateComposition`, once each. The stage calls it once and
+tells the compiler both allowances it could ask for are gone, so a surviving token violation is
+neutralized deterministically and a surviving post-repair collision is reported as
+`nearestSibling`. Nothing else is ever re-prompted, anywhere.
+
+**One real bug, found by the work.** `heroNumeral.detect` reads `sections[0]` directly, and
+`validateSchema` bounds a section's shape but not how many there are — so `{version, sections: []}`
+is a schema-valid response that threw out of `tokenViolations`. Guarded, with a test: a sectionless
+tree has no hero to cap, and what it has is a section-count defect the compiler owns.
+
+**Verification.** typecheck, lint (0 errors), format, 110 unit files / 2,409 tests, 423 DB tests
+against a disposable local PostgreSQL with the full migration chain applied from empty, 41
+component tests, `proof-b/test.js` green, `adv-run.js` 37/37 repair-valid with zero overflow at
+both widths, and a production build. **No provider call and no eval run.**
+
+**What is not established.** `composition_v1_p3` has never been sent to a model, so every
+CO-01…CO-11 threshold is unmeasured and 4D's own question — *can it turn each direction into an
+excellent original composition?* — is unanswered. Imagery remains 4E and is neither built nor
+diminished here.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

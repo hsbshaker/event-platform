@@ -121,7 +121,10 @@ function worstIdentity(): EventIdentity {
 
 /** The six-field DesignIntent (plus `presentation`) at its own contract's maxima. */
 function worstDesignIntent(): DesignIntent {
-  return worstValue(canonicalDesignIntentJsonSchema() as JsonSchema, "designIntent") as DesignIntent;
+  return worstValue(
+    canonicalDesignIntentJsonSchema() as JsonSchema,
+    "designIntent",
+  ) as DesignIntent;
 }
 
 /** Every capability enabled — the worst case for `specText()`/`rulesText()` (§6.1: every block). */

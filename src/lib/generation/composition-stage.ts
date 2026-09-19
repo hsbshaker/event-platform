@@ -8,23 +8,23 @@ import "server-only";
  * ready while 1 is still retrying and 2 is still in the browser. Nothing here waits for a sibling
  * it is not.
  *
- * # The retry budget lives here, and only here
+ * # Where the three re-prompts live, and why not here
  *
- * `docs/model-contracts.md §6.3` allows exactly three re-prompts, once each: a schema-invalid
- * response, an attractive-token-cap violation, and a selector collision. Two of the three are
- * discovered *after* the call returns, by `compileConcept`, which reports them rather than acting
- * on them. So this function owns the counter:
+ * `docs/model-contracts.md §6.3` allows exactly three, once each per candidate: a schema-invalid
+ * response, an attractive-token-cap violation, and a selector collision. **All three are spent
+ * inside `generateComposition`**, which is why it takes a `collides` check rather than letting a
+ * caller re-prompt on its behalf, and why its `usage.reprompts` counts the three separately.
  *
- *   * **schema-invalid** is the adapter's own, inside one logical call (`§6.3` step 1), and ends in
- *     a library fallback the adapter attributes;
- *   * **token cap** → one re-prompt; a second violation is neutralized deterministically and
- *     logged as `planner`, never re-prompted (`§6.3` step 3);
- *   * **collision** → one re-prompt naming the colliding skeletons; a second collision ends in the
- *     library fallback (`§6.3` step 5).
+ * So this stage calls the runner **once**, and tells `compileConcept` both of the allowances it
+ * could ask for are already gone. The compiler then neutralizes a surviving token violation
+ * deterministically — logged as `planner`, `§6.3` step 3 — and reports a surviving post-repair
+ * collision as `nearestSibling` rather than asking for a fourth call. One counter in one module is
+ * what makes "once each" a bound instead of an aspiration.
  *
- * Nothing else is ever re-prompted. Structural, coverage, capability, responsive, box, motif-kind
- * and fit defects are repaired deterministically, and a geometry failure is a failure — not a
- * reason to ask a model again (`spec.md §32 #21`). There is no critic loop and no quality retry.
+ * Nothing else is ever re-prompted anywhere. Structural, coverage, capability, responsive, box,
+ * motif-kind and fit defects are repaired deterministically, and a geometry failure is a failure —
+ * not a reason to ask a model again (`spec.md §32 #21`). There is no critic loop, no quality
+ * retry, and no path from a compile outcome back to the provider.
  *
  * # Why a port rather than a direct import
  *
@@ -67,8 +67,12 @@ export interface CompositionRunnerRequest {
   readonly directiveSentence: string;
   readonly forbiddenTokens: readonly AttractiveTokenId[];
   readonly seed: number;
-  /** The one permitted re-prompt for this reason, with the feedback canon says it carries. */
-  readonly reprompt?: { readonly kind: "token_cap" | "collision"; readonly feedback: readonly string[] };
+  /**
+   * The post-repair collision check, handed to the adapter so its own selector pass can spend the
+   * one collision re-prompt (`docs/model-contracts.md §6.3` step 5). Absent means no selector runs
+   * inside the call, and `compileConcept`'s authoritative check still runs after repair.
+   */
+  readonly collides?: (tree: CompositionTree) => readonly string[] | null;
 }
 
 /**
@@ -141,138 +145,120 @@ export async function runCompositionStage(
   runner: CompositionRunner,
   request: CompositionStageRequest,
 ): Promise<CompositionStageOutcome> {
-  let spent: RepromptsSpent = { tokenCap: false, collision: false };
-  let call = request.call;
-  // Bounded by construction: two discoverable re-prompt reasons, once each, so at most three
-  // passes. The loop cannot spin — `spent` only ever moves from false to true.
-  const maxPasses = 3;
+  // Both allowances belong to the adapter (see the header), so the compiler is told they are
+  // spent. That is what turns a surviving token violation into deterministic neutralization and a
+  // surviving collision into a reported `nearestSibling`, instead of a fourth paid call.
+  const spent: RepromptsSpent = { tokenCap: true, collision: true };
 
-  for (let pass = 0; pass < maxPasses; pass += 1) {
-    let attempt: CompositionAttempt;
-    try {
-      attempt = await runner(call);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      await recordSiblingStageRun(admin, {
-        batchId: request.batchId,
-        conceptIndex: request.conceptIndex,
-        operation: COMPOSITION_OPERATION,
-        attempt: request.attempt,
-        success: false,
-        run: providerFailureTelemetry(detail),
-      });
-      await settleSibling(admin, request.batchId, request.conceptIndex, false);
-      return { state: "failed", kind: "provider", detail, repromptsUsed: spent };
-    }
-
-    // Recorded before anything can fail downstream: the response is paid for, and the ceiling
-    // reads `generation_runs` as spend. Settling is a separate step, deliberately.
-    const recorded = await recordSiblingStageRun(admin, {
+  let attempt: CompositionAttempt;
+  try {
+    attempt = await runner(request.call);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    await recordSiblingStageRun(admin, {
       batchId: request.batchId,
       conceptIndex: request.conceptIndex,
       operation: COMPOSITION_OPERATION,
       attempt: request.attempt,
-      success: true,
-      run: attempt.telemetry,
+      success: false,
+      run: providerFailureTelemetry(detail),
     });
-
-    const compiled = await compileConcept({
-      tree: attempt.tree,
-      designIntent: request.designIntent,
-      capabilities: call.capabilities,
-      content: request.content,
-      seed: call.seed,
-      forbiddenTokens: call.forbiddenTokens,
-      presentation: request.presentation,
-      ...(request.priorDeviations ? { priorDeviations: request.priorDeviations } : {}),
-      ...(request.against ? { against: request.against } : {}),
-      ...(request.signatureCategory !== undefined
-        ? { signatureCategory: request.signatureCategory, signatureTone: request.signatureTone }
-        : {}),
-      spent,
-    });
-
-    if (compiled.state === "reprompt") {
-      // Spend the allowance and go round once. `compileConcept` will neutralize (token cap) or
-      // carry on to the fallback (collision) the next time it sees the same defect.
-      spent =
-        compiled.kind === "token_cap"
-          ? { ...spent, tokenCap: true }
-          : { ...spent, collision: true };
-      call = { ...call, reprompt: { kind: compiled.kind, feedback: compiled.feedback } };
-      continue;
-    }
-
-    if (compiled.state === "failed") {
-      await settleSibling(admin, request.batchId, request.conceptIndex, false);
-      return {
-        state: "failed",
-        kind: compiled.kind,
-        detail: compiled.detail,
-        repromptsUsed: spent,
-      };
-    }
-
-    // Verified. Persist, then settle — in that order, so a sibling is never `succeeded` with no
-    // concept behind it.
-    try {
-      const persisted = await persistConcept(admin, {
-        eventId: request.eventId,
-        round: request.round,
-        conceptIndex: request.conceptIndex,
-        designIntentArtifactId: request.designIntentArtifactId,
-        designIntent: request.designIntent,
-        presentation: request.presentation,
-        compositionRaw: compiled.raw,
-        compositionCanonical: compiled.canonical,
-        compositionHash: compiled.compositionHash,
-        capabilities: call.capabilities,
-        contentProfile: call.contentProfile,
-        directive: call.directive as Json,
-        tokenAllotment: request.tokenAllotment,
-        fallback: attempt.fallback,
-        designIntentPromptVersion: request.designIntentPromptVersion,
-        designIntentSchemaVersion: request.designIntentSchemaVersion,
-        compositionPromptVersion: attempt.promptVersion,
-        compositionSchemaVersion: attempt.schemaVersion,
-        compositionInputAssemblyVersion: attempt.inputAssemblyVersion,
-        spec: compiled.spec,
-      });
-
-      await settleSibling(
-        admin,
-        request.batchId,
-        request.conceptIndex,
-        true,
-        recorded.runId ?? undefined,
-      );
-
-      return {
-        state: "ready",
-        conceptId: persisted.conceptId,
-        resolvedSpecId: persisted.resolvedSpecId,
-        canonical: compiled.canonical,
-        nearestSibling: compiled.nearestSibling,
-        fallback: attempt.fallback,
-        repromptsUsed: spent,
-      };
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      await settleSibling(admin, request.batchId, request.conceptIndex, false);
-      return { state: "failed", kind: "persist", detail, repromptsUsed: spent };
-    }
+    await settleSibling(admin, request.batchId, request.conceptIndex, false);
+    return { state: "failed", kind: "provider", detail, repromptsUsed: spent };
   }
 
-  // Both allowances spent and still not compiled. Unreachable while `compileConcept` only asks for
-  // a re-prompt it has not already been told is spent, and returned rather than thrown so an
-  // invariant break degrades to a failed sibling instead of a batch-wide exception.
-  await settleSibling(admin, request.batchId, request.conceptIndex, false);
-  return {
-    state: "failed",
-    kind: "structure",
-    detail: "composition did not settle within its permitted re-prompts",
-    repromptsUsed: spent,
-  };
+  // Recorded before anything can fail downstream: the response is paid for, and the ceiling reads
+  // `generation_runs` as spend. Settling is a separate step, deliberately.
+  const recorded = await recordSiblingStageRun(admin, {
+    batchId: request.batchId,
+    conceptIndex: request.conceptIndex,
+    operation: COMPOSITION_OPERATION,
+    attempt: request.attempt,
+    success: true,
+    run: attempt.telemetry,
+  });
+
+  const compiled = await compileConcept({
+    tree: attempt.tree,
+    designIntent: request.designIntent,
+    capabilities: request.call.capabilities,
+    content: request.content,
+    seed: request.call.seed,
+    forbiddenTokens: request.call.forbiddenTokens,
+    presentation: request.presentation,
+    ...(request.priorDeviations ? { priorDeviations: request.priorDeviations } : {}),
+    ...(request.against ? { against: request.against } : {}),
+    ...(request.signatureCategory !== undefined
+      ? { signatureCategory: request.signatureCategory, signatureTone: request.signatureTone }
+      : {}),
+    spent,
+  });
+
+  if (compiled.state === "reprompt") {
+    // Unreachable while `spent` is both true, and returned rather than thrown so an invariant
+    // break degrades to one failed sibling instead of a batch-wide exception.
+    await settleSibling(admin, request.batchId, request.conceptIndex, false);
+    return {
+      state: "failed",
+      kind: "structure",
+      detail: `compiler asked for a ${compiled.kind} re-prompt the provider had already spent`,
+      repromptsUsed: spent,
+    };
+  }
+
+  if (compiled.state === "failed") {
+    await settleSibling(admin, request.batchId, request.conceptIndex, false);
+    return { state: "failed", kind: compiled.kind, detail: compiled.detail, repromptsUsed: spent };
+  }
+
+  // Verified. Persist, then settle — in that order, so a sibling is never `succeeded` with no
+  // concept behind it.
+  try {
+    const persisted = await persistConcept(admin, {
+      eventId: request.eventId,
+      round: request.round,
+      conceptIndex: request.conceptIndex,
+      designIntentArtifactId: request.designIntentArtifactId,
+      designIntent: request.designIntent,
+      presentation: request.presentation,
+      compositionRaw: compiled.raw,
+      compositionCanonical: compiled.canonical,
+      compositionHash: compiled.compositionHash,
+      capabilities: request.call.capabilities,
+      contentProfile: request.call.contentProfile,
+      directive: request.call.directive as Json,
+      tokenAllotment: request.tokenAllotment,
+      fallback: attempt.fallback,
+      designIntentPromptVersion: request.designIntentPromptVersion,
+      designIntentSchemaVersion: request.designIntentSchemaVersion,
+      compositionPromptVersion: attempt.promptVersion,
+      compositionSchemaVersion: attempt.schemaVersion,
+      compositionInputAssemblyVersion: attempt.inputAssemblyVersion,
+      spec: compiled.spec,
+    });
+
+    await settleSibling(
+      admin,
+      request.batchId,
+      request.conceptIndex,
+      true,
+      recorded.runId ?? undefined,
+    );
+
+    return {
+      state: "ready",
+      conceptId: persisted.conceptId,
+      resolvedSpecId: persisted.resolvedSpecId,
+      canonical: compiled.canonical,
+      nearestSibling: compiled.nearestSibling,
+      fallback: attempt.fallback,
+      repromptsUsed: spent,
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    await settleSibling(admin, request.batchId, request.conceptIndex, false);
+    return { state: "failed", kind: "persist", detail, repromptsUsed: spent };
+  }
 }
 
 /** Telemetry for a call that never returned a usable response. */

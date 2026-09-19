@@ -17,7 +17,11 @@
  * (`spec.md §7.3` clarification (1); `docs/event-renderer-system.md §2.3`).
  */
 
-import type { Capabilities, ContentProfile, RegistryCounts } from "@/lib/renderer/composition/nodes";
+import type {
+  Capabilities,
+  ContentProfile,
+  RegistryCounts,
+} from "@/lib/renderer/composition/nodes";
 import { provisionalContent } from "@/lib/events/provisional";
 
 /** Bumped whenever this file's derivation logic changes shape (matches `src/lib/ai/versions.ts`'s
@@ -38,6 +42,8 @@ export interface EventContentRow {
   hosts: string | null;
   baby_name: string | null;
   venue_name: string | null;
+  /** Street/city text. Read only for the renderer's `location` leaf, never geocoded (`§32 #40`). */
+  address: string | null;
   event_date: string | null;
   start_time: string | null;
   timezone: string | null;
@@ -136,9 +142,8 @@ export function deriveContentProfile(
   // exactly like hosts above — never provisional.
   const descriptionChars = event.description?.length ?? 0;
 
-  const titleWords = content.title.value.trim().length === 0
-    ? 0
-    : content.title.value.trim().split(/\s+/).length;
+  const titleWords =
+    content.title.value.trim().length === 0 ? 0 : content.title.value.trim().split(/\s+/).length;
 
   let resolvedRegistryCounts = registryCounts;
   if (!resolvedRegistryCounts) {

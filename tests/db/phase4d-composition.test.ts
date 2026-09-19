@@ -408,10 +408,10 @@ describe("settling a sibling", () => {
       batchId,
       composition.run_id,
     ]);
-    const again = await db.query(
-      `select public.settle_batch_sibling($1, 0, true, $2) as outcome`,
-      [batchId, composition.run_id],
-    );
+    const again = await db.query(`select public.settle_batch_sibling($1, 0, true, $2) as outcome`, [
+      batchId,
+      composition.run_id,
+    ]);
     expect(again.rows[0].outcome).toBe("already_succeeded");
   });
 
@@ -548,10 +548,10 @@ describe("only a verified spec is persisted, and only for its own concept", () =
   it("makes a verified spec active through the one permitted update", async () => {
     const conceptId = await insertConcept();
     const specId = await insertSpec(conceptId);
-    await db.query(
-      `update public.design_concepts set active_resolved_spec_id = $1 where id = $2`,
-      [specId, conceptId],
-    );
+    await db.query(`update public.design_concepts set active_resolved_spec_id = $1 where id = $2`, [
+      specId,
+      conceptId,
+    ]);
     const { rows } = await db.query(
       `select active_resolved_spec_id from public.design_concepts where id = $1`,
       [conceptId],

@@ -52,7 +52,6 @@ import {
   repair,
   similarity,
   skeleton,
-  validateStructure,
   type Capabilities,
   type CompositionTree,
   type Repair,
@@ -61,11 +60,7 @@ import {
 } from "@/lib/renderer/composition";
 import { assemblePreVerificationSpec } from "@/lib/renderer/compile/spec";
 import type { DesignIntent, Deviation, Presentation } from "@/lib/renderer/design-intent";
-import {
-  verifyGeometry,
-  type ResolvedDesignSpec,
-  type VerifyOptions,
-} from "@/lib/renderer/verify";
+import { verifyGeometry, type ResolvedDesignSpec, type VerifyOptions } from "@/lib/renderer/verify";
 import type { EventContent } from "@/components/event-renderer/contract";
 
 /**
@@ -142,9 +137,7 @@ export interface CompileConceptFailure {
 }
 
 export type CompileConceptOutcome =
-  | CompiledConcept
-  | CompileConceptReprompt
-  | CompileConceptFailure;
+  CompiledConcept | CompileConceptReprompt | CompileConceptFailure;
 
 /** The colliding skeletons, rendered for the re-prompt's `avoid` block. */
 function describeCollision(a: SigInput, mode: "desktop" | "mobile", score: number): string {

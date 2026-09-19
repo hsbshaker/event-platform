@@ -2,8 +2,8 @@
 **Prompt version:** `composition_v1_p3`  
 **Schema version:** `composition_schema_v1` (`model-schemas/composition.schema.json`)
 
-`p3` adds the host-constraint block below. `p2` named constraints inside block 1's list without
-saying they bind, and `src/lib/ai/provider.ts` did not carry them at all — so a constraint whose
+`p3` adds the host-constraint block below. `p2` listed constraints inside block 1 but never stated
+that they bind, and `src/lib/ai/provider.ts` did not carry them at all — so a constraint whose
 subject is *structure* could survive Event Identity and never reach the stage that authors
 structure. A constraint that never arrives cannot be honoured, and cannot be found to have been
 broken either (`docs/phase-4b-plan.md §3.7` S4 judges erosion where the subject is observable).

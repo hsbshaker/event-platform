@@ -59,12 +59,42 @@ function clearEnv(): void {
   resetEnvCache();
 }
 
-/** The **only** thing mocked. Everything below it is the code that ships. */
+/** The provider. Everything below it is the code that ships, except the two seams noted next. */
 vi.mock("openai", () => ({
   default: class {
     responses = { create };
   },
 }));
+
+/**
+ * The compile-and-persist seam, stubbed so this file stays about the batch's shape.
+ *
+ * Not a shortcut: `compileConcept` drives a real headless browser at two widths, and
+ * `compile-concept.test.ts` already runs it for real — thirteen cases, Chromium, zero skips —
+ * while `composition-stage.test.ts` owns the per-sibling lifecycle. Running either again here
+ * would make a fifteen-case orchestration suite take minutes to re-prove someone else's property.
+ * What is left unmocked is everything this file is responsible for: the premise call, the binding,
+ * the three DesignIntent calls, the set review, artifact lineage and settlement.
+ */
+const compileConcept = vi.fn();
+vi.mock("./compile-concept", async () => {
+  const actual = await vi.importActual<typeof import("./compile-concept")>("./compile-concept");
+  return { ...actual, compileConcept };
+});
+
+const persistConcept = vi.fn();
+vi.mock("./persist-concept", () => ({ persistConcept }));
+
+const VERIFIED_COMPOSITION = {
+  state: "verified",
+  spec: { verified: { clean: true } },
+  raw: { version: "composition_v1", sections: [] },
+  canonical: { version: "composition_v1", sections: [] },
+  compositionHash: "hash-stub",
+  repairs: [],
+  deviations: [],
+  nearestSibling: 0.1,
+};
 
 /**
  * The persisted envelope, not just the brief.
@@ -107,6 +137,9 @@ interface Recorded {
   readonly rpc: { name: string; args: Record<string, unknown> }[];
   /** Every row handed to `design_intent_artifacts.insert`. */
   readonly artifacts: Row[];
+  /** Every row handed to `design_concepts.insert` — a concept is only written once composed. */
+  readonly concepts: Row[];
+  readonly specs: Row[];
   /** What `latestBatch` should answer with, so an observed batch can be exercised. */
   existingBatch: Row | null;
   authoritativeRevisionId: string | null;
@@ -140,8 +173,24 @@ function fakeAdmin(recorded: Recorded) {
     const state: { rows: Row[] } = { rows: [] };
     const result = () => {
       if (table === "events") {
+        // Two different reads hit this table: the authoritative-identity pointer, and the narrow
+        // content row the composition stage measures. One row answering both is enough for a fake.
         return {
-          data: [{ authoritative_identity_revision_id: recorded.authoritativeRevisionId }],
+          data: [
+            {
+              authoritative_identity_revision_id: recorded.authoritativeRevisionId,
+              title: "Baby Shaker is on the way",
+              description: null,
+              hosts: "Haseeb & Shezia",
+              baby_name: "Shaker",
+              venue_name: "The Lodge",
+              address: "Aldie, Virginia",
+              event_date: "2026-12-19",
+              start_time: "13:00",
+              timezone: "America/New_York",
+              rsvp_deadline: null,
+            },
+          ],
           error: null,
         };
       }
@@ -170,8 +219,29 @@ function fakeAdmin(recorded: Recorded) {
       limit: () => chain,
       insert: (rows: Row[]) => {
         if (table === "design_intent_artifacts") recorded.artifacts.push(...rows);
-        return Promise.resolve({ data: null, error: null });
+        if (table === "design_concepts") recorded.concepts.push(...rows);
+        if (table === "resolved_design_specs") recorded.specs.push(...rows);
+        // Chainable, because production selects the inserted ids back: the composition stage links
+        // `design_concepts.design_intent_artifact_id`, and a positional guess would be refused by
+        // `validate_design_concept_artifact()`.
+        const inserted =
+          table === "design_intent_artifacts"
+            ? rows.map((row) => ({
+                id: `artifact-${row.concept_index}`,
+                concept_index: row.concept_index,
+              }))
+            : rows.map((_, i) => ({ id: `${table}-${i}` }));
+        const done = { data: inserted, error: null };
+        const insertChain: Record<string, unknown> = {
+          select: () => insertChain,
+          maybeSingle: () => Promise.resolve({ data: inserted[0] ?? null, error: null }),
+          then: (resolve: (value: unknown) => unknown) => Promise.resolve(done).then(resolve),
+        };
+        return insertChain;
       },
+      update: () => ({
+        eq: () => Promise.resolve({ data: null, error: null }),
+      }),
       then: (resolve: (value: unknown) => unknown) => Promise.resolve(result()).then(resolve),
     };
     return chain;
@@ -187,11 +257,18 @@ function fakeAdmin(recorded: Recorded) {
         recorded.existingBatch = batchRow({ status: "running" });
         return Promise.resolve({ data: [{ outcome: "planned", batch_id: BATCH_ID }], error: null });
       }
-      if (name === "record_batch_sibling_run" || name === "record_batch_call_run") {
+      if (
+        name === "record_sibling_stage_run" ||
+        name === "record_batch_call_run" ||
+        name === "record_sibling_stage_run"
+      ) {
         return Promise.resolve({
-          data: [{ outcome: "recorded", run_id: "run-1" }],
+          data: [{ outcome: "recorded", run_id: `run-${String(args.p_operation ?? "x")}` }],
           error: null,
         });
+      }
+      if (name === "settle_batch_sibling") {
+        return Promise.resolve({ data: args.p_success ? "succeeded" : "failed", error: null });
       }
       if (name === "settle_generation_batch")
         return Promise.resolve({ data: "completed", error: null });
@@ -204,6 +281,8 @@ function recorder(overrides: Partial<Recorded> = {}): Recorded {
   return {
     rpc: [],
     artifacts: [],
+    concepts: [],
+    specs: [],
     existingBatch: null,
     authoritativeRevisionId: REVISION_ID,
     ...overrides,
@@ -346,22 +425,73 @@ function designIntentMessages(): string[] {
     .map(([request]) => request.input[1].content as string);
 }
 
+/** Stage runs for one operation. A sibling now records two, so a bare count says little. */
+const stageRuns = (recorded: Recorded, operation: string) =>
+  recorded.rpc.filter(
+    (entry) => entry.name === "record_sibling_stage_run" && entry.args.p_operation === operation,
+  );
+
 const premiseCalls = () =>
   create.mock.calls.filter(([r]) => r.text?.format?.name === "concept_premise_set");
 
-async function run(recorded: Recorded, request: { newRound?: boolean } = {}) {
-  const { runConceptBatch } = await import("./concept-batch");
-  return runConceptBatch(fakeAdmin(recorded), {
-    eventId: EVENT_ID,
-    userId: USER_ID,
-    ...request,
+/**
+ * A stub Composition runner, injected so this file never reaches a provider for step 8.
+ *
+ * The composition half has its own coverage — `composition-stage.test.ts` for the lifecycle and
+ * `compile-concept.test.ts` for the real compiler and the real browser pass. What this file owns
+ * is the batch's shape, so composition is stubbed at its narrowest seam: the runner returns a
+ * minimal legal tree and the rest of the pipeline runs for real.
+ */
+function stubRunner(overrides: Record<string, unknown> = {}) {
+  return vi.fn().mockResolvedValue({
+    tree: { version: "composition_v1", sections: [] },
+    promptVersion: "composition_v1_p3",
+    schemaVersion: "composition_schema_v1",
+    inputAssemblyVersion: "composition_input_v1",
+    fallback: null,
+    telemetry: {
+      operation: "composition",
+      provider: "openai",
+      model: "gpt-5.6-sol",
+      latencyMs: 800,
+      promptVersion: "composition_v1_p3",
+      schemaVersion: "composition_schema_v1",
+    },
+    ...overrides,
   });
+}
+
+async function run(
+  recorded: Recorded,
+  request: { newRound?: boolean } = {},
+  runner = stubRunner(),
+) {
+  const { runConceptBatch } = await import("./concept-batch");
+  return runConceptBatch(
+    fakeAdmin(recorded),
+    {
+      eventId: EVENT_ID,
+      userId: USER_ID,
+      ...request,
+    },
+    runner as never,
+  );
 }
 
 describe("one concept batch, end to end", () => {
   beforeEach(() => {
     vi.resetModules();
     create.mockReset();
+    compileConcept.mockReset();
+    compileConcept.mockResolvedValue(VERIFIED_COMPOSITION);
+    persistConcept.mockReset();
+    persistConcept.mockImplementation((_admin: unknown, req: { conceptIndex: number }) =>
+      Promise.resolve({
+        conceptId: `concept-${req.conceptIndex}`,
+        resolvedSpecId: `spec-${req.conceptIndex}`,
+        replayed: false,
+      }),
+    );
     create.mockImplementation((request: ProviderRequest) => Promise.resolve(route(request)));
     setEnv();
   });
@@ -418,9 +548,11 @@ describe("one concept batch, end to end", () => {
     await run(recorded);
 
     const batchCalls = recorded.rpc.filter((entry) => entry.name === "record_batch_call_run");
-    const siblingCalls = recorded.rpc.filter((entry) => entry.name === "record_batch_sibling_run");
     expect(batchCalls).toHaveLength(1);
-    expect(siblingCalls).toHaveLength(3);
+    // Three of each, and counted per operation: a sibling records its DesignIntent run and its
+    // Composition run, so a bare total of six would not say the premise stayed batch-level.
+    expect(stageRuns(recorded, "design_intent")).toHaveLength(3);
+    expect(stageRuns(recorded, "composition")).toHaveLength(3);
 
     expect(batchCalls[0].args.p_operation).toBe("concept_premise");
     expect(batchCalls[0].args.p_success).toBe(true);
@@ -430,11 +562,15 @@ describe("one concept batch, end to end", () => {
     // No `p_concept_index` anywhere in the batch-level call: the premise belongs to all three.
     expect(batchCalls[0].args).not.toHaveProperty("p_concept_index");
 
-    // And the three sibling rows settle from their own DesignIntent calls, one each.
-    expect(siblingCalls.map((entry) => entry.args.p_concept_index).sort()).toEqual([0, 1, 2]);
-    for (const entry of siblingCalls) {
-      expect((entry.args.p_run as { operation: string }).operation).toBe("design_intent");
-    }
+    // And each sibling records its own DesignIntent call against its own index, one each.
+    const designIntentRuns = stageRuns(recorded, "design_intent");
+    expect(designIntentRuns.map((entry) => entry.args.p_concept_index).sort()).toEqual([0, 1, 2]);
+
+    // The sibling rows settle separately, once their concepts exist — not on the call that
+    // produced a DesignIntent. Settling there would claim a concept that had not been composed.
+    const settles = recorded.rpc.filter((entry) => entry.name === "settle_batch_sibling");
+    expect(settles.map((entry) => entry.args.p_concept_index).sort()).toEqual([0, 1, 2]);
+    for (const entry of settles) expect(entry.args.p_success).toBe(true);
   });
 
   it("keys the premise run so a replay collides and a retry does not", async () => {
@@ -619,7 +755,7 @@ describe("when something goes wrong", () => {
     expect((batchCalls[0].args.p_run as { prompt_version: string }).prompt_version).toBe(
       "concept_premise_v1",
     );
-    expect(recorded.rpc.filter((entry) => entry.name === "record_batch_sibling_run")).toEqual([]);
+    expect(recorded.rpc.filter((entry) => entry.name === "record_sibling_stage_run")).toEqual([]);
     // And the batch is settled rather than left in flight blocking the event.
     expect(recorded.rpc.some((entry) => entry.name === "settle_generation_batch")).toBe(true);
     expect(recorded.artifacts).toEqual([]);
@@ -647,9 +783,12 @@ describe("when something goes wrong", () => {
     expect(outcome.cards).toHaveLength(2);
     expect(recorded.artifacts).toHaveLength(2);
 
-    const siblingCalls = recorded.rpc.filter((entry) => entry.name === "record_batch_sibling_run");
-    expect(siblingCalls.filter((entry) => entry.args.p_success === false)).toHaveLength(1);
-    expect(siblingCalls.filter((entry) => entry.args.p_success === true)).toHaveLength(2);
+    const designIntentRuns = stageRuns(recorded, "design_intent");
+    expect(designIntentRuns.filter((entry) => entry.args.p_success === false)).toHaveLength(1);
+    expect(designIntentRuns.filter((entry) => entry.args.p_success === true)).toHaveLength(2);
+    // The failed sibling never reaches composition: with no DesignIntent there is nothing to
+    // compose, so only the two survivors are composed and only they become concepts.
+    expect(stageRuns(recorded, "composition")).toHaveLength(2);
   });
 
   it("says the batch failed when every sibling did, rather than reporting zero concepts", async () => {
@@ -663,8 +802,11 @@ describe("when something goes wrong", () => {
     expect(outcome.state).toBe("failed");
     expect(recorded.artifacts).toEqual([]);
     // All three attempts are still recorded, because all three were still paid for.
-    const siblingCalls = recorded.rpc.filter((entry) => entry.name === "record_batch_sibling_run");
-    expect(siblingCalls.filter((entry) => entry.args.p_success === false)).toHaveLength(3);
+    expect(
+      stageRuns(recorded, "design_intent").filter((e) => e.args.p_success === false),
+    ).toHaveLength(3);
+    // And none reached composition, so no unpaid-for run row exists either.
+    expect(stageRuns(recorded, "composition")).toHaveLength(0);
   });
 
   it("spends nothing when a batch already answers the request", async () => {

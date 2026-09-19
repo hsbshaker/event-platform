@@ -226,7 +226,8 @@ export const REPAIR_ROUNDS = 3;
  * assumption that never under-reserves.
  */
 export const REPAIR_OVERHEAD_TOKENS =
-  REPAIR_ROUNDS * (PER_ATTEMPT_OUTPUT_TOKEN_BOUND + REPAIR_FEEDBACK_MAX_BYTES + REPAIR_TURN_FRAMING_BYTES);
+  REPAIR_ROUNDS *
+  (PER_ATTEMPT_OUTPUT_TOKEN_BOUND + REPAIR_FEEDBACK_MAX_BYTES + REPAIR_TURN_FRAMING_BYTES);
 
 /** Role markers and separators the provider adds around the messages. */
 export const FRAMING_TOKENS = 1_000;

@@ -285,6 +285,22 @@ export const MODEL_VISIBLE_SURFACES = {
   "concept premise wire schema": "docs/model-schemas/concept-premise.wire.schema.json",
   "concept premise provider boundary": "src/lib/ai/openai/concept-premise.ts",
   "concept premise input assembly": "src/lib/ai/openai/concept-premise-input.ts",
+  /**
+   * The Composition stage, added at Phase 4D. Three entries rather than four: the prompt, the
+   * boundary and the assembly beside it, and **no wire schema** — `docs/model-contracts.md §2`
+   * generates the composition schema from the validator's own spec table
+   * (`renderer/composition/json-schema.ts`), so it carries no hand-written `.describe()` text a
+   * corpus term could be written into, and `composition_v1_p2` is not sent as a provider-side
+   * structured-output schema at all (`§3`).
+   *
+   * The assembly is where every label, preamble and delimiter of the twelve numbered blocks lives,
+   * and the boundary is scanned for the same reason the other two boundaries are: an implementer
+   * who put a correction turn's wording in the caller instead would otherwise satisfy the
+   * declaration and leave the strings unscanned.
+   */
+  "composition prompt": "docs/model-prompts/composition.system.md",
+  "composition provider boundary": "src/lib/ai/openai/composition.ts",
+  "composition input assembly": "src/lib/ai/openai/composition-input.ts",
 } as const;
 
 /** The assembly version at which the third surface above is still legitimately absent. */

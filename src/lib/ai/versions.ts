@@ -252,6 +252,15 @@ export const CONCEPT_PREMISE_INPUT_ASSEMBLY_VERSION = "concept_premise_input_v1"
  */
 export const COMPOSITION_PROMPT_VERSION = "composition_v1_p3";
 export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
+/**
+ * The Composition request assembly (`src/lib/ai/openai/composition-input.ts`).
+ *
+ * Bumps when the request's *contents*, precedence, ordering or representation change — the same
+ * rule the other three assemblies follow. It travels with `PRIMITIVE_SET_VERSION` in practice,
+ * because the primitive-spec and rules blocks are generated from `NODE_SPEC`: a primitive added to
+ * the language changes the bytes this assembly sends without anyone editing the assembly.
+ */
+export const COMPOSITION_INPUT_ASSEMBLY_VERSION = "composition_input_v1";
 export const PRIMITIVE_SET_VERSION = "composition_v1";
 /**
  * The deterministic sibling planner (`spec.md §7.7`, `src/lib/generation/planner.ts`).
