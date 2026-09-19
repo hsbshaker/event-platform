@@ -675,13 +675,21 @@ failed on both fidelity and distinctness is not a diversity problem.
   brief does not carry; a hex colour, which belongs to a later stage; an excluded colour the brief
   mentions only in order to exclude it.
 - **`set`** — duplicate titles, in either spelling or word order; two organizing ideas that are one
-  idea reworded; **no register axis taking three distinct values**; a declared axis constraint the
-  set does not actually honour.
+  idea reworded; **two premises at the same register on all three axes**; a declared axis constraint
+  the set does not actually honour.
 - **`schema`** — shape, enums, bounds, counts, malformed JSON.
 
 The gating set-level rule is stated over the register axes and never over palette distance, motif
 overlap or composition vectors. Those three are the instruments that detected the T22 failure;
 making one the requirement would reward three arbitrary palettes.
+
+It is also deliberately the **weakest** rule that still catches collapse. An earlier form required
+an axis to take three distinct values across the set; measured over all 19,683 register
+configurations it admitted 52.9%, and 7,128 of its refusals had all three registers already
+distinct against 27 that were genuinely one register three times. Its only escape was to move a
+register the idea had not asked to move, which is the superficial forced differentiation this stage
+exists to avoid. Whether an axis separates all three is now telemetry (`separatingAxes`), reported
+and never gating. Semantic distinctness remains the `organizingIdea` overlap ceiling's job.
 
 **Repair policy: one pass, for the whole response, covering every class, then fail visibly.** This
 is the only re-prompt the T22 remediation adds anywhere, and `spec.md §32 #21` now names the closed

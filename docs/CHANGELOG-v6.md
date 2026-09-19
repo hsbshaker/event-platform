@@ -496,6 +496,40 @@ orchestrator's own behaviour is covered by unit tests with the provider mocked a
 database fake, which is what proves the sequence and the payloads; the transactional half was
 already proven against a real database at T16.
 
+## Revision 6.12 — the register gate was too strict, and the database said so
+
+**What changed.** Two corrections found by closing the verification gap, plus the gap itself.
+
+**The register gate.** `spec.md §7.7a` and `docs/model-contracts.md §4.8.3` restate the one gating
+set-level register rule as **no two premises sitting at the same register on all three axes**,
+replacing "at least one axis takes three distinct values". The stricter form was measurably wrong:
+across all 19,683 register configurations of three premises over three three-valued axes it admits
+52.9%, and 7,128 of its refusals have all three registers already distinct against 27 that are
+genuinely one register three times. Its only escape was to move a register the idea had not asked to
+move — and since a refusal costs a host the whole batch, that pressure lands at the worst moment.
+Whether an axis separates all three is now telemetry. Semantic distinctness was always the
+`organizingIdea` overlap ceiling's job and still is.
+
+**The discarded convergence signals.** `runConceptBatch` computed the set review's signals and
+dropped them. That mattered more than it looks: the card fallback derives a repaired card from that
+concept's premise, so three fully converged concepts still present three distinct cards. A batch
+could have looked like three choices at the only surface anyone reads while the convergence that
+produced it went unrecorded. The signals are now returned. They are deliberately not persisted —
+each is a pure function of the three persisted `design_intent` payloads — whereas `card_deviations`
+is, because the substitution destroys the model's own card.
+
+**What the database found.** `npm run test:db` had never run against the new migration. It found two
+real defects on the first execution: `tests/db/phase1.test.ts`'s own artifact helper predates the
+premise lineage columns and broke on their `not null` (six tests), and this task's own fixtures
+omitted required columns on `events` and `event_identity_revisions`. Neither was visible to
+typecheck, lint or 2,215 unit tests. The suite now covers the migration end to end, including a
+ceiling test built to **discriminate**: four calls totalling 7.00 against a ceiling of 6.00, where
+the three DesignIntent calls alone total exactly 6.00 — so an admitted batch would prove the premise
+spend was invisible.
+
+**Verification.** Full chain applied from a clean Postgres 16; `npm run test:db` 11 files, 393
+tests; unit 103 files, 2,221 tests; component 41; proof suite green. No provider call, no eval run.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.

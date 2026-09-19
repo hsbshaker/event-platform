@@ -105,9 +105,11 @@ export type SurfaceRichness = (typeof SURFACE_RICHNESSES)[number];
  * (`docs/model-contracts.md §5.1`); these describe the register that choice has to serve. Two
  * consequences follow, and both are the point:
  *
- * - **"These three are experientially different" becomes checkable.** `./validate.ts` gates on at
- *   least one axis taking three distinct values, which is the one thing 36-of-36 `restrained`
- *   shows the system could not previously promise.
+ * - **"These three are experientially different" becomes checkable.** `./validate.ts` gates on no
+ *   two premises sharing the same register on every axis, which is the one thing 36-of-36
+ *   `restrained` shows the system could not previously promise. Deliberately a floor rather than a
+ *   separation target — `REGISTER_SEPARATION` in `./validate.ts` carries why the stricter form was
+ *   measurably wrong.
  * - **Requiring variation here cannot manufacture meaning.** An axis describes the *design's*
  *   register, not the event's facts. A memorial rendered `bare` and the same memorial rendered
  *   `considered` make no competing claim about the host's situation, so set separation can be
@@ -130,8 +132,9 @@ export const AXIS_VALUES: Record<RegisterAxis, readonly string[]> = {
  *
  * The escape exists because an identity can genuinely admit no variation on an axis, and the
  * planner already has the vocabulary for this situation — `SeparationFallback`'s `tone-locked` is
- * *"the planner obeying `spec.md §7.7` … and is a correct outcome"*. The bound is what stops the
- * escape becoming the answer: declare two, and the third must still separate three ways.
+ * *"the planner obeying `spec.md §7.7` … and is a correct outcome"*. The bound is kept as
+ * belt-and-braces rather than as the load-bearing part: under the corrected gate, declaring all
+ * three axes constrained would make the three registers identical and be refused on its own terms.
  */
 export const MAX_CONSTRAINED_AXES = REGISTER_AXES.length - 1;
 

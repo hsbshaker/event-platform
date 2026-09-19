@@ -292,9 +292,28 @@ host's situation, so requiring the set to separate on one axis cannot manufactur
 distinction that lets set-level separation be gating without putting faithfulness at risk — and it is
 why the gating rule is stated over the register axes and never over palette distance.
 
-The gating rule is: **at least one axis takes three distinct values across the set**, and any axis the
-set declares constrained carries its own grounding. That is one honest requirement, with the
-constrained-axis escape recorded in telemetry exactly as the planner already records `tone-locked`.
+The gating rule is: **no two premises sit at the same register on all three axes**, and any axis the
+set declares constrained carries its own grounding and is checked for uniformity. That is one honest
+requirement, with the constrained-axis escape recorded in telemetry exactly as the planner already
+records `tone-locked`.
+
+**This rule started stricter and was corrected, measurably.** The first version required an axis to
+take three distinct values across the set. Over all 19,683 register configurations of three premises
+across three three-valued axes it admits 52.9% — and **7,128 of the configurations it refuses have
+all three registers already distinct**, against 27 that are genuinely one register three times: 264
+honest sets refused for every collapsed one caught. Concretely, three excellent premises at
+`(measured, poised, considered)`, `(measured, commanding, bare)` and
+`(lingering, poised, considered)` are three different registers by any reading, no axis takes three
+distinct values, and no axis is uniform either — so `constrainedAxes` offered no honest escape and
+the only way through was to move a register the idea had not asked to move. Since a refusal costs a
+host the whole batch, that pressure is applied at the worst moment, and superficial forced
+differentiation is precisely what this stage exists to avoid. The corrected rule admits 89.2% and
+refuses exactly the shapes where two or three premises sit at an identical register. Whether an axis
+separates all three is now telemetry, reported and never gating.
+
+Semantic distinctness stays primary and is not this rule's job: what makes three premises three
+choices is `organizingIdea`, gated at its own overlap ceiling, and their titles. The register rule
+is an anti-collapse floor on the design's character, and a floor is all it is.
 
 ---
 
@@ -352,7 +371,17 @@ claim in a document.
    premise that produced them, settle. What remains unwritten is downstream of 4C and always was:
    the composition call and the `design_concepts` row it produces are Phase 4D, so the artifact is
    still the end of this path, and no UI surface calls the orchestrator yet.
-7. **The bounded vocabularies were not expanded, deliberately.** `linen` and `stripe` recurring is a
+7. **Convergence signals are returned, not persisted, and that is deliberate.** The card fallback
+   derives a repaired card from that concept's premise, so three concepts that converged completely
+   still present three distinct cards — the cards say what the premises were, not what the designs
+   became. `runConceptBatch` therefore returns the set review's signals rather than discarding them
+   (an earlier draft computed and dropped them, which would have left a converged batch looking
+   like three choices at the only surface anyone reads). They are not written to the database
+   because every one is a pure deterministic function of the three persisted `design_intent`
+   payloads and can be recomputed from the record at any time. `card_deviations` **is** persisted,
+   for the opposite reason: the substitution destroys the model's own card, and nothing else would
+   hold it.
+8. **The bounded vocabularies were not expanded, deliberately.** `linen` and `stripe` recurring is a
    symptom of undifferentiated asks. If a remediated stage demonstrably cannot express a valid
    premise within seven motifs and twelve pairings, that is a separate limitation to record with
    evidence — not a reason to widen a catalogue first.

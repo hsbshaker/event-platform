@@ -127,7 +127,8 @@ describe("the ConceptPremise call", () => {
     expect(repair).toHaveLength(4);
     expect(repair[2].role).toBe("assistant");
     expect(repair[2].content).toBe(JSON.stringify(collapsed()));
-    expect(repair[3].content).toContain("register axis");
+    // The validator's own finding, quoted verbatim into the correction turn.
+    expect(repair[3].content).toContain("share the same register on every axis");
     // The correction turn must not become a licence to buy distinctness with a fabrication.
     expect(repair[3].content).toContain("adding anything the brief does not carry");
     // And the user message itself is byte-identical on both passes.

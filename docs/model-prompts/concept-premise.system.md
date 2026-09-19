@@ -134,14 +134,20 @@ that call has to serve.
 - `presence` — `understated`, `poised` or `commanding`: how much room the concept takes up.
 - `surfaceRichness` — `bare`, `considered` or `layered`: how much the surfaces themselves carry.
 
-**At least one of the three axes must take a different value in each of your three premises.** This
-is checked and a set that fails it is sent back to you once.
+**No two of your premises may sit at the same register on all three axes.** Three concepts at one
+register is one concept three times. This is checked and a set that fails it is sent back to you
+once.
 
-It is safe to require this because an axis describes the *design's* register and never the event's
-facts: one occasion, understood exactly one way, can legitimately be rendered `bare` or
-`considered`, and neither rendering is a claim about the host's situation. So separating on an axis
-can never be the thing that makes a premise unsupported — if you find yourself reaching for a fact
-to justify a register, the register is wrong, not the fact.
+That is the whole requirement, deliberately. Two premises may share a `pace`, or a `presence`, or a
+`surfaceRichness` — sharing one is ordinary and often right. What they may not do is share all
+three. Do not reshuffle a register to look more different than the idea is: an axis moved for the
+sake of the check is a worse answer than two premises that legitimately share two of them.
+
+It is safe to require even this much because an axis describes the *design's* register and never the
+event's facts: one occasion, understood exactly one way, can legitimately be rendered `bare` or
+`considered`, and neither rendering is a claim about the host's situation. So a register can never
+be the thing that makes a premise unsupported — if you find yourself reaching for a fact to justify
+a register, the register is wrong, not the fact.
 
 Where the brief genuinely leaves an axis no room to vary, say so in `constrainedAxes` with what in
 the brief leaves it none. At most two may be declared, so one axis always remains free. A declared
@@ -150,7 +156,7 @@ constraint is checked: declare `pace` constrained and all three premises must re
 
 Do not reach for the axes first. Write the three ideas, then set each one's register to what the
 idea actually asks for. If two ideas want the same register on every axis, one of them is not a
-separate idea.
+separate idea — and the fix is a different idea, never a different register.
 
 ## 8. The title
 
@@ -209,8 +215,8 @@ Check that:
 - no premise names a colour, a hex value, a font, a measurement or a design setting;
 - no premise names a design family, a tonal direction, a compositional hierarchy or a typography
   category;
-- at least one register axis takes three distinct values, and any axis declared constrained really
-  is uniform across the set;
+- no two premises sit at the same register on all three axes, and any axis declared constrained
+  really is uniform across the set;
 - the three titles are three different names, and each names its own concept;
 - the three `organizingIdea`s are three ideas rather than one reworded;
 - the object holds exactly `premises` and `constrainedAxes`, and nothing else.

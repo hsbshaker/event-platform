@@ -213,14 +213,6 @@ function recorder(overrides: Partial<Recorded> = {}): Recorded {
 /* ------------------------------------------------------------------ provider responses */
 
 /**
- * Which premise this request carries, read off the request itself.
- *
- * The mock has to answer as a competent model would — naming the concept its own premise names —
- * because otherwise every sibling returns one card and the set review repairs two of them on every
- * test. That happened on the first run of this file, which is a small piece of evidence that the
- * review works, and a bad default for the tests that are about something else.
- */
-/**
  * Three genuinely different host-facing sentences, one per premise.
  *
  * The first draft of this table said "Concept 0/1/2 as its own premise asks for" and the set review
@@ -234,21 +226,50 @@ const CARD_DESCRIPTIONS = [
   "Hold one sheet close under a lamp and let the grain do most of the talking.",
 ] as const;
 
-function premiseInRequest(request: ProviderRequest): { title: string; index: number } {
+/**
+ * Which premise this request carries, read off the request itself.
+ *
+ * The mock has to answer as a competent model would — naming the concept its own premise names and
+ * serving its register — because a mock that returns one design for all three siblings is a
+ * converged batch, and the set review says so on every run. That is right of the review and wrong
+ * of a fixture: it would hide the difference between a batch that converged and one that did not.
+ */
+function premiseInRequest(request: ProviderRequest) {
   const message = request.input[1].content;
-  const at = validPremiseSet().premises.findIndex((premise) =>
-    message.includes(premise.organizingIdea),
-  );
+  const premises = validPremiseSet().premises;
+  const at = premises.findIndex((premise) => message.includes(premise.organizingIdea));
   if (at < 0) throw new Error("no premise found in the DesignIntent request");
-  return { title: validPremiseSet().premises[at].title, index: at };
+  return { title: premises[at].title, index: at, register: premises[at].register };
 }
+
+/** What `design_intent_v6` asks of the model: these six fields answer to the premise's register. */
+const BY_PACE: Record<string, string> = {
+  lingering: "spacious",
+  measured: "balanced",
+  propulsive: "compact",
+};
+const BY_PRESENCE: Record<string, string> = {
+  understated: "symmetric",
+  poised: "gentle",
+  commanding: "strong",
+};
+const BY_RICHNESS: Record<string, { ornament: string; motifs: string[] }> = {
+  bare: { ornament: "none", motifs: [] },
+  considered: { ornament: "restrained", motifs: ["linen"] },
+  layered: { ornament: "decorative", motifs: ["botanical", "stripe"] },
+};
+const PALETTES = [
+  { colors: ["#1B2A41", "#C9A227", "#F4F1EA"], dominant: "#1B2A41" },
+  { colors: ["#2E2E2E", "#8A8A8A", "#EFEFEF"], dominant: "#8A8A8A" },
+  { colors: ["#4A2C2A", "#B07D62", "#E8D9C5"], dominant: "#4A2C2A" },
+];
 
 function designIntentBody(request: ProviderRequest, overrides: Record<string, unknown> = {}) {
   const premise = premiseInRequest(request);
   return {
-    palette: { colors: ["#1B2A41", "#C9A227", "#F4F1EA"], dominant: "#1B2A41" },
-    density: "balanced",
-    motifs: ["linen"],
+    palette: PALETTES[premise.index],
+    density: BY_PACE[premise.register.pace],
+    motifs: BY_RICHNESS[premise.register.surfaceRichness].motifs,
     presentation: { name: premise.title, description: CARD_DESCRIPTIONS[premise.index] },
     ...overrides,
   };
@@ -257,9 +278,9 @@ function designIntentBody(request: ProviderRequest, overrides: Record<string, un
 /**
  * A DesignIntent response that satisfies whatever assignment the request narrowed to.
  *
- * Read off the request rather than hard-coded, because the three siblings are assigned three
- * different families, tones and hierarchies — a fixed body would fail assignment conformance for
- * two of the three and this file would be testing the fixture.
+ * The three assignment fields are read off the request rather than hard-coded, because the three
+ * siblings are assigned three different families, tones and hierarchies — a fixed body would fail
+ * assignment conformance for two of the three and this file would be testing the fixture.
  */
 function designIntentFor(request: ProviderRequest, overrides: Record<string, unknown> = {}) {
   const properties = (request.text.format.schema.properties ?? {}) as Record<
@@ -267,16 +288,17 @@ function designIntentFor(request: ProviderRequest, overrides: Record<string, unk
     { enum?: string[]; properties?: Record<string, { enum?: string[] }> }
   >;
   const only = (name: string) => properties[name]?.enum?.[0] as string;
+  const premise = premiseInRequest(request);
   return {
     family: only("family"),
     tonalDirection: only("tonalDirection"),
     typographyPairing: only("typographyPairing"),
     composition: {
-      asymmetry: "gentle",
+      asymmetry: BY_PRESENCE[premise.register.presence],
       hierarchy: properties.composition?.properties?.hierarchy?.enum?.[0] as string,
-      rhythm: "alternating",
-      sectionContrast: "moderate",
-      ornament: "restrained",
+      rhythm: premise.register.pace === "lingering" ? "continuous" : "punctuated",
+      sectionContrast: premise.register.presence === "commanding" ? "high" : "moderate",
+      ornament: BY_RICHNESS[premise.register.surfaceRichness].ornament,
     },
     ...designIntentBody(request, overrides),
   };
@@ -486,6 +508,63 @@ describe("one concept batch, end to end", () => {
     const deviation = (repaired[0].card_deviations as { rule: string; before: string }[])[0];
     expect(deviation.rule).toMatch(/^concept-card\./);
     expect(deviation.before).toBe("Common Name");
+  });
+
+  it("does not let a repaired card hide that the designs converged", async () => {
+    // The hazard worth a test of its own. The card fallback derives a repaired card from that
+    // concept's **premise**, so three concepts that converged completely still present three
+    // distinct cards — the cards say what the premises were, not what the designs became. So the
+    // convergence has to survive somewhere, and it is returned rather than discarded.
+    create.mockImplementation((request: ProviderRequest) =>
+      Promise.resolve(
+        route(request, {
+          designIntent: (r) =>
+            designIntentFor(r, {
+              // One card for all three, so every card is repaired — and one **design** for all
+              // three, so the batch really has converged. `hierarchy` still comes from the
+              // request, because it is planner-assigned and a mismatch would fail conformance
+              // rather than converge.
+              presentation: { name: "Common Name", description: "One description for all three." },
+              palette: { colors: ["#101010", "#202020", "#303030"], dominant: "#101010" },
+              motifs: ["linen", "stripe"],
+              density: "balanced",
+              composition: {
+                asymmetry: "gentle",
+                hierarchy: ((
+                  r.text.format.schema.properties as Record<
+                    string,
+                    { properties?: Record<string, { enum?: string[] }> }
+                  >
+                ).composition?.properties?.hierarchy?.enum ?? [])[0],
+                rhythm: "alternating",
+                sectionContrast: "moderate",
+                ornament: "restrained",
+              },
+            }),
+        }),
+      ),
+    );
+    const outcome = await run(recorder());
+    expect(outcome.state).toBe("generated");
+    if (outcome.state !== "generated") return;
+
+    // Three distinct cards reach the host — and the convergence is reported all the same.
+    expect(new Set(outcome.cards.map((card) => card.name)).size).toBe(3);
+    const kinds = new Set(outcome.signals.map((signal) => signal.signal));
+    expect(kinds).toContain("identical-design-vector");
+    expect(kinds).toContain("motif-overlap");
+    expect(kinds).toContain("palette-proximity");
+    // Reported, never repaired: nothing rewrote a palette or a motif set to widen a distance.
+    for (const signal of outcome.signals) {
+      expect(["reported", "advisory"]).toContain(signal.severity);
+    }
+  });
+
+  it("returns no signal when the three designs really do differ", async () => {
+    const outcome = await run(recorder());
+    expect(outcome.state).toBe("generated");
+    if (outcome.state !== "generated") return;
+    expect(outcome.signals.filter((signal) => signal.severity === "reported")).toEqual([]);
   });
 
   it("leaves an unrepaired card's deviations empty, which is the true value", async () => {

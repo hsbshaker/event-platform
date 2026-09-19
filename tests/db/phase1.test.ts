@@ -65,11 +65,20 @@ async function insertArtifact(index: number, round: number): Promise<string> {
        (event_id, batch_id, identity_revision_id, concept_index, round, planner_version,
         assignment, directive, token_allotment,
         design_intent_prompt_version, design_intent_schema_version,
-        design_intent_input_assembly_version, provider, model, design_intent, presentation)
+        design_intent_input_assembly_version, provider, model, design_intent, presentation,
+        concept_premise, concept_premise_prompt_version, concept_premise_schema_version,
+        concept_premise_input_assembly_version)
      values ($1, $2, $3, $4, $5, 'planner_v1', '{"family":"editorial"}', ${DIRECTIVE}, ${ALLOTMENT},
              'design_intent_v3', 'design_intent_schema_v3', 'design_intent_input_v1',
              'openai', 'gpt-5.6-sol', '{"family":"editorial"}',
-             '{"name":"Concept","description":"A direction"}')
+             '{"name":"Concept","description":"A direction"}',
+             -- The premise lineage columns are \`not null\` with no default
+             -- (20260918000000_phase4c_concept_premise_lineage.sql), so every artifact insert has
+             -- to name the premise that produced it. This helper predates them; the columns exist
+             -- precisely so a row cannot describe a concept whose creative direction came from
+             -- somewhere it cannot name, and a fixture is no exception.
+             '{"title":"A Premise"}', 'concept_premise_v1', 'concept_premise_schema_v1',
+             'concept_premise_input_v1')
      returning id`,
     [eventId, await ensureBatch(round), await ensureIdentityRevision(), index, round],
   );

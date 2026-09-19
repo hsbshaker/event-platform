@@ -95,7 +95,12 @@ import {
   type BatchRefusalReason,
   type SiblingRunTelemetry,
 } from "./batch";
-import { reviewConceptSet, type ConceptCard, type ReviewedConcept } from "./concept-set";
+import {
+  reviewConceptSet,
+  type ConceptCard,
+  type ReviewedConcept,
+  type SetSignal,
+} from "./concept-set";
 import type { ConceptBatchPlan, PlannedConcept } from "./planner";
 
 type Admin = SupabaseClient<Database>;
@@ -143,6 +148,23 @@ export type ConceptBatchOutcome =
       readonly conceptCount: number;
       /** What `settle_generation_batch` decided: `completed`, or `failed` at two or more (`§I`). */
       readonly status: string;
+      /**
+       * What the set review saw in the design fields: identical composition vectors, overlapping
+       * motif sets, a shared dominant colour, a premise the design argues against.
+       *
+       * Returned rather than discarded, and the reason is a real hazard. The card fallback derives
+       * a repaired card from that concept's premise, so three concepts that converged completely
+       * still present three distinct cards — the cards say what the premises were, not what the
+       * designs became. Without this, a batch could look like three choices at the only surface
+       * anyone reads while the convergence that produced it went unrecorded.
+       *
+       * Reported, never acted on (`spec.md §32 #21b`). They are deliberately **not** persisted:
+       * every signal is a pure deterministic function of the three `design_intent` payloads, which
+       * the artifacts hold immutably, so they can be recomputed from the record at any time.
+       * `card_deviations` is persisted precisely because it is not recomputable — the substitution
+       * destroys the model's own card, and nothing else would hold it.
+       */
+      readonly signals: readonly SetSignal[];
     }
   /**
    * Every sibling failed. Distinct from `generated` with a count of zero, which would be a claim
@@ -514,5 +536,6 @@ export async function runConceptBatch(
     cards: review.cards,
     conceptCount: succeeded.length,
     status,
+    signals: review.signals,
   };
 }

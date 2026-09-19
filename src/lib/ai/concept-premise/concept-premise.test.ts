@@ -176,49 +176,84 @@ describe("three choices, and none of them a reinterpretation", () => {
 });
 
 describe("collapse is detected before a single design is paid for", () => {
-  it("refuses a set that never separates on any register axis", () => {
-    const uniform = validPremiseSet();
-    const flat: ConceptPremiseSet = {
-      ...uniform,
-      premises: uniform.premises.map((premise) => ({
+  const withRegisters = (
+    registers: readonly { pace: string; presence: string; surfaceRichness: string }[],
+  ): ConceptPremiseSet => {
+    const set = validPremiseSet();
+    return {
+      ...set,
+      premises: set.premises.map((premise, at) => ({
         ...premise,
-        register: { pace: "measured", presence: "poised", surfaceRichness: "considered" } as const,
+        register: registers[at] as ConceptPremiseSet["premises"][number]["register"],
       })),
     };
-    const issues = issuesFor(flat);
+  };
+
+  it("refuses three premises at one register", () => {
+    // The collapse the rule exists for: one register three times is one concept three times.
+    const one = { pace: "measured", presence: "poised", surfaceRichness: "considered" };
+    const issues = issuesFor(withRegisters([one, one, one]));
     expect(classesOf(issues)).toEqual(["set"]);
     expect(issues[0].path).toBe("premises.register");
   });
 
-  it("accepts a set that separates on exactly one axis", () => {
-    // The gate is one axis, not three. A stricter rule would fail honest sets whose brief leaves
-    // two axes little room, and `policy.ts` is explicit about what a refusal costs a host.
-    const set = validPremiseSet();
-    const narrow: ConceptPremiseSet = {
-      ...set,
-      premises: set.premises.map((premise, at) => ({
-        ...premise,
-        register: {
-          pace: AXIS_VALUES.pace[at] as "lingering",
-          presence: "poised",
-          surfaceRichness: "considered",
-        },
-      })),
-      constrainedAxes: [
-        { axis: "presence", why: "the brief asks for one level of address throughout" },
-        { axis: "surfaceRichness", why: "the brief fixes how much the surfaces may carry" },
-      ],
-    };
-    const outcome = validateConceptPremiseSet(narrow, PREMISE_FIXTURE_IDENTITY);
-    expect(outcome.ok).toBe(true);
-    if (!outcome.ok) return;
-    expect(outcome.telemetry.separatingAxes).toEqual(["pace"]);
-    expect(outcome.telemetry.constrainedAxes).toEqual(["presence", "surfaceRichness"]);
+  it("refuses two premises at one register, while the third differs", () => {
+    const one = { pace: "measured", presence: "poised", surfaceRichness: "considered" };
+    const other = { pace: "lingering", presence: "commanding", surfaceRichness: "layered" };
+    const issues = issuesFor(withRegisters([one, one, other]));
+    expect(issues.some((issue) => issue.message.includes("every axis"))).toBe(true);
   });
 
-  it("cannot be satisfied by declaring the axes constrained", () => {
-    // At most two may be declared, so one is always left to separate the set. The escape exists for
-    // an honest brief and is bounded so it cannot become the answer.
+  it("accepts three distinct registers even when no axis separates all three", () => {
+    // The false rejection the first version of this gate produced, as a case. These are three
+    // different registers by any reading, and no axis takes three distinct values — so a rule
+    // demanding one would refuse them, with no honest escape: `constrainedAxes` requires the axis
+    // it names to be uniform, and none of these is. The only way through would have been to move a
+    // register the idea did not ask to move.
+    const outcome = validateConceptPremiseSet(
+      withRegisters([
+        { pace: "measured", presence: "poised", surfaceRichness: "considered" },
+        { pace: "measured", presence: "commanding", surfaceRichness: "bare" },
+        { pace: "lingering", presence: "poised", surfaceRichness: "considered" },
+      ]),
+      PREMISE_FIXTURE_IDENTITY,
+    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    // And the weakness is visible rather than hidden: no axis fully separates, reported as
+    // telemetry and never as a defect.
+    expect(outcome.telemetry.separatingAxes).toEqual([]);
+  });
+
+  it("accepts two premises sharing one axis, which is ordinary", () => {
+    const outcome = validateConceptPremiseSet(
+      withRegisters([
+        { pace: "measured", presence: "poised", surfaceRichness: "considered" },
+        { pace: "measured", presence: "commanding", surfaceRichness: "bare" },
+        { pace: "propulsive", presence: "understated", surfaceRichness: "layered" },
+      ]),
+      PREMISE_FIXTURE_IDENTITY,
+    );
+    expect(outcome.ok).toBe(true);
+  });
+
+  it("reports which axes fully separate, without requiring any of them to", () => {
+    const set = validPremiseSet();
+    const outcome = validateConceptPremiseSet(
+      withRegisters([0, 1, 2].map((at) => set.premises[at].register)),
+      PREMISE_FIXTURE_IDENTITY,
+    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.telemetry.separatingAxes).toEqual([...REGISTER_AXES]);
+    // The vocabularies are three-valued, which is what makes full separation expressible at all.
+    for (const axis of REGISTER_AXES) expect(AXIS_VALUES[axis]).toHaveLength(3);
+  });
+
+  it("bounds the declared-constraint escape, belt and braces", () => {
+    // Under the corrected gate this bound is no longer load-bearing — declaring all three axes
+    // constrained would make the three registers identical and be refused on its own terms — but
+    // it is kept because it fails with a clearer message.
     expect(MAX_CONSTRAINED_AXES).toBe(REGISTER_AXES.length - 1);
     const set = validPremiseSet();
     const escaped = {
@@ -229,6 +264,28 @@ describe("collapse is detected before a single design is paid for", () => {
       })),
     };
     expect(conceptPremiseSetSchema.safeParse(escaped).success).toBe(false);
+  });
+
+  it("still accepts an honest narrow set with two axes declared constrained", () => {
+    const outcome = validateConceptPremiseSet(
+      {
+        ...withRegisters(
+          [0, 1, 2].map((at) => ({
+            pace: AXIS_VALUES.pace[at] as string,
+            presence: "poised",
+            surfaceRichness: "considered",
+          })),
+        ),
+        constrainedAxes: [
+          { axis: "presence", why: "the brief asks for one level of address throughout" },
+          { axis: "surfaceRichness", why: "the brief fixes how much the surfaces may carry" },
+        ],
+      },
+      PREMISE_FIXTURE_IDENTITY,
+    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.telemetry.constrainedAxes).toEqual(["presence", "surfaceRichness"]);
   });
 
   it("checks a declared constraint against what the set actually did", () => {

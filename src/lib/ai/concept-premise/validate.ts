@@ -15,9 +15,9 @@
  * 3. is each premise supported by the brief the host actually got? (`fidelity`)
  * 4. are they *good*? — not attempted, not approximated, and left to `§3.3`'s reviewer.
  *
- * # The one gating set-level rule, and why it is stated where it is
+ * # The one gating set-level register rule, and why it is stated where it is
  *
- * **At least one register axis must take three distinct values across the set.**
+ * **No two premises may share the same register on every axis.**
  *
  * It is stated over `pace`, `presence` and `surfaceRichness` rather than over palette distance,
  * motif overlap or composition vectors, and that choice is the substance of the remediation rather
@@ -29,8 +29,13 @@
  *
  * The escape is honest and bounded: a set may declare up to two axes constrained, with a reason
  * each, and a declared constraint is then **checked** — declare `pace` constrained and all three
- * premises must really share one pace. With at most two declarable, one axis always remains, so
- * the rule can never be satisfied by declaration alone.
+ * premises must really share one pace. Under the corrected rule the bound is belt-and-braces
+ * rather than load-bearing (declaring all three would make the registers identical and be refused
+ * anyway), and it is kept because it fails with a clearer message.
+ *
+ * An earlier, stricter form of this rule required an axis to separate all three premises. It was
+ * measurably too rigid and is corrected here; `REGISTER_SEPARATION` carries the numbers and the
+ * concrete false-rejection case.
  *
  * # Correctness outranks distinctness, in the code and not only in the prose
  *
@@ -95,6 +100,37 @@ export const IDEA_OVERLAP_CEILING = 0.5;
  * correctness must not decide anything.
  */
 export const EXPERIENCE_OVERLAP_ADVISORY = 0.6;
+
+/**
+ * Why the set-level register rule is "no two the same" and not "some axis separates all three".
+ *
+ * The first version of this gate required at least one axis to take three distinct values. It was
+ * too rigid, measurably: over all 19,683 register configurations of three premises across three
+ * three-valued axes, it admits 52.9% — and **7,128 of the configurations it refuses have all three
+ * registers already distinct**, against 27 that are genuinely one register three times. That is 264
+ * honest sets refused for every collapsed one caught.
+ *
+ * The concrete failure mode, because a ratio is not a case. Three excellent premises at
+ * `(measured, poised, considered)`, `(measured, commanding, bare)` and
+ * `(lingering, poised, considered)` are three different registers by any reading — and no axis
+ * takes three distinct values, so the strict rule refuses them. Nor is there an honest escape:
+ * `constrainedAxes` requires the axis it names to be **uniform** across the set, and none of these
+ * is. The only way through was to change a register the idea did not ask to change, which is
+ * superficial forced differentiation — and since a refusal costs a host the whole batch
+ * (`./policy.ts`), it is forced under pressure.
+ *
+ * So the gate is the property that was actually wanted: **the three registers are three registers.**
+ * It admits 89.2% of configurations and refuses exactly the shapes where two or three premises sit
+ * at an identical register. Whether an axis separates all three is kept as telemetry
+ * (`separatingAxes`), reported and never gating, because it is a useful reading of a weak set and a
+ * bad requirement.
+ *
+ * **Semantic distinctness stays primary, and this is the part the register rule must not be
+ * mistaken for.** What makes three premises three choices is `organizingIdea` — gated at
+ * `IDEA_OVERLAP_CEILING` — and their titles. The register rule is an anti-collapse floor on the
+ * design's own character, and a floor is all it is.
+ */
+export const REGISTER_SEPARATION = "no two premises share the same register on every axis";
 
 /**
  * How many content words a `grounding` entry must share with the brief.
@@ -392,21 +428,27 @@ export function setIssues(set: ConceptPremiseSet): PremiseValidationIssue[] {
     }
   }
 
-  const separating = REGISTER_AXES.filter(
-    (axis) => new Set(premises.map((premise) => premise.register[axis])).size === PREMISE_SET_SIZE,
-  );
-  if (separating.length === 0) {
-    const shape = REGISTER_AXES.map(
-      (axis) => `${axis}=[${premises.map((premise) => premise.register[axis]).join(", ")}]`,
-    ).join(" ");
-    out.push(
-      issue(
-        "premises.register",
-        `no register axis takes three distinct values (${shape}). At least one must, so the three ` +
-          "concepts are experientially different rather than three readings of one register",
-        "set",
-      ),
-    );
+  // The three registers must be three registers. Stated as "no two premises share all three axis
+  // values" rather than "some axis takes three distinct values" — see `REGISTER_SEPARATION` below
+  // for why the stricter form was wrong.
+  const registerKey = (premise: ConceptPremise) =>
+    REGISTER_AXES.map((axis) => premise.register[axis]).join("/");
+  const registers = new Map<string, number[]>();
+  premises.forEach((premise, index) => {
+    const key = registerKey(premise);
+    registers.set(key, [...(registers.get(key) ?? []), index]);
+  });
+  for (const [key, indexes] of registers) {
+    if (indexes.length > 1) {
+      out.push(
+        issue(
+          "premises.register",
+          `premises ${indexes.join(" and ")} share the same register on every axis (${key}). ` +
+            "Three concepts at one register is one concept three times",
+          "set",
+        ),
+      );
+    }
   }
 
   const exact = new Map<string, number[]>();
