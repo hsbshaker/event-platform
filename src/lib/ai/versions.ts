@@ -287,6 +287,22 @@ export const COMPOSITION_INPUT_ASSEMBLY_VERSION = "composition_input_v2";
  * `ResolvedDesignSpec`, and are distinguishable in the ledger from anything generated since.
  */
 export const PRIMITIVE_SET_VERSION = "composition_v2";
+
+/**
+ * The rule that decides whether a concept is offered artwork at all
+ * (`src/lib/generation/artwork-decision.ts`, `spec.md §7.6a #1`).
+ *
+ * Versioned and recorded per concept because it is a *reading* of the creative direction rather
+ * than a field the direction filled in, and a later reading of the same direction may legitimately
+ * answer differently. A concept is the artifact its own decision produced; it is never
+ * re-adjudicated under a newer rule, for the same reason a spec is never recompiled under a newer
+ * primitive set.
+ *
+ * **`v1`** infers the choice from `composition.ornament` and whether the direction named motifs.
+ * When `DesignIntent` next revs and can carry the choice explicitly, that is `v2` and it is a
+ * simplification: the signature does not change, the inference goes away.
+ */
+export const ARTWORK_DECISION_VERSION = "artwork_decision_v1";
 /**
  * The deterministic sibling planner (`spec.md §7.7`, `src/lib/generation/planner.ts`).
  *
