@@ -99,6 +99,7 @@ import {
 } from "./batch";
 import { compositionBrief } from "@/lib/ai/composition/brief";
 import { decideArtwork } from "@/lib/renderer/compile/artwork-decision";
+import type { ArtworkStageDeps } from "./artwork-stage";
 import { deriveCapabilities, deriveContentProfile, type EventContentRow } from "./content-profile";
 import { deriveEventContent } from "./event-content";
 import { openAiCompositionRunner } from "@/lib/ai/openai/composition-runner";
@@ -216,6 +217,15 @@ export interface RunConceptBatchRequest {
   userId: string;
   /** The canonical new-round path (`spec.md §7.9`, `Try another direction`). Never inferred. */
   newRound?: boolean;
+  /**
+   * The artwork lifecycle's dependencies — a provider, a batch budget, an attempt budget, a store.
+   *
+   * Absent means no artwork is generated at all, which is every caller today and stays correct
+   * whatever a direction decided: a concept whose reservations are never filled renders from the
+   * same verified spec with empty boxes (`spec.md §7.6a #1`). Supplied, the two budgets are shared
+   * across the batch's three siblings and are the only coupling between them.
+   */
+  artwork?: ArtworkStageDeps;
 }
 
 /* ------------------------------------------------------------------ the identity */
@@ -684,6 +694,9 @@ export async function runConceptBatch(
             signatureTone: sibling.planned.assignment.tonalDirection,
             collides,
             nearestSibling: () => verdict,
+            // Shared across the batch's three siblings, and the only thing that couples them.
+            // Absent means no artwork stage runs at all.
+            ...(request.artwork ? { artwork: request.artwork } : {}),
             call: {
               brief: compositionBrief(revision.identity),
               contentProfile,
