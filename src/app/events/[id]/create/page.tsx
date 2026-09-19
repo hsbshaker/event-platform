@@ -18,7 +18,32 @@ import { GenerationPanel } from "./GenerationPanel";
  * The two halves are deliberately side by side rather than sequential. `spec.md §7.10` calls
  * filling details in and watching generation "equally valid", and the host may switch between them
  * freely — which is also why a Route A question never takes the page over.
+ *
+ * # Why this page carries a long `maxDuration`
+ *
+ * `GenerationPanel` calls the `startConceptGenerationForEvent` server action, and a server action
+ * invoked from a page runs in **that page's function** — there is no separate route for it. That
+ * action schedules `runConceptBatch` with `after()`, whose callback keeps the function alive until
+ * it finishes, so the batch's whole life is spent inside this segment's budget. The same fact is
+ * why `next.config.ts` keys `GEOMETRY_BROWSER_PACKAGES` to `/events/[id]/create`: this function is
+ * the one that launches Chromium for rendered-geometry verification.
  */
+
+/**
+ * 180 seconds, sized to a pessimistic batch rather than the measured one.
+ *
+ * The Phase 4G live end-to-end run took **71.8s** wall clock
+ * (`docs/model-evals/results/phase-4g-e2e-mediterranean-shower/README.md §5`). A pessimistic run
+ * is worse: one premise call, three DesignIntent calls, three Composition calls each with the one
+ * permitted re-prompt, and rendered-geometry verification at 390 and 1280 on top of each — about
+ * 150s, the same estimate `generation-state.ts` sizes its stale bound against. 180s covers that
+ * with room, and is the longest `maxDuration` in this repository; keep that sentence in
+ * `STALE_BATCH_AFTER_MS`'s comment true if this number changes.
+ *
+ * A batch that outlives it is not lost: every row it has written is already durable, and the
+ * read path's stale-batch recovery settles what the killed process left non-terminal.
+ */
+export const maxDuration = 180;
 
 export default async function CreateEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

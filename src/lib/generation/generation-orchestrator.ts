@@ -7,6 +7,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { artworkStageDepsForBatch } from "./artwork-enablement";
+import { latestBatch } from "./batch";
 import { runConceptBatch } from "./concept-batch";
 import { readGenerationState } from "./generation-state";
 import type { GenerationView } from "./generation-view";
@@ -51,13 +52,39 @@ import type { GenerationView } from "./generation-view";
 
 type Admin = SupabaseClient<Database>;
 
+export interface StartConceptGenerationOptions {
+  /**
+   * The host pressed a button that means *do it again*, and the batch it is aimed at has settled.
+   *
+   * Threaded straight through to `planConceptBatchForEvent`'s `newRound`, which is the only thing
+   * that makes a settled batch plannable rather than observable. Without it a start that arrives
+   * after a batch has settled observes that batch and buys nothing — correct for a reload, a
+   * refresh or an ordinary resume, and wrong for a host who has been shown a **Try again** button.
+   *
+   * **Retry after a failed batch is a new round. That is a recorded product decision, not a
+   * derivation.** Canon does not settle it: `spec.md §7.9` defines `Try another direction` as a
+   * new round and says nothing about retrying a batch that failed. The decision is safe because
+   * `stage: "failed"` is only reached when *no* concept is previewable (`generation-state.ts`'s
+   * `generationStage`), so a new round discards nothing a host could still look at. Resuming the
+   * failed batch's unfinished siblings instead would be cheaper — `resumableSiblings` in
+   * `batch.ts` exists for it — but nothing is wired to it, and wiring it is a larger change than
+   * this defect warrants.
+   *
+   * A retry is a round like any other: it passes through the ceiling, the event cap, the account
+   * cap and the rate limit inside `plan_generation_batch`'s transaction, and a refusal there is a
+   * refusal here.
+   */
+  explicitRetry?: boolean;
+}
+
 /**
  * Start a concept batch for this event, or observe the one already running.
  *
  * Returns the state **as it stands at the moment of the call** — which is the only thing it can
  * honestly return. A batch that has just been scheduled has written no rows yet, and inventing a
  * stage for it would be the fabricated progress `spec.md §31` forbids. The surface polls
- * `readGenerationState`, which reports the batch the instant `plan_generation_batch` commits.
+ * `readGenerationState`, which reports the batch the instant `plan_generation_batch` commits, and
+ * bounds its own wait so a start that never took is shown rather than spun on (`spec.md §32 #45`).
  *
  * Refusals are silent by design and all look identical: no authoritative identity and a batch
  * already in flight both come back as the current state with `canStart: false`. Which control
@@ -70,6 +97,7 @@ type Admin = SupabaseClient<Database>;
 export async function startConceptGeneration(
   admin: Admin,
   eventId: string,
+  options: StartConceptGenerationOptions = {},
 ): Promise<GenerationView> {
   // `generate_event_identity`, and deliberately not a new capability.
   //
@@ -109,6 +137,9 @@ export async function startConceptGeneration(
         eventId,
         // Caps are per acting account, not per owner (`spec.md §6`).
         userId: access.user.id,
+        // Never inferred from the state. An ordinary start leaves this unset, so a refresh or a
+        // reconnect observes whatever batch exists; only the host's own **Try again** sets it.
+        ...(options.explicitRetry === true ? { newRound: true } : {}),
         ...(artwork ? { artwork } : {}),
       });
     } catch (error) {
@@ -144,4 +175,25 @@ export async function readConceptGeneration(
 ): Promise<GenerationView> {
   await requireEventAccess(eventId, "browse_select_concepts");
   return readGenerationState(admin, eventId);
+}
+
+/**
+ * The round a preview must resolve against: this event's latest batch, whatever became of it.
+ *
+ * Separate from `readConceptGeneration` because the concept preview does not want a view — it
+ * wants the one number that says which round `[index]` means. Resolving it from `design_concepts`
+ * instead (the highest round that happens to hold a row at that index) is the defect this exists
+ * to remove: once a second round exists, that reading can serve a superseded round's concept as
+ * the current one, and a bookmarked `/concepts/1` would show a page the host has replaced.
+ *
+ * `null` when the event has never had a batch, which the caller renders as `notFound()`.
+ *
+ * `browse_select_concepts`, matching the preview route's own check and `readConceptGeneration`'s:
+ * the round of an unselected concept set is part of the same pre-publish material, and it is
+ * `PRE_PUBLISH_ONLY` for the same reason.
+ */
+export async function latestConceptRound(admin: Admin, eventId: string): Promise<number | null> {
+  await requireEventAccess(eventId, "browse_select_concepts");
+  const batch = await latestBatch(admin, eventId);
+  return batch?.round ?? null;
 }

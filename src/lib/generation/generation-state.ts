@@ -88,8 +88,9 @@ type Admin = SupabaseClient<Database>;
  * measured wall clock and six times that pessimistic estimate.
  *
  * It is also above every ceiling a batch process could survive to: the longest `maxDuration` in
- * this repository is 120s, and Vercel's hard platform maximum is 800s (13m20s). A batch older than
- * fifteen minutes cannot still be executing anywhere, whatever the route is configured to allow.
+ * this repository is 180s — `/events/[id]/create`, the function that actually runs a batch — and
+ * Vercel's hard platform maximum is 800s (13m20s). A batch older than fifteen minutes cannot still
+ * be executing anywhere, whatever the route is configured to allow.
  */
 export const STALE_BATCH_AFTER_MS = 15 * 60_000;
 
@@ -239,7 +240,7 @@ const PALETTE_ROLE_ORDER: readonly SemanticRole[] = (
  *
  * Read from `spec.tokens.palette` — the compiler's own output, the same place the Phase 4E smoke
  * reads it. Never from `DesignIntent.palette`: those are the model's raw creative colours and
- * `spec.md §32 #26` forbids using them as semantic roles, so showing them as "the palette" would
+ * `spec.md §32 #25` forbids using them as semantic roles, so showing them as "the palette" would
  * advertise colours the page does not contain.
  *
  * Deduped because several roles legitimately resolve to the same hex, and a host looking at a

@@ -3,6 +3,7 @@
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  latestConceptRound,
   readConceptGeneration,
   startConceptGeneration,
 } from "@/lib/generation/generation-orchestrator";
@@ -53,9 +54,21 @@ async function guarded(run: () => Promise<GenerationView>): Promise<GenerationVi
  *
  * Returns the state as it stands; the work is scheduled after the response and reports itself
  * through the rows it writes. Safe to call twice — the database refuses the second batch.
+ *
+ * **An ordinary resume is not a retry**, exactly as in `event-identity.ts`. Called without
+ * `explicitRetry`, a start that arrives after a batch has settled *observes* that batch and buys
+ * nothing, which is what a reload or a reconnect should do. `explicitRetry` is a host pressing
+ * **Try again** on a failed batch, and only then is a new round planned — see
+ * `StartConceptGenerationOptions.explicitRetry` for why retry-after-failure is a new round and
+ * why that is a recorded decision rather than a derivation.
  */
-export async function startConceptGenerationForEvent(eventId: string): Promise<GenerationView> {
-  return guarded(() => startConceptGeneration(createAdminClient(), eventId));
+export async function startConceptGenerationForEvent(
+  eventId: string,
+  options: { explicitRetry?: boolean } = {},
+): Promise<GenerationView> {
+  return guarded(() =>
+    startConceptGeneration(createAdminClient(), eventId, { explicitRetry: options.explicitRetry }),
+  );
 }
 
 /** The poll. Recovers a dead batch, never spends. */
@@ -76,5 +89,21 @@ export async function loadGenerationView(eventId: string): Promise<GenerationVie
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) return null;
     console.error("concept generation: could not read initial state", error);
     return GENERATION_UNAVAILABLE;
+  }
+}
+
+/**
+ * Which round `/events/[id]/concepts/[index]` means: the event's latest batch's round.
+ *
+ * `null` both when the event has never had a batch and when the caller may not see it, so a
+ * preview renders `notFound()` either way rather than distinguishing the two (`spec.md §27`).
+ */
+export async function loadLatestConceptRound(eventId: string): Promise<number | null> {
+  try {
+    return await latestConceptRound(createAdminClient(), eventId);
+  } catch (error) {
+    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) return null;
+    console.error("concept generation: could not read the latest round", error);
+    return null;
   }
 }

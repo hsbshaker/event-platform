@@ -19,6 +19,27 @@ import type { NextConfig } from "next";
  * turns the failed import into an explicit `infrastructure` verification failure rather than a
  * measurement — but it is still a broken deploy, so add the key with the route.
  *
+ * **A server action's key is its page's route, not a path of its own.** These keys are matched
+ * against the normalized app route of every built entry (`build/collect-build-traces.ts`), and a
+ * server action has no entry of its own: it is compiled into the page whose client component
+ * imports it, and it is invoked by POSTing to that page's own URL. So the function that executes
+ * `startConceptGenerationForEvent` — and therefore `after()` → `runConceptBatch` →
+ * `compileConcept` → `verifyGeometry` — is the one built for `/events/[id]/create`, which
+ * `.next/server/app-paths-manifest.json` names exactly that way. Its `maxDuration` lives in the
+ * same place, in that page's segment config.
+ *
+ * **A dynamic segment's brackets must be escaped, and getting that wrong fails silently.** These
+ * keys are globs, so an unescaped `[id]` is a character class — "one of i or d" — and matches no
+ * route at all. Nothing warns: the build succeeds, the page renders, and the function ships
+ * without Chromium. Measured on this repository, with the three spellings built in turn: the
+ * traced file list for `/events/[id]/create` carries `@sparticuz/chromium/bin/chromium.br` under
+ * the escaped spelling below, and under a single-wildcard segment in place of `[id]`, and does
+ * **not** under the bare `"/events/[id]/create"`. The escaped form is the one used, because it
+ * names one route rather than a shape of route. **To check a key after changing one**, build and
+ * look for that `.br` file in
+ * `.next/server/app/<route>/page.js.nft.json`; six chromium entries means only the static trace
+ * found the package, twenty-one means this include applied.
+ *
  * **The renderer assets** are traced globally. `src/lib/renderer/verify/html.ts` reads the event
  * stylesheet and the woff2 files from disk at render time (`process.cwd()`-relative: server code is
  * bundled, so a module URL would point at a chunk), and a missing font is an infrastructure failure
@@ -62,6 +83,10 @@ const nextConfig: NextConfig = {
     // The deployed proof that the finished verifier runs on this runtime. Needs the browser
     // packages for the same reason the spike does.
     "/api/internal/verify-geometry": [...GEOMETRY_BROWSER_PACKAGES],
+    // The generation surface. `GenerationPanel` calls the `startConceptGenerationForEvent` server
+    // action, which schedules `runConceptBatch` with `after()`; that reaches `verifyGeometry` for
+    // every one of the batch's three concepts, in the same function that served this page.
+    "/events/\\[id\\]/create": [...GEOMETRY_BROWSER_PACKAGES],
     "/**": EVENT_RENDERER_ASSETS,
   },
   redirects: async () => [HUMAN_TEST_1_SURVEY],

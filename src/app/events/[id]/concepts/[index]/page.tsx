@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { loadLatestConceptRound } from "@/app/actions/generation";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -32,10 +33,18 @@ import type { Json } from "@/lib/supabase/database.types";
  *
  * # Which concept
  *
- * `[index]` is the sibling's stable planner index (0, 1 or 2) within the event's **latest** round —
- * the same index `GenerationView.concepts` is ordered by. There is exactly one concept per
- * `(event_id, round, concept_index)` (`design_concepts`'s own uniqueness), so the latest round's
- * row at that index is the concept a host just watched finish.
+ * `[index]` is the sibling's stable planner index (0, 1 or 2) within the event's **latest batch's
+ * round** — the same index `GenerationView.concepts` is ordered by. There is exactly one concept
+ * per `(event_id, round, concept_index)` (`design_concepts`'s own uniqueness), so that round's row
+ * at that index is the concept a host just watched finish.
+ *
+ * The round is resolved from the batch, explicitly, and not as "the highest round that happens to
+ * hold a row at this index". Those two readings agree only while one round exists. Once a second
+ * round has run — which a retry after a failed batch now reaches — the second reading would serve
+ * round 1's concept at an index round 2 did not fill, so a bookmarked `/concepts/1` would render a
+ * superseded concept as the current one. An index the latest round has no concept for is
+ * `notFound()`, which is the truthful answer: that direction does not exist in the set the host is
+ * being shown.
  *
  * # Content and artwork
  *
@@ -58,15 +67,15 @@ interface ResolvedSpecRow {
 }
 
 /** Every field a plain concept index must resolve to before there is anything to render. */
-async function loadConcept(eventId: string, index: number) {
+async function loadConcept(eventId: string, index: number, round: number) {
   const supabase = await createClient();
 
   const { data: concepts, error: conceptError } = await supabase
     .from("design_concepts")
     .select("id, active_resolved_spec_id")
     .eq("event_id", eventId)
+    .eq("round", round)
     .eq("concept_index", index)
-    .order("round", { ascending: false })
     .limit(1);
   if (conceptError) throw new Error(conceptError.message);
   const concept = ((concepts ?? [])[0] as DesignConceptRow | undefined) ?? null;
@@ -149,7 +158,12 @@ export default async function ConceptPreviewPage({
     throw error;
   }
 
-  const loaded = await loadConcept(id, index);
+  // Which round `[index]` means. `null` both for an event that has never had a batch and for a
+  // caller who may not see it — `notFound()` either way, never a distinguishing error.
+  const round = await loadLatestConceptRound(id);
+  if (round === null) notFound();
+
+  const loaded = await loadConcept(id, index, round);
   if (!loaded) notFound();
 
   return (

@@ -303,9 +303,13 @@ block at 1280 and took a page from 1286px to 2341px — a spec verified without 
 shipped a different page with one. An overflow-only assertion passed throughout, because a page
 growing vertically overflows nothing; asserting height equality is what caught it.
 
-**4F status: CLOSED (2026-09-19).** A host can start a real generation from the app, watch it
-resolve over actual pipeline artifacts, reload without losing it, and open any concept that is ready
-as the site itself.
+**4F status: CLOSED FOR PHASE 4 PROGRESSION, PENDING ONE DEPLOYED OBSERVATION (2026-09-19).** The
+generation surface is built and its behaviour is proven: it resolves over actual pipeline artifacts,
+readiness is per concept, a reload recovers real state, and a ready concept opens as the site
+itself. **What has not been observed is a generation started through the app on the locked hosting
+target.** Every run in this workstream drove `runConceptBatch` directly from a local process, so the
+server action, `after()` and the deployed function are exercised only by tests. That observation is
+the remaining gate, and it is named here rather than implied by the word "closed".
 
 `generation-view.ts` is the boundary, and it is shaped so the forbidden thing cannot be said: there
 is no percentage, ratio, step counter or ETA anywhere in the type, and every creative field is
@@ -337,11 +341,40 @@ made for this one* for ever, about work that had already stopped. `spec.md §31`
 claiming work that has not happened", and a note that never resolves is exactly that. Settlement now
 follows the sibling's own terminal state.
 
-**What 4F does not have.** No browser test drives the generation panel against real data: the e2e
-harness boots the app with placeholder Supabase credentials, so the surface is unreachable there.
-The panel's state machine is proven by deterministic component tests, the read model against real
-Postgres, and the rendered page in real Chromium through geometry verification. Closing that last
-gap is a QA-deployment step, not missing code.
+**Three defects an independent review found after the surface was first called finished**, all in
+the seam between the panel and the orchestrator, and all invisible to 2,709 passing tests because
+none of them drove that seam.
+
+1. **A successful start never began polling.** The orchestrator read state *before* `after()`
+   scheduled the batch, so the action returned the pre-plan view and the panel — which polls only
+   while it believes work is in flight — stopped. A host clicked, the button re-enabled, and nothing
+   happened until a manual reload. The panel now treats a start it made as outstanding until the
+   rows show it or a 30-second deadline says it did not take, which is also what makes a silent
+   refusal (a cap, a ceiling, a missing key, a `not_authoritative` race) a sentence rather than a
+   spinner. While waiting it shows a neutral *Starting…* and makes no claim the rows do not support.
+2. **`Try again` after a failure was a no-op**, because no retry passed `newRound`, so planning
+   observed the settled batch and planned nothing — and `canStart: true` was a claim the server
+   could not honour. A retry is now explicitly a new round. Canon does not settle
+   retry-after-failure (`spec.md §7.9` defines `Try another direction`, not this), so it is a
+   recorded decision: `failed` is reached only when no concept is previewable, so a new round
+   discards nothing, and `resumableSiblings` stays unwired and deferred.
+3. **The deployed path was a broken deploy by this repository's own rule.** `after()` reaches
+   `verifyGeometry`, which imports Chromium, and `next.config.ts` keyed those packages only to two
+   API routes while its own header warns that any route or server action calling `verifyGeometry`
+   must add its key. The key is now present, along with `maxDuration = 180` on the page whose
+   function runs the action. **The glob spelling matters and fails silently when wrong**: these keys
+   are picomatch globs, so a bare `"/events/[id]/create"` reads `[id]` as a character class, matches
+   nothing, and traces six files with no browser archive; the escaped form traces twenty-two,
+   including all four `.br` archives, identical to the deployed `verify-geometry` route.
+   `next.config.ts` carries the check to re-run after any Next upgrade.
+
+**What 4F still does not have.** No browser test drives the generation panel against real data: the
+e2e harness boots the app with placeholder Supabase credentials, so the surface is unreachable
+there. The panel's state machine is proven by deterministic component tests, the read model against
+real Postgres, and the rendered page in real Chromium through geometry verification. And the
+packaging for the deployed batch is proven, but not the runtime — nothing has yet watched Chromium
+launch inside that function on Vercel. Both are QA-deployment steps, not missing code, and the
+second is the observation the status line above is pending.
 
 **4G status: TECHNICALLY COMPLETE. PRODUCT QUALITY IS UNJUDGED AND IS THE OPERATOR'S.** One live
 end-to-end run from the frozen raw prompt on 2026-09-19 — 8 text calls, three concepts, all verified

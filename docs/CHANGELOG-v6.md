@@ -836,9 +836,28 @@ system — is recorded as an open product question. No `VisualSystemPlan`, no `P
 art-direction or title call, no taste critic. The 4G review is the first look at the finished
 product; acting before it would make the architecture change a guess instead of a finding.
 
-**Verification.** typecheck, lint (0 errors), format, unit, component, DB against a disposable local
-PostgreSQL, e2e, `proof-b/test.js` and `adv-run.js` at 37/37 repair-valid with zero overflow,
-rendered geometry clean at 390 and 1280, production build.
+**Three defects an independent review found after all of this was first called finished**, every
+one of them in the seam between the panel and the orchestrator, and every one invisible to 2,709
+passing tests because none drove that seam. A successful start never began polling, so a host
+clicked and nothing happened until a reload. `Try again` after a failure was a no-op, because no
+retry passed `newRound` — which also meant the stale-batch recovery released the database index
+while leaving the host with a dead button. And the deployed path was a broken deploy by this
+repository's own rule: `after()` reaches `verifyGeometry`, which imports Chromium, and the tracing
+key was keyed only to two API routes.
+
+The third carries a trap worth keeping: `outputFileTracingIncludes` keys are globs, so a bare
+`"/events/[id]/create"` reads `[id]` as a character class, matches nothing, and silently traces six
+files with no browser archive. The escaped spelling traces twenty-two, including all four `.br`
+archives — identical to the already-deployed verify-geometry route. `next.config.ts` now carries the
+measurement to re-run after any Next upgrade.
+
+The lesson is not the three bugs; it is that the tests were green. A suite can be thorough about a
+projection and a state machine and say nothing at all about whether pressing the button works.
+
+**Verification.** typecheck, lint (0 errors), format, 2,721 unit, 66 component, 498 DB against a
+disposable local PostgreSQL, 71 e2e, `proof-b/test.js` and `adv-run.js` at 37/37 repair-valid with
+zero overflow, rendered geometry clean at 390 and 1280, production build with the browser trace
+verified per route.
 
 ---
 
