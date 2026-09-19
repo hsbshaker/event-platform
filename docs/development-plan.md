@@ -303,6 +303,91 @@ block at 1280 and took a page from 1286px to 2341px — a spec verified without 
 shipped a different page with one. An overflow-only assertion passed throughout, because a page
 growing vertically overflows nothing; asserting height equality is what caught it.
 
+**4F status: CLOSED (2026-09-19).** A host can start a real generation from the app, watch it
+resolve over actual pipeline artifacts, reload without losing it, and open any concept that is ready
+as the site itself.
+
+`generation-view.ts` is the boundary, and it is shaped so the forbidden thing cannot be said: there
+is no percentage, ratio, step counter or ETA anywhere in the type, and every creative field is
+absent until the row carrying it exists. `generation-state.ts` projects it from rows the pipeline
+already writes, which is why reload and reconnect are a query rather than a job-tracking system.
+Readiness is per concept — `previewable` follows that concept's own verified spec and never its
+siblings' — and a concept whose artwork is still being drawn is shown as the finished page it
+already is, because the spec is verified and frozen before any image is requested. The preview route
+renders the real `EventPage` from the persisted spec; a test refuses a thumbnail, a screenshot or an
+iframe in its place.
+
+Durability took no new infrastructure. The start returns as soon as the batch is admitted and the
+work continues past the response, with the database's in-flight unique index remaining the only
+control over a second batch. A crashed process used to leave siblings non-terminal and the event
+blocked for ever, so a migration adds an event-scoped recovery RPC, swept opportunistically on read
+exactly as identity claims already are, with a 15-minute bound the SQL itself refuses to shorten
+below 60 seconds.
+
+**Two access decisions were tightened from the obvious answer.** The preview route and the
+generation read both reach for capabilities that are `GUEST_ALLOWED` and survive publish, and what
+they return is the set of *unselected* concepts — three names, three palettes, two the host will
+never choose. Both now require `browse_select_concepts`, which is collaborator-only and
+`PRE_PUBLISH_ONLY`, so the surface closes when the choice is made (`spec.md §25`).
+
+**One defect worth recording because of what it teaches.** An artwork slot sits in `reserved` from
+the moment the compiler admits it, and on every batch that runs with no artwork provider nothing
+ever requests it. Reading those rows as "still pending" made the surface say *Artwork is still being
+made for this one* for ever, about work that had already stopped. `spec.md §31` forbids "a stage
+claiming work that has not happened", and a note that never resolves is exactly that. Settlement now
+follows the sibling's own terminal state.
+
+**What 4F does not have.** No browser test drives the generation panel against real data: the e2e
+harness boots the app with placeholder Supabase credentials, so the surface is unreachable there.
+The panel's state machine is proven by deterministic component tests, the read model against real
+Postgres, and the rendered page in real Chromium through geometry verification. Closing that last
+gap is a QA-deployment step, not missing code.
+
+**4G status: TECHNICALLY COMPLETE. PRODUCT QUALITY IS UNJUDGED AND IS THE OPERATOR'S.** One live
+end-to-end run from the frozen raw prompt on 2026-09-19 — 8 text calls, three concepts, all verified
+clean at 390 and 1280, $0.1814, zero image calls, 71.8s. Every stage was schema-valid on its first
+call: zero re-prompts of any kind, zero fallbacks, zero retries. Evidence, immutable, at
+`docs/model-evals/results/phase-4g-e2e-mediterranean-shower/`.
+
+**The technical claim is that the whole system functioned**, from interpretation to three rendered
+sites, with nothing forced: clarification was not asked because the policy did not ask for it, and
+artwork was not used because no direction chose it. **No product-quality claim is made at all.**
+Whether these three feel designed rather than generated, whether they read as one system or as good
+pieces stitched together, and whether a host would want one of them are the twelve questions on the
+contact sheet, and they are deliberately unanswered. Human Test #2 remains where `spec.md §11.9`
+puts it: a launch gate whose protocol and threshold are frozen before any result is seen, and this
+run is not it.
+
+**Three findings from the run, recorded rather than acted on.**
+
+1. **Artwork was offered to all three concepts and taken by none**, for the second consecutive batch
+   on a different identity. Two runs is not a pattern, and neither was tuned to change it. Whether
+   the composition rules' "artwork is optional and a concept is often stronger without it" is
+   calibrated or over-corrected is a product judgement about the prompt, and changing it is a
+   `COMPOSITION_PROMPT_VERSION` bump whose effect only another live batch could measure.
+2. **The concepts did not arrive one at a time.** 96 samples of the read model contain four states,
+   the last being all three becoming previewable together. Two causes, different in kind: the three
+   compositions genuinely finished within 500ms of each other, which is nothing to fix — and the
+   DesignIntent artifacts are written in a *single insert*, so per-concept "designing" can never
+   stagger by construction, although the three calls returned 3.4s apart. `spec.md §7.10` wants
+   concept names surfaced "as each is genuinely resolved", and the batched insert forecloses that.
+   The mechanism for independent readiness is built and proven; this run had nothing for it to
+   express.
+3. **Every latency target was missed** — identity 22.9s against 5s, first concept 71.8s against 15s,
+   all three 71.8s against 45s. The single `ConceptPremise` call cost 35.5s and blocks all three
+   siblings by design, since one call authors the set. `spec.md §32 #45` says measure rather than
+   hide, and `docs/product-doctrine.md §14` conflict 9 already records that the targets predate both
+   this stage and artwork and need re-setting deliberately. This is the measurement they were
+   waiting for; the numbers are not moved here.
+
+**The open product hypothesis, deliberately unsolved.** Major visual decisions may be too
+independent, so that a page reads as individually good AI pieces stitched together rather than as
+one conceived system. Nothing in this workstream introduces a `VisualSystemPlan`, a `PageBlueprint`,
+an art-direction call, a title-generation call, a background or border stage, a render-aware taste
+critic or an iterative refinement agent. The reason is evidential rather than cautious: the 4G
+operator review is the first look at the finished product, and if it says the concepts feel stitched
+together then the architecture change becomes evidence-driven. Acting first would make it a guess.
+
 **The plan for what follows is `phase-4b-plan.md`.** It decomposes **4B** (the clarification
 lifecycle, answer provenance and the minimal surface) and **4C** (the deterministic sibling planner
 and `DesignIntent × 3`) into auditable tasks, and keeps the letters above exactly as they are: the

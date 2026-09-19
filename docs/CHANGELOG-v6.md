@@ -786,6 +786,62 @@ byte-identical, all 32 files.
 
 ---
 
+## Revision 6.18 — the generation experience, and the first run from a host's own words
+
+Two phases in one workstream. 4F built the surface a host watches their event come to life on; 4G
+ran the whole system from a raw prompt for the first time and left the result for a person to judge.
+
+**4F: the wait as a product surface.** `generation-view.ts` is the boundary and it is shaped so the
+forbidden thing cannot be said — no percentage, ratio, step counter or ETA exists anywhere in the
+type, and every creative field is absent until its row exists. `generation-state.ts` projects it
+from rows the pipeline already writes, so reload and reconnect are a query rather than a
+job-tracking system, and durability needed no new infrastructure: the start returns once the batch
+is admitted, the work continues past the response, and the database's in-flight unique index stays
+the only control over a second batch. A crashed process used to block an event for ever, so an
+event-scoped recovery RPC now sweeps on read, as identity claims already did.
+
+Readiness is per concept. `previewable` follows that concept's own verified spec and never its
+siblings', and a concept whose artwork is still coming is shown as the finished page it already is
+— the spec is verified and frozen before any image is requested. The preview renders the real
+`EventPage`; a test refuses a thumbnail or an iframe in its place.
+
+**Two access decisions, both tightened from the obvious answer.** The preview route and the
+generation read each reached for a capability that is guest-allowed and survives publish, and what
+they return is the set of *unselected* concepts. Both now require `browse_select_concepts`, which is
+collaborator-only and pre-publish-only, so the surface closes when the choice is made (`§25`).
+
+**A defect worth keeping.** An artwork slot sits in `reserved` from the moment the compiler admits
+it, and with no artwork provider nothing ever requests it — so the surface said *Artwork is still
+being made for this one* for ever, about work that had stopped. A note that never resolves is the
+"stage claiming work that has not happened" `§31` forbids. Settlement follows the sibling's terminal
+state now.
+
+**4G: one prompt, one run.** A real host's words about an old-world Mediterranean garden, frozen in
+its own commit before the harness existed. 8 text calls, three concepts, clean at 390 and 1280,
+$0.1814, zero image calls, 71.8s — every stage schema-valid first time, no re-prompts, no fallbacks.
+The interpretation held: the three exclusions survived verbatim, facts present were extracted, facts
+absent stayed absent, and "November" was not mistaken for the event date.
+
+**Three findings, recorded rather than acted on.** Artwork was offered to all three and taken by
+none, for the second consecutive batch. The concepts did not arrive one at a time — partly because
+three compositions genuinely finished together, partly because the DesignIntent artifacts are
+written in a single insert, which forecloses staggered per-concept naming by construction. And every
+latency target was missed, with the single premise call costing 35.5s and blocking all three
+siblings. `§32 #45` says measure rather than hide; this is the measurement `product-doctrine.md §14`
+conflict 9 was waiting for, and no number was moved to match it.
+
+**Nothing is scored, and no new creative stage was introduced.** The hypothesis that major visual
+decisions are too independent — that pages read as good pieces stitched together rather than one
+system — is recorded as an open product question. No `VisualSystemPlan`, no `PageBlueprint`, no
+art-direction or title call, no taste critic. The 4G review is the first look at the finished
+product; acting before it would make the architecture change a guess instead of a finding.
+
+**Verification.** typecheck, lint (0 errors), format, unit, component, DB against a disposable local
+PostgreSQL, e2e, `proof-b/test.js` and `adv-run.js` at 37/37 repair-valid with zero overflow,
+rendered geometry clean at 390 and 1280, production build.
+
+---
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
