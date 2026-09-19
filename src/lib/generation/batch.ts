@@ -17,6 +17,8 @@ import type {
   Json,
   ModelOperation,
   RecordBatchCallRunOutcome,
+  RecordSiblingStageRunOutcome,
+  SettleBatchSiblingOutcome,
   RecordSiblingRunOutcome,
 } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -538,6 +540,22 @@ export interface SiblingRunTelemetry {
   inputAssemblyVersion?: string | null;
   schemaValidFirstCall?: boolean | null;
   reprompts?: Json | null;
+  /**
+   * Composition-stage columns (Phase 4D). Absent on an EventIdentity, premise or DesignIntent run,
+   * where `generation_runs` already holds them null — none of those three produces a tree, a
+   * compiled spec or a skeleton to compare.
+   */
+  primitiveSetVersion?: string | null;
+  compilerVersion?: string | null;
+  /** Every deterministic repair, logged by kind (`spec.md §32 #21`). */
+  compilerRepairs?: Json | null;
+  /** The geometry verification result, so a clean spec is evidenced rather than asserted. */
+  verified?: Json | null;
+  signature?: string | null;
+  /** Highest similarity against a batch sibling after the selector (`§6.4` CO-07 reads this). */
+  nearestSibling?: number | null;
+  /** `"library"` when a documented fallback produced the tree, so it is never read as model work. */
+  fallback?: string | null;
 }
 
 export interface RecordSiblingRunRequest {
@@ -677,6 +695,114 @@ export async function recordBatchCallRun(
   const row = (data ?? [])[0];
   if (!row) throw new Error("record_batch_call_run returned no row");
   return { outcome: row.outcome, runId: row.run_id, idempotencyKey };
+}
+
+export interface RecordSiblingStageRunRequest {
+  batchId: string;
+  conceptIndex: number;
+  /** Which stage of this sibling's work — `design_intent`, then `composition`. */
+  operation: ModelOperation;
+  attempt: number;
+  success: boolean;
+  run: SiblingRunTelemetry;
+}
+
+export interface RecordSiblingStageRunResult {
+  outcome: RecordSiblingStageRunOutcome;
+  runId: string | null;
+  idempotencyKey: string;
+}
+
+/**
+ * Record one stage of one sibling's work, and settle nothing.
+ *
+ * The third member of the family, and the one Phase 4D needed. `recordSiblingRun` records **and
+ * settles**, which was the same event while a sibling was a single DesignIntent call. A 4D sibling
+ * makes two calls and then still has to compile and verify against rendered geometry, so settling
+ * on the first would mark a sibling `succeeded` whose concept does not exist and may never exist —
+ * and `spec.md §32 #24` decides that only after the row already claimed success.
+ *
+ * Every paid response is still recorded the moment it happens, because the ceiling reads
+ * `generation_runs` as spend and a sibling that later fails to verify has still been paid for.
+ * Settling is `settleSibling`, once the concept is persisted.
+ *
+ * The key is `(batch_id, operation, concept_index, attempt)` — the sibling key, which already
+ * carries the operation, so a sibling's DesignIntent and Composition runs cannot collide.
+ */
+export async function recordSiblingStageRun(
+  admin: Admin,
+  request: RecordSiblingStageRunRequest,
+): Promise<RecordSiblingStageRunResult> {
+  const idempotencyKey = siblingIdempotencyKey({
+    batchId: request.batchId,
+    operation: request.operation,
+    conceptIndex: request.conceptIndex,
+    attempt: request.attempt,
+  });
+  const run = request.run;
+  const { data, error } = await admin.rpc("record_sibling_stage_run", {
+    p_batch_id: request.batchId,
+    p_concept_index: request.conceptIndex,
+    p_operation: request.operation,
+    p_attempt: request.attempt,
+    p_idempotency_key: idempotencyKey,
+    p_success: request.success,
+    p_run: {
+      provider: run.provider,
+      model: run.model,
+      latency_ms: run.latencyMs,
+      prompt_version: run.promptVersion,
+      schema_version: run.schemaVersion,
+      user_id: run.userId ?? null,
+      provider_request_id: run.providerRequestId ?? null,
+      input_tokens: run.inputTokens ?? null,
+      cached_input_tokens: run.cachedInputTokens ?? null,
+      cache_write_input_tokens: run.cacheWriteInputTokens ?? null,
+      output_tokens: run.outputTokens ?? null,
+      reasoning_tokens: run.reasoningTokens ?? null,
+      cost_estimate_usd: run.costEstimateUsd ?? null,
+      error_code: run.errorCode ?? null,
+      input_assembly_version: run.inputAssemblyVersion ?? null,
+      schema_valid_first_call: run.schemaValidFirstCall ?? null,
+      reprompts: run.reprompts ?? null,
+      primitive_set_version: run.primitiveSetVersion ?? null,
+      compiler_version: run.compilerVersion ?? null,
+      compiler_repairs: run.compilerRepairs ?? null,
+      verified: run.verified ?? null,
+      signature: run.signature ?? null,
+      nearest_sibling: run.nearestSibling ?? null,
+      fallback: run.fallback ?? null,
+    } as unknown as Json,
+  });
+  if (error) throw error;
+  const row = (data ?? [])[0];
+  if (!row) throw new Error("record_sibling_stage_run returned no row");
+  return { outcome: row.outcome, runId: row.run_id, idempotencyKey };
+}
+
+/**
+ * Settle one sibling, once its concept is verified and persisted or has terminally failed.
+ *
+ * A success must name the run it succeeded with — the Composition run, which is the one that
+ * stands for the concept — so `generation_batch_siblings.generation_run_id` keeps meaning what it
+ * meant and the table's own check constraint still holds. Idempotent on an already-settled
+ * success.
+ */
+export async function settleSibling(
+  admin: Admin,
+  batchId: string,
+  conceptIndex: number,
+  success: boolean,
+  generationRunId?: string,
+): Promise<SettleBatchSiblingOutcome> {
+  const { data, error } = await admin.rpc("settle_batch_sibling", {
+    p_batch_id: batchId,
+    p_concept_index: conceptIndex,
+    p_success: success,
+    p_generation_run_id: generationRunId ?? null,
+  });
+  if (error) throw error;
+  return data as SettleBatchSiblingOutcome;
 }
 
 /**
