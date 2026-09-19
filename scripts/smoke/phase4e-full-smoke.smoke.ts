@@ -509,7 +509,12 @@ it(
         const decision =
           mine.length === 0 ? "none" : mine.length === 1 ? "one slot" : `${mine.length} slots`;
         const slotRow = (a: Record<string, unknown>) => {
-          const m = a.measured as { width?: number; height?: number; alpha?: { fullyTransparentPct?: number; looksLikeOpaqueCanvas?: boolean }; crop?: { edgeRisk?: boolean; edgesAtRisk?: string[] } } | null;
+          const m = a.measured as {
+            width?: number;
+            height?: number;
+            alpha?: { fullyTransparentPct?: number; looksLikeOpaqueCanvas?: boolean };
+            crop?: { edgeRisk?: boolean; edgesAtRisk?: string[] };
+          } | null;
           const intent = JSON.parse(
             readFileSync(path.join(OUT, String(a.intentFile)), "utf8"),
           ) as Record<string, unknown>;
@@ -537,7 +542,10 @@ it(
               <figure><figcaption>desktop 1280</figcaption><img class="shot" src="concept-${n}-no-art-desktop.png" alt=""></figure>
              </div>`
           : "";
-        const verified = (specs.find((x) => x.concept_index === c.concept_index)?.spec as ResolvedDesignSpec | undefined)?.verified;
+        const verified = (
+          specs.find((x) => x.concept_index === c.concept_index)?.spec as
+            ResolvedDesignSpec | undefined
+        )?.verified;
         return `<section class="concept">
           <h2>Concept ${n} — ${esc(c.name)}</h2>
           <p class="desc">${esc(c.description)}</p>
@@ -591,14 +599,27 @@ it(
 <div class="note"><strong>Storage:</strong> <code>${esc(store.id)}</code>. No Supabase Storage upload was exercised in this run; the real adapter exists and is unit-tested, but hosted Storage must not be mutated for a smoke and no local Supabase Storage is available here.</div>
 
 <table>
- <tr><th>text provider calls</th><td><code>${runs.length} (${esc(JSON.stringify(runs.reduce<Record<string, number>>((a, r) => { const k = String(r.operation); a[k] = (a[k] ?? 0) + 1; return a; }, {})))})</code></td></tr>
+ <tr><th>text provider calls</th><td><code>${runs.length} (${esc(
+   JSON.stringify(
+     runs.reduce<Record<string, number>>((a, r) => {
+       const k = String(r.operation);
+       a[k] = (a[k] ?? 0) + 1;
+       return a;
+     }, {}),
+   ),
+ )})</code></td></tr>
  <tr><th>image attempts / limit</th><td><code>${attempts.spent} / ${MAX_IMAGE_ATTEMPTS}</code></td></tr>
  <tr><th>artwork delivered / failed</th><td><code>${slotRows.filter((r) => r.status === "delivered").length} / ${slotRows.filter((r) => r.status === "failed").length}</code></td></tr>
  <tr><th>text-model cost</th><td><code>$${textCost.toFixed(4)}</code></td></tr>
  <tr><th>image cost / ceiling</th><td><code>$${imageCost.toFixed(4)} / $${IMAGE_CEILING_USD.toFixed(2)}</code></td></tr>
  <tr><th>total provider cost</th><td><code>$${(textCost + imageCost).toFixed(4)}</code></td></tr>
  <tr><th>wall time</th><td><code>${(wallMs / 1000).toFixed(1)} s</code></td></tr>
- <tr><th>per-image latency</th><td><code>${esc(slotRows.map((r) => r.latency_ms).filter((x) => x != null).join(", ") || "none")}</code> ms</td></tr>
+ <tr><th>per-image latency</th><td><code>${esc(
+   slotRows
+     .map((r) => r.latency_ms)
+     .filter((x) => x != null)
+     .join(", ") || "none",
+ )}</code> ms</td></tr>
  <tr><th>image provider / model</th><td><code>openai-images / ${IMAGE_MODEL}</code></td></tr>
 </table>
 

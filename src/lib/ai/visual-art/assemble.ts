@@ -41,7 +41,7 @@ import type { EventIdentity } from "@/lib/ai/event-identity/contract";
 import type { CompositionBrief } from "@/lib/ai/composition/brief";
 import type { AspectClass, ResolvedArtwork } from "@/lib/renderer/compile/artwork";
 import type { SemanticPalette } from "@/lib/renderer/compile/palette";
-import type { Anchor, ArtworkRole, Extent } from "@/lib/renderer/composition/tokens";
+import type { ArtworkRole } from "@/lib/renderer/composition/tokens";
 import {
   STANDING_PROHIBITIONS,
   VISUAL_ART_INTENT_VERSION,
