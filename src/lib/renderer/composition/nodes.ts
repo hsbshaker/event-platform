@@ -246,14 +246,32 @@ export interface Capabilities {
   deadline: boolean;
 }
 
-/** Present content, sent to the model for fit (`docs/event-renderer-system.md §2.3`). */
+/**
+ * How many registry items of each kind exist, so a Registry layout can be fitted against a real
+ * shape rather than a guess.
+ *
+ * Keyed off `RegistryItem["kind"]` rather than a hand-written duplicate: a kind added to the
+ * primitive without a count here is a compile error, which is the only way these two stay in step.
+ */
+export type RegistryCounts = Record<RegistryItem["kind"], number>;
+
+/**
+ * Present content, sent to the model for fit (`docs/event-renderer-system.md §2.3`).
+ *
+ * Separate from `Capabilities` on purpose, and no longer carries it. The two answer different
+ * questions — *what is enabled* versus *what is written* — and merging them is how a stage starts
+ * scoping a tree to content presence, which `spec.md §32 #16` forbids. `provisionalFields` names
+ * every entry whose measurement came from a bounded stand-in rather than the host
+ * (`spec.md §7.3`), so a re-fit knows what to re-measure when a real value arrives.
+ */
 export interface ContentProfile {
   titleWords: number;
   titleChars: number;
   hostsChars: number;
   venueChars: number;
   descriptionChars: number;
-  capabilities: Capabilities;
+  registryCounts: RegistryCounts;
+  provisionalFields: string[];
 }
 
 export interface Violation {
