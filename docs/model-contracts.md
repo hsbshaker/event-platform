@@ -5,7 +5,7 @@
 (Phase 4A closed **GO**, `§4.6`). DesignIntent is built at `v5` and **has never been sent to a
 provider**: T21 is the implementation freeze before the first live call, which needs explicit
 authorization (`phase-4b-plan.md` Part IV, "The stop point"). Composition is a contract on paper.  
-**Prompt versions:** `event_identity_v5`, `design_intent_v5`, `composition_v1_p2`  
+**Prompt versions:** `event_identity_v5`, `design_intent_v6`, `concept_premise_v1`, `composition_v1_p3`  
 **Schema versions:** `event_identity_schema_v5`, `design_intent_schema_v5`, `composition_schema_v1`  
 **PRD:** `../spec.md` Revision 6  
 **Renderer:** `event-renderer-system.md` Revision 2
@@ -49,17 +49,22 @@ Prompts and schemas are versioned production assets:
 ```ts
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5"
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
-export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v5"
-export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v5"
-export const COMPOSITION_PROMPT_VERSION    = "composition_v1_p2"
+export const CONCEPT_PREMISE_PROMPT_VERSION = "concept_premise_v1"
+export const CONCEPT_PREMISE_SCHEMA_VERSION = "concept_premise_schema_v1"
+export const DESIGN_INTENT_PROMPT_VERSION  = "design_intent_v6"
+export const DESIGN_INTENT_SCHEMA_VERSION  = "design_intent_schema_v6"
+export const COMPOSITION_PROMPT_VERSION    = "composition_v1_p3"
 export const COMPOSITION_SCHEMA_VERSION    = "composition_schema_v1"
 export const PRIMITIVE_SET_VERSION         = "composition_v1"
-export const COMPILER_VERSION              = "…"
+export const COMPILER_VERSION              = "compiler_phase3_1_0"
 ```
 
 `src/lib/ai/versions.ts` is where these live; the Event Identity pair reached `v5` through Phase 4A
-and its history is recorded there, prompt by prompt. The DesignIntent and Composition values are
-the contract as designed and have never been exercised against a provider.
+and its history is recorded there, prompt by prompt. DesignIntent reached `v6` through the
+`ConceptPremise` remediation (`docs/designintent-sibling-convergence.md`), and its `v5` was
+exercised against a provider once, at T22. **Composition has never been exercised against a
+provider.** `composition_v1_p3` is the contract as designed: `p2`'s evidence is the Phase B
+proof-run's, which used the proof harness rather than this production path.
 
 Record every version with generation telemetry. Do not silently edit a production prompt while keeping the same version. The primitive set is versioned separately from the compiler because the renderer must support every set that has a live spec.
 
@@ -797,13 +802,13 @@ DI-01…DI-11 stand with `family` substituted; add:
 
 ---
 
-# 6. Composition (composition_v1_p2)
+# 6. Composition (composition_v1_p3)
 
 ## 6.1 Input contract
 
 ```ts
 type GenerateCompositionInput = {
-  eventIdentity: EventIdentity                       // design brief, constraints, motif/texture direction
+  brief: CompositionBrief                            // the narrowed identity: see below
   contentProfile: { titleWords; titleChars; hostsChars; venueChars; descriptionChars; registryCounts; provisionalFields[] }   // real content where present, bounded provisional content elsewhere (spec.md §7.3)
   capabilities: Capabilities                         // enabled features, never content presence: rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline
   designIntent: DesignIntent                         // this concept's, already validated
@@ -813,9 +818,45 @@ type GenerateCompositionInput = {
   primitiveSpec: string; rules: string               // generated from the validator table
   avoid?: string[]                                   // collision re-prompt only: sibling hero skeletons
 }
+
+type CompositionBrief = {
+  creativeDirection: string                          // the one interpretation all three siblings share
+  visualMotifs: string[]                             // motif ideas in words, never renderer motif ids
+  textureDirection: string
+  hostConstraints: string[]                          // AUTHORITATIVE, complete, verbatim
+}
 ```
 
+**The first field is a narrowed projection, not the whole `EventIdentity`.** Earlier revisions of
+this section named it `eventIdentity` and scoped it only in a comment; the implementation
+(`src/lib/ai/provider.ts`) then carried `{designIntent, capabilities, directive, reprompt?}` and no
+constraints at all, so a host constraint whose subject is structure never reached the stage that
+authors structure. `src/lib/ai/composition/brief.ts` is the projection, and its
+`BRIEF_DISPOSITION` is exhaustive over `keyof EventIdentity`, so adding a field to the identity
+contract without deciding whether Composition may see it is a compile error.
+
+`hostConstraints` travel **complete and verbatim** — not filtered by whether they look structural.
+The asymmetry decides it: carrying an inapplicable constraint costs tokens, and dropping an
+applicable one loses the host's instruction with no way to detect the loss. The *obligation* is
+scoped instead of the evidence, in `composition.system.md` block 1a: honour what bears on the
+structure you author, leave alone what a later stage owns. That is the same scoping S4 already
+applies at DesignIntent (`docs/phase-4b-plan.md §3.7`).
+
+`creativeGuidance` is **withheld**, and its absence is the enforcement rather than an instruction:
+it is advisory by construction, `spec.md §32 #12` and the S3 veto exist because model taste once
+wore host authority, and DesignIntent already resolved guidance into the seven design fields that
+arrive beside this brief. Also withheld: the raw host prompt (interpretation happens once —
+`docs/product-doctrine.md §4`), `copyTone` / `typographyDirection` / `paletteIntent` /
+`compatible*` (spent upstream), and every event detail, which reaches the model as bounded
+measurements in `contentProfile` and never as strings to lay out.
+
 Do not send guest data, RSVP data, registry contents, private codes, or prior ResolvedDesignSpecs.
+
+**The response is a bare `CompositionTree`.** `composition.schema.json` has exactly `version` and
+`sections`, with `additionalProperties: false`. The `presentation` object belongs to the
+**DesignIntent** response (`spec.md §31`, `§32 #12`); the concept card is authored there and
+resolved by the deterministic set review (`src/lib/generation/concept-set.ts`). A `presentation`
+key in a composition response is an unknown key and fails strict validation like any other.
 
 ## 6.2 Message assembly
 
