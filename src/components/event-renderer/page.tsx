@@ -48,6 +48,7 @@ import {
 } from "./contract";
 import { PRIMITIVES } from "./primitives";
 import { NOTHING_CONFIGURED, type FeaturePresentationState } from "./feature-presentation";
+import { NO_ARTWORK, type ArtworkAssets } from "./artwork";
 
 /** Which section a collaborator control belongs to. Structural ids only — `s0`, `s1`, ... */
 export interface SectionRef {
@@ -74,6 +75,13 @@ export interface EventPageProps {
    * better passes what it knows.
    */
   readonly presentation?: FeaturePresentationState;
+  /**
+   * Generated artwork for this spec's reserved slots, keyed by canonical node id.
+   *
+   * Optional, defaulting to none: the spec is frozen before any image exists, so a page with
+   * reservations and no assets is the ordinary case rather than a missing input (`./artwork.ts`).
+   */
+  readonly artworkAssets?: ArtworkAssets;
   /**
    * What rendered-geometry verification decided for this spec, keyed by canonical node id.
    *
@@ -236,11 +244,16 @@ export function EventPage({
   sectionActions,
   overrides,
   presentation,
+  artworkAssets,
 }: EventPageProps) {
   const { pageSystem, tokens, composition } = spec;
   const ctx = createRenderNode({
     layout: spec.layout,
     motifs: spec.motifs,
+    artwork: spec.artwork,
+    // Defaults to no assets, which is every page's state until one is generated and permanently
+    // for any whose request failed. The reserved boxes are unaffected (`./artwork.ts`).
+    artworkAssets: artworkAssets ?? NO_ARTWORK,
     pageSystem,
     palette: tokens.palette,
     typography: tokens.typography,

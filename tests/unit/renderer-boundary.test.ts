@@ -43,24 +43,24 @@ function rendererSources(): { file: string; source: string }[] {
 describe("row 10: the component map is the primitive allowlist", () => {
   it("has exactly one component per primitive, and no key that is not one", () => {
     expect(Object.keys(PRIMITIVES).sort()).toEqual([...PRIMITIVE_KINDS]);
-    expect(PRIMITIVE_KINDS).toHaveLength(29);
+    expect(PRIMITIVE_KINDS).toHaveLength(30);
     // And the allowlist is the language's own, not a copy that could drift from it.
     expect([...PRIMITIVE_KINDS]).toEqual(Object.keys(NODE_SPEC).sort());
   });
 
   it("covers every group the language declares", () => {
     expect(PRIMITIVES_BY_KIND.container).toHaveLength(9);
-    expect(PRIMITIVES_BY_KIND.decorative).toHaveLength(5);
+    expect(PRIMITIVES_BY_KIND.decorative).toHaveLength(6);
     expect(PRIMITIVES_BY_KIND.text).toHaveLength(11);
     expect(PRIMITIVES_BY_KIND.component).toHaveLength(4);
     for (const group of Object.values(PRIMITIVES_BY_KIND))
       for (const name of group) expect(typeof PRIMITIVES[name], name).toBe("function");
   });
 
-  it("has 29 distinct implementations, not one shared stub behind many keys", () => {
+  it("has 30 distinct implementations, not one shared stub behind many keys", () => {
     for (const [name, component] of Object.entries(PRIMITIVES))
       expect(typeof component, name).toBe("function");
-    expect(new Set(Object.values(PRIMITIVES)).size).toBe(29);
+    expect(new Set(Object.values(PRIMITIVES)).size).toBe(30);
   });
 });
 

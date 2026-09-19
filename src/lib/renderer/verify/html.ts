@@ -41,6 +41,7 @@ import type { PreVerificationDesignSpec } from "../compile/spec";
 import type { VerificationOverrides } from "../compile/verification";
 import { EventPage } from "@/components/event-renderer/page";
 import type { EventContent } from "@/components/event-renderer/contract";
+import type { ArtworkAssets } from "@/components/event-renderer/artwork";
 import type { FeaturePresentationState } from "@/components/event-renderer/feature-presentation";
 import { GeometryInfrastructureError } from "./result";
 
@@ -196,6 +197,16 @@ export interface DocumentInput {
    * resolved-spec revision — which is the moment to verify it with that section present.
    */
   readonly presentation?: FeaturePresentationState;
+  /**
+   * Artwork assets, if any exist yet. Almost always absent, and that is the point.
+   *
+   * Verification runs *before* generation, so the page it measures normally has reserved artwork
+   * boxes and no images in them. That is only sound because the box is the geometry and the asset
+   * cannot change it — `.ev-art` fixes the frame and `object-fit: cover` crops the image into it,
+   * whatever dimensions come back. `geometry.test.ts` holds that to a measured equality rather
+   * than taking it on trust; this parameter exists so it can.
+   */
+  readonly artworkAssets?: ArtworkAssets;
 }
 
 export interface MeasurableDocument {
@@ -225,6 +236,7 @@ export function buildMeasurableDocument(
       audience: "guest",
       overrides: input.overrides,
       ...(input.presentation ? { presentation: input.presentation } : {}),
+      ...(input.artworkAssets ? { artworkAssets: input.artworkAssets } : {}),
     }),
   );
 

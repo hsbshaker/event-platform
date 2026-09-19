@@ -122,6 +122,7 @@ describe("pre-verification spec: shape and honesty", () => {
   it("carries every §6 field the deterministic engine can fill", () => {
     expect(Object.keys(spec).sort()).toEqual(
       [
+        "artwork",
         "capabilities",
         "composition",
         "compositionHash",

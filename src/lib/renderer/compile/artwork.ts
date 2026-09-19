@@ -199,7 +199,13 @@ export function resolveArtwork(
         rule: "artwork.disabled",
         detail: `artwork at ${hit.id} on a concept whose direction declined artwork (${decision.reason})`,
       });
-      artwork[hit.id] = { role, extent, scrim: null, render: false, suppressedBy: "artwork-disabled" };
+      artwork[hit.id] = {
+        role,
+        extent,
+        scrim: null,
+        render: false,
+        suppressedBy: "artwork-disabled",
+      };
       continue;
     }
 

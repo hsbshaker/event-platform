@@ -46,6 +46,8 @@ import type { Capabilities, CompositionTree, Repair } from "../composition/nodes
 import { resolveLayout } from "../composition/layout";
 import { skeleton, type Skeleton } from "../composition/signature";
 import type { DesignIntent, Deviation, Presentation } from "../design-intent";
+import { decideArtwork, type ArtworkDecision } from "./artwork-decision";
+import { resolveArtwork, type ResolvedArtwork } from "./artwork";
 import { resolveMotifs, type ResolvedMotif } from "./motifs";
 import { compileSemanticPalette, type SemanticPalette } from "./palette";
 import { resolvePageSystem, type PageSystem } from "./page-system";
@@ -106,6 +108,14 @@ export interface PreVerificationDesignSpec {
   readonly tokens: ResolvedTokens;
   readonly layout: Record<string, unknown>;
   readonly motifs: Record<string, ResolvedMotif>;
+  /**
+   * Reserved artwork slots, keyed by canonical node id, or `{}` for an image-free page.
+   *
+   * Reservations, not assets. The spec is frozen before any image exists and an asset attaches to
+   * a slot afterwards — or never — so nothing here depends on one having been generated
+   * (`spec.md §7.6a #1`, `src/lib/renderer/compile/artwork.ts`).
+   */
+  readonly artwork: Record<string, ResolvedArtwork>;
   readonly compilerRepairs: readonly Repair[];
   readonly intentDeviations: readonly Deviation[];
   readonly signature: SignatureRecord;
@@ -127,6 +137,15 @@ export interface AssembleInput {
   readonly deviations?: readonly Deviation[];
   readonly presentation?: Presentation;
   readonly versions?: Partial<SpecVersions>;
+  /**
+   * Whether this concept's direction asked for artwork, and how much.
+   *
+   * Optional because it is derivable: the caller that narrowed the composition prompt already
+   * computed it and passes the same value, and a caller that did not gets the identical answer
+   * from `decideArtwork`. Passing it is about recording *which* decision produced this concept,
+   * not about changing the outcome.
+   */
+  readonly artworkDecision?: ArtworkDecision;
 }
 
 /**
@@ -146,6 +165,8 @@ export function assemblePreVerificationSpec(input: AssembleInput): PreVerificati
   const { palette, deviations: paletteDeviations } = compileSemanticPalette(designIntent);
   const { typography, deviations: typographyDeviations } = resolveTypography(designIntent);
   const { motifs, deviations: motifDeviations } = resolveMotifs(canon.tree, designIntent, seed);
+  const decision = input.artworkDecision ?? decideArtwork(designIntent);
+  const { artwork, deviations: artworkDeviations } = resolveArtwork(canon.tree, decision, palette);
 
   return {
     version: "resolved_v2",
@@ -159,12 +180,14 @@ export function assemblePreVerificationSpec(input: AssembleInput): PreVerificati
     tokens: { palette, typography, spacing: pageSystem.spacing },
     layout: resolveLayout(canon.tree, designIntent.density),
     motifs,
+    artwork,
     compilerRepairs: input.repairs ?? [],
     intentDeviations: [
       ...(input.deviations ?? []),
       ...paletteDeviations,
       ...typographyDeviations,
       ...motifDeviations,
+      ...artworkDeviations,
     ],
     signature: {
       desktop: skeleton(canon.tree, "desktop"),

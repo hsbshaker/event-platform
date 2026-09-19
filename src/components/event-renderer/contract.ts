@@ -24,6 +24,7 @@ import type { CSSProperties } from "react";
 
 import type { AnyNode, CompositionTree } from "@/lib/renderer/composition/nodes";
 import { NODE_SPEC } from "@/lib/renderer/composition/spec";
+import type { ResolvedArtwork } from "@/lib/renderer/compile/artwork";
 import type { ResolvedMotif } from "@/lib/renderer/compile/motifs";
 import type { PageSystem } from "@/lib/renderer/compile/page-system";
 import type { SemanticPalette } from "@/lib/renderer/compile/palette";
@@ -63,6 +64,7 @@ export interface EventContent {
  * Who is looking. Guests never see collaborator affordances — not hidden by CSS, not rendered at
  * all (`spec.md §31 — Creation Mode`; `docs/screen-spec.md`).
  */
+import type { ArtworkAsset, ArtworkAssets } from "./artwork";
 import type { FeaturePresentationState } from "./feature-presentation";
 
 export type RenderAudience = "guest" | "collaborator";
@@ -83,6 +85,16 @@ export type {
 export interface RenderContext {
   readonly layout: Record<string, unknown>;
   readonly motifs: Record<string, ResolvedMotif>;
+  /** Reserved artwork slots from the spec, keyed by canonical node id. */
+  readonly artwork: Record<string, ResolvedArtwork>;
+  /**
+   * Assets for those slots, or `{}`.
+   *
+   * Separate from `artwork` because they have different lifetimes: the reservations are part of
+   * the frozen spec, and the assets attach afterwards or never (`./artwork.ts`). A page with
+   * reservations and no assets is the ordinary case.
+   */
+  readonly artworkAssets: ArtworkAssets;
   readonly pageSystem: PageSystem;
   readonly palette: SemanticPalette;
   readonly typography: ResolvedTypography;
@@ -152,6 +164,26 @@ export function layoutOf<T>(ctx: RenderContext, node: AnyNode): T | undefined {
 export function renderableMotif(ctx: RenderContext, node: AnyNode): ResolvedMotif | null {
   const m = node.id ? ctx.motifs[node.id] : undefined;
   return m && m.render ? m : null;
+}
+
+/**
+ * The artwork this node may actually draw, or `null`.
+ *
+ * Two independent reasons for `null`, and the component must treat them the same: the compiler
+ * suppressed the slot (over the direction's budget, artwork disabled, or no scrim could keep the
+ * text legible over it), or no asset has been generated for it. Neither is an error and neither
+ * changes the page's geometry — the reserved box is the box either way, exactly as a `MotifField`
+ * keeps its area when its motif is suppressed.
+ */
+export function renderableArtwork(
+  ctx: RenderContext,
+  node: AnyNode,
+): { resolved: ResolvedArtwork; asset: ArtworkAsset } | null {
+  if (!node.id) return null;
+  const resolved = ctx.artwork[node.id];
+  if (!resolved || !resolved.render) return null;
+  const asset = ctx.artworkAssets[node.id];
+  return asset ? { resolved, asset } : null;
 }
 
 /** The section kinds a page is built from. */

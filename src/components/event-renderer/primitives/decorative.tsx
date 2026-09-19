@@ -15,13 +15,14 @@
  */
 
 import type {
+  Artwork,
   Glyph,
   Monogram,
   MotifBand,
   MotifField,
   RuleNode,
 } from "@/lib/renderer/composition/nodes";
-import { cssVars, layoutOf, renderableMotif } from "../contract";
+import { cssVars, layoutOf, renderableArtwork, renderableMotif } from "../contract";
 import { primitive } from "../primitive";
 import type { MotifBandLayout } from "../resolved-layout";
 import { GlyphArrangement, motifClass, motifVars } from "./motif";
@@ -86,6 +87,61 @@ export const MonogramPrimitive = primitive<Monogram>((node, ctx) => {
   return (
     <div className={`ev-monogram ev-mono-${node.style}`} data-id={node.id} aria-hidden="true">
       <span>{ctx.content.initial}</span>
+    </div>
+  );
+});
+
+/**
+ * Generated thematic artwork, or the space it was promised.
+ *
+ * The box always renders, and only the image is conditional. That is the same disposition
+ * `MotifField` takes with a suppressed motif, for the same reason: the composition reserved this
+ * area and the layout was designed around it, so removing it would reflow a page the model
+ * composed — and, more sharply here, would reflow a page that rendered-geometry verification
+ * already certified. The spec is verified before any image exists (`spec.md §7.6a`,
+ * `@/lib/renderer/compile/artwork`), so an assetless render must be geometrically identical to an
+ * asset-bearing one or the verification would only have covered one of the two pages this spec can
+ * produce.
+ *
+ * The scrim is the compiler's, not this component's: a resolved alpha of the section's own surface
+ * colour, over the asset and under the text, so `§7.6a #5`'s "text readability always wins" is
+ * decided against a colour the compiler owns rather than against an image nobody has seen. It is
+ * emitted as a numeric custom property, never as a computed colour string.
+ */
+export const ArtworkPrimitive = primitive<Artwork>((node, ctx) => {
+  const drawable = renderableArtwork(ctx, node);
+  const extent = node.extent ?? ctx.artwork[node.id ?? ""]?.extent ?? "full";
+  return (
+    <div
+      className={`ev-art ev-art-${node.role} ev-ext-${extent}`}
+      data-id={node.id}
+      aria-hidden={drawable && drawable.asset.alt ? undefined : "true"}
+      style={cssVars({ "--ev-art-scrim": drawable?.resolved.scrim ?? undefined })}
+    >
+      {drawable ? (
+        /*
+         * A plain `<img>`, and `next/image` would be wrong here twice over. The verifier renders
+         * this exact tree through `renderToStaticMarkup` outside the Next runtime, where the
+         * loader does not exist, so the measured page would stop being the served page. And
+         * `next/image` supplies its own sizing and wrapper, which is the one thing this primitive
+         * must not allow: the box is the geometry, fixed before any asset existed, and an element
+         * that sized itself to its content would invalidate the verification the spec was frozen
+         * under.
+         */
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="ev-art-img"
+          src={drawable.asset.src}
+          alt={drawable.asset.alt}
+          width={drawable.asset.width}
+          height={drawable.asset.height}
+          loading="lazy"
+          decoding="async"
+        />
+      ) : null}
+      {drawable && drawable.resolved.scrim !== null ? (
+        <div className="ev-art-scrim" aria-hidden="true" />
+      ) : null}
     </div>
   );
 });

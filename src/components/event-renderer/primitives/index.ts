@@ -26,6 +26,7 @@ import {
   SurfacePrimitive,
 } from "./containers";
 import {
+  ArtworkPrimitive,
   GlyphPrimitive,
   MonogramPrimitive,
   MotifBandPrimitive,
@@ -69,6 +70,7 @@ export const PRIMITIVES: Record<string, PrimitiveComponent> = {
   Rule: RulePrimitive,
   Glyph: GlyphPrimitive,
   Monogram: MonogramPrimitive,
+  Artwork: ArtworkPrimitive,
   // text and semantic
   Eyebrow: EyebrowPrimitive,
   EventTitle: EventTitlePrimitive,

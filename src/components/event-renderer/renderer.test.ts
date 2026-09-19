@@ -28,6 +28,7 @@ import {
   type RenderAudience,
   type RenderContext,
 } from "./contract";
+import { NO_ARTWORK } from "./artwork";
 import { EventPage } from "./page";
 import {
   FULLY_CONFIGURED,
@@ -136,6 +137,8 @@ function contextFor(tree: CompositionTree, designIntent: DesignIntent = intent()
     pageSystem: spec.pageSystem,
     palette: spec.tokens.palette,
     typography: spec.tokens.typography,
+    artwork: spec.artwork,
+    artworkAssets: NO_ARTWORK,
     presentation: NOTHING_CONFIGURED,
     content: CONTENT,
     audience: "guest",
@@ -313,6 +316,10 @@ const NODE_FIXTURES: Record<string, { minimal: CNode; maximal: CNode }> = {
     minimal: { t: "Monogram", style: "plain" },
     maximal: { t: "Monogram", style: "watermark" },
   },
+  Artwork: {
+    minimal: { t: "Artwork", role: "anchor" },
+    maximal: { t: "Artwork", role: "framed", extent: "third" },
+  },
   Eyebrow: {
     minimal: { t: "Eyebrow" },
     maximal: { t: "Eyebrow", emphasis: "caption", case: "upper" },
@@ -390,8 +397,8 @@ describe("the primitive map", () => {
     expect(Object.keys(PRIMITIVES).sort()).toEqual([...PRIMITIVE_KINDS].sort());
   });
 
-  it("covers all 29 primitives", () => {
-    expect(PRIMITIVE_KINDS).toHaveLength(29);
+  it("covers all 30 primitives", () => {
+    expect(PRIMITIVE_KINDS).toHaveLength(30);
   });
 
   it("has a fixture for every primitive", () => {

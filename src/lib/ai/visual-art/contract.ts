@@ -146,7 +146,10 @@ export const visualArtIntentSchema = z
     cropSafety: z.enum(CROP_SAFETY),
     paletteRelationship: z.enum(PALETTE_RELATIONSHIPS),
     /** The page's semantic palette, so the artwork can answer to it. Read, never authored. */
-    paletteHexes: z.array(z.string().regex(/^#[0-9A-Fa-f]{6}$/)).min(1).max(6),
+    paletteHexes: z
+      .array(z.string().regex(/^#[0-9A-Fa-f]{6}$/))
+      .min(1)
+      .max(6),
     /** Authoritative host constraints, verbatim and complete, exactly as Composition receives them. */
     hostConstraints: z.array(shortText(3, 180)).max(10),
     /**

@@ -1729,3 +1729,83 @@ h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
     padding-inline-start: 0.8em;
   }
 }
+
+/* ----------------------------------------------------------------- generated thematic artwork */
+
+/*
+ * The reserved box is the geometry; the image is optional inside it.
+ *
+ * `spec.md §7.6a` has the spec compiled and geometry-verified before any artwork exists, so an
+ * empty `.ev-art` and a filled one must measure identically — otherwise verification would only
+ * have covered one of the two pages a spec can produce. Every rule below therefore sizes the box
+ * and never the image: `overflow: hidden` and `object-fit: cover` make the asset's own dimensions
+ * unable to influence layout at all, whatever comes back from a provider.
+ */
+.ev-art {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.ev-stack > .ev-art.ev-ext-full {
+  min-height: calc(var(--ev-hero-h) * 0.5);
+}
+
+.ev-stack > .ev-art.ev-ext-half {
+  min-height: calc(var(--ev-hero-h) * 0.35);
+}
+
+.ev-stack > .ev-art.ev-ext-third {
+  min-height: calc(var(--ev-hero-h) * 0.25);
+}
+
+.ev-stack > .ev-art.ev-ext-quarter {
+  min-height: calc(var(--ev-hero-h) * 0.18);
+}
+
+.ev-split > .ev-art,
+.ev-cell > .ev-art {
+  min-height: 100%;
+}
+
+.ev-overlay-decoration .ev-art {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/*
+ * `cover` is what makes crop safety a real property rather than a hope: the frame is fixed by the
+ * composition and the asset is cropped into it, so a provider that returns the wrong aspect ratio
+ * loses image, never layout. `VisualArtIntent.cropSafety` is how the brief is told how much of the
+ * frame may be lost that way.
+ */
+.ev-art-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/*
+ * The readability scrim (`@/lib/renderer/compile/artwork`).
+ *
+ * The section's own background at a compiler-resolved alpha, between the artwork and the text.
+ * Contrast was proved against this colour and against the two extremes any image can reach, so the
+ * text is legible over an asset that did not exist when the page was verified — and over one that
+ * never arrives. An `.ev-art` with no `--ev-art-scrim` has no text over it.
+ */
+.ev-art-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--ev-bg);
+  opacity: var(--ev-art-scrim, 0);
+  pointer-events: none;
+}
+
+/* A transparent-background object is composited onto the page, not shown inside a rectangle. */
+.ev-art.ev-art-object .ev-art-img {
+  object-fit: contain;
+}
