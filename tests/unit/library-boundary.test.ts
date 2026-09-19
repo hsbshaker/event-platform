@@ -107,24 +107,41 @@ const ADAPTER_PATHS = [
   "src/lib/renderer/few-shot/examples.ts",
 ];
 
-describe("Library Boundary Invariant", () => {
-  it.each(FORBIDDEN_PATHS)("%s cannot import the legacy library", async (filePath) => {
-    for (const statement of IMPORTS) {
-      const errors = await libraryImportErrors(filePath, `${statement}\nexport const x = 1;\n`);
-      expect(
-        errors.length,
-        `${filePath} was allowed to "${statement}". The legacy fixture library must stay ` +
-          `unreachable from production source (event-renderer-system.md §7.1).`,
-      ).toBeGreaterThan(0);
-    }
-  });
+/**
+ * Each case lints synthetic sources through ESLint's programmatic API, which is real work whose
+ * wall time depends on what else is running on the machine rather than on anything this file
+ * controls. Vitest's 5s default is ample on an idle box and has been observed to expire under a
+ * concurrent database suite — the exact shape of a CI flake. This budget is generous rather than
+ * tuned: a genuine regression fails on an assertion, never on the clock.
+ */
+const LINT_TIMEOUT_MS = 30_000;
 
-  it.each(ADAPTER_PATHS)("%s is exempt, because §7.1 gives it a role", async (filePath) => {
-    for (const statement of IMPORTS) {
-      const errors = await libraryImportErrors(filePath, `${statement}\nexport const x = 1;\n`);
-      expect(errors, `${filePath} should be allowed to "${statement}"`).toEqual([]);
-    }
-  });
+describe("Library Boundary Invariant", () => {
+  it.each(FORBIDDEN_PATHS)(
+    "%s cannot import the legacy library",
+    async (filePath) => {
+      for (const statement of IMPORTS) {
+        const errors = await libraryImportErrors(filePath, `${statement}\nexport const x = 1;\n`);
+        expect(
+          errors.length,
+          `${filePath} was allowed to "${statement}". The legacy fixture library must stay ` +
+            `unreachable from production source (event-renderer-system.md §7.1).`,
+        ).toBeGreaterThan(0);
+      }
+    },
+    LINT_TIMEOUT_MS,
+  );
+
+  it.each(ADAPTER_PATHS)(
+    "%s is exempt, because §7.1 gives it a role",
+    async (filePath) => {
+      for (const statement of IMPORTS) {
+        const errors = await libraryImportErrors(filePath, `${statement}\nexport const x = 1;\n`);
+        expect(errors, `${filePath} should be allowed to "${statement}"`).toEqual([]);
+      }
+    },
+    LINT_TIMEOUT_MS,
+  );
 
   it("exempts exactly two adapter directories, so recovery/ cannot absorb few-shot retrieval", async () => {
     // A few-shot module placed under recovery/ would make recovery/ the generic place a module
