@@ -290,7 +290,8 @@ export const PRIMITIVE_SET_VERSION = "composition_v2";
 
 /**
  * The rule that decides whether a concept is offered artwork at all
- * (`src/lib/generation/artwork-decision.ts`, `spec.md §7.6a #1`).
+ * (`src/lib/renderer/compile/artwork-decision.ts`, `spec.md §7.6a #1`). Declared there and
+ * re-exported here, because the compiler reads it and must not import this layer.
  *
  * Versioned and recorded per concept because it is a *reading* of the creative direction rather
  * than a field the direction filled in, and a later reading of the same direction may legitimately
@@ -302,7 +303,7 @@ export const PRIMITIVE_SET_VERSION = "composition_v2";
  * When `DesignIntent` next revs and can carry the choice explicitly, that is `v2` and it is a
  * simplification: the signature does not change, the inference goes away.
  */
-export const ARTWORK_DECISION_VERSION = "artwork_decision_v1";
+export { ARTWORK_DECISION_VERSION } from "@/lib/renderer/compile/artwork-decision";
 /**
  * The deterministic sibling planner (`spec.md §7.7`, `src/lib/generation/planner.ts`).
  *

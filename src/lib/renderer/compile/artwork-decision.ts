@@ -48,7 +48,7 @@
  * Acceptance criteria: `spec.md §31 — DesignIntent, composition and compiler`. Guardrails:
  * `spec.md §32 #12`, `#15`, `#16`, `#21`. Canon: `spec.md §7.6a`, `docs/product-doctrine.md §10`.
  */
-import type { DesignIntent } from "@/lib/renderer/design-intent";
+import type { DesignIntent } from "../design-intent";
 
 /**
  * Why artwork was or was not offered to this concept.
@@ -57,6 +57,15 @@ import type { DesignIntent } from "@/lib/renderer/design-intent";
  * reading the same direction may answer differently, and the concept is the artifact its own
  * decision produced.
  */
+/**
+ * Which reading of the direction produced a decision.
+ *
+ * Declared here rather than in `src/lib/ai/versions.ts`, which re-exports it: the compiler reads
+ * this module and imports nothing from the provider layer, and that direction is worth more than
+ * having every version literal in one file. See the re-export for what `v1` means.
+ */
+export const ARTWORK_DECISION_VERSION = "artwork_decision_v1";
+
 export type ArtworkDecisionReason =
   /** `ornament: "none"` — the direction declined an ornamental layer outright. */
   | "ornament_none"

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { decideArtwork, type ArtworkDecision } from "./artwork-decision";
-import type { DesignIntent, MotifId, Ornament } from "@/lib/renderer/design-intent";
+import type { DesignIntent, MotifId, Ornament } from "../design-intent";
 import { ORNAMENTS } from "@/lib/ai/design-intent/contract";
 
 /** A direction is only ever varied here in the two fields the rule reads. */
