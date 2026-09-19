@@ -32,7 +32,7 @@ Do not replace, abstract away, or introduce competing infrastructure unless a co
 | SMS / OTP / event messaging | **Twilio** |
 | Payments | **Stripe**, initially **stubbed behind the MVP mock publish gate** |
 | AI/model provider | Provider kept behind a **thin capability interface** |
-| Primary AI capabilities | `generateEventIdentity(...)`, `generateConceptPremiseSet(...)`, `generateDesignIntent(...)` and `generateComposition(...)` |
+| Primary AI capabilities | `generateEventIdentity(...)`, `generateConceptPremiseSet(...)`, `generateDesignIntent(...)`, `generateComposition(...)` and `generateVisualArtwork(...)` (§8 — approved capability, model not yet selected) |
 
 ---
 
@@ -155,13 +155,46 @@ generateEventIdentity(...)
 generateConceptPremiseSet(...)
 generateDesignIntent(...)
 generateComposition(...)
+generateVisualArtwork(...)
 ```
 
-`generateConceptPremiseSet` is the fourth and last, added by the T22 remediation
+`generateConceptPremiseSet` is the fourth, added by the T22 remediation
 (`spec.md §7.7a`, `docs/designintent-sibling-convergence.md`). It is one call per concept batch and
 does not widen the boundary in kind: same thin shape, same provider-specific concerns below, no
 orchestration framework. The stack decision is unchanged — this is a fourth creative operation, not
 a fifth kind of infrastructure.
+
+**Artwork is a fifth capability, and its model is deliberately not chosen.** `spec.md §7.6a`
+approves optional AI-generated thematic artwork for Phase 4, so the boundary gains
+`generateVisualArtwork(...)` in the same thin shape as the four above: a `VisualArtIntent` in, an
+asset or a classified failure out, with SDK calls, model names and usage parsing behind it. That is
+a fifth creative operation, not a fifth kind of infrastructure, and it adds no hosting, database,
+auth or messaging dependency — generated assets live in Supabase Storage, which the locked stack
+already carries, rather than being hotlinked from a provider URL.
+
+**No image model is selected, and none has been called.** This is an open decision, recorded here
+so it is not made by accident in a pull request. `docs/product-doctrine.md §10` is explicit that
+transparency is "an input to model *selection*, not something a prompt adds afterwards", and the
+same is true of the other criteria below. Until it is decided on measured evidence — the way the
+Phase 0 geometry-verification runtime was decided, not by preference — the artwork path must be
+unreachable from a network by default, and is proved with deterministic local stub assets.
+
+What a selection has to measure, per candidate model, rather than accept from its marketing:
+
+- **Alpha reliability.** The `object` and `framed` roles integrate a subject into the page instead
+  of showing it inside a rectangle. A model that returns an opaque rectangle where alpha was
+  required has failed the request, and that must be detected per asset rather than assumed from
+  the role.
+- **Prohibition adherence.** `STANDING_PROHIBITIONS` forbids text, lettering and numerals anywhere
+  in the image, and forbids logos, proprietary characters and reproduction of a named artist's
+  work (`spec.md §7.6` and `§7.6a #4`). Text-in-image is the well-known failure mode; measure it.
+- **Art-direction adherence.** The brief carries subject weighting, negative space and crop safety
+  because the compiler has already reserved a box and verified the page around it. A model that
+  ignores them does not merely produce weaker art — it makes that reserved box a false promise.
+- **Cost per asset and latency.** Artwork is the first thing in this pipeline that spends per
+  *asset* rather than per concept, against a run whose four text stages cost roughly $0.39 in the
+  Phase 4D smoke.
+- **Commercial licensing and provenance terms** for generated output.
 
 Provider-specific:
 - SDK calls;
