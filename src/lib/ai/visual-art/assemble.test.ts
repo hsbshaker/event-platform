@@ -238,3 +238,91 @@ describe("briefing is downstream of placement, and says so", () => {
     }
   });
 });
+
+/**
+ * The bound must be reachable from the contract above it.
+ *
+ * `subject` and `medium` are built by concatenating `EventIdentity` fields, so their ceilings are
+ * only meaningful if they exceed the sum of the ceilings those fields already carry. Both were
+ * smaller than that sum, which made a *contract-valid* identity unbriefable — `subject` by 404
+ * characters, `medium` by 83. Neither showed up, because every fixture in this file is
+ * comfortably short and no test had ever asked what the widest legal identity does.
+ *
+ * So this is not a test of the maxima that happen to be in the schema today. It is a test that
+ * assembly is **total**: for the widest identity `eventIdentitySchema` admits, every derived field
+ * still fits, whatever role, extent, anchor and surface the compiler resolved. Widen an upstream
+ * bound without widening what derives from it and this fails, in the same run that widened it.
+ */
+describe("assembly is total over the identity contract", () => {
+  const filler = (n: number, word: string) => {
+    const unit = `${word} `;
+    return unit
+      .repeat(Math.ceil(n / unit.length))
+      .slice(0, n)
+      .trim()
+      .padEnd(n, "x");
+  };
+
+  // Every free-text field at the ceiling `eventIdentitySchema` allows, so nothing about this
+  // identity is wider than the system already promises to accept.
+  const WIDEST = eventIdentitySchema.parse({
+    ...IDENTITY,
+    creativeDirection: filler(420, "cultivated"),
+    visualMotifs: Array.from({ length: 8 }, (_, i) => filler(90, `motif${i}`)),
+    textureDirection: filler(300, "tactile"),
+  });
+
+  const ROLES: readonly ArtworkRole[] = ["anchor", "object", "atmosphere", "framed"];
+  const EXTENTS = ["quarter", "third", "half", "full"] as const;
+  const ANCHORS: readonly Anchor[] = [
+    "top-start",
+    "top-end",
+    "center",
+    "bottom-start",
+    "bottom-end",
+  ];
+
+  it("briefs the widest legal identity for every role and extent", () => {
+    for (const role of ROLES) {
+      for (const extent of EXTENTS) {
+        expect(() =>
+          assembleVisualArtIntent({
+            slot: bare(role, extent),
+            identity: WIDEST,
+            palette: PALETTE,
+          }),
+        ).not.toThrow();
+      }
+    }
+  });
+
+  it("briefs the widest legal identity under text, at every anchor", () => {
+    for (const role of ROLES) {
+      for (const anchor of ANCHORS) {
+        expect(() =>
+          assembleVisualArtIntent({
+            slot: underText(anchor, role),
+            identity: WIDEST,
+            palette: PALETTE,
+          }),
+        ).not.toThrow();
+      }
+    }
+  });
+
+  it("pins the widest derivable length, so the headroom is a number and not a hope", () => {
+    // `atmosphere` carries the longest role sentence, and `full` the longest reservation prose.
+    // 804 = 70 (role) + 287 (", drawn from " and three 90-character motifs) + 27 (the joining
+    // clause) + 420 (`creativeDirection`); 323 = 23 ("Original illustration. ") + 300
+    // (`textureDirection`). Both are what the schema above must clear, and both are what the old
+    // 400 and 240 did not. If a derivation grows, this number moves and the bound is re-decided
+    // deliberately rather than discovered by a failed run.
+    const widest = assembleVisualArtIntent({
+      slot: bare("atmosphere", "full"),
+      identity: WIDEST,
+      palette: PALETTE,
+    });
+    expect(widest.subject).toHaveLength(804);
+    expect(widest.medium).toHaveLength(323);
+  });
+});

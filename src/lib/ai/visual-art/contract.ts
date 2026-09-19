@@ -56,10 +56,23 @@ import { ARTWORK_ROLES } from "@/lib/renderer/composition/tokens";
  * do not fit in v1's 400 characters, and dropping one to keep the bound would have meant briefing
  * an asset for only one of the two pages it appears on.
  *
+ * **`v3`** makes `subject` and `medium` reachable. Both are derived by concatenation from
+ * `EventIdentity`, and both were bounded below the sum of what `eventIdentitySchema` already
+ * admits: `subject` could reach 804 characters against a 400 ceiling (a 420-character
+ * `creativeDirection`, three 90-character motifs and the 70-character role sentence), and `medium`
+ * 323 against 240 (a 300-character `textureDirection`). So a *contract-valid* identity could make
+ * assembly throw, and one did — the first full three-concept rehearsal, before it cost anything.
+ *
+ * The ceilings now sit at those maxima rather than under them. Nothing here got wordier: the same
+ * derivation produces the same string, and only an identity that previously could not be briefed
+ * at all is newly expressible. `assemble.test.ts` holds every derived field against a maximal
+ * identity, which is the test whose absence let both through.
+ *
  * The bound is still a bound. It is prose, not a paragraph budget: a field with no ceiling is a
- * field that grows into an essay nobody reads, and an image model reads the first lines best.
+ * field that grows into an essay nobody reads, and an image model reads the first lines best. What
+ * a bound may not be is smaller than the text the system is required to produce.
  */
-export const VISUAL_ART_INTENT_VERSION = "visual_art_intent_v2";
+export const VISUAL_ART_INTENT_VERSION = "visual_art_intent_v3";
 
 /**
  * What the artwork is *for* on this page.
@@ -143,9 +156,9 @@ export const visualArtIntentSchema = z
      * What to depict, in the creative direction's own terms. Original language only: a named
      * reference is translated, never reproduced (`spec.md §7.6`, `§7.6a #4`).
      */
-    subject: shortText(8, 400),
+    subject: shortText(8, 820),
     /** The medium and stylistic language — "loose gouache", "fine line engraving". */
-    medium: shortText(4, 240),
+    medium: shortText(4, 340),
     /**
      * The space this artwork must live in, described rather than measured.
      *

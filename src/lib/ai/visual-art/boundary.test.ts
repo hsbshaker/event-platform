@@ -211,6 +211,6 @@ describe("the intent contract, which this task did not edit", () => {
   it("still carries the five standing prohibitions", () => {
     expect(STANDING_PROHIBITIONS).toHaveLength(5);
     expect(STANDING_PROHIBITIONS.join(" ")).toMatch(/No text, lettering, numerals or captions/);
-    expect(VISUAL_ART_INTENT_VERSION).toBe("visual_art_intent_v2");
+    expect(VISUAL_ART_INTENT_VERSION).toBe("visual_art_intent_v3");
   });
 });

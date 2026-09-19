@@ -261,22 +261,42 @@ export async function runCompositionStage(
   // Verified. Every artwork the compiler admitted becomes a reserved slot with its brief, built
   // from the *resolved* reservation and the box rendered geometry actually measured — not from the
   // leaf, and not from an estimate (`docs/event-renderer-system.md §8`).
-  const artworkSlots: ArtworkSlotReservation[] = Object.entries(compiled.spec.artwork)
-    .filter(([, slot]) => slot.render)
-    .map(([slotId, slot]) => ({
-      slotId,
-      role: slot.role,
-      extent: slot.extent,
-      box: {
-        mobile: boxOf(compiled.spec.verified.mobile.artworkBoxes[slotId]),
-        desktop: boxOf(compiled.spec.verified.desktop.artworkBoxes[slotId]),
-      },
-      intent: assembleVisualArtIntent({
-        slot,
-        identity: request.call.brief,
-        palette: compiled.spec.tokens.palette,
-      }),
-    }));
+  //
+  // A brief that will not assemble costs its slot and nothing else. The spec above is already
+  // verified, and `spec.md §7.6a` makes artwork optional, so a page without it is a finished page,
+  // not a failed one — whereas throwing here would escape the `try` below unsettled and, through
+  // `Promise.all`, take down two siblings that were never involved. That is precisely what a
+  // ceiling smaller than its own inputs did on the first full rehearsal.
+  //
+  // It is not swallowed: `assembleVisualArtIntent` is pure and total over the identity contract
+  // (`assemble.test.ts`), so reaching this branch means a derivation is wrong, and it says so
+  // loudly enough to find without being fatal enough to lose the batch.
+  const artworkSlots: ArtworkSlotReservation[] = [];
+  for (const [slotId, slot] of Object.entries(compiled.spec.artwork)) {
+    if (!slot.render) continue;
+    try {
+      artworkSlots.push({
+        slotId,
+        role: slot.role,
+        extent: slot.extent,
+        box: {
+          mobile: boxOf(compiled.spec.verified.mobile.artworkBoxes[slotId]),
+          desktop: boxOf(compiled.spec.verified.desktop.artworkBoxes[slotId]),
+        },
+        intent: assembleVisualArtIntent({
+          slot,
+          identity: request.call.brief,
+          palette: compiled.spec.tokens.palette,
+        }),
+      });
+    } catch (error) {
+      console.error(
+        `[artwork] concept ${request.conceptIndex} slot ${slotId}: the brief could not be ` +
+          `assembled, so this slot is unreserved and the page renders without it`,
+        error,
+      );
+    }
+  }
 
   // Persist, then settle — in that order, so a sibling is never `succeeded` with no concept
   // behind it.

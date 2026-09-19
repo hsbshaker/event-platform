@@ -253,12 +253,22 @@ async function runSlot(
     provider: deps.provider,
   });
 
+  // What the call cost and how long it took exist only once it has returned, so every record made
+  // from here on carries them and the one made before it cannot. `actualCostUsd` is the settled
+  // figure — the reservation standing in when the provider reported nothing, which `costUnknown`
+  // marks — because a slot recorded at zero would understate a batch that really spent.
+  const settled = {
+    ...lineage,
+    latencyMs: outcome.telemetry.latencyMs,
+    costEstimateUsd: outcome.telemetry.actualCostUsd,
+  };
+
   if (!outcome.ok) {
     await failArtworkSlot(
       admin,
       ref,
       { kind: RECORDED_AS[outcome.failure.kind], detail: outcome.failure.detail },
-      lineage,
+      settled,
     );
     return {
       slotId: slot.slotId,
@@ -275,7 +285,7 @@ async function runSlot(
   const payload = outcome.asset.payload;
   if (payload.kind !== "bytes") {
     const detail = "the provider returned a reference rather than bytes, which cannot be stored";
-    await failArtworkSlot(admin, ref, { kind: RECORDED_AS.malformed_output, detail }, lineage);
+    await failArtworkSlot(admin, ref, { kind: RECORDED_AS.malformed_output, detail }, settled);
     return {
       slotId: slot.slotId,
       status: "failed",
@@ -296,7 +306,7 @@ async function runSlot(
       admin,
       ref,
       { kind: RECORDED_AS[rejection.kind], detail: rejection.detail },
-      lineage,
+      settled,
     );
     return {
       slotId: slot.slotId,
@@ -330,7 +340,7 @@ async function runSlot(
       // is the absence of a measurement rather than a soft yes.
       hasAlpha: outcome.asset.transparency === "verified_present",
     },
-    lineage,
+    settled,
   );
 
   return {

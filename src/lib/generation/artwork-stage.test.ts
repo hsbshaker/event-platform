@@ -181,6 +181,24 @@ describe("the happy path carries bytes from provider to slot", () => {
     }
   });
 
+  it("records what the call cost and how long it took, on every record made after it", async () => {
+    // These exist only once the provider has answered, so the pre-flight `request_artwork_slot`
+    // cannot carry them and every later record must. A slot attached without them reads as free,
+    // which would make a batch that really spent money report a total of zero.
+    const a = admin();
+    await run(deps(), a);
+    const call = (name: string) => a.rpc.mock.calls.find(([n]) => n === name)![1];
+
+    // `requestArtworkSlot` does not carry them at all, which is the honest shape for a record
+    // written before the call: absent, rather than a zero that reads like a measurement.
+    expect(call("request_artwork_slot").p_cost_estimate_usd).toBeUndefined();
+    expect(call("request_artwork_slot").p_latency_ms).toBeUndefined();
+
+    const attach = call("attach_artwork_asset");
+    expect(attach.p_cost_estimate_usd).toBeGreaterThan(0);
+    expect(typeof attach.p_latency_ms).toBe("number");
+  });
+
   it("keeps two slots of one concept apart, and addresses each by its own id", async () => {
     const a = admin();
     const d = deps();

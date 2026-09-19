@@ -358,3 +358,78 @@ describe("a failed sibling is settled failed, and never silently ready", () => {
     for (const call of admin.calls) expect(call.args.p_concept_index).toBe(2);
   });
 });
+
+/* ------------------------------------------------- a brief that will not assemble */
+
+/**
+ * `spec.md §7.6a` makes artwork optional, and `§7.10 #5` makes readiness concept-level. Between
+ * them a slot whose brief cannot be built is worth exactly one slot: the spec is already verified,
+ * so the page is finished with or without the picture.
+ *
+ * The first full three-concept rehearsal proved the cost of the other reading. `subject` was
+ * bounded below the sum of the `EventIdentity` fields it concatenates, so a contract-valid identity
+ * threw inside the reservation loop — which sat outside the `try` below. The throw escaped
+ * `runCompositionStage` entirely: the sibling was never settled, and `Promise.all` in
+ * `concept-batch.ts` carried it up and lost two concepts that had nothing to do with artwork.
+ */
+describe("a slot whose brief will not assemble costs that slot only", () => {
+  const withOneSlot = () => {
+    const base = verified();
+    return {
+      ...base,
+      spec: {
+        ...base.spec,
+        artwork: { "hero.art": { render: true, role: "anchor", extent: "half" } },
+        verified: {
+          clean: true,
+          mobile: { artworkBoxes: { "hero.art": { width: 358, height: 240 } } },
+          desktop: { artworkBoxes: { "hero.art": { width: 528, height: 873 } } },
+        },
+      },
+    };
+  };
+
+  it("still reaches ready, and reserves nothing for the slot it could not brief", async () => {
+    const admin = fakeAdmin();
+    compileConcept.mockResolvedValue(withOneSlot());
+    // This fixture's brief and palette cannot produce a schema-valid intent, which is the point:
+    // the test asserts what the stage does when assembly throws, not which field threw. Pinning a
+    // specific violation here would tie it to one bound, and the bounds are exactly what moved.
+    const runner = vi.fn().mockResolvedValue(attempt());
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const outcome = await runCompositionStage(
+      admin,
+      runner,
+      request({
+        call: { ...request().call, brief: { ...request().call.brief, creativeDirection: "" } },
+      }) as never,
+    );
+    // The loop must have *entered* and failed, not skipped a slot that was never reserved.
+    expect(logged).toHaveBeenCalledTimes(1);
+    expect(String(logged.mock.calls[0][0])).toContain("hero.art");
+    logged.mockRestore();
+
+    expect(outcome.state).toBe("ready");
+    expect(outcome.state === "ready" && outcome.artworkSlots).toEqual([]);
+    expect(persistConcept).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ artworkSlots: [] }),
+    );
+  });
+
+  it("settles the sibling succeeded rather than leaving it in flight", async () => {
+    const admin = fakeAdmin();
+    compileConcept.mockResolvedValue(withOneSlot());
+    const runner = vi.fn().mockResolvedValue(attempt());
+    await runCompositionStage(
+      admin,
+      runner,
+      request({
+        call: { ...request().call, brief: { ...request().call.brief, creativeDirection: "" } },
+      }) as never,
+    );
+
+    const settle = admin.calls.find((c) => c.name === "settle_batch_sibling");
+    expect(settle?.args.p_success).toBe(true);
+  });
+});

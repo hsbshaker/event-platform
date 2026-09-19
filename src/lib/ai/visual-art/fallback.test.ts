@@ -33,7 +33,7 @@ const telemetry = (kind: ArtworkFailureKind): ArtworkTelemetry => ({
   provider: null,
   model: null,
   providerRequestId: null,
-  intentVersion: "visual_art_intent_v2",
+  intentVersion: "visual_art_intent_v3",
   role: "anchor",
   backgroundRequested: "opaque",
   transparency: null,
