@@ -1,0 +1,444 @@
+{
+  "label": "Phase 4D live integration smoke — locally grown baby shower — diagnostic/product evidence only; not a benchmark and no generalization claim.",
+  "live": true,
+  "startedAt": "2026-09-19T08:13:40.729Z",
+  "wallMs": 128849,
+  "outcomeState": "generated",
+  "batch": {
+    "id": "0a6f7981-b0fc-4df1-a5e8-da044719d182",
+    "status": "completed",
+    "round": 1,
+    "started_at": "2026-09-19T08:13:40.766Z",
+    "settled_at": "2026-09-19T08:15:49.599Z"
+  },
+  "siblings": [
+    {
+      "concept_index": 0,
+      "status": "succeeded",
+      "attempt": 0,
+      "generation_run_id": "154f9a53-8bbc-42f3-9af6-cd609859e775"
+    },
+    {
+      "concept_index": 1,
+      "status": "succeeded",
+      "attempt": 0,
+      "generation_run_id": "3ac4b64d-fe8c-4cda-9182-de9d61e69847"
+    },
+    {
+      "concept_index": 2,
+      "status": "succeeded",
+      "attempt": 0,
+      "generation_run_id": "016c52ea-fb82-494d-ad4c-3c1dcab21b6b"
+    }
+  ],
+  "providerCalls": {
+    "total": 7,
+    "byOperation": {
+      "concept_premise": 1,
+      "design_intent": 3,
+      "composition": 3
+    },
+    "failures": 0
+  },
+  "tokens": {
+    "input": 48541,
+    "cached": 10403,
+    "output": 9874,
+    "reasoning": 6424
+  },
+  "estimatedCostUsd": 0.3923,
+  "concepts": [
+    {
+      "index": 0,
+      "name": "Tended Welcome",
+      "description": "A calm, cultivated welcome that unfolds with quiet warmth, thoughtful care and purposeful garden character.",
+      "compositionHash": "81e69d65",
+      "fallback": null,
+      "activeResolvedSpecId": "a17c483d-566f-43dc-a88b-a7b98f91f43c",
+      "designIntentArtifactId": "ec4b0e05-e965-4b8a-b019-749013876546",
+      "versions": {
+        "compositionPrompt": "composition_v1_p3",
+        "compositionSchema": "composition_schema_v1",
+        "compositionInputAssembly": "composition_input_v1",
+        "primitiveSet": "composition_v1",
+        "compiler": "compiler_phase3_1_0"
+      }
+    },
+    {
+      "index": 1,
+      "name": "Market Welcome",
+      "description": "A bright, polished market welcome with lively produce colour, generous character and a sense of discovery.",
+      "compositionHash": "59cc8c2e",
+      "fallback": null,
+      "activeResolvedSpecId": "2c366b8c-db62-4eb6-90b0-d88a02bd9a99",
+      "designIntentArtifactId": "d73deacb-8d2b-45c9-998d-c473872cc3e6",
+      "versions": {
+        "compositionPrompt": "composition_v1_p3",
+        "compositionSchema": "composition_schema_v1",
+        "compositionInputAssembly": "composition_input_v1",
+        "primitiveSet": "composition_v1",
+        "compiler": "compiler_phase3_1_0"
+      }
+    },
+    {
+      "index": 2,
+      "name": "Gathered Abundance",
+      "description": "A generous harvest mood gathers seasonal warmth and tactile richness into a poised, celebratory welcome.",
+      "compositionHash": "0b9737df",
+      "fallback": null,
+      "activeResolvedSpecId": "d4bc635e-153c-4902-8998-8a03fc38d336",
+      "designIntentArtifactId": "674b5b06-04ce-496e-b921-b6caa787fdd3",
+      "versions": {
+        "compositionPrompt": "composition_v1_p3",
+        "compositionSchema": "composition_schema_v1",
+        "compositionInputAssembly": "composition_input_v1",
+        "primitiveSet": "composition_v1",
+        "compiler": "compiler_phase3_1_0"
+      }
+    }
+  ],
+  "resolvedSpecs": [
+    {
+      "conceptIndex": 0,
+      "id": "a17c483d-566f-43dc-a88b-a7b98f91f43c",
+      "revision": 1,
+      "contentVersion": 1,
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "Archivo",
+            "Inter"
+          ],
+          "required": [
+            "Archivo",
+            "Inter"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 806.45,
+          "clientWidth": 390,
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 10,
+          "textOverLimit": 0,
+          "documentHeight": 3673,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 1127.41,
+          "clientWidth": 1280,
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 10,
+          "textOverLimit": 0,
+          "documentHeight": 6253,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      },
+      "compilerRepairs": [],
+      "intentDeviations": []
+    },
+    {
+      "conceptIndex": 1,
+      "id": "2c366b8c-db62-4eb6-90b0-d88a02bd9a99",
+      "revision": 1,
+      "contentVersion": 1,
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "Fraunces",
+            "Manrope"
+          ],
+          "required": [
+            "Fraunces",
+            "Manrope"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 805.52,
+          "clientWidth": 390,
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 8,
+          "textOverLimit": 0,
+          "documentHeight": 2944,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 989.31,
+          "clientWidth": 1280,
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 8,
+          "textOverLimit": 0,
+          "documentHeight": 4893,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      },
+      "compilerRepairs": [],
+      "intentDeviations": [
+        {
+          "kind": "gamut",
+          "path": "tokens.palette.button",
+          "rule": "srgb-gamut-clamp",
+          "after": "#7E1000",
+          "before": "oklch(0.380 0.160 31.7)",
+          "detail": "chroma reduced by 0.015 to stay inside sRGB"
+        },
+        {
+          "kind": "gamut",
+          "path": "tokens.palette.error",
+          "rule": "srgb-gamut-clamp",
+          "after": "#78000E",
+          "before": "oklch(0.360 0.160 25.0)",
+          "detail": "chroma reduced by 0.014 to stay inside sRGB"
+        }
+      ]
+    },
+    {
+      "conceptIndex": 2,
+      "id": "d4bc635e-153c-4902-8998-8a03fc38d336",
+      "revision": 1,
+      "contentVersion": 1,
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "EB Garamond",
+            "Work Sans"
+          ],
+          "required": [
+            "EB Garamond",
+            "Work Sans"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 810,
+          "clientWidth": 390,
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 7,
+          "textOverLimit": 0,
+          "documentHeight": 2791,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 730.84,
+          "clientWidth": 1280,
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 7,
+          "textOverLimit": 0,
+          "documentHeight": 2105,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      },
+      "compilerRepairs": [],
+      "intentDeviations": []
+    }
+  ],
+  "premises": [
+    {
+      "index": 0,
+      "premise": {
+        "title": "Tended Welcome",
+        "register": {
+          "pace": "lingering",
+          "presence": "poised",
+          "surfaceRichness": "considered"
+        },
+        "grounding": [
+          "The growing idea should carry the welcome rather than decorate it.",
+          "Motif ideas include growing and cultivation.",
+          "The locally grown idea can organise the whole page.",
+          "The result should be charming rather than sweet and elevated rather than rustic pastiche."
+        ],
+        "experience": "Arriving should feel calm, warm and expectant, as though guests are being welcomed into a celebration that has been carefully tended.",
+        "foregrounds": "Growing and cultivation as the welcome, with the baby shower understood through careful tending rather than applied garden decoration.",
+        "distinctFrom": "This offers a more reflective and gently unfolding experience than either the liveliness of a local market or the fullness of a gathered harvest.",
+        "organizingIdea": "The celebration unfolds like something thoughtfully cultivated, allowing growth to shape the guest’s sense of anticipation and care. Produce and garden character feel integral because they belong to that progression.",
+        "designConsequences": [
+          "A sense of gradual unfolding and cultivated rhythm",
+          "Garden and produce character used with purpose rather than novelty",
+          "Natural tactility balanced by grown-up restraint",
+          "Charm expressed through care and composure"
+        ]
+      },
+      "presentation": {
+        "name": "Tended Welcome",
+        "description": "A calm, cultivated welcome that unfolds with quiet warmth, thoughtful care and purposeful garden character."
+      },
+      "cardDeviations": []
+    },
+    {
+      "index": 1,
+      "premise": {
+        "title": "Market Welcome",
+        "register": {
+          "pace": "propulsive",
+          "presence": "poised",
+          "surfaceRichness": "layered"
+        },
+        "grounding": [
+          "The creative direction includes the character of a good local market.",
+          "Motif ideas include local market and stall culture.",
+          "The tonal intent evokes the bright, clean daylight of a morning market.",
+          "The feeling should be warm, fresh and celebratory."
+        ],
+        "experience": "Arriving should feel bright, lively and inviting, with the pleasurable sense of encountering a fresh and thoughtfully assembled celebration.",
+        "foregrounds": "The freshness, character and sociable visual energy of a good local market, interpreted in a composed and unmistakably celebratory way.",
+        "distinctFrom": "This gives the occasion more momentum and outward-facing energy than the quieter cultivation idea or the richer, more settled expression of abundance.",
+        "organizingIdea": "The site welcomes guests with the immediacy of a beautifully presented market: fresh, generous and full of distinct points of interest. Its charm comes from confident arrangement and produce-led character rather than whimsy.",
+        "designConsequences": [
+          "A lively rhythm with a sense of discovery",
+          "Produce and stall culture treated with polish and restraint",
+          "Variety held together by clear composure",
+          "Freshness conveyed without nursery sweetness"
+        ]
+      },
+      "presentation": {
+        "name": "Market Welcome",
+        "description": "A bright, polished market welcome with lively produce colour, generous character and a sense of discovery."
+      },
+      "cardDeviations": []
+    },
+    {
+      "index": 2,
+      "premise": {
+        "title": "Gathered Abundance",
+        "register": {
+          "pace": "measured",
+          "presence": "commanding",
+          "surfaceRichness": "layered"
+        },
+        "grounding": [
+          "The creative direction names harvest and abundance.",
+          "The palette intent calls for natural warmth and enough restraint to remain composed rather than busy.",
+          "The tonal intent settles into the softer warmth of late afternoon in a garden.",
+          "Abundance may be expressed through composition and generosity, not only through imagery."
+        ],
+        "experience": "Arriving should feel generous, warm and celebratory, with a satisfying sense of plenty presented with confidence and taste.",
+        "foregrounds": "Harvest and abundance as the celebratory expression of the locally grown idea.",
+        "distinctFrom": "This provides greater richness and ceremonial presence than the gently unfolding cultivation approach, while feeling more settled and encompassing than the brisk market-led alternative.",
+        "organizingIdea": "The concept treats the shower as a generous gathering of seasonal plenty, where fullness itself communicates celebration. The emphasis is on a composed sense of richness rather than rustic excess.",
+        "designConsequences": [
+          "A generous and substantial visual character",
+          "Seasonal plenty expressed through fullness and gathering",
+          "Tactile surfaces carrying warmth without roughness",
+          "Abundance disciplined by restraint and clarity"
+        ]
+      },
+      "presentation": {
+        "name": "Gathered Abundance",
+        "description": "A generous harvest mood gathers seasonal warmth and tactile richness into a poised, celebratory welcome."
+      },
+      "cardDeviations": []
+    }
+  ],
+  "content": {
+    "title": "A baby shower",
+    "date": "Saturday, December 12, 2026",
+    "dayNumeral": "12",
+    "monthShort": "Dec",
+    "year": "2026",
+    "weekday": "Saturday",
+    "time": "1:00 PM",
+    "venue": "Venue to be announced",
+    "deadline": "Kindly respond by November 28",
+    "initial": "A"
+  },
+  "shots": [
+    {
+      "index": 1,
+      "mobile": "concept-1-mobile.png",
+      "desktop": "concept-1-desktop.png"
+    },
+    {
+      "index": 2,
+      "mobile": "concept-2-mobile.png",
+      "desktop": "concept-2-desktop.png"
+    },
+    {
+      "index": 3,
+      "mobile": "concept-3-mobile.png",
+      "desktop": "concept-3-desktop.png"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "creativeDirection": "A baby shower built around a locally grown idea: gardens and growing, vegetables and produce, harvest and abundance, and the character of a good local market. The feeling is warm, fresh and celebratory, charming rather than sweet, and elevated rather than rustic pastiche. It should read unmistakably as a baby shower, with the growing idea carrying the welcome rather than decorating it.",
+  "toneKeywords": [
+    "warm",
+    "fresh",
+    "celebratory",
+    "charming",
+    "organic",
+    "elevated"
+  ],
+  "colorsExplicitlyConstrained": false,
+  "paletteIntent": {
+    "requiredColors": [],
+    "preferredColors": [],
+    "avoidColors": [],
+    "dominanceNotes": "A produce-inspired, garden-rooted colour language with natural warmth. Grown and edible sources rather than nursery pastels, and enough restraint that the result reads composed rather than busy."
+  },
+  "tonalIntent": "Bright, clean daylight of a morning market, settling into the softer warmth of late afternoon in a garden.",
+  "toneExplicitlyConstrained": false,
+  "compatibleTonalDirections": [
+    "light",
+    "mid"
+  ],
+  "compatibleFamilies": [
+    "editorial",
+    "invitation",
+    "statement"
+  ],
+  "compatibleTypographyCategories": [
+    "transitional",
+    "oldstyle",
+    "soft_serif",
+    "grotesk_led",
+    "high_contrast_editorial"
+  ],
+  "visualMotifs": [
+    "growing and cultivation",
+    "garden and kitchen-garden character",
+    "vegetables and produce",
+    "harvest and abundance",
+    "local market and stall culture",
+    "natural, seasonal freshness"
+  ],
+  "textureDirection": "Natural, tactile and organic — surfaces with a made quality rather than a manufactured one, handled with restraint so the result stays composed.",
+  "typographyDirection": "Typography with warmth and craft rather than novelty: confident, well-set and grown-up, carrying charm through quality rather than through decorative lettering.",
+  "copyTone": "Warm, welcoming and celebratory, in tasteful and unfussy language.",
+  "hostConstraints": [
+    "Not childish.",
+    "Not cheesy."
+  ],
+  "creativeGuidance": [
+    "Let the locally grown idea organise the whole page rather than appear as applied decoration.",
+    "Prefer the elevated end of the garden and market world: an editorial food and growing register rather than a novelty one.",
+    "Charm is welcome; treat sweetness and whimsy as the risks the host named.",
+    "Abundance can be expressed through composition and generosity of space, not only through imagery."
+  ],
+  "inspirationSummary": "No visual inspiration supplied."
+}

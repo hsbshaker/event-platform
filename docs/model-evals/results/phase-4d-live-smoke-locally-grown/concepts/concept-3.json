@@ -1,0 +1,492 @@
+{
+  "index": 2,
+  "presentation": {
+    "name": "Gathered Abundance",
+    "description": "A generous harvest mood gathers seasonal warmth and tactile richness into a poised, celebratory welcome."
+  },
+  "premise": {
+    "title": "Gathered Abundance",
+    "register": {
+      "pace": "measured",
+      "presence": "commanding",
+      "surfaceRichness": "layered"
+    },
+    "grounding": [
+      "The creative direction names harvest and abundance.",
+      "The palette intent calls for natural warmth and enough restraint to remain composed rather than busy.",
+      "The tonal intent settles into the softer warmth of late afternoon in a garden.",
+      "Abundance may be expressed through composition and generosity, not only through imagery."
+    ],
+    "experience": "Arriving should feel generous, warm and celebratory, with a satisfying sense of plenty presented with confidence and taste.",
+    "foregrounds": "Harvest and abundance as the celebratory expression of the locally grown idea.",
+    "distinctFrom": "This provides greater richness and ceremonial presence than the gently unfolding cultivation approach, while feeling more settled and encompassing than the brisk market-led alternative.",
+    "organizingIdea": "The concept treats the shower as a generous gathering of seasonal plenty, where fullness itself communicates celebration. The emphasis is on a composed sense of richness rather than rustic excess.",
+    "designConsequences": [
+      "A generous and substantial visual character",
+      "Seasonal plenty expressed through fullness and gathering",
+      "Tactile surfaces carrying warmth without roughness",
+      "Abundance disciplined by restraint and clarity"
+    ]
+  },
+  "designIntent": {
+    "family": "invitation",
+    "motifs": [
+      "botanical",
+      "linen",
+      "stripe"
+    ],
+    "density": "balanced",
+    "palette": {
+      "colors": [
+        "#F4E7CE",
+        "#A9432F",
+        "#D49A2A",
+        "#66723A",
+        "#5A2938"
+      ],
+      "dominant": "#F4E7CE"
+    },
+    "composition": {
+      "rhythm": "alternating",
+      "ornament": "decorative",
+      "asymmetry": "strong",
+      "hierarchy": "restrained",
+      "sectionContrast": "high"
+    },
+    "tonalDirection": "light",
+    "typographyPairing": "oldstyle_garamond_worksans"
+  },
+  "capabilities": {
+    "rsvp": true,
+    "time": true,
+    "gifts": true,
+    "hosts": true,
+    "cashFund": true,
+    "deadline": true,
+    "location": true,
+    "registry": true,
+    "description": true,
+    "externalRegistry": true
+  },
+  "contentProfile": {
+    "hostsChars": 0,
+    "titleChars": 13,
+    "titleWords": 3,
+    "venueChars": 21,
+    "registryCounts": {
+      "gift": 6,
+      "cashfund": 1,
+      "external": 4
+    },
+    "descriptionChars": 0,
+    "provisionalFields": [
+      "title",
+      "venue",
+      "registry"
+    ]
+  },
+  "compositionRaw": {
+    "version": "composition_v1",
+    "sections": [
+      {
+        "fill": "screen",
+        "kind": "hero",
+        "root": {
+          "t": "Grid",
+          "gap": "normal",
+          "ruled": true,
+          "mobile": 1,
+          "columns": 4,
+          "children": [
+            {
+              "t": "Cell",
+              "span": 3,
+              "child": {
+                "t": "MotifField",
+                "motif": {
+                  "id": "stripe",
+                  "role": "field"
+                },
+                "extent": "full"
+              },
+              "rowSpan": 2
+            },
+            {
+              "t": "Cell",
+              "span": 1,
+              "child": {
+                "t": "Date",
+                "form": "full",
+                "emphasis": "primary"
+              }
+            },
+            {
+              "t": "Cell",
+              "span": 1,
+              "child": {
+                "t": "Stack",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Eyebrow",
+                    "case": "upper",
+                    "emphasis": "caption"
+                  },
+                  {
+                    "t": "EventTitle",
+                    "case": "none",
+                    "layout": "block",
+                    "emphasis": "primary"
+                  }
+                ]
+              }
+            },
+            {
+              "t": "Cell",
+              "span": 4,
+              "child": {
+                "t": "Rule",
+                "glyphs": "botanical",
+                "weight": "hairline",
+                "orientation": "h"
+              }
+            },
+            {
+              "t": "Cell",
+              "span": 2,
+              "child": {
+                "t": "Time",
+                "emphasis": "primary"
+              }
+            },
+            {
+              "t": "Cell",
+              "span": 2,
+              "child": {
+                "t": "Stack",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Venue",
+                    "emphasis": "primary"
+                  },
+                  {
+                    "t": "Location",
+                    "emphasis": "secondary"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "base"
+      },
+      {
+        "kind": "rsvp",
+        "root": {
+          "t": "Stack",
+          "gap": "normal",
+          "align": "start",
+          "children": [
+            {
+              "t": "SectionHeading",
+              "for": "rsvp",
+              "emphasis": "display"
+            },
+            {
+              "t": "Deadline",
+              "emphasis": "secondary"
+            },
+            {
+              "t": "RSVP"
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "contrast"
+      },
+      {
+        "kind": "registry",
+        "root": {
+          "t": "Stack",
+          "gap": "loose",
+          "align": "start",
+          "children": [
+            {
+              "t": "SectionHeading",
+              "for": "registry",
+              "emphasis": "primary"
+            },
+            {
+              "t": "Registry",
+              "layout": {
+                "t": "Grid",
+                "gap": "normal",
+                "ruled": true,
+                "mobile": 1,
+                "columns": 3,
+                "children": [
+                  {
+                    "t": "Cell",
+                    "child": {
+                      "t": "RegistryItem",
+                      "kind": "gift",
+                      "emphasis": "standard"
+                    }
+                  },
+                  {
+                    "t": "Cell",
+                    "child": {
+                      "t": "RegistryItem",
+                      "kind": "external",
+                      "emphasis": "standard"
+                    }
+                  },
+                  {
+                    "t": "Cell",
+                    "child": {
+                      "t": "RegistryItem",
+                      "kind": "cashfund",
+                      "emphasis": "standard"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "alt"
+      }
+    ]
+  },
+  "compositionCanonical": {
+    "version": "composition_v1",
+    "sections": [
+      {
+        "id": "s0",
+        "fill": "screen",
+        "kind": "hero",
+        "root": {
+          "t": "Grid",
+          "id": "s0",
+          "gap": "normal",
+          "ruled": true,
+          "mobile": 1,
+          "columns": 4,
+          "children": [
+            {
+              "t": "Cell",
+              "id": "s0.0",
+              "span": 3,
+              "child": {
+                "t": "MotifField",
+                "id": "s0.0.c",
+                "motif": {
+                  "id": "stripe",
+                  "role": "field"
+                },
+                "extent": "full"
+              },
+              "rowSpan": 2
+            },
+            {
+              "t": "Cell",
+              "id": "s0.1",
+              "span": 1,
+              "child": {
+                "t": "Date",
+                "id": "s0.1.c",
+                "form": "full",
+                "emphasis": "primary"
+              },
+              "rowSpan": 1
+            },
+            {
+              "t": "Cell",
+              "id": "s0.2",
+              "span": 1,
+              "child": {
+                "t": "Stack",
+                "id": "s0.2.c",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Eyebrow",
+                    "id": "s0.2.c.0",
+                    "case": "upper",
+                    "emphasis": "caption"
+                  },
+                  {
+                    "t": "EventTitle",
+                    "id": "s0.2.c.1",
+                    "case": "none",
+                    "layout": "block",
+                    "emphasis": "primary"
+                  }
+                ]
+              },
+              "rowSpan": 1
+            },
+            {
+              "t": "Cell",
+              "id": "s0.3",
+              "span": 4,
+              "child": {
+                "t": "Rule",
+                "id": "s0.3.c",
+                "glyphs": "botanical",
+                "weight": "hairline",
+                "orientation": "h"
+              },
+              "rowSpan": 1
+            },
+            {
+              "t": "Cell",
+              "id": "s0.4",
+              "span": 2,
+              "child": {
+                "t": "Time",
+                "id": "s0.4.c",
+                "emphasis": "primary"
+              },
+              "rowSpan": 1
+            },
+            {
+              "t": "Cell",
+              "id": "s0.5",
+              "span": 2,
+              "child": {
+                "t": "Stack",
+                "id": "s0.5.c",
+                "gap": "tight",
+                "align": "start",
+                "children": [
+                  {
+                    "t": "Venue",
+                    "id": "s0.5.c.0",
+                    "emphasis": "primary"
+                  },
+                  {
+                    "t": "Location",
+                    "id": "s0.5.c.1",
+                    "emphasis": "secondary"
+                  }
+                ]
+              },
+              "rowSpan": 1
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "base"
+      },
+      {
+        "id": "s1",
+        "fill": "auto",
+        "kind": "rsvp",
+        "root": {
+          "t": "Stack",
+          "id": "s1",
+          "gap": "normal",
+          "align": "start",
+          "children": [
+            {
+              "t": "SectionHeading",
+              "id": "s1.0",
+              "for": "rsvp",
+              "emphasis": "display"
+            },
+            {
+              "t": "Deadline",
+              "id": "s1.1",
+              "emphasis": "secondary"
+            },
+            {
+              "t": "RSVP",
+              "id": "s1.2"
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "contrast"
+      },
+      {
+        "id": "s2",
+        "fill": "auto",
+        "kind": "registry",
+        "root": {
+          "t": "Stack",
+          "id": "s2",
+          "gap": "loose",
+          "align": "start",
+          "children": [
+            {
+              "t": "SectionHeading",
+              "id": "s2.0",
+              "for": "registry",
+              "emphasis": "primary"
+            },
+            {
+              "t": "Registry",
+              "id": "s2.1",
+              "layout": {
+                "t": "Grid",
+                "id": "s2.1.l",
+                "gap": "normal",
+                "ruled": true,
+                "mobile": 1,
+                "columns": 3,
+                "children": [
+                  {
+                    "t": "Cell",
+                    "id": "s2.1.l.0",
+                    "span": 1,
+                    "child": {
+                      "t": "RegistryItem",
+                      "id": "s2.1.l.0.c",
+                      "kind": "gift",
+                      "emphasis": "standard"
+                    },
+                    "rowSpan": 1
+                  },
+                  {
+                    "t": "Cell",
+                    "id": "s2.1.l.1",
+                    "span": 1,
+                    "child": {
+                      "t": "RegistryItem",
+                      "id": "s2.1.l.1.c",
+                      "kind": "external",
+                      "emphasis": "standard"
+                    },
+                    "rowSpan": 1
+                  },
+                  {
+                    "t": "Cell",
+                    "id": "s2.1.l.2",
+                    "span": 1,
+                    "child": {
+                      "t": "RegistryItem",
+                      "id": "s2.1.l.2.c",
+                      "kind": "cashfund",
+                      "emphasis": "standard"
+                    },
+                    "rowSpan": 1
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "align": "start",
+        "surface": "alt"
+      }
+    ]
+  },
+  "compositionHash": "0b9737df"
+}
