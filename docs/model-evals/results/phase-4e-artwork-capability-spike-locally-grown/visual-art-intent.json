@@ -1,0 +1,32 @@
+{
+  "version": "visual_art_intent_v1",
+  "role": "object",
+  "subject": "An original, refined grouping of locally grown garden produce with tender botanical growth, leafy forms and a few small seasonal blossoms. It should read unmistakably as growing things, garden abundance and cultivation — a celebratory locally grown world — and never as cartoon, children's illustration, rustic kitsch, grocery advertising or generic stock clip art.",
+  "medium": "Sophisticated hand-painted editorial illustration: gouache and watercolour-like pigment with subtle coloured-pencil and natural line detail. Bespoke and tactile, not photorealistic, and imitating no named artist, brand or existing artwork.",
+  "composition": "A hero decorative anchor beside the event's own words, never the content itself. Weight the visual mass toward the upper left of the frame and leave meaningful open transparent space toward the lower right, so the text set nearby stays dominant. Keep the meaningful subject comfortably inside the canvas, with no leaf, produce or blossom cut by an edge.",
+  "subjectWeight": "balanced",
+  "negativeSpace": "bottom",
+  "background": "transparent",
+  "cropSafety": "generous",
+  "paletteRelationship": "harmonize",
+  "paletteHexes": [
+    "#F3EAD7",
+    "#65704A",
+    "#C75B3F",
+    "#D6A84B"
+  ],
+  "hostConstraints": [
+    "Not childish.",
+    "Not cheesy."
+  ],
+  "prohibited": [
+    "No logos, trademarks, brand marks or wordmarks.",
+    "No proprietary characters, licensed figures or campaign artwork.",
+    "No copying of a named artist's or studio's work; translate influence, never reproduce it.",
+    "No photography or photorealistic likeness of real people.",
+    "No text, lettering, numerals or captions anywhere in the image.",
+    "No labels, signage, packaging or product branding of any kind.",
+    "No opaque rectangular background, canvas, paper texture or field of colour behind the subject.",
+    "No photorealistic grocery or product-advertising composition."
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "providerRequestId": "req_1c72bfc2455e4f569a108e116fc953d8",
+  "usage": {
+    "inputTokens": 446,
+    "outputTokens": 1756,
+    "cachedInputTokens": 0,
+    "inputTextTokens": 446,
+    "inputImageTokens": 0
+  },
+  "costUsd": 0.05491,
+  "providerLatencyMs": 35658,
+  "wallMs": 35734,
+  "decodedBytes": 1595223,
+  "transparency": "verified_present",
+  "format": "png",
+  "failure": null,
+  "telemetry": {
+    "operation": "visual_art",
+    "latencyMs": 35733,
+    "outcome": "asset",
+    "failureKind": null,
+    "failureDetail": null,
+    "violations": [],
+    "artworkRetries": 0,
+    "providerAttempts": 1,
+    "reservedCostUsd": 0.5,
+    "actualCostUsd": 0.05491,
+    "costUnknown": false,
+    "provider": "openai-images",
+    "model": "gpt-image-2.5-sunburst-2026-09-08",
+    "providerRequestId": "req_1c72bfc2455e4f569a108e116fc953d8",
+    "intentVersion": "visual_art_intent_v1",
+    "role": "object",
+    "backgroundRequested": "transparent",
+    "transparency": "verified_present",
+    "format": "png",
+    "width": 1024,
+    "height": 1024
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "label": "Phase 4E artwork capability spike — objective measurements of one asset from one model. Not a quality gate, not a provider selection, not a generalization.",
+  "model": "gpt-image-2.5-sunburst-2026-09-08",
+  "seed": 1,
+  "conceptSource": "phase-4d-live-smoke-locally-grown/concepts/concept-1.json (read-only)",
+  "derivative": {
+    "note": "Diagnostic fixture. One decorative leaf substituted by hand; no model authored this tree and it is not composition evidence.",
+    "replacedDecoration": {
+      "t": "Glyph",
+      "id": "s0.d",
+      "motif": "botanical",
+      "scale": "l"
+    },
+    "artworkSlotId": "s0.d",
+    "resolvedSlot": {
+      "role": "object",
+      "extent": "third",
+      "scrim": 0.65,
+      "render": true,
+      "surface": "base",
+      "textAnchor": "bottom-end"
+    },
+    "historicalCompositionHash": "81e69d65"
+  },
+  "spend": {
+    "ceilingUsd": 0.5,
+    "reservedUsd": 0.5,
+    "rates": {
+      "textInputPerMillion": 5,
+      "cachedTextInputPerMillion": 1.25,
+      "imageInputPerMillion": 8,
+      "outputPerMillion": 30,
+      "source": "developers.openai.com/api/docs/pricing and the gpt-image-2.5-sunburst model page, read 2026-09-19: text input $5.00/1M (cached $1.25), image input $8.00/1M (cached $2.00), image output $30.00/1M. Per-image token counts are not published for this model."
+    },
+    "outputTokensCeilingCovers": 16333,
+    "secondRequestRefused": true,
+    "actualCostUsd": 0.05491,
+    "budget": {
+      "batchCeilingUsd": 0.5,
+      "perRequestEstimateUsd": 0.5,
+      "committedUsd": 0.05491,
+      "settledUsd": 0.05491,
+      "outstanding": 0,
+      "requestsReserved": 1,
+      "closed": false
+    }
+  },
+  "asset": {
+    "width": 1024,
+    "height": 1024,
+    "byteLength": 1595223,
+    "alpha": {
+      "hasAlphaChannel": true,
+      "fullyTransparent": 633666,
+      "partiallyTransparent": 414910,
+      "fullyOpaque": 0,
+      "totalPixels": 1048576,
+      "fullyTransparentPct": 60.4311,
+      "partiallyTransparentPct": 39.5689,
+      "fullyOpaquePct": 0,
+      "looksLikeOpaqueCanvas": false,
+      "clearEdges": {
+        "top": true,
+        "bottom": true,
+        "left": true,
+        "right": true
+      },
+      "allEdgesClear": true
+    },
+    "crop": {
+      "box": {
+        "top": 52,
+        "left": 43,
+        "right": 911,
+        "bottom": 837,
+        "width": 869,
+        "height": 786
+      },
+      "marginsPx": {
+        "top": 52,
+        "left": 43,
+        "right": 112,
+        "bottom": 186
+      },
+      "marginsPct": {
+        "top": 5.0781,
+        "bottom": 18.1641,
+        "left": 4.1992,
+        "right": 10.9375
+      },
+      "edgeRisk": false,
+      "edgesAtRisk": []
+    },
+    "placement": {
+      "centroid": {
+        "x": 0.4358,
+        "y": 0.3898
+      },
+      "quadrantShare": {
+        "topLeft": 0.4163,
+        "topRight": 0.3431,
+        "bottomLeft": 0.2106,
+        "bottomRight": 0.0299
+      },
+      "quadrantTransparentRatio": {
+        "topLeft": 0.4268,
+        "topRight": 0.5348,
+        "bottomLeft": 0.7112,
+        "bottomRight": 0.9574
+      }
+    },
+    "palette": {
+      "dominant": [
+        {
+          "hex": "#596537",
+          "share": 0.0363
+        },
+        {
+          "hex": "#6A7546",
+          "share": 0.0294
+        },
+        {
+          "hex": "#49552A",
+          "share": 0.0258
+        },
+        {
+          "hex": "#3A4626",
+          "share": 0.0254
+        },
+        {
+          "hex": "#646B38",
+          "share": 0.0248
+        },
+        {
+          "hex": "#757B47",
+          "share": 0.0236
+        }
+      ],
+      "nearestToIntended": [
+        {
+          "intended": "#F3EAD7",
+          "distance": 1,
+          "share": 0.0142
+        },
+        {
+          "intended": "#65704A",
+          "distance": 0,
+          "share": 0.3443
+        },
+        {
+          "intended": "#C75B3F",
+          "distance": 5,
+          "share": 0.0846
+        },
+        {
+          "intended": "#D6A84B",
+          "distance": 2.2361,
+          "share": 0.1133
+        }
+      ]
+    }
+  },
+  "textInImage": "requires visual operator inspection",
+  "geometry": {
+    "before": {
+      "mobile": {
+        "width": 390,
+        "height": 1474
+      },
+      "desktop": {
+        "width": 1280,
+        "height": 1907
+      }
+    },
+    "after": {
+      "mobile": {
+        "width": 390,
+        "height": 1474
+      },
+      "desktop": {
+        "width": 1280,
+        "height": 1907
+      }
+    },
+    "unchanged": true
+  },
+  "verifiedClean": {
+    "mobile": true,
+    "desktop": true
+  }
+}

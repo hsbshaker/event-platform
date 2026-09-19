@@ -1,0 +1,119 @@
+<!doctype html><meta charset="utf-8"><title>Phase 4E artwork capability spike</title>
+<style>
+ :root{color-scheme:light dark}
+ body{font:14px/1.55 ui-sans-serif,system-ui,sans-serif;margin:0;padding:32px;max-width:1180px}
+ h1{font-size:22px;margin:0 0 4px} h2{font-size:15px;margin:36px 0 10px;text-transform:uppercase;letter-spacing:.08em}
+ .note{padding:12px 14px;border:1px solid currentColor;border-radius:6px;opacity:.85;margin:16px 0}
+ table{border-collapse:collapse;width:100%;margin:8px 0 18px} th,td{text-align:left;padding:5px 8px;border-bottom:1px solid rgba(128,128,128,.3);vertical-align:top}
+ th{width:290px;font-weight:600} code{font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;word-break:break-word}
+ .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+ .pair figcaption{font-weight:600;margin-bottom:6px}
+ img.shot{width:100%;border:1px solid rgba(128,128,128,.45)}
+ .checker{background-image:linear-gradient(45deg,#bbb 25%,transparent 25%),linear-gradient(-45deg,#bbb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#bbb 75%),linear-gradient(-45deg,transparent 75%,#bbb 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0;background-color:#fff;padding:12px;display:inline-block}
+ .checker img{display:block;width:512px;max-width:100%}
+ pre{background:rgba(128,128,128,.12);padding:12px;border-radius:6px;overflow:auto;font-size:12px}
+ .flag{font-weight:700}
+</style>
+<h1>Phase 4E — artwork capability spike</h1>
+<p>Premise: <strong>Tended Welcome</strong> (Phase 4D concept 1, read-only). One image, one call, no retry.</p>
+<div class="note"><strong>This is not the Phase 4E quality gate</strong> and not a provider selection.
+One asset from one model tells you whether the path works, not whether the artwork is good.
+The design is deliberately not scored here — that is the operator's to judge from the pictures below.</div>
+<div class="note">The page is a <strong>diagnostic derivative</strong>: one decorative leaf in the 4D hero was
+substituted by hand for an <code>Artwork</code> leaf. No model authored it and it is not composition evidence.</div>
+
+<h2>The asset, on a transparency checkerboard</h2>
+<div class="checker"><img src="artwork.png" alt=""></div>
+
+<h2>Text in image</h2>
+<p class="flag">requires visual operator inspection — no local detector ran, and no second paid model was called to look.</p>
+
+<h2>Provider</h2>
+<table>
+<tr><th>provider</th><td><code>openai-images</code></td></tr>
+<tr><th>model (pinned, dated)</th><td><code>gpt-image-2.5-sunburst-2026-09-08</code></td></tr>
+<tr><th>parameters</th><td><code>n=1, size=1024x1024, quality=high, background=transparent, output_format=png, partial_images=0</code></td></tr>
+<tr><th>request id</th><td><code>req_1c72bfc2455e4f569a108e116fc953d8</code></td></tr>
+<tr><th>usage</th><td><code>{"inputTokens":446,"outputTokens":1756,"cachedInputTokens":0,"inputTextTokens":446,"inputImageTokens":0}</code></td></tr>
+<tr><th>cost (USD, from reported usage)</th><td><code>0.05491</code></td></tr>
+<tr><th>provider latency (ms)</th><td><code>35658</code></td></tr>
+<tr><th>wall (ms)</th><td><code>35734</code></td></tr>
+<tr><th>ceiling / reserved (USD)</th><td><code>0.5 / 0.5</code></td></tr>
+<tr><th>second request refused by budget</th><td><code>true</code></td></tr>
+</table>
+
+<h2>Asset measurements</h2>
+<table>
+<tr><th>dimensions / bytes</th><td><code>1024x1024, 1595223 bytes</code></td></tr>
+<tr><th>alpha channel present</th><td><code>true</code></td></tr>
+<tr><th>fully transparent</th><td><code>633666 (60.4311%)</code></td></tr>
+<tr><th>partially transparent</th><td><code>414910 (39.5689%)</code></td></tr>
+<tr><th>fully opaque</th><td><code>0 (0%)</code></td></tr>
+<tr><th>looks like an opaque canvas</th><td><code>false</code></td></tr>
+<tr><th>all four outer edges clear</th><td><code>true</code></td></tr>
+<tr><th>clear edges</th><td><code>{"top":true,"bottom":true,"left":true,"right":true}</code></td></tr>
+<tr><th>content bounding box</th><td><code>{"top":52,"left":43,"right":911,"bottom":837,"width":869,"height":786}</code></td></tr>
+<tr><th>margins (px)</th><td><code>{"top":52,"left":43,"right":112,"bottom":186}</code></td></tr>
+<tr><th>margins (%)</th><td><code>{"top":5.0781,"bottom":18.1641,"left":4.1992,"right":10.9375}</code></td></tr>
+<tr><th>edge-risk (content within 2% of an edge)</th><td><code>false []</code></td></tr>
+<tr><th>centroid (0..1)</th><td><code>{"x":0.4358,"y":0.3898}</code></td></tr>
+<tr><th>quadrant share of visual mass</th><td><code>{"topLeft":0.4163,"topRight":0.3431,"bottomLeft":0.2106,"bottomRight":0.0299}</code></td></tr>
+<tr><th>quadrant transparent ratio</th><td><code>{"topLeft":0.4268,"topRight":0.5348,"bottomLeft":0.7112,"bottomRight":0.9574}</code></td></tr>
+<tr><th>lower-right transparency (the requested open space)</th><td><code>0.9574</code></td></tr>
+<tr><th>dominant colours</th><td><code>[{"hex":"#596537","share":0.0363},{"hex":"#6A7546","share":0.0294},{"hex":"#49552A","share":0.0258},{"hex":"#3A4626","share":0.0254},{"hex":"#646B38","share":0.0248},{"hex":"#757B47","share":0.0236}]</code></td></tr>
+<tr><th>distance to each intended colour</th><td><code>[{"intended":"#F3EAD7","distance":1,"share":0.0142},{"intended":"#65704A","distance":0,"share":0.3443},{"intended":"#C75B3F","distance":5,"share":0.0846},{"intended":"#D6A84B","distance":2.2361,"share":0.1133}]</code></td></tr>
+</table>
+
+<h2>Geometry</h2>
+<table>
+<tr><th>before — 390 / 1280</th><td><code>390x1474 / 1280x1907</code></td></tr>
+<tr><th>after — 390 / 1280</th><td><code>390x1474 / 1280x1907</code></td></tr>
+<tr><th>unchanged by attaching the asset</th><td><code>true</code></td></tr>
+<tr><th>verified clean at 390 / 1280</th><td><code>true / true</code></td></tr>
+</table>
+
+<h2>Mobile — 390</h2>
+<div class="pair">
+ <figure><figcaption>before (slot reserved, no asset)</figcaption><img class="shot" src="before-mobile.png" alt=""></figure>
+ <figure><figcaption>after (this asset attached)</figcaption><img class="shot" src="after-mobile.png" alt=""></figure>
+</div>
+
+<h2>Desktop — 1280</h2>
+<div class="pair">
+ <figure><figcaption>before (slot reserved, no asset)</figcaption><img class="shot" src="before-desktop.png" alt=""></figure>
+ <figure><figcaption>after (this asset attached)</figcaption><img class="shot" src="after-desktop.png" alt=""></figure>
+</div>
+
+<h2>The VisualArtIntent that was sent</h2>
+<pre>{
+  "version": "visual_art_intent_v1",
+  "role": "object",
+  "subject": "An original, refined grouping of locally grown garden produce with tender botanical growth, leafy forms and a few small seasonal blossoms. It should read unmistakably as growing things, garden abundance and cultivation — a celebratory locally grown world — and never as cartoon, children's illustration, rustic kitsch, grocery advertising or generic stock clip art.",
+  "medium": "Sophisticated hand-painted editorial illustration: gouache and watercolour-like pigment with subtle coloured-pencil and natural line detail. Bespoke and tactile, not photorealistic, and imitating no named artist, brand or existing artwork.",
+  "composition": "A hero decorative anchor beside the event's own words, never the content itself. Weight the visual mass toward the upper left of the frame and leave meaningful open transparent space toward the lower right, so the text set nearby stays dominant. Keep the meaningful subject comfortably inside the canvas, with no leaf, produce or blossom cut by an edge.",
+  "subjectWeight": "balanced",
+  "negativeSpace": "bottom",
+  "background": "transparent",
+  "cropSafety": "generous",
+  "paletteRelationship": "harmonize",
+  "paletteHexes": [
+    "#F3EAD7",
+    "#65704A",
+    "#C75B3F",
+    "#D6A84B"
+  ],
+  "hostConstraints": [
+    "Not childish.",
+    "Not cheesy."
+  ],
+  "prohibited": [
+    "No logos, trademarks, brand marks or wordmarks.",
+    "No proprietary characters, licensed figures or campaign artwork.",
+    "No copying of a named artist's or studio's work; translate influence, never reproduce it.",
+    "No photography or photorealistic likeness of real people.",
+    "No text, lettering, numerals or captions anywhere in the image.",
+    "No labels, signage, packaging or product branding of any kind.",
+    "No opaque rectangular background, canvas, paper texture or field of colour behind the subject.",
+    "No photorealistic grocery or product-advertising composition."
+  ]
+}</pre>

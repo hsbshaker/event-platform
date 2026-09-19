@@ -1,0 +1,16 @@
+{
+  "live": true,
+  "provider": "openai-images",
+  "model": "gpt-image-2.5-sunburst-2026-09-08",
+  "parameters": {
+    "n": 1,
+    "size": "1024x1024",
+    "quality": "high",
+    "background": "transparent",
+    "output_format": "png",
+    "partial_images": 0,
+    "moderation": "default (unset)"
+  },
+  "promptChars": 2145,
+  "intentVersion": "visual_art_intent_v1"
+}
