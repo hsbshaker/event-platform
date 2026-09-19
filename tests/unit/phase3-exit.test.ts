@@ -21,6 +21,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { EventPage } from "@/components/event-renderer/page";
+import { FULLY_CONFIGURED } from "@/components/event-renderer/feature-presentation";
 import { assemblePreVerificationSpec } from "@/lib/renderer/compile/spec";
 import { SEMANTIC_COPY_STRINGS } from "@/lib/renderer/compile/semantic-copy";
 import { canonicalize } from "@/lib/renderer/composition/canonicalize";
@@ -93,7 +94,14 @@ function renderedComposition(spec: { composition: CompositionTree }): Compositio
 
 function renderSpec(spec: Parameters<typeof EventPage>[0]["spec"]): string {
   return renderToStaticMarkup(
-    createElement(EventPage, { spec, content: CONTENT, audience: "guest" as const }),
+    createElement(EventPage, {
+      spec,
+      content: CONTENT,
+      audience: "guest" as const,
+      // Every feature configured: these are Phase 3 exit proofs about the compiled tree and the
+      // production copy table, not about guest visibility of an unconfigured feature.
+      presentation: FULLY_CONFIGURED,
+    }),
   );
 }
 

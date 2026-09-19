@@ -47,6 +47,7 @@ import {
   type SectionKind,
 } from "./contract";
 import { PRIMITIVES } from "./primitives";
+import { NOTHING_CONFIGURED, type FeaturePresentationState } from "./feature-presentation";
 
 /** Which section a collaborator control belongs to. Structural ids only — `s0`, `s1`, ... */
 export interface SectionRef {
@@ -65,6 +66,14 @@ export interface EventPageProps {
    * (`spec.md §31 — Creation Mode`).
    */
   readonly sectionActions?: (section: SectionRef) => ReactNode;
+  /**
+   * Guest visibility and readiness (`docs/event-renderer-system.md §2.3`).
+   *
+   * Optional, defaulting to `NOTHING_CONFIGURED`, because that is the truthful answer for every
+   * event today — no registry, gift, guest or RSVP-party table exists yet. A caller that knows
+   * better passes what it knows.
+   */
+  readonly presentation?: FeaturePresentationState;
   /**
    * What rendered-geometry verification decided for this spec, keyed by canonical node id.
    *
@@ -193,6 +202,18 @@ function EventSection({
   sectionActions?: (section: SectionRef) => ReactNode;
 }) {
   const ref: SectionRef = { id: section.id ?? `s${index}`, kind: section.kind, index };
+
+  // `docs/event-renderer-system.md §2.3`: registry is visible once it has an external registry,
+  // native gift or cash fund; RSVP once it is configured and at least one party is invited. Until
+  // then a guest is shown nothing rather than an empty shell — which is what made two of the
+  // Phase 4D smoke's concepts thousands of pixels of skeleton. The composition is unchanged; only
+  // visibility is, and a collaborator still sees the section so they can set it up.
+  const gated =
+    section.kind === "rsvp" || section.kind === "registry"
+      ? ctx.presentation.sections[section.kind]
+      : "visible";
+  if (gated === "setup" && ctx.audience === "guest") return null;
+
   const root = ctx.renderNode(section.root as AnyNode);
   return (
     <section
@@ -208,7 +229,14 @@ function EventSection({
   );
 }
 
-export function EventPage({ spec, content, audience, sectionActions, overrides }: EventPageProps) {
+export function EventPage({
+  spec,
+  content,
+  audience,
+  sectionActions,
+  overrides,
+  presentation,
+}: EventPageProps) {
   const { pageSystem, tokens, composition } = spec;
   const ctx = createRenderNode({
     layout: spec.layout,
@@ -218,6 +246,9 @@ export function EventPage({ spec, content, audience, sectionActions, overrides }
     typography: tokens.typography,
     content,
     audience,
+    // Defaults to "nothing is set up", which is the truthful answer for every event today: no
+    // registry, gift, guest or RSVP-party table exists yet (`./feature-presentation.ts`).
+    presentation: presentation ?? NOTHING_CONFIGURED,
     overrides: overrides ?? NO_OVERRIDES,
   });
 

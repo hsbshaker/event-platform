@@ -6,6 +6,7 @@ import {
   PROVISIONAL_REGISTRY_COUNTS,
   type EventContentRow,
 } from "./content-profile";
+import { deriveEventContent } from "./event-content";
 
 const NOW = new Date("2027-01-10T12:00:00.000Z");
 
@@ -123,5 +124,35 @@ describe("deriveContentProfile: bounded provisional content (spec.md §7.3)", ()
   it("keeps real content free of any provisional flag when only registry counts are supplied", () => {
     const profile = deriveContentProfile(FULL_EVENT, NOW, { gift: 2, external: 0, cashfund: 1 });
     expect(profile.provisionalFields).toEqual([]);
+  });
+});
+
+describe("a monogram stands for someone, or is absent", () => {
+  it("takes no initial from a provisional title", () => {
+    // The Phase 4D smoke rendered a large "A", taken from the provisional title "A baby shower",
+    // as though it were the honoree's initial. A monogram derived from a value the system invented
+    // stands for nothing.
+    const content = deriveEventContent({ ...EMPTY_EVENT }, NOW);
+    expect(content.title).toBe("A baby shower");
+    expect(content.initial).toBeUndefined();
+  });
+
+  it("takes the initial from the honoree when there is one", () => {
+    const content = deriveEventContent({ ...EMPTY_EVENT, baby_name: "Rowan" }, NOW);
+    expect(content.initial).toBe("R");
+  });
+
+  it("takes the initial from a title the host actually wrote", () => {
+    const content = deriveEventContent({ ...EMPTY_EVENT, title: "Welcoming Wren" }, NOW);
+    expect(content.initial).toBe("W");
+  });
+
+  it("is a rule about provenance, not about particular words", () => {
+    // Nothing is keyed on the string "A baby shower": a different provisional title is refused for
+    // the same reason, and the same words are accepted when the host wrote them.
+    const invented = deriveEventContent({ ...EMPTY_EVENT, baby_name: null, title: null }, NOW);
+    expect(invented.initial).toBeUndefined();
+    const written = deriveEventContent({ ...EMPTY_EVENT, title: "A baby shower" }, NOW);
+    expect(written.initial).toBe("A");
   });
 });

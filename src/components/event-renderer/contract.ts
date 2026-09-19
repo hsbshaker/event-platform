@@ -63,7 +63,15 @@ export interface EventContent {
  * Who is looking. Guests never see collaborator affordances — not hidden by CSS, not rendered at
  * all (`spec.md §31 — Creation Mode`; `docs/screen-spec.md`).
  */
+import type { FeaturePresentationState } from "./feature-presentation";
+
 export type RenderAudience = "guest" | "collaborator";
+
+export type {
+  FeaturePresentationState,
+  LeafPresentation,
+  SectionPresentation,
+} from "./feature-presentation";
 
 /**
  * What a primitive component may read.
@@ -80,6 +88,11 @@ export interface RenderContext {
   readonly typography: ResolvedTypography;
   readonly content: EventContent;
   readonly audience: RenderAudience;
+  /**
+   * Guest visibility and readiness (`docs/event-renderer-system.md §2.3`). Never sent to the model,
+   * and it changes what renders, never what was composed.
+   */
+  readonly presentation: FeaturePresentationState;
   /**
    * What rendered-geometry verification decided, keyed by canonical node id
    * (`@/lib/renderer/compile/verification`). Required, not optional: the verifier fits a page by

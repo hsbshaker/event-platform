@@ -98,9 +98,26 @@ function clockTime(value: string): string {
   return `${hour12}:${minute} ${suffix}`;
 }
 
-/** The single initial a `Monogram` renders, when there is a name to take one from. */
-function initialFor(babyName: string | null, title: string): string | undefined {
-  const source = babyName?.trim() || title.trim();
+/**
+ * The single initial a `Monogram` renders — **only when a real name exists to take one from**.
+ *
+ * A monogram stands for someone. Deriving one from a bounded provisional stand-in produces a
+ * letter that stands for nothing: the Phase 4D smoke rendered a large "A", taken from the
+ * provisional title *"A baby shower"*, as though it were the honoree's initial.
+ *
+ * The rule is therefore about **provenance, not spelling**, and is deliberately generic: an
+ * initial comes from the honoree's name, or from a title the host actually wrote. It never comes
+ * from a value `spec.md §7.3` invented, whatever that value happens to say — no list of words is
+ * blocked, because the next placeholder would not be on it. `undefined` is a real answer: the
+ * renderer already treats an absent initial as an absent leaf, and the composition is untouched.
+ */
+function initialFor(
+  babyName: string | null,
+  title: string,
+  titleIsProvisional: boolean,
+): string | undefined {
+  const source = babyName?.trim() || (titleIsProvisional ? "" : title.trim());
+  if (!source) return undefined;
   const first = source.replace(/^[^\p{L}]+/u, "").charAt(0);
   return first ? first.toUpperCase() : undefined;
 }
@@ -148,7 +165,7 @@ export function deriveEventContent(row: EventContentRow, now: Date): EventConten
     ...(row.address ? { location: row.address } : {}),
     ...(deadline ? { deadline } : {}),
     ...(() => {
-      const initial = initialFor(row.baby_name, title);
+      const initial = initialFor(row.baby_name, title, content.title.provisional);
       return initial ? { initial } : {};
     })(),
   };

@@ -29,6 +29,11 @@ import {
   type RenderContext,
 } from "./contract";
 import { EventPage } from "./page";
+import {
+  FULLY_CONFIGURED,
+  NOTHING_CONFIGURED,
+  type FeaturePresentationState,
+} from "./feature-presentation";
 import { PRIMITIVES } from "./primitives";
 
 const require_ = createRequire(import.meta.url);
@@ -98,10 +103,21 @@ function renderPage(
   tree: CompositionTree,
   audience: RenderAudience = "guest",
   designIntent: DesignIntent = intent(),
+  // Every feature configured by default. These cases are about the renderer dispatching a tree,
+  // not about guest visibility — which has its own file, `feature-presentation.test.ts`. Leaving
+  // this at the real default would silently drop the rsvp and registry sections and make a
+  // dispatch test pass for the wrong reason.
+  presentation: FeaturePresentationState = FULLY_CONFIGURED,
 ): string {
   const spec = buildSpec(tree, designIntent);
   return renderToStaticMarkup(
-    createElement(EventPage, { spec, content: CONTENT, audience, sectionActions: () => null }),
+    createElement(EventPage, {
+      spec,
+      content: CONTENT,
+      audience,
+      presentation,
+      sectionActions: () => null,
+    }),
   );
 }
 
@@ -120,6 +136,7 @@ function contextFor(tree: CompositionTree, designIntent: DesignIntent = intent()
     pageSystem: spec.pageSystem,
     palette: spec.tokens.palette,
     typography: spec.tokens.typography,
+    presentation: NOTHING_CONFIGURED,
     content: CONTENT,
     audience: "guest",
     overrides: NO_OVERRIDES,

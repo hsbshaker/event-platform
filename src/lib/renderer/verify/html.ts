@@ -41,6 +41,7 @@ import type { PreVerificationDesignSpec } from "../compile/spec";
 import type { VerificationOverrides } from "../compile/verification";
 import { EventPage } from "@/components/event-renderer/page";
 import type { EventContent } from "@/components/event-renderer/contract";
+import type { FeaturePresentationState } from "@/components/event-renderer/feature-presentation";
 import { GeometryInfrastructureError } from "./result";
 
 /**
@@ -184,6 +185,17 @@ export interface DocumentInput {
   readonly spec: PreVerificationDesignSpec;
   readonly content: EventContent;
   readonly overrides: VerificationOverrides;
+  /**
+   * Guest visibility (`docs/event-renderer-system.md §2.3`). Optional, defaulting to "nothing is
+   * configured", which is what a freshly generated concept actually is.
+   *
+   * It belongs here because the verifier must measure the page it serves. A section a guest never
+   * sees is not part of the geometry a guest experiences, and measuring an empty shell would fit
+   * the page against furniture nobody is shown. When operational data later makes a section
+   * visible, that is a content change, and `spec.md §4.10`'s deterministic re-fit produces the next
+   * resolved-spec revision — which is the moment to verify it with that section present.
+   */
+  readonly presentation?: FeaturePresentationState;
 }
 
 export interface MeasurableDocument {
@@ -212,6 +224,7 @@ export function buildMeasurableDocument(
       content: input.content,
       audience: "guest",
       overrides: input.overrides,
+      ...(input.presentation ? { presentation: input.presentation } : {}),
     }),
   );
 
