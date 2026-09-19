@@ -38,7 +38,7 @@
  */
 import type { ArtworkDecision } from "./artwork-decision";
 import type { AnyNode, CompositionTree, Section } from "../composition/nodes";
-import type { ArtworkRole, Extent, SurfaceRole } from "../composition/tokens";
+import type { Anchor, ArtworkRole, Extent, SurfaceRole } from "../composition/tokens";
 import { childrenOf, hasTextDescendant } from "../composition/walk";
 import type { Deviation } from "../design-intent";
 import { contrastRatio, formatHex, parseHex } from "./color";
@@ -90,6 +90,18 @@ export interface ResolvedArtwork {
    */
   readonly render: boolean;
   readonly suppressedBy?: "artwork-budget" | "artwork-disabled" | "illegible";
+  /**
+   * Where the text sits, when text sits over this artwork. Absent otherwise.
+   *
+   * This is the composition's answer to `spec.md §7.6a #2` — "the brief follows the layout … never
+   * generate a picture, then find somewhere to put it". An overlay that anchors its content
+   * bottom-start has told the art brief exactly where the subject must not compete, and the brief
+   * asks for negative space there. It is a token, never a coordinate: the image model is told
+   * *which region* to leave open, not how many pixels.
+   */
+  readonly textAnchor?: Anchor;
+  /** The surface the artwork sits on, so the brief can answer to the right ground. */
+  readonly surface: SurfaceRole;
 }
 
 /** `#RRGGBB` at `alpha` of `over` laid on `under`. Both inputs are compiler-owned colours. */
@@ -140,6 +152,7 @@ interface Found {
   readonly id: string;
   readonly underText: boolean;
   readonly surface: SurfaceRole;
+  readonly textAnchor: Anchor | null;
 }
 
 /**
@@ -153,21 +166,33 @@ interface Found {
 function findArtwork(sections: readonly Section[]): Found[] {
   const found: Found[] = [];
 
-  const rec = (node: AnyNode, path: string, underText: boolean, surface: SurfaceRole) => {
+  const rec = (
+    node: AnyNode,
+    path: string,
+    underText: boolean,
+    surface: SurfaceRole,
+    textAnchor: Anchor | null,
+  ) => {
     if (node.t === "Artwork") {
-      found.push({ node, id: node.id ?? path, underText, surface });
+      found.push({ node, id: node.id ?? path, underText, surface, textAnchor });
       return;
     }
     const overlayText = node.t === "Overlay" && hasTextDescendant(node.content);
     for (const child of childrenOf(node)) {
       // Only the decoration slot sits beneath the overlay's content. The content slot is the text
       // itself, and an overlay nested elsewhere inherits whatever it was already under.
-      const beneath = overlayText && child.key === "decoration" ? true : underText;
-      rec(child.node, `${path}.${child.key}`, beneath, surface);
+      const beneath = overlayText && child.key === "decoration";
+      rec(
+        child.node,
+        `${path}.${child.key}`,
+        beneath || underText,
+        surface,
+        beneath ? (node as { anchor: Anchor }).anchor : textAnchor,
+      );
     }
   };
 
-  sections.forEach((s, i) => rec(s.root as AnyNode, `sections[${i}].root`, false, s.surface));
+  sections.forEach((s, i) => rec(s.root as AnyNode, `sections[${i}].root`, false, s.surface, null));
   return found;
 }
 
@@ -205,6 +230,7 @@ export function resolveArtwork(
         scrim: null,
         render: false,
         suppressedBy: "artwork-disabled",
+        surface: hit.surface,
       };
       continue;
     }
@@ -221,7 +247,15 @@ export function resolveArtwork(
           rule: "artwork.legibility",
           detail: `no approved scrim keeps ${ink} legible over artwork at ${hit.id}`,
         });
-        artwork[hit.id] = { role, extent, scrim: null, render: false, suppressedBy: "illegible" };
+        artwork[hit.id] = {
+          role,
+          extent,
+          scrim: null,
+          render: false,
+          suppressedBy: "illegible",
+          surface: hit.surface,
+          ...(hit.textAnchor ? { textAnchor: hit.textAnchor } : {}),
+        };
         continue;
       }
     }
@@ -240,6 +274,8 @@ export function resolveArtwork(
       extent,
       scrim,
       render,
+      surface: hit.surface,
+      ...(hit.textAnchor ? { textAnchor: hit.textAnchor } : {}),
       ...(render ? {} : { suppressedBy: "artwork-budget" as const }),
     };
   }
