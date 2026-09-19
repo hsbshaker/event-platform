@@ -739,6 +739,53 @@ geometry clean at 390 and 1280, production build.
 
 ---
 
+## Revision 6.17 — the first full batch, and an answer nobody ordered
+
+One live three-concept batch from the frozen locally-grown identity, authorized as exactly one. It
+was meant to be the first evidence of generated artwork in a real batch. It is not, because all
+three siblings composed without artwork, and the interesting part is that they were not prevented
+from using it.
+
+**Artwork was on the table three times.** `decideArtwork` allowed it on every concept, from every
+concept's own `DesignIntent` — `restrained` with motifs on two, `decorative` on the third. Block 2
+of each request listed `thematic artwork` as enabled. Blocks 4 and 5 carried the `Artwork`
+primitive, its nesting inside `Overlay`, its limits of one per section and two per page, and the
+paragraph explaining what the node is for, all generated from the same `NODE_SPEC` table the
+validator uses and all present precisely because `caps.artwork` was true. The composition call
+sends no provider-side schema, so those blocks are the entire language the model has. No raw tree
+carried an `Artwork` node, so nothing was stripped by repair either. Editorial, statement and
+invitation gave the same answer.
+
+**What that is worth.** It establishes that artwork is optional end to end — offered, affordable,
+declined, and the pages finished anyway, verified clean at 390 and 1280 with no re-prompt, no
+fallback, no demotion. It establishes nothing about artwork itself. Placement, treatment,
+readability and brief quality in a real batch remain untested; the single-asset capability spike and
+the placement hardening are still the only artwork evidence this project has.
+
+**One sentence for the operator, deliberately not acted on.** The artwork rules end "Artwork is
+optional and a concept is often stronger without it." That is right as product rule (`spec.md
+§7.6a #1`, `§32 #31`). Whether it also reads as a recommendation is a judgement about the
+composition prompt, it is a `COMPOSITION_PROMPT_VERSION` bump to change, and only another live
+batch could measure the effect. The run was authorized as one, so the wording stands.
+
+**Three defects the zero-cost rehearsal caught first**, each of which would otherwise have been
+found by spending money. `subject` and `medium` were bounded below the sum of the `EventIdentity`
+fields they concatenate — 400 against a derivable 804, and 240 against 323 — so a contract-valid
+identity was unbriefable and the locally grown one was; `VISUAL_ART_INTENT_VERSION` goes to `v3`
+and `assemble.test.ts` now holds assembly total over the widest legal identity. A brief that would
+not assemble escaped `runCompositionStage` unsettled and took two unrelated siblings down with it;
+it now costs its slot and is logged. And every artwork slot recorded as free, because `lineage` was
+built before the provider call and reused after it — a batch that spent money would have reported
+zero.
+
+**Verification.** typecheck, lint (0 errors), format, 2,685 unit, 41 component, 480 DB against a
+disposable local PostgreSQL, 71 e2e, `proof-b/test.js` green and `adv-run.js` 37/37 repair-valid
+with zero overflow at both breakpoints, production build. Evidence:
+`docs/model-evals/results/phase-4e-full-smoke-locally-grown/`; the three earlier directories are
+byte-identical, all 32 files.
+
+---
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
