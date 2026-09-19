@@ -232,12 +232,14 @@ function insertConcept(artifactId: string, o: ConceptOverrides = {}): Promise<un
        (event_id, round, concept_index, name, description, design_intent, composition_raw,
         composition, composition_hash, capabilities, directive, token_allotment,
         design_intent_artifact_id, design_intent_prompt_version, design_intent_schema_version,
-        composition_prompt_version, composition_schema_version, primitive_set_version,
+        composition_prompt_version, composition_schema_version,
+        composition_input_assembly_version, content_profile, primitive_set_version,
         compiler_version)
      values ($1, $2, $3, 'Pressed Garden', 'A quiet editorial direction.', $4,
              '{"version":"composition_v1","sections":[]}',
              '{"version":"composition_v1","sections":[]}', $5, '{"rsvp":true}', $6, $7, $8, $9,
-             $10, 'composition_v1_p2', 'composition_schema_v1', 'composition_v1', 'compiler_v0')
+             $10, 'composition_v1_p2', 'composition_schema_v1', 'composition_input_v1',
+             '{"titleWords":3,"titleChars":18,"hostsChars":0,"venueChars":21,"descriptionChars":0,"registryCounts":{"gift":6,"external":4,"cashfund":1},"provisionalFields":[]}'::jsonb, 'composition_v1', 'compiler_v0')
      returning id`,
     [
       o.eventId ?? eventId,
@@ -560,11 +562,12 @@ describe("a concept cannot claim a lineage it does not have", () => {
              (event_id, round, concept_index, name, description, design_intent, composition_raw,
               composition, composition_hash, capabilities, design_intent_artifact_id,
               design_intent_prompt_version, design_intent_schema_version,
-              composition_prompt_version, composition_schema_version, primitive_set_version,
+              composition_prompt_version, composition_schema_version,
+              composition_input_assembly_version, content_profile, primitive_set_version,
               compiler_version)
            values ($1, 1, 0, 'Pressed Garden', 'A quiet editorial direction.', $2, '{}', '{}',
                    'h', '{"rsvp":true}', $3, $4, $5, 'composition_v1_p2', 'composition_schema_v1',
-                   'composition_v1', 'compiler_v0')`,
+                   'composition_input_v1', '{"titleWords":3,"titleChars":18,"hostsChars":0,"venueChars":21,"descriptionChars":0,"registryCounts":{"gift":6,"external":4,"cashfund":1},"provisionalFields":[]}'::jsonb, 'composition_v1', 'compiler_v0')`,
           [eventId, JSON.stringify(DESIGN_INTENT), artifact, PROMPT_VERSION, SCHEMA_VERSION],
         ),
       ),
@@ -581,12 +584,13 @@ describe("a concept cannot claim a lineage it does not have", () => {
            (event_id, round, concept_index, name, description, design_intent, composition_raw,
             composition, composition_hash, capabilities, directive, token_allotment,
             design_intent_artifact_id, design_intent_prompt_version, design_intent_schema_version,
-            composition_prompt_version, composition_schema_version, primitive_set_version,
+            composition_prompt_version, composition_schema_version,
+            composition_input_assembly_version, content_profile, primitive_set_version,
             compiler_version)
          values ($1, 2, 1, 'X', 'Y', '{"family":"statement"}', '{}', '{}', 'h', '{}',
                  '{"structure":"Rail"}', '{"allowed":[]}', $2, 'design_intent_v9',
                  'design_intent_schema_v9', 'composition_v1_p2', 'composition_schema_v1',
-                 'composition_v1', 'compiler_v0')`,
+                 'composition_input_v1', '{"titleWords":3,"titleChars":18,"hostsChars":0,"venueChars":21,"descriptionChars":0,"registryCounts":{"gift":6,"external":4,"cashfund":1},"provisionalFields":[]}'::jsonb, 'composition_v1', 'compiler_v0')`,
         [eventId, artifact],
       )
       .then(() => "")
@@ -945,10 +949,12 @@ describe("artifacts are member-readable and server-written", () => {
                 composition, composition_hash, capabilities, directive, token_allotment,
                 design_intent_artifact_id, design_intent_prompt_version,
                 design_intent_schema_version, composition_prompt_version,
-                composition_schema_version, primitive_set_version, compiler_version)
+                composition_schema_version, composition_input_assembly_version, content_profile,
+                primitive_set_version, compiler_version)
              values ($1, 1, 0, 'Pressed Garden', 'A quiet editorial direction.', $2, '{}', '{}',
                      'h', '{"rsvp":true}', $3, $4, $5, $6, $7, 'composition_v1_p2',
-                     'composition_schema_v1', 'composition_v1', 'compiler_v0')`,
+                     'composition_schema_v1', 'composition_input_v1', '{"titleWords":3,"titleChars":18,"hostsChars":0,"venueChars":21,"descriptionChars":0,"registryCounts":{"gift":6,"external":4,"cashfund":1},"provisionalFields":[]}'::jsonb,
+                     'composition_v1', 'compiler_v0')`,
             [
               eventId,
               JSON.stringify(DESIGN_INTENT),

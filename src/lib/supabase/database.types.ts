@@ -103,6 +103,20 @@ export type RecordSiblingRunOutcome =
  */
 export type RecordBatchCallRunOutcome = "recorded" | "duplicate_key";
 
+/**
+ * Outcomes of public.record_sibling_stage_run
+ * (20260919000000_phase4d_composition_lineage.sql).
+ *
+ * The same four as `record_batch_sibling_run`, because it makes the same two refusals: a sibling
+ * that has already succeeded takes no further paid call, and a run recorded against an ordinal the
+ * sibling has moved past would let a stale driver overwrite a later attempt's history.
+ */
+export type RecordSiblingStageRunOutcome =
+  "recorded" | "duplicate_key" | "already_succeeded" | "stale_attempt";
+
+/** Outcomes of public.settle_batch_sibling. `already_succeeded` makes re-settling idempotent. */
+export type SettleBatchSiblingOutcome = "succeeded" | "failed" | "already_succeeded";
+
 type ProfileRow = {
   id: string;
   email: string | null;
@@ -301,6 +315,14 @@ type DesignConceptRow = {
   composition: Json;
   composition_hash: string;
   capabilities: Json;
+  /**
+   * The `ContentProfile` this composition was fitted against
+   * (20260919000000_phase4d_composition_lineage.sql, `docs/event-renderer-system.md §2.3`).
+   *
+   * `NOT NULL` and immutable. It records which fields were bounded provisional stand-ins at
+   * generation time, which is what a later content edit re-fits against (`spec.md §7.3`, §4.10).
+   */
+  content_profile: Json;
   directive: Json | null;
   token_allotment: Json | null;
   fallback: string | null;
@@ -308,6 +330,8 @@ type DesignConceptRow = {
   design_intent_schema_version: string;
   composition_prompt_version: string;
   composition_schema_version: string;
+  /** Which assembly built the Composition request, beside its prompt and schema versions. */
+  composition_input_assembly_version: string;
   primitive_set_version: string;
   compiler_version: string;
   active_resolved_spec_id: string | null;
@@ -1037,6 +1061,41 @@ export type Database = {
           p_run: Json;
         };
         Returns: { outcome: RecordBatchCallRunOutcome; run_id: string | null }[];
+      };
+      /**
+       * Records one stage of one sibling's work — DesignIntent, then Composition — and settles
+       * nothing (20260919000000_phase4d_composition_lineage.sql).
+       *
+       * Split from `record_batch_sibling_run` because a 4D sibling makes two calls and then still
+       * has to compile and verify: settling on the first would mark a sibling ready whose concept
+       * does not exist. Every paid response is recorded when it happens, so the ceiling sees spend
+       * even for a sibling that later fails to verify.
+       */
+      record_sibling_stage_run: {
+        Args: {
+          p_batch_id: string;
+          p_concept_index: number;
+          p_operation: ModelOperation;
+          p_attempt: number;
+          p_idempotency_key: string;
+          p_success: boolean;
+          p_run: Json;
+        };
+        Returns: { outcome: RecordSiblingStageRunOutcome; run_id: string | null }[];
+      };
+      /**
+       * Settles one sibling once its concept is verified and persisted, or once it has terminally
+       * failed. A success must name the run it succeeded with, so
+       * `(status = 'succeeded') = (generation_run_id is not null)` keeps holding.
+       */
+      settle_batch_sibling: {
+        Args: {
+          p_batch_id: string;
+          p_concept_index: number;
+          p_success: boolean;
+          p_generation_run_id?: string | null;
+        };
+        Returns: SettleBatchSiblingOutcome;
       };
       /**
        * Settles a batch from its siblings (§I). Returns `in_flight` and changes nothing while any

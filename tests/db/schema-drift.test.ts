@@ -48,6 +48,8 @@ const DECLARED_FUNCTIONS = {
   plan_generation_batch: true,
   record_batch_call_run: true,
   record_batch_sibling_run: true,
+  record_sibling_stage_run: true,
+  settle_batch_sibling: true,
   settle_generation_batch: true,
   start_generation_batch: true,
   expired_pre_auth_draft_batch: true,

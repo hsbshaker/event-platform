@@ -8,11 +8,14 @@ let cohost: string;
 let stranger: string;
 let eventId: string;
 
+// Phase 4D adds `content_profile` and `composition_input_assembly_version`, both `NOT NULL`
+// (20260919000000_phase4d_composition_lineage.sql), so every concept fixture carries them too.
 const CONCEPT_VERSIONS = `
   design_intent_prompt_version, design_intent_schema_version,
   composition_prompt_version, composition_schema_version,
+  composition_input_assembly_version, content_profile,
   primitive_set_version, compiler_version`;
-const CONCEPT_VERSION_VALUES = `'design_intent_v3','design_intent_schema_v3','composition_v1_p2','composition_schema_v1','composition_v1','compiler_v0'`;
+const CONCEPT_VERSION_VALUES = `'design_intent_v3','design_intent_schema_v3','composition_v1_p2','composition_schema_v1','composition_input_v1','{"titleWords":3,"titleChars":18,"hostsChars":0,"venueChars":21,"descriptionChars":0,"registryCounts":{"gift":6,"external":4,"cashfund":1},"provisionalFields":[]}'::jsonb,'composition_v1','compiler_v0'`;
 
 /**
  * The DesignIntent artifact a concept is composed from
