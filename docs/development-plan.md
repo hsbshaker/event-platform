@@ -111,6 +111,29 @@ That corpus is `sealed_challenge_v2`: authored after the harness froze at `19f1e
 as written — deterministic checks, independent engineering review, an independent qualitative read
 of a blind artifact, then an explicit go/no-go — and it returned **GO**.
 
+**4B status: CLOSED — GO.** The go/no-go record, its SHA chain and the five limits it does not
+license are in `phase-4b-plan.md`, *The Phase 4B close*. Its evidence, clarification lifecycle,
+answer provenance, orchestration, persistence and validation work all stand.
+
+**4C status: CLOSED FOR PRODUCT PROGRESSION BY OPERATOR DECISION — the frozen qualitative gate is
+not claimed.** The implementation is complete: the T16 batch lifecycle, T17 DesignIntent artifacts,
+the deterministic sibling planner, `DesignIntent × 3`, and the `ConceptPremise` remediation wired
+into the production generation path. The **frozen §3.7 gate was not met**: the one authorized T22
+run returned 12/12 mechanical failures, a blind review of 5 `Fail` / 7 `Borderline` / 0 `Good` /
+0 `Excellent`, **0/12 minimum-wowable**, and S1, S2, S5, S7 and S8 all present — a NO-GO on every
+half. The remediation that followed — *one authoritative understanding, three worthwhile creative
+choices* — materially improved the known convergence defect on spent regression evidence
+(`17b2264`), and that is the evidence supporting progression. It is **not** a claim of
+minimum-wowable quality, 12/12 `Excellent`, or generalization, and the §3.7 gate is neither erased
+nor rewritten. The full record is `phase-4b-plan.md`, *The Phase 4C close*.
+
+> Premise-based sibling separation materially improved the known DesignIntent convergence failure
+> on spent regression evidence. Fresh independent minimum-wowable validation is deferred to
+> end-to-end rendered-product / production design-quality validation.
+
+`EventIdentity`, `ConceptPremise` and `DesignIntent` are **frozen** while 4D is built. **Next is
+4D.**
+
 **The plan for what follows is `phase-4b-plan.md`.** It decomposes **4B** (the clarification
 lifecycle, answer provenance and the minimal surface) and **4C** (the deterministic sibling planner
 and `DesignIntent × 3`) into auditable tasks, and keeps the letters above exactly as they are: the

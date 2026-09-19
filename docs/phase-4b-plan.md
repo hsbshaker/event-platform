@@ -5,8 +5,16 @@ the identity-revision and clarification-answer migrations, the frozen T4/T5 vali
 the T8 corpus frozen at its own SHA, `event_identity_input_v2`, **T9A**'s call-level spend,
 idempotency, claim and telemetry controls, T10's orchestration, T11's clarification surface, the
 T12 implementation freeze, the one authorized T13 validation run, and T14's evidence commit and
-protection. **The whole of Phase 4C is still plan only**, and does not begin until it is separately
-authorized.
+protection.
+
+Phase 4C is **closed for product progression by operator decision** (Part V, *The Phase 4C close*).
+Its implementation shipped — T16's batch lifecycle, T17's DesignIntent artifacts, the planner,
+`DesignIntent × 3`, and the `ConceptPremise` remediation that followed T22 — but **the frozen §3.7
+gate was not met and is not claimed to have been met**. Fresh minimum-wowable validation is
+deferred to end-to-end rendered-product validation. Read that close before citing anything here as
+a pass. The header originally read *"the whole of Phase 4C is still plan only, and does not begin
+until it is separately authorized"*; that stopped being true at T16 and is corrected here rather
+than left to mislead.
 The original header read *"plan only … no production code, prompt, schema, migration or corpus
 exists for any of it"*; that stopped being true at T1 and is corrected here rather than left to
 mislead a reader deciding what 4B still owes.
@@ -2555,6 +2563,117 @@ longer blocks it. Two companions close here for the same reason: §C row 3 — a
 idempotency's persisted half, one in-flight batch per event with colliding batch and sibling keys. Phase 4C does not pass its gate with this item open, and it is not
 satisfied by re-citing the 4B orchestration test, which by construction never saw a batch row.
 
+
+## The Phase 4C close — implementation complete, frozen gate not claimed
+
+**PHASE 4C — CLOSED FOR PRODUCT PROGRESSION BY OPERATOR DECISION. The frozen §3.7 gate was not
+met and is not claimed to have been met.** This record exists because the two things it separates
+are routinely conflated: *the implementation is complete* and *the evaluation passed*. Only the
+first is true here.
+
+### What the frozen gate required
+
+§3.7 in full, frozen at T19 before the corpus existed and before the prompt was written: **12/12
+`Excellent`, no `Good`, no `Borderline`, no `Fail`, and 12/12 minimum-wowable `YES`**, plus the
+systemic veto — any correctness category (S3, S4) in one batch, or any taste/convergence category
+(S1, S2, S5, S6, S7, S8, S9) in two.
+
+### What the one authorized T22 run returned
+
+| | |
+| --- | --- |
+| Mechanical | **12/12 batches failed.** palette separation 0/12, composition-vector distinctness 0/12, motif overlap 1/12, typography pairing distinctness 8/12 |
+| Independent blind review | **5 `Fail`, 7 `Borderline`, 0 `Good`, 0 `Excellent`** |
+| Minimum-wowable | **0/12 `YES`** |
+| Systemic veto | **S1, S2, S5, S7 and S8 all PRESENT** |
+
+Under §3.7 this is a **NO-GO**, and not a marginal one: every half of the gate failed
+independently. The stage was producing three treatments of substantially the same creative answer.
+`sealed_challenge_v4` is **spent** by that run and can never carry generalization evidence again.
+
+### The remediation, and what it is evidenced by
+
+The cause was architectural rather than a matter of taste, and is diagnosed in
+`docs/designintent-sibling-convergence.md`: three sibling calls received a byte-identical brief
+plus four enum values, runtime narrowing removed three of those four from the model's control, and
+nine freely-chosen fields had nothing to differentiate them. The remediation is the principle
+
+> **One authoritative understanding. Three worthwhile creative choices.**
+
+`EventIdentity` remains the single authoritative understanding. The three siblings do **not**
+reinterpret the event three ways; all three inherit that identity unchanged. Creative variation
+comes from supported `ConceptPremise` propositions, and **diversity may never be purchased by
+inventing host facts, relationships, conflicts, motives, stakes, constraints or unsupported
+alternative meanings**. The flow is: authoritative `EventIdentity` → one `ConceptPremise` call
+authoring three supported propositions *as a set* → premise *k* bound to sibling *k* → three
+`DesignIntent` calls → deterministic set review → immutable artifacts. It was wired into the
+production generation path, not left eval-only.
+
+**Database lifecycle verified** against a disposable local PostgreSQL: complete migration chain
+clean, 11 DB files, 393 tests; the premise run neither consumes nor settles a sibling lifecycle
+slot; premise spend participates in ceiling accounting; artifact lineage, immutability and failure
+semantics all verified. The register-axis gate was measured and corrected so it cannot force
+superficial differentiation (Revision 6.12). Raw concept-card evidence stays recoverable and
+set-level convergence signals are no longer discarded.
+
+**One authorized spent-corpus regression** followed, committed at
+`17b2264` and described in that directory's `README.md`. Old → remediated:
+
+| | old | remediated |
+| --- | --- | --- |
+| composition-vector distinctness | 0/12 | **7/12** |
+| sibling pairs with zero composition difference | 16/36 | **0/36** |
+| mean differing composition dimensions | 0.67 | **2.67** |
+| identical motif sets | 25/36 | **1/36** |
+| batches with a duplicate card name | 6/12 | **0/12** |
+| batches with a near-duplicate description | 3/12 | **0/12** |
+| mean description token overlap | 0.326 | **0.043** |
+| typography pairing distinctness | 8/12 | **9/12** |
+| palette separation | 0/12 | 0/12 |
+
+The old motif gate stayed 1/12 despite literal motif-set duplication collapsing, because the gate
+requires all three pairs below 0.5 and short motif lists cannot reach that. No unsupported
+reinterpretation was found in the premise grounding review.
+
+**The known sibling-convergence failure materially improved.**
+
+### What this close does not license
+
+1. **It is not a claim that the §3.7 gate passed.** It did not. No band distribution, no
+   minimum-wowable count and no systemic-veto clearance is asserted here, and none may be inferred
+   from the regression numbers above.
+2. **The regression run is not fresh or generalization evidence.** Those twelve cases and all
+   thirty-six of their failures were known while the remediation was written. A future claim about
+   generalization needs a newly authored sealed corpus and its own slot; `sealed_challenge_v4`
+   cannot stand in.
+3. **Minimum-wowable quality is unestablished.** 12/12 `Excellent` is unestablished. Neither has
+   been retested since the remediation, by deliberate decision.
+
+### The product decision, and why
+
+We are deliberately **not** running another isolated DesignIntent blind review now. The next stage
+turns these intermediate semantics into `CompositionTree`s, compiled `ResolvedDesignSpec`s,
+geometry-verified pages and rendered concepts a real host can react to. Qualitative validation
+moves toward the end-to-end product rather than continuing to validate intermediate JSON artifacts
+in isolation.
+
+> **Premise-based sibling separation materially improved the known DesignIntent convergence failure
+> on spent regression evidence. Fresh independent minimum-wowable validation is deferred to
+> end-to-end rendered-product / production design-quality validation.**
+
+The original gate is **not erased and not rewritten**. §3.7 stands exactly as frozen, and the T22
+result stands exactly as recorded. If end-to-end evidence later shows the convergence defect
+survives into rendered concepts, this decision is what gets revisited.
+
+### Upstream is frozen
+
+`EventIdentity`, `ConceptPremise` and `DesignIntent` are **frozen** for now. Do not tune palette
+diversity, expand motif catalogues, author another DesignIntent benchmark, run another DesignIntent
+blind review, introduce another critic or judge loop, optimize `ConceptPremise` latency, or reopen
+upstream architecture merely because an old mechanical metric is still red. Revisit only if
+end-to-end product evidence shows a real issue.
+
+**Next is 4D.**
 ---
 
 # Resolved decisions

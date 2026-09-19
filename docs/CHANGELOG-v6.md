@@ -530,6 +530,36 @@ spend was invisible.
 **Verification.** Full chain applied from a clean Postgres 16; `npm run test:db` 11 files, 393
 tests; unit 103 files, 2,221 tests; component 41; proof suite green. No provider call, no eval run.
 
+## Revision 6.13 — Phase 4B and 4C closed, and what the 4C close does not claim
+
+**4B is unchanged and stays closed — GO.** Its evidence, clarification lifecycle, answer
+provenance, orchestration, persistence and validation work all stand, and nothing here reopens it.
+
+**4C is closed for product progression by operator decision, and the frozen §3.7 gate is not
+claimed to have passed.** Two things that are routinely conflated are separated in the record:
+*the implementation is complete* and *the evaluation passed*. Only the first is true. The one
+authorized T22 run returned 12/12 mechanical failures, a blind review of 5 `Fail` / 7 `Borderline`
+/ 0 `Good` / 0 `Excellent`, **0/12 minimum-wowable**, and S1, S2, S5, S7 and S8 present — a NO-GO
+on every half of a gate frozen before the corpus existed.
+
+**What supports progressing anyway.** The remediation — *one authoritative understanding, three
+worthwhile creative choices* — materially improved the known convergence defect on spent
+regression evidence at `17b2264`: composition-vector distinctness 0/12 → 7/12, sibling pairs with
+zero composition difference 16/36 → 0/36, identical motif sets 25/36 → 1/36, duplicate card-name
+batches 6/12 → 0/12, near-duplicate descriptions 3/12 → 0/12. Palette separation stayed 0/12 and
+the motif gate stayed 1/12. No unsupported reinterpretation was found in the premise grounding.
+
+**What is deferred, in the words the record uses.** *Premise-based sibling separation materially
+improved the known DesignIntent convergence failure on spent regression evidence. Fresh independent
+minimum-wowable validation is deferred to end-to-end rendered-product / production design-quality
+validation.* The reason is that the next stage turns these intermediate semantics into
+`CompositionTree`s, compiled `ResolvedDesignSpec`s and geometry-verified pages a host can react to,
+and validating intermediate JSON in isolation has reached the end of what it can tell us.
+
+**The original gate is preserved exactly.** §3.7 is not edited, the T22 result is not rewritten,
+and no band distribution or minimum-wowable count is asserted. `EventIdentity`, `ConceptPremise`
+and `DesignIntent` are frozen while 4D is built.
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
