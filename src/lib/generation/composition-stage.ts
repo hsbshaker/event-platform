@@ -47,6 +47,7 @@ import type {
 import type { DesignIntent, Deviation, Presentation } from "@/lib/renderer/design-intent";
 import type { AttractiveTokenId } from "@/lib/renderer/planner";
 import type { CompositionBrief } from "@/lib/ai/composition/brief";
+import type { CollisionCheck } from "@/lib/ai/composition/contract";
 import { compileConcept, type RepromptsSpent } from "./compile-concept";
 import { persistConcept } from "./persist-concept";
 import { recordSiblingStageRun, settleSibling, type SiblingRunTelemetry } from "./batch";
@@ -68,11 +69,13 @@ export interface CompositionRunnerRequest {
   readonly forbiddenTokens: readonly AttractiveTokenId[];
   readonly seed: number;
   /**
-   * The post-repair collision check, handed to the adapter so its own selector pass can spend the
-   * one collision re-prompt (`docs/model-contracts.md §6.3` step 5). Absent means no selector runs
-   * inside the call, and `compileConcept`'s authoritative check still runs after repair.
+   * The selector, handed to the adapter so its own pass can spend the one collision re-prompt and,
+   * on a second collision, take the library fallback (`docs/model-contracts.md §6.3` step 5).
+   *
+   * Supplied by the batch from its `SiblingSignatures` register. Absent means no selector runs —
+   * which is what the Phase 4D smoke recorded, and why `nearest_sibling` was null on every row.
    */
-  readonly collides?: (tree: CompositionTree) => readonly string[] | null;
+  readonly collides?: CollisionCheck;
 }
 
 /**
@@ -114,6 +117,21 @@ export interface CompositionStageRequest {
   readonly against?: readonly SigInput[];
   readonly signatureCategory?: string;
   readonly signatureTone?: string;
+  /**
+   * The selector for this sibling, from the batch's `SiblingSignatures` register.
+   *
+   * Forwarded to the adapter, where canon's step 5 already lives. Absent means no selector runs,
+   * which is the defect the Phase 4D smoke recorded.
+   */
+  readonly collides?: CollisionCheck;
+  /**
+   * What the selector saw, read after the call returns.
+   *
+   * `generation_runs.nearest_sibling` is the column `docs/model-contracts.md §6.4` CO-07 reads, and
+   * a null there is indistinguishable from "no rivals" and from "nobody looked". Stamping the
+   * register's own verdict makes the difference recorded rather than inferred.
+   */
+  readonly nearestSibling?: () => number | null;
 }
 
 export type CompositionStageOutcome =
@@ -152,7 +170,9 @@ export async function runCompositionStage(
 
   let attempt: CompositionAttempt;
   try {
-    attempt = await runner(request.call);
+    attempt = await runner(
+      request.collides ? { ...request.call, collides: request.collides } : request.call,
+    );
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     await recordSiblingStageRun(admin, {
@@ -169,13 +189,14 @@ export async function runCompositionStage(
 
   // Recorded before anything can fail downstream: the response is paid for, and the ceiling reads
   // `generation_runs` as spend. Settling is a separate step, deliberately.
+  const nearest = request.nearestSibling?.() ?? null;
   const recorded = await recordSiblingStageRun(admin, {
     batchId: request.batchId,
     conceptIndex: request.conceptIndex,
     operation: COMPOSITION_OPERATION,
     attempt: request.attempt,
     success: true,
-    run: attempt.telemetry,
+    run: { ...attempt.telemetry, nearestSibling: nearest },
   });
 
   const compiled = await compileConcept({
@@ -250,7 +271,7 @@ export async function runCompositionStage(
       conceptId: persisted.conceptId,
       resolvedSpecId: persisted.resolvedSpecId,
       canonical: compiled.canonical,
-      nearestSibling: compiled.nearestSibling,
+      nearestSibling: nearest ?? compiled.nearestSibling,
       fallback: attempt.fallback,
       repromptsUsed: spent,
     };

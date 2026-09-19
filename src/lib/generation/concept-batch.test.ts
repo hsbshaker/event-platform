@@ -29,6 +29,9 @@ import { EVENT_IDENTITY_SCHEMA_VERSION } from "@/lib/ai/versions";
 import { resetEnvCache } from "@/lib/env";
 
 import { PREMISE_FIXTURE_IDENTITY, validPremiseSet } from "../../../tests/fixtures/concept-premise";
+import { novelTree } from "../../../tests/fixtures/novel-composition";
+import { A1_SITES, page } from "@/lib/renderer/library";
+import type { CompositionTree } from "@/lib/renderer/composition";
 
 const create = vi.fn();
 
@@ -477,6 +480,266 @@ async function run(
     runner as never,
   );
 }
+
+/* --------------------------------------------------- the selector, end to end */
+
+/**
+ * The defect the Phase 4D live smoke exposed, and its fix.
+ *
+ * That run recorded `nearest_sibling` as null on all three composition rows: `runConceptBatch`
+ * fanned the siblings out with `Promise.all` and supplied neither `against` nor `collides`, so
+ * canon's step 5 never executed. The machinery on both sides was complete and unit-tested — it was
+ * simply never fed, and an unfed guard reports "no collision" forever.
+ *
+ * These cases drive the **real** `runConceptBatch`. The runner is stubbed at the provider boundary
+ * and honours `collides` the way `generateComposition` does, because what is under test here is
+ * whether the orchestrator feeds the selector and whether the register judges the right rivals —
+ * the adapter's own re-prompt-then-fallback loop is proven in `composition.test.ts`.
+ */
+describe("sibling collision is detected on the production path", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    create.mockReset();
+    // The compiler is mocked, as it is for the rest of this file: what is under test is whether
+    // the orchestrator feeds the selector, not whether the compiler compiles.
+    compileConcept.mockReset();
+    compileConcept.mockResolvedValue(VERIFIED_COMPOSITION);
+    persistConcept.mockReset();
+    persistConcept.mockImplementation((_admin: unknown, req: { conceptIndex: number }) =>
+      Promise.resolve({
+        conceptId: `concept-${req.conceptIndex}`,
+        resolvedSpecId: `spec-${req.conceptIndex}`,
+        replayed: false,
+      }),
+    );
+    create.mockImplementation((request: ProviderRequest) => Promise.resolve(route(request)));
+    setEnv();
+  });
+
+  afterEach(clearEnv);
+
+  /** Two structurally identical trees collide; a library page differs from both. */
+  const identical = () => novelTree();
+  const distinct = (i: number) => {
+    const site = A1_SITES[i % A1_SITES.length];
+    return page(site.hero, site.details, site.rsvp, site.registry, site.plan, site.align);
+  };
+
+  /**
+   * A provider stub that behaves like the adapter: it calls the selector, spends one collision
+   * correction, and only then gives up. Anything else would prove the orchestrator talks to a
+   * mock rather than to the contract.
+   */
+  function collisionAwareRunner(trees: (attempt: number, index: number) => CompositionTree) {
+    const calls: { index: number; reprompted: boolean; fellBack: boolean }[] = [];
+    let seq = 0;
+    const runner = vi.fn(async (req: Record<string, unknown>) => {
+      const index = seq++;
+      let served = trees(0, index);
+      let reprompted = false;
+      const collides = req.collides as
+        ((t: CompositionTree) => Promise<readonly string[] | null>) | undefined;
+      let colliding = collides ? await collides(served) : null;
+      if (colliding && colliding.length > 0) {
+        // The one permitted correction (`docs/model-contracts.md §6.3` step 5).
+        reprompted = true;
+        served = trees(1, index);
+        colliding = collides ? await collides(served) : null;
+      }
+      calls.push({ index, reprompted, fellBack: Boolean(colliding && colliding.length > 0) });
+      return {
+        tree: served,
+        promptVersion: "composition_v1_p3",
+        schemaVersion: "composition_schema_v1",
+        inputAssemblyVersion: "composition_input_v1",
+        fallback: colliding && colliding.length > 0 ? ("library" as const) : null,
+        telemetry: {
+          operation: "composition",
+          provider: "openai",
+          model: "gpt-5.6-sol",
+          latencyMs: 800,
+          promptVersion: "composition_v1_p3",
+          schemaVersion: "composition_schema_v1",
+        },
+      };
+    });
+    return { runner, calls };
+  }
+
+  it("detects a collision the old code could not see, and re-prompts once", async () => {
+    const recorded = recorder();
+    // Every sibling would serve the same tree on its first attempt; a corrected attempt differs.
+    const { runner, calls } = collisionAwareRunner((attempt, index) =>
+      attempt === 0 ? identical() : distinct(index),
+    );
+
+    const outcome = await run(recorded, {}, runner);
+
+    expect(outcome.state).toBe("generated");
+    // Sibling 0 has no rival and is admitted unchanged. The two after it collide with what was
+    // admitted before them and each spends its one correction. Before the fix this was 0.
+    expect(calls.filter((c) => c.reprompted)).toHaveLength(2);
+    expect(runner).toHaveBeenCalledTimes(3);
+  });
+
+  it("compares against the sibling that was actually admitted, naming its skeleton", async () => {
+    const recorded = recorder();
+    const seen: string[][] = [];
+    const runner = vi.fn(async (req: Record<string, unknown>) => {
+      const collides = req.collides as
+        ((t: CompositionTree) => Promise<readonly string[] | null>) | undefined;
+      const served = novelTree();
+      const colliding = collides ? await collides(served) : null;
+      if (colliding) seen.push([...colliding]);
+      return {
+        tree: served,
+        promptVersion: "composition_v1_p3",
+        schemaVersion: "composition_schema_v1",
+        inputAssemblyVersion: "composition_input_v1",
+        fallback: null,
+        telemetry: {
+          operation: "composition",
+          provider: "openai",
+          model: "gpt-5.6-sol",
+          latencyMs: 1,
+          promptVersion: "composition_v1_p3",
+          schemaVersion: "composition_schema_v1",
+        },
+      };
+    });
+
+    await run(recorded, {}, runner);
+
+    // The feedback names a real skeleton and a real score, which is what the `avoid` block needs.
+    expect(seen.length).toBeGreaterThan(0);
+    for (const entry of seen) {
+      expect(entry.join(" ")).toMatch(/(desktop|mobile) hero skeleton at \d\.\d\d: /);
+    }
+  });
+
+  it("records nearest_sibling, so a null no longer means nobody looked", async () => {
+    const recorded = recorder();
+    const { runner } = collisionAwareRunner((attempt, index) =>
+      attempt === 0 ? identical() : distinct(index),
+    );
+
+    await run(recorded, {}, runner);
+
+    const compositionRuns = stageRuns(recorded, "composition");
+    expect(compositionRuns).toHaveLength(3);
+    const nearest = compositionRuns.map(
+      (entry) => (entry.args.p_run as { nearest_sibling: number | null }).nearest_sibling,
+    );
+    // Sibling 0 judged against no rival, which is a real 0 rather than an absence. The others
+    // compared against something and recorded what they saw.
+    expect(nearest.filter((v) => v !== null)).toHaveLength(3);
+    expect(Math.max(...(nearest as number[]))).toBeGreaterThan(0);
+  });
+
+  it("costs a non-colliding batch nothing extra", async () => {
+    const recorded = recorder();
+    const { runner, calls } = collisionAwareRunner((_attempt, index) => distinct(index));
+
+    const outcome = await run(recorded, {}, runner);
+
+    expect(outcome.state).toBe("generated");
+    expect(runner).toHaveBeenCalledTimes(3);
+    expect(calls.some((c) => c.reprompted)).toBe(false);
+    // The normal shape is unchanged: one premise, three DesignIntent, three Composition.
+    expect(stageRuns(recorded, "composition")).toHaveLength(3);
+    expect(stageRuns(recorded, "design_intent")).toHaveLength(3);
+    expect(recorded.rpc.filter((entry) => entry.name === "record_batch_call_run")).toHaveLength(1);
+  });
+
+  it("keeps the three provider calls parallel", async () => {
+    const recorded = recorder();
+    let entered = 0;
+    let allEntered: () => void;
+    const gate = new Promise<void>((resolve) => {
+      allEntered = resolve;
+    });
+    const runner = vi.fn(async (req: Record<string, unknown>) => {
+      entered += 1;
+      if (entered === 3) allEntered();
+      // Every call must be inside the runner before any of them may finish. If the orchestrator
+      // had serialized the model calls to make the selector work, this would deadlock.
+      await gate;
+      const collides = req.collides as
+        ((t: CompositionTree) => Promise<readonly string[] | null>) | undefined;
+      const served = distinct(entered);
+      await collides?.(served);
+      return {
+        tree: served,
+        promptVersion: "composition_v1_p3",
+        schemaVersion: "composition_schema_v1",
+        inputAssemblyVersion: "composition_input_v1",
+        fallback: null,
+        telemetry: {
+          operation: "composition",
+          provider: "openai",
+          model: "gpt-5.6-sol",
+          latencyMs: 1,
+          promptVersion: "composition_v1_p3",
+          schemaVersion: "composition_schema_v1",
+        },
+      };
+    });
+
+    const outcome = await run(recorded, {}, runner);
+    expect(entered).toBe(3);
+    expect(outcome.state).toBe("generated");
+  });
+
+  it("cannot admit three identical trees, however the batch resolves", async () => {
+    const recorded = recorder();
+    // The failure mode this whole register exists to prevent: every sibling serves the same page
+    // and the batch reports three choices anyway.
+    const { runner, calls } = collisionAwareRunner(() => identical());
+
+    await run(recorded, {}, runner);
+
+    // Sibling 0 is admitted; the two after it collide with it, spend their one correction, serve
+    // the same page again and are still colliding — which is the terminal library fallback. The
+    // register admits exactly one of the three, so the batch cannot quietly present the same page
+    // three times, which is the failure this whole mechanism exists to prevent.
+    expect(calls.filter((c) => c.reprompted)).toHaveLength(2);
+    expect(calls.filter((c) => c.fellBack)).toHaveLength(2);
+    expect(calls.filter((c) => !c.fellBack)).toHaveLength(1);
+  });
+
+  it("releases a sibling's slot when it fails, so the next one is not left waiting", async () => {
+    const recorded = recorder();
+    let call = 0;
+    const runner = vi.fn(async (req: Record<string, unknown>) => {
+      const mine = call++;
+      if (mine === 0) throw new Error("provider 500");
+      const collides = req.collides as
+        ((t: CompositionTree) => Promise<readonly string[] | null>) | undefined;
+      const served = distinct(mine);
+      await collides?.(served);
+      return {
+        tree: served,
+        promptVersion: "composition_v1_p3",
+        schemaVersion: "composition_schema_v1",
+        inputAssemblyVersion: "composition_input_v1",
+        fallback: null,
+        telemetry: {
+          operation: "composition",
+          provider: "openai",
+          model: "gpt-5.6-sol",
+          latencyMs: 1,
+          promptVersion: "composition_v1_p3",
+          schemaVersion: "composition_schema_v1",
+        },
+      };
+    });
+
+    // A slot that never resolves would hang the whole batch here rather than fail a test.
+    const outcome = await run(recorded, {}, runner);
+    expect(outcome.state).toBe("generated");
+    expect(runner).toHaveBeenCalledTimes(3);
+  });
+});
 
 describe("one concept batch, end to end", () => {
   beforeEach(() => {

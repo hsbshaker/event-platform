@@ -586,7 +586,7 @@ export async function generateComposition(
 
     /* ---- 5. selector (`§6.3` step 5) --------------------------------------------------- */
 
-    const colliding = input.collides?.(served) ?? null;
+    const colliding = (await input.collides?.(served)) ?? null;
     if (colliding && colliding.length > 0) {
       lastColliding = colliding;
       collisionAttempts.push({ schemaValid: true, resolved: false });

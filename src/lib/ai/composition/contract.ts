@@ -80,7 +80,17 @@ export type { TerminalFallbackReason, FallbackTelemetry };
  * collision history containing a schema-invalid attempt (`attempt-off-path`), because the two
  * paths are different paths.
  */
-export type CollisionCheck = (tree: CompositionTree) => readonly string[] | null;
+/**
+ * The selector, injected by the batch (`docs/model-contracts.md §6.3` step 5).
+ *
+ * Returns the colliding skeletons, or `null`/empty when this tree is clear. **May be async**: the
+ * batch's register makes sibling `k` await siblings `0..k-1` before judging, which is what lets
+ * the three provider calls stay parallel while the comparison stays deterministic. The provider
+ * call is already complete when this runs, so awaiting here delays only the cheap decision.
+ */
+export type CollisionCheck = (
+  tree: CompositionTree,
+) => readonly string[] | null | Promise<readonly string[] | null>;
 
 /**
  * `docs/model-contracts.md §6.1`'s `GenerateCompositionInput`, typed.

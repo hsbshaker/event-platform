@@ -101,7 +101,13 @@ import { compositionBrief } from "@/lib/ai/composition/brief";
 import { deriveCapabilities, deriveContentProfile, type EventContentRow } from "./content-profile";
 import { deriveEventContent } from "./event-content";
 import { openAiCompositionRunner } from "@/lib/ai/openai/composition-runner";
-import { runCompositionStage, type CompositionRunner } from "./composition-stage";
+import {
+  runCompositionStage,
+  type CompositionRunner,
+  type CompositionStageOutcome,
+} from "./composition-stage";
+import { SiblingSignatures } from "./sibling-signatures";
+import type { CompositionTree } from "@/lib/renderer/composition";
 import {
   reviewConceptSet,
   type ConceptCard,
@@ -617,51 +623,91 @@ export async function runConceptBatch(
   const content = deriveEventContent(contentRow, now);
   const cardByIndex = new Map(review.cards.map((card) => [card.index, card]));
 
-  const composed = await Promise.all(
-    succeeded.map(async (sibling) => {
-      const index = sibling.planned.index;
-      const artifactId = artifactIds.get(index);
-      const card = cardByIndex.get(index);
-      // No artifact means persistence refused this sibling's lineage row, and a concept may not
-      // point at an artifact that does not exist (`validate_design_concept_artifact()`).
-      if (!artifactId || !card) {
-        await settleSibling(admin, batch.id, index, false);
-        return { index, outcome: null };
-      }
-      const call = sibling.call!;
-      const outcome = await runCompositionStage(admin, compositionRunner, {
-        batchId: batch.id,
-        eventId,
-        round: batch.round,
-        conceptIndex: index,
-        attempt: FIRST_ATTEMPT,
-        designIntentArtifactId: artifactId,
-        designIntent: call.output,
-        presentation: { name: card.name, description: card.description },
-        priorDeviations: call.deviations,
-        designIntentPromptVersion: call.promptVersion,
-        designIntentSchemaVersion: call.schemaVersion,
-        content,
-        tokenAllotment: {
-          allowed: sibling.planned.allowedTokens,
-          forbidden: sibling.planned.forbiddenTokens,
-        } as unknown as Json,
-        signatureCategory: sibling.planned.assignment.typographyCategory,
-        signatureTone: sibling.planned.assignment.tonalDirection,
-        call: {
-          brief: compositionBrief(revision.identity),
-          contentProfile,
-          capabilities,
-          designIntent: call.output,
-          directive: sibling.planned.directive as unknown as Json,
-          directiveSentence: sibling.planned.directiveSentence,
-          forbiddenTokens: sibling.planned.forbiddenTokens,
-          seed: sibling.planned.seed,
-        },
-      });
-      return { index, outcome };
-    }),
-  );
+  // One register per batch, discarded with it. The three provider calls below still start
+  // together; what the register orders is only the cheap admission decision that happens *after* a
+  // response has arrived, so sibling k compares against siblings 0..k-1 deterministically instead
+  // of racing them. Feeding it is the whole fix: the Phase 4D smoke recorded `nearest_sibling` as
+  // null on every row because `collides` was never supplied and canon's step 5 never ran.
+  const signatures = new SiblingSignatures(succeeded.map((sibling) => sibling.planned.index));
+
+  let composed: { index: number; outcome: CompositionStageOutcome | null }[];
+  try {
+    composed = await Promise.all(
+      succeeded.map(async (sibling) => {
+        const index = sibling.planned.index;
+        const artifactId = artifactIds.get(index);
+        const card = cardByIndex.get(index);
+        // No artifact means persistence refused this sibling's lineage row, and a concept may not
+        // point at an artifact that does not exist (`validate_design_concept_artifact()`).
+        if (!artifactId || !card) {
+          signatures.release(index);
+          await settleSibling(admin, batch.id, index, false);
+          return { index, outcome: null };
+        }
+        const call = sibling.call!;
+        // The verdict is captured here rather than returned through the adapter, because the
+        // adapter's contract is a yes/no gate and `generation_runs.nearest_sibling` wants the number
+        // behind it. A null in that column would otherwise be indistinguishable from "nobody looked".
+        let verdict: number | null = null;
+        const collides = async (tree: CompositionTree) => {
+          const judged = await signatures.judge({
+            index,
+            tree,
+            category: sibling.planned.assignment.typographyCategory,
+            tone: sibling.planned.assignment.tonalDirection,
+          });
+          verdict = judged.nearest;
+          return judged.colliding.length > 0 ? judged.colliding : null;
+        };
+
+        let outcome: CompositionStageOutcome;
+        try {
+          outcome = await runCompositionStage(admin, compositionRunner, {
+            batchId: batch.id,
+            eventId,
+            round: batch.round,
+            conceptIndex: index,
+            attempt: FIRST_ATTEMPT,
+            designIntentArtifactId: artifactId,
+            designIntent: call.output,
+            presentation: { name: card.name, description: card.description },
+            priorDeviations: call.deviations,
+            designIntentPromptVersion: call.promptVersion,
+            designIntentSchemaVersion: call.schemaVersion,
+            content,
+            tokenAllotment: {
+              allowed: sibling.planned.allowedTokens,
+              forbidden: sibling.planned.forbiddenTokens,
+            } as unknown as Json,
+            signatureCategory: sibling.planned.assignment.typographyCategory,
+            signatureTone: sibling.planned.assignment.tonalDirection,
+            collides,
+            nearestSibling: () => verdict,
+            call: {
+              brief: compositionBrief(revision.identity),
+              contentProfile,
+              capabilities,
+              designIntent: call.output,
+              directive: sibling.planned.directive as unknown as Json,
+              directiveSentence: sibling.planned.directiveSentence,
+              forbiddenTokens: sibling.planned.forbiddenTokens,
+              seed: sibling.planned.seed,
+            },
+          });
+        } finally {
+          // Every slot must resolve exactly once or a later sibling waits forever. `judge` resolves
+          // it on admission; this covers every other exit — a provider failure, a compile or
+          // geometry failure, a library fallback, an unexpected throw.
+          signatures.release(index);
+        }
+        return { index, outcome };
+      }),
+    );
+  } finally {
+    // Belt and braces: if `Promise.all` rejects, the slots of siblings still waiting are freed so
+    // nothing is left pending on a batch that has already failed.
+    signatures.releaseAll();
+  }
 
   const ready = composed.flatMap((entry) =>
     entry.outcome?.state === "ready"
