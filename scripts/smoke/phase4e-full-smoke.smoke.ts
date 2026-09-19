@@ -495,6 +495,134 @@ it(
       content,
     });
 
+    // ---- the contact sheet. Facts and pictures; no score, no winner, no verdict.
+    const esc = (v: unknown) => String(v ?? "").replace(/</g, "&lt;");
+    const cards = concepts
+      .map((c) => {
+        const n = (c.concept_index as number) + 1;
+        const artifact = artifacts.find((a) => a.concept_index === c.concept_index);
+        const premise = (artifact?.concept_premise ?? {}) as Record<string, unknown>;
+        const di = (artifact?.design_intent ?? {}) as Record<string, unknown>;
+        const comp = (di.composition ?? {}) as Record<string, unknown>;
+        const mine = artworkEvidence.filter((a) => a.conceptIndex === c.concept_index);
+        const delivered = mine.filter((a) => a.status === "delivered");
+        const decision =
+          mine.length === 0 ? "none" : mine.length === 1 ? "one slot" : `${mine.length} slots`;
+        const slotRow = (a: Record<string, unknown>) => {
+          const m = a.measured as { width?: number; height?: number; alpha?: { fullyTransparentPct?: number; looksLikeOpaqueCanvas?: boolean }; crop?: { edgeRisk?: boolean; edgesAtRisk?: string[] } } | null;
+          const intent = JSON.parse(
+            readFileSync(path.join(OUT, String(a.intentFile)), "utf8"),
+          ) as Record<string, unknown>;
+          return `<tr>
+            <td><code>${esc(a.slotId)}</code></td>
+            <td>${esc(a.role)}</td>
+            <td>${esc(intent.negativeSpace)} / ${esc(intent.cropSafety)} / ${esc(intent.subjectWeight)}</td>
+            <td>${esc(a.status)}${a.failure ? ` — ${esc((a.failure as { kind: string }).kind)}` : ""}</td>
+            <td>${m ? `${m.width}x${m.height}` : "&mdash;"}</td>
+            <td>${m?.alpha ? `${m.alpha.fullyTransparentPct}% clear, opaque canvas: ${m.alpha.looksLikeOpaqueCanvas}` : "&mdash;"}</td>
+            <td>${m?.crop ? `edge risk: ${m.crop.edgeRisk} ${JSON.stringify(m.crop.edgesAtRisk ?? [])}` : "&mdash;"}</td>
+          </tr>`;
+        };
+        const thumbs = delivered
+          .map(
+            (a) =>
+              `<figure class="thumb"><div class="checker"><img src="../${esc(a.evidenceFile)}" alt=""></div>
+               <figcaption><code>${esc(a.slotId)}</code></figcaption></figure>`,
+          )
+          .join("");
+        const noArt = delivered.length
+          ? `<h4>Same spec, artwork detached (diagnostic)</h4>
+             <div class="pair">
+              <figure><figcaption>mobile 390</figcaption><img class="shot" src="concept-${n}-no-art-mobile.png" alt=""></figure>
+              <figure><figcaption>desktop 1280</figcaption><img class="shot" src="concept-${n}-no-art-desktop.png" alt=""></figure>
+             </div>`
+          : "";
+        const verified = (specs.find((x) => x.concept_index === c.concept_index)?.spec as ResolvedDesignSpec | undefined)?.verified;
+        return `<section class="concept">
+          <h2>Concept ${n} — ${esc(c.name)}</h2>
+          <p class="desc">${esc(c.description)}</p>
+          <table>
+            <tr><th>premise</th><td><code>${esc(premise.title)} — ${esc(premise.organizingIdea)}</code></td></tr>
+            <tr><th>design intent</th><td><code>${esc(di.family)} / ${esc(di.tonalDirection)} / ${esc(di.density)} / ornament ${esc(comp.ornament)} / hierarchy ${esc(comp.hierarchy)} / motifs ${esc(JSON.stringify(di.motifs))}</code></td></tr>
+            <tr><th>artwork decision</th><td><code>${esc(decision)}</code></td></tr>
+            <tr><th>geometry 390 / 1280</th><td><code>clean ${esc(verified?.clean)}; overflow ${esc(verified?.mobile.pageOverflow)} / ${esc(verified?.desktop.pageOverflow)}; text overflow ${esc(verified?.mobile.textOverflow)} / ${esc(verified?.desktop.textOverflow)}</code></td></tr>
+            <tr><th>page size 390 / 1280</th><td><code>${esc(JSON.stringify(pageSizes[`concept-${n}-mobile`]))} / ${esc(JSON.stringify(pageSizes[`concept-${n}-desktop`]))}</code></td></tr>
+          </table>
+          ${mine.length ? `<table class="slots"><tr><th>slot</th><th>role</th><th>negative space / crop / weight</th><th>status</th><th>pixels</th><th>alpha</th><th>crop</th></tr>${mine.map(slotRow).join("")}</table>` : "<p><em>This direction chose no artwork. That is a valid output and was not overridden.</em></p>"}
+          ${thumbs ? `<div class="thumbs">${thumbs}</div>` : ""}
+          <div class="pair">
+           <figure><figcaption>mobile 390</figcaption><img class="shot" src="concept-${n}-mobile.png" alt=""></figure>
+           <figure><figcaption>desktop 1280</figcaption><img class="shot" src="concept-${n}-desktop.png" alt=""></figure>
+          </div>
+          ${noArt}
+        </section>`;
+      })
+      .join("");
+
+    writeFileSync(
+      path.join(VIS, "index.html"),
+      `<!doctype html><meta charset="utf-8"><title>Phase 4E — first full three-concept smoke</title>
+<style>
+ :root{color-scheme:light dark}
+ body{font:14px/1.55 ui-sans-serif,system-ui,sans-serif;margin:0;padding:32px;max-width:1280px}
+ h1{font-size:23px;margin:0 0 4px} h2{font-size:18px;margin:0 0 4px}
+ h4{font-size:13px;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.07em;opacity:.75}
+ .note{padding:12px 14px;border:1px solid currentColor;border-radius:6px;opacity:.85;margin:16px 0}
+ .concept{margin:44px 0;padding-top:28px;border-top:2px solid rgba(128,128,128,.35)}
+ .desc{margin:0 0 12px;opacity:.85}
+ table{border-collapse:collapse;width:100%;margin:8px 0 16px}
+ th,td{text-align:left;padding:5px 8px;border-bottom:1px solid rgba(128,128,128,.28);vertical-align:top}
+ table:not(.slots) th{width:210px;font-weight:600}
+ code{font:12px/1.5 ui-monospace,monospace;word-break:break-word}
+ .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+ .pair figcaption{font-weight:600;margin-bottom:6px}
+ img.shot{width:100%;border:1px solid rgba(128,128,128,.45)}
+ .thumbs{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 20px}
+ .thumb figcaption{margin-top:6px}
+ .checker{background-image:linear-gradient(45deg,#bbb 25%,transparent 25%),linear-gradient(-45deg,#bbb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#bbb 75%),linear-gradient(-45deg,transparent 75%,#bbb 75%);background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;background-color:#fff;padding:8px;display:inline-block}
+ .checker img{display:block;width:260px}
+ ul{margin:8px 0 18px;padding-left:20px} li{margin:4px 0}
+</style>
+<h1>Phase 4E — first full three-concept artwork smoke</h1>
+<p>One authoritative <code>EventIdentity</code> (the frozen 4D fixture) &rarr; three sibling concepts &rarr; artwork where the creative direction asked for it.</p>
+
+<div class="note"><strong>Diagnostic/product evidence only.</strong> Not a generalization benchmark, not a gate, not a Human Test, not a provider bake-off. Nothing here is scored and no winner is labelled &mdash; the questions below are yours to answer from the pictures.</div>
+<div class="note"><strong>Artwork stayed optional.</strong> The production decision logic chose per concept from that concept's own <code>DesignIntent</code>. A concept with no artwork chose none, and was not overridden.</div>
+<div class="note"><strong>Storage:</strong> <code>${esc(store.id)}</code>. No Supabase Storage upload was exercised in this run; the real adapter exists and is unit-tested, but hosted Storage must not be mutated for a smoke and no local Supabase Storage is available here.</div>
+
+<table>
+ <tr><th>text provider calls</th><td><code>${runs.length} (${esc(JSON.stringify(runs.reduce<Record<string, number>>((a, r) => { const k = String(r.operation); a[k] = (a[k] ?? 0) + 1; return a; }, {})))})</code></td></tr>
+ <tr><th>image attempts / limit</th><td><code>${attempts.spent} / ${MAX_IMAGE_ATTEMPTS}</code></td></tr>
+ <tr><th>artwork delivered / failed</th><td><code>${slotRows.filter((r) => r.status === "delivered").length} / ${slotRows.filter((r) => r.status === "failed").length}</code></td></tr>
+ <tr><th>text-model cost</th><td><code>$${textCost.toFixed(4)}</code></td></tr>
+ <tr><th>image cost / ceiling</th><td><code>$${imageCost.toFixed(4)} / $${IMAGE_CEILING_USD.toFixed(2)}</code></td></tr>
+ <tr><th>total provider cost</th><td><code>$${(textCost + imageCost).toFixed(4)}</code></td></tr>
+ <tr><th>wall time</th><td><code>${(wallMs / 1000).toFixed(1)} s</code></td></tr>
+ <tr><th>per-image latency</th><td><code>${esc(slotRows.map((r) => r.latency_ms).filter((x) => x != null).join(", ") || "none")}</code> ms</td></tr>
+ <tr><th>image provider / model</th><td><code>openai-images / ${IMAGE_MODEL}</code></td></tr>
+</table>
+
+${cards}
+
+<section class="concept">
+<h2>For the operator</h2>
+<p>Deliberately unanswered here, and not put to any model.</p>
+<ul>
+ <li>Do these look like three genuinely custom-designed event websites?</li>
+ <li>Does &ldquo;locally grown&rdquo; come through without reading the description?</li>
+ <li>Does each sibling express the theme differently?</li>
+ <li>Is the artwork genuinely integrated into the composition, or appended to it?</li>
+ <li>Does any artwork feel generic or stock-like?</li>
+ <li>Does any concept still feel like a design-system demo?</li>
+ <li>Does the baby-shower context come through visually?</li>
+ <li>Did the system avoid childish or cheesy execution?</li>
+ <li>Is artwork helping enough to justify its cost and latency?</li>
+ <li>Does any concept approach the product promise?</li>
+</ul>
+</section>
+`,
+    );
+
     await client.end();
 
     // ---- the objective claims this run exists to make.
