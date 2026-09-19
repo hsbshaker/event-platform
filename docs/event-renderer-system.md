@@ -84,7 +84,7 @@ Layout containers:
 | `Surface` | `role`, `inset?`, `child` | switches the surface role for its subtree (panel, plate, card) |
 | `Overlay` | `content` (text-bearing Stack/Frame/Split), `decoration` (MotifField, Monogram, Glyph, Date numeral, Artwork), `anchor`, `extent`, `mobile` (stack/keep) | text over one decorative object |
 
-Decorative leaves: `MotifField` (`motif`, `extent?`), `MotifBand` (`motif?`, `height`, `fill?`), `Rule` (`weight`, `orientation?`, `glyphs?`), `Glyph` (`motif`, `scale?`), `Monogram` (`style` ring/plain/watermark), `Artwork` (`role` anchor/object/atmosphere/framed, `extent?`).
+Decorative leaves: `MotifField` (`motif`, `extent?`), `MotifBand` (`motif?`, `height`, `fill?`), `Rule` (`weight`, `orientation?`, `glyphs?`), `Glyph` (`motif`, `scale?`), `Monogram` (`style` ring/plain/watermark), `Artwork` (`role` anchor/object/atmosphere/framed, `extent?`). The `Artwork` leaf carries **no treatment**: how it occupies its section is resolved by the compiler (§8), not chosen by the model.
 
 `Artwork` is the **where** of generated thematic imagery and nothing else (`spec.md §7.6a`, primitive set `composition_v2`). It carries no url, no source, no size, no coordinate and no free text: §7.6a #3 reserves placement to the compiler, so the brief — subject, medium, palette relationship, crop safety, negative space — lives in `VisualArtIntent`, assembled *afterwards from the resolved placement* and a sibling of the tree rather than a field inside it. It is a declaration, not a dependency on an asset: a tree carrying one is valid and renderable when no artwork exists or generation fails.
 
@@ -305,13 +305,54 @@ Sections 6–9, 14 and 19 of Revision 1 stand, with these deltas:
   side record keyed by `(spec revision, slot id)`, and a revision with reservations and no assets is
   a complete artifact rather than a half-written one.
 
-  **Text readability wins, and is decided without the artwork.** §7.6a #5 is absolute and has to
-  hold at a moment when the image does not exist. A motif is safe behind text because the compiler
-  draws it at a known colour and opacity; an image is arbitrary — but its worst case is not. Every
-  image lies between pure black and pure white in every channel, so a scrim of the section's own
-  surface at alpha α puts the effective background between two computable endpoints. The compiler
-  takes the lightest approved step that clears AA against *both*, and where no step does, the
-  artwork is not drawn behind that text at all.
+  **Treatments: how the artwork occupies its section.** The compiler resolves one of four —
+  `contained`, `side-anchor`, `field`, `framed` — from the role, the extent and the position the
+  composition gave the leaf. They are *resolved*, never authored: the model already says what the
+  artwork is for and where it sits, and §7.6a #3 gives realizing that to the compiler, so the
+  language, its schema and its prompt carry no treatment and `PRIMITIVE_SET_VERSION` does not move
+  when the table below changes. `COMPILER_VERSION` does, because the same tree compiles to a
+  different page.
+
+  | treatment | reservation | fit | text over it |
+  | --- | --- | --- | --- |
+  | `contained` | a zone of its own beside the content, sized by `extent` | whole | no |
+  | `side-anchor` | a full-height column on one side of the section | cropped | no |
+  | `field` | the whole section, as its ground | cropped | yes |
+  | `framed` | a block of its own in normal flow | whole | no |
+
+  A zone is the one worth reading twice. `contained` and `side-anchor` are not watermarks: the
+  decoration takes a real column on its own side and the overlay's content is padded out of it, so
+  text and artwork occupy different pixels. Which side comes from the anchor the composition
+  already gave the decoration; a `center` anchor has no side to take, so it resolves to `field`.
+
+  **Readability is spatial, not global.** §7.6a #5 is absolute and has to hold at a moment when the
+  image does not exist. A motif is safe behind text because the compiler draws it at a known colour
+  and opacity; an image is arbitrary — but its worst case is not. Every image lies between pure
+  black and pure white in every channel, so a scrim of the section's own surface at alpha α puts
+  the effective background between two computable endpoints. The compiler takes the lightest
+  approved step that clears AA against *both*, and where no step does, the artwork is not drawn
+  behind that text at all.
+
+  That guarantee is unchanged, and `field` still pays it in full. What changed is **who pays**.
+  Only `field` puts text on the artwork's own pixels; the other three lay the text beside it, so
+  they resolve `protection: none` and render at full strength. Earlier every decoration counted as
+  "under text" whether or not any text was there, and the Phase 4E capability spike showed what
+  that costs — a good asset reduced to a ghost behind a wash protecting an overlap the layout need
+  not have had. **No legibility was traded for it: the scrim is gone because the overlap is gone.**
+
+  Nothing in this decision looks at a pixel. It is made from resolved geometry — which treatment,
+  and whether that treatment puts text over artwork at all — and would be identical for every asset
+  that could ever arrive. In particular the *asset's* measured centroid and occupancy are **not**
+  inputs to placement, and cannot be: the spec is frozen and verified before any image exists, so a
+  layout that moved with the image would make the verified spec provisional. Those measurements act
+  where they can act honestly — in the brief, which asks for the negative space before the image is
+  made.
+
+  **On a phone a zone becomes a band.** A 390px viewport has no second column to give away, so a
+  stacked zone returns to normal flow under the content at full width, the padding that cleared the
+  column is dropped, and the band is given a height by `extent` rather than inheriting a
+  decoration's. It can never collapse to zero — the failure that left artwork simply absent at 390
+  before geometry tests caught it.
 
   **Budget and optionality.** Artwork is offered per concept, never per event (§2.3). The language
   caps it at one per section and two per page; the direction's own budget, read from

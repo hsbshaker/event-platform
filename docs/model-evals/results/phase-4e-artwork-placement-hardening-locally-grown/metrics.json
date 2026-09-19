@@ -1,0 +1,135 @@
+{
+  "label": "Phase 4E artwork placement hardening — the same frozen asset through the improved treatment system. Zero provider calls. Not a quality gate and not a score.",
+  "asset": {
+    "source": "phase-4e-artwork-capability-spike-locally-grown/artwork.png",
+    "bytes": 1595223,
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "note": "byte-identical to the spike's asset; never regenerated, edited or recropped"
+  },
+  "resolvedSlot": {
+    "role": "object",
+    "extent": "third",
+    "scrim": null,
+    "render": true,
+    "surface": "base",
+    "treatment": "contained",
+    "side": "end",
+    "protection": "none",
+    "aspect": {
+      "desktop": "square",
+      "mobile": "landscape"
+    },
+    "fit": "contain",
+    "artworkAnchor": "bottom-end"
+  },
+  "visualArtIntent": {
+    "version": "visual_art_intent_v2",
+    "composition": "The artwork sits whole in a space of its own beside the event's words. It takes the trailing side; the words take the other. On a wide screen it is composed into a roughly square frame; on a phone the same artwork becomes a wide frame. No text is set over it, so the whole frame is the artwork's. It is shown entire and never cropped, so the frame can be composed edge to edge.",
+    "negativeSpace": "none",
+    "cropSafety": "tight",
+    "subjectWeight": "balanced"
+  },
+  "baselineGeometry": {
+    "mobile": {
+      "width": 390,
+      "height": 1474
+    },
+    "desktop": {
+      "width": 1280,
+      "height": 1907
+    }
+  },
+  "improved": {
+    "mobile": {
+      "page": {
+        "width": 390,
+        "height": 1512
+      },
+      "artBox": {
+        "width": 374,
+        "height": 240,
+        "left": 16,
+        "top": 645.81
+      },
+      "imgBox": {
+        "width": 374,
+        "height": 240,
+        "left": 16,
+        "top": 645.81
+      },
+      "imgObjectFit": "cover",
+      "scrimOpacity": null,
+      "textRight": 332.609375,
+      "textCount": 3
+    },
+    "desktop": {
+      "page": {
+        "width": 1280,
+        "height": 1913
+      },
+      "artBox": {
+        "width": 527.52,
+        "height": 872.78,
+        "left": 752.48,
+        "top": 128
+      },
+      "imgBox": {
+        "width": 527.52,
+        "height": 872.78,
+        "left": 752.48,
+        "top": 128
+      },
+      "imgObjectFit": "contain",
+      "scrimOpacity": null,
+      "textRight": 601.8125,
+      "textCount": 3
+    }
+  },
+  "improvedWithNoAsset": {
+    "mobile": {
+      "page": {
+        "width": 390,
+        "height": 1512
+      },
+      "artBox": {
+        "width": 374,
+        "height": 240,
+        "left": 16,
+        "top": 645.81
+      },
+      "imgBox": null,
+      "imgObjectFit": null,
+      "scrimOpacity": null,
+      "textRight": 332.609375,
+      "textCount": 3
+    },
+    "desktop": {
+      "page": {
+        "width": 1280,
+        "height": 1913
+      },
+      "artBox": {
+        "width": 527.52,
+        "height": 872.78,
+        "left": 752.48,
+        "top": 128
+      },
+      "imgBox": null,
+      "imgObjectFit": null,
+      "scrimOpacity": null,
+      "textRight": 601.8125,
+      "textCount": 3
+    }
+  },
+  "geometryUnchangedByAsset": {
+    "mobile": true,
+    "desktop": true
+  },
+  "verifiedClean": {
+    "mobile": true,
+    "desktop": true
+  }
+}

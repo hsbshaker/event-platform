@@ -1991,4 +1991,34 @@ h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
   .ev-overlay.ev-m-stack .ev-art.ev-art-t-contained .ev-art-img {
     object-fit: cover;
   }
+
+  /*
+   * A zone band is taller than a decoration band, because it is not decoration.
+   *
+   * The ladder above sizes a stacked *decoration* — a motif-like flourish under the words. A zone
+   * is the section's visual anchor on a wide screen, and shrinking it to a 160px strip on a phone
+   * loses on the smaller screen exactly what the treatment was for. These heights are a
+   * substantial band without becoming the page: at 390 the widest is a little over a third of the
+   * viewport, which `spec.md §32` #43's "mobile-first is not a phone-framed desktop" asks for in
+   * the other direction too — a phone gets its own composition, not a scaled-down one.
+   */
+  .ev-overlay.ev-m-stack.ev-ov-side-start .ev-art.ev-ext-full,
+  .ev-overlay.ev-m-stack.ev-ov-side-end .ev-art.ev-ext-full {
+    min-height: 320px;
+  }
+
+  .ev-overlay.ev-m-stack.ev-ov-side-start .ev-art.ev-ext-half,
+  .ev-overlay.ev-m-stack.ev-ov-side-end .ev-art.ev-ext-half {
+    min-height: 280px;
+  }
+
+  .ev-overlay.ev-m-stack.ev-ov-side-start .ev-art.ev-ext-third,
+  .ev-overlay.ev-m-stack.ev-ov-side-end .ev-art.ev-ext-third {
+    min-height: 240px;
+  }
+
+  .ev-overlay.ev-m-stack.ev-ov-side-start .ev-art.ev-ext-quarter,
+  .ev-overlay.ev-m-stack.ev-ov-side-end .ev-art.ev-ext-quarter {
+    min-height: 180px;
+  }
 }

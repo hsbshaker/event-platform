@@ -188,7 +188,39 @@ and not in the current build. **The handoff 4E inherits** is: a verified `Resolv
 composition is a tree of enum-token primitives, a compiler that owns placement, and a primitive-set
 version to bump when the decorative leaf is added (`spec.md §32 #15`, `#32`).
 
-**4E status: THE FOUNDATION IS BUILT AND UNREACHABLE. NO IMAGE HAS BEEN GENERATED.** Everything
+**4E status: ONE IMAGE HAS BEEN GENERATED, AND THE PLACEMENT SYSTEM HAS BEEN HARDENED AGAINST IT.
+NO QUALITY CLAIM.** One authorized capability spike ran on 2026-09-19 —
+`gpt-image-2.5-sunburst-2026-09-08`, pinned and dated, one request, one attempt, zero retries,
+$0.05491 against a $0.50 ceiling. The asset was genuinely transparent (60.4% fully transparent,
+all four outer edges clear, no opaque canvas), landed where the brief asked (3% of visual mass in
+the lower right, that quadrant 95.7% transparent), stayed inside its frame, and did not change the
+verified page dimensions. Evidence, immutable, at
+`docs/model-evals/results/phase-4e-artwork-capability-spike-locally-grown/`.
+
+**That spike is a capability answer, not a quality gate, and not a provider selection.** One asset
+from one model on one page.
+`docs/technology-decisions.md §8` still records image-model selection as open and names what a real
+selection has to measure. One characteristic is worth carrying forward: the model's maximum alpha
+was **254** — it appears never to emit 255 — so a transparency check keyed on `alpha === 255`
+would misread its output.
+
+**The spike's real finding was about us, not the model.** The renderer underused a good asset: a
+42%×36% corner box, `object-fit: contain` shrinking a square asset to that box's short side, and a
+flat 0.65 scrim over all of it because every decoration counted as "under text". The compiler now
+resolves an artwork *treatment* — `contained`, `side-anchor`, `field`, `framed` — and readability
+became spatial: only `field` puts text on the artwork's pixels, so only `field` pays a scrim. The
+same asset through the improved system goes from a 312×312 render under a 0.65 wash to 528×528 at
+full strength, with the text ending at 602px and the artwork starting at 752px. Zero-cost
+before/after at `.../phase-4e-artwork-placement-hardening-locally-grown/`. Whether the result is
+*good* is unscored and deliberately left to an operator.
+
+**What remains for a full three-concept 4E smoke** is the wiring, not the architecture: nothing in
+the contract, the treatments, the compiler, the renderer, the spend gate, the classification or the
+fallback needs to change to run one. What does not exist is a call site that strings *reserve →
+brief → generate → store bytes → attach* together, and a Supabase Storage upload, both deliberately
+unbuilt because their shape depends on the provider chosen.
+
+**The foundation beneath all of that is built and still unreachable by default.** Everything
 up to the point immediately before a paid image call exists, is tested and is wired into the
 production path: the versioned `VisualArtIntent` contract; the optionality decision that reads each
 direction's own answer; the `Artwork` leaf in the composition language (primitive set
@@ -199,13 +231,15 @@ placement; a durable slot/asset/lineage record beside the frozen spec; the provi
 failure classification, retry bound, timeout, spend-reservation seam and telemetry; and the
 deterministic fallback for an asset that is late, failed or never requested.
 
-**What is deliberately absent, and is the whole remaining gap.** No image model is selected
+**What is deliberately absent.** No image model is selected
 (`docs/technology-decisions.md §8` records the criteria a selection must measure), no provider
 implementation exists, and no spend ceiling number exists. The artwork path is unreachable from a
 network by default and that is enforced structurally rather than by a flag — no module under
 `src/lib/ai/visual-art/` reads the environment or can reach a network, `getArtworkProvider()`
 throws unconditionally, and a test drives the whole boundary with `fetch` replaced by a throwing
-spy.
+spy. The live adapter the spike used lives outside that directory, in
+`src/lib/ai/openai/artwork.ts`, and `getArtworkProvider()` still cannot return it: reaching it
+takes an explicit construction, a named model and a live spend reservation.
 
 **What it was proved with, and what that proof is not.** Deterministic stub assets — flat
 single-colour PNGs inlined as data URIs. They establish that the path runs end to end, that all four
@@ -213,7 +247,8 @@ roles compile, brief and render, that a page measures identically with an asset 
 across five awkward stub shapes at both breakpoints, and that artwork cannot enter around the
 trusted primitive and compiler system. **They are not evidence about image quality.** 4E's actual
 question — whether art-directed thematic artwork raises the visual ceiling the Phase 4D operator
-review identified — is untouched, and the first real artwork smoke is what begins to answer it.
+review identified — is still unanswered: one asset on one concept, well placed, is not a
+population.
 
 **One defect this work found before any spend.** The first implementation let the image size its
 own box: `.ev-art` sizes itself with `min-height`, so an in-flow image resolved `height: 100%`

@@ -1,0 +1,93 @@
+<!doctype html><meta charset="utf-8"><title>Phase 4E artwork placement hardening</title>
+<style>
+ :root{color-scheme:light dark}
+ body{font:14px/1.55 ui-sans-serif,system-ui,sans-serif;margin:0;padding:32px;max-width:1240px}
+ h1{font-size:22px;margin:0 0 4px} h2{font-size:15px;margin:36px 0 10px;text-transform:uppercase;letter-spacing:.08em}
+ .note{padding:12px 14px;border:1px solid currentColor;border-radius:6px;opacity:.85;margin:16px 0}
+ table{border-collapse:collapse;width:100%;margin:8px 0 18px} th,td{text-align:left;padding:5px 8px;border-bottom:1px solid rgba(128,128,128,.3);vertical-align:top}
+ th{width:300px;font-weight:600} code{font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;word-break:break-word}
+ .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+ .pair figcaption{font-weight:600;margin-bottom:6px}
+ img.shot{width:100%;border:1px solid rgba(128,128,128,.45)}
+ ul{margin:8px 0 18px;padding-left:20px} li{margin:4px 0}
+ pre{background:rgba(128,128,128,.12);padding:12px;border-radius:6px;overflow:auto;font-size:12px}
+</style>
+<h1>Phase 4E — artwork placement hardening</h1>
+<p>Premise: <strong>Tended Welcome</strong>. Same concept, same content, same DesignIntent, same palette, same typography,
+and <strong>the same image bytes</strong> as the capability spike. The artwork <em>treatment</em> system is the only variable.</p>
+
+<div class="note"><strong>Zero provider calls.</strong> No image was generated, no text model was called, and the asset was
+never regenerated, repainted, recropped or recoloured. Baseline is the capability spike's own render at head <code>5287be</code>.</div>
+<div class="note">This is <strong>not</strong> a quality gate and nothing here is scored. Whether the result is good is the
+operator's judgement from the pictures below.</div>
+
+<h2>What changed, mechanically</h2>
+<table>
+<tr><th>treatment resolved</th><td><code>contained</code></td></tr>
+<tr><th>side of the section it takes</th><td><code>end</code></td></tr>
+<tr><th>protection</th><td><code>none (scrim: none)</code></td></tr>
+<tr><th>fit</th><td><code>contain</code></td></tr>
+<tr><th>reservation shape 1280 / 390</th><td><code>square / landscape</code></td></tr>
+<tr><th>baseline geometry 390 / 1280</th><td><code>390x1474 / 1280x1907</code></td></tr>
+<tr><th>improved geometry 390</th><td><code>page 390x1512; artwork box 374x240; fit cover; scrim none</code></td></tr>
+<tr><th>improved geometry 1280</th><td><code>page 1280x1913; artwork box 528x873; fit contain; scrim none</code></td></tr>
+<tr><th>text ends / artwork starts at 1280</th><td><code>602px / 752px</code></td></tr>
+<tr><th>geometry unchanged when the asset is removed</th><td><code>390 true, 1280 true</code></td></tr>
+<tr><th>verified clean 390 / 1280</th><td><code>true / true</code></td></tr>
+</table>
+
+<h2>Mobile — 390</h2>
+<div class="pair">
+ <figure><figcaption>baseline (head 5287be)</figcaption><img class="shot" src="baseline-mobile.png" alt=""></figure>
+ <figure><figcaption>improved</figcaption><img class="shot" src="improved-mobile.png" alt=""></figure>
+</div>
+
+<h2>Desktop — 1280</h2>
+<div class="pair">
+ <figure><figcaption>baseline (head 5287be)</figcaption><img class="shot" src="baseline-desktop.png" alt=""></figure>
+ <figure><figcaption>improved</figcaption><img class="shot" src="improved-desktop.png" alt=""></figure>
+</div>
+
+<h2>For the operator</h2>
+<p>These are questions for you, deliberately unanswered here and not put to any model.</p>
+<ul>
+ <li>Does the artwork now feel integral to the hero, or still appended to it?</li>
+ <li>Is it compositionally important enough — or has it become too large?</li>
+ <li>Is the text still clearly dominant where it should be?</li>
+ <li>Does desktop still look washed out?</li>
+ <li>Does mobile still feel like the art is merely appended?</li>
+ <li>Does &ldquo;locally grown&rdquo; come through more strongly?</li>
+ <li>Does this read closer to a finished invitation than to a design-system demo?</li>
+</ul>
+
+<h2>The brief this reservation would now produce</h2>
+<pre>{
+  "version": "visual_art_intent_v2",
+  "role": "object",
+  "subject": "A single object or small still life, isolated with nothing behind it, drawn from registration marks, proofs pinned in rows, the grain of the paper. The direction it serves: An open evening at a shared printmaking studio, where the work pinned on the walls and the presses themselves are the whole invitation.",
+  "medium": "Original illustration. pressed paper, with ink that sits on the surface rather than soaking in",
+  "composition": "The artwork sits whole in a space of its own beside the event's words. It takes the trailing side; the words take the other. On a wide screen it is composed into a roughly square frame; on a phone the same artwork becomes a wide frame. No text is set over it, so the whole frame is the artwork's. It is shown entire and never cropped, so the frame can be composed edge to edge.",
+  "subjectWeight": "balanced",
+  "negativeSpace": "none",
+  "background": "transparent",
+  "cropSafety": "tight",
+  "paletteRelationship": "harmonize",
+  "paletteHexes": [
+    "#FBF5E8",
+    "#F0E7D4",
+    "#251E10",
+    "#FFD7CC",
+    "#982F12",
+    "#241F14"
+  ],
+  "hostConstraints": [
+    "Do not describe the evening as a sale; nothing is for sale"
+  ],
+  "prohibited": [
+    "No logos, trademarks, brand marks or wordmarks.",
+    "No proprietary characters, licensed figures or campaign artwork.",
+    "No copying of a named artist's or studio's work; translate influence, never reproduce it.",
+    "No photography or photorealistic likeness of real people.",
+    "No text, lettering, numerals or captions anywhere in the image."
+  ]
+}</pre>

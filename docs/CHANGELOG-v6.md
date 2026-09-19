@@ -679,6 +679,66 @@ image-free trees are undisturbed, holding in practice.
 
 ---
 
+## Revision 6.16 — artwork treatments, and readability that is spatial rather than global
+
+The first live Phase 4E image answered its question: the model can produce useful, bespoke,
+theme-specific visual material. The renderer then threw most of it away, and this revision is about
+why.
+
+**Three things compounded.** The decoration box was 42%×36% of the overlay, in a corner.
+`object-fit: contain` shrank a square asset to that box's short side — 312×312 inside 527×312, so
+nearly half the reservation was empty. And a flat 0.65 scrim covered all of it, because every
+decoration counted as "under text" whether or not any text was there. A faint watermark was the sum
+of the three; fixing any one alone would have moved almost nothing.
+
+**Treatments.** The compiler now resolves one of four — `contained`, `side-anchor`, `field`,
+`framed` — from the role, the extent and the position the composition gave the leaf. They are
+resolved, never authored. The model already says what the artwork is for, how much of a section it
+is for and where it sits; `spec.md §7.6a #3` gives realizing that to the compiler. So the
+composition language, its schema and its prompt are untouched and `PRIMITIVE_SET_VERSION` does not
+move — only `COMPILER_VERSION`, because the same tree now compiles to a different page.
+
+**Readability became spatial.** The AA guarantee is unchanged and `field` still pays it in full:
+the lightest approved scrim that clears AA against both a pure black and a pure white asset,
+computed before any image exists. What changed is who pays. A zone puts the artwork in a column of
+its own with the overlay's content padded out of it, so text and artwork occupy different pixels
+and there is nothing to protect. Measured at 1280 the text ends at 602px and the artwork starts at
+752px. **No legibility was traded: the scrim is gone because the overlap is gone.**
+
+Nothing in that decision looks at a pixel, and the asset's own measured centroid deliberately is
+not an input. The spec is frozen and verified before any image exists, so a layout that moved with
+the image would make the verified spec provisional. Those measurements act in the brief, which asks
+for negative space before the image is made — which is the only place they can act honestly.
+
+**Two bugs the spike had hidden.** `ResolvedArtwork.textAnchor` was misnamed and misread:
+`Overlay.anchor` positions the *decoration*, not the text, and an overlay's content is in normal
+flow across the whole box rather than gathered at a corner — so the brief was asking the image model
+to leave open the very side the artwork was anchored to. And crop safety came from the leaf's
+`extent`, which says how much of a *section* the artwork is for and nothing about the box it lands
+in. Both now read the resolved reservation, which is what §7.6a #2 meant by the brief following the
+layout.
+
+`VISUAL_ART_INTENT_VERSION` bumps to `v2`: `composition` is assembled from the resolved reservation
+and carries five facts, including the shape of the frame at **both** breakpoints, which did not fit
+in v1's 400 characters. Dropping one to keep the bound would have meant briefing an asset for one of
+the two pages it appears on.
+
+**Evidence, at zero cost.** `docs/model-evals/results/phase-4e-artwork-placement-hardening-locally-grown/`
+renders the capability spike's exact image bytes through the improved system — same concept, same
+content, same DesignIntent, same palette, same typography, no provider call. The artwork box at 1280
+goes from 527×312 to 528×873, the rendered image from 312×312 to 528×528, the scrim from 0.65 to
+none; at 390 from a 160px strip letterboxing the asset to a 240px band filling it. The asset still
+cannot move the page: removing it leaves both breakpoints byte-identical.
+
+Nothing is scored. Whether the result is *good* is the operator's, and the contact sheet puts the
+questions next to the pictures rather than answering them.
+
+**Verification.** typecheck, lint, format, unit, component, e2e, DB against a disposable local
+PostgreSQL, `proof-b/test.js` and `adv-run.js` at 37/37 repair-valid with zero overflow, rendered
+geometry clean at 390 and 1280, production build.
+
+---
+
 ## Documentation hierarchy
 
 `spec.md` Revision 6 → `technology-decisions.md` → `design-system.md` → `event-renderer-system.md` Revision 2 → `model-contracts.md` Revision 2 → `e2e-workflow.md` → `screen-spec.md` → this changelog → `development-plan.md` and `phase-4b-plan.md` (which order work and define no requirements) → prototypes and proof folders as evidence. Revision 5 files are preserved unchanged where superseded text was moved, not rewritten.
