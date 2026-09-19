@@ -36,6 +36,7 @@ import { expect, it } from "vitest";
 import { supabaseShim } from "../../tests/db/supabase-shim";
 import { withWrites } from "./pg-supabase-writes";
 import { diagnosticArtworkStore } from "./diagnostic-artwork-store";
+import { renderConcepts, type RenderJob } from "./render-concepts";
 import { runConceptBatch } from "@/lib/generation/concept-batch";
 import { deriveEventContent } from "@/lib/generation/event-content";
 import type { EventContentRow } from "@/lib/generation/content-profile";
@@ -104,67 +105,6 @@ function priceRun(row: {
       output * p.output) /
     1_000_000
   );
-}
-
-/* ------------------------------------------------------------------------ render */
-
-async function shoot(
-  jobs: readonly {
-    readonly name: string;
-    readonly spec: ResolvedDesignSpec;
-    readonly content: ReturnType<typeof deriveEventContent>;
-    readonly assets: ArtworkAssets;
-  }[],
-): Promise<Record<string, { width: number; height: number }>> {
-  if (jobs.length === 0) return {};
-  const [{ default: chromium }, { chromium: pw }] = await Promise.all([
-    import("@sparticuz/chromium"),
-    import("playwright-core"),
-  ]);
-  const browser = await pw.launch({
-    executablePath: await chromium.executablePath(),
-    args: chromium.args,
-    headless: true,
-  });
-  const sizes: Record<string, { width: number; height: number }> = {};
-  try {
-    const page = await (await browser.newContext({ deviceScaleFactor: 1 })).newPage();
-    for (const job of jobs) {
-      const { html } = buildMeasurableDocument({
-        spec: job.spec as never,
-        content: job.content,
-        overrides: job.spec.overrides,
-        artworkAssets: job.assets,
-      });
-      for (const [label, width] of [
-        ["mobile", 390],
-        ["desktop", 1280],
-      ] as const) {
-        await page.setViewportSize({ width, height: 900 });
-        await page.setContent(html, { waitUntil: "load" });
-        await page.evaluate(() => document.fonts.ready.then(() => undefined));
-        // `complete` is not enough for a first paint; `decode()` resolves when the frame is
-        // paintable. Two animation frames afterwards let the compositor settle.
-        await page.evaluate(() =>
-          Promise.all([...document.images].map((i) => i.decode().catch(() => undefined))).then(
-            () =>
-              new Promise<void>((r) =>
-                requestAnimationFrame(() => requestAnimationFrame(() => r())),
-              ),
-          ),
-        );
-        const box = await page.evaluate(() => ({
-          width: document.documentElement.scrollWidth,
-          height: document.documentElement.scrollHeight,
-        }));
-        sizes[`${job.name}-${label}`] = box;
-        await page.screenshot({ path: path.join(VIS, `${job.name}-${label}.png`), fullPage: true });
-      }
-    }
-  } finally {
-    await browser.close();
-  }
-  return sizes;
 }
 
 /* ------------------------------------------------------------------------- the smoke */
@@ -389,7 +329,7 @@ it(
     }
 
     // ---- renders: the final page, plus a no-art diagnostic pair for any concept that got art.
-    const jobs: Parameters<typeof shoot>[0][number][] = [];
+    const jobs: RenderJob[] = [];
     for (const row of specs) {
       const spec = row.spec as ResolvedDesignSpec;
       const n = (row.concept_index as number) + 1;
@@ -401,7 +341,7 @@ it(
         jobs.push({ name: `concept-${n}-no-art`, spec, content, assets: {} });
       }
     }
-    const pageSizes = await shoot(jobs);
+    const pageSizes = await renderConcepts(jobs, VIS);
 
     // ---- evidence
     const write = (file: string, value: unknown) =>
