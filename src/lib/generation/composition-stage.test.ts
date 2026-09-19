@@ -122,7 +122,17 @@ function request(over: Partial<CompositionStageRequest> = {}): CompositionStageR
 function verified() {
   return {
     state: "verified",
-    spec: { verified: { clean: true } },
+    // A verified spec always carries these. A fixture that omitted them would let the artwork
+    // reservation path pass on a shape production never produces.
+    spec: {
+      verified: {
+        clean: true,
+        mobile: { artworkBoxes: {} },
+        desktop: { artworkBoxes: {} },
+      },
+      artwork: {},
+      tokens: { palette: {} },
+    },
     raw: TREE,
     canonical: TREE,
     compositionHash: "hash-a",

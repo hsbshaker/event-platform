@@ -48,12 +48,26 @@ import type { DesignIntent, Deviation, Presentation } from "@/lib/renderer/desig
 import type { AttractiveTokenId } from "@/lib/renderer/planner";
 import type { CompositionBrief } from "@/lib/ai/composition/brief";
 import type { CollisionCheck } from "@/lib/ai/composition/contract";
+import { assembleVisualArtIntent } from "@/lib/ai/visual-art/assemble";
+import { runArtworkStage, type ArtworkStageDeps, type ArtworkStageOutcome } from "./artwork-stage";
+import type { ArtworkSlotReservation, ReservedBox } from "./persist-artwork";
 import { compileConcept, type RepromptsSpent } from "./compile-concept";
 import { persistConcept } from "./persist-concept";
 import { recordSiblingStageRun, settleSibling, type SiblingRunTelemetry } from "./batch";
 import type { EventContent } from "@/components/event-renderer/contract";
 
 type Admin = SupabaseClient<Database>;
+
+/**
+ * One breakpoint's measured artwork box, or zeroes.
+ *
+ * Zeroes rather than a throw: a slot whose box rendered geometry did not report is a slot the
+ * verifier could not see, which is a fact worth persisting rather than a reason to fail a verified
+ * concept. It cannot happen for a rendering slot, and if it ever does the record says so.
+ */
+function boxOf(measured: { width: number; height: number } | undefined): ReservedBox["mobile"] {
+  return { widthPx: Math.round(measured?.width ?? 0), heightPx: Math.round(measured?.height ?? 0) };
+}
 
 /** `model_operation` for this stage's runs. */
 export const COMPOSITION_OPERATION = "composition" as const;
@@ -111,6 +125,14 @@ export interface CompositionStageRequest {
   readonly designIntentPromptVersion: string;
   readonly designIntentSchemaVersion: string;
   readonly content: EventContent;
+  /**
+   * The artwork lifecycle's dependencies, or absent to run no artwork stage at all.
+   *
+   * Absent is the ordinary case for every caller that has not been handed a provider, a budget and
+   * a store — and the concept is complete either way, because the spec is verified before any image
+   * exists and an empty reservation is a finished page (`spec.md §7.6a #1`).
+   */
+  readonly artwork?: ArtworkStageDeps;
   readonly call: CompositionRunnerRequest;
   readonly tokenAllotment: Json;
   /** Siblings already settled in this batch, plus redesign history, for the selector. */
@@ -143,6 +165,10 @@ export type CompositionStageOutcome =
       readonly nearestSibling: number;
       readonly fallback: "library" | null;
       readonly repromptsUsed: RepromptsSpent;
+      /** Every artwork slot the compiler admitted, with the brief persisted for it. */
+      readonly artworkSlots: readonly ArtworkSlotReservation[];
+      /** What the artwork lifecycle did, or `null` when no artwork stage ran. */
+      readonly artwork: ArtworkStageOutcome | null;
     }
   | {
       readonly state: "failed";
@@ -232,10 +258,31 @@ export async function runCompositionStage(
     return { state: "failed", kind: compiled.kind, detail: compiled.detail, repromptsUsed: spent };
   }
 
-  // Verified. Persist, then settle — in that order, so a sibling is never `succeeded` with no
-  // concept behind it.
+  // Verified. Every artwork the compiler admitted becomes a reserved slot with its brief, built
+  // from the *resolved* reservation and the box rendered geometry actually measured — not from the
+  // leaf, and not from an estimate (`docs/event-renderer-system.md §8`).
+  const artworkSlots: ArtworkSlotReservation[] = Object.entries(compiled.spec.artwork)
+    .filter(([, slot]) => slot.render)
+    .map(([slotId, slot]) => ({
+      slotId,
+      role: slot.role,
+      extent: slot.extent,
+      box: {
+        mobile: boxOf(compiled.spec.verified.mobile.artworkBoxes[slotId]),
+        desktop: boxOf(compiled.spec.verified.desktop.artworkBoxes[slotId]),
+      },
+      intent: assembleVisualArtIntent({
+        slot,
+        identity: request.call.brief,
+        palette: compiled.spec.tokens.palette,
+      }),
+    }));
+
+  // Persist, then settle — in that order, so a sibling is never `succeeded` with no concept
+  // behind it.
   try {
     const persisted = await persistConcept(admin, {
+      artworkSlots,
       eventId: request.eventId,
       round: request.round,
       conceptIndex: request.conceptIndex,
@@ -258,6 +305,20 @@ export async function runCompositionStage(
       spec: compiled.spec,
     });
 
+    // The artwork lifecycle, for this concept alone. `spec.md §7.10 #5` makes readiness
+    // concept-level, and artwork must not undo that: concept 0 does not wait for concept 2's
+    // images. Absent deps mean no artwork stage runs at all, which is every caller that has not
+    // been given a provider — and the concept is complete either way, because the spec is already
+    // verified and an empty reservation is a finished page.
+    const artwork =
+      request.artwork && artworkSlots.length > 0
+        ? await runArtworkStage(
+            admin,
+            { resolvedSpecId: persisted.resolvedSpecId, slots: artworkSlots },
+            request.artwork,
+          )
+        : null;
+
     await settleSibling(
       admin,
       request.batchId,
@@ -274,6 +335,8 @@ export async function runCompositionStage(
       nearestSibling: nearest ?? compiled.nearestSibling,
       fallback: attempt.fallback,
       repromptsUsed: spent,
+      artworkSlots,
+      artwork,
     };
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);

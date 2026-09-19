@@ -38,6 +38,7 @@
  * `spec.md §32 #12`, `#13`, `#32`. Canon: `spec.md §7.6a`, `docs/product-doctrine.md §10`.
  */
 import type { EventIdentity } from "@/lib/ai/event-identity/contract";
+import type { CompositionBrief } from "@/lib/ai/composition/brief";
 import type { AspectClass, ResolvedArtwork } from "@/lib/renderer/compile/artwork";
 import type { SemanticPalette } from "@/lib/renderer/compile/palette";
 import type { Anchor, ArtworkRole, Extent } from "@/lib/renderer/composition/tokens";
@@ -227,7 +228,7 @@ function compositionContext(slot: ResolvedArtwork): string {
 }
 
 /** What to depict, from the interpretation the strong model already authored. */
-function subjectFor(identity: EventIdentity, slot: ResolvedArtwork): string {
+function subjectFor(identity: CompositionBrief, slot: ResolvedArtwork): string {
   const motifs = identity.visualMotifs.slice(0, 3).join(", ");
   const focus: Record<ArtworkRole, string> = {
     anchor: "One illustrative subject that could carry this page on its own",
@@ -240,14 +241,21 @@ function subjectFor(identity: EventIdentity, slot: ResolvedArtwork): string {
 }
 
 /** The stylistic language, from the identity's own tactile reading of the event. */
-function mediumFor(identity: EventIdentity): string {
+function mediumFor(identity: CompositionBrief): string {
   return `Original illustration. ${identity.textureDirection}`;
 }
 
 export interface AssembleArtIntentInput {
   /** The compiler's reservation for one slot. Must be one it decided to render. */
   readonly slot: ResolvedArtwork;
-  readonly identity: EventIdentity;
+  /**
+   * The carried set, and only it.
+   *
+   * `CompositionBrief` *is* the four fields `BRIEF_DISPOSITION` marks carried, which makes the
+   * withheld ones structurally unreachable here rather than merely undocumented — the disposition
+   * map below stays as the guard that a new `EventIdentity` field gets a decision at all.
+   */
+  readonly identity: CompositionBrief;
   /** The compiled semantic palette — what the page actually is, not what was asked for. */
   readonly palette: SemanticPalette;
 }

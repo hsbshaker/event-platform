@@ -50,6 +50,16 @@ export interface BreakpointSummary {
   readonly measuredTexts: number;
   readonly excludedTexts: number;
   readonly heroHeight: number;
+  /**
+   * The rendered box of every artwork reservation at this breakpoint, keyed by canonical node id.
+   *
+   * `{}` for a page with no artwork. Part of the verified record rather than a side measurement,
+   * because it is the evidence that placement was the compiler's: a reservation nobody measured is
+   * a claim, and this is the number a persisted slot stores.
+   */
+  readonly artworkBoxes: Readonly<
+    Record<string, { readonly width: number; readonly height: number }>
+  >;
 }
 
 export type BreakpointSummaries = Record<Breakpoint, BreakpointSummary>;

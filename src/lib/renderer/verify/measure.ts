@@ -178,6 +178,15 @@ export interface PageMeasurement {
   readonly overflowingTotal: number;
   /** Vertical-writing-mode and decoration text, excluded by rule rather than by failure. */
   readonly excludedTexts: number;
+  /**
+   * The rendered box of every artwork reservation, keyed by canonical node id.
+   *
+   * Empty for a page with no artwork, which is most of them. Present whether or not an asset has
+   * been generated: the reservation is what was measured, and an asset cannot change it.
+   */
+  readonly artworkBoxes: Readonly<
+    Record<string, { readonly width: number; readonly height: number }>
+  >;
 }
 
 export interface MeasureOptions {
@@ -557,8 +566,26 @@ export function measureInPage(options: MeasureOptions): PageMeasurement {
   const root = document.documentElement;
   const hero = document.querySelector(".ev-section.ev-kind-hero");
 
+  /*
+   * The box every artwork reservation actually got, keyed by canonical node id.
+   *
+   * Measured rather than derived, because this is the number that goes into the record proving
+   * placement was compiler-owned, and a reservation reconstructed from the CSS ladder would be an
+   * estimate wearing the clothes of evidence. It is read on the page that geometry verification
+   * already renders, so it costs no extra pass, and it is read whether or not an asset exists —
+   * which is the point: the reservation is the geometry, and the asset only fills it.
+   */
+  const artworkBoxes: Record<string, { width: number; height: number }> = {};
+  for (const el of Array.prototype.slice.call(document.querySelectorAll(".ev-art[data-id]"))) {
+    const id = (el as Element).getAttribute("data-id");
+    if (!id) continue;
+    const r = (el as Element).getBoundingClientRect();
+    artworkBoxes[id] = { width: r.width, height: r.height };
+  }
+
   return {
     mode: options.mode,
+    artworkBoxes,
     viewport: options.viewport,
     documentWidth: root.scrollWidth,
     clientWidth: root.clientWidth,

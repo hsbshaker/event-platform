@@ -207,6 +207,7 @@ function fakePage(
         overflowing,
         overflowingTotal: overflowing.length,
         excludedTexts: 0,
+        artworkBoxes: {},
       };
     },
   };
@@ -327,6 +328,7 @@ function measurementWith(
     overflowing: [],
     overflowingTotal: 0,
     excludedTexts: 0,
+    artworkBoxes: {},
   };
 }
 
@@ -562,6 +564,7 @@ describe("structural relaxation", () => {
 
 describe("the clean predicate", () => {
   const ok: BreakpointSummary = {
+    artworkBoxes: {},
     viewport: { width: 1280, height: 800 },
     documentWidth: 1280,
     clientWidth: 1280,

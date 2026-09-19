@@ -225,6 +225,12 @@ export function summarise(m: PageMeasurement, tolerancePx: number): BreakpointSu
     measuredTexts: m.texts.length,
     excludedTexts: m.excludedTexts,
     heroHeight: round2(m.heroHeight),
+    artworkBoxes: Object.fromEntries(
+      Object.entries(m.artworkBoxes).map(([id, b]) => [
+        id,
+        { width: round2(b.width), height: round2(b.height) },
+      ]),
+    ),
   };
 }
 
