@@ -148,12 +148,8 @@ describe("the generation projection", () => {
       { index: 2, stage: "planned", previewable: false, settled: false },
     ]);
     // Nothing invented for a concept that has produced nothing: no name, no palette, no counter.
-    for (const entry of view.concepts) expect(Object.keys(entry).sort()).toEqual([
-      "index",
-      "previewable",
-      "settled",
-      "stage",
-    ]);
+    for (const entry of view.concepts)
+      expect(Object.keys(entry).sort()).toEqual(["index", "previewable", "settled", "stage"]);
   });
 
   it("walks one concept through designing and composing while its siblings wait", () => {
@@ -364,14 +360,39 @@ describe("artwork, as counts of rows", () => {
     expect(view.concepts[0].settled).toBe(true);
   });
 
-  it("counts a reserved or requested slot as pending, and holds the concept unsettled", () => {
-    const view = projectGenerationView(ready([slot(0, "reserved"), slot(0, "requested")]));
+  it("holds a concept unsettled while its own artwork is genuinely in flight", () => {
+    // `runArtworkStage` is awaited *before* `settleSibling`, so artwork that is really being made
+    // always sits beneath a sibling that has not settled. That is what unsettled means.
+    const view = projectGenerationView(
+      rows({
+        batch: { round: 1, status: "running" },
+        siblings: [sibling(0, "running")],
+        artifacts: [artifact(0)],
+        concepts: [concept(0)],
+        specs: [spec(0)],
+        slots: [slot(0, "reserved"), slot(0, "requested")],
+      }),
+    );
 
     expect(view.concepts[0].artwork).toEqual({ pending: 2, delivered: 0, failed: 0 });
     // Previewable regardless: the spec was verified and frozen before any image existed
     // (`spec.md §7.6a #1`), so a concept never waits on its artwork to be shown.
     expect(view.concepts[0].previewable).toBe(true);
     expect(view.concepts[0].settled).toBe(false);
+  });
+
+  it("settles a concept whose reservations were never acted on", () => {
+    // The ordinary shape of every batch that runs with no artwork provider: the compiler reserves
+    // a slot for any direction whose ornament admits one, nothing requests it, and the sibling
+    // settles anyway. Reading those rows as pending made the surface say *Artwork is still being
+    // made for this one* for ever, about work that had already stopped — which is the fabricated
+    // progress `spec.md §31` forbids.
+    const view = projectGenerationView(ready([slot(0, "reserved"), slot(0, "reserved")]));
+
+    expect(view.concepts[0].settled).toBe(true);
+    // The counts stay raw row facts. They are not massaged to agree with `settled`; the rows do
+    // say two slots were reserved and never filled, and that is worth being able to read.
+    expect(view.concepts[0].artwork).toEqual({ pending: 2, delivered: 0, failed: 0 });
   });
 
   it("settles once every slot has delivered or failed", () => {

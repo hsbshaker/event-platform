@@ -389,11 +389,20 @@ export function projectGenerationView(rows: GenerationStateRows): GenerationView
       ? artwork(rows.slots.filter((slot) => slot.resolvedSpecId === spec.id))
       : undefined;
 
-    // A concept is settled when nothing further is coming for it: its sibling has reached a
-    // terminal state and no artwork slot is still outstanding.
-    const settled =
-      (sibling.status === "succeeded" || sibling.status === "failed" || !batchInFlight) &&
-      (slots === undefined || slots.pending === 0);
+    // A concept is settled when nothing further is coming for it — and once its sibling is
+    // terminal, nothing can be, whatever the slot rows still say.
+    //
+    // `runArtworkStage` is awaited *before* `settleSibling`, so a slot left `reserved` or
+    // `requested` beneath a terminal sibling is not work in progress: it is a reservation the run
+    // finished without acting on, which is exactly what happens on every batch that runs with no
+    // artwork provider — the compiler reserves a slot for any direction whose ornament admits one,
+    // and nothing ever requests it.
+    //
+    // Reading those rows as "still pending" made the surface say *Artwork is still being made for
+    // this one* for ever, about work that had already stopped. `spec.md §31` forbids "fabricated
+    // progress", and a note that never resolves is exactly that, so the sibling's own terminal
+    // state is what decides. The counts below stay raw row facts and are not adjusted to match.
+    const settled = sibling.status === "succeeded" || sibling.status === "failed" || !batchInFlight;
 
     return {
       index,

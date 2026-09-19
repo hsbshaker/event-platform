@@ -251,8 +251,8 @@ const siblingStatuses = async (batchId: string) =>
   ).rows;
 
 const batchStatus = async (batchId: string) =>
-  (await db.query(`select status from public.generation_batches where id = $1`, [batchId]))
-    .rows[0].status as string;
+  (await db.query(`select status from public.generation_batches where id = $1`, [batchId])).rows[0]
+    .status as string;
 
 beforeAll(async () => {
   db = await connect();
@@ -283,10 +283,10 @@ beforeEach(async () => {
   );
   revisionId = revisions[0].id as string;
 
-  await db.query(
-    `update public.events set authoritative_identity_revision_id = $1 where id = $2`,
-    [revisionId, eventId],
-  );
+  await db.query(`update public.events set authoritative_identity_revision_id = $1 where id = $2`, [
+    revisionId,
+    eventId,
+  ]);
 });
 
 describe("the generation read model, over real rows", () => {
@@ -398,8 +398,11 @@ describe("the generation read model, over real rows", () => {
   });
 
   it("counts artwork slots, and holds a concept unsettled while one is outstanding", async () => {
-    const batchId = await makeBatch({ round: 1, status: "completed" });
-    await makeSiblings(batchId, ["succeeded"]);
+    // The batch is still running, which is the only state artwork is ever really made in:
+    // `runArtworkStage` is awaited before `settleSibling`, so a slot in flight always sits beneath
+    // a sibling that has not settled.
+    const batchId = await makeBatch({ round: 1, status: "running" });
+    await makeSiblings(batchId, ["running"]);
     const specId = await makeReadyConcept(batchId, 1, 0);
     await reserveSlot(specId, "hero-anchor");
     await reserveSlot(specId, "footer-mark");
@@ -420,6 +423,29 @@ describe("the generation read model, over real rows", () => {
     await db.query(
       `select public.fail_artwork_slot($1, 'footer-mark', 'provider_unavailable', null)`,
       [specId],
+    );
+
+    // The sibling settles once its own artwork stage has finished, which is the real ordering.
+    // A succeeded sibling must name the paid run behind it — `generation_batch_siblings_success_has_run`
+    // is what stops a sibling claiming an outcome nothing was charged for.
+    const { rows: runRows } = await db.query(
+      `insert into public.generation_runs
+         (event_id, user_id, provider, operation, model, latency_ms, success, prompt_version,
+          schema_version, idempotency_key)
+       values ($1, $2, 'openai', 'design_intent', 'gpt-5.6-sol', 1200, true, 'design_intent_v6',
+               'design_intent_schema_v6', $3)
+       returning id`,
+      [eventId, ownerId, `${batchId}:artwork-settle`],
+    );
+    await db.query(
+      `update public.generation_batch_siblings
+          set status = 'succeeded', settled_at = now(), generation_run_id = $2
+        where batch_id = $1 and concept_index = 0`,
+      [batchId, runRows[0].id as string],
+    );
+    await db.query(
+      `update public.generation_batches set status = 'completed', settled_at = now() where id = $1`,
+      [batchId],
     );
 
     const settled = await read();
