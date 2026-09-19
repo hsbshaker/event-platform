@@ -162,16 +162,28 @@ export function validateStructure(tree: CompositionTree, caps: Capabilities): Vi
         "Overlay content must be a text-bearing Stack, Frame or Split",
       );
     if (parentKey === "decoration") {
+      // Artwork is admitted here because `atmosphere` is defined as artwork *behind text*, and
+      // this is the only slot that means "behind the content" — refusing it would leave a role
+      // with nowhere to live. What makes it safe is not the per-section cap: a motif is safe here
+      // because the compiler draws it in a colour and opacity it chose, so contrast is computable,
+      // and an image's content is unknown until it exists. Admitting Artwork under an Overlay
+      // therefore obliges the compiler to place a deterministic readability scrim between the
+      // artwork and the text and to compute contrast against that scrim, which is a colour it
+      // owns (`spec.md §7.6a #5`: text readability always wins over artwork).
       const ok =
         node.t === "MotifField" ||
         node.t === "Monogram" ||
         node.t === "Glyph" ||
+        node.t === "Artwork" ||
         (node.t === "Date" && (node as DateNode).form === "numeral");
       if (!ok)
         add(
           "nesting.overlayDecoration",
           path,
-          "decoration must be MotifField, Monogram, Glyph or Date numeral",
+          // Capability-scoped like the prompt text: a concept that may not place artwork is not
+          // told about a slot it cannot use, and the message stays byte-identical to what it was
+          // before the primitive existed.
+          `decoration must be MotifField, Monogram, Glyph${caps.artwork ? ", Artwork" : ""} or Date numeral`,
         );
     }
     if (parentKey === "layout" && !["Grid", "Stack", "Split"].includes(node.t))
@@ -260,6 +272,9 @@ export function validateStructure(tree: CompositionTree, caps: Capabilities): Vi
       add("capability.node", path, "Deadline not available");
     if (node.t === "CashFund" && !caps.cashFund)
       add("capability.node", path, "CashFund not available");
+    // Artwork is opt-in and absent means disabled (`spec.md §7.6a #1`; `Capabilities.artwork`).
+    if (node.t === "Artwork" && !caps.artwork)
+      add("capability.node", path, "Artwork not available");
     if (node.t === "RSVP" && !caps.rsvp) add("capability.node", path, "RSVP not available");
     if (node.t === "Registry" && !caps.registry)
       add("capability.node", path, "Registry not available");

@@ -12,6 +12,7 @@
 import type {
   Align,
   Anchor,
+  ArtworkRole,
   BandHeight,
   Emphasis,
   Extent,
@@ -133,6 +134,31 @@ export interface Monogram {
   style: "ring" | "plain" | "watermark";
 }
 
+/**
+ * A declared place for original AI-generated thematic artwork (`spec.md §7.6a`).
+ *
+ * This leaf is the **where**, never the what. It carries a `role` and an `extent` and nothing
+ * else: no url, no src, no width, height or aspect ratio, no coordinates, no colour and no free
+ * text. §7.6a #3 reserves placement to the compiler — "the model never places the image" — and
+ * §32 #13 forbids a per-node pixel, colour or free-text field, so the creative brief (subject,
+ * medium, palette relationship, crop safety, negative space) lives in `VisualArtIntent`, which is
+ * assembled *afterwards* from the resolved placement and is a sibling of the tree rather than a
+ * field inside it (`docs/product-doctrine.md §401`).
+ *
+ * It is a declaration of intent, not a dependency on an asset. A tree carrying an `Artwork` is
+ * structurally valid and renderable when no artwork exists or generation fails; the compiler
+ * resolves the leaf to reserved space and the page stands without it (§7.6a #1, #5).
+ *
+ * `extent` reuses the existing size vocabulary exactly as `MotifField` and `Overlay` do, and is
+ * optional for the same reason `MotifField.extent` is: the compiler has a sensible default per
+ * role, and the product's job is to remove decisions rather than demand them.
+ */
+export interface Artwork {
+  t: "Artwork";
+  role: ArtworkRole;
+  extent?: Extent;
+}
+
 // ---------------------------------------------------------------- semantic leaves
 
 export type TextKind =
@@ -200,6 +226,7 @@ export type CNode =
   | RuleNode
   | Glyph
   | Monogram
+  | Artwork
   | TextNode
   | DateNode
   | CTA
@@ -244,6 +271,21 @@ export interface Capabilities {
   time: boolean;
   location: boolean;
   deadline: boolean;
+  /**
+   * Whether this concept may place thematic artwork (`spec.md §7.6a`).
+   *
+   * **Optional, and absent means disabled.** Artwork is optional by product rule — "every event
+   * site gets an image" is explicitly not one (§7.6a #1) — and the decision is an upstream
+   * optionality gate's, not the composition model's. Default-deny is therefore the correct
+   * failure state: a caller that has not been told artwork is enabled gets a language with no
+   * `Artwork` in it, and an `Artwork` node arriving anyway is a `capability.node` violation that
+   * is stripped deterministically.
+   *
+   * Optional rather than required so that every existing `Capabilities` value keeps its meaning
+   * unchanged, which is also what keeps `specText`/`rulesText` byte-identical to the `proof-b`
+   * reference for every caps object that predates artwork.
+   */
+  artwork?: boolean;
 }
 
 /**

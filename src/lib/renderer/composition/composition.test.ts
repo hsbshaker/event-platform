@@ -22,6 +22,7 @@ import type { Capabilities, CompositionTree } from "./nodes";
 import { heroSimilarity, seqSim, similarity, skeleton } from "./signature";
 import { validateSchema } from "./validate-schema";
 import { validateStructure } from "./validate-structure";
+import { rulesText, specText } from "./prompt-text";
 import { clone, countNodes, walk } from "./walk";
 import { novelTree } from "../../../../tests/fixtures/novel-composition";
 
@@ -632,3 +633,245 @@ describe("signature calibration", () => {
       ).toBe(1);
   });
 });
+
+
+/**
+ * The Artwork leaf (`spec.md §7.6a`, primitive set `composition_v2`).
+ *
+ * Artwork is the composition language's answer to "where", never "what". Every rule added with it
+ * is structural or capability-scoped, so every one of them repairs deterministically and none is
+ * ever a re-prompt (`spec.md §32` #21, #22, #24).
+ */
+describe("the Artwork leaf", () => {
+  const ART_CAPS: Capabilities = { ...FULL_CAPS, artwork: true };
+
+  /** A hero that satisfies coverage on its own, plus whatever artwork a test wants to place. */
+  const heroWith = (...extra: Record<string, unknown>[]) =>
+    ({
+      t: "Stack",
+      gap: "normal",
+      children: [
+        { t: "EventTitle", emphasis: "display" },
+        { t: "Venue" },
+        { t: "Date", form: "full" },
+        ...extra,
+      ],
+    }) as unknown as CompositionTree["sections"][number]["root"];
+
+  /** Repair, and assert it left nothing behind. */
+  const repaired = (tree: CompositionTree, caps: Capabilities) => {
+    const out = repair(tree, caps);
+    expect(out.remaining, "repair left violations behind").toEqual([]);
+    expect(validateStructure(out.tree, caps)).toEqual([]);
+    return out;
+  };
+
+  describe("validates", () => {
+    it("accepts the leaf with only its required role, in every role", () => {
+      for (const role of ["anchor", "object", "atmosphere", "framed"]) {
+        const tree = simplePage(heroWith({ t: "Artwork", role }));
+        expect(validateSchema(tree).ok, role).toBe(true);
+        expect(validateStructure(tree, ART_CAPS), role).toEqual([]);
+      }
+    });
+
+    it("accepts the leaf with every optional prop set, in every extent", () => {
+      for (const extent of ["quarter", "third", "half", "full"]) {
+        const tree = simplePage(heroWith({ t: "Artwork", role: "anchor", extent }));
+        expect(validateSchema(tree).ok, extent).toBe(true);
+        expect(validateStructure(tree, ART_CAPS), extent).toEqual([]);
+      }
+    });
+
+    it("carries no asset, no geometry and no creative brief", () => {
+      // `spec.md §7.6a #3` and `§32 #13`: the leaf says where artwork goes, never what it is or
+      // how big it is. The brief is assembled downstream into `VisualArtIntent`.
+      const tree = simplePage(heroWith({ t: "Artwork", role: "anchor", extent: "half" }));
+      expect(validateSchema(tree).ok).toBe(true);
+      walk(tree, ({ node: n }) => {
+        if (n.t !== "Artwork") return;
+        expect(Object.keys(n).sort()).toEqual(["extent", "role", "t"]);
+      });
+    });
+
+    it("stays valid and renderable with no asset in existence", () => {
+      // The leaf is a declaration of intent, not a dependency. Nothing downstream of the language
+      // needs an asset for the tree to canonicalize and resolve.
+      const tree = simplePage(heroWith({ t: "Artwork", role: "atmosphere" }));
+      expect(validateStructure(tree, ART_CAPS)).toEqual([]);
+      const canon = canonicalize(tree);
+      expect(validateStructure(canon.tree, ART_CAPS)).toEqual([]);
+      const layout = resolveLayout(canon.tree, "balanced");
+      // The leaf resolves to a real layout entry, so the compiler has somewhere to put artwork —
+      // and the page still resolves when nothing ever fills it.
+      expect(Object.keys(layout).length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("capability scoping", () => {
+    it("is a capability violation when artwork is not enabled, and is stripped", () => {
+      const tree = simplePage(heroWith({ t: "Artwork", role: "anchor" }));
+      const violations = validateStructure(tree, FULL_CAPS);
+      expect(violations.map((v) => v.rule)).toEqual(["capability.node"]);
+      expect(violations[0].detail).toBe("Artwork not available");
+
+      const out = repaired(tree, FULL_CAPS);
+      expect(out.repairs.some((r) => r.rule === "capability.node" && r.kind === "capability")).toBe(
+        true,
+      );
+      expect(countArtwork(out.tree)).toBe(0);
+    });
+
+    it("treats an absent artwork flag as disabled, never as permitted", () => {
+      // Default-deny: `Capabilities.artwork` is optional, and a caller that never heard of
+      // artwork must not silently be granted it.
+      const tree = simplePage(heroWith({ t: "Artwork", role: "anchor" }));
+      expect("artwork" in FULL_CAPS).toBe(false);
+      expect(validateStructure(tree, FULL_CAPS).map((v) => v.rule)).toEqual(["capability.node"]);
+      expect(validateStructure(tree, { ...FULL_CAPS, artwork: false }).map((v) => v.rule)).toEqual([
+        "capability.node",
+      ]);
+      expect(validateStructure(tree, ART_CAPS)).toEqual([]);
+    });
+
+    it("is not offered in the prompt unless artwork is enabled", () => {
+      expect(specText(FULL_CAPS)).not.toContain("Artwork");
+      expect(rulesText(FULL_CAPS)).not.toContain("Artwork");
+      expect(specText(ART_CAPS)).toMatch(/^Artwork /m);
+      expect(rulesText(ART_CAPS)).toContain("Artwork");
+      // And the caps that predate artwork produce exactly the bytes they always did.
+      expect(specText({ ...FULL_CAPS, artwork: false })).toBe(specText(FULL_CAPS));
+      expect(rulesText({ ...FULL_CAPS, artwork: false })).toBe(rulesText(FULL_CAPS));
+    });
+  });
+
+  describe("placement", () => {
+    it("may be an Overlay decoration, behind the text", () => {
+      const tree = simplePage({
+        t: "Overlay",
+        anchor: "center",
+        extent: "full",
+        mobile: "stack",
+        content: heroWith(),
+        decoration: { t: "Artwork", role: "atmosphere", extent: "full" },
+      } as unknown as CompositionTree["sections"][number]["root"]);
+      expect(validateStructure(tree, ART_CAPS)).toEqual([]);
+    });
+
+    it("is refused where any decorative leaf is refused, and repaired there", () => {
+      const cases: [string, CompositionTree][] = [
+        // a bare leaf cannot be a section root
+        ["sections.root", simplePage({ t: "Artwork", role: "anchor" } as never)],
+        // a Cluster is an inline row of small items
+        [
+          "nesting.cluster",
+          simplePage(
+            heroWith({
+              t: "Cluster",
+              children: [{ t: "Time" }, { t: "Artwork", role: "object" }],
+            }),
+          ),
+        ],
+        // a Rail's rail is a MotifField or a Stack of small leaves
+        [
+          "nesting.rail",
+          simplePage({
+            t: "Rail",
+            side: "start",
+            width: "thin",
+            mobile: "top",
+            rail: { t: "Artwork", role: "object" },
+            child: heroWith(),
+          } as unknown as CompositionTree["sections"][number]["root"]),
+        ],
+      ];
+      for (const [rule, tree] of cases) {
+        expect(validateStructure(tree, ART_CAPS).map((v) => v.rule), rule).toContain(rule);
+        repaired(tree, ART_CAPS);
+      }
+    });
+  });
+
+  describe("caps", () => {
+    it("allows one per section and drops the surplus", () => {
+      const tree = simplePage(
+        heroWith({ t: "Artwork", role: "anchor" }, { t: "Artwork", role: "object" }),
+      );
+      const violations = validateStructure(tree, ART_CAPS);
+      expect(violations.map((v) => v.rule)).toContain("limits.perSection");
+
+      const out = repaired(tree, ART_CAPS);
+      expect(countArtwork(out.tree)).toBe(1);
+      expect(
+        out.repairs.some((r) => r.rule === "limits.perSection" && r.after?.includes("dropped")),
+      ).toBe(true);
+    });
+
+    it("allows two per page and drops the surplus", () => {
+      const tree = simplePage(heroWith({ t: "Artwork", role: "anchor" }));
+      // one more in each of the other two sections: within the per-section cap, over the page cap
+      for (const i of [1, 2])
+        (tree.sections[i].root as { children: unknown[] }).children.push({
+          t: "Artwork",
+          role: "object",
+        });
+      expect(validateStructure(tree, ART_CAPS).map((v) => v.rule)).toContain("limits.perPage");
+
+      const out = repaired(tree, ART_CAPS);
+      expect(countArtwork(out.tree)).toBe(2);
+    });
+  });
+
+  describe("repair discipline", () => {
+    /**
+     * `spec.md §32` #21/#24: the three re-prompts are schema-invalid output, a token-cap
+     * violation and a selector collision. Nothing artwork adds may join that list, so every rule
+     * it introduces must repair to a clean tree and be logged by kind.
+     */
+    it("repairs every artwork defect deterministically, logged, and never re-promptably", () => {
+      const capability = simplePage(heroWith({ t: "Artwork", role: "anchor" }));
+      const overCap = simplePage(
+        heroWith({ t: "Artwork", role: "anchor" }, { t: "Artwork", role: "object" }),
+      );
+      // A bad enum is the one artwork defect the schema catches; it never reaches repair.
+      const badRole = simplePage(heroWith({ t: "Artwork", role: "mural" }));
+      expect(validateSchema(badRole).ok).toBe(false);
+
+      for (const [label, tree, caps] of [
+        ["capability", capability, FULL_CAPS],
+        ["over cap", overCap, ART_CAPS],
+      ] as const) {
+        expect(validateSchema(tree).ok, label).toBe(true);
+        const out = repaired(tree, caps);
+        expect(out.repairs.length, label).toBeGreaterThan(0);
+        for (const r of out.repairs) {
+          expect(r.rule, label).toBeTruthy();
+          expect(r.path, label).toBeTruthy();
+          expect(
+            ["structural", "coverage", "capability", "responsive", "planner"],
+            `${label} kind`,
+          ).toContain(r.kind);
+        }
+      }
+    });
+
+    it("is deterministic: the same defective tree repairs to the same tree twice", () => {
+      const tree = simplePage(
+        heroWith({ t: "Artwork", role: "anchor" }, { t: "Artwork", role: "object" }),
+      );
+      const a = repair(clone(tree), ART_CAPS);
+      const b = repair(clone(tree), ART_CAPS);
+      expect(JSON.stringify(a.tree)).toBe(JSON.stringify(b.tree));
+      expect(JSON.stringify(a.repairs)).toBe(JSON.stringify(b.repairs));
+    });
+  });
+});
+
+/** How many Artwork leaves a tree holds. */
+function countArtwork(tree: CompositionTree): number {
+  let n = 0;
+  walk(tree, ({ node }) => {
+    if (node.t === "Artwork") n++;
+  });
+  return n;
+}

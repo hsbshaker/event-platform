@@ -123,7 +123,7 @@ export function compositionJsonSchema(): JsonSchema {
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: "https://event-platform.local/schemas/composition.schema.json",
-    title: "CompositionTree (composition_schema_v1)",
+    title: "CompositionTree (composition_schema_v2)",
     description:
       "The model-authored page composition: trusted layout primitives with enum tokens only. " +
       "Generated from the production spec table (`src/lib/renderer/composition/spec.ts`), which " +

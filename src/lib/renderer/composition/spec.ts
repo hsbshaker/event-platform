@@ -149,6 +149,14 @@ export const NODE_SPEC: Record<string, NodeSpec> = {
     doc: "the initial",
     props: { style: { enum: ["ring", "plain", "watermark"], required: true } },
   },
+  Artwork: {
+    kind: "decorative",
+    doc: "a place for original thematic artwork; role says what it is for, extent how much room it takes. You choose where artwork belongs and what it is for — never what it depicts, how big it is in pixels, or where on the page it sits",
+    props: {
+      role: { enum: ENUM.ArtworkRole, required: true },
+      extent: { enum: ENUM.Extent },
+    },
+  },
   Eyebrow: textProps("short line above the title"),
   EventTitle: {
     kind: "text",
@@ -223,8 +231,8 @@ export const LIMITS = {
   nodesPerSection: 40,
   nodesPerPage: 160,
   depth: 5,
-  perSection: { Overlay: 1, Rail: 1, Grid: 1, Frame: 1, MotifField: 2 },
-  perPage: { Overlay: 2, Frame: 2 },
+  perSection: { Overlay: 1, Rail: 1, Grid: 1, Frame: 1, MotifField: 2, Artwork: 1 },
+  perPage: { Overlay: 2, Frame: 2, Artwork: 2 },
   bodyBytes: 12000,
   splitNesting: 2,
 };

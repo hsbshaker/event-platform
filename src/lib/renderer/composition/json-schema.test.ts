@@ -48,13 +48,51 @@ describe("the committed schema is generated, not hand-maintained", () => {
 });
 
 describe("the schema agrees with the production language", () => {
-  it("defines exactly the 29 primitives, and nothing else", () => {
+  it("defines exactly the 30 primitives, and nothing else", () => {
     const primitiveDefs = Object.keys(generated.$defs).filter(
       (k) => !["Node", "Section", "MotifRef"].includes(k),
     );
     expect(primitiveDefs.sort()).toEqual(Object.keys(NODE_SPEC).sort());
-    expect(primitiveDefs).toHaveLength(29);
-    expect(generated.$defs.Node.oneOf).toHaveLength(29);
+    expect(primitiveDefs).toHaveLength(30);
+    expect(generated.$defs.Node.oneOf).toHaveLength(30);
+  });
+
+  /**
+   * The artwork leaf is the *where*, never the *what* (`spec.md §7.6a #3`, `§32 #13`). The
+   * schema is the gate the model is actually constrained by, so the absence of a placement or
+   * asset field is asserted here rather than trusted to review.
+   */
+  it("gives Artwork a role and an extent, and no way to place or name an asset", () => {
+    const art = generated.$defs.Artwork;
+    expect(Object.keys(art.properties).sort()).toEqual(["extent", "role", "t"]);
+    expect(art.required.sort()).toEqual(["role", "t"]);
+    expect(art.additionalProperties).toBe(false);
+    expect(art.properties.role.enum).toEqual([...ENUM.ArtworkRole]);
+    expect(art.properties.extent.enum).toEqual([...ENUM.Extent]);
+
+    for (const forbidden of [
+      "url",
+      "src",
+      "asset",
+      "assetId",
+      "x",
+      "y",
+      "top",
+      "left",
+      "width",
+      "height",
+      "aspectRatio",
+      "zIndex",
+      "css",
+      "className",
+      "style",
+      "subject",
+      "medium",
+      "prompt",
+      "alt",
+      "color",
+    ])
+      expect(art.properties[forbidden], `Artwork.${forbidden}`).toBeUndefined();
   });
 
   it("gives every primitive exactly the props the spec table declares", () => {
@@ -154,6 +192,53 @@ describe("the schema and the validator judge the same trees", () => {
     for (const section of legal.sections)
       for (const key of Object.keys(section))
         expect(Object.keys(generated.$defs.Section.properties)).toContain(key);
+  });
+
+  it("accepts an Artwork leaf, and rejects an unknown prop on it", () => {
+    const withArt = {
+      ...legal,
+      sections: [
+        {
+          ...legal.sections[0],
+          root: {
+            t: "Stack",
+            children: [{ t: "EventTitle" }, { t: "Artwork", role: "anchor", extent: "half" }],
+          },
+        },
+        legal.sections[1],
+      ],
+    };
+    expect(validateSchema(withArt).ok).toBe(true);
+
+    const badProp = {
+      ...legal,
+      sections: [
+        {
+          ...legal.sections[0],
+          root: {
+            t: "Stack",
+            children: [
+              { t: "EventTitle" },
+              { t: "Artwork", role: "anchor", url: "https://example.test/a.png" },
+            ],
+          },
+        },
+        legal.sections[1],
+      ],
+    };
+    expect(validateSchema(badProp).ok).toBe(false);
+
+    const badRole = {
+      ...legal,
+      sections: [
+        {
+          ...legal.sections[0],
+          root: { t: "Stack", children: [{ t: "EventTitle" }, { t: "Artwork", role: "mural" }] },
+        },
+        legal.sections[1],
+      ],
+    };
+    expect(validateSchema(badRole).ok).toBe(false);
   });
 
   it("rejects an unknown primitive, as the validator does", () => {

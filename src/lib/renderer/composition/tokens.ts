@@ -21,6 +21,24 @@ export type SurfaceRole = "base" | "alt" | "contrast" | "accent";
 export type RuleWeight = "hairline" | "strong" | "double";
 export type Anchor = "top-start" | "top-end" | "bottom-start" | "bottom-end" | "center";
 export type Extent = "quarter" | "third" | "half" | "full";
+/**
+ * What a piece of artwork is *for* on this page.
+ *
+ * Closed, and the four entries are `spec.md §7.6a`'s own in-scope list rather than a taxonomy
+ * invented here: an illustrative anchor, transparent-background object art, subtle atmospheric
+ * artwork, and framed/editorial illustration.
+ *
+ * It lives here, in the composition language, rather than in the visual-art contract, because the
+ * composition tree is authored first and the role is the one thing about a piece of artwork the
+ * *tree* decides. `src/lib/ai/visual-art/contract.ts` re-exports this list so the leaf and the
+ * intent assembled from it cannot drift, and so the dependency runs ai → renderer, the direction
+ * `src/lib/ai/composition/contract.ts` already established.
+ *
+ * Role decides how the compiler realizes the asset and how it degrades when no asset exists, so a
+ * fifth role is a compiler change and a primitive-set version bump, never a prompt tweak.
+ */
+export const ARTWORK_ROLES = ["anchor", "object", "atmosphere", "framed"] as const;
+export type ArtworkRole = (typeof ARTWORK_ROLES)[number];
 export type MotifId =
   "plaid" | "stripe" | "gingham" | "linen" | "equestrian" | "botanical" | "celestial";
 export type MotifRole = "field" | "band" | "frame" | "divider" | "accent";
@@ -47,6 +65,7 @@ export const ENUM = {
   RuleWeight: ["hairline", "strong", "double"] as const,
   Anchor: ["top-start", "top-end", "bottom-start", "bottom-end", "center"] as const,
   Extent: ["quarter", "third", "half", "full"] as const,
+  ArtworkRole: ARTWORK_ROLES,
   MotifId: ["plaid", "stripe", "gingham", "linen", "equestrian", "botanical", "celestial"] as const,
   MotifRole: ["field", "band", "frame", "divider", "accent"] as const,
 };

@@ -507,6 +507,20 @@ export function repair(
             const si = r === "limits.perSection" ? Number(p.match(/\[(\d+)\]/)![1]) : -1;
             const target = findLast(tree, si, t)!;
             const n = getAt(target);
+            // An over-cap Artwork is dropped rather than substituted. Every other over-cap
+            // primitive has a meaningful reduction — an Overlay becomes its content, a Grid its
+            // cells — but artwork carries no content to preserve, and turning it into a `Rule`
+            // would invent ornament the model did not ask for (and, in a decoration slot, would
+            // immediately re-violate `nesting.overlayDecoration`). Dropping is only possible where
+            // a sibling remains; in a required single slot the existing substitution still
+            // applies, and `nesting.overlayDecoration` then normalizes it.
+            const arr = n.t === "Artwork" ? slotOf(target) : null;
+            if (Array.isArray(arr) && arr.length > 1) {
+              removeAt(target);
+              log(r, target, "structural", "Artwork", "dropped for artwork budget");
+              changed = true;
+              continue;
+            }
             const rep: any =
               n.t === "Overlay"
                 ? n.content

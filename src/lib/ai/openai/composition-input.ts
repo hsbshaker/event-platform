@@ -229,6 +229,10 @@ export const CAPABILITY_LABELS: Record<keyof Capabilities, string> = {
   time: "time",
   location: "location",
   deadline: "RSVP deadline",
+  // Artwork is opt-in and absent means disabled, so on most requests this is rendered on the
+  // "not available" side — which is the point of this map being exhaustive: the one thing worse
+  // than not offering a capability is not saying it is unavailable (`spec.md §7.6a #1`).
+  artwork: "thematic artwork",
 };
 
 /**

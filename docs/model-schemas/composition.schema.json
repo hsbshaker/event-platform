@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/composition.schema.json",
-  "title": "CompositionTree (composition_schema_v1)",
+  "title": "CompositionTree (composition_schema_v2)",
   "description": "The model-authored page composition: trusted layout primitives with enum tokens only. Generated from the production spec table (`src/lib/renderer/composition/spec.ts`), which is the same table the structural validator and the prompt's primitive spec are generated from — see docs/model-contracts.md §2. Never hand-edit this file. This schema is a superset gate: it rejects unknown primitives, unknown props and out-of-enum tokens. Nesting, depth, coverage, capability and limit rules are not expressible in JSON Schema and are repaired deterministically instead.",
   "type": "object",
   "additionalProperties": false,
@@ -587,6 +587,39 @@
         }
       }
     },
+    "Artwork": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "a place for original thematic artwork; role says what it is for, extent how much room it takes. You choose where artwork belongs and what it is for — never what it depicts, how big it is in pixels, or where on the page it sits",
+      "required": [
+        "t",
+        "role"
+      ],
+      "properties": {
+        "t": {
+          "type": "string",
+          "const": "Artwork"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "anchor",
+            "object",
+            "atmosphere",
+            "framed"
+          ]
+        },
+        "extent": {
+          "type": "string",
+          "enum": [
+            "quarter",
+            "third",
+            "half",
+            "full"
+          ]
+        }
+      }
+    },
     "Eyebrow": {
       "type": "object",
       "additionalProperties": false,
@@ -1080,6 +1113,9 @@
         },
         {
           "$ref": "#/$defs/Monogram"
+        },
+        {
+          "$ref": "#/$defs/Artwork"
         },
         {
           "$ref": "#/$defs/Eyebrow"

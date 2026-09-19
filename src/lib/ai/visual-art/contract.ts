@@ -42,6 +42,8 @@
  */
 import { z } from "zod";
 
+import { ARTWORK_ROLES } from "@/lib/renderer/composition/tokens";
+
 /** Bumps when this contract's fields, meanings or vocabulary change. */
 export const VISUAL_ART_INTENT_VERSION = "visual_art_intent_v1";
 
@@ -49,20 +51,25 @@ export const VISUAL_ART_INTENT_VERSION = "visual_art_intent_v1";
  * What the artwork is *for* on this page.
  *
  * Closed, and the four entries are `spec.md §7.6a`'s own in-scope list rather than a taxonomy
- * invented here. Role decides how the compiler realizes the asset and how failure degrades, so a
- * fifth role is a compiler change and a version bump, never a prompt tweak.
+ * invented here:
+ *
+ * - `anchor` — a single illustrative subject that carries the page's identity;
+ * - `object` — a transparent-background object or still life, composited against the page surface;
+ * - `atmosphere` — subtle atmospheric or background artwork, behind text;
+ * - `framed` — a framed editorial illustration occupying its own block.
+ *
+ * **Defined by the composition language and re-exported here, rather than declared twice.** The
+ * `Artwork` leaf in the tree and `VisualArtIntent.role` are the same closed vocabulary, and the
+ * tree is authored first: role is the one thing about a piece of artwork that the *composition*
+ * decides, so it belongs to the composition language and this contract reads it. The dependency
+ * therefore runs ai → renderer, the direction `src/lib/ai/composition/contract.ts` already
+ * establishes, and the renderer keeps no import of the provider layer (nor of `zod`).
+ *
+ * Role decides how the compiler realizes the asset and how failure degrades, so a fifth role is a
+ * compiler change and a primitive-set version bump, never a prompt tweak.
  */
-export const ARTWORK_ROLES = [
-  /** A single illustrative subject that carries the page's identity. */
-  "anchor",
-  /** A transparent-background object or still life, composited against the page surface. */
-  "object",
-  /** Subtle atmospheric or background artwork, behind text. */
-  "atmosphere",
-  /** A framed editorial illustration occupying its own block. */
-  "framed",
-] as const;
-export type ArtworkRole = (typeof ARTWORK_ROLES)[number];
+export { ARTWORK_ROLES } from "@/lib/renderer/composition/tokens";
+export type { ArtworkRole } from "@/lib/renderer/composition/tokens";
 
 /**
  * Whether the asset must carry its own transparency.
