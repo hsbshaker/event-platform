@@ -239,7 +239,18 @@ export const DESIGN_INTENT_INPUT_ASSEMBLY_VERSION = "design_intent_input_v2";
 export const CONCEPT_PREMISE_PROMPT_VERSION = "concept_premise_v1";
 export const CONCEPT_PREMISE_SCHEMA_VERSION = "concept_premise_schema_v1";
 export const CONCEPT_PREMISE_INPUT_ASSEMBLY_VERSION = "concept_premise_input_v1";
-export const COMPOSITION_PROMPT_VERSION = "composition_v1_p2";
+/**
+ * `p3` carries the host constraints (`docs/model-prompts/composition.system.md` block 1a).
+ *
+ * `p2` listed "constraints" inside block 1 without saying they bind, and the call shape in
+ * `src/lib/ai/provider.ts` — `{designIntent, capabilities, directive, reprompt?}` — had nowhere to
+ * put one. A host constraint whose subject is structure could therefore survive Event Identity and
+ * never reach the stage that authors structure. The block states the authority and scopes the
+ * obligation rather than filtering the evidence, for the reason in
+ * `src/lib/ai/composition/brief.ts`. Nothing else about `p2` changed, and the Phase B
+ * confirmation-run evidence behind `p2` is evidence about `p2`.
+ */
+export const COMPOSITION_PROMPT_VERSION = "composition_v1_p3";
 export const COMPOSITION_SCHEMA_VERSION = "composition_schema_v1";
 export const PRIMITIVE_SET_VERSION = "composition_v1";
 /**
