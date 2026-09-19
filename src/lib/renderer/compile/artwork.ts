@@ -54,6 +54,65 @@ import type { SemanticPalette } from "./palette";
  */
 export const ARTWORK_SCRIM_STEPS = [0.35, 0.5, 0.65, 0.8, 0.92] as const;
 
+/**
+ * How the artwork occupies its section. Resolved here, never authored by the model.
+ *
+ * The model already says three things about artwork: what it is *for* (`role`), how much of the
+ * section it is for (`extent`), and where in the tree it sits. That is the structural decision, and
+ * `CLAUDE.md §2` gives structure to the model. *Realizing* it — a zone or an overlap, cropped or
+ * whole, protected or not — is the compiler's, exactly as `spec.md §7.6a #3` says. So a treatment
+ * is a resolution, not a fifth knob: adding one changes this module and nothing the model sees,
+ * which is why the composition language, its schema and its prompt are untouched by this work.
+ *
+ * - `contained` — the artwork sits whole inside a zone of its own, nothing cropped. The page's
+ *   text is laid out beside it rather than over it.
+ * - `side-anchor` — a full-height column on one side of the section, cropped to fill it. The
+ *   artwork carries the section; the text takes the remaining column.
+ * - `field` — the artwork is the ground the section sits on, cropped to fill, with text over it.
+ *   The only treatment that needs a readability scrim, because it is the only one where text and
+ *   artwork genuinely share the same pixels.
+ * - `framed` — its own block in normal flow, inset, read as a picture rather than as decoration.
+ */
+export const ARTWORK_TREATMENTS = ["contained", "side-anchor", "field", "framed"] as const;
+export type ArtworkTreatment = (typeof ARTWORK_TREATMENTS)[number];
+
+/**
+ * What protects text from the artwork underneath it.
+ *
+ * Two values, and the interesting one is `none`. The Phase 4E capability spike washed a good asset
+ * out behind a flat 0.65 scrim covering its whole box — safe, and far too crude, because the scrim
+ * was paying for an overlap that the layout did not have to have. Three of the four treatments
+ * above put the artwork *beside* the text rather than under it, and where there is no overlap
+ * there is nothing to protect: the artwork renders at full strength and text legibility is
+ * untouched because no text is there.
+ *
+ * `scrim` keeps the original guarantee exactly for `field`, which is the one treatment where text
+ * really does sit on the artwork: the lightest approved step that clears AA against both a pure
+ * black and a pure white asset, computed before any image exists.
+ *
+ * Note what this is *not*: it is not a judgement about a particular image. Nothing here looks at a
+ * pixel. The decision is made from resolved geometry — which treatment, and whether that treatment
+ * puts text over artwork at all — and would be identical for every asset that could ever arrive.
+ */
+export const ARTWORK_PROTECTIONS = ["none", "scrim"] as const;
+export type ArtworkProtection = (typeof ARTWORK_PROTECTIONS)[number];
+
+/**
+ * The shape of the space the artwork was given, bounded into four classes.
+ *
+ * `VisualArtIntent` needs to tell the image model what shape to compose for, and the honest answer
+ * is the *resolved reservation's* shape — not the leaf's `extent`, which says how much of a section
+ * the artwork is for and nothing at all about its proportions. Classes rather than a ratio because
+ * a number in a brief is a number an image model will try to satisfy literally, and because the
+ * reservation is a CSS proportion of a box whose pixels only rendered geometry knows.
+ */
+export const ASPECT_CLASSES = ["portrait", "square", "landscape", "panoramic"] as const;
+export type AspectClass = (typeof ASPECT_CLASSES)[number];
+
+/** The side of its section a zone treatment takes. `null` when the treatment takes no side. */
+export const ARTWORK_SIDES = ["start", "end"] as const;
+export type ArtworkSide = (typeof ARTWORK_SIDES)[number];
+
 /** WCAG AA for normal-size text. The same floor the palette compiler holds its roles to. */
 const AA_NORMAL = 4.5;
 
@@ -91,17 +150,34 @@ export interface ResolvedArtwork {
   readonly render: boolean;
   readonly suppressedBy?: "artwork-budget" | "artwork-disabled" | "illegible";
   /**
-   * Where the text sits, when text sits over this artwork. Absent otherwise.
+   * The anchor the composition gave this artwork inside its `Overlay`. Absent outside one.
    *
-   * This is the composition's answer to `spec.md §7.6a #2` — "the brief follows the layout … never
-   * generate a picture, then find somewhere to put it". An overlay that anchors its content
-   * bottom-start has told the art brief exactly where the subject must not compete, and the brief
-   * asks for negative space there. It is a token, never a coordinate: the image model is told
-   * *which region* to leave open, not how many pixels.
+   * **Named for what it is.** An earlier revision called this `textAnchor` and read it as "where
+   * the text sits", which is wrong twice over: `Overlay.anchor` positions the *decoration*, and an
+   * overlay's content is in normal flow across the whole box rather than gathered at a corner. The
+   * art brief inherited the error and asked the image model to leave open the side the artwork was
+   * anchored to — the opposite of what the layout wanted. It is the artwork's anchor, it decides
+   * which side a zone treatment takes, and it is a token rather than a coordinate.
    */
-  readonly textAnchor?: Anchor;
+  readonly artworkAnchor?: Anchor;
   /** The surface the artwork sits on, so the brief can answer to the right ground. */
   readonly surface: SurfaceRole;
+  /** How the artwork occupies its section (`ARTWORK_TREATMENTS`). */
+  readonly treatment: ArtworkTreatment;
+  /** Which side a zone treatment takes, or `null` when the treatment takes no side. */
+  readonly side: ArtworkSide | null;
+  /** What protects text from the artwork. `none` for every treatment that does not overlap text. */
+  readonly protection: ArtworkProtection;
+  /**
+   * The shape of the reservation at each authoritative breakpoint.
+   *
+   * The two can differ, and saying so is the point: an artwork given a tall column at 1280 becomes
+   * a wide band at 390, and a brief that mentioned only one of those would be briefing half the
+   * pages this asset appears on.
+   */
+  readonly aspect: { readonly desktop: AspectClass; readonly mobile: AspectClass };
+  /** Whether the artwork is cropped to fill its reservation, or shown whole inside it. */
+  readonly fit: "cover" | "contain";
 }
 
 /** `#RRGGBB` at `alpha` of `over` laid on `under`. Both inputs are compiler-owned colours. */
@@ -152,7 +228,7 @@ interface Found {
   readonly id: string;
   readonly underText: boolean;
   readonly surface: SurfaceRole;
-  readonly textAnchor: Anchor | null;
+  readonly artworkAnchor: Anchor | null;
 }
 
 /**
@@ -171,10 +247,10 @@ function findArtwork(sections: readonly Section[]): Found[] {
     path: string,
     underText: boolean,
     surface: SurfaceRole,
-    textAnchor: Anchor | null,
+    artworkAnchor: Anchor | null,
   ) => {
     if (node.t === "Artwork") {
-      found.push({ node, id: node.id ?? path, underText, surface, textAnchor });
+      found.push({ node, id: node.id ?? path, underText, surface, artworkAnchor });
       return;
     }
     const overlayText = node.t === "Overlay" && hasTextDescendant(node.content);
@@ -187,7 +263,7 @@ function findArtwork(sections: readonly Section[]): Found[] {
         `${path}.${child.key}`,
         beneath || underText,
         surface,
-        beneath ? (node as { anchor: Anchor }).anchor : textAnchor,
+        beneath ? (node as { anchor: Anchor }).anchor : artworkAnchor,
       );
     }
   };
@@ -195,6 +271,79 @@ function findArtwork(sections: readonly Section[]): Found[] {
   sections.forEach((s, i) => rec(s.root as AnyNode, `sections[${i}].root`, false, s.surface, null));
   return found;
 }
+
+/**
+ * Which treatment a role gets, and everything that follows from it.
+ *
+ * A pure table plus two derivations, so the whole realization of a role is readable in one place
+ * and a reviewer can see that nothing here consults an image.
+ *
+ * The side of a zone comes from the anchor the composition already gave the artwork: an overlay
+ * that anchored its decoration to an `-end` corner wanted the artwork on that side, so the zone
+ * takes that side and the text takes the other. `center` has no side to take, so an artwork
+ * anchored there becomes a `field` — the only honest reading of "put it in the middle" is that the
+ * text is over it.
+ */
+function planTreatment(
+  role: ArtworkRole,
+  underText: boolean,
+  anchor: Anchor | null,
+): {
+  treatment: ArtworkTreatment;
+  side: ArtworkSide | null;
+  protection: ArtworkProtection;
+  aspect: { desktop: AspectClass; mobile: AspectClass };
+  fit: "cover" | "contain";
+} {
+  const centred = anchor === "center";
+  const side: ArtworkSide | null =
+    anchor === null || centred ? null : anchor.endsWith("-end") ? "end" : "start";
+
+  // Two worlds, and the anchor is what tells them apart. An artwork with an anchor is in an
+  // `Overlay.decoration` — it has a side to take and content to sit beside. One without is in
+  // normal flow, where there is nothing above it and nothing to sit beside.
+  const treatment: ArtworkTreatment =
+    anchor === null
+      ? role === "atmosphere"
+        ? "field"
+        : "framed"
+      : centred || role === "atmosphere"
+        ? "field"
+        : role === "anchor"
+          ? "side-anchor"
+          : "contained";
+
+  // `field` is the only treatment whose artwork and text share pixels. The rest are beside it, so
+  // `underText` — true for anything in an overlay's decoration slot — is not by itself an overlap.
+  const protection: ArtworkProtection = treatment === "field" && underText ? "scrim" : "none";
+
+  return {
+    treatment,
+    side: treatment === "contained" || treatment === "side-anchor" ? side : null,
+    protection,
+    aspect: ASPECT_BY_TREATMENT[treatment],
+    // Whole or cropped, and the difference is what the brief has to know. A `contained` or
+    // `framed` artwork is shown entire, so its frame is all subject; a `side-anchor` or `field`
+    // fills a box whose proportions it cannot know, so it will lose edges.
+    fit: treatment === "contained" || treatment === "framed" ? "contain" : "cover",
+  };
+}
+
+/**
+ * The shape of each treatment's reservation, at both authoritative breakpoints.
+ *
+ * Fixed by the stylesheet rather than measured, which is what makes it safe to put in a brief the
+ * spec is frozen with: these are the proportions the CSS gives each treatment, and rendered
+ * geometry only ever confirms them. The mobile column is where the interesting divergence lives —
+ * a side column at 1280 is a band at 390, because a phone has no second column to give away.
+ */
+const ASPECT_BY_TREATMENT: Record<ArtworkTreatment, { desktop: AspectClass; mobile: AspectClass }> =
+  {
+    contained: { desktop: "square", mobile: "landscape" },
+    "side-anchor": { desktop: "portrait", mobile: "landscape" },
+    field: { desktop: "panoramic", mobile: "portrait" },
+    framed: { desktop: "landscape", mobile: "landscape" },
+  };
 
 /**
  * Resolve every artwork slot in the tree.
@@ -216,6 +365,8 @@ export function resolveArtwork(
     const role = hit.node.role;
     const extent = hit.node.extent ?? DEFAULT_ARTWORK_EXTENT[role];
 
+    const plan = planTreatment(role, hit.underText, hit.artworkAnchor);
+
     // Defence in depth. The validator strips an `Artwork` from a concept that was never offered
     // artwork (`capability.node`), so one reaching the compiler means that repair did not run.
     // It is recorded and not drawn rather than trusted (`spec.md §32 #21`).
@@ -231,12 +382,16 @@ export function resolveArtwork(
         render: false,
         suppressedBy: "artwork-disabled",
         surface: hit.surface,
+        ...plan,
       };
       continue;
     }
 
+    // Only a `field` puts text on the artwork's own pixels, so only a `field` pays for a scrim.
+    // The other three treatments lay the text beside the artwork, and protecting a region no text
+    // occupies is what reduced a good asset to a ghost in the Phase 4E capability spike.
     let scrim: number | null = null;
-    if (hit.underText) {
+    if (plan.protection === "scrim") {
       const { ink, ground } = inkAndSurface(palette, hit.surface);
       scrim = scrimFor(ink, ground);
       if (scrim === null) {
@@ -254,7 +409,8 @@ export function resolveArtwork(
           render: false,
           suppressedBy: "illegible",
           surface: hit.surface,
-          ...(hit.textAnchor ? { textAnchor: hit.textAnchor } : {}),
+          ...plan,
+          ...(hit.artworkAnchor ? { artworkAnchor: hit.artworkAnchor } : {}),
         };
         continue;
       }
@@ -275,7 +431,8 @@ export function resolveArtwork(
       scrim,
       render,
       surface: hit.surface,
-      ...(hit.textAnchor ? { textAnchor: hit.textAnchor } : {}),
+      ...plan,
+      ...(hit.artworkAnchor ? { artworkAnchor: hit.artworkAnchor } : {}),
       ...(render ? {} : { suppressedBy: "artwork-budget" as const }),
     };
   }

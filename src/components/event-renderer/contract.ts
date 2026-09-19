@@ -24,7 +24,11 @@ import type { CSSProperties } from "react";
 
 import type { AnyNode, CompositionTree } from "@/lib/renderer/composition/nodes";
 import { NODE_SPEC } from "@/lib/renderer/composition/spec";
-import type { ResolvedArtwork } from "@/lib/renderer/compile/artwork";
+import type {
+  ArtworkSide,
+  ArtworkTreatment,
+  ResolvedArtwork,
+} from "@/lib/renderer/compile/artwork";
 import type { ResolvedMotif } from "@/lib/renderer/compile/motifs";
 import type { PageSystem } from "@/lib/renderer/compile/page-system";
 import type { SemanticPalette } from "@/lib/renderer/compile/palette";
@@ -164,6 +168,25 @@ export function layoutOf<T>(ctx: RenderContext, node: AnyNode): T | undefined {
 export function renderableMotif(ctx: RenderContext, node: AnyNode): ResolvedMotif | null {
   const m = node.id ? ctx.motifs[node.id] : undefined;
   return m && m.render ? m : null;
+}
+
+/**
+ * How this container's decoration is being realized as artwork, or `null`.
+ *
+ * `null` for a decoration that is not artwork and for artwork the compiler suppressed, so a
+ * container with neither keeps exactly the behaviour it had before treatments existed.
+ *
+ * Deliberately independent of whether an asset exists: the treatment is reserved geometry, and a
+ * page with no artwork yet must lay out identically to the same page with one.
+ */
+export function artworkPlacement(
+  ctx: RenderContext,
+  node: AnyNode,
+): { treatment: ArtworkTreatment; side: ArtworkSide | null } | null {
+  if (node.t !== "Artwork" || !node.id) return null;
+  const resolved = ctx.artwork[node.id];
+  if (!resolved || !resolved.render) return null;
+  return { treatment: resolved.treatment, side: resolved.side };
 }
 
 /**

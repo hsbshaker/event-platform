@@ -38,7 +38,7 @@
  * `spec.md §32 #12`, `#13`, `#32`. Canon: `spec.md §7.6a`, `docs/product-doctrine.md §10`.
  */
 import type { EventIdentity } from "@/lib/ai/event-identity/contract";
-import type { ResolvedArtwork } from "@/lib/renderer/compile/artwork";
+import type { AspectClass, ResolvedArtwork } from "@/lib/renderer/compile/artwork";
 import type { SemanticPalette } from "@/lib/renderer/compile/palette";
 import type { Anchor, ArtworkRole, Extent } from "@/lib/renderer/composition/tokens";
 import {
@@ -95,18 +95,18 @@ export const BRIEF_DISPOSITION: Record<keyof EventIdentity, "carried" | "withhel
 };
 
 /**
- * How much of the frame the subject takes, by what the role is *for*.
+ * How much of the frame the subject takes.
  *
- * An anchor carries the page's identity, so it dominates. Atmosphere sits behind text under a
- * scrim, so a competing subject is the failure mode. These are the roles' own definitions, not
- * taste applied on top of them.
+ * Read from the treatment first, because the treatment is what decides how much of the *page* this
+ * artwork is. A `side-anchor` carries its section and a subject that hedged inside it would waste
+ * the column; a `framed` illustration is read as a picture, so it is composed rather than
+ * dominated. The one role that overrides its treatment is `atmosphere`, which is defined as
+ * ground rather than subject — a competing subject is its failure mode however much space it has.
  */
-const SUBJECT_WEIGHT: Record<ArtworkRole, SubjectWeight> = {
-  anchor: "dominant",
-  object: "balanced",
-  atmosphere: "incidental",
-  framed: "balanced",
-};
+function subjectWeight(slot: ResolvedArtwork): SubjectWeight {
+  if (slot.role === "atmosphere") return "incidental";
+  return slot.treatment === "side-anchor" || slot.treatment === "field" ? "dominant" : "balanced";
+}
 
 /**
  * Whether the asset must carry its own alpha.
@@ -125,31 +125,37 @@ const BACKGROUND: Record<ArtworkRole, BackgroundTreatment> = {
 /**
  * How much of the frame a responsive crop may take.
  *
- * Read off extent, because extent is what decides how far the box's aspect ratio travels between
- * 390 and 1280. A `full` box reshapes the most, so the subject needs the most margin around it;
- * a `quarter` box barely moves, so the frame can be nearly all subject.
+ * **Read from the resolved fit, not from the leaf's `extent`.** That was the modelling gap the
+ * Phase 4E capability spike exposed: `extent` says how much of a *section* the artwork is for and
+ * nothing about the proportions of the box it lands in, and inside an `Overlay.decoration` the box
+ * is the overlay's rather than the leaf's. A brief derived from it told the image model the frame
+ * would barely be trimmed while the compiler was about to crop it to a column.
+ *
+ * The fit answers it exactly. `contain` shows the asset whole, so nothing is trimmed and the frame
+ * may be nearly all subject. `cover` fills a box whose proportions the asset cannot know and whose
+ * shape changes between 390 and 1280, so the subject needs margin on every side.
  */
-const CROP_SAFETY_BY_EXTENT: Record<Extent, CropSafety> = {
-  full: "generous",
-  half: "moderate",
-  third: "tight",
-  quarter: "tight",
+const CROP_SAFETY_BY_FIT: Record<ResolvedArtwork["fit"], CropSafety> = {
+  contain: "tight",
+  cover: "generous",
 };
 
 /**
- * Where the artwork must leave room, given where the text actually sits.
+ * Where the artwork must leave room.
  *
- * The compiler resolved the overlay's anchor, so this is a fact about the page rather than a
- * guess. `center` is the hard case — text in the middle of the frame competes everywhere — so it
- * asks for restraint throughout rather than naming a side that would not help.
+ * One question decides it, and it is the one the treatment already answered: does text sit on
+ * these pixels? Only a `field` puts it there, and then it is everywhere, because an overlay's
+ * content is in normal flow across the whole box rather than gathered in a corner. Every other
+ * treatment lays the text beside the artwork, so the whole frame is the artwork's and asking it to
+ * keep a region clear would cost composition for nothing.
+ *
+ * An earlier revision named a side here, from a field it called `textAnchor` that actually held
+ * the *artwork's* anchor — so it asked the model to leave open the very side the artwork was
+ * anchored to. The field is now named for what it is and this no longer reads it at all.
  */
-const NEGATIVE_SPACE_FOR_ANCHOR: Record<Anchor, NegativeSpace> = {
-  "top-start": "top",
-  "top-end": "top",
-  "bottom-start": "bottom",
-  "bottom-end": "bottom",
-  center: "throughout",
-};
+function negativeSpace(slot: ResolvedArtwork): NegativeSpace {
+  return slot.protection === "scrim" ? "throughout" : "none";
+}
 
 /** How the artwork sits against the ground it is on. */
 function paletteRelationship(slot: ResolvedArtwork): PaletteRelationship {
@@ -166,34 +172,56 @@ function paletteRelationship(slot: ResolvedArtwork): PaletteRelationship {
  *
  * Deliberately prose and deliberately unitless. The contract's header gives the reason: a number
  * offered to an image model is a number it will try to satisfy, and placement belongs to the
- * compiler. What the model gets is the shape of the problem — how big the area is relative to the
- * page, whether text crosses it, and where.
+ * compiler. What the model gets is the shape of the problem — the treatment it will be realized
+ * with, the shape of the reservation at *both* breakpoints, whether text crosses it, and how much
+ * of it will survive a crop.
+ *
+ * Everything below is read from the resolved reservation. None of it is inferred from the leaf.
  */
 function compositionContext(slot: ResolvedArtwork): string {
-  const area: Record<Extent, string> = {
-    full: "fills its section",
-    half: "occupies about half of its section",
-    third: "occupies about a third of its section",
-    quarter: "occupies a corner of its section",
+  const shape: Record<AspectClass, string> = {
+    portrait: "a tall upright frame",
+    square: "a roughly square frame",
+    landscape: "a wide frame",
+    panoramic: "a very wide, shallow frame",
   };
-  const parts = [`The artwork ${area[slot.extent]}`];
+  const treatment: Record<ResolvedArtwork["treatment"], string> = {
+    contained: "The artwork sits whole in a space of its own beside the event's words",
+    "side-anchor":
+      "The artwork is the visual anchor of its section, filling a column down one side of it",
+    field: "The artwork is the ground the whole section sits on",
+    framed: "The artwork is a framed illustration in a block of its own, seen whole",
+  };
 
-  if (slot.scrim !== null) {
+  const parts = [treatment[slot.treatment]];
+
+  if (slot.side) {
     parts.push(
-      slot.textAnchor && slot.textAnchor !== "center"
-        ? `Text is set over it, gathered at the ${slot.textAnchor.replace("-", " ")} of the frame; ` +
-            "keep that region quiet and carry the subject elsewhere"
-        : "Text is set across it; no region of the frame may compete with reading",
+      `It takes the ${slot.side === "end" ? "trailing" : "leading"} side; the words take the other`,
     );
-    parts.push("It sits behind a tinted wash, so fine detail and thin line work will be lost");
+  }
+
+  parts.push(
+    slot.aspect.desktop === slot.aspect.mobile
+      ? `It is composed into ${shape[slot.aspect.desktop]} at every screen width`
+      : `On a wide screen it is composed into ${shape[slot.aspect.desktop]}; on a phone the same ` +
+          `artwork becomes ${shape[slot.aspect.mobile]}`,
+  );
+
+  if (slot.protection === "scrim") {
+    parts.push(
+      "Text is set across it, so no region of the frame may compete with reading, and it sits " +
+        "behind a tinted wash that will lose fine detail and thin line work",
+    );
   } else {
     parts.push("No text is set over it, so the whole frame is the artwork's");
   }
 
   parts.push(
-    slot.role === "framed"
-      ? "It is a framed illustration in its own block, seen whole"
-      : "It is cropped to fill its frame at any screen width, from a phone to a wide desktop",
+    slot.fit === "contain"
+      ? "It is shown entire and never cropped, so the frame can be composed edge to edge"
+      : "It is cropped to fill that frame, and the crop changes between a phone and a wide " +
+          "screen, so nothing that matters may sit near an edge",
   );
   return `${parts.join(". ")}.`;
 }
@@ -249,15 +277,10 @@ export function assembleVisualArtIntent(input: AssembleArtIntentInput): VisualAr
     subject: subjectFor(identity, slot),
     medium: mediumFor(identity),
     composition: compositionContext(slot),
-    subjectWeight: SUBJECT_WEIGHT[slot.role],
-    negativeSpace:
-      slot.scrim === null
-        ? "none"
-        : slot.textAnchor
-          ? NEGATIVE_SPACE_FOR_ANCHOR[slot.textAnchor]
-          : "throughout",
+    subjectWeight: subjectWeight(slot),
+    negativeSpace: negativeSpace(slot),
     background: BACKGROUND[slot.role],
-    cropSafety: slot.role === "framed" ? "tight" : CROP_SAFETY_BY_EXTENT[slot.extent],
+    cropSafety: CROP_SAFETY_BY_FIT[slot.fit],
     paletteRelationship: paletteRelationship(slot),
     // The compiled semantic palette, which is what the page actually renders. Never the raw
     // creative palette: `spec.md §32 #26` keeps those out of rendering roles, and an artwork brief

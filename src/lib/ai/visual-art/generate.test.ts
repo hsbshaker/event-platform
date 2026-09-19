@@ -61,7 +61,7 @@ describe("the happy path", () => {
     expect(outcome.asset.role).toBe("anchor");
     expect(outcome.asset.format).toBe("png");
     expect(outcome.asset.width).toBe(64);
-    expect(outcome.asset.intentVersion).toBe("visual_art_intent_v1");
+    expect(outcome.asset.intentVersion).toBe("visual_art_intent_v2");
     expect(outcome.telemetry.outcome).toBe("asset");
     expect(outcome.telemetry.failureKind).toBeNull();
     expect(outcome.telemetry.artworkRetries).toBe(0);
@@ -410,7 +410,7 @@ describe("telemetry", () => {
     expect(Object.keys(outcome.telemetry)).not.toContain("reprompts");
     expect(Object.keys(outcome.telemetry)).toContain("artworkRetries");
     expect(outcome.telemetry.operation).toBe("visual_art");
-    expect(outcome.telemetry.intentVersion).toBe("visual_art_intent_v1");
+    expect(outcome.telemetry.intentVersion).toBe("visual_art_intent_v2");
   });
 
   it("records latency from an injected clock", async () => {

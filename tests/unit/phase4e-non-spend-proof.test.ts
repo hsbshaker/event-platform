@@ -251,7 +251,10 @@ describe("2-4. each artwork role compiles and renders, with an asset and without
       });
       expect(brief.role).toBe(role);
       if (role === "object") expect(brief.background).toBe("transparent");
-      if (role === "atmosphere") expect(brief.negativeSpace).toBe("bottom");
+      // An atmosphere is a `field`: text really is set across it, everywhere, so "throughout" is
+      // the only honest answer. Every other treatment lays text beside the artwork and asks for
+      // no clear region at all.
+      expect(brief.negativeSpace).toBe(role === "atmosphere" ? "throughout" : "none");
 
       const empty = render(spec);
       expect(empty).toContain(`ev-art-${role}`);

@@ -1857,7 +1857,138 @@ h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
   pointer-events: none;
 }
 
-/* A transparent-background object is composited onto the page, not shown inside a rectangle. */
-.ev-art.ev-art-object .ev-art-img {
+/*
+ * Whole, or cropped to fill. The compiler decides which (`@/lib/renderer/compile/artwork`), so the
+ * class carries its answer rather than the renderer inferring one from the role: a transparent
+ * object composited onto the page is shown entire, a column or a ground is cropped into its box.
+ */
+.ev-art.ev-art-fit-contain .ev-art-img {
   object-fit: contain;
+}
+
+.ev-art.ev-art-fit-cover .ev-art-img {
+  object-fit: cover;
+}
+
+/* ------------------------------------------------------------------- artwork treatments
+ *
+ * Four ways artwork occupies a section, each resolved by the compiler from the role, the extent
+ * and the position the composition gave it. The reason they exist is the Phase 4E capability
+ * spike: a good asset rendered as a small sticker in a corner, washed out behind a flat scrim,
+ * because every role was realized the same way — fill a 42%x36% decoration box and dim all of it.
+ *
+ * The important one is what a *zone* does. `contained` and `side-anchor` stop being watermarks:
+ * the decoration becomes a full-height column on its own side and the content is padded out of it,
+ * so text and artwork occupy different pixels. That is what earns `protection: none` — the scrim
+ * is gone because the overlap is gone, not because legibility was traded away.
+ */
+
+.ev-overlay.ev-ov-side-start,
+.ev-overlay.ev-ov-side-end {
+  /* One ladder, read by both the column and the padding that clears it, so they cannot drift. */
+  --ev-art-zone: 42%;
+}
+
+.ev-overlay.ev-ext-full.ev-ov-side-start,
+.ev-overlay.ev-ext-full.ev-ov-side-end {
+  --ev-art-zone: 50%;
+}
+
+.ev-overlay.ev-ext-half.ev-ov-side-start,
+.ev-overlay.ev-ext-half.ev-ov-side-end {
+  --ev-art-zone: 46%;
+}
+
+.ev-overlay.ev-ext-quarter.ev-ov-side-start,
+.ev-overlay.ev-ext-quarter.ev-ov-side-end {
+  --ev-art-zone: 34%;
+}
+
+/* A zone is a column of the section's full height, not a box in a corner. */
+.ev-overlay.ev-ov-side-start .ev-overlay-decoration,
+.ev-overlay.ev-ov-side-end .ev-overlay-decoration {
+  top: 0;
+  bottom: 0;
+  width: var(--ev-art-zone);
+  height: auto;
+  transform: none;
+}
+
+.ev-overlay.ev-ov-side-end .ev-overlay-decoration {
+  right: 0;
+  left: auto;
+}
+
+.ev-overlay.ev-ov-side-start .ev-overlay-decoration {
+  left: 0;
+  right: auto;
+}
+
+/* And the words move out of the column. This is the whole readability mechanism for a zone. */
+.ev-overlay.ev-ov-side-end .ev-overlay-content {
+  padding-right: calc(var(--ev-art-zone) + 3%);
+}
+
+.ev-overlay.ev-ov-side-start .ev-overlay-content {
+  padding-left: calc(var(--ev-art-zone) + 3%);
+}
+
+/* A field is the ground the section sits on, whatever extent the leaf asked for. */
+.ev-overlay.ev-ov-art-field .ev-overlay-decoration {
+  inset: 0;
+  width: auto;
+  height: auto;
+  transform: none;
+}
+
+/* A framed illustration is a block in normal flow, read as a picture rather than as decoration. */
+.ev-art.ev-art-t-framed {
+  min-height: 0;
+  aspect-ratio: 3 / 2;
+}
+
+.ev-stack > .ev-art.ev-art-t-framed,
+.ev-cell > .ev-art.ev-art-t-framed {
+  width: 100%;
+}
+
+/*
+ * Artwork treatments on a phone.
+ *
+ * This block sits after the treatment rules above deliberately: those and the stacking rules at
+ * `max-width: 700px` have equal specificity, so source order decides, and a zone column would
+ * otherwise survive into a 390px viewport as a 42%-wide sliver beside four-word lines.
+ *
+ * A phone has no second column to give away, so a zone becomes a band: the decoration returns to
+ * normal flow under the content, full width, and the padding that cleared the column is dropped.
+ * The artwork keeps its importance — a band across the page is not a sticker — without turning the
+ * hero into one large image, and it can never collapse to nothing, which is what the `min-height`
+ * ladder above the scrim reset guarantees.
+ */
+@media (max-width: 700px) {
+  .ev-overlay.ev-m-stack.ev-ov-side-start .ev-overlay-decoration,
+  .ev-overlay.ev-m-stack.ev-ov-side-end .ev-overlay-decoration {
+    position: static;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    margin-top: 16px;
+  }
+
+  .ev-overlay.ev-m-stack.ev-ov-side-start .ev-overlay-content,
+  .ev-overlay.ev-m-stack.ev-ov-side-end .ev-overlay-content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /*
+   * A stacked band is a wide frame, so a contained asset that was shown whole in a tall column
+   * would shrink to its own height inside it. Filling the band keeps the artwork at the scale the
+   * treatment intended; nothing that matters sits near an edge, because the brief asked for margin
+   * on every side precisely for this crop.
+   */
+  .ev-overlay.ev-m-stack .ev-art.ev-art-t-side-anchor .ev-art-img,
+  .ev-overlay.ev-m-stack .ev-art.ev-art-t-contained .ev-art-img {
+    object-fit: cover;
+  }
 }

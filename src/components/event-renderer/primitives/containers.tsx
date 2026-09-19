@@ -43,7 +43,7 @@ import type {
   Surface,
 } from "@/lib/renderer/composition/nodes";
 import type { RailWidth } from "@/lib/renderer/composition/tokens";
-import { cssNumbers, cssVars, renderableMotif, layoutOf } from "../contract";
+import { artworkPlacement, cssNumbers, cssVars, renderableMotif, layoutOf } from "../contract";
 import { primitive } from "../primitive";
 import type {
   CellLayout,
@@ -196,11 +196,18 @@ export const SurfacePrimitive = primitive<Surface>((node, ctx) => {
 
 export const OverlayPrimitive = primitive<Overlay>((node, ctx) => {
   const l = layoutOf<OverlayLayout>(ctx, node);
+  // An overlay whose decoration is an artwork *zone* is not an overlay in the watermark sense any
+  // more: the compiler resolved the artwork to sit beside the words rather than under them, so the
+  // stylesheet has to give it a real side and inset the content away from it. Read from the
+  // resolved spec, never from the node — the treatment is the compiler's decision
+  // (`@/lib/renderer/compile/artwork`), and a decoration with no artwork keeps the old behaviour
+  // exactly.
+  const art = artworkPlacement(ctx, node.decoration);
   return (
     <div
       // `extent` is a four-value enum whose decoration box is not a linear function of its
       // percentage, so the class carries it and no number is emitted.
-      className={`ev-overlay ev-anchor-${l?.anchor ?? node.anchor} ev-ext-${node.extent} ev-m-${node.mobile}`}
+      className={`ev-overlay ev-anchor-${l?.anchor ?? node.anchor} ev-ext-${node.extent} ev-m-${node.mobile}${art ? ` ev-ov-art-${art.treatment}${art.side ? ` ev-ov-side-${art.side}` : ""}` : ""}`}
       data-id={node.id}
     >
       <div className="ev-overlay-content">{ctx.renderNode(node.content)}</div>

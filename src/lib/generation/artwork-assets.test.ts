@@ -16,7 +16,7 @@ function generated(overrides: Partial<GeneratedArtwork> = {}): GeneratedArtwork 
     providerId: "stub",
     model: null,
     providerRequestId: null,
-    intentVersion: "visual_art_intent_v1",
+    intentVersion: "visual_art_intent_v2",
     ...overrides,
   } as GeneratedArtwork;
 }

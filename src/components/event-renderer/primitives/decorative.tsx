@@ -110,10 +110,19 @@ export const MonogramPrimitive = primitive<Monogram>((node, ctx) => {
  */
 export const ArtworkPrimitive = primitive<Artwork>((node, ctx) => {
   const drawable = renderableArtwork(ctx, node);
-  const extent = node.extent ?? ctx.artwork[node.id ?? ""]?.extent ?? "full";
+  const resolved = node.id ? ctx.artwork[node.id] : undefined;
+  const extent = resolved?.extent ?? node.extent ?? "full";
+  // The treatment, the side it takes and whether it is cropped are all the compiler's
+  // (`@/lib/renderer/compile/artwork`), and each is a closed enum, so each becomes a class and no
+  // number is emitted. A node with no resolved entry — a fixture, or a tree compiled before
+  // treatments existed — falls back to the contained treatment, which is what every artwork did
+  // before this vocabulary was added.
+  const treatment = resolved?.treatment ?? "contained";
+  const fit = resolved?.fit ?? "contain";
+  const side = resolved?.side ?? null;
   return (
     <div
-      className={`ev-art ev-art-${node.role} ev-ext-${extent}`}
+      className={`ev-art ev-art-${node.role} ev-ext-${extent} ev-art-t-${treatment} ev-art-fit-${fit}${side ? ` ev-art-side-${side}` : ""}`}
       data-id={node.id}
       aria-hidden={drawable && drawable.asset.alt ? undefined : "true"}
       // `cssNumbers`, never `cssVars`: the scrim is an opacity ratio, and `cssVars` appends `px`.

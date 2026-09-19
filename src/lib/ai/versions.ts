@@ -353,5 +353,16 @@ export const PLANNER_VERSION = "planner_v2";
  * spec stamped `compiler_phase3_0_1` was verified against the old criterion and rendered with the
  * old line breaking and heading wrap — it is not equivalent to one stamped here, and re-rendering
  * it needs re-verification rather than a silent recompile (`CLAUDE.md §5`).
+ *
+ * **`4e_1_0`** resolves artwork *treatments* (`src/lib/renderer/compile/artwork.ts`). The same
+ * tree now compiles to a different page: an artwork the old compiler put in a 42%x36% corner box
+ * under a flat scrim may now take a full-height column with the content padded out of it, which
+ * changes the geometry verification measures and the readability decision it records. Nothing the
+ * model sees moved — the composition language, its schema and its prompt are untouched, which is
+ * why `PRIMITIVE_SET_VERSION` does not bump with this.
+ *
+ * Only specs that carry artwork differ, and no persisted spec is recompiled: the 36 concepts
+ * stamped `compiler_phase3_1_0` have no `Artwork` node at all, so they would compile identically —
+ * but they keep their stamp, because equivalence is not the test. What produced an artifact is.
  */
-export const COMPILER_VERSION = "compiler_phase3_1_0";
+export const COMPILER_VERSION = "compiler_phase4e_1_0";

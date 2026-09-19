@@ -44,8 +44,22 @@ import { z } from "zod";
 
 import { ARTWORK_ROLES } from "@/lib/renderer/composition/tokens";
 
-/** Bumps when this contract's fields, meanings or vocabulary change. */
-export const VISUAL_ART_INTENT_VERSION = "visual_art_intent_v1";
+/**
+ * Bumps when this contract's fields, meanings or vocabulary change.
+ *
+ * **`v2`** widens `composition` and changes what it carries. `v1` described the space from the
+ * `Artwork` leaf — how much of a section it was for, and whether text crossed it — which the
+ * Phase 4E capability spike showed was an approximation of a reservation the compiler had not made
+ * yet. `v2`'s is assembled from the *resolved* reservation and says five things: the treatment it
+ * will be realized with, which side of the section it takes, the shape of its frame at **both**
+ * authoritative breakpoints, whether text is over it, and whether it will be cropped. Five clauses
+ * do not fit in v1's 400 characters, and dropping one to keep the bound would have meant briefing
+ * an asset for only one of the two pages it appears on.
+ *
+ * The bound is still a bound. It is prose, not a paragraph budget: a field with no ceiling is a
+ * field that grows into an essay nobody reads, and an image model reads the first lines best.
+ */
+export const VISUAL_ART_INTENT_VERSION = "visual_art_intent_v2";
 
 /**
  * What the artwork is *for* on this page.
@@ -139,7 +153,7 @@ export const visualArtIntentSchema = z
      * unitless: a number here would be a placement instruction, and placement is not the image
      * model's.
      */
-    composition: shortText(8, 400),
+    composition: shortText(8, 700),
     subjectWeight: z.enum(SUBJECT_WEIGHTS),
     negativeSpace: z.enum(NEGATIVE_SPACE),
     background: z.enum(BACKGROUND_TREATMENTS),

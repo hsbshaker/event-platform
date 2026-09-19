@@ -23,7 +23,12 @@ import { NO_OVERRIDES } from "@/lib/renderer/compile/verification";
 import type { Capabilities, CompositionTree } from "@/lib/renderer/composition/nodes";
 import type { DesignIntent } from "@/lib/renderer/design-intent";
 import type { ArtworkAsset } from "@/components/event-renderer/artwork";
-import { ALL_STUB_ARTWORK, NEAR_BLACK, NEAR_WHITE } from "../../../../tests/fixtures/artwork-stubs";
+import {
+  ALL_STUB_ARTWORK,
+  NEAR_BLACK,
+  NEAR_WHITE,
+  OPAQUE_WIDE,
+} from "../../../../tests/fixtures/artwork-stubs";
 import { novelTree } from "../../../../tests/fixtures/novel-composition";
 import { chromiumAvailability, withGeometryPage } from "./browser";
 import { buildMeasurableDocument } from "./html";
@@ -590,6 +595,144 @@ describe("artwork cannot move a page that was verified without it", () => {
         }
       }
       observations.push("artwork: black and white extremes render clean at both breakpoints");
+    },
+    TIMEOUT,
+  );
+});
+
+/**
+ * Artwork treatments, measured rather than argued.
+ *
+ * The Phase 4E capability spike rendered a good asset as a small sticker in a corner under a flat
+ * scrim. The fix was to let the compiler resolve a *treatment*, and the two claims that fix rests
+ * on are geometric: a zone is a real column with the words beside it rather than over it, and it
+ * becomes a band on a phone instead of a sliver. Neither is provable from CSS by reading.
+ */
+describe("an artwork zone is a column on desktop and a band on a phone", () => {
+  const ZONE_TREE: CompositionTree = {
+    version: "composition_v1",
+    sections: [
+      {
+        kind: "hero",
+        surface: "base",
+        fill: "screen",
+        root: {
+          t: "Overlay",
+          anchor: "bottom-end",
+          extent: "third",
+          mobile: "stack",
+          content: {
+            t: "Stack",
+            children: [{ t: "Eyebrow" }, { t: "EventTitle" }, { t: "Hosts" }],
+          },
+          decoration: { t: "Artwork", role: "anchor" },
+        },
+      },
+      {
+        kind: "details",
+        surface: "alt",
+        root: { t: "Stack", children: [{ t: "Date", form: "full" }, { t: "Venue" }] },
+      },
+    ],
+  } as CompositionTree;
+
+  /**
+   * Its own browser rather than `withGeometryPage`, because this needs element boxes and the
+   * verifier's page deliberately exposes only `measure`. Widening that interface for a test would
+   * put a general-purpose evaluator on the production verifier.
+   */
+  async function boxes(mode: "desktop" | "mobile", assets?: Record<string, ArtworkAsset>) {
+    const spec = buildSpec(ZONE_TREE, intent(), 7);
+    const { html } = buildMeasurableDocument({
+      spec,
+      content: CONTENT,
+      overrides: NO_OVERRIDES,
+      ...(assets ? { artworkAssets: assets } : {}),
+    });
+    const [{ default: chromium }, { chromium: pw }] = await Promise.all([
+      import("@sparticuz/chromium"),
+      import("playwright-core"),
+    ]);
+    const browser = await pw.launch({
+      executablePath: await chromium.executablePath(),
+      args: chromium.args,
+      headless: true,
+    });
+    try {
+      const page = await (await browser.newContext({ deviceScaleFactor: 1 })).newPage();
+      await page.setViewportSize(VIEWPORTS[mode]);
+      await page.setContent(html, { waitUntil: "load" });
+      await page.evaluate(() =>
+        Promise.all([...document.images].map((i) => i.decode().catch(() => undefined))).then(
+          () => undefined,
+        ),
+      );
+      return await page.evaluate(() => {
+        const art = document.querySelector(".ev-art") as HTMLElement | null;
+        // The text itself, not the content wrapper: `padding` moves the words but leaves the
+        // wrapper's border box spanning the overlay, so measuring the wrapper would answer a
+        // different question than "is anything written over the artwork".
+        const texts = [...document.querySelectorAll(".ev-overlay-content .ev-text")];
+        const textRight = texts.reduce((m, el) => Math.max(m, el.getBoundingClientRect().right), 0);
+        const doc = document.documentElement;
+        return {
+          art: art ? art.getBoundingClientRect().toJSON() : null,
+          textRight,
+          textCount: texts.length,
+          page: { width: doc.scrollWidth, height: doc.scrollHeight },
+        };
+      });
+    } finally {
+      await browser.close();
+    }
+  }
+
+  browserIt(
+    "gives the artwork a full-height column at 1280, with the words clear of it",
+    async () => {
+      const m = await boxes("desktop");
+      expect(m.art).not.toBeNull();
+      // A column, not a corner box: taller than it is wide, and a real share of the page.
+      expect(m.art!.height).toBeGreaterThan(m.art!.width);
+      expect(m.art!.width / 1280).toBeGreaterThan(0.25);
+      // And every word stops before the artwork starts. This is the whole readability mechanism
+      // for a zone — no scrim, because no overlap.
+      expect(m.textCount).toBeGreaterThan(0);
+      expect(m.textRight).toBeLessThanOrEqual(m.art!.left + TOLERANCE_PX);
+      observations.push(
+        `artwork zone @1280: ${Math.round(m.art!.width)}x${Math.round(m.art!.height)}, ` +
+          `text ends at ${Math.round(m.textRight)}, artwork starts at ${Math.round(m.art!.left)}`,
+      );
+    },
+    TIMEOUT,
+  );
+
+  browserIt(
+    "turns that column into a full-width band at 390 that cannot collapse",
+    async () => {
+      const m = await boxes("mobile");
+      expect(m.art).not.toBeNull();
+      // Full width rather than a 42% sliver beside four-word lines.
+      expect(m.art!.width / 390).toBeGreaterThan(0.85);
+      // And it has real height. Zero here is the collapse this asserts against.
+      expect(m.art!.height).toBeGreaterThan(100);
+      observations.push(
+        `artwork zone @390: ${Math.round(m.art!.width)}x${Math.round(m.art!.height)} band`,
+      );
+    },
+    TIMEOUT,
+  );
+
+  browserIt(
+    "measures the same page whether or not the zone has an asset, at both breakpoints",
+    async () => {
+      for (const mode of ["mobile", "desktop"] as const) {
+        const empty = await boxes(mode);
+        const filled = await boxes(mode, { "sections[0].root.decoration": OPAQUE_WIDE });
+        expect(filled.page).toEqual(empty.page);
+        expect(filled.art!.width).toBeCloseTo(empty.art!.width, 1);
+        expect(filled.art!.height).toBeCloseTo(empty.art!.height, 1);
+      }
     },
     TIMEOUT,
   );

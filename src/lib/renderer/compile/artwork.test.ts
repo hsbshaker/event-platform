@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { ARTWORK_SCRIM_STEPS, DEFAULT_ARTWORK_EXTENT, resolveArtwork, scrimFor } from "./artwork";
+import {
+  ARTWORK_SCRIM_STEPS,
+  ASPECT_CLASSES,
+  DEFAULT_ARTWORK_EXTENT,
+  resolveArtwork,
+  scrimFor,
+} from "./artwork";
 import { decideArtwork } from "./artwork-decision";
 import { compileSemanticPalette } from "./palette";
 import { contrastRatio } from "./color";
 import type { CNode, CompositionTree, Section } from "../composition/nodes";
-import type { ArtworkRole } from "../composition/tokens";
+import type { Anchor, ArtworkRole } from "../composition/tokens";
 import type { DesignIntent } from "../design-intent";
 
 const INTENT: DesignIntent = {
@@ -225,5 +231,140 @@ describe("artwork cannot enter through the compiler", () => {
     const { artwork: resolved, deviations } = resolveArtwork(tree(root), ALLOWED, PALETTE);
     expect(resolved).toEqual({});
     expect(deviations).toEqual([]);
+  });
+});
+
+/** An overlay with real text content, anchored where the caller says. */
+const overlayAt = (anchor: Anchor, decoration: CNode, extent = "third"): CNode =>
+  ({
+    t: "Overlay",
+    content: { t: "Stack", children: [{ t: "EventTitle" }, { t: "Hosts" }] },
+    decoration,
+    anchor,
+    extent,
+    mobile: "stack",
+  }) as CNode;
+
+const resolveOne = (root: CNode, surface: Section["surface"] = "base") =>
+  Object.values(resolveArtwork(tree(root, surface), ALLOWED, PALETTE).artwork)[0];
+
+describe("a role is realized as a treatment, and the treatment decides everything after it", () => {
+  it("gives an anchor a full-height column on the side the composition chose", () => {
+    const slot = resolveOne(overlayAt("bottom-end", artwork("anchor")));
+    expect(slot.treatment).toBe("side-anchor");
+    expect(slot.side).toBe("end");
+    expect(slot.fit).toBe("cover");
+  });
+
+  it("reads the leading side from a -start anchor", () => {
+    expect(resolveOne(overlayAt("top-start", artwork("anchor"))).side).toBe("start");
+  });
+
+  it("gives an object a space of its own beside the words, shown whole", () => {
+    const slot = resolveOne(overlayAt("bottom-end", artwork("object")));
+    expect(slot.treatment).toBe("contained");
+    expect(slot.side).toBe("end");
+    expect(slot.fit).toBe("contain");
+  });
+
+  it("makes atmosphere the ground of its section, cropped to fill and taking no side", () => {
+    const slot = resolveOne(overlayAt("top-start", artwork("atmosphere")));
+    expect(slot.treatment).toBe("field");
+    expect(slot.side).toBeNull();
+    expect(slot.fit).toBe("cover");
+  });
+
+  it("reads a centred anchor as a field, because the middle has no side to take", () => {
+    expect(resolveOne(overlayAt("center", artwork("object"))).treatment).toBe("field");
+    expect(resolveOne(overlayAt("center", artwork("anchor"))).side).toBeNull();
+  });
+
+  it("makes artwork in normal flow a block of its own, not a zone", () => {
+    // No anchor means no overlay: nothing above it and nothing to sit beside.
+    const slot = resolveOne({ t: "Stack", children: [artwork("object")] } as CNode);
+    expect(slot.treatment).toBe("framed");
+    expect(slot.side).toBeNull();
+    expect(slot.artworkAnchor).toBeUndefined();
+  });
+});
+
+describe("protection is spatial: only a field pays for a scrim", () => {
+  it("leaves a zone unprotected, because no text is over it", () => {
+    for (const role of ["anchor", "object"] as ArtworkRole[]) {
+      const slot = resolveOne(overlayAt("bottom-end", artwork(role)));
+      expect(slot.protection).toBe("none");
+      expect(slot.scrim).toBeNull();
+    }
+  });
+
+  it("protects a field, at the lightest step that clears AA over any image", () => {
+    const slot = resolveOne(overlayAt("center", artwork("atmosphere")));
+    expect(slot.protection).toBe("scrim");
+    expect(slot.scrim).toBe(scrimFor(PALETTE.text, PALETTE.surfaceBase));
+    expect(ARTWORK_SCRIM_STEPS).toContain(slot.scrim!);
+  });
+
+  it("still refuses to draw a field no approved scrim can protect", () => {
+    const grey = { ...PALETTE, text: "#808080", surfaceBase: "#7F7F7F" };
+    const { artwork: resolved, deviations } = resolveArtwork(
+      tree(overlayAt("center", artwork("atmosphere"))),
+      ALLOWED,
+      grey,
+    );
+    const slot = Object.values(resolved)[0];
+    expect(slot.render).toBe(false);
+    expect(slot.suppressedBy).toBe("illegible");
+    expect(deviations.map((d) => d.rule)).toContain("artwork.legibility");
+  });
+
+  it("does not let a zone inherit the old blanket scrim from being inside an overlay", () => {
+    // The capability-spike regression: every decoration counted as "under text", so a corner
+    // object was dimmed by a 0.65 wash protecting an overlap the layout need not have had.
+    const slot = resolveOne(overlayAt("bottom-end", artwork("object")));
+    expect(slot.scrim).toBeNull();
+  });
+});
+
+describe("the reservation's shape is recorded for both breakpoints", () => {
+  it("says a column becomes a band on a phone", () => {
+    expect(resolveOne(overlayAt("bottom-end", artwork("anchor"))).aspect).toEqual({
+      desktop: "portrait",
+      mobile: "landscape",
+    });
+  });
+
+  it("says a field becomes upright on a phone", () => {
+    expect(resolveOne(overlayAt("center", artwork("atmosphere"))).aspect).toEqual({
+      desktop: "panoramic",
+      mobile: "portrait",
+    });
+  });
+
+  it("gives every treatment an aspect at both breakpoints, with no gaps", () => {
+    for (const root of [
+      overlayAt("bottom-end", artwork("anchor")),
+      overlayAt("bottom-end", artwork("object")),
+      overlayAt("center", artwork("atmosphere")),
+      { t: "Stack", children: [artwork("framed")] } as CNode,
+    ]) {
+      const slot = resolveOne(root);
+      expect(ASPECT_CLASSES).toContain(slot.aspect.desktop);
+      expect(ASPECT_CLASSES).toContain(slot.aspect.mobile);
+    }
+  });
+});
+
+describe("a suppressed slot still carries its plan", () => {
+  it("records the treatment it would have had, so evidence is not a blank", () => {
+    const declined = decideArtwork({
+      ...INTENT,
+      composition: { ...INTENT.composition, ornament: "none" },
+    });
+    const slot = Object.values(
+      resolveArtwork(tree(overlayAt("bottom-end", artwork("anchor"))), declined, PALETTE).artwork,
+    )[0];
+    expect(slot.render).toBe(false);
+    expect(slot.treatment).toBe("side-anchor");
+    expect(slot.protection).toBe("none");
   });
 });

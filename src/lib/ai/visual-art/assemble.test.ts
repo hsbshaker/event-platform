@@ -100,37 +100,55 @@ describe("the host's authority survives to the image model", () => {
   });
 });
 
-describe("the brief follows the layout (spec.md §7.6a #2)", () => {
-  it("asks for room where the text actually is", () => {
-    expect(brief(underText("top-start")).negativeSpace).toBe("top");
-    expect(brief(underText("top-end")).negativeSpace).toBe("top");
-    expect(brief(underText("bottom-start")).negativeSpace).toBe("bottom");
-    expect(brief(underText("bottom-end")).negativeSpace).toBe("bottom");
-  });
-
-  it("asks for restraint everywhere when the text sits in the middle", () => {
-    // Naming a side would not help: centred text competes with the whole frame.
-    expect(brief(underText("center")).negativeSpace).toBe("throughout");
-  });
-
-  it("asks for none at all when nothing is written over the artwork", () => {
+describe("the brief follows the resolved reservation (spec.md §7.6a #2)", () => {
+  it("asks for no clear region when nothing is set over the artwork", () => {
+    // Three of the four treatments lay the text beside the artwork, so the whole frame is the
+    // artwork's and asking it to keep a region open would cost composition for nothing.
     expect(brief(bare("framed")).negativeSpace).toBe("none");
+    expect(brief(underText("bottom-end", "object")).negativeSpace).toBe("none");
+    expect(brief(underText("top-start", "anchor")).negativeSpace).toBe("none");
   });
 
-  it("tells the model that a scrimmed frame will lose fine detail", () => {
-    expect(brief(underText("top-start")).composition).toContain("tinted wash");
+  it("asks for restraint throughout when text really is set across it", () => {
+    // A field is the one treatment where text and artwork share pixels, and an overlay's content
+    // is in normal flow across the whole box rather than gathered in a corner — so "throughout" is
+    // the only honest answer. Naming a side here is what the old code got wrong.
+    expect(brief(underText("center", "atmosphere")).negativeSpace).toBe("throughout");
+    expect(brief(underText("bottom-end", "atmosphere")).negativeSpace).toBe("throughout");
+  });
+
+  it("no longer reads the artwork's own anchor as though it were the text's", () => {
+    // The regression this replaces: `bottom-end` positions the *decoration*, and the brief used to
+    // read it as "text is at the bottom" and ask for open space exactly where the artwork sat.
+    const slot = underText("bottom-end", "object");
+    expect(slot.artworkAnchor).toBe("bottom-end");
+    expect(brief(slot).negativeSpace).not.toBe("bottom");
+  });
+
+  it("tells the model a scrimmed frame will lose fine detail, and only then", () => {
+    expect(brief(underText("center", "atmosphere")).composition).toContain("tinted wash");
     expect(brief(bare("framed")).composition).not.toContain("tinted wash");
+    expect(brief(underText("bottom-end", "object")).composition).not.toContain("tinted wash");
   });
 
-  it("reads crop safety off the extent, because extent decides how far the box reshapes", () => {
-    expect(brief(bare("anchor", "full")).cropSafety).toBe("generous");
-    expect(brief(bare("anchor", "half")).cropSafety).toBe("moderate");
-    expect(brief(bare("anchor", "quarter")).cropSafety).toBe("tight");
+  it("reads crop safety off the resolved fit, not off the leaf's extent", () => {
+    // The modelling gap the capability spike exposed. `extent` says how much of a *section* the
+    // artwork is for; inside an overlay the box is the overlay's, and what decides how much
+    // survives is whether the compiler will crop it.
+    const contained = slotFor({ t: "Artwork", role: "object", extent: "full" } as CNode);
+    expect(contained.fit).toBe("contain");
+    expect(brief(contained).cropSafety).toBe("tight");
+
+    const cropped = underText("top-start", "anchor");
+    expect(cropped.fit).toBe("cover");
+    expect(brief(cropped).cropSafety).toBe("generous");
   });
 
-  it("weights the subject by what the role is for", () => {
-    expect(brief(bare("anchor")).subjectWeight).toBe("dominant");
-    expect(brief(underText("top-start", "atmosphere")).subjectWeight).toBe("incidental");
+  it("weights the subject by how much of the page the treatment gives it", () => {
+    expect(brief(underText("top-start", "anchor")).subjectWeight).toBe("dominant");
+    expect(brief(underText("bottom-end", "object")).subjectWeight).toBe("balanced");
+    // Atmosphere overrides its treatment: it is defined as ground, however much space it has.
+    expect(brief(underText("center", "atmosphere")).subjectWeight).toBe("incidental");
   });
 
   it("requires transparency only where the role is defined by compositing", () => {
@@ -140,11 +158,27 @@ describe("the brief follows the layout (spec.md §7.6a #2)", () => {
   });
 
   it("asks scrimmed artwork to stay muted and inverted bands for a counterpoint", () => {
-    expect(brief(underText("top-start")).paletteRelationship).toBe("muted");
+    expect(brief(underText("center", "atmosphere")).paletteRelationship).toBe("muted");
     expect(
       brief(slotFor({ t: "Artwork", role: "anchor" } as CNode, "contrast")).paletteRelationship,
     ).toBe("contrast");
     expect(brief(bare("anchor")).paletteRelationship).toBe("harmonize");
+  });
+
+  it("names the side a zone takes, so the brief knows which way the page reads", () => {
+    expect(brief(underText("bottom-end", "object")).composition).toContain("trailing side");
+    expect(brief(underText("top-start", "object")).composition).toContain("leading side");
+  });
+
+  it("describes both breakpoints when the reservation changes shape between them", () => {
+    // A column at 1280 is a band at 390. A brief that mentioned only one would be briefing half
+    // the pages this asset appears on.
+    const column = brief(underText("top-start", "anchor")).composition;
+    expect(column).toContain("wide screen");
+    expect(column).toContain("phone");
+    // And says so once when the shape does not change.
+    const framed = brief(bare("framed")).composition;
+    expect(framed).toContain("every screen width");
   });
 });
 
@@ -192,7 +226,7 @@ describe("briefing is downstream of placement, and says so", () => {
   });
 
   it("is deterministic: the same placement briefs the same way", () => {
-    const slot = underText("bottom-end");
+    const slot = underText("bottom-end", "object");
     expect(brief(slot)).toEqual(brief(slot));
   });
 
