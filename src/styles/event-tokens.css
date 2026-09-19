@@ -1696,6 +1696,48 @@ h1.ev-text.ev-lay-cascade .ev-line:nth-child(3) {
     min-height: 140px;
   }
 
+  /*
+   * Artwork needs the same treatment as a MotifField here, and for the same reason: a stacked
+   * decoration is `height: auto`, so `.ev-art`'s `height: 100%` resolves to auto, its absolutely
+   * positioned image contributes nothing, and the box collapses to zero. Without this the artwork
+   * is simply absent at 390 — which a rehearsal caught as two byte-identical mobile screenshots.
+   *
+   * Unlike a motif it keeps a ladder, because `extent` is the composition's structural statement
+   * about how much of the section this artwork is for, and a single value would discard it. The
+   * steps are smaller than their desktop counterparts: stacked, the artwork sits under the content
+   * as a band rather than behind it, and a phone has no room for a hero-sized one.
+   */
+  .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-art.ev-ext-full {
+    min-height: 260px;
+  }
+
+  .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-art.ev-ext-half {
+    min-height: 200px;
+  }
+
+  .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-art.ev-ext-third {
+    min-height: 160px;
+  }
+
+  .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-art.ev-ext-quarter {
+    min-height: 120px;
+  }
+
+  /*
+   * And no scrim here, because there is nothing to protect.
+   *
+   * The compiler resolves a readability scrim for artwork that text is set over, which on this
+   * overlay is true — at desktop. `mobile: "stack"` takes the decoration out from under the
+   * content and puts it below, so at this breakpoint no text is over the artwork at all. Keeping
+   * the wash would dim the artwork for a legibility problem that does not exist here, and
+   * `spec.md §7.6a #5` asks readability to win over artwork, not to be charged for when it is not
+   * at stake. An overlay with `mobile: "keep"` still overlaps, still has text over it, and still
+   * keeps its scrim.
+   */
+  .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-art-scrim {
+    opacity: 0;
+  }
+
   .ev-overlay.ev-m-stack .ev-overlay-decoration .ev-text.ev-t-Date.ev-form-numeral {
     font-size: calc(var(--ev-display-size) * 2);
   }

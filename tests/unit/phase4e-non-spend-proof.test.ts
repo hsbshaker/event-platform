@@ -24,6 +24,7 @@
  * And the existing regression gates — `proof-b/test.js`, `proof-b/adv-run.js` and the full unit
  * suite — are what prove image-free trees are undisturbed.
  */
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 
@@ -307,6 +308,41 @@ describe("5. a missing or failed asset is an ordinary page, not a broken one", (
     for (const text of [CONTENT.title, CONTENT.hosts, CONTENT.venue]) {
       expect(html).toContain(text);
     }
+  });
+});
+
+describe("the scrim is a ratio, and a stacked decoration has nothing to scrim", () => {
+  it("emits the scrim unitless, because `opacity: 0.65px` is dropped and the wash goes opaque", () => {
+    // Found by a rehearsal, not by review: `cssVars` appends `px`, so the scrim shipped as
+    // `--ev-art-scrim: 0.65px`. `opacity` rejected it, the declaration was dropped, and the scrim
+    // fell back to its default — a fully opaque wash that hid the artwork completely. It is an
+    // opacity ratio, so it goes through `cssNumbers`.
+    const spec = compile(pageWith("atmosphere", true), WANTS_ARTWORK);
+    const slot = Object.values(spec.artwork)[0];
+    expect(slot.scrim).not.toBeNull();
+    const html = render(spec, fill(spec, OPAQUE_WIDE));
+    expect(html).toContain(`--ev-art-scrim:${slot.scrim}`);
+    expect(html).not.toContain(`--ev-art-scrim:${slot.scrim}px`);
+  });
+
+  it("keeps the stacked-mobile rules that make artwork visible at 390 at all", () => {
+    // Two rules, both found the same way. Without the min-height ladder a stacked decoration is
+    // `height: auto`, `.ev-art`'s `height: 100%` resolves to auto and the box collapses to zero.
+    // Without the scrim reset the wash keeps dimming artwork that no text is over any more.
+    const css = readFileSync("src/styles/event-tokens.css", "utf8");
+    for (const extent of ["full", "half", "third", "quarter"]) {
+      expect(css).toContain(
+        `.ev-overlay.ev-m-stack .ev-overlay-decoration .ev-art.ev-ext-${extent}`,
+      );
+    }
+    expect(css).toContain(".ev-overlay.ev-m-stack .ev-overlay-decoration .ev-art-scrim");
+  });
+
+  it("takes the image out of flow, so no asset can size its own box", () => {
+    const css = readFileSync("src/styles/event-tokens.css", "utf8");
+    const rule = css.slice(css.indexOf(".ev-art-img {"), css.indexOf(".ev-art-img {") + 1200);
+    expect(rule).toContain("position: absolute");
+    expect(rule).toContain("inset: 0");
   });
 });
 

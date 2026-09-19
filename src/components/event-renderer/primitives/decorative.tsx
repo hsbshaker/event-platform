@@ -22,7 +22,7 @@ import type {
   MotifField,
   RuleNode,
 } from "@/lib/renderer/composition/nodes";
-import { cssVars, layoutOf, renderableArtwork, renderableMotif } from "../contract";
+import { cssNumbers, cssVars, layoutOf, renderableArtwork, renderableMotif } from "../contract";
 import { primitive } from "../primitive";
 import type { MotifBandLayout } from "../resolved-layout";
 import { GlyphArrangement, motifClass, motifVars } from "./motif";
@@ -116,7 +116,10 @@ export const ArtworkPrimitive = primitive<Artwork>((node, ctx) => {
       className={`ev-art ev-art-${node.role} ev-ext-${extent}`}
       data-id={node.id}
       aria-hidden={drawable && drawable.asset.alt ? undefined : "true"}
-      style={cssVars({ "--ev-art-scrim": drawable?.resolved.scrim ?? undefined })}
+      // `cssNumbers`, never `cssVars`: the scrim is an opacity ratio, and `cssVars` appends `px`.
+      // `opacity: 0.65px` is invalid, so the declaration is dropped and the scrim falls back to a
+      // fully opaque wash — which hides the artwork completely instead of protecting text over it.
+      style={cssNumbers({ "--ev-art-scrim": drawable?.resolved.scrim ?? undefined })}
     >
       {drawable ? (
         /*
