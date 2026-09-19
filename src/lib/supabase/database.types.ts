@@ -1244,6 +1244,22 @@ export type Database = {
         Returns: GenerationBatchStatus | "in_flight";
       };
       /**
+       * Opportunistic, event-scoped recovery for a batch whose process died
+       * (`20260919180000_phase4f_stale_batch_recovery.sql`).
+       *
+       * Fails the non-terminal siblings of any in-flight batch of this event older than the bound
+       * and settles it through `settle_generation_batch`, so the one-in-flight index cannot brick
+       * an event for ever. Returns one row per batch it touched — usually none.
+       */
+      recover_stale_generation_batches: {
+        Args: { p_event_id: string; p_stale_after_seconds?: number };
+        Returns: {
+          batch_id: string;
+          failed_siblings: number;
+          status: GenerationBatchStatus | "in_flight";
+        }[];
+      };
+      /**
        * Marks one artwork slot's request outstanding, with the lineage of the call being made.
        * Addressed by `(spec revision, slot id)`, so a slot belonging to another revision simply
        * does not resolve.

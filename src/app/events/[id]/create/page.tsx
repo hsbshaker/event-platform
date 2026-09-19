@@ -2,8 +2,10 @@ import Link from "next/link";
 import { loadEventDraft } from "@/app/actions/event-details";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { loadEventIdentityView } from "@/app/actions/event-identity";
+import { loadGenerationView } from "@/app/actions/generation";
 import { DetailsForm } from "./DetailsForm";
 import { EventIdentityPanel } from "./EventIdentityPanel";
+import { GenerationPanel } from "./GenerationPanel";
 
 /**
  * Generation + required details (spec.md §7.3/§7.10, docs/design-system.md §4.3,
@@ -50,9 +52,12 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
   }
 
   // Read, never started, on the server: a page render must not be a spend decision, and a
-  // prefetch or a double render would then be two. The panel starts generation from the client,
-  // once, through the canonical path.
-  const identity = await loadEventIdentityView(id);
+  // prefetch or a double render would then be two. Both panels start their own generation from
+  // the client, once, through their own canonical path.
+  const [identity, generation] = await Promise.all([
+    loadEventIdentityView(id),
+    loadGenerationView(id),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col gap-8 px-4 py-10 lg:py-14">
@@ -67,6 +72,10 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
         {identity && <EventIdentityPanel eventId={id} initial={identity} />}
         <DetailsForm event={draft} />
       </div>
+      {/* Filling in details and watching generation are equally valid, parallel activities
+          (`spec.md §7.10`, `docs/product-doctrine.md §8a`) — this is not gated on either the
+          identity panel or the details form above it. */}
+      {generation && <GenerationPanel eventId={id} initial={generation} />}
     </main>
   );
 }

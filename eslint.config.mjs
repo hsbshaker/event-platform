@@ -119,6 +119,10 @@ const SERVICE_ROLE = {
  *   **not** use this client at all, because that row is host input and `answered_by` must be a
  *   fact the database established under the host's own session. The service role is needed only
  *   because the claims table is server-only with RLS on and no policies.
+ * - `src/app/actions/generation.ts` — the same shape as `event-identity.ts` above, for the same
+ *   reason. Every export goes through `startConceptGeneration` / `readConceptGeneration`, which
+ *   call `requireEventAccess` before touching anything, and the service role is needed because the
+ *   batch and sibling tables are server-only with RLS on and no policies.
  * - `src/app/api/cron/identity-housekeeping/route.ts` — the same `CRON_SECRET` gate. It releases
  *   and recovers EventIdentity call claims and ages out paid-response evidence, all of which live
  *   on server-only tables with RLS on and no policies, so there is no end-user path to reach them
@@ -129,6 +133,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/drafts/**",
   "src/lib/human-test/store.ts",
   "src/app/actions/event-identity.ts",
+  "src/app/actions/generation.ts",
   "src/app/auth/callback/route.ts",
   "src/app/api/cron/purge-pre-auth/route.ts",
   "src/app/api/cron/identity-housekeeping/route.ts",

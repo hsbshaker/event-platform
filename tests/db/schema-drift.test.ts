@@ -51,6 +51,7 @@ const DECLARED_FUNCTIONS = {
   record_batch_call_run: true,
   record_batch_sibling_run: true,
   record_sibling_stage_run: true,
+  recover_stale_generation_batches: true,
   request_artwork_slot: true,
   settle_batch_sibling: true,
   settle_generation_batch: true,
