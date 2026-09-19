@@ -490,6 +490,21 @@ describe("artwork cannot move a page that was verified without it", () => {
         surface: "contrast",
         root: { t: "Artwork", role: "framed", extent: "third" },
       },
+      {
+        // The `object` role beside content rather than behind it, so the transparent-background
+        // treatment is exercised in a real container and not only in the compiler's unit tests.
+        kind: "details",
+        surface: "base",
+        root: {
+          t: "Split",
+          ratio: "half",
+          mobile: "stack",
+          children: [
+            { t: "Artwork", role: "object", extent: "half" },
+            { t: "Stack", children: [{ t: "Description" }, { t: "Deadline" }] },
+          ],
+        },
+      },
     ],
   } as CompositionTree;
 
@@ -526,7 +541,11 @@ describe("artwork cannot move a page that was verified without it", () => {
     async () => {
       const spec = buildSpec(ART_TREE, intent(), 7);
       // Three slots, and the tree is legal: this is not a page that quietly lost its artwork.
-      expect(slots(spec)).toHaveLength(3);
+      expect(slots(spec)).toHaveLength(4);
+      // All four roles, so no role is proved only in the compiler's unit tests.
+      expect(new Set(Object.values(spec.artwork).map((a) => a.role))).toEqual(
+        new Set(["atmosphere", "anchor", "framed", "object"]),
+      );
       expect(Object.values(spec.artwork).filter((a) => a.render)).not.toHaveLength(0);
 
       for (const mode of ["mobile", "desktop"] as const) {
