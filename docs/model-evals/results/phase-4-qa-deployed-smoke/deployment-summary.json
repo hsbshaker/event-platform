@@ -1,0 +1,83 @@
+{
+  "deployment": {
+    "provider": "vercel",
+    "projectId": "prj_wGMRvLWWgCPkNIDlxv1lBSjaUqY5",
+    "deploymentId": "dpl_3LkxDSLbpMBLL4owpX1C9zA1TaBg",
+    "url": "https://event-platform-git-claude-design-7ad5b1-haseeb-shakers-projects.vercel.app",
+    "immutableUrl": "https://event-platform-2urkpw1k1-haseeb-shakers-projects.vercel.app",
+    "sha": "00c646e9d7283c1b45364e8de8f04a39af5d7ab1",
+    "ref": "claude/designintent-sibling-convergence-hl508n",
+    "target": "preview",
+    "state": "READY",
+    "createdAt": "2026-09-19T16:40:04Z",
+    "protection": {
+      "sso": null,
+      "password": null,
+      "publiclyReachable": true
+    }
+  },
+  "supabase": {
+    "environment": "preview",
+    "ref": "ihdaifbyvlvivuctkrwn",
+    "isProduction": false,
+    "ledger": "absent \u2014 applied set determined by probing marker objects",
+    "migrationsApplied": [
+      "20260917000000_phase4c_t16_generation_batches",
+      "20260917210000_phase4c_t17_design_intent_artifacts",
+      "20260918000000_phase4c_concept_premise_lineage",
+      "20260919000000_phase4d_composition_lineage",
+      "20260919120000_phase4e_artwork_lineage",
+      "20260919180000_phase4f_stale_batch_recovery"
+    ],
+    "before": {
+      "publicTables": 15,
+      "functions": 47,
+      "events": 0,
+      "profiles": 1
+    },
+    "after": {
+      "publicTables": 19,
+      "functions": 65,
+      "events": 0,
+      "profiles": 1
+    },
+    "functionSetMatchesLocal": true
+  },
+  "environmentVariables": {
+    "note": "names and configured-status only; no values were read or recorded",
+    "preview": {
+      "NEXT_PUBLIC_SUPABASE_URL": "configured \u2014 resolves to the preview project",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "configured",
+      "SUPABASE_SERVICE_ROLE_KEY": "configured (sensitive; shape unverifiable without reading it)",
+      "APP_ENCRYPTION_KEY": "configured, separate entry from production",
+      "OPENAI_API_KEY": "configured",
+      "OPENAI_MODEL": "configured",
+      "IDENTITY_CEILING_USD": "configured \u2014 25, shared with production. THE BLOCKER.",
+      "NEXT_PUBLIC_APP_URL": "configured, but points at the production URL; cosmetic only, because callbackUrl() prefers the request host",
+      "CRON_SECRET": "configured",
+      "NEXT_PUBLIC_OAUTH_PROVIDERS": "configured"
+    }
+  },
+  "blocker": {
+    "what": "IDENTITY_CEILING_USD (25) is below the per-call reservation (90), so claim_identity_call refuses every EventIdentity call on an idle project",
+    "arithmetic": "perAttemptMaxUsd 15 x MAX_PROVIDER_ATTEMPTS_PER_CALL 6 = 90; admission requires recorded + reserved + 90 <= ceiling",
+    "scope": "the entry covers preview AND production",
+    "observedOnDeployment": {
+      "claims": 0,
+      "revisions": 0,
+      "runs": 0,
+      "batches": 0
+    },
+    "minimumWorkableCeilingUsd": 90,
+    "suggestedPreviewCeilingUsd": 100,
+    "measuredBatchCostUsd": 0.18
+  },
+  "unprovenOnDeployment": [
+    "batch starts from the button",
+    "after() survives the response",
+    "Chromium launches inside the deployed function",
+    "geometry verification at 390 and 1280 in the deployed runtime",
+    "concept previews render",
+    "anything a browser does: layout, paint, clicks, screenshots"
+  ]
+}
