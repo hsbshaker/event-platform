@@ -98,6 +98,10 @@ const DECLINED = (reason: ArtworkDecisionReason): ArtworkDecision => ({
 export function decideArtwork(intent: DesignIntent): ArtworkDecision {
   const { ornament } = intent.composition;
 
+  // Stricter than motifs, deliberately. `ORNAMENT_BUDGET.none` in `compile/motifs.ts` still allows
+  // one motif, because a motif is a compiler-drawn texture at 0.22 opacity. Artwork is not that. A
+  // direction that asked for no ornamental layer can carry one whisper of texture and still be
+  // contradicted by a generated image, so the two budgets legitimately part company here.
   if (ornament === "none") return DECLINED("ornament_none");
 
   if (ornament === "decorative") {
