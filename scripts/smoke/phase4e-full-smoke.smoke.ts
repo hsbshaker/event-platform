@@ -556,7 +556,7 @@ it(
             <tr><th>geometry 390 / 1280</th><td><code>clean ${esc(verified?.clean)}; overflow ${esc(verified?.mobile.pageOverflow)} / ${esc(verified?.desktop.pageOverflow)}; text overflow ${esc(verified?.mobile.textOverflow)} / ${esc(verified?.desktop.textOverflow)}</code></td></tr>
             <tr><th>page size 390 / 1280</th><td><code>${esc(JSON.stringify(pageSizes[`concept-${n}-mobile`]))} / ${esc(JSON.stringify(pageSizes[`concept-${n}-desktop`]))}</code></td></tr>
           </table>
-          ${mine.length ? `<table class="slots"><tr><th>slot</th><th>role</th><th>negative space / crop / weight</th><th>status</th><th>pixels</th><th>alpha</th><th>crop</th></tr>${mine.map(slotRow).join("")}</table>` : "<p><em>This direction chose no artwork. That is a valid output and was not overridden.</em></p>"}
+          ${mine.length ? `<table class="slots"><tr><th>slot</th><th>role</th><th>negative space / crop / weight</th><th>status</th><th>pixels</th><th>alpha</th><th>crop</th></tr>${mine.map(slotRow).join("")}</table>` : "<p><em>No artwork was reserved for this direction, and nothing was overridden. Check <code>capabilities.artwork</code> in this concept's JSON before reading that as a decision: true means the optionality gate allowed artwork and the primitive, its nesting and its limits were all in the request, so the composition declined something it was offered. False means it was never on the table.</em></p>"}
           ${thumbs ? `<div class="thumbs">${thumbs}</div>` : ""}
           <div class="pair">
            <figure><figcaption>mobile 390</figcaption><img class="shot" src="concept-${n}-mobile.png" alt=""></figure>
@@ -595,7 +595,7 @@ it(
 <p>One authoritative <code>EventIdentity</code> (the frozen 4D fixture) &rarr; three sibling concepts &rarr; artwork where the creative direction asked for it.</p>
 
 <div class="note"><strong>Diagnostic/product evidence only.</strong> Not a generalization benchmark, not a gate, not a Human Test, not a provider bake-off. Nothing here is scored and no winner is labelled &mdash; the questions below are yours to answer from the pictures.</div>
-<div class="note"><strong>Artwork stayed optional.</strong> The production decision logic chose per concept from that concept's own <code>DesignIntent</code>. A concept with no artwork chose none, and was not overridden.</div>
+<div class="note"><strong>Artwork stayed optional, and nothing was overridden.</strong> Two decisions sit behind every row and this page keeps them apart. The optionality gate decided per concept, from that concept's own <code>DesignIntent</code>, whether artwork was permitted at all; where it was, <code>specText</code>/<code>rulesText</code> put the <code>Artwork</code> primitive, its nesting and its limits into that concept's request. The composition then decided whether to place one. So a concept with <code>capabilities.artwork</code> true and no slots declined something it was shown — a creative outcome, not a missing wire — and a concept with it false was never offered it.</div>
 <div class="note"><strong>Storage:</strong> <code>${esc(store.id)}</code>. No Supabase Storage upload was exercised in this run; the real adapter exists and is unit-tested, but hosted Storage must not be mutated for a smoke and no local Supabase Storage is available here.</div>
 
 <table>

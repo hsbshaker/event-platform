@@ -1,0 +1,328 @@
+{
+  "label": "Phase 4E first full three-concept artwork smoke — locally grown baby shower. Diagnostic/product evidence only. Not a benchmark, not a gate, not scored.",
+  "live": true,
+  "startedAt": "2026-09-19T12:56:47.762Z",
+  "wallMs": 87499,
+  "outcomeState": "generated",
+  "batch": {
+    "id": "b88c99d6-6de2-4815-b9e9-a0c9e3cac4d9",
+    "status": "completed",
+    "round": 1,
+    "started_at": "2026-09-19T12:56:47.799Z",
+    "settled_at": "2026-09-19T12:58:15.285Z"
+  },
+  "siblings": [
+    {
+      "concept_index": 0,
+      "status": "succeeded",
+      "attempt": 0
+    },
+    {
+      "concept_index": 1,
+      "status": "succeeded",
+      "attempt": 0
+    },
+    {
+      "concept_index": 2,
+      "status": "succeeded",
+      "attempt": 0
+    }
+  ],
+  "identity": {
+    "source": "phase-4d-live-smoke-locally-grown/identity-fixture.json",
+    "revisionId": "57d9fa51-3de9-468b-b7e9-a66b55f90ef6",
+    "eventIdentityCalled": false
+  },
+  "providerCalls": {
+    "text": 7,
+    "byOperation": {
+      "concept_premise": 1,
+      "design_intent": 3,
+      "composition": 3
+    },
+    "image": {
+      "attempted": 0,
+      "limit": 8,
+      "delivered": 0,
+      "failed": 0
+    }
+  },
+  "spend": {
+    "textUsd": 0.40938779999999997,
+    "imageUsd": 0,
+    "totalUsd": 0.40938779999999997,
+    "imageCeilingUsd": 1.5,
+    "imagePerRequestReservationUsd": 0.25,
+    "budget": {
+      "batchCeilingUsd": 1.5,
+      "perRequestEstimateUsd": 0.25,
+      "committedUsd": 0,
+      "settledUsd": 0,
+      "outstanding": 0,
+      "requestsReserved": 0,
+      "closed": false
+    }
+  },
+  "artworkStore": {
+    "id": "diagnostic-local-directory:/home/user/event-platform/docs/model-evals/results/phase-4e-full-smoke-locally-grown/artwork",
+    "supabaseUploadExercised": false
+  },
+  "imageProvider": {
+    "provider": "openai-images",
+    "model": "gpt-image-2.5-sunburst-2026-09-08"
+  },
+  "concepts": [
+    {
+      "index": 0,
+      "name": "Cultivated Welcome",
+      "compositionHash": "6440d4a4",
+      "fallback": null,
+      "specId": "2688213e-bd8c-4a9c-9183-4315fc92bcea"
+    },
+    {
+      "index": 1,
+      "name": "Market Morning",
+      "compositionHash": "6ff5f183",
+      "fallback": null,
+      "specId": "166c6c7a-f346-421b-b156-7558e111ed0b"
+    },
+    {
+      "index": 2,
+      "name": "Gathered Abundance",
+      "compositionHash": "0ed1c3ad",
+      "fallback": null,
+      "specId": "6e05ffbd-3ac8-4358-beab-adba98b2dc83"
+    }
+  ],
+  "resolvedSpecs": [
+    {
+      "conceptIndex": 0,
+      "id": "2688213e-bd8c-4a9c-9183-4315fc92bcea",
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "Archivo",
+            "Inter"
+          ],
+          "required": [
+            "Archivo",
+            "Inter"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 668.13,
+          "clientWidth": 390,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 6,
+          "textOverLimit": 0,
+          "documentHeight": 1117,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 776.42,
+          "clientWidth": 1280,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 6,
+          "textOverLimit": 0,
+          "documentHeight": 1330,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      }
+    },
+    {
+      "conceptIndex": 1,
+      "id": "166c6c7a-f346-421b-b156-7558e111ed0b",
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "Fraunces",
+            "Manrope"
+          ],
+          "required": [
+            "Fraunces",
+            "Manrope"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 607.67,
+          "clientWidth": 390,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 6,
+          "textOverLimit": 0,
+          "documentHeight": 1038,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 688.95,
+          "clientWidth": 1280,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 6,
+          "textOverLimit": 0,
+          "documentHeight": 1212,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      }
+    },
+    {
+      "conceptIndex": 2,
+      "id": "6e05ffbd-3ac8-4358-beab-adba98b2dc83",
+      "verifiedClean": true,
+      "verified": {
+        "clean": true,
+        "fonts": {
+          "loaded": [
+            "Newsreader",
+            "Inter Tight"
+          ],
+          "required": [
+            "Newsreader",
+            "Inter Tight"
+          ]
+        },
+        "mobile": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "heroHeight": 679.81,
+          "clientWidth": 390,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 390,
+          "excludedTexts": 0,
+          "measuredTexts": 4,
+          "textOverLimit": 0,
+          "documentHeight": 844,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "desktop": {
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "heroHeight": 704.11,
+          "clientWidth": 1280,
+          "artworkBoxes": {},
+          "pageOverflow": false,
+          "textOverflow": 0,
+          "documentWidth": 1280,
+          "excludedTexts": 0,
+          "measuredTexts": 4,
+          "textOverLimit": 0,
+          "documentHeight": 800,
+          "textWordBroken": 0,
+          "textEdgeIncoherent": 0,
+          "overflowingElements": 0,
+          "textOverMetadataLimit": 0
+        },
+        "tolerancePx": 1,
+        "fitDemotions": 0,
+        "authoritative": "rendered-geometry",
+        "demotionRounds": 0,
+        "fitRelaxations": 0,
+        "relaxationRounds": 0
+      }
+    }
+  ],
+  "pageSizes": {
+    "concept-1-mobile": {
+      "width": 390,
+      "height": 1117
+    },
+    "concept-1-desktop": {
+      "width": 1280,
+      "height": 1330
+    },
+    "concept-2-mobile": {
+      "width": 390,
+      "height": 1078
+    },
+    "concept-2-desktop": {
+      "width": 1280,
+      "height": 1243
+    },
+    "concept-3-mobile": {
+      "width": 390,
+      "height": 900
+    },
+    "concept-3-desktop": {
+      "width": 1280,
+      "height": 900
+    }
+  },
+  "content": {
+    "title": "A baby shower",
+    "date": "Saturday, December 12, 2026",
+    "dayNumeral": "12",
+    "monthShort": "Dec",
+    "year": "2026",
+    "weekday": "Saturday",
+    "time": "1:00 PM",
+    "venue": "Venue to be announced",
+    "deadline": "Kindly respond by November 28"
+  }
+}

@@ -1,0 +1,110 @@
+<!doctype html><meta charset="utf-8"><title>Phase 4E — first full three-concept smoke</title>
+<style>
+ :root{color-scheme:light dark}
+ body{font:14px/1.55 ui-sans-serif,system-ui,sans-serif;margin:0;padding:32px;max-width:1280px}
+ h1{font-size:23px;margin:0 0 4px} h2{font-size:18px;margin:0 0 4px}
+ h4{font-size:13px;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.07em;opacity:.75}
+ .note{padding:12px 14px;border:1px solid currentColor;border-radius:6px;opacity:.85;margin:16px 0}
+ .concept{margin:44px 0;padding-top:28px;border-top:2px solid rgba(128,128,128,.35)}
+ .desc{margin:0 0 12px;opacity:.85}
+ table{border-collapse:collapse;width:100%;margin:8px 0 16px}
+ th,td{text-align:left;padding:5px 8px;border-bottom:1px solid rgba(128,128,128,.28);vertical-align:top}
+ table:not(.slots) th{width:210px;font-weight:600}
+ code{font:12px/1.5 ui-monospace,monospace;word-break:break-word}
+ .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+ .pair figcaption{font-weight:600;margin-bottom:6px}
+ img.shot{width:100%;border:1px solid rgba(128,128,128,.45)}
+ .thumbs{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 20px}
+ .thumb figcaption{margin-top:6px}
+ .checker{background-image:linear-gradient(45deg,#bbb 25%,transparent 25%),linear-gradient(-45deg,#bbb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#bbb 75%),linear-gradient(-45deg,transparent 75%,#bbb 75%);background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;background-color:#fff;padding:8px;display:inline-block}
+ .checker img{display:block;width:260px}
+ ul{margin:8px 0 18px;padding-left:20px} li{margin:4px 0}
+</style>
+<h1>Phase 4E — first full three-concept artwork smoke</h1>
+<p>One authoritative <code>EventIdentity</code> (the frozen 4D fixture) &rarr; three sibling concepts &rarr; artwork where the creative direction asked for it.</p>
+
+<div class="note"><strong>Diagnostic/product evidence only.</strong> Not a generalization benchmark, not a gate, not a Human Test, not a provider bake-off. Nothing here is scored and no winner is labelled &mdash; the questions below are yours to answer from the pictures.</div>
+<div class="note"><strong>Artwork stayed optional.</strong> The production decision logic chose per concept from that concept's own <code>DesignIntent</code>. A concept with no artwork chose none, and was not overridden.</div>
+<div class="note"><strong>Storage:</strong> <code>diagnostic-local-directory:/home/user/event-platform/docs/model-evals/results/phase-4e-full-smoke-locally-grown/artwork</code>. No Supabase Storage upload was exercised in this run; the real adapter exists and is unit-tested, but hosted Storage must not be mutated for a smoke and no local Supabase Storage is available here.</div>
+
+<table>
+ <tr><th>text provider calls</th><td><code>7 ({"concept_premise":1,"design_intent":3,"composition":3})</code></td></tr>
+ <tr><th>image attempts / limit</th><td><code>0 / 8</code></td></tr>
+ <tr><th>artwork delivered / failed</th><td><code>0 / 0</code></td></tr>
+ <tr><th>text-model cost</th><td><code>$0.4094</code></td></tr>
+ <tr><th>image cost / ceiling</th><td><code>$0.0000 / $1.50</code></td></tr>
+ <tr><th>total provider cost</th><td><code>$0.4094</code></td></tr>
+ <tr><th>wall time</th><td><code>87.5 s</code></td></tr>
+ <tr><th>per-image latency</th><td><code>none</code> ms</td></tr>
+ <tr><th>image provider / model</th><td><code>openai-images / gpt-image-2.5-sunburst-2026-09-08</code></td></tr>
+</table>
+
+<section class="concept">
+          <h2>Concept 1 — Cultivated Welcome</h2>
+          <p class="desc">A calm, tended welcome that gently unfolds from first growth into flourishing promise.</p>
+          <table>
+            <tr><th>premise</th><td><code>Cultivated Welcome — Let the celebration unfold through a sense of cultivation, moving from emerging growth toward flourishing promise. The baby shower welcome feels intentionally tended, with becoming at its heart.</code></td></tr>
+            <tr><th>design intent</th><td><code>editorial / mid / spacious / ornament restrained / hierarchy restrained / motifs ["botanical","linen"]</code></td></tr>
+            <tr><th>artwork decision</th><td><code>none</code></td></tr>
+            <tr><th>geometry 390 / 1280</th><td><code>clean true; overflow false / false; text overflow 0 / 0</code></td></tr>
+            <tr><th>page size 390 / 1280</th><td><code>{"width":390,"height":1117} / {"width":1280,"height":1330}</code></td></tr>
+          </table>
+          <p><em>This direction chose no artwork. That is a valid output and was not overridden.</em></p>
+          
+          <div class="pair">
+           <figure><figcaption>mobile 390</figcaption><img class="shot" src="concept-1-mobile.png" alt=""></figure>
+           <figure><figcaption>desktop 1280</figcaption><img class="shot" src="concept-1-desktop.png" alt=""></figure>
+          </div>
+          
+        </section><section class="concept">
+          <h2>Concept 2 — Market Morning</h2>
+          <p class="desc">Bright, brisk and full of discovery, this choice brings the polished energy of a market morning to every welcome.</p>
+          <table>
+            <tr><th>premise</th><td><code>Market Morning — Shape the welcome around the buoyant cadence of a market morning, where each encounter feels fresh, appealing and carefully selected. The locally grown idea becomes an active guest journey rather than a static scene.</code></td></tr>
+            <tr><th>design intent</th><td><code>statement / light / compact / ornament restrained / hierarchy monumental / motifs ["stripe","botanical"]</code></td></tr>
+            <tr><th>artwork decision</th><td><code>none</code></td></tr>
+            <tr><th>geometry 390 / 1280</th><td><code>clean true; overflow false / false; text overflow 0 / 0</code></td></tr>
+            <tr><th>page size 390 / 1280</th><td><code>{"width":390,"height":1078} / {"width":1280,"height":1243}</code></td></tr>
+          </table>
+          <p><em>This direction chose no artwork. That is a valid output and was not overridden.</em></p>
+          
+          <div class="pair">
+           <figure><figcaption>mobile 390</figcaption><img class="shot" src="concept-2-mobile.png" alt=""></figure>
+           <figure><figcaption>desktop 1280</figcaption><img class="shot" src="concept-2-desktop.png" alt=""></figure>
+          </div>
+          
+        </section><section class="concept">
+          <h2>Concept 3 — Gathered Abundance</h2>
+          <p class="desc">Harvest warmth, tactile depth and confident plenty create a richly gathered welcome that feels polished, never rustic.</p>
+          <table>
+            <tr><th>premise</th><td><code>Gathered Abundance — Frame the shower as a gathered harvest, allowing fullness and generosity to make the coming arrival feel richly celebrated. Abundance is disciplined into a confident whole rather than allowed to become rustic or busy.</code></td></tr>
+            <tr><th>design intent</th><td><code>invitation / mid / balanced / ornament decorative / hierarchy dramatic / motifs ["botanical","linen","stripe"]</code></td></tr>
+            <tr><th>artwork decision</th><td><code>none</code></td></tr>
+            <tr><th>geometry 390 / 1280</th><td><code>clean true; overflow false / false; text overflow 0 / 0</code></td></tr>
+            <tr><th>page size 390 / 1280</th><td><code>{"width":390,"height":900} / {"width":1280,"height":900}</code></td></tr>
+          </table>
+          <p><em>This direction chose no artwork. That is a valid output and was not overridden.</em></p>
+          
+          <div class="pair">
+           <figure><figcaption>mobile 390</figcaption><img class="shot" src="concept-3-mobile.png" alt=""></figure>
+           <figure><figcaption>desktop 1280</figcaption><img class="shot" src="concept-3-desktop.png" alt=""></figure>
+          </div>
+          
+        </section>
+
+<section class="concept">
+<h2>For the operator</h2>
+<p>Deliberately unanswered here, and not put to any model.</p>
+<ul>
+ <li>Do these look like three genuinely custom-designed event websites?</li>
+ <li>Does &ldquo;locally grown&rdquo; come through without reading the description?</li>
+ <li>Does each sibling express the theme differently?</li>
+ <li>Is the artwork genuinely integrated into the composition, or appended to it?</li>
+ <li>Does any artwork feel generic or stock-like?</li>
+ <li>Does any concept still feel like a design-system demo?</li>
+ <li>Does the baby-shower context come through visually?</li>
+ <li>Did the system avoid childish or cheesy execution?</li>
+ <li>Is artwork helping enough to justify its cost and latency?</li>
+ <li>Does any concept approach the product promise?</li>
+</ul>
+</section>
