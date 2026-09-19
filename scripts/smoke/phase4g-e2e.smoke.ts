@@ -216,6 +216,10 @@ it(
         answered: answers.map((a) => ({
           index: a.question.index,
           chose: a.chosen.label,
+          // Said out loud rather than left to be noticed in the scores. When the prompt supports
+          // no option over another the choice is arbitrary, and an arbitrary decision made on the
+          // host's behalf is the one an operator most needs to see.
+          arbitrary: a.chosen.scores.every((score) => score.score === 0),
           scoredAgainstPrompt: a.chosen.scores,
         })),
         note:
