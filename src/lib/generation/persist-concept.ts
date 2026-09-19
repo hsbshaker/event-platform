@@ -44,6 +44,7 @@ import type { Capabilities, CompositionTree, ContentProfile } from "@/lib/render
 import type { ResolvedDesignSpec } from "@/lib/renderer/verify";
 import type { DesignIntent, Presentation } from "@/lib/renderer/design-intent";
 import { COMPILER_VERSION, PRIMITIVE_SET_VERSION } from "@/lib/ai/versions";
+import { reserveArtworkSlots, type ArtworkSlotReservation } from "./persist-artwork";
 
 type Admin = SupabaseClient<Database>;
 
@@ -81,6 +82,15 @@ export interface PersistConceptRequest {
   readonly compositionInputAssemblyVersion: string;
   /** Verified. `verified.clean` is true by the type's own construction. */
   readonly spec: ResolvedDesignSpec;
+  /**
+   * The artwork boxes this revision's geometry reserved, if the creative direction chose any.
+   *
+   * Optional and usually absent: `spec.md §7.6a #1` makes imagery "optional, and chosen by the
+   * creative direction", so a typography-led concept passes nothing here and is complete. The
+   * slots are *reservations* — `src/lib/generation/persist-artwork.ts` explains why an asset can
+   * only ever attach afterwards, and why it never touches the spec when it does.
+   */
+  readonly artworkSlots?: readonly ArtworkSlotReservation[];
 }
 
 export interface PersistedConcept {
@@ -193,6 +203,12 @@ export async function persistConcept(
     if (!specInsert.data) throw new Error("resolved_design_specs insert returned no row");
     resolvedSpecId = specInsert.data.id;
   }
+
+  // Slots are reserved against the revision that was just frozen, and before the concept points at
+  // it, so a live revision always carries the boxes its geometry reserved. Nothing about this
+  // write can change, re-verify or invalidate the spec: the reservations are a side table keyed by
+  // `(resolved_spec_id, slot_id)`, and `resolved_design_specs` refuses every update regardless.
+  await reserveArtworkSlots(admin, resolvedSpecId, request.artworkSlots ?? []);
 
   // The one permitted update. `protect_design_concept()` also checks the spec belongs to this
   // concept, so a cross-sibling mislink is refused by the database rather than trusted from here.

@@ -31,6 +31,7 @@ import { connect, resetDatabase } from "./harness";
  * `database.types.ts` and not here fails the compile below, so this cannot drift from it silently.
  */
 const DECLARED_FUNCTIONS = {
+  attach_artwork_asset: true,
   attach_inspiration_asset: true,
   bind_draft_claim_email: true,
   capture_identity_call_response: true,
@@ -42,6 +43,7 @@ const DECLARED_FUNCTIONS = {
   consume_rate_limit: true,
   event_role: true,
   expire_identity_call_claims: true,
+  fail_artwork_slot: true,
   fail_identity_call_recovery: true,
   generation_batch_is_in_flight: true,
   issue_batch_sibling: true,
@@ -49,6 +51,7 @@ const DECLARED_FUNCTIONS = {
   record_batch_call_run: true,
   record_batch_sibling_run: true,
   record_sibling_stage_run: true,
+  request_artwork_slot: true,
   settle_batch_sibling: true,
   settle_generation_batch: true,
   start_generation_batch: true,
@@ -225,6 +228,7 @@ describe("the contract's nullability matches the database's", () => {
     design_intent_artifacts: "DesignIntentArtifactRow",
     design_concepts: "DesignConceptRow",
     resolved_design_specs: "ResolvedDesignSpecRow",
+    resolved_spec_artwork_slots: "ResolvedSpecArtworkSlotRow",
     event_identity_revisions: "EventIdentityRevisionRow",
     clarification_answers: "ClarificationAnswerRow",
     generation_runs: "GenerationRunRow",

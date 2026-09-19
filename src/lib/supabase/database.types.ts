@@ -117,6 +117,48 @@ export type RecordSiblingStageRunOutcome =
 /** Outcomes of public.settle_batch_sibling. `already_succeeded` makes re-settling idempotent. */
 export type SettleBatchSiblingOutcome = "succeeded" | "failed" | "already_succeeded";
 
+/**
+ * The four in-scope artwork roles of `spec.md §7.6a`
+ * (20260919120000_phase4e_artwork_lineage.sql).
+ *
+ * Mirrors `ARTWORK_ROLES` in `src/lib/ai/visual-art/contract.ts`, which records that the list is
+ * canon's rather than the code's and that "a fifth role is a compiler change and a version bump".
+ * `src/lib/generation/persist-artwork.ts` ties the two spellings together at compile time, and
+ * `tests/db/phase4e-artwork.test.ts` reads the enum's labels back out of the database.
+ */
+export type ArtworkRole = "anchor" | "object" | "atmosphere" | "framed";
+
+/**
+ * The lifecycle of one artwork slot.
+ *
+ * `reserved` is the default **and a complete state**: the box exists in verified geometry and no
+ * request has been made, which is what a page whose creative direction chose no artwork looks
+ * like. It is not a pending write. `delivered` and `failed` are terminal and frozen, and the
+ * database refuses a backward transition.
+ */
+export type ArtworkSlotStatus = "reserved" | "requested" | "delivered" | "failed";
+
+/** What an asset may be. Alpha is measured per asset, so a format without it is still admissible. */
+export type ArtworkContentType = "image/png" | "image/webp" | "image/avif" | "image/jpeg";
+
+/** How an artwork request failed, terminally. Classified, so the reason survives the provider. */
+export type ArtworkFailureKind =
+  "provider_unavailable" | "provider_refused" | "provider_error" | "timeout" | "asset_rejected";
+
+/** Outcomes of public.request_artwork_slot. `already_requested` changes nothing. */
+export type RequestArtworkSlotOutcome = "requested" | "already_requested";
+
+/**
+ * Outcomes of public.attach_artwork_asset.
+ *
+ * `already_delivered` is the idempotent replay of the *same* asset. A different asset against a
+ * delivered slot is not an outcome — it raises, because the alternative is last-write-wins.
+ */
+export type AttachArtworkAssetOutcome = "attached" | "already_delivered";
+
+/** Outcomes of public.fail_artwork_slot. The first classification stands. */
+export type FailArtworkSlotOutcome = "failed" | "already_failed";
+
 type ProfileRow = {
   id: string;
   email: string | null;
@@ -352,6 +394,55 @@ type ResolvedDesignSpecRow = {
   created_at: string;
 };
 
+/**
+ * One reserved artwork box inside one frozen spec revision, and the asset that may later attach
+ * to it (20260919120000_phase4e_artwork_lineage.sql).
+ *
+ * Keyed by `(resolved_spec_id, slot_id)` and never folded into `resolved_design_specs.spec`: the
+ * spec is compiled, geometry-verified at 390 and 1280 and frozen *before any image exists*, and
+ * `spec.md §32 #18` makes it immutable. An asset attaches afterwards — or never — and a slot with
+ * no asset is a complete, renderable artifact rather than a half-written row.
+ *
+ * Every provider column is nullable because no image model has been selected and none has been
+ * called: a row with a fully assembled `visual_art_intent` and nothing else is expected, not
+ * partial.
+ */
+type ResolvedSpecArtworkSlotRow = {
+  id: string;
+  resolved_spec_id: string;
+  slot_id: string;
+  role: ArtworkRole;
+  extent: string;
+  mobile_width_px: number;
+  mobile_height_px: number;
+  desktop_width_px: number;
+  desktop_height_px: number;
+  visual_art_intent: Json;
+  visual_art_intent_version: string;
+  status: ArtworkSlotStatus;
+  provider: string | null;
+  model: string | null;
+  artwork_prompt_version: string | null;
+  artwork_contract_version: string | null;
+  storage_bucket: string | null;
+  storage_path: string | null;
+  width_px: number | null;
+  height_px: number | null;
+  /** `bigint`, which PostgREST and node-postgres both return as a string. */
+  byte_size: string | null;
+  content_type: ArtworkContentType | null;
+  /** Measured from the delivered bytes; never inferred from `role`. */
+  has_alpha: boolean | null;
+  failure_kind: ArtworkFailureKind | null;
+  failure_detail: string | null;
+  latency_ms: number | null;
+  /** `numeric`, returned as a string so no precision is lost on the way through. */
+  cost_estimate_usd: string | null;
+  created_at: string;
+  requested_at: string | null;
+  settled_at: string | null;
+};
+
 type GenerationRunRow = {
   id: string;
   event_id: string;
@@ -550,6 +641,24 @@ type AppendOnlyTable<Row, Ins> = {
  * `.insert()` or `.update()` from application code would bypass exactly the atomicity the table
  * exists to provide, so the contract refuses both at compile time rather than hoping nobody tries.
  */
+/**
+ * A table the application inserts into directly, and only ever *changes* through a
+ * `security definer` RPC.
+ *
+ * `resolved_spec_artwork_slots` is the first. Reserving a slot is an ordinary insert alongside the
+ * revision it belongs to, but every later transition — requested, delivered, failed — carries
+ * guards that must hold inside one transaction: forward-only status, a terminal state that is
+ * frozen, and an idempotent attach that converges on the asset already stored rather than
+ * overwriting it. A `.update()` from application code would bypass all three, so the contract
+ * refuses it at compile time.
+ */
+type RpcUpdatedTable<Row, Ins> = {
+  Row: Row;
+  Insert: Ins;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
 type RpcWrittenTable<Row> = {
   Row: Row;
   Insert: Record<string, never>;
@@ -733,6 +842,35 @@ export type Database = {
       resolved_design_specs: AppendOnlyTable<
         ResolvedDesignSpecRow,
         Insert<ResolvedDesignSpecRow, "id" | "supersedes_spec_id" | "created_at">
+      >;
+      resolved_spec_artwork_slots: RpcUpdatedTable<
+        ResolvedSpecArtworkSlotRow,
+        Insert<
+          ResolvedSpecArtworkSlotRow,
+          // Everything a *reservation* does not know. The status defaults to `reserved`, and every
+          // provider, asset, failure and telemetry column is null until something later fills it
+          // through one of the three RPCs.
+          | "id"
+          | "status"
+          | "provider"
+          | "model"
+          | "artwork_prompt_version"
+          | "artwork_contract_version"
+          | "storage_bucket"
+          | "storage_path"
+          | "width_px"
+          | "height_px"
+          | "byte_size"
+          | "content_type"
+          | "has_alpha"
+          | "failure_kind"
+          | "failure_detail"
+          | "latency_ms"
+          | "cost_estimate_usd"
+          | "created_at"
+          | "requested_at"
+          | "settled_at"
+        >
       >;
       event_identity_revisions: AppendOnlyTable<
         EventIdentityRevisionRow,
@@ -1105,6 +1243,63 @@ export type Database = {
         Args: { p_batch_id: string };
         Returns: GenerationBatchStatus | "in_flight";
       };
+      /**
+       * Marks one artwork slot's request outstanding, with the lineage of the call being made.
+       * Addressed by `(spec revision, slot id)`, so a slot belonging to another revision simply
+       * does not resolve.
+       */
+      request_artwork_slot: {
+        Args: {
+          p_resolved_spec_id: string;
+          p_slot_id: string;
+          p_provider?: string | null;
+          p_model?: string | null;
+          p_artwork_prompt_version?: string | null;
+          p_artwork_contract_version?: string | null;
+        };
+        Returns: RequestArtworkSlotOutcome;
+      };
+      /**
+       * Attaches a delivered asset. Idempotent for the same asset; raises for a different one
+       * against an already-delivered slot. `p_has_alpha` has no default: alpha is measured from
+       * the bytes, never inferred from the slot's role.
+       */
+      attach_artwork_asset: {
+        Args: {
+          p_resolved_spec_id: string;
+          p_slot_id: string;
+          p_storage_bucket: string;
+          p_storage_path: string;
+          p_width_px: number;
+          p_height_px: number;
+          p_byte_size: number;
+          p_content_type: ArtworkContentType;
+          p_has_alpha: boolean;
+          p_provider?: string | null;
+          p_model?: string | null;
+          p_artwork_prompt_version?: string | null;
+          p_artwork_contract_version?: string | null;
+          p_latency_ms?: number | null;
+          p_cost_estimate_usd?: number | null;
+        };
+        Returns: AttachArtworkAssetOutcome;
+      };
+      /** Records a terminal failure as an outcome. The first classification stands. */
+      fail_artwork_slot: {
+        Args: {
+          p_resolved_spec_id: string;
+          p_slot_id: string;
+          p_failure_kind: ArtworkFailureKind;
+          p_failure_detail?: string | null;
+          p_provider?: string | null;
+          p_model?: string | null;
+          p_artwork_prompt_version?: string | null;
+          p_artwork_contract_version?: string | null;
+          p_latency_ms?: number | null;
+          p_cost_estimate_usd?: number | null;
+        };
+        Returns: FailArtworkSlotOutcome;
+      };
     };
     Enums: {
       event_status: EventStatus;
@@ -1114,6 +1309,8 @@ export type Database = {
       identity_call_claim_state: IdentityCallClaimState;
       generation_batch_status: GenerationBatchStatus;
       generation_batch_sibling_status: GenerationBatchSiblingStatus;
+      artwork_role: ArtworkRole;
+      artwork_slot_status: ArtworkSlotStatus;
     };
     CompositeTypes: Record<string, never>;
   };
