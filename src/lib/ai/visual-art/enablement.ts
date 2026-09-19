@@ -21,9 +21,13 @@ import "server-only";
  * 3. **No module under `src/lib/ai/visual-art/` can reach a network.** No `fetch`, no HTTP client,
  *    no SDK import, transitively. Also proved by a scan, and by running the stub with a throwing
  *    `fetch` installed.
- * 4. **`generateVisualArt` takes its provider by injection.** The only implementation in this
- *    repository is `./stub/provider.ts`, which reads four checked-in files off the local disk.
- *    A live provider does not exist here to be selected by accident.
+ * 4. **`generateVisualArt` takes its provider by injection**, and this module hands out none. A
+ *    live adapter now exists — `src/lib/ai/openai/artwork.ts`, written for an authorized
+ *    capability spike — but it lives outside this directory, imports this one and is never
+ *    imported back, so the scans above are untouched and `getArtworkProvider()` still cannot
+ *    return it. Reaching it takes an explicit construction, a named model and a live spend
+ *    reservation, at a call site somebody wrote on purpose. The offline `./stub/provider.ts` is
+ *    still the only provider anything in production can obtain.
  *
  * # What the next authorized task does
  *
@@ -32,10 +36,13 @@ import "server-only";
  * being settled by a prompt. Selecting one is a locked-stack decision (`CLAUDE.md §3`), so it is
  * not made here and is not implied by anything in this directory.
  *
- * When it is made, a smoke run needs exactly two things that this repository deliberately does not
- * have: an `ArtworkProvider` implementation for the chosen model, and an explicit authorization to
- * spend. It needs no change to the interface, the classification, the spend gate, the telemetry or
- * the fallback — which is the seam being complete without being live.
+ * One authorized capability spike has since run a single image through
+ * `src/lib/ai/openai/artwork.ts` against a pinned, dated model, under a one-request budget. That
+ * is evidence about one model from one sample, not a selection: `docs/technology-decisions.md §8`
+ * still records the decision as open and names what a real selection has to measure. Nothing about
+ * this module changed for it, which is the seam being complete without being live — the spike
+ * needed a provider and an authorization, and no change to the interface, the classification, the
+ * spend gate, the telemetry or the fallback.
  */
 import type { ArtworkProvider } from "./provider";
 
@@ -58,6 +65,8 @@ export function getArtworkProvider(): ArtworkProvider {
     "No image provider is configured, and none may be. spec.md §7.6a and " +
       "docs/technology-decisions.md record that no image model is selected; choosing one is a " +
       "locked-stack decision (CLAUDE.md §3), not a configuration change. The offline stub in " +
-      "src/lib/ai/visual-art/stub/ is the only provider this repository has.",
+      "src/lib/ai/visual-art/stub/ is the only provider this function will ever hand out. A live " +
+      "adapter exists at src/lib/ai/openai/artwork.ts for authorized spikes; reaching it takes an " +
+      "explicit construction and a spend reservation, never a lookup through here.",
   );
 }
