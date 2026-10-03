@@ -43,6 +43,10 @@ function attemptFrom(result: CompositionCallResult) {
     // `check (fallback in ('library'))`, and the richer telemetry — reason, seed, fixture,
     // attempts spent — is carried on the run row rather than the concept.
     fallback: result.fallback ? ("library" as const) : null,
+    // Per-response usage, forwarded rather than priced here: the stage holds the bound this batch
+    // resolved before its first paid call, and pricing is one rule applied in one place
+    // (`src/lib/generation/run-cost.ts`, `docs/phase-4b-plan.md §A.5.1`).
+    usage,
     telemetry: {
       operation: COMPOSITION_OPERATION,
       provider: usage.provider,

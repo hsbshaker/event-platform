@@ -54,6 +54,8 @@ import type { ArtworkSlotReservation, ReservedBox } from "./persist-artwork";
 import { compileConcept, type RepromptsSpent } from "./compile-concept";
 import { persistConcept } from "./persist-concept";
 import { recordSiblingStageRun, settleSibling, type SiblingRunTelemetry } from "./batch";
+import type { CompositionCostRelevantUsage } from "./composition-cost";
+import { priceFailedRun, priceRun, type BatchCostBounds } from "./run-cost";
 import type { EventContent } from "@/components/event-renderer/contract";
 
 type Admin = SupabaseClient<Database>;
@@ -106,7 +108,24 @@ export interface CompositionAttempt {
   readonly schemaVersion: string;
   readonly inputAssemblyVersion: string;
   readonly fallback: "library" | null;
-  readonly telemetry: SiblingRunTelemetry;
+  /**
+   * The run row's columns — **except** its price, which this stage sets.
+   *
+   * The port reports what the provider did; the money policy stays here, where the bound resolved
+   * before the call is in hand. That is the same split `identity-orchestrator.ts` has with its
+   * boundary, and it is why `Omit` rather than the whole type: a runner cannot forget the price,
+   * because a runner is not the thing that supplies it.
+   */
+  readonly telemetry: Omit<SiblingRunTelemetry, "costEstimateUsd">;
+  /**
+   * Per-response usage, which is what pricing reads.
+   *
+   * Required, not optional. `docs/phase-4b-plan.md §A.5.1` rule 1 prices each response at its own
+   * tier because the long-context threshold is per request, so a summary cannot be priced; rule 3
+   * then charges anything unpriceable at the per-attempt maximum. A runner that genuinely knows
+   * nothing says so with zeroed counters and is charged the maximum — never nothing.
+   */
+  readonly usage: CompositionCostRelevantUsage;
 }
 
 export type CompositionRunner = (request: CompositionRunnerRequest) => Promise<CompositionAttempt>;
@@ -125,6 +144,15 @@ export interface CompositionStageRequest {
   readonly designIntentPromptVersion: string;
   readonly designIntentSchemaVersion: string;
   readonly content: EventContent;
+  /**
+   * The cost profile and per-attempt bounds this batch resolved **before** its first paid call.
+   *
+   * Required, because `generation_runs.cost_estimate_usd` is what the project ceiling sums and a
+   * null there is charged at the per-run maximum (§A.5.1 rule 3). Passed in rather than resolved
+   * here so a stale profile or an unpriced model refuses the batch before the money, never between
+   * a paid response and the row that records it.
+   */
+  readonly costBounds: BatchCostBounds;
   /**
    * The artwork lifecycle's dependencies, or absent to run no artwork stage at all.
    *
@@ -207,7 +235,7 @@ export async function runCompositionStage(
       operation: COMPOSITION_OPERATION,
       attempt: request.attempt,
       success: false,
-      run: providerFailureTelemetry(detail),
+      run: providerFailureTelemetry(error, detail, request.costBounds),
     });
     await settleSibling(admin, request.batchId, request.conceptIndex, false);
     return { state: "failed", kind: "provider", detail, repromptsUsed: spent };
@@ -222,7 +250,14 @@ export async function runCompositionStage(
     operation: COMPOSITION_OPERATION,
     attempt: request.attempt,
     success: true,
-    run: { ...attempt.telemetry, nearestSibling: nearest },
+    run: {
+      ...attempt.telemetry,
+      nearestSibling: nearest,
+      // Priced here, from the per-response usage the runner reported and against composition's own
+      // per-attempt bound. A library fallback is priced the same way: the responses that preceded
+      // it were paid for whether or not the tree came from the model.
+      costEstimateUsd: priceRun(request.costBounds, COMPOSITION_OPERATION, attempt.usage).usd,
+    },
   });
 
   const compiled = await compileConcept({
@@ -365,8 +400,19 @@ export async function runCompositionStage(
   }
 }
 
-/** Telemetry for a call that never returned a usable response. */
-function providerFailureTelemetry(detail: string): SiblingRunTelemetry {
+/**
+ * A composition call that never returned a usable tree, recorded with what it may have cost.
+ *
+ * The failure is where the under-counting hurt most: `generateComposition` spends up to three
+ * re-prompts, so a call that fails at the end has usually been paid for several times over. The
+ * error carries that evidence, and §A.5.1 rules 2 and 3 price it — every response the boundary
+ * described at its own tier, everything else at composition's own per-attempt maximum, never zero.
+ */
+function providerFailureTelemetry(
+  error: unknown,
+  detail: string,
+  bounds: BatchCostBounds,
+): SiblingRunTelemetry {
   return {
     operation: COMPOSITION_OPERATION,
     provider: "openai",
@@ -375,5 +421,6 @@ function providerFailureTelemetry(detail: string): SiblingRunTelemetry {
     promptVersion: "unknown",
     schemaVersion: "unknown",
     errorCode: detail.slice(0, 120),
+    costEstimateUsd: priceFailedRun(bounds, COMPOSITION_OPERATION, error).usd,
   };
 }

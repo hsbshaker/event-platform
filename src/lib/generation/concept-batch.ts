@@ -82,7 +82,7 @@ import {
   CONCEPT_PREMISE_SCHEMA_VERSION,
 } from "@/lib/ai/versions";
 import { openAiEnv } from "@/lib/env";
-import type { Database, Json, ModelOperation } from "@/lib/supabase/database.types";
+import type { Database, Json } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
@@ -97,6 +97,13 @@ import {
   type BatchRefusalReason,
   type SiblingRunTelemetry,
 } from "./batch";
+import {
+  batchCostBounds,
+  priceFailedRun,
+  priceRun,
+  type BatchCostBounds,
+  type PricedBatchOperation,
+} from "./run-cost";
 import { compositionBrief } from "@/lib/ai/composition/brief";
 import { decideArtwork } from "@/lib/renderer/compile/artwork-decision";
 import type { ArtworkStageDeps } from "./artwork-stage";
@@ -120,8 +127,15 @@ import type { ConceptBatchPlan, PlannedConcept } from "./planner";
 
 type Admin = SupabaseClient<Database>;
 
-/** The operation the premise call is recorded under. Its own value, never `design_intent`. */
-export const PREMISE_OPERATION: ModelOperation = "concept_premise";
+/**
+ * The operation the premise call is recorded under. Its own value, never `design_intent`.
+ *
+ * Typed as the narrower `PricedBatchOperation` — still a `ModelOperation`, and still what
+ * `recordBatchCallRun` is given — so the same constant also selects this call's **own** per-attempt
+ * cost bound. A premise run priced against DesignIntent's bound would be the mistake
+ * `docs/phase-4b-plan.md §A.5.1` rule 4 exists to prevent.
+ */
+export const PREMISE_OPERATION: PricedBatchOperation = "concept_premise";
 
 /**
  * The premise run is recorded at the **batch** level, not against a sibling.
@@ -298,7 +312,17 @@ async function readEventContentRow(admin: Admin, eventId: string): Promise<Event
 
 /* ------------------------------------------------------------------ run telemetry */
 
-function premiseTelemetry(call: ConceptPremiseCallResult): SiblingRunTelemetry {
+/**
+ * Every run row carries its price, and the price comes from the operation's own bound.
+ *
+ * `bounds` is resolved once at the top of `runConceptBatch`, before the batch is admitted and so
+ * before any money — `run-cost.ts` says why resolving it at the capture instead would risk throwing
+ * between a paid response and the row that records it.
+ */
+function premiseTelemetry(
+  call: ConceptPremiseCallResult,
+  bounds: BatchCostBounds,
+): SiblingRunTelemetry {
   return {
     operation: PREMISE_OPERATION,
     provider: call.usage.provider,
@@ -313,6 +337,7 @@ function premiseTelemetry(call: ConceptPremiseCallResult): SiblingRunTelemetry {
     cacheWriteInputTokens: call.usage.cacheWriteInputTokens ?? null,
     outputTokens: call.usage.outputTokens ?? null,
     reasoningTokens: call.usage.reasoningTokens ?? null,
+    costEstimateUsd: priceRun(bounds, "concept_premise", call.usage).usd,
     schemaValidFirstCall: call.usage.validFirstCall,
     reprompts: {
       repairRetries: call.usage.repairRetries,
@@ -321,7 +346,10 @@ function premiseTelemetry(call: ConceptPremiseCallResult): SiblingRunTelemetry {
   };
 }
 
-function designIntentTelemetry(call: DesignIntentCallResult): SiblingRunTelemetry {
+function designIntentTelemetry(
+  call: DesignIntentCallResult,
+  bounds: BatchCostBounds,
+): SiblingRunTelemetry {
   return {
     operation: "design_intent",
     provider: call.usage.provider,
@@ -336,6 +364,7 @@ function designIntentTelemetry(call: DesignIntentCallResult): SiblingRunTelemetr
     cacheWriteInputTokens: call.usage.cacheWriteInputTokens ?? null,
     outputTokens: call.usage.outputTokens ?? null,
     reasoningTokens: call.usage.reasoningTokens ?? null,
+    costEstimateUsd: priceRun(bounds, "design_intent", call.usage).usd,
     schemaValidFirstCall: call.usage.schemaValidFirstCall,
     reprompts: {
       repairRetries: call.usage.repairRetries,
@@ -344,11 +373,19 @@ function designIntentTelemetry(call: DesignIntentCallResult): SiblingRunTelemetr
   };
 }
 
-/** A failure still costs money and is still recorded, so the ceiling sees what was spent. */
+/**
+ * A failure still costs money and is still recorded, so the ceiling sees what was spent.
+ *
+ * Including the money. An attempt that threw before a response arrived may still have billed, so
+ * §A.5.1 rule 2 charges it the per-attempt maximum and never zero; where the boundary annotated
+ * the error with per-response usage, the responses already paid for are priced and only the rest
+ * is charged at the bound. `priceFailedRun` does both, from whatever the error carries.
+ */
 function failureTelemetry(
-  operation: ModelOperation,
+  operation: PricedBatchOperation,
   model: string,
   error: unknown,
+  bounds: BatchCostBounds,
 ): SiblingRunTelemetry {
   const known = error as { kind?: string; usage?: { latencyMs?: number } };
   return {
@@ -359,6 +396,7 @@ function failureTelemetry(
     promptVersion: "",
     schemaVersion: "",
     errorCode: known.kind ?? "unknown",
+    costEstimateUsd: priceFailedRun(bounds, operation, error).usd,
   };
 }
 
@@ -386,6 +424,7 @@ async function runSibling(
   premise: ConceptPremise,
   attempt: number,
   model: string,
+  bounds: BatchCostBounds,
 ): Promise<SiblingResult> {
   await issueSibling(admin, batchId, planned.index);
   try {
@@ -403,7 +442,7 @@ async function runSibling(
       operation: "design_intent",
       attempt,
       success: true,
-      run: designIntentTelemetry(call),
+      run: designIntentTelemetry(call, bounds),
     });
     return { planned, premise, call, attempt };
   } catch (error) {
@@ -414,7 +453,7 @@ async function runSibling(
       operation: "design_intent",
       attempt,
       success: false,
-      run: failureTelemetry("design_intent", model, error),
+      run: failureTelemetry("design_intent", model, error, bounds),
     });
     // Terminal for this sibling: with no DesignIntent there is nothing to compose. Settled here
     // rather than left pending, so `settle_generation_batch` is not blocked by a sibling that will
@@ -514,6 +553,12 @@ export async function runConceptBatch(
   const { eventId, userId } = request;
   const env = openAiEnv();
   const model = env.OPENAI_MODEL;
+  // Before the identity is read, before the batch is admitted, and a long way before the first
+  // provider call: resolving the cost profile and all three per-attempt bounds here is what makes
+  // every run row below priceable without a configuration lookup after the money is spent. It
+  // refuses the batch for an unpriced model or a stale profile, which is the same fail-closed
+  // contract `identityLimits` has at claim time (`docs/phase-4b-plan.md §A.5.1`).
+  const costBounds = batchCostBounds(model);
 
   const revision = await readAuthoritativeIdentity(admin, eventId);
   if (!revision) return { state: "refused", reason: "not_authoritative" };
@@ -543,7 +588,7 @@ export async function runConceptBatch(
       operation: PREMISE_OPERATION,
       attempt: FIRST_ATTEMPT,
       success: true,
-      run: premiseTelemetry(premiseCall),
+      run: premiseTelemetry(premiseCall, costBounds),
     });
   } catch (error) {
     if (!(error instanceof ConceptPremiseError)) throw error;
@@ -555,7 +600,7 @@ export async function runConceptBatch(
       // The versions are recorded even on the failure path: a paid attempt whose contract nobody
       // can name is a spend record that cannot be read later.
       run: {
-        ...failureTelemetry(PREMISE_OPERATION, model, error),
+        ...failureTelemetry(PREMISE_OPERATION, model, error, costBounds),
         promptVersion: CONCEPT_PREMISE_PROMPT_VERSION,
         schemaVersion: CONCEPT_PREMISE_SCHEMA_VERSION,
         inputAssemblyVersion: CONCEPT_PREMISE_INPUT_ASSEMBLY_VERSION,
@@ -581,6 +626,7 @@ export async function runConceptBatch(
         premiseCall.premiseSet.premises[concept.index],
         FIRST_ATTEMPT,
         model,
+        costBounds,
       ),
     ),
   );
@@ -686,6 +732,9 @@ export async function runConceptBatch(
             designIntentPromptVersion: call.promptVersion,
             designIntentSchemaVersion: call.schemaVersion,
             content,
+            // The composition stage prices its own run, against composition's bound, from the
+            // same resolution the premise and DesignIntent rows were priced from.
+            costBounds,
             tokenAllotment: {
               allowed: sibling.planned.allowedTokens,
               forbidden: sibling.planned.forbiddenTokens,

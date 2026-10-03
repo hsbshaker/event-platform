@@ -549,7 +549,20 @@ export interface SiblingRunTelemetry {
   cacheWriteInputTokens?: number | null;
   outputTokens?: number | null;
   reasoningTokens?: number | null;
-  costEstimateUsd?: number | null;
+  /**
+   * What this call cost, in USD. **Required**, and required for a failure too.
+   *
+   * Not optional, because optional is how it came to be null on every batch-side row ever written:
+   * three stages recorded token counts and left the price out, `cost_estimate_usd` went in as null,
+   * and `plan_generation_batch` charged each of those rows the per-run **maximum** — §A.5.1 rule 3,
+   * doing exactly what it should with a number nobody supplied. One batch of eight runs then read
+   * as hundreds of dollars and refused every later batch for the rest of the ceiling window.
+   *
+   * So the type makes it a decision rather than a default. A failure has a price too: §A.5.1 rule 2
+   * charges an attempt that threw at the per-attempt maximum, never at zero. `run-cost.ts` prices
+   * both paths; `priceFailedRun` is the one for a thrown call.
+   */
+  costEstimateUsd: number;
   errorCode?: string | null;
   inputAssemblyVersion?: string | null;
   schemaValidFirstCall?: boolean | null;
@@ -570,6 +583,26 @@ export interface SiblingRunTelemetry {
   nearestSibling?: number | null;
   /** `"library"` when a documented fallback produced the tree, so it is never read as model work. */
   fallback?: string | null;
+}
+
+/**
+ * The one place a run's price is written, and the last check on it.
+ *
+ * `costEstimateUsd` is a required `number`, so a missing price is a compile error rather than a
+ * null row. This covers what the type cannot: a value that arrived as `NaN`, `Infinity` or a
+ * negative number from arithmetic upstream. Such a value is **not** written — `cost_estimate_usd`
+ * has a `check (>= 0)` and a rejected insert would lose the whole spend record — and it is not
+ * quietly turned into zero either. It goes in as null, which the ceiling already charges at the
+ * per-run maximum (§A.5.1 rule 3), with a loud log naming the run, because over-counting a paid
+ * call is recoverable and under-counting it is not.
+ */
+function priceColumn(usd: number, operation: ModelOperation): number | null {
+  if (Number.isFinite(usd) && usd >= 0) return usd;
+  console.error(
+    `generation run cost: ${operation} priced at ${String(usd)}, which is not a usable amount; ` +
+      "recording null, which the ceiling charges at the per-run maximum.",
+  );
+  return null;
 }
 
 export interface RecordSiblingRunRequest {
@@ -628,7 +661,7 @@ export async function recordSiblingRun(
       cache_write_input_tokens: run.cacheWriteInputTokens ?? null,
       output_tokens: run.outputTokens ?? null,
       reasoning_tokens: run.reasoningTokens ?? null,
-      cost_estimate_usd: run.costEstimateUsd ?? null,
+      cost_estimate_usd: priceColumn(run.costEstimateUsd, operation),
       error_code: run.errorCode ?? null,
       input_assembly_version: run.inputAssemblyVersion ?? null,
       schema_valid_first_call: run.schemaValidFirstCall ?? null,
@@ -698,7 +731,7 @@ export async function recordBatchCallRun(
       cache_write_input_tokens: run.cacheWriteInputTokens ?? null,
       output_tokens: run.outputTokens ?? null,
       reasoning_tokens: run.reasoningTokens ?? null,
-      cost_estimate_usd: run.costEstimateUsd ?? null,
+      cost_estimate_usd: priceColumn(run.costEstimateUsd, request.operation),
       error_code: run.errorCode ?? null,
       input_assembly_version: run.inputAssemblyVersion ?? null,
       schema_valid_first_call: run.schemaValidFirstCall ?? null,
@@ -774,7 +807,7 @@ export async function recordSiblingStageRun(
       cache_write_input_tokens: run.cacheWriteInputTokens ?? null,
       output_tokens: run.outputTokens ?? null,
       reasoning_tokens: run.reasoningTokens ?? null,
-      cost_estimate_usd: run.costEstimateUsd ?? null,
+      cost_estimate_usd: priceColumn(run.costEstimateUsd, request.operation),
       error_code: run.errorCode ?? null,
       input_assembly_version: run.inputAssemblyVersion ?? null,
       schema_valid_first_call: run.schemaValidFirstCall ?? null,

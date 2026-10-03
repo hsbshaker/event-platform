@@ -10,7 +10,7 @@
  * Acceptance criteria: N/A — internal spend-control mechanism, exercised for product behaviour in
  * the db suite. `spec.md §10`, `§27`, `§32 #41`.
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PLANNER_VERSION } from "@/lib/ai/versions";
 
@@ -26,6 +26,7 @@ import {
   batchIdempotencyKey,
   batchLimits,
   isBatchInFlight,
+  recordBatchCallRun,
   siblingIdempotencyKey,
 } from "./batch";
 
@@ -199,9 +200,93 @@ describe("the configurable batch caps", () => {
     expect(batchLimits().ceiling.runMaxUsd).toBeGreaterThanOrEqual(logicalCallMaxUsd(model));
   });
 
+  it("charges the largest logical call at $48, the composition call's", () => {
+    // Stated as a number because the incident was arithmetic: seven null-costed rows at this bound
+    // summed to $336 against a $25 ceiling. If this figure moves, the cost of an unpriced row moves
+    // with it, and whatever moved it should be deliberate.
+    expect(batchLimits().ceiling.runMaxUsd).toBe(48);
+    expect(compositionLogicalCallMaxUsd("gpt-5.6-sol")).toBe(48);
+  });
+
   it("reserves nothing per batch today, and says so rather than inventing a price", () => {
     // DesignIntent has no verified cost profile until T18/T22. A fabricated reservation would read
     // as safety; zero plus a named debt does not.
     expect(batchLimits().reservationUsd).toBe(0);
+  });
+});
+
+/* ------------------------------------------------------- the price column itself */
+
+/**
+ * What reaches `generation_runs.cost_estimate_usd`, at the one place that writes it.
+ *
+ * The defect was upstream of here — three stages supplied no price and this module wrote the null
+ * they implied — but this is where the column is set, so this is where the last check belongs.
+ * `SiblingRunTelemetry.costEstimateUsd` is now a required `number`, which makes a missing price a
+ * compile error; what remains to check at runtime is a value that arithmetic produced and nobody
+ * could use.
+ */
+describe("the cost a run records", () => {
+  const fakeAdmin = () => {
+    const calls: { name: string; args: Record<string, unknown> }[] = [];
+    const admin = {
+      calls,
+      rpc(name: string, args: Record<string, unknown>) {
+        calls.push({ name, args });
+        return Promise.resolve({ data: [{ outcome: "recorded", run_id: "run-1" }], error: null });
+      },
+    };
+    return admin as unknown as Parameters<typeof recordBatchCallRun>[0] & { calls: typeof calls };
+  };
+
+  const telemetry = (costEstimateUsd: number) => ({
+    provider: "openai",
+    model: "gpt-5.6-sol",
+    latencyMs: 900,
+    promptVersion: "concept_premise_v1",
+    schemaVersion: "concept_premise_schema_v1",
+    costEstimateUsd,
+  });
+
+  const recordedCost = async (usd: number) => {
+    const admin = fakeAdmin();
+    await recordBatchCallRun(admin, {
+      batchId: SIBLING.batchId,
+      operation: "concept_premise",
+      attempt: 0,
+      success: true,
+      run: telemetry(usd),
+    });
+    return (admin.calls[0].args.p_run as { cost_estimate_usd: number | null }).cost_estimate_usd;
+  };
+
+  it("writes the price it was given, to the cent and below", async () => {
+    // The live premise call: 3 uncached input, 3,880 cache writes, 1,491 output. Cents, not
+    // dollars — which is the whole point of pricing the row instead of letting it default.
+    expect(await recordedCost(0.049232)).toBe(0.049232);
+  });
+
+  it("writes zero as zero, because a free call is not an unpriced one", async () => {
+    // Reachable only for a profile whose rates are zero, but the distinction matters: zero is a
+    // priced answer and null is the absence of one, and the ceiling treats them very differently.
+    expect(await recordedCost(0)).toBe(0);
+  });
+
+  it("records null rather than a number nothing can use, and never silently zero", async () => {
+    // `NaN`, `Infinity` and a negative amount are all arithmetic gone wrong upstream. None may be
+    // written: the column has a `check (>= 0)` and a rejected insert would lose the whole spend
+    // record. Null is the conservative answer — `plan_generation_batch` charges it the per-run
+    // maximum (§A.5.1 rule 3) — and it is logged, because over-counting a paid call is recoverable
+    // and under-counting it is not.
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, -1]) {
+        expect(await recordedCost(bad)).toBeNull();
+      }
+      expect(errors).toHaveBeenCalledTimes(3);
+      expect(String(errors.mock.calls[0][0])).toContain("concept_premise");
+    } finally {
+      errors.mockRestore();
+    }
   });
 });

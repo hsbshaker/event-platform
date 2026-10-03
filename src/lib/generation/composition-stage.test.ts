@@ -35,6 +35,11 @@ vi.mock("./persist-concept", () => ({ persistConcept }));
 
 const { runCompositionStage, COMPOSITION_OPERATION } = await import("./composition-stage");
 import type { CompositionAttempt, CompositionStageRequest } from "./composition-stage";
+import { compositionAttemptMaxUsd } from "./composition-cost";
+import { GPT_5_6_SOL } from "./identity-cost";
+import { designIntentAttemptMaxUsd } from "./design-intent-cost";
+import { conceptPremiseAttemptMaxUsd } from "./concept-premise-cost";
+import type { BatchCostBounds } from "./run-cost";
 
 /* --------------------------------------------------------------- the fake admin */
 
@@ -67,6 +72,42 @@ function fakeAdmin(overrides: Record<string, unknown> = {}) {
 
 const TREE = { version: "composition_v1", sections: [] } as never;
 
+const MODEL = GPT_5_6_SOL.model;
+
+/**
+ * The bounds a batch resolves before its first paid call, built from the real derivations.
+ *
+ * Not hand-written numbers: the point of the per-operation bound is that each one comes from its
+ * own request shape, so a fixture that invented them could not catch a stage priced against the
+ * wrong one.
+ */
+const BOUNDS: BatchCostBounds = {
+  profile: GPT_5_6_SOL,
+  costProfileVersion: GPT_5_6_SOL.profileVersion,
+  perAttemptMaxUsd: {
+    concept_premise: conceptPremiseAttemptMaxUsd(MODEL, new Date("2026-10-03T00:00:00Z")),
+    design_intent: designIntentAttemptMaxUsd(MODEL, new Date("2026-10-03T00:00:00Z")),
+    composition: compositionAttemptMaxUsd(MODEL, new Date("2026-10-03T00:00:00Z")),
+  },
+};
+
+/** One response, priceable, in the shape the adapter reports. 7,650 in / 1,794 out. */
+const ONE_RESPONSE: CompositionAttempt["usage"] = {
+  responses: [
+    {
+      inputTokens: 7_650,
+      cachedInputTokens: 0,
+      cacheWriteInputTokens: 7_647,
+      outputTokens: 1_794,
+      reasoningTokens: 1_100,
+      servedServiceTier: "default",
+    },
+  ],
+  providerResponses: 1,
+  providerAttempts: 1,
+  unknownUsageAttempts: 0,
+};
+
 function attempt(over: Partial<CompositionAttempt> = {}): CompositionAttempt {
   return {
     tree: TREE,
@@ -74,10 +115,11 @@ function attempt(over: Partial<CompositionAttempt> = {}): CompositionAttempt {
     schemaVersion: "composition_schema_v1",
     inputAssemblyVersion: "composition_input_v1",
     fallback: null,
+    usage: ONE_RESPONSE,
     telemetry: {
       operation: COMPOSITION_OPERATION,
       provider: "openai",
-      model: "gpt-5.6-sol",
+      model: MODEL,
       latencyMs: 900,
       promptVersion: "composition_v1_p3",
       schemaVersion: "composition_schema_v1",
@@ -99,6 +141,7 @@ function request(over: Partial<CompositionStageRequest> = {}): CompositionStageR
     designIntentPromptVersion: "design_intent_v6",
     designIntentSchemaVersion: "design_intent_schema_v6",
     content: { title: "A baby shower" } as never,
+    costBounds: BOUNDS,
     tokenAllotment: { allowed: [], forbidden: [] } as never,
     call: {
       brief: {
@@ -356,6 +399,81 @@ describe("a failed sibling is settled failed, and never silently ready", () => {
       request({ conceptIndex: 2 }),
     );
     for (const call of admin.calls) expect(call.args.p_concept_index).toBe(2);
+  });
+});
+
+/* ------------------------------------------------------------- what the run cost */
+
+/**
+ * The composition run row carries a price, on both paths.
+ *
+ * This is the regression for the defect that made a real batch unrepeatable: the stage recorded
+ * every token column and no price, `cost_estimate_usd` went in as null, and
+ * `plan_generation_batch` charged that row the per-run **maximum** — correctly, per
+ * `docs/phase-4b-plan.md §A.5.1` rule 3. Seven such rows read as $336 against a $25 ceiling, and
+ * every later batch was refused for a day.
+ */
+describe("the composition run records what it cost", () => {
+  const recordedCost = (admin: ReturnType<typeof fakeAdmin>) => {
+    const record = admin.calls.find((c) => c.name === "record_sibling_stage_run");
+    return (record?.args.p_run as { cost_estimate_usd: number | null }).cost_estimate_usd;
+  };
+
+  it("prices the response from its own tokens, not from a bound", async () => {
+    const admin = fakeAdmin();
+    compileConcept.mockResolvedValue(verified());
+    await runCompositionStage(admin, vi.fn().mockResolvedValue(attempt()), request());
+    // 3 uncached @ $4 + 7,647 cache writes @ $5 + 1,794 output @ $20, per 1M, standard tier —
+    // the response is far below the 272,000-token long-context threshold. `reasoningTokens` is a
+    // breakdown of `outputTokens` and is deliberately not added to it (§A.5.1 rule 1).
+    expect(recordedCost(admin)).toBeCloseTo(0.074127, 9);
+  });
+
+  it("charges an attempt that threw at composition's own per-attempt maximum", async () => {
+    const admin = fakeAdmin();
+    const runner = vi.fn().mockRejectedValue(new Error("provider 500"));
+    await runCompositionStage(admin, runner, request());
+    // §A.5.1 rule 2: an attempt that threw may have billed, so it is never costed at zero. And it
+    // is charged against *composition's* bound — the per-attempt maximum is a property of a
+    // request shape (rule 4), so borrowing another operation's would be a fabricated number.
+    expect(recordedCost(admin)).toBe(compositionAttemptMaxUsd(MODEL));
+    expect(recordedCost(admin)).not.toBe(BOUNDS.perAttemptMaxUsd.design_intent);
+    expect(recordedCost(admin)).not.toBe(BOUNDS.perAttemptMaxUsd.concept_premise);
+  });
+
+  it("prices the responses a failed call was already billed for, and bounds the rest", async () => {
+    const admin = fakeAdmin();
+    // Three re-prompts live inside one logical call, so a call that fails at the end has usually
+    // been paid for several times. The error carries that evidence; two responses are priced and
+    // the third attempt, which returned nothing, is charged the maximum.
+    const failure = Object.assign(new Error("invalid output"), {
+      usage: {
+        responses: [ONE_RESPONSE.responses[0], ONE_RESPONSE.responses[0]],
+        providerResponses: 2,
+        providerAttempts: 3,
+        unknownUsageAttempts: 1,
+      },
+      rawResponses: ["{}", "{}"],
+    });
+    await runCompositionStage(admin, vi.fn().mockRejectedValue(failure), request());
+    expect(recordedCost(admin)).toBeCloseTo(0.074127 * 2 + compositionAttemptMaxUsd(MODEL), 9);
+  });
+
+  it("falls closed when a billable token class is missing rather than reading it as zero", async () => {
+    const admin = fakeAdmin();
+    compileConcept.mockResolvedValue(verified());
+    // No `cacheWriteInputTokens`. Treating it as zero would bill the premium class as ordinary
+    // input and label the answer exact; §A.5.1 rule 3 charges the maximum instead.
+    const blind = attempt({
+      usage: {
+        responses: [{ inputTokens: 7_650, cachedInputTokens: 0, outputTokens: 1_794 }],
+        providerResponses: 1,
+        providerAttempts: 1,
+        unknownUsageAttempts: 0,
+      },
+    });
+    await runCompositionStage(admin, vi.fn().mockResolvedValue(blind), request());
+    expect(recordedCost(admin)).toBe(compositionAttemptMaxUsd(MODEL));
   });
 });
 

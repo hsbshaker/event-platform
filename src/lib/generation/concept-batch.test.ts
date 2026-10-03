@@ -458,12 +458,37 @@ const premiseCalls = () =>
  * is the batch's shape, so composition is stubbed at its narrowest seam: the runner returns a
  * minimal legal tree and the rest of the pipeline runs for real.
  */
+/**
+ * Per-response usage, which is what the composition stage prices a run from.
+ *
+ * A stub that reported none would be charged composition's per-attempt maximum and still record a
+ * price — fail-closed, by design (`docs/phase-4b-plan.md §A.5.1` rule 3) — but it would not prove
+ * that a real response is priced from its own tokens. These are the counts one sibling of the live
+ * Phase 4D batch actually reported.
+ */
+const STUB_COMPOSITION_USAGE = {
+  responses: [
+    {
+      inputTokens: 7_650,
+      cachedInputTokens: 0,
+      cacheWriteInputTokens: 7_647,
+      outputTokens: 1_794,
+      reasoningTokens: 1_100,
+      servedServiceTier: "default",
+    },
+  ],
+  providerResponses: 1,
+  providerAttempts: 1,
+  unknownUsageAttempts: 0,
+};
+
 function stubRunner(overrides: Record<string, unknown> = {}) {
   return vi.fn().mockResolvedValue({
     tree: { version: "composition_v1", sections: [] },
     promptVersion: "composition_v1_p3",
     schemaVersion: "composition_schema_v1",
     inputAssemblyVersion: "composition_input_v1",
+    usage: STUB_COMPOSITION_USAGE,
     fallback: null,
     telemetry: {
       operation: "composition",
@@ -565,6 +590,7 @@ describe("sibling collision is detected on the production path", () => {
         promptVersion: "composition_v1_p3",
         schemaVersion: "composition_schema_v1",
         inputAssemblyVersion: "composition_input_v1",
+        usage: STUB_COMPOSITION_USAGE,
         fallback: colliding && colliding.length > 0 ? ("library" as const) : null,
         telemetry: {
           operation: "composition",
@@ -609,6 +635,7 @@ describe("sibling collision is detected on the production path", () => {
         promptVersion: "composition_v1_p3",
         schemaVersion: "composition_schema_v1",
         inputAssemblyVersion: "composition_input_v1",
+        usage: STUB_COMPOSITION_USAGE,
         fallback: null,
         telemetry: {
           operation: "composition",
@@ -686,6 +713,7 @@ describe("sibling collision is detected on the production path", () => {
         promptVersion: "composition_v1_p3",
         schemaVersion: "composition_schema_v1",
         inputAssemblyVersion: "composition_input_v1",
+        usage: STUB_COMPOSITION_USAGE,
         fallback: null,
         telemetry: {
           operation: "composition",
@@ -735,6 +763,7 @@ describe("sibling collision is detected on the production path", () => {
         promptVersion: "composition_v1_p3",
         schemaVersion: "composition_schema_v1",
         inputAssemblyVersion: "composition_input_v1",
+        usage: STUB_COMPOSITION_USAGE,
         fallback: null,
         telemetry: {
           operation: "composition",
@@ -871,6 +900,47 @@ describe("one concept batch, end to end", () => {
     const settles = recorded.rpc.filter((entry) => entry.name === "settle_batch_sibling");
     expect(settles.map((entry) => entry.args.p_concept_index).sort()).toEqual([0, 1, 2]);
     for (const entry of settles) expect(entry.args.p_success).toBe(true);
+  });
+
+  it("prices every run it records, so the ceiling is not charged a maximum per row", async () => {
+    // The regression for the defect that made a successful batch unrepeatable. Each of these three
+    // stages recorded its token columns and no price; `cost_estimate_usd` went in as null, and
+    // `plan_generation_batch` charged every one of those rows the per-run **maximum** — which is
+    // `docs/phase-4b-plan.md §A.5.1` rule 3 working as designed, since a null must never read as
+    // zero. One batch of eight rows then summed to $336.06 against a $25 ceiling and refused every
+    // later batch for a day. The invariant is therefore the whole surface, not one stage: **every**
+    // run a batch writes carries a price.
+    const recorded = recorder();
+    const outcome = await run(recorded);
+    expect(outcome.state).toBe("generated");
+
+    const runs = recorded.rpc.filter(
+      (entry) =>
+        entry.name === "record_batch_call_run" || entry.name === "record_sibling_stage_run",
+    );
+    // One premise, three DesignIntent, three Composition. A count assertion as well as a per-row
+    // one, so a stage that stopped recording altogether cannot pass by writing nothing.
+    expect(runs).toHaveLength(7);
+    for (const entry of runs) {
+      const cost = (entry.args.p_run as { cost_estimate_usd: number | null }).cost_estimate_usd;
+      expect(cost, `${String(entry.args.p_operation)} recorded no cost`).not.toBeNull();
+      expect(typeof cost).toBe("number");
+      expect(Number.isFinite(cost as number)).toBe(true);
+      expect(cost as number).toBeGreaterThan(0);
+    }
+
+    // And priced from the response's own tokens rather than from a bound: the provider stub reports
+    // 2,000 uncached input at $4/1M and 600 output at $20/1M on both text calls, which is 2 cents.
+    const priced = (name: string, operation: string) =>
+      runs
+        .filter((entry) => entry.name === name && entry.args.p_operation === operation)
+        .map((entry) => (entry.args.p_run as { cost_estimate_usd: number }).cost_estimate_usd);
+    expect(priced("record_batch_call_run", "concept_premise")).toEqual([0.02]);
+    expect(priced("record_sibling_stage_run", "design_intent")).toEqual([0.02, 0.02, 0.02]);
+    // Composition's stub reports its own usage, so its three rows are priced from that instead.
+    for (const cost of priced("record_sibling_stage_run", "composition")) {
+      expect(cost).toBeCloseTo(0.074127, 9);
+    }
   });
 
   it("keys the premise run so a replay collides and a retry does not", async () => {
@@ -1055,6 +1125,17 @@ describe("when something goes wrong", () => {
     expect((batchCalls[0].args.p_run as { prompt_version: string }).prompt_version).toBe(
       "concept_premise_v1",
     );
+    // And it is recorded with a price. §A.5.1 rule 2: a call that failed still cost money, and the
+    // two responses this one was billed for are priced rather than written off — but it is bounded
+    // by what one premise call can cost, never by another operation's bound.
+    const { conceptPremiseLogicalCallMaxUsd } = await import("./concept-premise-cost");
+    const failedCost = (batchCalls[0].args.p_run as { cost_estimate_usd: number | null })
+      .cost_estimate_usd;
+    expect(failedCost).not.toBeNull();
+    expect(failedCost as number).toBeGreaterThan(0);
+    expect(failedCost as number).toBeLessThanOrEqual(
+      conceptPremiseLogicalCallMaxUsd("gpt-5.6-sol"),
+    );
     expect(recorded.rpc.filter((entry) => entry.name === "record_sibling_stage_run")).toEqual([]);
     // And the batch is settled rather than left in flight blocking the event.
     expect(recorded.rpc.some((entry) => entry.name === "settle_generation_batch")).toBe(true);
@@ -1085,6 +1166,13 @@ describe("when something goes wrong", () => {
 
     const designIntentRuns = stageRuns(recorded, "design_intent");
     expect(designIntentRuns.filter((entry) => entry.args.p_success === false)).toHaveLength(1);
+    // The sibling that threw is charged DesignIntent's **own** per-attempt maximum — one attempt,
+    // no response, so nothing can be priced and §A.5.1 rule 2 refuses to call that zero.
+    const { designIntentAttemptMaxUsd } = await import("./design-intent-cost");
+    const failed = designIntentRuns.find((entry) => entry.args.p_success === false);
+    expect((failed?.args.p_run as { cost_estimate_usd: number }).cost_estimate_usd).toBe(
+      designIntentAttemptMaxUsd("gpt-5.6-sol"),
+    );
     expect(designIntentRuns.filter((entry) => entry.args.p_success === true)).toHaveLength(2);
     // The failed sibling never reaches composition: with no DesignIntent there is nothing to
     // compose, so only the two survivors are composed and only they become concepts.
