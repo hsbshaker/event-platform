@@ -14,7 +14,7 @@ import {
 import { assembleEventIdentityUserMessage } from "@/lib/ai/openai/event-identity-input";
 import { CLARIFICATION_CEILING } from "@/lib/ai/event-identity/contract";
 import { describeIssues, type ValidationIssue } from "@/lib/ai/event-identity/validate";
-import { canonicalJsonSchema } from "@/lib/ai/event-identity/wire-schema";
+import { canonicalJsonSchema, strictWireSchema } from "@/lib/ai/event-identity/wire-schema";
 import { MAX_PROMPT_LENGTH } from "@/lib/drafts/store";
 import { MAX_CLARIFICATION_FREE_TEXT } from "@/lib/generation/identity-view";
 import {
@@ -26,6 +26,7 @@ import {
   findCostProfile,
   GPT_5_6_SOL,
   INSTRUCTION_BYTES,
+  WIRE_SCHEMA_BYTES,
   isFresh,
   isVerified,
   logicalCallMaxUsd,
@@ -147,6 +148,16 @@ describe("the inputs the bound rests on", () => {
     expect(measured).toBeGreaterThan(INSTRUCTION_BYTES / 4);
   });
 
+  it("measures the structured-output schema the request sends on every attempt", () => {
+    // Serialized exactly as the boundary hands it to `text.format.schema`, because that is what
+    // the provider receives and bills. The first version of this derivation left this term out
+    // entirely — the bound counted the instruction file and the messages, and silently ignored an
+    // input going out on every single attempt.
+    const measured = bytesOf(JSON.stringify(strictWireSchema()));
+    expect(measured).toBeLessThanOrEqual(WIRE_SCHEMA_BYTES);
+    expect(measured).toBeGreaterThan(WIRE_SCHEMA_BYTES / 4);
+  });
+
   it("rebuilds the worst legal user message from the contracts that bound it", () => {
     // Nine answers of 4,000 characters, each question and label at the identity contract's maxima,
     // on top of a maximum-length prompt — the message `CARRIED_CLARIFICATION_ROUNDS` promises to
@@ -178,7 +189,11 @@ describe("the inputs the bound rests on", () => {
     // A byte-level BPE's base vocabulary is the 256 single bytes, so a string never produces more
     // tokens than it has UTF-8 bytes; merges only reduce the count. Loose, and true.
     expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBe(
-      INSTRUCTION_BYTES + WORST_USER_MESSAGE_BYTES + REPAIR_OVERHEAD_TOKENS + 1_000,
+      INSTRUCTION_BYTES +
+        WIRE_SCHEMA_BYTES +
+        WORST_USER_MESSAGE_BYTES +
+        REPAIR_OVERHEAD_TOKENS +
+        1_000,
     );
     expect(PER_ATTEMPT_OUTPUT_TOKEN_BOUND).toBe(EVENT_IDENTITY_MAX_OUTPUT_TOKENS);
   });
@@ -230,18 +245,18 @@ describe("the inputs the bound rests on", () => {
 });
 
 describe("the derived per-attempt bound", () => {
-  it("is $3.00 an attempt for gpt-5.6-sol, from the long-context cache-write and output rates", () => {
-    // input   203,500 × $10 / 1M = $2.035
+  it("is $3.50 an attempt for gpt-5.6-sol, from the long-context cache-write and output rates", () => {
+    // input   215,500 × $10 / 1M = $2.155
     // output   32,000 × $30 / 1M = $0.96
     //                              ------
-    //                              $2.995 → $3.00
+    //                              $3.115 → $3.50
     const raw =
       (PER_ATTEMPT_INPUT_TOKEN_BOUND * GPT_5_6_SOL.longContext.cacheWriteInput +
         PER_ATTEMPT_OUTPUT_TOKEN_BOUND * GPT_5_6_SOL.longContext.output) /
       1_000_000;
-    expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBe(203_500);
-    expect(raw).toBeCloseTo(2.995, 3);
-    expect(eventIdentityAttemptMaxUsd(MODEL)).toBe(3);
+    expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBe(215_500);
+    expect(raw).toBeCloseTo(3.115, 3);
+    expect(eventIdentityAttemptMaxUsd(MODEL)).toBe(3.5);
   });
 
   it("is derived from the request, not from the model's own ceilings", () => {
@@ -257,7 +272,7 @@ describe("the derived per-attempt bound", () => {
   it("reserves every attempt the retry policy permits, and fits a configured ceiling", () => {
     expect(MAX_PROVIDER_ATTEMPTS_PER_CALL).toBe(6);
     expect(logicalCallMaxUsd(MODEL)).toBe(eventIdentityAttemptMaxUsd(MODEL) * 6);
-    expect(logicalCallMaxUsd(MODEL)).toBe(18);
+    expect(logicalCallMaxUsd(MODEL)).toBe(21);
     // Why this task existed: `claim_identity_call` reserves this against `IDENTITY_CEILING_USD`,
     // and the smallest ceiling a deployment configures today is $25. A reservation at or above the
     // ceiling refuses every call before the provider is reached.

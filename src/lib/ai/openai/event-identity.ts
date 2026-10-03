@@ -110,12 +110,12 @@ export const EVENT_IDENTITY_STORE_RESPONSES = false as const;
  *
  * `docs/phase-4b-plan.md §A.5.1` refused an *invented* ceiling — "adding a tight output limit for
  * cleaner accounting could change what EventIdentity produces, which is a creative decision and
- * not an accounting one". That reasoning is honoured rather than overridden: 32,000 is two orders
- * of magnitude above anything this call can legitimately produce, so it cannot change the answer.
- * The response is one envelope of bounded fields — the identity brief, ten quoted facts and at
- * most three questions, about 8 KB at the contract's own maxima, a few thousand tokens — and the
- * remaining ~29,500 tokens are reasoning headroom, which at `high` effort is the only part that
- * can legitimately run long. The three sibling calls pin 32,000, 32,000 and 48,000 for
+ * not an accounting one". That reasoning is honoured rather than overridden: 32,000 is about an
+ * order of magnitude above anything this call can legitimately produce, so it cannot change the
+ * answer. The response is one envelope of bounded fields — the identity brief, ten quoted facts
+ * and at most three questions, about 8 KB at the contract's own maxima, so roughly 2,000–3,000
+ * tokens — and the remaining ~29,000 are reasoning headroom, which at `high` effort is the only
+ * part that can legitimately run long. The three sibling calls pin 32,000, 32,000 and 48,000 for
  * comparable-or-smaller interpretive work; Event Identity is the most interpretive of the four, so
  * it gets no less than the 32,000 the two nearest of them pin.
  *
@@ -389,11 +389,25 @@ export class EventIdentityError extends Error {
  * orchestrator's failure row charges `providerAttempts`, and without it a call that spent nothing
  * would be recorded as having spent one attempt's maximum.
  *
- * Upstream it travels the orchestrator's "our own code threw" path: the claim settles, a run row
- * is written with zero cost and `error_code = 'internal_error'`, and the error is rethrown rather
- * than answered with `retry_available` — because retrying the same request would be refused the
- * same way, and telling the host to try again shortly would be false. Reaching this is a signal
- * that the history budget needs a product decision, not a larger reserve.
+ * Upstream it travels the orchestrator's failure path: the claim settles and a run row is written
+ * with zero cost and `error_code = 'request_too_large'` — its own code, not `internal_error`,
+ * because nothing is broken and an operator should not be sent looking for a defect that is not
+ * there.
+ *
+ * **What the host then sees is a retry offer, and it is a false one.** An earlier version of this
+ * comment claimed otherwise. The error is rethrown, `guarded()` turns it into `SERVICE_ERROR`, and
+ * the next poll reads the newest settled failure as `awaitingHostRetry` and answers
+ * `retry_available` like any other. Pressing retry takes a new ordinal, consumes the event and
+ * account daily caps and queues on the budget lock — all before this check can run again, because
+ * it lives inside `generateEventIdentity`, downstream of the claim — and is refused identically.
+ * The cost is bounded (nothing is ever spent) but the loop is real.
+ *
+ * Reaching it is therefore a signal that the history budget needs a product decision, not a larger
+ * reserve: `spec.md §7.6b` puts no lifetime cap on clarification rounds while CA-5 requires every
+ * answer to be carried, so the request shape is unbounded by canon and no bound derived here can
+ * close it. The two fixes that would — bounding the history where the host can act on it, at
+ * answer submission, or running this check in the orchestrator before the claim is taken so a
+ * refusal costs no caps — are both outside what this change was scoped to do.
  */
 export class EventIdentityRequestTooLargeError extends Error {
   readonly usage: Partial<EventIdentityUsage>;

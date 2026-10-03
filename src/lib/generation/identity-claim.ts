@@ -156,8 +156,15 @@ export async function claimIdentityCall(admin: Admin, req: ClaimRequest): Promis
     // Stored on the claim, because a recovering completer has no requester to ask.
     p_clarification_answer_ids: [...req.basis.clarificationAnswerIds],
     // The cost profile rides along as provenance: the revision this call produces can then say
-    // which bound its spend was reserved against, not merely which model answered.
-    p_provider_config: { ...req.basis.modelConfig, costProfileVersion: limits.costProfileVersion },
+    // which bound its spend was reserved against, not merely which model answered. Both halves are
+    // needed — the profile version records the rates, `attemptProfileVersion` the request shape
+    // they were applied to — because a reservation moves when either one does, and the model
+    // profile's version deliberately does not move for a change that only re-derives the shape.
+    p_provider_config: {
+      ...req.basis.modelConfig,
+      costProfileVersion: limits.costProfileVersion,
+      attemptProfileVersion: limits.attemptProfileVersion,
+    },
     p_lease_seconds: limits.leaseSeconds,
     p_event_cap_key: bytea(`identity:event:${req.eventId}`),
     p_event_cap_window: limits.eventCap.windowSeconds,

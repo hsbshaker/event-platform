@@ -9,6 +9,7 @@ import type { ClarificationQuestion } from "@/lib/ai/event-identity/contract";
 import { identityQuestions } from "@/lib/ai/event-identity/lifecycle";
 import {
   EventIdentityError,
+  EventIdentityRequestTooLargeError,
   eventIdentityModelConfig,
   generateEventIdentity,
   type EventIdentityCallResult,
@@ -647,8 +648,15 @@ function failureRun(error: unknown, limits: IdentityLimits, side: RunSide): Capt
     cost_estimate_usd: cost.usd,
     latency_ms: usage.latencyMs ?? Date.now() - side.startedAt,
     // The kinds the boundary distinguishes, plus one for "our code threw". A checker bug must not
-    // be filed as a weak model response.
-    error_code: identityError ? identityError.kind : "internal_error",
+    // be filed as a weak model response — and a request refused for size must not be filed as a
+    // bug at all: nothing is broken, the assembled request is simply larger than the budget the
+    // reservation is derived from, and an operator reading `internal_error` would go looking for a
+    // defect that is not there.
+    error_code: identityError
+      ? identityError.kind
+      : error instanceof EventIdentityRequestTooLargeError
+        ? "request_too_large"
+        : "internal_error",
     schema_valid_first_call: usage.schemaValidFirstCall ?? null,
     reprompts: reprompts(usage),
     provider_response_evidence: [...evidence],

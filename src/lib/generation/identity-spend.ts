@@ -6,6 +6,7 @@ import {
   TRANSIENT_BACKOFF_MS,
 } from "@/lib/ai/openai/event-identity";
 import {
+  EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION,
   isProductionRuntime,
   isVerified,
   logicalCallMaxUsd,
@@ -100,6 +101,17 @@ export interface IdentityLimits {
   /** The profile's version, persisted as provenance beside the call it priced. */
   costProfileVersion: string;
   /**
+   * The version of the *attempt-shape* derivation the reservation came from.
+   *
+   * Carried beside `costProfileVersion` because on its own that label cannot tell two reservations
+   * apart. The model profile records the **rates**, which do not move when the request shape does:
+   * a claim reserving $21 and a claim reserving the old $90 were both priced from
+   * `gpt-5.6-sol@2026-09-16`, so a row saying only that cannot say which bound held the money.
+   * `EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION` moves whenever any input to the derivation moves,
+   * which is the half of the provenance that was missing.
+   */
+  attemptProfileVersion: string;
+  /**
    * The resolved profile.
    *
    * Carried so the cost estimate can be computed *after* the provider has been paid without
@@ -193,6 +205,7 @@ export function identityLimits(model: string, now: Date = new Date()): IdentityL
     leaseSeconds,
     costBoundVerified: isVerified(profile),
     costProfileVersion: profile.profileVersion,
+    attemptProfileVersion: EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION,
     costProfile: profile,
     perAttemptMaxUsd: providerAttemptMaxUsd(model, now),
   };

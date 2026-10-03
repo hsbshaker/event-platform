@@ -238,6 +238,7 @@ export function requireCostProfile(model: string, now: Date = new Date()): Model
  * | part | bound | why it is a bound |
  * | --- | --- | --- |
  * | the instruction file | `INSTRUCTION_BYTES` | a committed file, measured |
+ * | the structured-output schema | `WIRE_SCHEMA_BYTES` | `strictWireSchema()` is sent as `text.format.schema` on **every** attempt and the provider bills it as input; serialized and measured, pinned by test |
  * | the assembled user message | `WORST_USER_MESSAGE_BYTES` | the budget the boundary enforces, sized from the prompt, clarification and identity contracts' own maxima at `CARRIED_CLARIFICATION_ROUNDS` rounds |
  * | the repair pass's extra turns | `REPAIR_OVERHEAD_TOKENS` | the assistant echo is the previous response verbatim, and re-tokenizing an identical string yields an identical count, so `EVENT_IDENTITY_MAX_OUTPUT_TOKENS` caps it; the correction turn is capped **at the boundary** by `REPAIR_FEEDBACK_MAX_BYTES` plus its fixed framing |
  * | message framing | `FRAMING_TOKENS` | role markers and separators the provider adds |
@@ -274,6 +275,22 @@ export function requireCostProfile(model: string, now: Date = new Date()): Model
  * not a safe one.
  */
 export const INSTRUCTION_BYTES = 30_000;
+
+/**
+ * The strict structured-output schema, serialized, and pinned by test against the real thing.
+ *
+ * It is an input the request carries on **every** attempt — `text.format.schema` in the same
+ * `responses.create` call as the messages — and the provider bills it as input like any other
+ * context. An earlier draft of this derivation omitted it, which is the same class of mistake as
+ * deriving the bound from the model's context window: a term that is really sent, left out of the
+ * arithmetic that claims to bound what is sent. Rule 4 of `docs/phase-4b-plan.md §A.5.1` is what
+ * this module exists to satisfy, and unquantified slack elsewhere in the bound does not satisfy it.
+ *
+ * `strictWireSchema()` serializes to about 9,550 bytes. 12,000 leaves room for the fields a
+ * contract change adds; `identity-cost.test.ts` serializes the real schema and fails both when it
+ * outgrows this and when it shrinks far below.
+ */
+export const WIRE_SCHEMA_BYTES = 12_000;
 
 /**
  * How many complete clarification rounds, at every contract's absolute maximum, the enforced user
@@ -328,7 +345,11 @@ export const FRAMING_TOKENS = 1_000;
 
 /** The worst input one provider attempt can carry, in tokens. */
 export const PER_ATTEMPT_INPUT_TOKEN_BOUND =
-  INSTRUCTION_BYTES + WORST_USER_MESSAGE_BYTES + REPAIR_OVERHEAD_TOKENS + FRAMING_TOKENS;
+  INSTRUCTION_BYTES +
+  WIRE_SCHEMA_BYTES +
+  WORST_USER_MESSAGE_BYTES +
+  REPAIR_OVERHEAD_TOKENS +
+  FRAMING_TOKENS;
 
 /** The worst output one provider attempt can produce, in tokens. It is what the request sends. */
 export const PER_ATTEMPT_OUTPUT_TOKEN_BOUND = EVENT_IDENTITY_MAX_OUTPUT_TOKENS;
@@ -338,11 +359,12 @@ export const PER_ATTEMPT_OUTPUT_TOKEN_BOUND = EVENT_IDENTITY_MAX_OUTPUT_TOKENS;
  * rounding, or the attempt topology. Persisted provenance is meaningless if the label can stay
  * still while the arithmetic underneath it changes.
  *
- * `v1` because this is the first bound derived from Event Identity's own attempt shape. What came
- * before was not an earlier version of this derivation — it was the model's ceilings, recorded
- * under the model profile's version, which is why that version does not move for this change.
+ * `v1` was the first bound derived from Event Identity's own attempt shape. What came before it was
+ * not an earlier version of this derivation — it was the model's ceilings, recorded under the model
+ * profile's version, which is why that version does not move for this change. `v2` adds the
+ * structured-output schema, a term `v1` sent on every attempt and did not count.
  */
-export const EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION = "event_identity_attempt_v1@2026-10-03";
+export const EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION = "event_identity_attempt_v2@2026-10-03";
 
 /**
  * A model whose verified profile cannot honestly bound this request is refused, not approximated.
@@ -393,17 +415,21 @@ function roundUp(usd: number): number {
 /**
  * The conservative upper bound on what ONE EventIdentity provider attempt can bill, in USD.
  *
- * For `gpt-5.6-sol` this is $3.00:
+ * For `gpt-5.6-sol` this is $3.50:
  *
- *   input   203,500 tokens × $10 / 1M (long-context cache write) = $2.035
+ *   input   215,500 tokens × $10 / 1M (long-context cache write) = $2.155
  *   output   32,000 tokens × $30 / 1M (long-context output)      = $0.96
  *                                                                  ------
- *                                                                  $2.995 → $3.00
+ *                                                                  $3.115 → $3.50
  *
- * Six attempts per logical call puts the logical-call reservation at $18.00, down from the $90
- * that no configurable ceiling could admit. The largest real call measured in the 4G smoke was
- * 7,724 input and 2,270 output tokens — about $0.08 — so this is still a bound with two orders of
- * magnitude of room in it, which is what a bound is for.
+ * Six attempts per logical call puts the logical-call reservation at $21.00, down from the $90
+ * that no configurable ceiling could admit. It was $3.00/$18.00 in the first version of this
+ * derivation, which omitted `WIRE_SCHEMA_BYTES`; $2.995 sat so close under the rounding that the
+ * missing term moved the result, which is a fair illustration of why an unmeasured input is not
+ * covered by looking roughly right.
+ *
+ * The largest real call measured in the 4G smoke was 7,724 input and 2,270 output tokens — about
+ * $0.08 — so this is still a bound with a great deal of room in it, which is what a bound is for.
  */
 export function eventIdentityAttemptMaxUsd(model: string, now: Date = new Date()): number {
   const profile = requireCostProfile(model, now);

@@ -341,9 +341,9 @@ it was found: production refused every identity call before reaching the provide
 The standing decision is unchanged, and it is the narrow one it always was: a *tight* output limit
 adopted for cleaner accounting could change what EventIdentity produces, and that is a creative
 decision, not an accounting one (`CLAUDE.md §2`). What the request now carries is the loose kind.
-`EVENT_IDENTITY_MAX_OUTPUT_TOKENS` is 32,000 — the same ceiling premise and DesignIntent pin, two
-orders of magnitude above anything the response contract permits, leaving the reasoning budget a
-high-effort creative call needs — and `USER_MESSAGE_MAX_BYTES` is 132,000, which the boundary
+`EVENT_IDENTITY_MAX_OUTPUT_TOKENS` is 32,000 — the same ceiling premise and DesignIntent pin, about
+an order of magnitude above the 2,000–3,000 tokens the response contract permits, leaving the
+reasoning budget a high-effort creative call needs — and `USER_MESSAGE_MAX_BYTES` is 132,000, which the boundary
 **refuses** past rather than truncating, because shortening a carried clarification answer would
 send the model a history the host never gave (CA-5). Neither can shape an answer; both make the
 attempt's cost a property of the attempt.
@@ -352,9 +352,20 @@ That is what §A.5.1 rule 4 requires and what row 3's inequality is only true un
 is a property of an attempt **shape**, so EventIdentity's must be derived from EventIdentity's
 request — as `concept-premise-cost.ts`, `design-intent-cost.ts` and `composition-cost.ts` each
 derive their own — and not from the limits of the model it happens to run on. It now comes to
-**$3.00** an attempt and **$18.00** a logical call, recorded under its own
-`EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION` rather than under the model profile, whose rates did not
-move and whose version therefore must not.
+**$3.50** an attempt and **$21.00** a logical call.
+
+The claim records that figure's provenance in *two* labels, because neither says enough alone. The
+model profile's version records the **rates**, and deliberately does not move when only the request
+shape does; `EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION` records the **shape**, and moves whenever any
+input to the derivation moves. A claim's `provider_config` carries both, so a row can say which
+bound held its money — which a row naming only `gpt-5.6-sol@2026-09-16` could not, since the $90
+reservation and this one were priced from the same rates.
+
+A first draft of this derivation reached $3.00 and $18.00 by omitting the structured-output schema,
+which the request sends on every attempt and the provider bills as input. $2.995 sat close enough
+under the rounding that a ~9.5 KB term moved the result — a fair demonstration that a bound is not
+made true by its inputs looking roughly right, which is the same failure in miniature as deriving
+it from the context window.
 
 **Verified cost profiles, and a production contract that fails closed.** The bound instead comes
 from a **cost profile for one exact model id**, recording the provider documentation it was read
