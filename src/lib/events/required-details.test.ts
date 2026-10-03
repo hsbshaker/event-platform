@@ -92,7 +92,7 @@ describe("required details (spec.md §23.1)", () => {
 
   it("says plainly which §23.1 requirements Phase 2 cannot settle", () => {
     expect(REQUIREMENTS_OUTSIDE_PHASE_2).toHaveLength(2);
-    expect(REQUIREMENTS_OUTSIDE_PHASE_2.join(" ")).toMatch(/ResolvedDesignSpec/);
+    expect(REQUIREMENTS_OUTSIDE_PHASE_2.join(" ")).toMatch(/invitation card design/);
     expect(REQUIREMENTS_OUTSIDE_PHASE_2.join(" ")).toMatch(/access code/);
   });
 });

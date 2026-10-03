@@ -12,7 +12,7 @@ export default defineConfig({
     environment: "node",
     // No `include` here: each project below owns its own, so a suite never silently runs
     // another's files and every reported count means what it says.
-    exclude: ["node_modules", ".next", "proof-b", "proof-a1"],
+    exclude: ["node_modules", ".next"],
     projects: [
       {
         extends: true,

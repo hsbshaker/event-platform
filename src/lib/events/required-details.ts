@@ -2,8 +2,8 @@
  * The publish requirements this phase can collect (spec.md §23.1).
  *
  * §23.1 is the whole list and this module adds nothing to it (§32 #44). Two of its entries are
- * out of Phase 2's reach and are deliberately absent here: the selected concept with a valid
- * resolved spec (Phases 4-5) and the encrypted access code a private event needs (Phase 6);
+ * out of Phase 2's reach and are deliberately absent here: the selected card design with its artwork
+ * (generation phases) and the encrypted access code a private event needs (Phase 6);
  * the owner account exists by construction once the draft is claimed.
  *
  * Nothing here gates generation. Required details are publish requirements, never generation
@@ -59,11 +59,11 @@ export function missingRequiredDetails(fields: EventDetailFields): RequiredDetai
 }
 
 /**
- * Phase 2 cannot decide publish readiness on its own: §23.1 also requires a selected concept
- * with a valid resolved spec and, for a private event, an encrypted access code. Exposed so
+ * Phase 2 cannot decide publish readiness on its own: §23.1 also requires a selected card design
+ * with its artwork and, for a private event, an encrypted access code. Exposed so
  * callers state the distinction honestly rather than implying an event is ready.
  */
 export const REQUIREMENTS_OUTSIDE_PHASE_2 = [
-  "selected concept with a valid ResolvedDesignSpec",
+  "a selected invitation card design with its artwork",
   "encrypted access code when the event is private",
 ] as const;

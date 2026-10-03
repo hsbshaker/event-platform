@@ -336,7 +336,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
         {visibleMissing.has("visibility") && (
           <fieldset className="flex flex-col gap-2">
             <legend className="text-label-md text-app-text">
-              Who can see this site?
+              Who can see this invitation?
               <span aria-hidden="true" className="text-app-danger">
                 {" "}
                 *
