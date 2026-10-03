@@ -97,12 +97,96 @@ export const EVENT_IDENTITY_SERVICE_TIER = "default" as const;
  */
 export const EVENT_IDENTITY_STORE_RESPONSES = false as const;
 
+/**
+ * The output ceiling every EventIdentity request sends, and therefore the one its cost bound is
+ * derived from.
+ *
+ * Without it the ceiling is the model's own 128,000, and the per-attempt bound in
+ * `identity-cost.ts` had to be derived from the model's limits rather than from this request —
+ * which put the logical-call reservation at $90, above any ceiling this product can configure, so
+ * every call was refused before it reached the provider. This is the half of that fix that lives
+ * at the boundary: the bound cannot describe the output half of an attempt until the attempt says
+ * what the output half is.
+ *
+ * `docs/phase-4b-plan.md §A.5.1` refused an *invented* ceiling — "adding a tight output limit for
+ * cleaner accounting could change what EventIdentity produces, which is a creative decision and
+ * not an accounting one". That reasoning is honoured rather than overridden: 32,000 is two orders
+ * of magnitude above anything this call can legitimately produce, so it cannot change the answer.
+ * The response is one envelope of bounded fields — the identity brief, ten quoted facts and at
+ * most three questions, about 8 KB at the contract's own maxima, a few thousand tokens — and the
+ * remaining ~29,500 tokens are reasoning headroom, which at `high` effort is the only part that
+ * can legitimately run long. The three sibling calls pin 32,000, 32,000 and 48,000 for
+ * comparable-or-smaller interpretive work; Event Identity is the most interpretive of the four, so
+ * it gets no less than the 32,000 the two nearest of them pin.
+ *
+ * A response that somehow reached it would be truncated, arrive as unparseable JSON, and be
+ * handled as schema-invalid — the one class that may open the repair pass — rather than being
+ * silently accepted in part.
+ */
+export const EVENT_IDENTITY_MAX_OUTPUT_TOKENS = 32_000;
+
+/**
+ * The hard budget on the assembled user message, in UTF-8 bytes, enforced before any attempt.
+ *
+ * **Why this is a budget and not an observation.** Every other input to this call is bounded by a
+ * contract: `events.prompt` by `MAX_PROMPT_LENGTH`, an answer's free text by
+ * `MAX_CLARIFICATION_FREE_TEXT`, the questions and option labels by the identity contract's own
+ * `max()`s, the questions per round by `CLARIFICATION_CEILING`. The *number of rounds* is not —
+ * `spec.md §7.6b` puts no lifetime cap on clarification rounds, and the assembly is cumulative by
+ * design (CA-5: "an answer left out of this message is an answer the model does not have"). So the
+ * assembled message has no bound of its own, and a spend bound derived from "the contracts'
+ * maxima" would be a bound on a request this code can exceed.
+ *
+ * This is where it stops being exceedable. The allowance is sized in `identity-cost.ts` from those
+ * same contract maxima at `CARRIED_CLARIFICATION_ROUNDS` complete rounds — see the derivation
+ * there — and this budget is what makes that sizing a fact rather than an expectation.
+ *
+ * **It refuses; it never truncates.** Dropping or shortening a carried answer would send the model
+ * a clarification history the host did not give, which is the one thing CA-5 forbids. Over budget,
+ * no attempt is made and nothing is spent: that is strictly better than paying for an attempt
+ * larger than the claim reserved for. The condition is unreachable for any plausible host — about
+ * 117 KB of answer text, nine answers of 4,000 characters each — and if it is ever reached, the
+ * remedy is a product decision about bounding the history (at answer time, or by carrying a
+ * summary), not a quietly larger reserve.
+ */
+export const USER_MESSAGE_MAX_BYTES = 132_000;
+
+/**
+ * The hard budget on the correction turn a repair pass appends, in issues and in UTF-8 bytes.
+ *
+ * **Why a budget exists at all.** `describeIssues` is an unbounded `map`/`join` over however many
+ * issues there are, and it *amplifies*: the strict wire projection drops `maxItems` by design
+ * (`wire-schema.ts`), so a response that is perfectly conformant to the schema sent may carry an
+ * arbitrarily long `toneKeywords` or `questions` array, each element costing a few tokens in the
+ * response and several times that in a per-element issue line. Left unbudgeted, a response sitting
+ * at `EVENT_IDENTITY_MAX_OUTPUT_TOKENS` can produce a correction turn several times larger than
+ * that ceiling — which would put the repair attempt's input past the reserve `identity-cost.ts`
+ * holds for it while staying below the long-context threshold, so nothing downstream would notice
+ * except a clamp in the cost estimator logging it as an unbelievable provider report. The
+ * DesignIntent boundary found and fixed this on its own path; this is the same defect, and the
+ * same fix, on the call it was copied from.
+ *
+ * **Why these numbers.** The same as `design-intent.ts`, deliberately: a correction is only useful
+ * if a model can act on it, forty issue lines is far more than any real defect produces, and 8,000
+ * bytes is roughly two hundred lines of `- path: message`. Anything beyond is not extra help, it
+ * is the amplification above.
+ *
+ * The reserve in `identity-cost.ts` is computed **from** these constants rather than asserted
+ * alongside them, so raising one moves the bound instead of silently invalidating it.
+ */
+export const REPAIR_FEEDBACK_MAX_ISSUES = 40;
+export const REPAIR_FEEDBACK_MAX_BYTES = 8_000;
+
+/** The fixed sentences the correction turn wraps the feedback in. Measured, not estimated. */
+export const REPAIR_TURN_FRAMING_BYTES = 500;
+
 /** Every request-shaping option that is not the prompt, the schema or the assembled input. */
 export type EventIdentityModelConfig = {
   model: string;
   reasoningEffort: string;
   serviceTier: typeof EVENT_IDENTITY_SERVICE_TIER;
   store: typeof EVENT_IDENTITY_STORE_RESPONSES;
+  maxOutputTokens: typeof EVENT_IDENTITY_MAX_OUTPUT_TOKENS;
 };
 
 /**
@@ -122,6 +206,10 @@ export function eventIdentityModelConfig(
     reasoningEffort,
     serviceTier: EVENT_IDENTITY_SERVICE_TIER,
     store: EVENT_IDENTITY_STORE_RESPONSES,
+    // The output ceiling is part of the configuration for the same reason the service tier is: it
+    // changes what an attempt can be billed, so two requests that differ in it are different
+    // calls and must not share an attempt key.
+    maxOutputTokens: EVENT_IDENTITY_MAX_OUTPUT_TOKENS,
   };
 }
 
@@ -291,6 +379,48 @@ export class EventIdentityError extends Error {
   }
 }
 
+/**
+ * The assembled request is larger than `USER_MESSAGE_MAX_BYTES`, so no attempt was made.
+ *
+ * Its own type, not an `EventIdentityError`: neither of that type's kinds is true here. The
+ * provider did not fail and the model did not answer badly — this call was refused before a client
+ * existed, because sending it would have cost more than the claim reserved for. It carries a
+ * zero-attempt `usage` annotation for the same reason the validator-bug path carries one: the
+ * orchestrator's failure row charges `providerAttempts`, and without it a call that spent nothing
+ * would be recorded as having spent one attempt's maximum.
+ *
+ * Upstream it travels the orchestrator's "our own code threw" path: the claim settles, a run row
+ * is written with zero cost and `error_code = 'internal_error'`, and the error is rethrown rather
+ * than answered with `retry_available` — because retrying the same request would be refused the
+ * same way, and telling the host to try again shortly would be false. Reaching this is a signal
+ * that the history budget needs a product decision, not a larger reserve.
+ */
+export class EventIdentityRequestTooLargeError extends Error {
+  readonly usage: Partial<EventIdentityUsage>;
+
+  constructor(
+    readonly bytes: number,
+    readonly maxBytes: number,
+  ) {
+    super(
+      `The assembled Event Identity request is ${bytes} bytes, past the ${maxBytes}-byte budget ` +
+        "the per-attempt spend bound is derived from. No provider attempt was made and nothing " +
+        "was spent. The carried clarification history is the only input that can grow without a " +
+        "contract bound; raising the budget means re-deriving the bound in identity-cost.ts.",
+    );
+    this.name = "EventIdentityRequestTooLargeError";
+    this.usage = {
+      responses: [],
+      providerResponses: 0,
+      providerAttempts: 0,
+      unknownUsageAttempts: 0,
+      transientRetries: 0,
+      repairRetries: 0,
+      latencyMs: 0,
+    };
+  }
+}
+
 export interface GenerateEventIdentityInput {
   /** The host's own words. This is the only place in the product they are read. */
   prompt: string;
@@ -335,10 +465,85 @@ function userMessage(input: GenerateEventIdentityInput): string {
   });
 }
 
+/**
+ * The single enforcement point for `USER_MESSAGE_MAX_BYTES`.
+ *
+ * Called on the hoisted message, so it covers both attempts of a repair pass — the same bytes go
+ * out on each — and it runs before the OpenAI client is constructed, so a refusal provably costs
+ * nothing.
+ */
+function assertUserMessageWithinBudget(message: string): void {
+  const bytes = Buffer.byteLength(message, "utf8");
+  if (bytes > USER_MESSAGE_MAX_BYTES) {
+    throw new EventIdentityRequestTooLargeError(bytes, USER_MESSAGE_MAX_BYTES);
+  }
+}
+
+/**
+ * Cut a string to a UTF-8 byte budget without splitting a code point.
+ *
+ * Binary search over code points rather than a byte slice: `Buffer.slice().toString()` would
+ * replace a severed multi-byte sequence with U+FFFD, which can be *longer* than what it replaced
+ * and so can push the result back past the budget it was called to enforce.
+ */
+function clampToBytes(text: string, maxBytes: number): string {
+  if (Buffer.byteLength(text, "utf8") <= maxBytes) return text;
+  const points = Array.from(text);
+  let low = 0;
+  let high = points.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (Buffer.byteLength(points.slice(0, mid).join(""), "utf8") <= maxBytes) low = mid;
+    else high = mid - 1;
+  }
+  return points.slice(0, low).join("");
+}
+
+/**
+ * The validator's issues, rendered for the correction turn and **bounded**.
+ *
+ * `describeIssues` is an unbounded join, and the issue list is derived from a response whose size
+ * the output ceiling bounds only in tokens — see `REPAIR_FEEDBACK_MAX_BYTES` for why that is not
+ * the same thing. This is the single call site, and it is the one place the budget is applied, so
+ * the reserve the cost module holds for this turn is a property of the code rather than a claim
+ * about it.
+ *
+ * Both limits announce themselves in the text. A model asked to correct an answer must not be told
+ * a truncated list is the whole list, and a reader of a failed run must be able to tell "nothing
+ * else was wrong" from "we stopped listing".
+ */
+export function repairFeedback(issues: readonly ValidationIssue[]): string {
+  const kept = issues.slice(0, REPAIR_FEEDBACK_MAX_ISSUES);
+  const omitted = issues.length - kept.length;
+  let text = describeIssues(kept);
+  if (omitted > 0) text += `\n- … and ${omitted} further issue(s), not listed`;
+
+  const marker = "\n- … list truncated";
+  const markerBytes = Buffer.byteLength(marker, "utf8");
+  if (Buffer.byteLength(text, "utf8") > REPAIR_FEEDBACK_MAX_BYTES) {
+    text = clampToBytes(text, REPAIR_FEEDBACK_MAX_BYTES - markerBytes) + marker;
+  }
+  return text;
+}
+
 export async function generateEventIdentity(
   input: GenerateEventIdentityInput,
 ): Promise<EventIdentityCallResult> {
   const env = openAiEnv();
+  /**
+   * Built once, before the loop — and before the client.
+   *
+   * The repair attempt appends a correction turn rather than replacing the user message, so the
+   * same assembled text is sent on both attempts — hoisting it makes that a property of the code
+   * rather than of two calls happening to agree, and gives the caller the exact bytes that went
+   * out, which is what `requestText` promises.
+   *
+   * Assembled ahead of the client so the budget check below provably precedes every path that
+   * could spend: over budget, no client is ever constructed.
+   */
+  const assembledUserMessage = userMessage(input);
+  assertUserMessageWithinBudget(assembledUserMessage);
+
   const client = new OpenAI({
     apiKey: env.OPENAI_API_KEY,
     // Retrying is this file's job, not the SDK's. Left at the default (2) every
@@ -349,20 +554,11 @@ export async function generateEventIdentity(
     timeout: PROVIDER_REQUEST_TIMEOUT_MS,
   });
   const schema = strictWireSchema();
-  /**
-   * Built once, before the loop.
-   *
-   * The repair attempt appends a correction turn rather than replacing the user message, so the
-   * same assembled text is sent on both attempts — hoisting it makes that a property of the code
-   * rather than of two calls happening to agree, and gives the caller the exact bytes that went
-   * out, which is what `requestText` promises.
-   */
-  const assembledUserMessage = userMessage(input);
   const startedAt = Date.now();
 
   let transientRetries = 0;
   let repairRetries = 0;
-  let repairFeedback: string | undefined;
+  let correctionFeedback: string | undefined;
   let previousRaw: string | undefined;
   let lastIssues: ValidationIssue[] | undefined;
   /**
@@ -411,7 +607,7 @@ export async function generateEventIdentity(
       { role: "system", content: systemPrompt() },
       { role: "user", content: assembledUserMessage },
     ];
-    if (repairFeedback && previousRaw !== undefined) {
+    if (correctionFeedback && previousRaw !== undefined) {
       // The Responses call is stateless, so without this the model is asked to correct a
       // response it was never shown — making the "repair" a fresh generation with a
       // confusing preamble, which is exactly the re-roll this policy exists to prevent.
@@ -420,7 +616,7 @@ export async function generateEventIdentity(
         role: "user",
         content: [
           "Your previous response did not satisfy the schema:",
-          repairFeedback,
+          correctionFeedback,
           "",
           "Return the corrected object. Do not change your creative interpretation to make",
           "validation easier — fix only what was structurally wrong.",
@@ -436,9 +632,12 @@ export async function generateEventIdentity(
           model: env.OPENAI_MODEL,
           input: messages,
           reasoning: { effort: env.OPENAI_REASONING_EFFORT },
-          // Both pinned rather than inherited, and both part of `modelConfig` — see the constants.
+          // All three pinned rather than inherited, and all three part of `modelConfig` — see the
+          // constants. The output ceiling is what makes the output half of the per-attempt spend
+          // bound a property of this request rather than of the model's own 128,000.
           service_tier: EVENT_IDENTITY_SERVICE_TIER,
           store: EVENT_IDENTITY_STORE_RESPONSES,
+          max_output_tokens: EVENT_IDENTITY_MAX_OUTPUT_TOKENS,
           text: {
             format: {
               type: "json_schema",
@@ -548,7 +747,9 @@ export async function generateEventIdentity(
     lastIssues = outcome.issues;
     if (attempt === 0) {
       repairRetries = 1;
-      repairFeedback = describeIssues(outcome.issues);
+      // Bounded, not `describeIssues` directly: the correction turn is input on the repair attempt
+      // and the reserve held for it is computed from that cap (`identity-cost.ts`).
+      correctionFeedback = repairFeedback(outcome.issues);
       previousRaw = raw;
     }
   }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  EVENT_IDENTITY_MAX_OUTPUT_TOKENS,
   EVENT_IDENTITY_SERVICE_TIER,
   EVENT_IDENTITY_STORE_RESPONSES,
   eventIdentityModelConfig,
@@ -85,12 +86,17 @@ describe("the EventIdentity attempt key", () => {
       reasoningEffort: "high",
       serviceTier: EVENT_IDENTITY_SERVICE_TIER,
       store: EVENT_IDENTITY_STORE_RESPONSES,
+      // The output ceiling joined the configuration when the request started sending one: it is
+      // what the per-attempt spend bound's output half is derived from, so two requests that
+      // differ in it are billed differently and must not share a key.
+      maxOutputTokens: EVENT_IDENTITY_MAX_OUTPUT_TOKENS,
     });
   });
 
   it.each([
     ["the service tier", { serviceTier: "priority" }],
     ["provider-side storage", { store: true }],
+    ["the output ceiling", { maxOutputTokens: 16_000 }],
   ])("changes the model-config digest when %s changes", (_label, patch) => {
     // So another tier necessarily produces a different attempt key — and needs its own verified
     // cost profile before it could be used in production.

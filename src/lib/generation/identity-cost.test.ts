@@ -1,20 +1,42 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  EVENT_IDENTITY_MAX_OUTPUT_TOKENS,
   EVENT_IDENTITY_SERVICE_TIER,
+  EventIdentityRequestTooLargeError,
   MAX_PROVIDER_ATTEMPTS_PER_CALL,
+  repairFeedback,
+  REPAIR_FEEDBACK_MAX_BYTES,
+  REPAIR_TURN_FRAMING_BYTES,
+  USER_MESSAGE_MAX_BYTES,
   type ProviderResponseUsage,
 } from "@/lib/ai/openai/event-identity";
+import { assembleEventIdentityUserMessage } from "@/lib/ai/openai/event-identity-input";
+import { CLARIFICATION_CEILING } from "@/lib/ai/event-identity/contract";
+import { describeIssues, type ValidationIssue } from "@/lib/ai/event-identity/validate";
+import { canonicalJsonSchema } from "@/lib/ai/event-identity/wire-schema";
+import { MAX_PROMPT_LENGTH } from "@/lib/drafts/store";
+import { MAX_CLARIFICATION_FREE_TEXT } from "@/lib/generation/identity-view";
 import {
+  assertProfileSupportsIdentityRequest,
+  CARRIED_CLARIFICATION_ROUNDS,
   estimateIdentityCallCostUsd,
+  EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION,
+  eventIdentityAttemptMaxUsd,
   findCostProfile,
   GPT_5_6_SOL,
+  INSTRUCTION_BYTES,
   isFresh,
   isVerified,
   logicalCallMaxUsd,
+  PER_ATTEMPT_INPUT_TOKEN_BOUND,
+  PER_ATTEMPT_OUTPUT_TOKEN_BOUND,
   providerAttemptMaxUsd,
+  REPAIR_OVERHEAD_TOKENS,
   requireCostProfile,
   UNVERIFIED_DEV_PROFILE,
   VERIFIED_COST_PROFILES,
+  WORST_USER_MESSAGE_BYTES,
   type CostRelevantUsage,
 } from "./identity-cost";
 
@@ -29,6 +51,252 @@ import {
  * Acceptance criteria: N/A — test-only. `docs/phase-4b-plan.md §A.5.1`; `spec.md §10`, `§9.6`.
  */
 const MODEL = GPT_5_6_SOL.model;
+const ROOT = new URL("../../../", import.meta.url).pathname;
+
+/** One UTF-16 code unit, three UTF-8 bytes — the worst ratio a BMP character can have. */
+const WORST = "�";
+
+type JsonSchema = Record<string, unknown>;
+
+/**
+ * A maximum read out of the contract's own canonical JSON Schema, never transcribed.
+ *
+ * This is what makes the worst message below a derivation instead of a hand-copy. A `.max()` that
+ * *widens* would leave correct-looking literals describing a contract that has moved; read from
+ * the schema, widening one grows the generated message and fails the byte budget directly. A node
+ * with no maximum **throws** rather than defaulting, because a field with no bound makes the whole
+ * bound unprovable and that must stop the test rather than quietly shrink the fixture.
+ */
+function maximum(node: JsonSchema, keyword: "maxLength" | "maxItems", path: string): number {
+  const value = node[keyword];
+  if (typeof value !== "number") throw new Error(`${path}: no ${keyword}`);
+  return value;
+}
+
+function clarificationQuestionsNode(): JsonSchema {
+  const root = canonicalJsonSchema() as JsonSchema;
+  const properties = root.properties as Record<string, JsonSchema>;
+  const clarification = properties.clarification.properties as Record<string, JsonSchema>;
+  return clarification.questions;
+}
+
+/**
+ * The worst user message this request can legitimately carry, rebuilt from every contract that
+ * bounds a part of it.
+ *
+ * The prompt at `MAX_PROMPT_LENGTH`; `rounds` rounds of `CLARIFICATION_CEILING` answers; each
+ * answer's question and selected option label at the identity contract's own maxima, and its free
+ * text at `MAX_CLARIFICATION_FREE_TEXT`; every character three UTF-8 bytes wide, which is the
+ * worst a BMP character can be. Deferred as well, because that line renders alongside the rest
+ * rather than instead of it.
+ */
+function worstUserMessage(rounds: number): string {
+  const questions = clarificationQuestionsNode();
+  const perRound = Math.min(maximum(questions, "maxItems", "questions"), CLARIFICATION_CEILING);
+  const item = questions.items as JsonSchema;
+  const itemProperties = item.properties as Record<string, JsonSchema>;
+  const questionText = WORST.repeat(
+    maximum(itemProperties.question, "maxLength", "questions.items.question"),
+  );
+  const optionProperties = (itemProperties.options.items as JsonSchema).properties as Record<
+    string,
+    JsonSchema
+  >;
+  const label = WORST.repeat(
+    maximum(optionProperties.label, "maxLength", "questions.items.options.items.label"),
+  );
+
+  const question = { kind: "creative", question: questionText };
+  return assembleEventIdentityUserMessage({
+    prompt: WORST.repeat(MAX_PROMPT_LENGTH),
+    priorRevisions: Array.from({ length: rounds }, (_, r) => ({
+      revision: r + 1,
+      result: { clarification: { questions: Array.from({ length: perRound }, () => question) } },
+    })),
+    answers: Array.from({ length: rounds }, (_, r) =>
+      Array.from({ length: perRound }, (_, i) => ({
+        revision: r + 1,
+        questionIndex: i,
+        selectedOptionLabel: label,
+        freeText: WORST.repeat(MAX_CLARIFICATION_FREE_TEXT),
+        isDefer: true,
+      })),
+    ).flat(),
+  });
+}
+
+const bytesOf = (text: string) => Buffer.byteLength(text, "utf8");
+
+/**
+ * The inputs the per-attempt bound rests on, rebuilt rather than restated.
+ *
+ * `docs/phase-4b-plan.md` Part IV: "`perAttemptMaxUsd` is a property of an *attempt shape*, and
+ * EventIdentity's was derived from EventIdentity's." It was not — it came from the model's context
+ * window and output allowance — and these tests are what hold the replacement to its own inputs. A
+ * prompt file that doubles, a contract field that widens, a repair cap that moves or a retry bound
+ * that changes all fail here instead of silently invalidating the arithmetic.
+ */
+describe("the inputs the bound rests on", () => {
+  it("measures the instruction file, and leaves headroom without being generous about it", () => {
+    const measured = bytesOf(
+      readFileSync(`${ROOT}docs/model-prompts/event-identity.system.md`, "utf8"),
+    );
+    expect(measured).toBeLessThanOrEqual(INSTRUCTION_BYTES);
+    // If the file has grown far past the allowance, the allowance is stale rather than safe: the
+    // bound should be re-derived deliberately, not quietly absorbed.
+    expect(measured).toBeGreaterThan(INSTRUCTION_BYTES / 4);
+  });
+
+  it("rebuilds the worst legal user message from the contracts that bound it", () => {
+    // Nine answers of 4,000 characters, each question and label at the identity contract's maxima,
+    // on top of a maximum-length prompt — the message `CARRIED_CLARIFICATION_ROUNDS` promises to
+    // admit. This fails if a contract widens, which is the point of rebuilding it.
+    expect(bytesOf(worstUserMessage(CARRIED_CLARIFICATION_ROUNDS))).toBeLessThanOrEqual(
+      WORST_USER_MESSAGE_BYTES,
+    );
+    // And the round allowance is a real allowance rather than a restatement of one round.
+    expect(CARRIED_CLARIFICATION_ROUNDS).toBeGreaterThan(1);
+    expect(bytesOf(worstUserMessage(1))).toBeLessThan(WORST_USER_MESSAGE_BYTES / 2);
+  });
+
+  it("refuses a request past the budget instead of under-reserving for it", () => {
+    // The carried history is the one input no contract closes — `spec.md §7.6b` caps no number of
+    // rounds and the assembly is cumulative — so the enforced budget is what makes
+    // `WORST_USER_MESSAGE_BYTES` provable rather than merely likely.
+    expect(WORST_USER_MESSAGE_BYTES).toBe(USER_MESSAGE_MAX_BYTES);
+    const over = worstUserMessage(CARRIED_CLARIFICATION_ROUNDS + 1);
+    expect(bytesOf(over)).toBeGreaterThan(USER_MESSAGE_MAX_BYTES);
+    // A refusal costs nothing, and says so: the orchestrator's failure row charges
+    // `providerAttempts`, so a zero-attempt annotation is what keeps it from recording phantom
+    // spend. `event-identity.test.ts` exercises the refusal through the call itself.
+    expect(
+      new EventIdentityRequestTooLargeError(bytesOf(over), USER_MESSAGE_MAX_BYTES).usage,
+    ).toMatchObject({ providerAttempts: 0, providerResponses: 0, unknownUsageAttempts: 0 });
+  });
+
+  it("uses bytes as a token bound, which is true for a byte-level tokenizer", () => {
+    // A byte-level BPE's base vocabulary is the 256 single bytes, so a string never produces more
+    // tokens than it has UTF-8 bytes; merges only reduce the count. Loose, and true.
+    expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBe(
+      INSTRUCTION_BYTES + WORST_USER_MESSAGE_BYTES + REPAIR_OVERHEAD_TOKENS + 1_000,
+    );
+    expect(PER_ATTEMPT_OUTPUT_TOKEN_BOUND).toBe(EVENT_IDENTITY_MAX_OUTPUT_TOKENS);
+  });
+
+  it("computes the repair reserve from the cap the boundary enforces, not from a claim", () => {
+    // The echo is capped in tokens by the output ceiling; the correction turn is capped in bytes
+    // by `repairFeedback()`. Before this, `describeIssues` went to the model unbounded and nothing
+    // reserved for it at all.
+    expect(REPAIR_OVERHEAD_TOKENS).toBe(
+      EVENT_IDENTITY_MAX_OUTPUT_TOKENS + REPAIR_FEEDBACK_MAX_BYTES + REPAIR_TURN_FRAMING_BYTES,
+    );
+  });
+
+  it("holds a correction turn inside its reserve even for a response built to blow it up", () => {
+    // The amplification case, concretely: the strict wire projection drops `maxItems`, so a
+    // schema-conformant response may carry a very long array, and a per-element issue line costs
+    // several times what the element cost in the response.
+    const issues: ValidationIssue[] = Array.from({ length: 5_000 }, (_, i) => ({
+      path: `identity.toneKeywords.${i}`,
+      message: `Too big: expected string to have <=48 characters (received "a-long-keyword-${i}")`,
+    }));
+    expect(bytesOf(describeIssues(issues))).toBeGreaterThan(REPAIR_OVERHEAD_TOKENS);
+
+    const bounded = repairFeedback(issues);
+    expect(bytesOf(bounded)).toBeLessThanOrEqual(REPAIR_FEEDBACK_MAX_BYTES);
+    // And the whole turn, framing included, is inside what the reserve holds for it.
+    expect(bytesOf(bounded) + REPAIR_TURN_FRAMING_BYTES).toBeLessThanOrEqual(
+      REPAIR_OVERHEAD_TOKENS - EVENT_IDENTITY_MAX_OUTPUT_TOKENS,
+    );
+    // Both limits announce themselves, so a model is never told a truncated list is the whole list.
+    expect(bounded).toContain("further issue(s), not listed");
+  });
+
+  it("never reaches the long-context tier, and refuses a profile where that stops being true", () => {
+    expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBeLessThan(GPT_5_6_SOL.longContextThresholdTokens);
+    expect(() => assertProfileSupportsIdentityRequest(GPT_5_6_SOL)).not.toThrow();
+    expect(() =>
+      assertProfileSupportsIdentityRequest({ ...GPT_5_6_SOL, longContextThresholdTokens: 1_000 }),
+    ).toThrow(/long-context threshold/);
+    expect(() =>
+      assertProfileSupportsIdentityRequest({ ...GPT_5_6_SOL, maxOutputTokens: 1_000 }),
+    ).toThrow(/output tokens/);
+    expect(() =>
+      assertProfileSupportsIdentityRequest({ ...GPT_5_6_SOL, contextWindowTokens: 1_000 }),
+    ).toThrow(/context window/);
+    // The dev fallback prices nothing and bounds nothing, so it is not held to this.
+    expect(() => assertProfileSupportsIdentityRequest(UNVERIFIED_DEV_PROFILE)).not.toThrow();
+  });
+});
+
+describe("the derived per-attempt bound", () => {
+  it("is $3.00 an attempt for gpt-5.6-sol, from the long-context cache-write and output rates", () => {
+    // input   203,500 × $10 / 1M = $2.035
+    // output   32,000 × $30 / 1M = $0.96
+    //                              ------
+    //                              $2.995 → $3.00
+    const raw =
+      (PER_ATTEMPT_INPUT_TOKEN_BOUND * GPT_5_6_SOL.longContext.cacheWriteInput +
+        PER_ATTEMPT_OUTPUT_TOKEN_BOUND * GPT_5_6_SOL.longContext.output) /
+      1_000_000;
+    expect(PER_ATTEMPT_INPUT_TOKEN_BOUND).toBe(203_500);
+    expect(raw).toBeCloseTo(2.995, 3);
+    expect(eventIdentityAttemptMaxUsd(MODEL)).toBe(3);
+  });
+
+  it("is derived from the request, not from the model's own ceilings", () => {
+    // The defect this replaced: $15 an attempt and $90 a logical call, derived from the full
+    // context window and output allowance — above every ceiling this product configures.
+    expect(eventIdentityAttemptMaxUsd(MODEL)).not.toBe(GPT_5_6_SOL.perAttemptMaxUsd);
+    // The model-level number remains a true statement about the model, so a derived bound above it
+    // would mean the derivation had gone wrong.
+    expect(eventIdentityAttemptMaxUsd(MODEL)).toBeLessThanOrEqual(GPT_5_6_SOL.perAttemptMaxUsd);
+    expect(EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION).toMatch(/^event_identity_attempt_v\d+@/);
+  });
+
+  it("reserves every attempt the retry policy permits, and fits a configured ceiling", () => {
+    expect(MAX_PROVIDER_ATTEMPTS_PER_CALL).toBe(6);
+    expect(logicalCallMaxUsd(MODEL)).toBe(eventIdentityAttemptMaxUsd(MODEL) * 6);
+    expect(logicalCallMaxUsd(MODEL)).toBe(18);
+    // Why this task existed: `claim_identity_call` reserves this against `IDENTITY_CEILING_USD`,
+    // and the smallest ceiling a deployment configures today is $25. A reservation at or above the
+    // ceiling refuses every call before the provider is reached.
+    expect(logicalCallMaxUsd(MODEL)).toBeLessThan(25);
+  });
+
+  it("is what a claim reserves and what an unpriceable attempt is charged", () => {
+    // `providerAttemptMaxUsd` is what `IdentityLimits.perAttemptMaxUsd` carries into the estimator,
+    // so the number the claim reserved with is the number an unknown attempt is charged at.
+    expect(providerAttemptMaxUsd(MODEL)).toBe(eventIdentityAttemptMaxUsd(MODEL));
+    const estimate = estimateIdentityCallCostUsd(
+      GPT_5_6_SOL,
+      { responses: [], providerResponses: 0, providerAttempts: 3, unknownUsageAttempts: 3 },
+      providerAttemptMaxUsd(MODEL),
+    );
+    expect(estimate.usd).toBe(3 * eventIdentityAttemptMaxUsd(MODEL));
+    expect(estimate.unpricedAttempts).toBe(3);
+    expect(estimate.exact).toBe(false);
+  });
+
+  it("falls back to the labelled unverified bound outside production, which prices nothing", () => {
+    // Not lowered to a derived number: the fallback has no rates, so there is nothing to derive
+    // from and its deliberately large figure has to stand.
+    expect(eventIdentityAttemptMaxUsd("some-unpriced-model")).toBe(
+      UNVERIFIED_DEV_PROFILE.perAttemptMaxUsd,
+    );
+  });
+
+  it("fails closed in production for a model nobody has priced", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      expect(() => eventIdentityAttemptMaxUsd("gpt-5.6-sol-turbo-unpriced")).toThrow(
+        /No verified cost profile/,
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
 
 /** Deliberately below the long-context threshold, so the tier is a choice a test makes. */
 const IN = 100_000;
@@ -77,7 +345,9 @@ describe("the verified cost profile", () => {
 
   it("bounds the worst legal request at the worst tier", () => {
     // Long-context rates, every input token billed as a cache write — the most expensive input
-    // class — plus the largest permitted output.
+    // class — plus the largest permitted output. This is a fact about the *model*, and since the
+    // four calls each derive their own attempt bound it is no longer what anything reserves: it is
+    // the ceiling those derivations are checked against (`the derived per-attempt bound` below).
     const p = GPT_5_6_SOL;
     const worstInput = (p.contextWindowTokens * p.longContext.cacheWriteInput) / 1_000_000;
     const worstOutput = (p.maxOutputTokens * p.longContext.output) / 1_000_000;
@@ -184,11 +454,13 @@ describe("the production configuration contract", () => {
 
   it("lets an override raise the bound but never lower it", () => {
     // A number in an environment variable is not evidence anybody read the provider's limits, so
-    // it cannot be used to shrink a verified bound.
+    // it cannot be used to shrink the derived bound either — the floor it cannot go under is now
+    // that bound rather than the model's own worst case.
+    const derived = eventIdentityAttemptMaxUsd(MODEL);
     process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = "1";
-    expect(providerAttemptMaxUsd(MODEL)).toBe(GPT_5_6_SOL.perAttemptMaxUsd);
-    process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = String(GPT_5_6_SOL.perAttemptMaxUsd * 3);
-    expect(providerAttemptMaxUsd(MODEL)).toBe(GPT_5_6_SOL.perAttemptMaxUsd * 3);
+    expect(providerAttemptMaxUsd(MODEL)).toBe(derived);
+    process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD = String(derived * 3);
+    expect(providerAttemptMaxUsd(MODEL)).toBe(derived * 3);
   });
 
   it.each(["0", "-1", "abc"])("refuses an unusable override %s", (raw) => {
@@ -200,7 +472,7 @@ describe("the production configuration contract", () => {
 describe("the logical-call maximum", () => {
   it("bounds the whole call, not one successful response", () => {
     expect(logicalCallMaxUsd(MODEL)).toBe(
-      GPT_5_6_SOL.perAttemptMaxUsd * MAX_PROVIDER_ATTEMPTS_PER_CALL,
+      providerAttemptMaxUsd(MODEL) * MAX_PROVIDER_ATTEMPTS_PER_CALL,
     );
   });
 
@@ -208,7 +480,7 @@ describe("the logical-call maximum", () => {
     // Raising `MAX_TRANSIENT_RETRIES` raises the reservation, and this assertion fails until the
     // number is updated deliberately — so worst-case spend cannot drift past the ceiling quietly.
     expect(MAX_PROVIDER_ATTEMPTS_PER_CALL).toBe(6);
-    expect(logicalCallMaxUsd(MODEL)).toBe(GPT_5_6_SOL.perAttemptMaxUsd * 6);
+    expect(logicalCallMaxUsd(MODEL)).toBe(eventIdentityAttemptMaxUsd(MODEL) * 6);
   });
 });
 
@@ -397,6 +669,11 @@ describe("estimating what one call cost", () => {
   });
 
   it("stays within the reservation for every attempt count the policy permits", () => {
+    // Priced with the bound the claim actually reserved with — `providerAttemptMaxUsd` — because
+    // that is the inequality the ceiling depends on. The responses are deliberately impossible
+    // (the whole context window, the model's whole output allowance) so the clamp is exercised:
+    // an attempt cannot bill more than its maximum, whatever the provider reports.
+    const attemptMax = providerAttemptMaxUsd(MODEL);
     for (let attempts = 1; attempts <= MAX_PROVIDER_ATTEMPTS_PER_CALL; attempts += 1) {
       for (let responses = 0; responses <= Math.min(attempts, 2); responses += 1) {
         const estimate = estimateIdentityCallCostUsd(
@@ -411,7 +688,7 @@ describe("estimating what one call cost", () => {
             ),
             { providerAttempts: attempts, unknownUsageAttempts: attempts - responses },
           ),
-          GPT_5_6_SOL.perAttemptMaxUsd,
+          attemptMax,
         );
         expect(estimate.usd).toBeLessThanOrEqual(logicalCallMaxUsd(MODEL));
       }

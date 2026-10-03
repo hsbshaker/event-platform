@@ -23,6 +23,9 @@ import type {
 } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { planConceptBatch, type ConceptBatchPlan } from "./planner";
+import { compositionLogicalCallMaxUsd } from "./composition-cost";
+import { conceptPremiseLogicalCallMaxUsd } from "./concept-premise-cost";
+import { designIntentLogicalCallMaxUsd } from "./design-intent-cost";
 import { emitCeilingAlert, identityLimits, IDENTITY_REFUSAL_PAYLOAD } from "./identity-spend";
 
 /**
@@ -250,9 +253,20 @@ export function batchLimits(now: Date = new Date()): BatchLimits {
     ceiling: {
       windowSeconds: identity.ceiling.windowSeconds,
       usd: identity.ceiling.usd,
-      // §A.5.1 rule 3: a null `cost_estimate_usd` counts as a maximum, never as zero. This is the
-      // only verified logical-call bound this build has.
-      runMaxUsd: identity.logicalCallMaxUsd,
+      // §A.5.1 rule 3: a null `cost_estimate_usd` counts as a maximum, never as zero. The sum this
+      // bound is applied to is the project-wide one, over **every** operation, so it has to be the
+      // largest logical call any of them can make — not the identity call's. It used to be
+      // `identity.logicalCallMaxUsd` alone, which was safe only by accident: that bound was
+      // derived from the model's whole context window ($90) and therefore happened to exceed every
+      // other call's. Now that each of the four is derived from its own attempt shape, the largest
+      // is composition's, and taking the maximum keeps a null-costed composition run from being
+      // counted at an identity call's price.
+      runMaxUsd: Math.max(
+        identity.logicalCallMaxUsd,
+        conceptPremiseLogicalCallMaxUsd(model, now),
+        designIntentLogicalCallMaxUsd(model, now),
+        compositionLogicalCallMaxUsd(model, now),
+      ),
     },
     reservationUsd: 0,
     costBoundVerified: identity.costBoundVerified,

@@ -14,6 +14,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { PLANNER_VERSION } from "@/lib/ai/versions";
 
+import { compositionLogicalCallMaxUsd } from "./composition-cost";
+import { conceptPremiseLogicalCallMaxUsd } from "./concept-premise-cost";
+import { designIntentLogicalCallMaxUsd } from "./design-intent-cost";
+import { logicalCallMaxUsd } from "./identity-cost";
 import { IDENTITY_REFUSAL_PAYLOAD } from "./identity-spend";
 import {
   BATCH_REFUSAL_PAYLOAD,
@@ -177,6 +181,22 @@ describe("the configurable batch caps", () => {
     expect(limits.ceiling.usd).toBe(42);
     // A null-costed run is charged at a maximum, never at zero (§A.5.1 rule 3).
     expect(limits.ceiling.runMaxUsd).toBeGreaterThan(0);
+  });
+
+  it("charges a null-costed run at the largest logical call any operation can make", () => {
+    // The sum this bound is applied to is project-wide, over every operation, so a bound taken
+    // from one call under-counts the others. It was the identity call's alone, which was safe only
+    // while that bound came from the model's whole context window; now that each of the four is
+    // derived from its own attempt shape, the largest has to be used explicitly.
+    const model = process.env.OPENAI_MODEL ?? "gpt-5.6-sol";
+    const largest = Math.max(
+      logicalCallMaxUsd(model),
+      conceptPremiseLogicalCallMaxUsd(model),
+      designIntentLogicalCallMaxUsd(model),
+      compositionLogicalCallMaxUsd(model),
+    );
+    expect(batchLimits().ceiling.runMaxUsd).toBe(largest);
+    expect(batchLimits().ceiling.runMaxUsd).toBeGreaterThanOrEqual(logicalCallMaxUsd(model));
   });
 
   it("reserves nothing per batch today, and says so rather than inventing a price", () => {

@@ -147,6 +147,80 @@ describe("the OpenAI event identity call", () => {
     }
   });
 
+  it("pins the output ceiling on every request, including the repair attempt", async () => {
+    // Without it the ceiling is the model's own 128,000, and the per-attempt spend bound could
+    // only be derived from the model's limits rather than from this request — which is what put
+    // the logical-call reservation above every ceiling this product configures
+    // (`identity-cost.ts`). Reasoning tokens are billable output and sit inside this cap.
+    const { EVENT_IDENTITY_MAX_OUTPUT_TOKENS } = await import("./event-identity");
+    create.mockResolvedValueOnce(ok({ identity: validIdentity })).mockResolvedValueOnce(ok());
+    await run();
+    expect(create).toHaveBeenCalledTimes(2);
+    for (const call of create.mock.calls) {
+      expect(call[0]).toMatchObject({ max_output_tokens: EVENT_IDENTITY_MAX_OUTPUT_TOKENS });
+    }
+  });
+
+  it("refuses a request past the user-message budget without reaching the provider", async () => {
+    // The carried clarification history is the one input no contract bounds — `spec.md §7.6b`
+    // caps no number of rounds and the assembly is cumulative — so the budget is what makes the
+    // per-attempt spend bound provable. Over budget the call refuses: nothing is sent, nothing is
+    // billed, and no answer is dropped to make it fit, which CA-5 forbids.
+    const { generateEventIdentity, EventIdentityRequestTooLargeError, USER_MESSAGE_MAX_BYTES } =
+      await import("./event-identity");
+    const question = { kind: "creative", question: "Which direction feels closer to the evening?" };
+    const rounds = 4;
+    await expect(
+      generateEventIdentity({
+        prompt: "a quiet winter gathering",
+        clarification: {
+          priorRevisions: Array.from({ length: rounds }, (_, r) => ({
+            revision: r + 1,
+            result: { clarification: { questions: [question, question, question] } },
+          })),
+          answers: Array.from({ length: rounds }, (_, r) =>
+            [0, 1, 2].map((questionIndex) => ({
+              revision: r + 1,
+              questionIndex,
+              selectedOptionLabel: null,
+              // Three UTF-8 bytes per code unit, which is the worst a BMP character can be and
+              // what `MAX_CLARIFICATION_FREE_TEXT`'s character limit permits.
+              freeText: "\uFFFD".repeat(4_000),
+              isDefer: false,
+            })),
+          ).flat(),
+        },
+      }),
+    ).rejects.toBeInstanceOf(EventIdentityRequestTooLargeError);
+    expect(create).not.toHaveBeenCalled();
+    expect(USER_MESSAGE_MAX_BYTES).toBeGreaterThan(0);
+  });
+
+  it("bounds the correction turn the repair pass sends", async () => {
+    // `describeIssues` is an unbounded join over however many issues there are, and the rendering
+    // amplifies: the strict wire projection drops `maxItems`, so this schema-conformant response
+    // carries three thousand invalid keywords and renders a correction turn far larger than the
+    // output ceiling. Unbounded, that turn would be input the per-attempt reserve did not hold.
+    const { REPAIR_FEEDBACK_MAX_BYTES, REPAIR_TURN_FRAMING_BYTES } =
+      await import("./event-identity");
+    const bloated = {
+      ...validBody,
+      identity: { ...validIdentity, toneKeywords: Array.from({ length: 3_000 }, () => "a") },
+    };
+    create.mockResolvedValueOnce(ok(bloated)).mockResolvedValueOnce(ok());
+    await run();
+
+    expect(create).toHaveBeenCalledTimes(2);
+    const repair = create.mock.calls[1][0];
+    const correction = repair.input[repair.input.length - 1];
+    expect(correction.role).toBe("user");
+    expect(Buffer.byteLength(correction.content, "utf8")).toBeLessThanOrEqual(
+      REPAIR_FEEDBACK_MAX_BYTES + REPAIR_TURN_FRAMING_BYTES,
+    );
+    // And it says so, rather than presenting a truncated list as the whole list.
+    expect(correction.content).toContain("not listed");
+  });
+
   it("returns a validated result and records usage", async () => {
     create.mockResolvedValueOnce(ok());
     const result = await run();

@@ -1,8 +1,12 @@
 import "server-only";
 
 import {
+  EVENT_IDENTITY_MAX_OUTPUT_TOKENS,
   EVENT_IDENTITY_SERVICE_TIER,
   MAX_PROVIDER_ATTEMPTS_PER_CALL,
+  REPAIR_FEEDBACK_MAX_BYTES,
+  REPAIR_TURN_FRAMING_BYTES,
+  USER_MESSAGE_MAX_BYTES,
   type EventIdentityUsage,
   type ProviderResponseUsage,
 } from "@/lib/ai/openai/event-identity";
@@ -74,11 +78,21 @@ export interface ModelCostProfile {
   standard: TokenPrices;
   longContext: TokenPrices;
   /**
-   * The conservative upper bound on what ONE provider attempt can bill, in USD.
+   * The conservative upper bound on what ONE attempt **of any shape** can bill on this model, in
+   * USD: a request that fills the context window and the output allowance, at the worst tier.
    *
-   * Derived below from the worst legal request at the worst tier, then rounded up. It is stored
-   * rather than recomputed so a pricing edit cannot silently move the reservation without the
-   * profile version moving too.
+   * It is a fact about the *model*, which is the only kind of fact this record is allowed to hold,
+   * and that is also why nothing verified reserves against it any more. A reservation is a
+   * property of an attempt shape, and each of the four calls derives its own — Event Identity's in
+   * `eventIdentityAttemptMaxUsd` below, the other three in their own cost modules. Reserving this
+   * number instead is what put Event Identity's logical-call reservation at $90 and refused every
+   * call before it reached the provider.
+   *
+   * Two things still read it, which is why it is still carried rather than deleted. The
+   * **unverified development fallback** has no rates to derive anything from, so its own
+   * deliberately large number is all there is; and every derived bound is checked against this one
+   * by test, because a per-request bound above the model's own worst case would mean the
+   * derivation had gone wrong. Nothing else may reserve against it.
    */
   perAttemptMaxUsd: number;
 }
@@ -86,13 +100,20 @@ export interface ModelCostProfile {
 /**
  * Verified 2026-09-16 against the provider's own documentation.
  *
- * Worst case for one attempt, at the long-context tier, with every input token billed as a cache
- * write (the most expensive input class):
+ * `perAttemptMaxUsd` is the worst case for an attempt of **any** shape on this model — the whole
+ * context window and the whole output allowance, at the long-context tier, with every input token
+ * billed as a cache write (the most expensive input class):
  *
  *   input   1,050,000 tokens × $10 / 1M  = $10.50
  *   output    128,000 tokens × $30 / 1M  =  $3.84
  *                                          ------
  *                                          $14.34  → rounded up to $15.00
+ *
+ * That is a true statement about the model and a useless reservation for Event Identity, whose
+ * requests are three orders of magnitude smaller; `eventIdentityAttemptMaxUsd` below derives the
+ * bound this call actually reserves against. `profileVersion` deliberately does **not** move for
+ * that change: nothing here changed, no price was re-read, and bumping it would claim otherwise.
+ * The attempt shape has its own label, `EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION`.
  *
  * Two things this bound deliberately does **not** cover, because the code never selects them: the
  * Fast Mode tier (2× standard) and the Priority/Batch tiers. A `service_tier` is a request-shaping
@@ -196,23 +217,228 @@ export function requireCostProfile(model: string, now: Date = new Date()): Model
   );
 }
 
+/* ------------------------------------------------- what one EventIdentity attempt may cost */
+
+/**
+ * # The derivation
+ *
+ * `docs/phase-4b-plan.md` Part IV states the rule the three later calls follow and this one did
+ * not: *"The verified rate table in `identity-cost.ts` is a property of the model and applies to
+ * any call on it; `perAttemptMaxUsd` is a property of an attempt shape, and Event Identity's was
+ * derived from Event Identity's."* The second clause was false. Event Identity's bound came from
+ * the **model's** ceilings — the full 1,050,000-token context window billed as cache writes plus
+ * the full 128,000-token output allowance, $14.34 → $15 — which multiplied out to a $90
+ * logical-call reservation and refused every call against any ceiling this product configures. The
+ * rates below stay a fact about the model; everything that is a fact about the *request* is
+ * derived here from this boundary's own constants, exactly as `design-intent-cost.ts`,
+ * `concept-premise-cost.ts` and `composition-cost.ts` do.
+ *
+ * **Input.** Every token is bounded before the request exists:
+ *
+ * | part | bound | why it is a bound |
+ * | --- | --- | --- |
+ * | the instruction file | `INSTRUCTION_BYTES` | a committed file, measured |
+ * | the assembled user message | `WORST_USER_MESSAGE_BYTES` | the budget the boundary enforces, sized from the prompt, clarification and identity contracts' own maxima at `CARRIED_CLARIFICATION_ROUNDS` rounds |
+ * | the repair pass's extra turns | `REPAIR_OVERHEAD_TOKENS` | the assistant echo is the previous response verbatim, and re-tokenizing an identical string yields an identical count, so `EVENT_IDENTITY_MAX_OUTPUT_TOKENS` caps it; the correction turn is capped **at the boundary** by `REPAIR_FEEDBACK_MAX_BYTES` plus its fixed framing |
+ * | message framing | `FRAMING_TOKENS` | role markers and separators the provider adds |
+ *
+ * Bytes are used as the token bound directly. A byte-level BPE tokenizer's base vocabulary is the
+ * 256 single bytes, so a string can never produce more tokens than it has UTF-8 bytes; merges only
+ * ever reduce the count. It is a loose bound and a true one, which is the right direction here.
+ *
+ * **Output.** `EVENT_IDENTITY_MAX_OUTPUT_TOKENS`, because the request now sends it. Reasoning
+ * tokens are part of billable output and are inside that cap, so they are priced and not
+ * forgotten. Until the request pinned one, this half of the bound could only be the model's own
+ * 128,000, and no amount of care about the input half would have made the total honest.
+ *
+ * **Rates.** The most expensive class the profile prices, on both axes: the long-context table
+ * rather than the standard one, and `cacheWriteInput` rather than uncached or cached input. The
+ * long-context tier is in fact unreachable for this request — `PER_ATTEMPT_INPUT_TOKEN_BOUND` is
+ * well below `longContextThresholdTokens` — and `assertProfileSupportsIdentityRequest` refuses a
+ * profile where that stops being true rather than letting a silent tier change land inside a bound
+ * that assumed it. Cache **reads** are billed at a tenth of a cache write, so caching can only
+ * move real cost further below this bound, never above it.
+ *
+ * **Attempts.** `MAX_PROVIDER_ATTEMPTS_PER_CALL`, the two passes times the three attempts each
+ * pass may make. Nothing else can open a pass: the policy is one repair retry, then visible
+ * failure.
+ */
+
+/**
+ * Measured from the committed instruction file, and pinned by test against the file itself.
+ *
+ * `event-identity.system.md` is about 26,100 bytes — the largest of the four, because it is the
+ * creative interpreter's brief. 30,000 leaves headroom for the ordinary growth a prompt gets
+ * without being so loose that the file could double inside it; `identity-cost.test.ts` fails both
+ * when the file outgrows the allowance and when it shrinks far below, because a stale allowance is
+ * not a safe one.
+ */
+export const INSTRUCTION_BYTES = 30_000;
+
+/**
+ * How many complete clarification rounds, at every contract's absolute maximum, the enforced user
+ * message budget was sized to admit.
+ *
+ * This is the one number here that is an allowance rather than a contract reading, and it exists
+ * because the request has one input nothing bounds: `spec.md §7.6b` puts no lifetime cap on
+ * clarification rounds and the assembly is cumulative (CA-5), so the carried history grows with
+ * every answered round. Three rounds is nine answers of 4,000 characters each — 36,000 characters
+ * of typed answers on top of a 4,000-character prompt — which is far past anything a host does;
+ * at realistic answer lengths the same budget admits dozens of rounds. `USER_MESSAGE_MAX_BYTES`
+ * makes it a fact instead of an expectation by refusing a request that exceeds it, before any
+ * attempt and without spending anything.
+ *
+ * `identity-cost.test.ts` rebuilds exactly this message from the contracts' own maxima and fails
+ * if it grows past the budget, so a field added to the identity contract, a longer free-text
+ * limit or a higher clarification ceiling moves this allowance deliberately rather than
+ * invalidating the bound quietly.
+ */
+export const CARRIED_CLARIFICATION_ROUNDS = 3;
+
+/**
+ * The worst assembled user message, in UTF-8 bytes.
+ *
+ * The boundary's enforced budget rather than a second number beside it: a bound the code does not
+ * enforce is a bound that can be exceeded, and this is the one input whose contracts do not close
+ * on their own. See `USER_MESSAGE_MAX_BYTES` for why it refuses rather than truncating.
+ */
+export const WORST_USER_MESSAGE_BYTES = USER_MESSAGE_MAX_BYTES;
+
+/**
+ * The two turns a repair pass adds, each bounded by something the boundary actually enforces.
+ *
+ * **The assistant echo** is the previous response resent verbatim. Tokenization is a deterministic
+ * function of the string, so re-tokenizing it yields exactly the count the provider produced,
+ * which `EVENT_IDENTITY_MAX_OUTPUT_TOKENS` capped.
+ *
+ * **The correction turn** is *not* bounded by that. `describeIssues` was an unbounded join when
+ * this bound was written, and the issue rendering amplifies: the strict wire projection drops
+ * `maxItems`, so a schema-conformant response may carry a very long array and a per-element issue
+ * line costs several times what the element cost in the response. A response at the output ceiling
+ * could therefore produce a correction turn larger than the ceiling itself. So the boundary caps
+ * it — `REPAIR_FEEDBACK_MAX_BYTES` and `REPAIR_FEEDBACK_MAX_ISSUES`, applied in `repairFeedback()`,
+ * which is the single call site — and this reserve is computed **from** that cap rather than
+ * asserted beside it. Raise the cap and the bound moves with it.
+ */
+export const REPAIR_OVERHEAD_TOKENS =
+  EVENT_IDENTITY_MAX_OUTPUT_TOKENS + REPAIR_FEEDBACK_MAX_BYTES + REPAIR_TURN_FRAMING_BYTES;
+
+/** Role markers and separators the provider adds around four messages. */
+export const FRAMING_TOKENS = 1_000;
+
+/** The worst input one provider attempt can carry, in tokens. */
+export const PER_ATTEMPT_INPUT_TOKEN_BOUND =
+  INSTRUCTION_BYTES + WORST_USER_MESSAGE_BYTES + REPAIR_OVERHEAD_TOKENS + FRAMING_TOKENS;
+
+/** The worst output one provider attempt can produce, in tokens. It is what the request sends. */
+export const PER_ATTEMPT_OUTPUT_TOKEN_BOUND = EVENT_IDENTITY_MAX_OUTPUT_TOKENS;
+
+/**
+ * Bumped whenever any input to the derivation moves: the request shape, the token bounds, the
+ * rounding, or the attempt topology. Persisted provenance is meaningless if the label can stay
+ * still while the arithmetic underneath it changes.
+ *
+ * `v1` because this is the first bound derived from Event Identity's own attempt shape. What came
+ * before was not an earlier version of this derivation — it was the model's ceilings, recorded
+ * under the model profile's version, which is why that version does not move for this change.
+ */
+export const EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION = "event_identity_attempt_v1@2026-10-03";
+
+/**
+ * A model whose verified profile cannot honestly bound this request is refused, not approximated.
+ *
+ * Three ways that can happen, and each of them would silently break the arithmetic above: the
+ * request does not fit the context window; the output ceiling exceeds what the model will produce,
+ * so the ceiling is not the ceiling; or the input bound crosses the long-context threshold, at
+ * which point pricing the whole request at one table stops being conservative in a way anyone
+ * checked.
+ */
+export function assertProfileSupportsIdentityRequest(profile: ModelCostProfile): void {
+  if (!isVerified(profile)) return;
+  const problems: string[] = [];
+  if (
+    PER_ATTEMPT_INPUT_TOKEN_BOUND + PER_ATTEMPT_OUTPUT_TOKEN_BOUND >
+    profile.contextWindowTokens
+  ) {
+    problems.push(
+      `the worst request (${PER_ATTEMPT_INPUT_TOKEN_BOUND} in + ${PER_ATTEMPT_OUTPUT_TOKEN_BOUND} ` +
+        `out) does not fit the ${profile.contextWindowTokens}-token context window`,
+    );
+  }
+  if (PER_ATTEMPT_OUTPUT_TOKEN_BOUND > profile.maxOutputTokens) {
+    problems.push(
+      `the request asks for up to ${PER_ATTEMPT_OUTPUT_TOKEN_BOUND} output tokens, past this ` +
+        `model's ${profile.maxOutputTokens}`,
+    );
+  }
+  if (PER_ATTEMPT_INPUT_TOKEN_BOUND > profile.longContextThresholdTokens) {
+    problems.push(
+      `the worst input (${PER_ATTEMPT_INPUT_TOKEN_BOUND}) reaches the long-context threshold ` +
+        `(${profile.longContextThresholdTokens}); re-derive the bound before using this model`,
+    );
+  }
+  if (problems.length > 0) {
+    throw new Error(
+      `Cost profile ${profile.profileVersion} cannot bound an Event Identity attempt: ` +
+        `${problems.join("; ")}.`,
+    );
+  }
+}
+
+/** Up to the next half-dollar. A bound with more precision than its inputs is false precision. */
+function roundUp(usd: number): number {
+  return Math.ceil(usd * 2) / 2;
+}
+
+/**
+ * The conservative upper bound on what ONE EventIdentity provider attempt can bill, in USD.
+ *
+ * For `gpt-5.6-sol` this is $3.00:
+ *
+ *   input   203,500 tokens × $10 / 1M (long-context cache write) = $2.035
+ *   output   32,000 tokens × $30 / 1M (long-context output)      = $0.96
+ *                                                                  ------
+ *                                                                  $2.995 → $3.00
+ *
+ * Six attempts per logical call puts the logical-call reservation at $18.00, down from the $90
+ * that no configurable ceiling could admit. The largest real call measured in the 4G smoke was
+ * 7,724 input and 2,270 output tokens — about $0.08 — so this is still a bound with two orders of
+ * magnitude of room in it, which is what a bound is for.
+ */
+export function eventIdentityAttemptMaxUsd(model: string, now: Date = new Date()): number {
+  const profile = requireCostProfile(model, now);
+  assertProfileSupportsIdentityRequest(profile);
+  // The labelled development fallback prices nothing, so its own deliberately large per-attempt
+  // number stands. Production never reaches this branch: `requireCostProfile` throws there.
+  if (!isVerified(profile)) return profile.perAttemptMaxUsd;
+  const prices = profile.longContext;
+  return roundUp(
+    (PER_ATTEMPT_INPUT_TOKEN_BOUND * prices.cacheWriteInput +
+      PER_ATTEMPT_OUTPUT_TOKEN_BOUND * prices.output) /
+      1_000_000,
+  );
+}
+
 /**
  * Optional per-environment override of the per-attempt maximum.
  *
  * It can only make the bound **more** conservative. A number in an environment variable is not
- * evidence that anyone checked the provider's limits, so it cannot be used to lower a verified
- * profile's bound — that would be exactly the "a number appeared, therefore it is verified"
- * shortcut the contract exists to refuse.
+ * evidence that anyone checked the provider's limits, so it cannot be used to lower the derived
+ * bound — that would be exactly the "a number appeared, therefore it is verified" shortcut the
+ * contract exists to refuse.
  */
 export function providerAttemptMaxUsd(model: string, now: Date = new Date()): number {
-  const profile = requireCostProfile(model, now);
+  // The derived bound for a verified profile, and the dev fallback's own number otherwise — which
+  // `eventIdentityAttemptMaxUsd` returns unchanged, because a profile with no rates can derive
+  // nothing and its deliberately large figure has to stand.
+  const base = eventIdentityAttemptMaxUsd(model, now);
   const raw = process.env.IDENTITY_PROVIDER_ATTEMPT_MAX_USD;
-  if (raw === undefined || raw.trim() === "") return profile.perAttemptMaxUsd;
+  if (raw === undefined || raw.trim() === "") return base;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     throw new Error("IDENTITY_PROVIDER_ATTEMPT_MAX_USD must be a positive number");
   }
-  return Math.max(parsed, profile.perAttemptMaxUsd);
+  return Math.max(parsed, base);
 }
 
 /**
