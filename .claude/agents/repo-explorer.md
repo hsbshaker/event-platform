@@ -1,6 +1,6 @@
 ---
 name: repo-explorer
-description: Cheap read-only repository investigation. Use for locating files, symbols, call sites and tests, targeted search, summarizing logs or test output, and checking whether something already exists before implementing it. Examples - "Find every file that references activeResolvedSpecId", "List the tests that touch RSVP guest lookup", "Which spec.md §31 bullets mention the registry cash fund", "Summarize why this test run failed from the attached log". Never use for architecture, product, or design decisions.
+description: Cheap read-only repository investigation. Use for locating files, symbols, call sites and tests, targeted search, summarizing logs or test output, and checking whether something already exists before implementing it. Examples - "Find every file that references activeCardDesignId", "List the tests that touch RSVP guest lookup", "Which spec.md §31 bullets mention the registry cash fund", "Summarize why this test run failed from the attached log". Never use for architecture, product, or design decisions.
 model: haiku
 effort: low
 tools: Read, Grep, Glob

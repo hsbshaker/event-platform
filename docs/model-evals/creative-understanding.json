@@ -1,5 +1,5 @@
 {
-  "$comment": "Phase 4 creative-understanding eval corpus. Data only — no runner exists yet. Contract and rubric: docs/model-contracts.md §4.5. Doctrine: docs/product-doctrine.md §3, §5, §6. `facts` values are the host's literal strings; the fact check is verbatim, and any normalization belongs to the application rather than the model.",
+  "$comment": "Creative-understanding eval corpus. Data only — the runner is built in the Phase 3 bake-off. Contract and rubric: docs/model-contracts.md §6. Doctrine: docs/product-doctrine.md §3, §5, §6. `facts` values are the host's literal strings; the fact check is verbatim, and any normalization belongs to the application rather than the model.",
   "version": "creative_understanding_v1",
   "clarificationCeiling": 3,
   "classes": {
@@ -212,7 +212,7 @@
         "inventing an address from 'my mum's house'",
         "inferring a dress code"
       ],
-      "notes": "Partial facts. A month is not a date and a description is not an address; both are carried as given and completed later, never fabricated and never asked for before concepts."
+      "notes": "Partial facts. A month is not a date and a description is not an address; both are carried as given and completed later, never fabricated and never asked for before the card."
     },
     {
       "id": "CU-13",

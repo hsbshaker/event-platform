@@ -1,39 +1,36 @@
-# Event Platform Documentation — Revision 6
+# Event Platform Documentation — Revision 7
 
-This folder is the reconciled documentation set after the creation-UX pressure test and the three renderer proof phases. The proofs' source, fixtures, tests and confirmation-run data live on `main` under `../proof-b/` and `../proof-a1/` (reference subset); the complete evidence, including screenshots, compiled specs, exploratory runs and judge output, is on the frozen proof branches `proof/phase-b` (`b74ccab`), `proof/phase-a1` (`01f65bc`) and `proof/phase-a` (`cda5fa6`).
+The product is an AI-designed **invitation card** — generated artwork with real text set over it,
+opened from an envelope — above a standard event page with details, RSVP and registry
+(`CHANGELOG-v7.md`). The Revision 6 website architecture and its evidence were retired and deleted;
+git history is their archive (last at commit `e86e7e9`).
 
 ## Source-of-truth order
 
-0. **`product-doctrine.md`** — what the product promises and the creative bar it must clear. Read first, before any creative or product decision; it states intent rather than requirements and never overrides a document below it. Its §14 records the known conflicts between that intent and the canonical set.
-1. **`../spec.md`** — product/business/architecture requirements.
+0. **`product-doctrine.md`** — what the product promises and the creative bar it must clear. Read
+   first, before any creative or product decision; it states intent rather than requirements and
+   never overrides a document below it. Its §14 lists the questions still open.
+1. **`../spec.md`** — product/business/architecture requirements, acceptance criteria (§31) and
+   guardrails (§32).
 2. **`technology-decisions.md`** — locked MVP stack; do not relitigate.
-3. **`design-system.md`** — application UX, interaction, visual tokens, responsive/motion/accessibility system.
-4. **`event-renderer-system.md`** — generated guest-site renderer architecture.
-5. **`model-contracts.md`** — the three strong-model contracts (Event Identity, DesignIntent, Composition): prompts in `model-prompts/`, canonical schemas in `model-schemas/`.
-6. **`e2e-workflow.md`** — canonical journey reference.
+3. **`design-system.md`** — application UX, interaction, visual tokens, responsive/motion/
+   accessibility system, the house-style guest page, and the boundary around the card.
+4. **`card-system.md`** — the invitation card: layouts, art modes, text slots, ink and legibility,
+   text fit, the envelope, persistence and versioning.
+5. **`model-contracts.md`** — Event Identity, fact extraction, Card Design and Card Art contracts;
+   prompts in `model-prompts/`, schemas in `model-schemas/`, the creative-understanding corpus in
+   `model-evals/`.
+6. **`e2e-workflow.md`** — canonical owner/co-host and guest journeys.
 7. **`screen-spec.md`** — screen/surface-level behavior.
-8. **`CHANGELOG-v6.md`** — what Revision 6 changed; `CHANGELOG-v5.md` for the prior revision.
-9. **`development-plan.md`** — the locked Phase 0–10 build sequence and its exit conditions; orders the work, defines no requirements.
-10. **`prototypes/creation-flow.html`** — behavioral prototype; not architectural truth.
-11. **`../proof-b/`** — reference implementation and regression suite of the composition language (source subset on `main`; full evidence on branch `proof/phase-b` at `b74ccab`); **`../proof-a1/`** — the recipe library it depends on (`sites.js`, `vocab.js`, fonts); **`renderer-tests/`** — older renderer evidence; none is product requirements.
+8. **`CHANGELOG-v7.md`** — what Revision 7 changed and why, and the owner's decisions.
+9. **`development-plan.md`** — the build sequence and its exit conditions; orders the work,
+   defines no requirements.
 
-When documents conflict, use the highest source in the list unless a lower document is explicitly called out by the higher source as authoritative for implementation detail.
+When documents conflict, use the highest source in the list unless a lower document is explicitly
+called out by the higher source as authoritative for implementation detail. The doctrine is read
+first and ranks last.
 
-## Historical files
+## History
 
-Revisioned files such as `spec_v4.md`, old prototypes, and the original renderer gallery are historical evidence.
-
-Do not patch old revisions to look current. Preserve them so decisions remain auditable.
-
-## Current renderer status
-
-Architecture is now:
-- six-field DesignIntent (`family`, tone, palette, typography, density, `composition`);
-- a model-authored `CompositionTree` of trusted primitives, scoped to the event's capabilities;
-- a deterministic compiler: strict schema, structural repair by kind, attractive-token caps, canonicalization, semantic palette, layout resolution, rendered-geometry verification;
-- immutable, verified `ResolvedDesignSpec`;
-- a sibling planner for concept diversity (distinct intents, directives, token allotments, skeleton-signature collisions);
-- the Phase A.1 recipes as a library (regression, examples, macros, calibration), not a template set;
-- event-level palette/typography overrides only.
-
-The proof harnesses in `../proof-b/` are the regression suite; thresholds are in `event-renderer-system.md §9`; the confirmation-run results and the two open conditions (renderer rule 0.3 frozen; human design-quality review pending) are in `CHANGELOG-v6.md` and `../proof-b/FINAL.md`. Production implementation ports `proof-b/src/composition.ts`, the planner and the renderer rules into the application package without changing their behaviour, then reruns the confirmation set (`proof-b/model/final` and `final-reduced`, 72 trees, on `main`). `proof-b/README.md` lists what is on `main` and what is only at the tag.
+Superseded documents are not kept in this folder. Use git history; do not recreate old revisions
+here or patch them to look current.

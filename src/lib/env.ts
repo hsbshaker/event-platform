@@ -63,21 +63,6 @@ export function serverEnv(): ServerEnv {
 }
 
 /**
- * Phase 0 spike token (optional, server-only). Validated here so the spike route never
- * reads process.env directly; removed with the spike.
- */
-const spikeSchema = z.string().min(16).optional();
-
-export function spikeToken(): string | undefined {
-  if (typeof window !== "undefined") {
-    throw new Error("spikeToken() must not be called from client code.");
-  }
-  const parsed = spikeSchema.safeParse(process.env.SPIKE_TOKEN || undefined);
-  if (!parsed.success) fail("SPIKE_TOKEN", parsed.error);
-  return parsed.data;
-}
-
-/**
  * Cleanup-job credential (optional, server-only). It is the sole credential protecting a
  * service-role endpoint, so it is validated here like every other secret rather than read
  * raw from `process.env`: a one-character value would otherwise be accepted. Optional because

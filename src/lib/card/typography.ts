@@ -1,8 +1,8 @@
 /**
  * The curated font pairings card designs choose from (`docs/card-system.md`).
  *
- * `TYPOGRAPHY_KEYS` preserves the table's insertion order. That order is load-bearing: a seeded
- * picker indexes into the array, and reordering it silently changes which pairing a seed assigns.
+ * `TYPOGRAPHY_KEYS` preserves the table's insertion order. Keep it stable: the card-design schema's
+ * pairing enum is generated from it (`docs/model-contracts.md §2`).
  *
  * Every family named here has self-hosted faces in `src/styles/card-fonts.css`
  * (`typography.test.ts` enforces it).

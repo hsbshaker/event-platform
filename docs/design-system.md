@@ -1,36 +1,33 @@
 # Product Design System
-## AI-Native Event Website + RSVP + Registry Platform
+## AI-Designed Event Invitation + RSVP + Registry Platform
 
 **Document:** `docs/design-system.md`  
-**Status:** Revision 3 — implementation baseline  
+**Status:** Revision 4 — implementation baseline for PRD Revision 7  
 **Initial launch vertical:** Baby showers  
-**Applies to:** Host application, co-host application, guest experience shell, generated event renderer, responsive behavior, interaction patterns, motion, accessibility, and visual implementation governance  
-**Companion source of truth:** `spec.md` / current PRD
+**Applies to:** Host application, co-host application, guest experience shell (envelope and house-style event page), the boundary around the invitation card, responsive behavior, interaction patterns, motion, accessibility, and visual implementation governance  
+**Companion sources of truth:** `spec.md` (Revision 7) and `docs/card-system.md` (Revision 1)
 
-### Revision 3 reconciliation
+### Revision 4 reconciliation
 
-This revision keeps the approved application UX from Revision 2 and reconciles renderer terminology with PRD Revision 5.
+PRD Revision 7 changes what the product makes: the AI no longer generates a custom event website. It designs **one invitation card** (generated artwork with real text set over it), revealed from an envelope, above a standard event page in **one neutral house style for every event**. This revision removes the website-era material and keeps the rest of the system.
 
-Application behavior remains:
+Application behavior that remains:
 - prompt-first landing;
 - auth/save before strong-model generation;
-- full-site reveal after concept selection;
-- Creation Mode = event itself;
-- contextual editing;
+- Creation Mode = the invitation itself, with contextual editing and no wizard;
 - truthful publish-readiness checklist;
 - mobile-first, real desktop rendering;
 - strict shared application tokens/components;
 - light-only app chrome MVP.
 
-Renderer architecture changes:
-- strong model emits a six-field `DesignIntent` and a `CompositionTree` of trusted primitives, never HTML/CSS or a fully orthogonal design schema;
-- the deterministic compiler validates, repairs, verifies rendered geometry and creates an immutable `ResolvedDesignSpec`; the page system owns component/treatment defaults;
-- motifs are role/slot based and dropped motifs are logged;
-- raw palettes compile into semantic accessible tokens before rendering;
-- generated design data is immutable while renderer code remains maintainable;
-- themed guest components and mobile-convergence rules are explicit.
+What changes:
+- one design at a time, with `Try another direction`, replaces three concepts and the concept comparison;
+- the reveal is the card coming out of an envelope, not a full-site reveal;
+- the card is the only themed, generated surface; the page beneath it is house style for every event and takes nothing from the card;
+- hosts edit the card's words and swap font among the design's curated pairings; there is no palette or colour control;
+- after publish the platform can text each party a personal invitation link; the guest workspace shows invitation status.
 
-The implementation-level renderer contract lives in `docs/event-renderer-system.md`.
+The card's design, generation, legibility, fit and rendering architecture lives in `docs/card-system.md`.
 
 ---
 
@@ -38,7 +35,7 @@ The implementation-level renderer contract lives in `docs/event-renderer-system.
 
 This document is the product's **UI/UX and visual implementation contract**.
 
-The PRD remains authoritative for:
+The PRD (`spec.md`, Revision 7) remains authoritative for:
 - product scope;
 - business rules;
 - data models;
@@ -51,6 +48,8 @@ The PRD remains authoritative for:
 - payment rules;
 - operational requirements.
 
+`docs/card-system.md` is authoritative for the invitation card: how it is designed, generated, made legible, laid out, stored and rendered, and where the AI's authority ends.
+
 This design-system document is authoritative for:
 - interaction model;
 - screen composition;
@@ -60,12 +59,12 @@ This design-system document is authoritative for:
 - app visual tokens;
 - motion;
 - accessibility presentation;
-- generated-site rendering primitives;
+- the house-style guest page and the boundary between app chrome, card styling and that page;
 - implementation consistency.
 
 ### 0.1 Newer approved UX decisions
 
-Where an older PRD flow conflicts specifically with the newer approved creation UX below, **this document wins for UX sequence and presentation**.
+Where an older flow conflicts specifically with the creation UX below, **this document wins for UX sequence and presentation**, unless `spec.md` Revision 7 states otherwise.
 
 The current canonical creation flow is:
 
@@ -79,32 +78,32 @@ AUTH / SAVE
     ↓
 AI GENERATION BEGINS
     ↓
-REQUIRED DETAILS COLLECTED WHILE GENERATION RUNS
+OPTIONAL DETAILS OFFERED WHILE GENERATION RUNS
+(real pipeline artifacts shown; no fake progress)
     ↓
-3 CONCEPT DIRECTIONS
-    ├── choose one
-    └── "Try another direction" → optional prompt refinement → 3 new directions
-    ↓
-FULL SITE REVEAL
-"Your event looks great. Let's make it real."
+CARD REVEAL FROM THE ENVELOPE
+"Your invitation looks great. Let's make it real."
     ├── Make it yours
-    └── Try another direction
+    └── Try another direction → one new card; the current one stays active until chosen
     ↓
 CREATION MODE
-The event itself is the workspace.
+The invitation (card + page) is the workspace.
 Inline edit/setup affordances.
 Floating setup-progress control.
 No wizard.
 No Next buttons.
     ↓
-PREVIEW
+PREVIEW (envelope included)
     ↓
 $49 PUBLISH
+    ↓
+SHARE
+Send invitations by text · link · QR · private code
     ↓
 LIVE EVENT
     ↓
 MANAGEMENT MODE
-RSVPs · Guests · Registry · Messages · Edit Site
+RSVPs · Guests · Messages · Registry · Share · Edit invitation
 ```
 
 The user should never be required to understand the application's information architecture before seeing value.
@@ -122,11 +121,11 @@ The product should feel:
 - **confident rather than decorative;**
 - **simple without feeling sparse or unfinished.**
 
-The product UI should not compete visually with the generated event.
+The product UI should not compete visually with the invitation.
 
-The generated event carries the host's personality.
+The card carries the host's personality.
 
-The application chrome provides a calm frame around it.
+The application chrome provides a calm frame around it, and the page beneath the card is a calm, standard house style that is the same for every event.
 
 ### 1.1 Core product-design principle
 
@@ -151,23 +150,23 @@ Whenever possible:
 > **AI should remove decisions, not create more decisions.**
 
 Do not expose:
-- family, primitive, directive or library IDs;
+- layout, art mode, art brief, ink or panel names, IDs or concepts;
 - raw design tokens;
 - arbitrary font pickers;
-- hex-code editing;
+- palette, colour or hex-code editing;
 - border-radius controls;
 - free-form spacing;
 - CSS;
 - layout grids;
-- template galleries.
+- template or artwork galleries.
 
-AI makes the initial creative choices. Direct controls refine within bounded options.
+AI makes the initial creative choices. Direct controls refine within bounded options: the card's words, and the design's curated font pairings.
 
 ### 1.4 Core activation principle
 
 > **Show the finished-looking outcome before asking the host to do setup work.**
 
-The user should see a convincing public-site experience as early as possible.
+The user should see their finished-looking invitation as early as possible.
 
 The emotional sequence is:
 
@@ -176,11 +175,7 @@ The emotional sequence is:
       ↓
 "It understood me."
       ↓
-"These are real options."
-      ↓
-"That one feels like us."
-      ↓
-"Wow — this is already our site."
+"Wow — this is already my invitation."
       ↓
 "I only need to make the information real."
 ```
@@ -195,12 +190,12 @@ The application has three distinct presentation modes.
 
 ## 2.1 Creation mode
 
-**Purpose:** turn an AI-created event into the real event.
+**Purpose:** turn an AI-designed invitation into the real event.
 
-The event site itself is the primary workspace.
+The invitation itself — the card and the house-style page beneath it — is the primary workspace.
 
 Creation mode contains:
-- the actual production event renderer;
+- the actual production card and page;
 - subtle owner/co-host-only controls;
 - contextual incomplete states;
 - a lightweight setup-progress control;
@@ -211,7 +206,7 @@ Creation mode must **not** look like a conventional SaaS admin dashboard.
 
 ### Creation-mode rule
 
-> The user is editing their event, not configuring software.
+> The user is editing their invitation, not configuring software.
 
 ## 2.2 Guest preview mode
 
@@ -221,9 +216,9 @@ Preview mode:
 - removes all collaborator-only controls;
 - removes setup-progress UI;
 - removes edit buttons;
-- uses the production renderer;
+- uses the production envelope, card and page;
 - preserves actual event content;
-- may show a small product-level "Exit preview" affordance outside the event canvas.
+- may show a small product-level "Exit preview" affordance outside the invitation canvas.
 
 Do not create a separate fake preview renderer.
 
@@ -236,12 +231,12 @@ Management mode may surface:
 - attending;
 - declined;
 - awaiting response;
-- guest list;
+- guest list and invitation status;
 - messages;
 - registry status;
 - RSVP responses;
-- event sharing;
-- edit-site entry point.
+- sharing (link, QR, code);
+- edit-invitation entry point.
 
 Management mode is appropriate when operational data matters.
 
@@ -308,7 +303,7 @@ The user should first experience AI understanding and design output.
 
 ## 3.5 Use real data as soon as it exists
 
-Concept previews and site reveal should use:
+The card reveal and Creation Mode should use:
 - real event title;
 - real hosts;
 - real date;
@@ -325,7 +320,7 @@ Never fabricate realistic fake guests.
 
 Appropriate sample content:
 - example registry destination cards;
-- provisional welcome copy;
+- bounded placeholders for required facts, marked as needing confirmation and never published;
 - sample RSVP treatment;
 - visual placeholders demonstrating a section.
 
@@ -365,15 +360,17 @@ brand / sign in
 large outcome-oriented headline
 short supporting line
 
-┌──────────────────────────────────────┐
-│ Describe the event you imagine...   │
-│                                      │
-│                                      │
-│ + Add inspiration   Create my event │
-└──────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ Describe the event you imagine...      │
+│                                         │
+│                                         │
+│ + Add inspiration     Create my invitation ✦ │
+└─────────────────────────────────────────┘
 
 Free to create · No templates · Publish when ready
 ```
+
+Primary message: **Describe your event. We create the whole experience.**
 
 ### Requirements
 
@@ -381,7 +378,7 @@ Free to create · No templates · Publish when ready
 - Do not require account creation before the user writes their idea.
 - Do not lead with a template carousel.
 - Do not place a large feature matrix above the composer.
-- Do not make the user choose an event theme before writing.
+- Do not make the user choose a theme, palette or style before writing.
 - Optional inspiration belongs directly with the prompt.
 - The page may include supporting content below the fold, but it must not delay creation.
 
@@ -401,12 +398,12 @@ The composer should dominate the first viewport without feeling cramped.
 
 ## 4.2 Auth / save
 
-Authentication occurs **after** the user has entered a creative idea but **before any strong-model generation begins**.
+Authentication occurs **after** the user has entered a creative idea but **before any strong-model or image-model generation begins**.
 
 This is an intentional product and cost-control boundary:
 
 > Anonymous users may compose an event idea and attach inspiration.  
-> Strong-model generation begins only after the event draft is associated with an authenticated account.
+> Generation begins only after the event draft is associated with an authenticated account.
 
 Preferred framing:
 
@@ -430,7 +427,7 @@ After auth:
 - restore all successfully uploaded inspiration;
 - resume at generation without asking the user to re-enter anything.
 
-Temporary pre-auth inspiration assets must remain private, have short expiry/cleanup rules, and must not become public site assets.
+Temporary pre-auth inspiration assets must remain private, have short expiry/cleanup rules, and must never become public imagery.
 
 Authentication should be lightweight:
 - Google;
@@ -441,104 +438,72 @@ Do not ask for profile setup here.
 
 ---
 
-## 4.3 Generation + required details
+## 4.3 Generation + optional details
 
 Generation begins as early as practical.
 
-The screen should communicate that AI is already working while the host supplies missing required information.
+The screen should communicate that the invitation is already being made while the host may supply missing event details.
 
 Preferred framing:
 
 > **A few details while we create…**
 
-Ask only genuinely missing functional details.
+Details are **offered, never demanded**. Required details are publish requirements, not generation blockers (`spec.md §7.3`); the card is designed and revealed without them. Skip values already supplied or extracted from the prompt; extracted values are shown for the host to confirm. Watching and filling in are equally valid.
 
-Show Event Identity output progressively where useful:
-- creative direction;
-- tone keywords;
-- palette;
-- concise interpretation.
+Ask only genuinely missing functional details: date, start time (end optional), venue/location, hosts, baby name if the host wants it shown, RSVP deadline, public/private. Do not normally ask for timezone.
 
-Do not present AI reasoning or implementation details.
+If Event Identity asks a creative clarifying question (`spec.md §7.6b`), it is a small number of taste questions at most, always with `You decide` / `Surprise me`, never about fonts, layouts, colours or logistics.
+
+Show real pipeline output progressively (see §12):
+- interpreted creative signals;
+- palette territory and visual vocabulary;
+- the design's name and description;
+- the art direction.
+
+Do not present AI reasoning, chain-of-thought or implementation details.
 
 ### Loading principle
 
-> Generation should feel like visible progress, not a blocking spinner.
+> Generation should feel like visible progress made of real artifacts, not a blocking spinner and not theater.
 
 Avoid a blank progress screen.
 
 ---
 
-## 4.4 Concept choice
+## 4.4 Card reveal
 
-Canonical heading:
+The first thing the host sees after generation is their invitation card coming out of its envelope — the same envelope guests will see (§8.3, §10.20).
 
-> **Which feels like you?**
+The card is revealed as soon as its artwork and ink resolution exist. There is one card per round, not a set to compare.
 
-Show exactly three strong concept directions per round.
-
-Each concept includes:
-- live production-renderer preview;
-- concept name;
-- one-line description;
-- clear `Choose this direction` action.
-
-### Initial concept screen
-
-Under all three concepts, provide:
-
-> **None of these feel right?**  
-> Tell us what to change and we'll create three fresh directions.
-
-Action:
-
-`Try another direction ✦`
-
-Do not put the redesign action redundantly on every concept card.
-
-### Desktop
-
-Use a responsive three-column comparison when sufficient width exists.
-
-The user should be able to compare the three directions without excessive scrolling.
-
-### Mobile
-
-Stack concepts vertically.
-
-Preserve enough preview height for meaningful evaluation.
-
-
-### Concept-render performance
-
-On mobile, do not eagerly mount three full renderer trees if doing so creates measurable performance risk.
-
-Required strategy:
-- Concept 1 may mount immediately.
-- Concepts 2 and 3 should lazy-mount as they approach the viewport (for example via `IntersectionObserver` or equivalent).
-- Preserve card dimensions with lightweight placeholders to avoid layout shift.
-- Once mounted, keep a concept stable while the user is evaluating it unless memory pressure requires otherwise.
-- Desktop may mount all three simultaneously when performance measurements support it.
-
-The product still uses the real production renderer; lazy mounting is an implementation optimization, not a screenshot fallback.
-
-
----
-
-## 4.5 Site reveal
-
-After a concept is chosen, transition into the full event site.
-
-This is a deliberate activation moment.
+Show:
+- the card;
+- the design's creative name and one-line description;
+- `Make it yours →`;
+- `Try another direction ✦`.
 
 Preferred copy:
 
-> **Your event looks great.**  
+> **Your invitation looks great.**  
 > **Let's make it real.**
 
-Then show the actual event site using:
-- real content already known;
-- clearly provisional content for missing sections.
+The first card generated for an event becomes its active design. A later card becomes active only when the host chooses it (§4.12).
+
+Use real event content wherever it is known. Missing required facts appear on the card as bounded placeholders marked as needing confirmation; they are never published (§3.6).
+
+### Desktop
+
+The card is the same design at a comfortable size, centered; it never reflows. The surrounding application layout is desktop-native.
+
+### Mobile
+
+The card fits the viewport width with its 5:7 proportion preserved. Reserve its box before the artwork loads so the layout does not shift.
+
+---
+
+## 4.5 Reveal actions
+
+The user must be allowed to reconsider the creative direction **from the reveal itself**.
 
 Primary action:
 
@@ -548,17 +513,13 @@ Secondary action:
 
 `Try another direction ✦`
 
-### Important
-
-The user must be allowed to reconsider the creative direction **from the reveal itself**.
-
-Do not force them into setup just because they selected a concept once.
+Do not force them into setup just because the first card exists, and do not interrupt the reveal with a dashboard.
 
 ---
 
 ## 4.6 Creation mode
 
-After `Make it yours`, the same site becomes editable.
+After `Make it yours`, the same invitation becomes editable. The card and page stay visually stationary (§8.4).
 
 The collaborator sees subtle controls such as:
 
@@ -566,9 +527,9 @@ The collaborator sees subtle controls such as:
 - `Set up`
 - `Add`
 
-located near the content they affect.
+attached to stable anchors: the card's wording, the card's details, and each page section (details, description, information blocks, RSVP, registry).
 
-Example:
+Example (page sections):
 
 ```text
 EVENT DETAILS                             Edit
@@ -584,6 +545,8 @@ Add your registries and gifts here
 
 These controls never appear to guests.
 
+Card wording (title, invitation line) is edited in place on the card. Card facts (names, date, time, venue, RSVP-by) are edited as event details and update the card and the page together.
+
 ### Owner toolbar
 
 A restrained collaborator toolbar may contain:
@@ -591,7 +554,7 @@ A restrained collaborator toolbar may contain:
 - `Design`;
 - `Preview`.
 
-Do not add a large website-builder toolbar.
+Do not add a large builder toolbar.
 
 ### Setup progress
 
@@ -609,7 +572,7 @@ Do **not** show `2/4` if some of those four items are optional for publishing.
 
 On mobile, it may float above the safe area.
 
-On desktop, it may float at the bottom center or lower right as long as it does not obscure event content.
+On desktop, it may float at the bottom center or lower right as long as it does not obscure the invitation.
 
 ---
 
@@ -629,7 +592,7 @@ Only show requirements that actually block `READY_TO_PUBLISH`, for example:
 ○ Visibility / access
 ```
 
-The exact rows should be derived from the PRD's deterministic publish-readiness rules.
+The exact rows should be derived from the PRD's deterministic publish-readiness rules (`spec.md §23.1`).
 
 ### Recommended before sharing
 
@@ -647,7 +610,7 @@ Rules:
 - clearly distinguish blocking vs. optional;
 - do not expose every optional setting;
 - keep copy operational and short;
-- once all blocking items are valid, the progress control may say `Ready to publish` even when recommended items remain incomplete.
+- once all blocking items are valid, the progress control may say `Ready to publish` even when recommended items (guests, registry, invitations, co-host) remain incomplete.
 
 The checklist may also surface:
 - Preview;
@@ -664,6 +627,7 @@ The checklist is not a separate setup dashboard.
 Simple editors use bottom sheets or focused full-screen sheets depending on complexity.
 
 Examples:
+- card wording → edited in place on the card;
 - event details → sheet/full-screen editor;
 - RSVP settings → sheet/full-screen editor;
 - registry add → sheet;
@@ -681,18 +645,23 @@ based on complexity.
 
 Do not mechanically render a mobile bottom sheet at desktop width.
 
+### Card editing
+
+Edits to the card's wording, facts or font re-run the card's deterministic text layout; no model is called and nothing is regenerated. Wording entry is bounded by the card's slot limits so text always fits (`docs/card-system.md §2.5`, `§4.3`); show limit feedback as ordinary field validation (§11.2) and never silently truncate.
+
 ### Close behavior
 
-Closing returns to the event site at the same approximate scroll position.
+Closing returns to the invitation at the same approximate scroll position.
 
 ---
 
 ## 4.9 Guest management exception
 
-Guest management is the primary creation task allowed to leave the event surface because:
+Guest management is the primary creation task allowed to leave the invitation because:
 - CSV import;
 - household grouping;
 - phone state;
+- invitation state;
 - RSVP state;
 - guest editing;
 
@@ -700,9 +669,16 @@ need more space.
 
 It may use a dedicated full-screen workspace.
 
+Each party shows, beyond its guests and RSVP state:
+- contact state (Ready / Needs phone / No phone available);
+- **invitation status**: not sent / sent / delivery failed / opted out;
+- its **personal invitation link**, which the host can copy and rotate (rotating invalidates the old link).
+
+Personal links are surfaced per party here, never as a single shareable link that bypasses a private event's code.
+
 Requirements:
 - a clear close/back action returns to creation mode;
-- the event is not lost in navigation;
+- the invitation is not lost in navigation;
 - on desktop, use the available width intelligently;
 - on mobile, rows become stacked touch-friendly list items.
 
@@ -714,72 +690,63 @@ Do not attempt to embed a guest spreadsheet inside the public event page.
 
 The Design control opens **constrained direct editing**.
 
-Allowed:
-- curated palette variants;
-- curated typography pairings;
-- reset to concept defaults;
-- `Try another direction ✦` before publish.
+Allowed (`spec.md §7.14`):
+- the card's font: the design's primary pairing and its alternates, and nothing else;
+- reset the card's wording and font to the design;
+- `Try another direction ✦` before publish;
+- the designs generated so far, to choose another before publish (§10.21).
 
 Do not expose:
-- raw hex values;
+- palette, colour, ink or panel controls;
+- layouts or art modes;
+- artwork editing, cropping, positioning or regeneration of parts;
+- font sizes or text positions;
 - arbitrary font libraries;
-- layout IDs;
-- free-form motif editing;
-- CSS;
-- arbitrary spacing;
-- arbitrary radius controls.
+- envelope or page styling;
+- CSS.
 
-### Try another direction
+Swapping font re-lays out the card's text only; ink, artwork and every event fact are unchanged. After publish, the font control remains available; `Try another direction` and the designs list do not (§4.12).
 
-From Design:
+---
+
+## 4.11 Try another direction
+
+Available before publish from the reveal and from Creation Mode (via Design).
 
 ```text
 Try another direction
        ↓
-Optional creative-brief refinement
+Optional feedback ("more playful", "less preppy") and optional new inspiration
        ↓
-3 fresh "Which feels like you?" concepts
+One new card, genuinely different from every earlier one
        ↓
-Choose one or keep current
+Choose it, keep the current one, or try again
 ```
-
----
-
-## 4.11 Redesign prompt
 
 Preferred framing:
 
 > **What should we change?**
 
-The prompt is optional.
+Feedback and inspiration are optional; the host may leave both blank and ask for another exploration.
 
-The user may:
-- add to the original vision;
-- remove something;
-- change direction substantially;
-- add inspiration;
-- leave feedback blank and request another exploration.
+Explicit reassurance, shown in the flow:
 
-Explicit reassurance:
+> **Your event details stay exactly as they are.**
 
-> **Your event content stays untouched.**
-
-Design regeneration must not imply that guests, dates, RSVP data, registry data, or event copy will be lost.
+Design regeneration must not imply that guests, dates, RSVP data, registry data, or event wording will be lost. There is no chat-level micro-edit loop and no persistent assistant. No user-facing credits or counters.
 
 ---
 
-## 4.12 Redesign concepts
+## 4.12 Choosing among designs
 
-Show three new concepts using the same canonical concept-choice pattern.
-
-When a current design exists, offer:
+The current card stays active while a new one is revealed. For the new card, offer:
 - `Choose this direction`;
-- `Keep current`.
+- `Keep current`;
+- `Try another direction ✦` again.
 
-If none feel right:
-- `Refine the prompt again`.
+Every design generated for the event stays browsable before publish in the designs list (§10.21). Choosing a design changes design only: it switches the active card and resets the card's wording and font edits to that design; it never changes event details, guests, RSVP, registry, privacy or messages (`spec.md §20.3`).
 
-Do not send the user back through initial onboarding.
+Do not send the user back through initial onboarding. After publish, generation and design switching are disabled and the designs list is read-only (`spec.md §8.2`).
 
 ---
 
@@ -791,7 +758,7 @@ Preview removes:
 - collaborator toolbar;
 - incomplete-state management controls.
 
-The underlying event renderer remains identical.
+The underlying card, envelope and page remain identical to production, with actual current content; the envelope is included.
 
 The only app-level controls should be:
 - an obvious way to exit preview;
@@ -799,7 +766,7 @@ The only app-level controls should be:
 
 Preview defaults to **Mobile** because the guest experience is primarily phone-consumed.
 
-The device-width control belongs to Preview Mode only. It must not turn Creation Mode into a breakpoint simulator or website-builder toolbar.
+The device-width control belongs to Preview Mode only. It must not turn Creation Mode into a breakpoint simulator or builder toolbar. The card is the same design in both widths; only its size and the page layout change.
 
 ---
 
@@ -819,21 +786,37 @@ Primary action:
 
 Do not create pricing tiers in the MVP design.
 
+## 4.14a Share and send invitations
+
+After publish, the host lands on sharing with:
+- the event URL;
+- a QR code that points to the URL only (it never embeds or bypasses a private event's code);
+- for a private event, the event code, surfaced together with the URL and QR;
+- `Send invitations`.
+
+`Send invitations` (`spec.md §7.18`):
+1. choose recipients: all invited parties not yet invited, or a selection;
+2. attest once per event that the host has permission to text these guests about this event;
+3. the platform texts each selected party with a usable phone (and no opt-out) one short message carrying that party's personal link;
+4. parties without a usable phone are listed with their personal link to copy and send another way.
+
+Invitations go by text only. Resends and later invitations to newly added parties are allowed within the per-party cap. Invitation status per party appears in the guest workspace (§4.9). Sharing the link/QR directly remains available; both paths coexist.
+
 ---
 
 ## 4.15 Post-publish management home
 
 After publishing, the center of gravity changes from **building** to **running**.
 
-Management mode may prioritize:
+Management mode prioritizes:
 
 ```text
 RSVP summary
-Guest responses
-Messages
+Guests (responses · awaiting · Needs phone · invitations not sent)
+Messages (invitations · reminders · announcements)
 Registry
-Event sharing
-Edit site
+Share (link · QR · code)
+Edit invitation
 ```
 
 The visual style remains calm and consistent with the application.
@@ -842,7 +825,7 @@ Do not turn management mode into a generic analytics dashboard.
 
 ## 4.16 Co-host invitation acceptance
 
-A co-host invitation is a small but complete application flow and uses app chrome, not the event theme.
+A co-host invitation is a small but complete application flow and uses app chrome, not card styling.
 
 If signed out:
 1. show event name + inviter name;
@@ -876,7 +859,7 @@ The host application should feel:
 - contemporary;
 - calm;
 - editorially restrained;
-- polished enough that the generated event remains the most expressive object on screen.
+- polished enough that the invitation card remains the most expressive object on screen.
 
 Avoid:
 - saturated SaaS gradients as default chrome;
@@ -909,7 +892,7 @@ Do not implement:
 - automatic system dark-mode theming;
 - partial dark-mode variants.
 
-Generated event sites may use `light`, `mid`, or `dark` tonal directions independently. A dark event design does not imply dark application chrome.
+The invitation card is its own surface and may be any colour. A dark card does not imply dark application chrome, and the house-style page does not follow the card.
 
 If application dark mode is added later, it requires a deliberate design-system revision rather than opportunistic per-component support.
 
@@ -917,7 +900,7 @@ If application dark mode is added later, it requires a deliberate design-system 
 
 # 6. Product UI tokens
 
-These tokens apply to the **application UI**, not generated event themes.
+These tokens apply to the **application UI**, not the invitation card.
 
 All values below are Revision-1 defaults and must be represented as semantic variables.
 
@@ -955,7 +938,7 @@ All values below are Revision-1 defaults and must be represented as semantic var
 
 - Feature code references semantic tokens, never raw hex.
 - Do not create page-specific accent colors.
-- Event-theme colors never replace app chrome colors.
+- Card colours (artwork, ink, panels) never replace app chrome colors.
 - Status colors supplement text/icons; color alone never communicates state.
 
 ## 6.2 Typography
@@ -981,7 +964,7 @@ Recommended stack:
   sans-serif;
 ```
 
-The app should not use generated-event typography in navigation, editors, or admin controls.
+The app should not use card typography (the design's font pairings) in navigation, editors, or admin controls.
 
 ### Application type scale
 
@@ -1231,21 +1214,21 @@ Modal:
 - fade + subtle `0.98 → 1` scale;
 - `180–240ms`.
 
-## 8.3 Concept → site reveal
+## 8.3 Envelope opening and card reveal
 
 This is the most important transition.
 
-Recommended sequence:
-1. selected concept subtly confirms;
-2. surrounding concept UI fades;
-3. production site expands/crossfades into full reveal;
-4. reveal message appears shortly after the site becomes visually stable.
+The envelope is a house component, the same for every event (§10.20). Recommended sequence:
+1. the sealed envelope shows the event title;
+2. it opens on the guest's tap (or after a short beat);
+3. the card slides out and settles at the top of the page;
+4. for the host, the reveal message and actions appear shortly after the card is visually stable.
 
-Total perceived transition should generally remain under `600ms`.
+The host sees the same reveal when a newly generated card is ready. Total perceived transition should stay within the motion tokens (`motion-reveal`, never beyond `motion-emphasis`).
 
-Do not show a long artificial "building your site" animation when the ResolvedDesignSpec already exists.
+The card is revealed as soon as its artwork and ink resolution exist. A brief transitional state is acceptable to create continuity, not to fake work (§12.2).
 
-A brief transitional state is acceptable to create continuity, not to fake work.
+Reduced motion: the card appears without the opening animation (§8.5).
 
 ## 8.4 "Let's make it real" transition
 
@@ -1255,9 +1238,9 @@ Preferred:
 - owner toolbar fades/slides in;
 - contextual edit controls appear;
 - setup-progress control rises into place;
-- underlying event site remains visually stationary.
+- the underlying card and page remain visually stationary.
 
-This creates the feeling that the finished site has simply become editable.
+This creates the feeling that the finished invitation has simply become editable.
 
 ## 8.5 Reduced motion
 
@@ -1293,7 +1276,7 @@ Only one dominant primary action should appear in a local decision area.
 
 Examples:
 - `Try another direction ✦`
-- `Preview guest site`
+- `Preview invitation`
 - `Keep current`
 
 Visual:
@@ -1501,20 +1484,25 @@ Each item has:
 
 No percent-complete gamification.
 
-## 10.14 `ConceptCard`
+## 10.14 `InvitationCard`
 
-Contains:
-- live renderer preview;
-- concept name;
-- one-line interpretation;
-- choose action;
-- selected/current state when relevant.
+Renders the invitation card from the persisted design, its artwork, its resolved ink and panels, and the event's current content passed through the card's deterministic text layout (`docs/card-system.md §6.1`).
 
-Do not add star ratings or comparison scores.
+It is **owned by the card system, not by app chrome**: its styling, fonts and ink never come from app tokens, and no app component styles its internals.
+
+Contract:
+- one component renders the card everywhere: the reveal, Creation Mode, Preview, the guest page, the designs list and link-preview images;
+- fixed 5:7 proportion; renders at any width by uniform scaling, so line breaks and layout are identical at 390px and 1280px;
+- text is live, selectable and screen-reader readable; the artwork is decorative (`alt=""`);
+- the application passes data (design, artwork, event content) and a size; it passes no colours, fonts, layouts or positions;
+- it contains no collaborator controls; Creation Mode attaches them through `CollaboratorActionSlot` (§10.19);
+- selected/current state for the designs list is drawn by `DesignsList`, outside the card.
+
+Do not add star ratings, comparison scores or per-card variants.
 
 ## 10.15 `CreationCanvas`
 
-Wraps the production event renderer with collaborator-only layers:
+Wraps the production card and house-style page with collaborator-only layers:
 - toolbar;
 - contextual edit affordances;
 - setup progress.
@@ -1559,29 +1547,65 @@ Avoid marketing-card clutter.
 
 ## 10.19 `CollaboratorActionSlot`
 
-Every renderable event section must expose a stable, theme-agnostic collaborator-action anchor for Creation Mode.
+The card and every page section must expose a stable collaborator-action anchor for Creation Mode.
 
-The renderer owns the section geometry. The application owns collaborator controls.
+The card renderer owns the card's box and text layout and the page owns section layout. The application owns collaborator controls.
 
 Contract:
 
 ```text
-EventSection
+Invitation card
+  ├── guest-facing card
+  └── collaboratorActionAnchor (wording · details)
+
+Page section
   ├── guest-facing section content
   └── collaboratorActionAnchor
 ```
 
-`CreationCanvas` attaches `Edit`, `Set up`, or `Add` controls to this anchor without requiring composition-specific positioning logic.
+`CreationCanvas` attaches `Edit`, `Set up`, or `Add` controls to these anchors without requiring layout-specific positioning logic.
 
 Requirements:
-- every section treatment implements the same semantic anchor;
-- the anchor exists at mobile and desktop breakpoints;
-- its placement may adapt with layout, but the application-facing contract does not change;
-- collaborator controls remain app-styled and do not inherit event-theme typography or colors;
+- every page section implements the same semantic anchor, and the card exposes anchors for its wording and its details;
+- the anchors exist at mobile and desktop breakpoints;
+- placement may adapt with viewport, but the application-facing contract does not change;
+- collaborator controls remain app-styled and do not inherit card typography or colours;
 - guest rendering omits the anchor output entirely;
-- the application must not inspect the CompositionTree, `family` or section-treatment values to decide where to place edit controls.
+- the application must not inspect the design's layout, art mode or ink, or the card's text zones, to decide where to place edit controls.
 
-This preserves the app/event boundary and prevents every distinct composition from needing its own editor implementation.
+This preserves the app/card boundary and means every card layout needs no editor implementation of its own.
+
+## 10.20 `Envelope`
+
+A house-designed envelope, the same for every event: not themed, not generated, and not an imitation of any competitor's envelope. It shows the event title on the front.
+
+States and behavior:
+- **sealed**: shown for a private event reached by the shared link until the code is entered; shows only the event title, nothing from the card or page (§15.7);
+- **closed → opening → open**: the guest taps (or it opens after a short beat) and the card slides out and settles at the top of the page (§8.3);
+- **personal invitation link**: opens directly, with no code;
+- the host sees the same reveal when a newly generated card is ready.
+
+Requirements:
+- the closed envelope is a real button, keyboard-activatable, with an accessible name that includes the event title;
+- opening never traps focus; focus lands on the card or the first meaningful control after opening;
+- reduced motion: the card appears without the opening animation, with no loss of information;
+- code entry on the sealed envelope uses the house-style access gate (`EventAccessGate`, §15.4).
+
+## 10.21 `DesignsList`
+
+Lists every design generated for the event, so the collaborator can choose another before publish. It appears in the Design panel and after `Try another direction`.
+
+Each entry shows:
+- the design rendered with `InvitationCard` at a small size;
+- its creative name and one-line description;
+- current/active state;
+- a choose action for non-active entries.
+
+Requirements:
+- designs are peers: no ranking, "best" label, preselection beyond the active design, confidence or scores (§16);
+- a stable order, so entries do not jump when a new design arrives;
+- choosing a design follows §4.12 and never touches event details;
+- read-only after publish (`spec.md §8.2`).
 
 ---
 
@@ -1623,30 +1647,37 @@ Routine navigation away from auto-saved forms should not trigger confirmation.
 
 Prefer:
 - progressive Event Identity;
-- follow-up questions;
-- concept skeletons with useful copy;
-- individual concepts appearing as soon as ready.
+- optional details and, at most, a few taste questions;
+- a stable card-shaped placeholder (5:7) with useful copy;
+- the card appearing as soon as it is ready.
 
-## 12.2 Concept streaming
+## 12.2 Real artifacts only, one card
 
-Concept cards may appear independently.
+What is shown is structured output the pipeline actually produced — interpreted creative signals, palette territory, visual vocabulary, the design's name and description, the art direction — surfaced as each genuinely resolves.
 
-Do not wait for all three if one is ready.
+Never show:
+- model reasoning or chain-of-thought;
+- invented percentages or simulated "thoughts";
+- a stage claiming work that has not happened;
+- artificial multi-second delays.
 
-Maintain stable positions so the page does not jump.
+One card is generated per round. It is revealed from its envelope as soon as its artwork and ink resolution exist.
+
+If generation fails after its single retry, say so honestly with a retry action; never disguise a failure as a finished design. There is no template or stock fallback.
 
 ## 12.3 Generation language
 
 Use human product language:
-- `Creating your event`
-- `Exploring three directions`
+- `Creating your invitation`
+- `Designing your card`
 - `Bringing your vision together`
 
 Avoid technical language:
 - `Calling model`
 - `Parsing JSON`
-- `Generating ResolvedDesignSpec`
+- `Generating CardDesign`
 - `Running inference`
+- provider or model names
 
 ---
 
@@ -1689,7 +1720,7 @@ Application:
 - large text: target `≥ 3:1`;
 - interactive boundaries/focus indicators: target `≥ 3:1` against adjacent surface.
 
-Generated event palettes use application-side contrast derivation.
+Card text contrast is guaranteed by the card compiler (≥ 4.5:1, §15.6). The house-style page uses app tokens and meets the same targets.
 
 ## 14.2 Focus
 
@@ -1701,7 +1732,7 @@ Do not remove outlines without a replacement.
 
 Required:
 - tab through all app controls;
-- activate concept cards/actions;
+- choose designs and activate card actions;
 - operate sheets/dialogs;
 - close overlays via Escape where appropriate;
 - return focus to the originating control after closing;
@@ -1730,82 +1761,74 @@ Never rely on color alone for:
 - completed/incomplete;
 - RSVP state;
 - error;
-- selected concept;
+- selected design;
 - purchase state.
 
 Use text/icon/shape reinforcement.
 
 ---
 
-# 15. Generated event renderer system
+# 15. Invitation card and house-style guest page
 
-The event renderer is expressive. The application shell is stable.
+The card is expressive. The application shell and the page beneath the card are stable.
 
-`docs/event-renderer-system.md` is the detailed renderer authority. This section defines the product-design boundary agents must preserve.
+`docs/card-system.md` is the detailed authority for the card. This section defines the product-design boundary agents must preserve.
 
 ## 15.1 Hard boundary
+
+Three systems, kept separate:
 
 **Application UI**
 - stable;
 - neutral/warm;
 - light-only MVP;
 - application typography/tokens;
-- never recolored by event theme.
+- never styled by the card.
 
-**Event renderer**
-- dynamic;
-- driven by persisted generated design data;
-- uses event semantic tokens;
-- supports light/mid/dark event designs independently of app appearance.
+**Invitation card**
+- the only generated, themed surface;
+- driven by the persisted design: its artwork, resolved ink and panels, and typography pairing;
+- styling and card fonts (`src/styles/card-fonts.css`) live in the card renderer and nowhere else.
 
-Event theme must never recolor:
+**House-style guest page**
+- the page beneath the card: details, description, information blocks, RSVP, registry, footer;
+- the application's semantic tokens in a guest-facing variant, identical for every event;
+- takes no colours or fonts from the card.
+
+The card must never recolour or restyle:
 - account/auth UI;
 - collaborator toolbar;
 - sheets/panels;
 - billing;
-- management UI.
+- management UI;
+- the house-style page or the envelope.
+
+App and guest-page components must not import card styling (§23.7).
 
 ## 15.2 Model/compiler/render contract
 
-The strong model emits only:
+Per `docs/card-system.md`:
 
-```text
-DesignIntent
-  family
-  tonalDirection
-  palette
-  typographyPairing
-  density
-  composition { asymmetry, hierarchy, rhythm, sectionContrast, ornament }
-  motifs
+- The strong model emits an `EventIdentity` and a `CardDesign`: layout (an ID from a small catalog), art mode, a curated typography pairing with up to two alternates, the card's wording (title and invitation line), an art brief, and a host-facing name and description. An image model generates the artwork from the art brief and the layout's composition rule, never from the raw host prompt.
+- The model does **not** emit HTML, CSS, JSX, JavaScript or SVG; text colours, font sizes, positions or line breaks; the host's facts; or any ID outside its catalogs.
+- Deterministic code (no model call) validates the design and artwork, checks that wording invents no fact, resolves ink and any legibility panel, and sizes and breaks every line of text with one pure layout function. The design, artwork and resolved ink are persisted and immutable.
+- One card component renders from the persisted data only.
 
-CompositionTree
-  sections[] { kind, surface, align?, fill?, root: Node }   // trusted primitives, enum tokens only
-```
+Facts on the card (names, date, time, venue, RSVP-by) come only from event data the host entered or confirmed.
 
-The model does **not** emit:
-- HTML, CSS, JSX, JavaScript, SVG;
-- pixel or absolute positions, free ratios, custom breakpoints, animation;
-- colors, fonts, sizes; semantic text/background/button colors;
-- free text or copy;
-- any node, prop or value outside the primitive allowlist;
-- RSVP/Registry internals or business logic.
+## 15.3 Layouts are invisible to hosts
 
-The deterministic compiler validates the tree, repairs it by rule, verifies content fit against rendered geometry, and resolves everything into an immutable `ResolvedDesignSpec`. The page system (borders, cards, buttons, type scale, spacing) is compiler-owned and applied to every section so a page reads as one system.
+The card's text layouts exist so the art can leave calm space for words. They are not a gallery and not a host choice.
 
-The event renderer consumes the resolved spec only: one fixed component per primitive, a static stylesheet keyed by classes and numeric custom properties.
+- The host never sees, picks or switches layouts, art modes or positions; the app never reads them to make UI decisions (§10.19).
+- The card is defined in fixed card units and scaled uniformly: identical proportions and line breaks on a 390px phone and on desktop. Nothing reflows and there are no responsive card variants.
+- Hosts change a card only by editing its words and swapping among the design's curated font pairings, or by trying another direction.
 
-Allowed event-level direct design overrides (palette/typography) apply deterministically on top and use the same compiler/compatibility rules.
+## 15.4 Guest component system (house style)
 
-## 15.3 Composition language and library
+Guest-facing components are the **guest-facing variant of the application's shared components**. They keep their `Event*` names, consume the app's semantic tokens, and look the same for every event.
 
-The primitive set, nesting rules, capabilities, repair kinds and verification are specified in `event-renderer-system.md §2–§3`. The Phase A/A.1 recipes are a library (regression fixtures, few-shot examples, repair and fallback macros, calibration), not a template set; the renderer has no code per recipe and the application never branches on a recipe or family.
-
-## 15.4 Guest component system
-
-Guest-facing components must be themed event components, not app components.
-
-Required primitives include:
+Required components include:
 - EventButton;
 - EventField;
 - EventTextarea;
@@ -1820,162 +1843,126 @@ Required primitives include:
 - EventAccessGate;
 - EventFooter.
 
-They consume semantic event tokens and resolved component treatments.
+The page covers: event details, description and simple information blocks, the RSVP flow, registry (external destinations, native items, cash fund), the confirmation, error states, and the passed state (thank-you, registry still accessible).
 
-A beautiful hero followed by generic SaaS forms is a design-system failure.
+Requirements:
+- no per-event theming, no per-event variants;
+- the guest variant is defined once, centrally, from existing tokens; adding tokens follows §23.6;
+- the page reads as a considered, warm, quiet continuation of the invitation without borrowing the card's colours or fonts;
+- real desktop layout on desktop (§7), not a stretched phone column.
 
-## 15.5 Mobile convergence is allowed
+## 15.5 RSVP flow on every screen size
 
-At phone width, RSVP semantics should remain predictable:
+RSVP semantics are predictable and identical on every screen.
+
+Shared-link path:
 
 ```text
 lookup
-→ verification
+→ verification (where required)
 → party
 → questions
 → submit
 → confirmation
 ```
 
-Compositions may differ more substantially on desktop; mobile intents in the tree decide how they converge.
+Personal-link path: the link identifies the party, so lookup and verification are skipped:
 
-On mobile, visual distinction may come primarily from:
-- typography;
-- framing;
-- borders/cards/buttons;
-- section surfaces;
-- motifs;
-- density;
-- hierarchy.
+```text
+party
+→ questions
+→ submit
+→ confirmation
+```
 
-Do not force alternate information architecture simply to make screenshots look different.
+Rules:
+- when a party needs a phone, show the neutral message directing the guest to contact the host; never expose that party's RSVP on that path;
+- never show phone or email; show only the minimum first names needed to recognize a party;
+- confirmation copy: **You're all set. We can't wait to celebrate with you.**
 
-## 15.6 Semantic color requirement
+Behavior is defined by `spec.md §12`; this section governs only presentation.
 
-Renderer components never consume raw creative palette roles directly.
+## 15.6 Legibility and contrast
 
-Raw palette + tonal direction compile into:
-- event/hero/surface backgrounds;
-- text/textMuted;
-- accent/accentText;
-- button/buttonText;
-- border/focus;
-- error/errorText.
+- Every card text clears **4.5:1** against the artwork behind it. Code chooses ink colours (drawn from the artwork first) and, when no ink can clear it, applies an art-derived legibility panel. A model never chooses a colour, size or line break.
+- Card text is live, selectable and screen-reader readable; artwork is decorative. Everything a guest needs is in the text and on the page.
+- A font swap does not change ink or panels.
+- The house-style page and app chrome meet the contrast targets of §14.1 with app tokens. Card ink and artwork colours are never reused as page or chrome colours.
 
-Required contrast must be valid by construction.
+## 15.6a Focus indicator contract (guest-facing controls)
 
-## 15.6a Focus indicator contract (generated event controls)
+Binding on the house-style page's controls and on the envelope.
 
-Binding on the event renderer's stylesheet and on every themed guest component.
+Because the page uses the app's semantic tokens on one appearance for every event, guest-facing controls use the same focus treatment as application chrome (§14.2):
 
-**The ring is drawn outside the control, against the adjacent event surface.** Not inside the
-control's fill, and not straddling the boundary.
+- keyboard focus is always visible; `:focus-visible` never resolves to `outline: none` with nothing in its place;
+- the indicator is offset outside the control boundary (`outline` plus a positive `outline-offset`, or an equivalent outset ring);
+- it clears **3:1 against the adjacent surface** it is drawn on;
+- focus is never signalled by color alone — the ring is a shape change.
 
-This is not a stylistic preference. Requiring one ring color to clear 3:1 against *both* a button's
-fill and the page surface behind it is unsatisfiable in the dark tonal direction: against the base
-the ring needs relative luminance at or above 0.178, against a mid-lightness fill at or below
-0.077. The semantic palette therefore derives `focus` against the surfaces it sits on
-(`surfaceBase`, `surfaceAlt`) and guarantees 3:1 there. A ring drawn inside a filled control has no
-such guarantee and can vanish.
+The card itself has no interactive controls.
 
-Requirements:
+## 15.7 Envelope and private sealed state
 
-- keyboard focus is always visible; `:focus-visible` never resolves to `outline: none` with nothing
-  in its place;
-- the indicator is offset outside the control boundary (`outline` plus a positive `outline-offset`,
-  or an equivalent outset ring);
-- the indicator clears **3:1 against the adjacent surface it is drawn on**, which the semantic
-  palette's `focus` token guarantees for `surfaceBase` and `surfaceAlt`;
-- focus is never signalled by color alone — the ring is a shape change, present at every tonal
-  direction;
-- verified at `light`, `mid` and `dark` event surfaces.
+The envelope is a house component (§10.20) that fronts every invitation.
 
-Application chrome keeps its own focus treatment (§23.7); this contract governs generated event
-surfaces only.
+- **Public event, shared link:** the envelope shows the event title and opens to the card.
+- **Private event, shared link:** the envelope stays **sealed** with the event title until the event code is entered. Nothing on the card or page is visible before then.
+- **Personal invitation link:** opens directly, with no code.
+- **Link previews:** the rendered card for a public event; the sealed envelope with the title for a private one. Produced from the same card component and layout function, so they cannot disagree with the live card.
 
-## 15.7 Motif requirement
-
-Motifs declare a kind (pattern or arrangement), the roles they support, and bounded opacity and
-scale behavior. The ornament direction is a hard cap on how many render; suppressed motifs stay in
-the resolved spec as evidence with a logged deviation and are not drawn
-(`event-renderer-system.md §8`).
-
-Every composition exposes the same semantic section anchors:
-- field;
-- frame;
-- band;
-- divider;
-- accent.
-
-Code assigns motif→slot deterministically. Unplaceable motifs are logged, not silently ignored.
+The envelope is not themed per event, not generated and not an imitation of any competitor's envelope.
 
 ## 15.8 Generated design immutability
 
-Persist per concept:
-- DesignIntent;
-- primitive-set and compiler versions;
-- ResolvedDesignSpec.
+Persist per generated design: the raw and validated `CardDesign`, its artwork, its resolved ink and panels, and the version set (prompt, schema, layout set, compiler, image model).
 
-Do not silently recompile a historical concept against newer defaults.
+A design and its artwork never change once generated. Host edits (wording, font swap, every fact) are event data and never mutate a design. Do not regenerate or silently "upgrade" an existing card.
 
-Renderer code may receive bug/accessibility/responsive fixes.
+Renderer code may receive bug, accessibility, responsive and browser fixes that change how every existing card renders; design immutability never blocks renderer maintenance.
 
 ## 15.9 Registry product thumbnails
 
-Product thumbnails are content imagery, not decorative event imagery.
+Product thumbnails are content imagery, not decorative imagery.
 
-Use normalized platform assets or themed placeholders. Never retailer-hotlink.
+Use normalized platform assets or the house-style placeholder. Never retailer-hotlink.
 
 ## 15.10 Event footer
 
-Every published/previewed guest site includes the tasteful `Made with …` attribution required by the PRD.
+Every published/previewed guest page includes the tasteful `Made with …` attribution required by the PRD.
 
-It inherits event styling but remains low-emphasis and non-editable in MVP.
+It uses the house style, remains low-emphasis, and is non-editable in MVP.
 
-## 15.11 No decorative site imagery in MVP
+## 15.11 Imagery rule
 
-No:
+Permitted:
+- the card's generated artwork (every card has some, from a full illustration to a refined border or paper texture; it contains no text);
+- the native registry product thumbnail, which is product content (§15.9).
 
-- hero/event photo uploads;
-- venue/maternity galleries;
+Not permitted:
+- host-uploaded photos or images on the card or page;
 - stock photography;
-- crop/position tools;
-- any image placed by the model rather than by the composition language.
+- retrieved web imagery;
+- text inside artwork;
+- crop/position tools, galleries, or imagery placed by anything other than the card layout.
 
-Design power comes from composition, type, palette, motif, texture, pattern, border, and spacing.
-
-**Phase 4 exception, approved: original AI-generated thematic artwork** (`../spec.md §7.6a`). It is
-optional and chosen by the creative direction, art-directed to serve the composition, and placed by
-the compiler through the composition language — never by pixel, never by model-authored CSS, and
-never on every concept by default. Text readability and semantic hierarchy always win over artwork.
-It is not in the current build, and it does not reopen host photography, galleries or stock imagery,
-which remain excluded above.
+Inspiration uploads are private model inputs to Event Identity only: never shown to guests and never sent to the image model.
 
 ---
 
-# 16. Concept diversity presentation
+# 16. Design presentation
 
-The UI presents three concepts as peers.
+The UI presents one design at a time, and the designs list presents earlier designs as peers.
 
 Do not:
 - label one best;
-- preselect one;
-- show AI confidence;
-- rank 1–3.
+- show AI confidence or scores;
+- rank designs.
 
-The backend diversity order is:
-1. composition (hero skeleton, section surfaces);
-2. tone when the brief permits;
-3. typography category;
-4. motif behavior;
-5. density;
-6. palette dominance within constraints.
-
-If the brief constrains all concepts to one tone, that is not a failure. The remaining levers must carry separation.
-
-The visual renderer tests—not prose—determine whether this architecture is expressive enough.
+Presentation is the design's creative name and one-line description beside the real card.
 
 ---
+
 # 17. Incomplete states inside creation mode
 
 Incomplete content should often appear **where the final content will live**.
@@ -2034,7 +2021,7 @@ This transformation is part of the product's sense of progress.
 
 # 18. Creation-mode control styling
 
-Collaborator controls must be visible enough to discover but quiet enough that the site still looks finished.
+Collaborator controls must be visible enough to discover but quiet enough that the invitation still looks finished.
 
 Use:
 - small neutral pills;
@@ -2044,11 +2031,11 @@ Use:
 - light border;
 - modest elevation only if needed.
 
-Do not style collaborator controls using the event theme.
+Do not style collaborator controls using the card's colours or fonts.
 
 This distinction helps the host understand:
 - "this is an editor control";
-- "this is part of my event."
+- "this is part of my invitation."
 
 ---
 
@@ -2062,22 +2049,22 @@ Desktop must feel intentional.
 - wider supporting copy;
 - no mobile device frame.
 
-## 19.2 Concepts
+## 19.2 Card reveal and designs
 
-Prefer three concepts side-by-side at wide desktop widths.
+Show the card centered at a comfortable size; it is the same design as on mobile and never reflows.
 
-Each preview may retain a mobile-preview aspect inside the card because the guest experience is strongly mobile-first, but the **surrounding application** is desktop native.
+The designs list may sit beside the card on wide screens. The **surrounding application** is desktop native.
 
 ## 19.3 Creation mode
 
-The event renderer fills an appropriate responsive canvas.
+The card and house-style page fill an appropriate responsive canvas; the card is the same design at a comfortable size.
 
 Collaborator controls may:
 - hover at section edges;
 - use a slim top toolbar;
 - open right-side panels.
 
-Do not constrain the entire event to `390px` on desktop.
+Do not constrain the whole invitation to `390px` on desktop.
 
 ## 19.4 Guest management
 
@@ -2131,21 +2118,22 @@ Product copy should be:
 
 Avoid overly cute baby-specific language in product chrome.
 
-The event design/copy may be more thematic.
+The card's wording may be more thematic.
 
 ## 21.1 Preferred wording
 
 Use:
 
-- `Create my event`
-- `Which feels like you?`
+- `Create my invitation`
 - `Choose this direction`
+- `Keep current`
 - `Try another direction`
-- `Your event looks great. Let's make it real.`
+- `Your invitation looks great. Let's make it real.`
 - `Make it yours`
 - `Finish setup`
 - `Preview`
 - `Publish my event`
+- `Send invitations`
 
 Avoid:
 
@@ -2156,6 +2144,7 @@ Avoid:
 - `Design configuration`
 - `Theme schema`
 - `Generate website`
+- `Which feels like you?`
 
 ---
 
@@ -2212,7 +2201,7 @@ Feature-level product UI must not contain:
 Use tokens.
 
 Exceptions:
-- generated renderer dynamic values emitted through its compiler/token layer;
+- card renderer values (resolved ink and panel colours, card-unit sizes and line breaks) emitted by the card compiler and confined to the card component;
 - one-off mathematical/positioning values that are not design choices and are documented.
 
 ## 23.3 Tailwind rule
@@ -2232,7 +2221,7 @@ z-[9999]
 
 Use design-system utilities/tokens.
 
-Dynamic event-theme colors should flow through CSS custom properties, not arbitrary Tailwind color classes.
+Card ink and panel colours are set only by the card renderer, through CSS custom properties or its own resolved values, never through arbitrary Tailwind color classes. No other component sets them.
 
 ## 23.4 Primitive library rule
 
@@ -2281,20 +2270,25 @@ A new visual token requires a reason that cannot be represented by an existing s
 
 Do not grow the scale because one screen "looks slightly better" with a new number.
 
-## 23.7 App/event boundary lint
+## 23.7 App / card / page boundary lint
 
-The implementation should make it difficult to accidentally import event-theme styling into app chrome.
+The implementation should make it difficult to accidentally mix the three styling systems of §15.1: app chrome, card styling, and the house-style guest page.
 
-Recommended separation:
+Recommended separation (equivalent structure is acceptable):
 
 ```text
-components/app/*
-components/event-renderer/*
-styles/app-tokens.css
-styles/event-tokens.css
+styles/app-tokens.css          app chrome and house-style page tokens
+components/app/*               app chrome + guest-facing (Event*) components
+src/styles/card-fonts.css      card fonts
+card renderer                  the InvitationCard and its styling
 ```
 
-Equivalent structure is acceptable.
+Rules, enforced by lint and tests:
+- app and guest-page components must not import card styling (`card-fonts.css` or the card renderer's internal styles); they may render `InvitationCard` only through its data-in props;
+- card fonts apply only inside the card; they are never used for app or page text;
+- the card renderer does not consume app component styling;
+- changing the active design changes nothing about the app chrome or the page's computed styles;
+- no raw colour values in app or guest-page components (§23.2).
 
 The architectural boundary is not optional.
 
@@ -2321,23 +2315,27 @@ At minimum, screenshot-test:
 
 Application:
 - landing composer;
-- concept choice;
-- reveal;
+- generation (waiting) state;
+- card reveal;
 - creation mode;
 - setup checklist;
-- design panel;
-- guest management;
+- design panel and designs list;
+- try another direction;
+- guest management, including invitation status;
+- send invitations and share;
 - preview;
 - publish.
 
-Renderer:
-- the library silhouettes and the confirmation-run set × supported tones;
-- every section treatment;
-- representative motif combinations;
-- density variants;
+Guest experience:
+- envelope: closed, opening, and sealed (private);
+- the card in the envelope's opened state;
+- the house-style page: details, description, information blocks, the RSVP flow, registry, confirmation, errors and the passed state;
 - mobile and desktop.
 
-Mobile renderer remains the primary regression gate, but desktop regressions are also blocking when they materially break layout.
+Card:
+- every card layout × typography pairing with typical and worst-case content, at card scale (the test-time fixture of `docs/card-system.md §9`); the card must be identical in proportion and line breaks at 390px and 1280px.
+
+Mobile remains the primary regression gate, but desktop regressions are also blocking when they materially break layout.
 
 ## 24.3 Interaction regression
 
@@ -2346,31 +2344,38 @@ Automated E2E should cover:
 ```text
 prompt
 → auth/save
-→ generation details
-→ concepts
-→ choose
-→ reveal
+→ optional details
+→ card reveal
 → make it yours
 → contextual setup
 → preview
 → publish gate
+→ send invitations
 ```
 
-And redesign:
+And trying another direction:
 
 ```text
-concept screen / reveal / design
+card reveal / creation mode / design
 → try another direction
-→ optional prompt edit
-→ 3 fresh concepts
+→ optional feedback
+→ one new card
 → choose or keep current
+```
+
+And guest arrival:
+
+```text
+public shared link → envelope → card → RSVP via name lookup
+private shared link → sealed envelope → code → card
+personal invitation link → envelope opens directly → RSVP
 ```
 
 ## 24.4 Accessibility regression
 
 CI should include automated accessibility checks where practical.
 
-Critical flows must also receive keyboard/manual review.
+Critical flows must also receive keyboard/manual review, including the envelope, the code gate and the reduced-motion reveal.
 
 ---
 
@@ -2384,23 +2389,23 @@ Defines:
 - prompt-first hierarchy;
 - AI composer treatment.
 
-## 25.2 "Which feels like you?"
+## 25.2 Card reveal
 Defines:
-- concept comparison;
-- three-choice hierarchy;
-- redesign escape hatch.
-
-## 25.3 Site reveal
-Defines:
-- activation moment;
-- full product value before setup;
+- the card coming out of its envelope;
+- name and description beside a single card;
 - Make it yours / Try another direction hierarchy.
+
+## 25.3 Guest arrival and envelope
+Defines:
+- public, sealed (private) and personal-link envelope states;
+- the activation moment for guests;
+- reduced-motion behavior.
 
 ## 25.4 Creation mode
 Defines:
-- event-as-workspace;
-- contextual editing;
-- product-vs-event visual boundary.
+- invitation-as-workspace;
+- contextual editing on the card and page;
+- product-vs-card visual boundary.
 
 ## 25.5 Finish setup
 Defines:
@@ -2410,10 +2415,11 @@ Defines:
 
 ## 25.6 Design
 Defines:
-- constrained manual design controls;
-- pre-publish redesign entry.
+- constrained manual design controls (font pairings, reset);
+- the designs list;
+- pre-publish try-another-direction entry.
 
-## 25.7 Redesign prompt
+## 25.7 Try another direction
 Defines:
 - AI refinement;
 - optional feedback;
@@ -2421,18 +2427,20 @@ Defines:
 
 ## 25.8 Guest management
 Defines:
-- justified full-screen operational workspace.
+- justified full-screen operational workspace;
+- invitation status and personal links per party.
 
 ## 25.9 Guest preview
 Defines:
-- exact guest rendering;
+- exact guest rendering, envelope included;
 - removal of collaborator chrome.
 
-## 25.10 Publish
+## 25.10 Publish and share
 Defines:
 - clear transactional gate;
 - one-time price;
-- no tier clutter.
+- no tier clutter;
+- send invitations, link, QR and code.
 
 ## 25.11 Co-host invitation acceptance
 Defines:
@@ -2441,15 +2449,7 @@ Defines:
 - join-event behavior;
 - invalid/expired invitation handling.
 
-The latest approved clickable prototype is a **behavioral reference**, not a pixel-perfect visual specification.
-
-Canonical repository path:
-
-`docs/prototypes/creation-flow.html`
-
-Agents must not depend on a chat attachment or local temporary filename. The approved prototype should be checked into the repository at that path.
-
-This design-system document supersedes prototype-specific CSS values.
+There is no current clickable prototype. The website-era prototype was retired with Revision 7; the screens above are specified by this document, `docs/screen-spec.md` and `docs/e2e-workflow.md`. A future prototype is a behavioral reference only, lives in the repository rather than in a chat attachment, and never overrides this document's values.
 
 ---
 
@@ -2468,22 +2468,21 @@ Registry → Next
 
 Wrong unless a future workflow genuinely requires strict sequence.
 
-## 26.2 Dashboard immediately after concept selection
+## 26.2 Dashboard immediately after the card reveal
 
 Wrong:
 
 ```text
-choose concept
+card reveal
 → generic admin dashboard
-→ configure site
+→ configure event
 ```
 
 Correct:
 
 ```text
-choose concept
-→ full site reveal
-→ edit the site itself
+card reveal
+→ edit the invitation itself
 ```
 
 ## 26.3 Builder chrome
@@ -2495,20 +2494,20 @@ Do not add:
 - canvas zoom;
 - breakpoint toolbar;
 - arbitrary block insertion;
+- an image editor, crop or reposition tools;
+- layout, colour or art pickers;
 - CSS controls.
 
 ## 26.4 Theme settings explosion
 
-Do not expose separate controls for:
-- button radius;
-- card radius;
-- shadow amount;
-- heading scale;
-- motif position;
-- line-height;
-- padding.
+Do not expose controls for:
+- palette, ink or panel colours;
+- layout or art mode;
+- font size or text position;
+- envelope styling;
+- page styling (button radius, card radius, shadow amount, heading scale, line-height, padding).
 
-These are renderer decisions.
+These are design- or system-owned.
 
 ## 26.5 Page-specific visual invention
 
@@ -2522,11 +2521,13 @@ Use the system.
 
 ## 26.6 Fake activity
 
-Do not add artificial multi-second loading to make AI feel sophisticated.
+Do not add artificial multi-second loading, invented progress or simulated reasoning to make AI feel sophisticated.
 
-## 26.7 Event-theme leakage
+## 26.7 Card and app leakage
 
-Do not recolor app chrome based on the event.
+Do not recolor app chrome based on the card or the event.
+
+Do not theme the house-style page from the card, and do not let card fonts or card styling escape the card renderer. Do not let app styling leak into the card.
 
 ---
 
@@ -2539,7 +2540,7 @@ Update when the team deliberately changes:
 - token scale;
 - component variant;
 - responsive rule;
-- renderer composition/treatment;
+- card/page boundary or house-style treatment;
 - motion rule;
 - accessibility rule.
 
@@ -2605,11 +2606,12 @@ Before merge, verify:
 - [ ] Touch targets are adequate.
 - [ ] Color is not the sole state cue.
 
-### Event renderer
-- [ ] App chrome does not inherit event styling.
-- [ ] Production renderer reused for preview.
-- [ ] No arbitrary AI HTML/CSS.
-- [ ] No decorative event-photo feature introduced.
+### Card and house-style page
+- [ ] App chrome does not inherit card styling; card styling does not leak out of the card renderer.
+- [ ] The page beneath the card takes no colours or fonts from the card.
+- [ ] Production card, envelope and page reused for preview.
+- [ ] No host controls for layout, colour, art mode, size or position introduced.
+- [ ] No HTML/CSS authored by a model; no host, stock or retrieved imagery introduced.
 
 ---
 
@@ -2621,7 +2623,7 @@ When evaluating any screen, ask:
 
 A successful creation experience makes the host feel:
 
-> **"It already made my event. I'm just making it real."**
+> **"It already made my invitation. I'm just making it real."**
 
 A successful interface keeps attention on:
 - the event;
@@ -2636,4 +2638,4 @@ The application should disappear behind the outcome.
 
 # 30. One-line implementation rule
 
-> **Stable, quiet application chrome. Expressive generated events. Contextual editing. No setup wizard. Strict shared components and tokens.**
+> **Stable, quiet application chrome. One AI-designed card. A neutral house-style page. Contextual editing. No setup wizard. Strict shared components and tokens.**

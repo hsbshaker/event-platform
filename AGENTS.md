@@ -21,8 +21,7 @@ Heed deprecation notices in those docs over training-data habits.
 ## Conventions
 
 - **Secrets** are read only through `serverEnv()` in `src/lib/env.ts` from server code, or
-  through a named accessor in that same file for an optional one (`spikeToken()`,
-  `cronSecret()`). Never read a secret straight from `process.env` elsewhere: the schema is
+  through a named accessor in that same file for an optional one (`cronSecret()`). Never read a secret straight from `process.env` elsewhere: the schema is
   what rejects a malformed or trivially weak value. `NEXT_PUBLIC_*` values are the only ones
   that reach the browser, and because Next.js inlines them at build time they must be
   available to the build — on Vercel that means they must not be marked "Sensitive".
@@ -38,20 +37,19 @@ Heed deprecation notices in those docs over training-data habits.
   migration. Server-only tables get no `authenticated`/`anon` policies and have their
   grants revoked.
 - **Styling**: semantic tokens only (`docs/design-system.md §23`). App chrome under
-  `src/components/app`, renderer under `src/components/event-renderer`; the ESLint boundary
-  rule blocks cross-imports.
+  `src/components/app`; the house-style guest page uses the same app tokens. Card styling and
+  card fonts (`src/styles/card-fonts.css`) belong to the card renderer only and are never
+  imported by app or guest-page components (`docs/design-system.md §15.1`, `§23.7`).
 - **Tests**: unit tests next to the code as `*.test.ts`; database tests in `tests/db`.
   Run `npm run lint && npm run typecheck && npm test` before reporting; `npm run test:db`
   when a migration or policy changed.
-- **Model calls**: only through `src/lib/ai/provider.ts`. The compiler/renderer never
-  calls a model.
-- **Library boundary**: the 26 legacy hero silhouettes and 13 section recipes are fixtures,
-  not the creative space (`docs/event-renderer-system.md §7.1`, `CLAUDE.md §5.1`). Production
-  compiles any valid model-authored `CompositionTree` and never selects, matches, ranks,
-  schedules or maps one onto a fixture. The library is reachable only as regression fixtures,
-  rotated few-shot examples, the specified repair macros, the terminal fallback after the
-  documented retry is exhausted, and signature calibration. Normal composition and compiler
-  modules do not import library selection; lint enforces it.
+- **Model calls**: only through `src/lib/ai/provider.ts` (`generateEventIdentity`,
+  `generateCardDesign`, `generateCardArt`). The card compiler — validation, wording fact check,
+  ink and legibility, `layoutCard` — and the renderer never call a model
+  (`docs/card-system.md §4`).
+- **Card code** lives under `src/lib/card/` (colour maths, typography pairings; the layout set,
+  compiler and fixtures arrive in Phase 4). Card text is laid out only by `layoutCard`; never let
+  the browser re-wrap card text and never derive CSS from model output.
 
 ## Phase 2 notes
 

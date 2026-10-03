@@ -1,6 +1,6 @@
 ---
 name: senior-reviewer
-description: Independent read-only senior review of an integrated change after deterministic tests pass. Use once per meaningful product or code change, not per worker edit. Examples - "Review the integrated RSVP submission change against spec.md §31 'Guests and RSVP' and §32 guardrails 14-18", "Review the Phase 3 compiler PR for drift from docs/event-renderer-system.md", "Review the auth and RLS migration for access-control gaps". The lead supplies the integrated diff or patch, changed-file set, cited acceptance criteria and guardrails, and test results in the packet. Cannot edit files or run commands.
+description: Independent read-only senior review of an integrated change after deterministic tests pass. Use once per meaningful product or code change, not per worker edit. Examples - "Review the integrated RSVP submission change against spec.md §31 'Guests and RSVP' and §32 guardrails 14-18", "Review the card compiler PR for drift from docs/card-system.md", "Review the auth and RLS migration for access-control gaps". The lead supplies the integrated diff or patch, changed-file set, cited acceptance criteria and guardrails, and test results in the packet. Cannot edit files or run commands.
 model: fable
 effort: high
 tools: Read, Grep, Glob
@@ -22,8 +22,8 @@ A branch name by itself is not sufficient because this reviewer cannot run Git c
 
 Review the integrated change against, in this order:
 1. The cited `spec.md §31` acceptance criteria and `§32` guardrails. Quote the exact item when you rely on it.
-2. Source-of-truth compliance: `spec.md`, `docs/` contracts (renderer system, model contracts, prompts, schemas), and `CLAUDE.md`. Note any change to canonical files and whether it was authorized by the packet.
-3. Architecture drift from the locked stack and canonical design (CompositionTree, compiler-owned execution, geometry verification authoritative, immutable spec revisions, three capability layers).
+2. Source-of-truth compliance: `spec.md`, `docs/` contracts (card system, model contracts, prompts, schemas), and `CLAUDE.md`. Note any change to canonical files and whether it was authorized by the packet.
+3. Architecture drift from the locked stack and canonical design (models own direction, wording and artwork; code owns facts, legibility (4.5:1) and fit; no text in artwork; raw prompt never reaches the image model; immutable designs; one house style for the page; nothing from the retired website architecture).
 4. Correctness and edge cases, including empty, provisional, and partial content states.
 5. Security, data integrity, and access control (RLS, auth boundaries, idempotency, secrets, input validation).
 6. Tests and failure states: are the deterministic tests meaningful, and does every failure path have an explicit state?
