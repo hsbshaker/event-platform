@@ -330,11 +330,31 @@ The correction, in four rules:
    by a test, exactly as the lease is (§A.5), so raising `MAX_TRANSIENT_RETRIES` cannot silently
    raise worst-case spend past the reservation the ceiling already made.
 
-**No invented token ceiling.** `generateEventIdentity` enforces no application-level output-token
-limit, so the per-attempt maximum is **not** derived from "our bounded token ceiling" — an earlier
-draft of row 3 said it was, and that bound does not exist. Adding a tight output limit for cleaner
-accounting could change what EventIdentity produces, which is a creative decision and not an
-accounting one (`CLAUDE.md §2`).
+**No *tight* token ceiling — but the request is bounded.** An earlier draft of row 3 derived the
+per-attempt maximum from "our bounded token ceiling" when no such bound existed, and the correction
+then overshot: for a while `generateEventIdentity` enforced no application-level limit at all, so
+the only honest output bound was the model's own 128,000-token allowance and the only honest input
+bound its 1,050,000-token context window. Priced at the worst class that gave $15 an attempt and a
+**$90** reservation per logical call — more than any deployment's ceiling would admit, which is how
+it was found: production refused every identity call before reaching the provider.
+
+The standing decision is unchanged, and it is the narrow one it always was: a *tight* output limit
+adopted for cleaner accounting could change what EventIdentity produces, and that is a creative
+decision, not an accounting one (`CLAUDE.md §2`). What the request now carries is the loose kind.
+`EVENT_IDENTITY_MAX_OUTPUT_TOKENS` is 32,000 — the same ceiling premise and DesignIntent pin, two
+orders of magnitude above anything the response contract permits, leaving the reasoning budget a
+high-effort creative call needs — and `USER_MESSAGE_MAX_BYTES` is 132,000, which the boundary
+**refuses** past rather than truncating, because shortening a carried clarification answer would
+send the model a history the host never gave (CA-5). Neither can shape an answer; both make the
+attempt's cost a property of the attempt.
+
+That is what §A.5.1 rule 4 requires and what row 3's inequality is only true under: `perAttemptMaxUsd`
+is a property of an attempt **shape**, so EventIdentity's must be derived from EventIdentity's
+request — as `concept-premise-cost.ts`, `design-intent-cost.ts` and `composition-cost.ts` each
+derive their own — and not from the limits of the model it happens to run on. It now comes to
+**$3.00** an attempt and **$18.00** a logical call, recorded under its own
+`EVENT_IDENTITY_ATTEMPT_PROFILE_VERSION` rather than under the model profile, whose rates did not
+move and whose version therefore must not.
 
 **Verified cost profiles, and a production contract that fails closed.** The bound instead comes
 from a **cost profile for one exact model id**, recording the provider documentation it was read
