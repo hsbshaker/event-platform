@@ -1,0 +1,20 @@
+{"atMs":2,"at":"2026-10-03T21:54:06.279Z","event":"start","base":"https://event-platform-git-claude-design-7ad5b1-haseeb-shakers-projects.vercel.app"}
+{"atMs":2178,"at":"2026-10-03T21:54:08.455Z","event":"qa-identity-created","userId":"d6d62b4d-74d8-4735-a407-be87d1c267e4"}
+{"atMs":2477,"at":"2026-10-03T21:54:08.754Z","event":"signed-in","userId":"d6d62b4d-74d8-4735-a407-be87d1c267e4","cookies":1}
+{"atMs":7312,"at":"2026-10-03T21:54:13.589Z","event":"landing-actions","names":["createEvent","saveDraft"]}
+{"atMs":9610,"at":"2026-10-03T21:54:15.887Z","event":"event-created","status":200,"eventId":"9f911c58-60aa-42ef-9ca8-e081396514b3"}
+{"atMs":21338,"at":"2026-10-03T21:54:27.615Z","event":"create-page-actions","names":["createEvent","saveDraft","updateEventDetails","readEventIdentityForEvent","startEventIdentityForEvent","submitClarificationAnswer","readGenerationForEvent","startConceptGenerationForEvent"]}
+{"atMs":43690,"at":"2026-10-03T21:54:49.967Z","event":"identity-start-invoked","status":200}
+{"atMs":43945,"at":"2026-10-03T21:54:50.222Z","event":"identity-authoritative","revisions":1,"authoritative":true}
+{"atMs":46128,"at":"2026-10-03T21:54:52.405Z","event":"start-action-invoked","status":200}
+{"atMs":46379,"at":"2026-10-03T21:54:52.656Z","event":"batch-visible","batch":{"id":"2e8ee650-28c4-4be8-a463-e2bcf938defd","status":"running","round":1,"started_at":"2026-10-03 21:54:51.227463+00"},"afterMs":2434}
+{"atMs":47295,"at":"2026-10-03T21:54:53.572Z","event":"read-model-after-start","status":200,"mentionsExploring":true}
+{"atMs":48076,"at":"2026-10-03T21:54:54.353Z","event":"reconnect-page-load","status":200}
+{"atMs":48306,"at":"2026-10-03T21:54:54.583Z","event":"batches-after-reconnect","batches":1}
+{"atMs":48751,"at":"2026-10-03T21:54:55.028Z","event":"siblings","rows":[{"concept_index":0,"status":"pending","verified":0},{"concept_index":1,"status":"pending","verified":0},{"concept_index":2,"status":"pending","verified":0}]}
+{"atMs":72950,"at":"2026-10-03T21:55:19.227Z","event":"siblings","rows":[{"concept_index":0,"status":"running","verified":0},{"concept_index":1,"status":"running","verified":0},{"concept_index":2,"status":"running","verified":0}]}
+{"atMs":148353,"at":"2026-10-03T21:56:34.630Z","event":"siblings","rows":[{"concept_index":0,"status":"succeeded","verified":1},{"concept_index":1,"status":"succeeded","verified":1},{"concept_index":2,"status":"succeeded","verified":1}]}
+{"atMs":148642,"at":"2026-10-03T21:56:34.919Z","event":"deployed-geometry","geometry":[{"concept_index":0,"name":"Citrus Rhythm","verified_clean":true,"mobile_w":"390","desktop_w":"1280","mobile_overflow":"false","desktop_overflow":"false","authoritative":"rendered-geometry","fonts_loaded":"[\"Fraunces\", \"Manrope\"]"},{"concept_index":1,"name":"Loose Botanicals","verified_clean":true,"mobile_w":"390","desktop_w":"1280","mobile_overflow":"false","desktop_overflow":"false","authoritative":"rendered-geometry","fonts_loaded":"[\"Playfair Display\", \"DM Sans\"]"},{"concept_index":2,"name":"Natural Poise","verified_clean":true,"mobile_w":"390","desktop_w":"1280","mobile_overflow":"false","desktop_overflow":"false","authoritative":"rendered-geometry","fonts_loaded":"[\"Instrument Serif\", \"Manrope\"]"}]}
+{"atMs":151335,"at":"2026-10-03T21:56:37.612Z","event":"preview-routes","previews":[{"conceptIndex":0,"status":200,"bytes":26817,"hasEventTokens":true,"hasConceptName":false,"rsvpShell":true},{"conceptIndex":1,"status":200,"bytes":24235,"hasEventTokens":true,"hasConceptName":false,"rsvpShell":true},{"conceptIndex":2,"status":200,"bytes":23260,"hasEventTokens":true,"hasConceptName":false,"rsvpShell":true}]}
+{"atMs":151467,"at":"2026-10-03T21:56:37.744Z","event":"anonymous-preview","status":404,"location":null}
+{"atMs":151934,"at":"2026-10-03T21:56:38.211Z","event":"providers","textCalls":8,"artworkSlots":0}

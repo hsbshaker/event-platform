@@ -1,0 +1,209 @@
+{
+  "base": "https://event-platform-git-claude-design-7ad5b1-haseeb-shakers-projects.vercel.app",
+  "eventId": "9f911c58-60aa-42ef-9ca8-e081396514b3",
+  "batch": {
+    "id": "2e8ee650-28c4-4be8-a463-e2bcf938defd",
+    "status": "running",
+    "round": 1,
+    "started_at": "2026-10-03 21:54:51.227463+00"
+  },
+  "geometry": [
+    {
+      "concept_index": 0,
+      "name": "Citrus Rhythm",
+      "verified_clean": true,
+      "mobile_w": "390",
+      "desktop_w": "1280",
+      "mobile_overflow": "false",
+      "desktop_overflow": "false",
+      "authoritative": "rendered-geometry",
+      "fonts_loaded": "[\"Fraunces\", \"Manrope\"]"
+    },
+    {
+      "concept_index": 1,
+      "name": "Loose Botanicals",
+      "verified_clean": true,
+      "mobile_w": "390",
+      "desktop_w": "1280",
+      "mobile_overflow": "false",
+      "desktop_overflow": "false",
+      "authoritative": "rendered-geometry",
+      "fonts_loaded": "[\"Playfair Display\", \"DM Sans\"]"
+    },
+    {
+      "concept_index": 2,
+      "name": "Natural Poise",
+      "verified_clean": true,
+      "mobile_w": "390",
+      "desktop_w": "1280",
+      "mobile_overflow": "false",
+      "desktop_overflow": "false",
+      "authoritative": "rendered-geometry",
+      "fonts_loaded": "[\"Instrument Serif\", \"Manrope\"]"
+    }
+  ],
+  "previews": [
+    {
+      "conceptIndex": 0,
+      "status": 200,
+      "bytes": 26817,
+      "hasEventTokens": true,
+      "hasConceptName": false,
+      "rsvpShell": true
+    },
+    {
+      "conceptIndex": 1,
+      "status": 200,
+      "bytes": 24235,
+      "hasEventTokens": true,
+      "hasConceptName": false,
+      "rsvpShell": true
+    },
+    {
+      "conceptIndex": 2,
+      "status": 200,
+      "bytes": 23260,
+      "hasEventTokens": true,
+      "hasConceptName": false,
+      "rsvpShell": true
+    }
+  ],
+  "runs": [
+    {
+      "operation": "event_identity",
+      "concept_index": null,
+      "success": true,
+      "latency_ms": 20660,
+      "input_tokens": 7671,
+      "cached_input_tokens": 0,
+      "output_tokens": 1223,
+      "reasoning_tokens": 775,
+      "reprompts": {
+        "repair": 0,
+        "transient": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "operation": "concept_premise",
+      "concept_index": null,
+      "success": true,
+      "latency_ms": 24234,
+      "input_tokens": 3883,
+      "cached_input_tokens": 0,
+      "output_tokens": 1491,
+      "reasoning_tokens": 793,
+      "reprompts": {
+        "repairRetries": 0,
+        "transientRetries": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "operation": "design_intent",
+      "concept_index": 2,
+      "success": true,
+      "latency_ms": 7396,
+      "input_tokens": 5647,
+      "cached_input_tokens": 0,
+      "output_tokens": 485,
+      "reasoning_tokens": 341,
+      "reprompts": {
+        "repairRetries": 0,
+        "transientRetries": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "operation": "design_intent",
+      "concept_index": 1,
+      "success": true,
+      "latency_ms": 9884,
+      "input_tokens": 5634,
+      "cached_input_tokens": 0,
+      "output_tokens": 559,
+      "reasoning_tokens": 409,
+      "reprompts": {
+        "repairRetries": 0,
+        "transientRetries": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "operation": "design_intent",
+      "concept_index": 0,
+      "success": true,
+      "latency_ms": 10702,
+      "input_tokens": 5658,
+      "cached_input_tokens": 0,
+      "output_tokens": 616,
+      "reasoning_tokens": 465,
+      "reprompts": {
+        "repairRetries": 0,
+        "transientRetries": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "operation": "composition",
+      "concept_index": 2,
+      "success": true,
+      "latency_ms": 60496,
+      "input_tokens": 7650,
+      "cached_input_tokens": 0,
+      "output_tokens": 1794,
+      "reasoning_tokens": 1390,
+      "reprompts": {
+        "schema": 0,
+        "collision": 0,
+        "token_cap": 0,
+        "transientRetries": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "operation": "composition",
+      "concept_index": 1,
+      "success": true,
+      "latency_ms": 60497,
+      "input_tokens": 7613,
+      "cached_input_tokens": 3211,
+      "output_tokens": 2279,
+      "reasoning_tokens": 1894,
+      "reprompts": {
+        "schema": 0,
+        "collision": 0,
+        "token_cap": 0,
+        "transientRetries": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "operation": "composition",
+      "concept_index": 0,
+      "success": true,
+      "latency_ms": 60500,
+      "input_tokens": 7592,
+      "cached_input_tokens": 3211,
+      "output_tokens": 4158,
+      "reasoning_tokens": 3624,
+      "reprompts": {
+        "schema": 0,
+        "collision": 0,
+        "token_cap": 0,
+        "transientRetries": 0
+      },
+      "fallback": null,
+      "model": "gpt-5.6-sol"
+    }
+  ],
+  "slots": [],
+  "wallMs": 151936
+}
