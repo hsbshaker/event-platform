@@ -200,7 +200,7 @@ Cash fund: display-only handles, suggested amounts, blurb.
 
 - `Edit card` — opens the card editor (H12a);
 - the card's shape among those the design's layout supports: a shape the current artwork fits applies instantly; any other shape makes new artwork from the same brief (before publish only). A switch keeps the host's words, added text and fonts with a fresh layout, and the edited card for each shape is kept (§20.6);
-- `Reset card` — back to the design's generated text, fonts, colours and layout for the current shape, with confirmation;
+- `Reset card` — back to the design's generated layout, fonts, colours and invitation line for the current shape (the title and event details are not reverted), with confirmation;
 - `Try another direction ✦` (before publish);
 - the designs list (H14).
 
@@ -219,7 +219,7 @@ Free, with no model call, no credit and no cap (§20.1, §20.5). Owner and co-ho
 5. Restyle from the toolbar (bottom sheet on a phone, side panel on desktop): font (the design's own pairings first, then any Google Fonts family), size, colour (artwork swatches and recent colours first, then a full picker with hex), alignment, letter spacing, line height, case, and layer order. Duplicate or delete a box. No readability warnings appear for any choice (§20.1).
 6. Add text with `Add text`.
 7. Fact boxes (date, time, venue, hosts, baby name, RSVP-by): tapping to change the text opens that detail's own field; the card and page update together. Deleting a fact box removes it from the card only (§20.2).
-8. Every change autosaves; the header shows `Saving…`, then `Saved`. `Undo` and `Redo` work throughout. `Reset card` (with confirmation) returns the card to its generated text, fonts, colours and layout for this shape.
+8. Every change autosaves; the header shows `Saving…`, then `Saved`. `Undo` and `Redo` work throughout. `Reset card` (with confirmation) returns the card to its generated layout, fonts, colours and invitation line for this shape; the title and event details are not reverted.
 9. `Done` returns to Creation Mode. The host opens Preview (H13) and sees the edited card, envelope included, exactly as guests will.
 10. Publish (H15). The card guests see is the edited card: same lines, positions and styles (§20.4).
 
@@ -239,7 +239,7 @@ Free, with no model call, no credit and no cap (§20.1, §20.5). Owner and co-ho
 2. The host chooses `Try another direction ✦`, then `Choose this direction` on the new card (H05), or switches shape from `Design`.
 3. The new card keeps the host's title, invitation line, added text and fonts, laid out fresh in the new design; positions, sizes and colours come from the new card (§20.6).
 4. Event details, guests, RSVP, registry, privacy and messages are unchanged.
-5. Choosing the earlier design, or switching back to the earlier shape, restores the edited card exactly as the host left it (§20.6).
+5. Choosing the earlier design, or switching back to the earlier shape, restores the edited card's layout and styles as the host left them; its title and fact boxes show the event's current values (§20.6).
 
 ## H13 — Preview
 

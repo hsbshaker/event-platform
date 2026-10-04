@@ -281,7 +281,7 @@ Controls, in order (§7.14, §20):
 - `Edit card` — opens `card-editor`;
 - shape: outline swatches for the shapes the design's layout supports (of rectangle, rounded rectangle, arch, oval, square, circle). A shape the current artwork fits applies instantly; any other (tall ↔ square, or a new outline for a bordered design) states that new artwork of the same subject will be made, keeps the current card visible while it generates, before publish only (§7.14);
   A shape switch keeps the host's words, added text and fonts with a fresh layout; the edited card for each shape is kept, so switching back restores it (§20.6);
-- `Reset card` — back to the design's generated text, fonts, colours and layout for the current shape, after a confirmation (see `card-editor`);
+- `Reset card` — back to the design's generated layout, fonts, colours and invitation line for the current shape (the title and event details are not reverted), after a confirmation (see `card-editor`);
 - `Try another direction ✦` before publish;
 - designs list before publish (read-only afterwards).
 
@@ -335,7 +335,7 @@ Owner and co-host only. Available before and after publish; after publish every 
 - **Saving / Saved:** `Saving…` then `Saved` in the header; autosave, no save button.
 - **Save failed:** "Couldn't save. Your changes are kept here." with `Retry`; `Saved` is not shown.
 - **Stale-save conflict:** a co-host saved first; the save is refused and the editor reloads the latest with a short notice ("<Name> just made changes. Showing the latest."). No modal (§20.5).
-- **Reset confirmation:** `Reset card` opens a dialog that says the card goes back to its generated text, fonts, colours and layout for this shape and that event details are not affected; `Reset card` / `Cancel`. Other shapes' and designs' customizations are kept. `Undo` is offered after.
+- **Reset confirmation:** `Reset card` opens a dialog that says the card goes back to its generated layout, fonts, colours and invitation line for this shape, without added text, and that the title and event details stay as they are; `Reset card` / `Cancel`. Other shapes' and designs' customizations are kept. `Undo` is offered after.
 - **Font failed to load:** inline "Couldn't load this font." with `Try again`; the box keeps its previous font and nothing is saved for it.
 - **Delete:** removes the box and offers `Undo`. Deleting a fact box says it is removed from the card only and is still on the page.
 - **After publish:** the same surface, with the live card updating on each autosave; `Try another direction` and shape switches that need new artwork are not offered.

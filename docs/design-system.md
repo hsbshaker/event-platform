@@ -816,7 +816,7 @@ With no box selected the toolbar shows `Add text`, `Boxes`, `Undo`, `Redo` and t
 - **The design's own pairings are shown first**, in a "From this card" group: its primary pairing's fonts, then its alternates', so the first thing the host sees is what the card was designed with. Then the full library.
 - **Search** by family name sits at the top of the panel, always visible, as a `Field`.
 - **Categories** (serif, sans serif, display, handwriting, monospace) as `Chip`s (§10.3) filter the library. They do not hide "From this card".
-- Each row shows the family name set in that family, so the host chooses by look. The specimen is drawn by the card renderer's own font handling, given the family name as data (like `InvitationCard`, §23.7); app code never loads or applies a card font itself, and all other picker text stays in app typography (§6.2). Weights and italic appear after the family is chosen, not as separate rows.
+- Each row shows the family's name as a **pre-rendered specimen image** of that family, so the host chooses by look without the editor loading 1,500 fonts. Specimens are made by the platform when it refreshes its catalog snapshot and served from platform storage (`docs/technology-decisions.md §8.3`); app chrome never loads or applies a card font, and all other picker text stays in app typography (§6.2). Weights and italic appear after the family is chosen, not as separate rows.
 - The list is paged and virtualised so it scrolls smoothly on a phone.
 - **Loading state.** Fonts are served from the platform's own storage (`spec.md §20.4`); the first use of a family not yet in the font store adds it (`docs/card-system.md §7`). While a family loads, its row shows a small loading indicator and the box keeps its current font. The box changes only when the font is ready, so lines are never broken with the wrong metrics. Never show a fallback font on the card as if it were the choice.
 - **Failure state.** If a font fails to load, the box keeps its previous font and nothing is saved for the attempt. The row shows an inline "Couldn't load this font." with `Try again` (§13.2), and the rest of the picker keeps working.
@@ -850,7 +850,7 @@ If a co-host saved a newer version while this host was editing, the stale save i
 
 ### Reset card
 
-`Reset card` opens a `Dialog` (§10.8): "This puts the card back to how it was designed: its text, fonts, colours and layout for this shape. Your event details aren't affected." It resets only the current design and shape; customizations for other shapes and designs are kept (`spec.md §20.6`). Actions: `Reset card` (destructive, §9.5) and `Cancel`. After a reset, `Undo` is offered in a toast. Reset is available after publish and updates the live card.
+`Reset card` opens a `Dialog` (§10.8): "This puts the card back to how it was designed for this shape: its layout, fonts, colours and invitation line, without your added text. Your title and event details stay as they are." It resets only the current design and shape; customizations for other shapes and designs are kept (`spec.md §20.6`). Actions: `Reset card` (destructive, §9.5) and `Cancel`. After a reset, `Undo` is offered in a toast. Reset is available after publish and updates the live card.
 
 ### Add and delete
 
@@ -2085,7 +2085,7 @@ Behavior is defined by `spec.md §12`; this section governs only presentation.
 
 ## 15.6 Legibility and contrast
 
-- Every card text clears **4.5:1** against the artwork behind it. Code chooses ink colours (drawn from the artwork first) and, when no ink can clear it, applies an art-derived legibility panel. A model never chooses a colour, size or line break.
+- Every text of the generated card clears **4.5:1** against the artwork behind it. Code chooses ink colours (drawn from the artwork first) and, when no ink can clear it, applies an art-derived legibility panel. A model never chooses a colour, size or line break.
 - Card text is live, selectable and screen-reader readable; artwork is decorative. Everything a guest needs is in the text and on the page.
 - Changing a font or shape does not change the generated card's ink or panels. A colour the host picks in the card editor applies to that box only and is not checked (`spec.md §20.1`).
 - The house-style page and app chrome meet the contrast targets of §14.1 with app tokens. Card ink and artwork colours are never reused as page or chrome colours.
@@ -2488,7 +2488,7 @@ card renderer                  the InvitationCard and its styling
 
 Rules — enforced by review today, and by lint and tests from the card-renderer phase (`docs/development-plan.md` Phase 4), when the card renderer exists to import:
 - app and guest-page components must not import card styling (`card-fonts.css` or the card renderer's internal styles); they may render `InvitationCard` only through its data-in props;
-- card fonts apply only inside the card; they are never used for app or page text. The one exception is the card editor's font picker (§4.10a), whose rows show each family's name set in that family: the specimen is drawn by the card renderer's font handling, given the family name as data, never by app code loading or applying a card font;
+- card fonts apply only inside the card; they are never used for app or page text. The card editor's font picker (§4.10a) shows each family as a pre-rendered specimen image, so no card font is loaded or applied in app chrome;
 - the card renderer does not consume app component styling;
 - changing the active design changes nothing about the app chrome or the page's computed styles;
 - no raw colour values in app or guest-page components (§23.2).

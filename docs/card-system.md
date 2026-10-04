@@ -210,7 +210,9 @@ Rules:
   this deterministically where it can (digits, month and weekday names, time expressions, the
   event's known facts) and the evaluation corpus checks the rest (`docs/model-contracts.md §6`).
 - **Host wording** — a title the host supplied, or any wording the host edits — is host content:
-  bounded only by slot limits, never fact-checked and never re-prompted.
+  never fact-checked and never re-prompted. The title and invitation line stay within their slot
+  limits even when edited, so they always fit a fresh layout (§7); an added text box has its own
+  per-box length limit (`spec.md §20.2`).
 - **Facts** render from event data. A fact the host has not supplied is absent from the published
   card. In Creation Mode a missing required fact shows as a placeholder marked as needing
   confirmation; placeholders are never published (`spec.md §7.3`).
@@ -425,23 +427,26 @@ edits the card's **text layer**; the artwork, outline and envelope are never edi
 
 | Host action | Model call | Changes |
 | --- | --- | --- |
-| First edit of a card | none | creates a `CardCustomization` for this design and shape, seeded from the generated layout |
+| First edit of a card | none | creates a `CardCustomization` for this design and shape, seeded from the generated layout, with a box for every fact slot the layout defines (an empty fact box renders nothing until its fact exists) |
 | Edit, move, resize, rotate, restyle, duplicate, reorder or delete a text box; add one | none | the customization; the edited box's lines re-broken and stored |
 | Choose a font (any Google Fonts family) | none | the box's font; the family added to the font store on first use; lines re-broken |
 | Edit the title box | none | `Event.title`, used everywhere; lines re-broken |
-| Edit a fact (in its box or the details editor) | none | event data; the fact box's lines re-broken; page updates |
-| `Reset card` | none | discards the customization for this design and shape; back to the generated layout |
+| Edit a fact (in its box or the details editor) | none | event data; that fact's boxes re-broken in every customization of the event; page updates |
+| `Reset card` | none | a new revision of this design and shape's customization with the seed re-applied — never a delete, so stale saves are still refused; `Event.title` and event details are not reverted |
 | Switch to a shape an existing artwork fits | none | `activeCardShape`; that shape's customization if one exists, otherwise its generated layout carrying the host's words, added text and fonts |
 | Switch to a shape no existing artwork fits (the other proportion, or another outline for `framed`/`minimal` art) | card art | new artwork for that shape from the same brief, with the current artwork as a reference so the subject stays the same, attached to the same design; validated and ink-resolved as in §3–§4; counts as a generation (`spec.md §10`); before publish only. The current card stays as it is until the new artwork is ready; then as the row above. Switching back is instant |
 | Try another direction (optional feedback) | card design + art | a new `CardDesign`; current card stays active until the host chooses |
 | Choose another design | none | `activeCardDesignId`; that design's customization if one exists, otherwise its generated layout carrying the host's words, added text and fonts |
 
 **Carrying words to a fresh layout** (a new design or shape with no customization of its own):
-the title, invitation line and added text boxes keep their text and fonts; `layoutCard` places
+the words and fonts come from the card being switched from — the active design and shape, its
+customization if it has one, else its generated layout. The title, invitation line and added text
+boxes keep their text and fonts; `layoutCard` places
 them in the new layout's text zone — the generated slots first, then added boxes in their order,
 as extra body lines — and sizes and breaks them as usual; positions, rotation and colours come
-from the new card (its resolved ink). A carried set that cannot fit the zone at minimum size is
-laid out with the overflowing added boxes stacked below the zone, for the host to arrange.
+from the new card (its resolved ink). The title and invitation line always fit, because they keep
+their slot limits; when the added boxes cannot all fit the zone at minimum size, the overflowing
+added boxes are stacked below the zone, for the host to arrange.
 
 **What the host's edits are not checked for** (owner decision, `spec.md §20.1`): contrast, a box
 crossing the outline (clipped as guests will see it), overlap with the artwork's subject. The
@@ -452,7 +457,8 @@ from the font's own metrics (the font store's extracted metrics, so the server a
 agree), with the same rules as §4.3: even lines, no one-word last line where another break exists,
 never inside a word, a hard break where the host typed one. The result is stored as the box's
 `lines` and rendered exactly; a later change to the text, width, font, size, spacing or case
-re-breaks it. A fact edit made outside the editor re-breaks the affected boxes on save.
+re-breaks it. A fact edit — in the editor or outside it — re-breaks that fact's boxes in every
+customization of the event on save, so a card restored later never shows stale lines.
 
 The editing surface is the card component (§6.1) with selection, handles and guides drawn above
 it in app chrome; nothing of the editor's chrome is part of the card. Gestures, toolbar and
@@ -486,8 +492,8 @@ set it was generated against; the renderer supports every layout-set version tha
   every zone inside its shape's text-safe area; edited-box line breaking from stored metrics;
   carrying words to a fresh layout; customization revisions and stale-save refusal.
 - **Editor:** end-to-end at 390px and desktop — select, drag, pinch, rotate, type, restyle, add,
-  delete, undo/redo, reset — with the stored card re-rendered for a guest matching the editor
-  pixel-for-pixel at the same size.
+  delete, undo/redo, reset — with the stored card re-rendered for a guest showing the same lines,
+  positions and styles as the editor at the same size in the same browser.
 - **Layout fixtures:** every layout × supported shape × pairing with worst-case and typical content
   renders in a real browser at card scale with no text outside its zone or its shape's outline. This is a test-time check; production does
   not run a browser to verify cards.

@@ -236,6 +236,19 @@ Documents changed: `spec.md` (Revision 7.2: §0, §0.2, §4.2, §4.10, §5.1, §
 §8.2, §8.3, §9, `product-doctrine.md §7`, `§13`, `development-plan.md` (Phase 4 text layer, new
 Phase 6b), `design-system.md`, `screen-spec.md`, `e2e-workflow.md`, `CLAUDE.md`, `AGENTS.md`.
 
+### 7.2 review fixes
+
+An independent senior review approved 7.2 with fixes and no blockers. Settled in the documents:
+the title and invitation line keep their slot limits, so carried words always fit a fresh layout,
+while added text has a per-box limit (`spec.md §20.2`); carried words come from the card being
+switched from (§20.6); every customization holds a box for every fact slot, and a fact change
+re-breaks those boxes in every customization of the event (§20.2, `card-system.md §7`);
+`Reset card` is a new revision, never a delete, and never reverts the title (§20.5); the font
+picker shows pre-rendered specimen images, and the server's font fetch is limited to catalog
+families from fixed Google Fonts hosts, type- and size-checked, with licence text stored
+(`technology-decisions.md §8.3`); host-chosen colours are recorded as an accepted limitation
+(`spec.md §34`).
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

@@ -262,6 +262,17 @@ from the **Google Fonts** library (`spec.md §20`).
   and line breaking needs the same metrics on the server and in every browser. The family list is a
   snapshot of the Google Fonts catalog kept by the platform and refreshed deliberately; how it is
   fetched and refreshed is decided when the editor is built and recorded here.
+- **The font picker shows pre-rendered specimens.** When the catalog snapshot is refreshed, the
+  platform renders a small specimen image of each family's name and stores it with the snapshot,
+  so the picker never loads 1,500 fonts and never fetches from Google in the host's browser.
+- **The fetch has a narrow trust boundary.** The host supplies only a family name, validated
+  against the catalog snapshot. The server fetches only from fixed Google Fonts hosts, by URLs
+  resolved from the snapshot — never a URL the client supplies — and only the variants a card
+  uses (some families, such as large CJK families, run to tens of megabytes). Fetched files are
+  type- and size-checked before they are stored.
+- **Licences travel with the files.** Each stored family keeps its licence name and full licence
+  text (`CardFont.licenseName`, `licenseText`, `spec.md §24`), as the SIL Open Font License
+  requires when the fonts are redistributed.
 - **The editor is built on the card component, in the DOM.** The card's text is real, selectable,
   screen-reader-readable text (`docs/card-system.md §2.2`), and the editor must show exactly what
   guests see, so the editing surface is the same card component with selection, handles and guides

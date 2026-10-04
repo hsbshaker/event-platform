@@ -833,7 +833,7 @@ Creation Mode.
   host's words, added text and fonts and lays them out fresh for the new shape; the edited card for
   each shape is kept, so switching back restores it (§20.6);
 - `Reset card` — back to the design's generated text, fonts, colours and layout for the current
-  shape, with confirmation;
+  shape, with confirmation; event details and `Event.title` are content and are not reverted;
 - `Try another direction ✦` before publish;
 - the designs generated so far, to choose another before publish.
 
@@ -1675,14 +1675,20 @@ Every detail on the card is also on the page beneath it, in the accessible house
 
 - **Title.** The title box shows the effective title (`Event.title` when the host supplied or edited
   it, else the design's drafted title). Editing it edits `Event.title`, which the envelope, page and
-  link previews use too.
-- **Invitation line and added text** are host content stored with the edited card: never
-  fact-checked, bounded only by a per-box length limit.
+  link previews use too. `Event.title` is event content: `Reset card` never reverts it.
+- **Invitation line and added text** are host content stored with the edited card, never
+  fact-checked. The title and invitation line keep the layout set's slot limits, so they always
+  fit when carried to a fresh layout (§20.6); an added text box is bounded by a per-box length
+  limit set in the editor phase.
 - **Fact boxes stay linked.** The date, time, venue, hosts, baby name and RSVP-by boxes show the
-  event's details. Tapping to change a fact box's text opens that detail's own field (date picker,
-  venue field), and the card and page update together. A fact box can be restyled, moved or
-  deleted; deleting it removes it from the card only. A host who wants their own wording for a fact
-  deletes the box and adds a text box, which is then ordinary host text.
+  event's details. Every customization holds a box for every fact slot its layout defines, even one
+  with no value yet; an empty fact box renders nothing until the fact exists, then appears where
+  the host left it. Tapping to change a fact box's text opens that detail's own field (date picker,
+  venue field), and the card and page update together; a fact change re-breaks the fact boxes of
+  every customization of the event. A fact box can be restyled, moved or deleted; deleting it
+  removes it from the card only (a required fact stays required for publish, §23.1). A host who
+  wants their own wording for a fact deletes the box and adds a text box, which is then ordinary
+  host text.
 - A missing required fact shows as a placeholder in Creation Mode and is never published (§7.3).
 
 ### 20.3 Editing on a phone and on a desktop
@@ -1739,18 +1745,22 @@ TextBox {
 }
 ```
 
-A customization is created by the host's first edit, seeded from the generated layout. It never
-mutates a `CardDesign`, its artwork or its ink, and no edit calls a model. Every save carries the
-revision it was based on; a save based on a stale revision (another collaborator edited meanwhile)
-is refused and the editor reloads the latest with a short notice.
+A customization is created by the host's first edit, seeded from the generated layout; there is at
+most one per event, design and shape. It never mutates a `CardDesign`, its artwork or its ink, and
+no edit calls a model. Every save carries the revision it was based on; a save based on a stale
+revision (another collaborator edited meanwhile) is refused and the editor reloads the latest with a
+short notice. `Reset card` is a save like any other: it re-applies the seed as a new revision, and
+is never a delete, so a collaborator's stale save is still refused after it.
 
 ### 20.6 New directions and shapes keep the words
 
 Choosing another design (before publish), or switching the card's shape:
 
 - keeps the host's words — the title, the invitation line and every added text box — and their
-  fonts, and lays them out fresh in the new card's generated layout; positions, sizes, rotation
-  and colours start from the new card;
+  fonts, taken from the card being switched from (the active design and shape), and lays them out
+  fresh in the new card's generated layout; positions, sizes, rotation and colours start from the
+  new card. When the destination already has a customization, that customization is shown
+  instead;
 - keeps every customization already made for another design or shape, so switching back restores
   it;
 - switches `activeCardDesignId` or `activeCardShape`, and never changes event details, guests,
@@ -1942,8 +1952,10 @@ CardCustomization {                 // the host's edited card, one per event × 
   revision, updatedBy, updatedAt
 }
 
-CardFont {                          // a Google Fonts family the platform serves (§11.7)
-  family, category, variants[], license, storageKeys, metricsVersion, addedAt
+CardFont {                          // platform-wide, server-written: a Google Fonts family we serve
+  id, family /* unique */, category, variants[],
+  licenseName, licenseText,         // stored with the files, as OFL redistribution requires
+  storageKeys, metricsVersion, addedAt
 }
 
 EventSection {
@@ -2405,8 +2417,8 @@ The host should feel:
 ### Card rendering and envelope
 - [ ] The card renders in its effective shape with the outline applied as a mask, identical at 390px
   and 1280px; the envelope fits portrait and square cards.
-- [ ] One card component renders the card everywhere: reveal, Creation Mode, Preview, guest page and
-  link previews.
+- [ ] One card component renders the card everywhere: reveal, Creation Mode, the card editor,
+  Preview, guest page and link previews.
 - [ ] The card is identical in proportion, line breaks and layout at 390px and 1280px.
 - [ ] Every layout × pairing renders worst-case content in a real browser with no text outside its
   zone (test-time fixture).
@@ -2588,6 +2600,9 @@ Intentionally deferred; may become roadmap items:
 
 ## 34. Known Limitations (Accepted for MVP)
 
+- Host-chosen card colours, sizes and positions are not checked: an edited card may be hard to read
+  (owner decision, §20.1). Every detail on the card is also on the page beneath it, in the
+  accessible house style.
 - A forwarded personal invitation link lets its holder view the event and RSVP for that party; the
   host can rotate the link.
 - Invitations go by text only; guests without a usable phone receive their link however the host
