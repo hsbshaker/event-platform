@@ -111,9 +111,37 @@ export async function pgError(
   }
 }
 
-type CardDesignFixture = { round?: number; shape?: string; layout?: string; artMode?: string };
+type CardDesignFixture = {
+  round?: number;
+  shape?: string;
+  layout?: string;
+  artMode?: string;
+  identityRevision?: number;
+};
 
-/** Inserts a generated card design the way server code will (as the connecting superuser). */
+/**
+ * Inserts an Event Identity revision (as the connecting superuser) unless the event already has
+ * it. Every card design names the identity revision it was made from.
+ */
+export async function ensureEventIdentity(
+  client: Client,
+  eventId: string,
+  revision = 1,
+): Promise<void> {
+  await client.query(
+    `insert into public.event_identities
+       (event_id, revision, identity, raw, prompt_version, schema_version)
+     values ($1, $2, '{"creativeDirection":"A quiet garden"}',
+        '{"creativeDirection":"A quiet garden"}', 'event_identity_v4', 'event_identity_schema_v4')
+     on conflict (event_id, revision) do nothing`,
+    [eventId, revision],
+  );
+}
+
+/**
+ * Inserts a generated card design the way server code will (as the connecting superuser), naming
+ * the identity revision it was made from (created when missing).
+ */
 export async function insertCardDesign(
   client: Client,
   eventId: string,
@@ -122,20 +150,23 @@ export async function insertCardDesign(
     shape = "rectangle",
     layout = "art-top",
     artMode = "illustration",
+    identityRevision = 1,
   }: CardDesignFixture = {},
 ): Promise<string> {
+  await ensureEventIdentity(client, eventId, identityRevision);
   const { rows } = await client.query(
     `insert into public.card_designs
        (event_id, round, name, description, shape, layout, art_mode, typography, wording,
-        art_brief, raw, versions)
+        art_brief, raw, versions, identity_revision)
      values ($1, $2, 'Garden Party', 'Soft watercolour florals over a quiet centre', $3, $4, $5,
         '{"primary":"oldstyle_garamond_worksans","alternates":["soft_fraunces_manrope"]}',
         '{"title":"Oh Baby","invitationLine":"Please join us for a baby shower"}',
         '{"subject":"a cluster of peonies","medium":"watercolour","mood":"tender","palette":"blush","texture":"cold-press paper","avoid":"text"}',
         '{"presentation":{"name":"Garden Party"}}',
-        '{"designPrompt":"card_design_v1","designSchema":"card_design_schema_v1","layoutSet":"card_layouts_v2","compiler":"card_compiler_v2"}')
+        '{"designPrompt":"card_design_v1","designSchema":"card_design_schema_v1","layoutSet":"card_layouts_v2","compiler":"card_compiler_v2"}',
+        $6)
      returning id`,
-    [eventId, round, shape, layout, artMode],
+    [eventId, round, shape, layout, artMode, identityRevision],
   );
   return rows[0].id as string;
 }

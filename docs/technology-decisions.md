@@ -292,7 +292,13 @@ dependency for that and for the end-to-end suite.
 
 Three capabilities the card system needs, decided when it is built and recorded here:
 
-- **image decoding** for artwork validation and ink sampling (an image library on the server);
+- **image decoding** for artwork validation and ink sampling — **decided (Phase 5): an in-house PNG
+  reader on `node:zlib`, no library** (`src/lib/card/png.server.ts`). The image model returns PNG
+  only (§8.1), so the reader takes 8-bit RGB or RGBA, non-interlaced, and refuses anything else; it
+  checks every chunk's CRC and the exact inflated size, and refuses more than 40 million pixels
+  before inflating. The same module strips the colour and text chunks from the kept artwork without
+  re-encoding it, so artwork is stored untagged (below). `zlib.crc32` needs Node 22.2 or later;
+  `package.json` `engines` says so;
 - **font metrics** for `layoutCard` and the card editor's line breaking, from the curated fonts in
   `public/fonts/card/` and the font store's fonts (§8.3) — **decided (Phase 4): `harfbuzzjs` with
   `wawoff2`** (both MIT, WebAssembly; `src/lib/card/text/metrics.ts`). Stored line breaks are only

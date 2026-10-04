@@ -13,6 +13,15 @@ import { GenerationProgress } from "./GenerationProgress";
  * rather than distinguishing "does not exist" from "not yours" (spec.md §27).
  */
 
+/**
+ * The card generation runs after `startCardGeneration`'s response, with `after()`, within this
+ * page's `maxDuration`: Server Actions take the timeout of the page that invokes them (Next.js
+ * `maxDuration` docs). 300 s is `GENERATION_MAX_DURATION_SECONDS`; the generation's deadline
+ * (`GENERATION_DEADLINE_MS`, 285 s) sits below it (`docs/technology-decisions.md §8.1`). A literal,
+ * because route segment config is read statically; a unit test holds the two equal.
+ */
+export const maxDuration = 300;
+
 export default async function CreateEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 

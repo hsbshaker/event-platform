@@ -50,6 +50,17 @@ export default defineConfig({
           fileParallelism: false,
         },
       },
+      {
+        // The corpus through the production pipeline, live and metered: opt-in only, through
+        // scripts/corpus/run-live.mjs (the test skips itself without LIVE_CORPUS=1).
+        extends: true,
+        test: {
+          name: "live",
+          include: ["tests/live/**/*.live.test.ts"],
+          testTimeout: 3_600_000,
+          fileParallelism: false,
+        },
+      },
     ],
   },
 });

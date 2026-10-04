@@ -15,6 +15,7 @@ import { MODELS } from "./models";
 import { RESERVATION_USD } from "./pricing";
 import type { TokenUsage } from "./pricing";
 import { systemPrompt } from "./prompts.server";
+import { REQUEST_TIMEOUT_MS } from "./timeouts";
 import type { AiProvider, CardArt, MeterContext, ModelOperation, ModelResult } from "./provider";
 import {
   artworkInspectionRequest,
@@ -59,16 +60,6 @@ import {
 
 const API = "https://api.openai.com/v1";
 
-/** Per-request timeouts, well above the Phase 3 p75 latencies (identity 14 s, design 13 s, art 33 s). */
-const TIMEOUT_MS: Readonly<Record<ModelOperation, number>> = {
-  event_identity: 60_000,
-  structured_extraction: 30_000,
-  card_design: 60_000,
-  card_art: 120_000,
-  card_art_inspection: 30_000,
-  card_art_moderation: 30_000,
-};
-
 const DEFAULT_RETRY_DELAY_MS = 2_000;
 
 export interface OpenAiProviderOptions {
@@ -105,7 +96,7 @@ async function send(
       method: "POST",
       headers,
       body: init.body,
-      signal: AbortSignal.timeout(TIMEOUT_MS[operation]),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS[operation]),
     });
     body = await res.json().catch(() => undefined);
   } catch (error) {

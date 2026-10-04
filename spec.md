@@ -517,6 +517,11 @@ Saturday, 1:00 PM, `Venue to be announced`. A placeholder is never published and
 guests. When the host enters the real value, the card updates deterministically (§7.9); no model
 is called.
 
+A fact the prompt states (§7.5) is on the card from the reveal, as the host wrote it, marked as
+needing confirmation like a placeholder (owner decision, 2026-10-04); the details form shows it
+for the host to confirm or correct. An unconfirmed value is never published, never shown to
+guests, and never given to the card design as a fact.
+
 The card's **title** is wording (§7.7): if the host supplied a title it is used exactly; otherwise
 the design drafts one. The event title is therefore never a blocker to seeing a card.
 
@@ -2393,7 +2398,8 @@ The host should feel:
 - [ ] The card and every page section expose stable collaborator-action anchors.
 - [ ] Contextual Edit/Set up/Add controls are app-styled and absent for guests.
 - [ ] Missing required facts show on the card as placeholders marked as needing confirmation and
-  are never published.
+  are never published; facts the prompt states show on the card as stated, marked as needing
+  confirmation, until the host confirms them, and are never published unconfirmed (§7.3).
 - [ ] Routine edits autosave.
 - [ ] Guest workspace returns to prior Creation Mode context.
 - [ ] Setup checklist separates publish blockers from recommended work.

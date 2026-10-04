@@ -22,7 +22,7 @@
 import { CARD_LAYOUT_IDS, CARD_LAYOUTS, zoneFor } from "./layouts";
 import ENTRY_GLYPHS from "./entry-glyphs.json";
 import { breakWidth } from "./fit";
-import { FACT_ENTRY_LIMITS, WORDING_LIMITS } from "./slots";
+import { FACT_ENTRY_LIMITS, WORDING_LIMITS, type WordingSlotId } from "./slots";
 import { BREAK_CHARACTER, BREAK_RUN, wordPieces } from "./text/line-break";
 
 /** The card slots a host types into: a host-supplied title, and the free-text facts. */
@@ -144,9 +144,22 @@ function list(items: readonly string[]): string {
 
 /** Check one entry for the card (see the module comment). Empty text is accepted. */
 export function validateCardText(slot: CardEntrySlot, value: string): CardTextCheck {
+  return checkText(ROLE_OF[slot], CARD_ENTRY_LIMITS[slot], value);
+}
+
+/**
+ * Check a wording slot the card design drafted, or standard wording, exactly as the host's own
+ * entry would be checked: characters the curated faces can draw (the title in the display role,
+ * the invitation line in the body role), the slot's limit, and every word on one line of the
+ * narrowest zone. Generated wording must clear what a host's text has to (`card-system.md §2.5`).
+ */
+export function validateWordingText(slot: WordingSlotId, value: string): CardTextCheck {
+  return checkText(slot === "title" ? "display" : "body", WORDING_LIMITS[slot].max, value);
+}
+
+function checkText(role: Role, limit: number, value: string): CardTextCheck {
   const text = value.trim();
   if (text === "") return { ok: true };
-  const role = ROLE_OF[slot];
   const { index } = roles()[role];
 
   // 1. Characters, as the host sees them: a grapheme is refused if any part of it is.
@@ -170,7 +183,6 @@ export function validateCardText(slot: CardEntrySlot, value: string): CardTextCh
   }
 
   // 2. Length.
-  const limit = CARD_ENTRY_LIMITS[slot];
   if (text.length > limit) {
     return {
       ok: false,

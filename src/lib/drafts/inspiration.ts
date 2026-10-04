@@ -20,13 +20,14 @@ export const INSPIRATION_BUCKET = "inspiration";
  * Limits. spec.md §27 requires "strict limits and short raw-file retention" without fixing
  * numbers; these are the Phase 2 choices, applied on the server and mirrored in the UI.
  */
-export const ALLOWED_MIME_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-] as const;
+export const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+/**
+ * HEIC and HEIF are converted to JPEG in the host's browser before upload (docs/CHANGELOG-v7.md,
+ * "HEIC inspiration photos are converted in the browser"); the server has no decoder and never
+ * stores one. They are recognised only so a mislabelled or unconverted upload is refused.
+ */
+type HeifMimeType = "image/heic" | "image/heif";
+export const UNSUPPORTED_IMAGE_MESSAGE = "Add a PNG, JPEG or WebP image.";
 /**
  * The upload route buffers the whole body inside the function, and the platform we are on
  * rejects serverless request bodies above 4.5 MB before our code ever runs
@@ -63,7 +64,7 @@ export function isAllowedMimeType(value: string): value is AllowedMimeType {
  * Confirms the bytes really are the image type they claim to be, so a mislabelled payload is
  * never stored. Checks the container signature only; it does not decode the image.
  */
-export function sniffImageType(bytes: Uint8Array): AllowedMimeType | null {
+export function sniffImageType(bytes: Uint8Array): AllowedMimeType | HeifMimeType | null {
   const at = (offset: number, ...sig: number[]) => sig.every((b, i) => bytes[offset + i] === b);
   const ascii = (offset: number, length: number) =>
     String.fromCharCode(...Array.from(bytes.subarray(offset, offset + length)));
@@ -90,7 +91,7 @@ export class InspirationRejected extends Error {
 }
 
 function extensionFor(mime: AllowedMimeType): string {
-  return mime === "image/jpeg" ? "jpg" : mime === "image/heif" ? "heif" : mime.split("/")[1];
+  return mime === "image/jpeg" ? "jpg" : mime.split("/")[1];
 }
 
 /** Validates and stores one file against the browser's current draft. */
@@ -118,10 +119,12 @@ export async function addInspirationToDraft(
     );
   }
   if (!isAllowedMimeType(file.type)) {
-    throw new InspirationRejected("Add a PNG, JPEG, WebP or HEIC image.");
+    throw new InspirationRejected(UNSUPPORTED_IMAGE_MESSAGE);
   }
   const sniffed = sniffImageType(file.bytes);
   if (!sniffed) throw new InspirationRejected("That file does not look like an image.");
+  // HEIC/HEIF bytes under an allowed label (an unconverted upload) are refused, never stored.
+  if (!isAllowedMimeType(sniffed)) throw new InspirationRejected(UNSUPPORTED_IMAGE_MESSAGE);
 
   const admin = createAdminClient();
   const storageKey = `drafts/${draft.id}/${randomUUID()}.${extensionFor(sniffed)}`;

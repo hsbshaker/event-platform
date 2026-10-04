@@ -1,0 +1,66 @@
+"use server";
+
+import { after } from "next/server";
+import { z } from "zod";
+
+import { startGeneration } from "@/lib/ai/generations.server";
+import { runGeneration } from "@/lib/generation/run.server";
+import type { StartGenerationOutcome } from "@/lib/supabase/database.types";
+
+/**
+ * Starts the event's first card (`spec.md §7.3`, §7.10; `docs/technology-decisions.md §8.1`,
+ * "Generation execution").
+ *
+ * `startGeneration` authorizes the signed-in owner or co-host itself (`requireEventAccess`) and
+ * takes the generation lock, the daily caps and the idempotency key (`start_generation`). Only a
+ * generation this request `started` is run, after the response, with `after()`: a repeat of the
+ * same key (`existing`), a generation already in flight, a cap or a published event runs nothing.
+ * The work runs within the invoking page's `maxDuration` (300 s, set on
+ * `src/app/events/[id]/create/page.tsx`, the page that calls this action), and the generation's
+ * deadline counts from this request's start.
+ *
+ * Returns the outcome and the generation's id and nothing else; the wait surface reads progress
+ * with `getGenerationView` (Phase 5c).
+ */
+
+const inputSchema = z.strictObject({
+  eventId: z.uuid(),
+  /** Chosen by the client per user action, so a retry or double tap finds the same generation. */
+  idempotencyKey: z.uuid(),
+});
+
+export type StartCardGenerationInput = z.input<typeof inputSchema>;
+
+export interface StartCardGenerationResult {
+  outcome: StartGenerationOutcome;
+  generationId: string | null;
+}
+
+// A "use server" module exports async functions only, so the refusal is a plain error.
+export async function startCardGeneration(
+  input: StartCardGenerationInput,
+): Promise<StartCardGenerationResult> {
+  const startedAt = Date.now();
+  const parsed = inputSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Invalid generation request.");
+  const { eventId, idempotencyKey } = parsed.data;
+
+  const started = await startGeneration({ eventId, kind: "initial", idempotencyKey });
+  if (started.outcome === "started" && started.generationId) {
+    const generationId = started.generationId;
+    after(async () => {
+      // runGeneration ends every failure on the generation itself; this only logs a bug.
+      try {
+        await runGeneration({ generationId, eventId, userId: started.userId, startedAt });
+      } catch (error) {
+        console.error("[generation] the worker stopped unexpectedly", {
+          generationId,
+          eventId,
+          error:
+            error instanceof Error ? { name: error.name, message: error.message } : typeof error,
+        });
+      }
+    });
+  }
+  return { outcome: started.outcome, generationId: started.generationId };
+}

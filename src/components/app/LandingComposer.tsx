@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useFormStatus } from "react-dom";
 import { createEvent, saveDraft, type ComposerState } from "@/app/actions/draft";
+import { convertHeicToJpeg, HeicDecodeError, isHeicFile } from "@/lib/drafts/heic-to-jpeg";
 import { AppButton } from "./AppButton";
 import { IconButton } from "./IconButton";
 import { InlineStatus } from "./InlineStatus";
@@ -26,13 +27,11 @@ const MAX_FILES = 6;
 // Mirrors MAX_FILE_BYTES in src/lib/drafts/inspiration.ts, which is server-only and cannot be
 // imported here. The server rejects anything larger regardless; this only saves a round trip.
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
-const ALLOWED_MIME_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-] as const;
+const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+// HEIC/HEIF may be picked (Safari decodes them) but are converted to JPEG before upload.
+const ACCEPT_ATTRIBUTE = [...ALLOWED_MIME_TYPES, "image/heic", "image/heif", ".heic", ".heif"].join(
+  ",",
+);
 
 type InspirationItem = ComposerState["inspiration"][number];
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -174,9 +173,20 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
       setUploadError(`You can add up to ${MAX_FILES} images.`);
       return;
     }
-    for (const file of selected) {
+    for (const original of selected) {
+      let file = original;
+      if (isHeicFile(original)) {
+        try {
+          file = await convertHeicToJpeg(original);
+        } catch (error) {
+          setUploadError(
+            error instanceof HeicDecodeError ? error.message : "Could not add that image.",
+          );
+          continue;
+        }
+      }
       if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(file.type)) {
-        setUploadError("Add a PNG, JPEG, WebP or HEIC image.");
+        setUploadError("Add a PNG, JPEG or WebP image.");
         continue;
       }
       if (file.size > MAX_FILE_BYTES) {
@@ -308,7 +318,7 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={ALLOWED_MIME_TYPES.join(",")}
+                  accept={ACCEPT_ATTRIBUTE}
                   multiple
                   hidden
                   onChange={(event) => {

@@ -53,6 +53,12 @@ export interface MeterContext {
   generationId: string;
   /** The generation round, when known (spec.md §9.6). */
   round?: number | null;
+  /**
+   * Epoch milliseconds after which no model call of this generation may still be running: the
+   * meter refuses a call whose request timeout (`REQUEST_TIMEOUT_MS`) would take it past this
+   * (`docs/technology-decisions.md §8.1`, "Generation execution"). Absent: no deadline.
+   */
+  deadline?: number;
 }
 
 export interface ModelUsage extends TokenUsage {

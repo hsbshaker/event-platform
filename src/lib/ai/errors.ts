@@ -4,13 +4,15 @@
  * Two families, never confused:
  * - `ModelCallRefusedError` and its subclasses: the meter refused, so **no call was made** and
  *   nothing was spent (generation switched off, the daily ceiling reached, the generation no
- *   longer running, a context without an event member).
+ *   longer running, a context without an event member, the call could not finish before the
+ *   generation's deadline).
  * - `ProviderCallError` and its subclasses: a call was made and failed (HTTP error, timeout,
  *   refusal, invalid output). The meter recorded it and booked its cost.
  */
 import type { TokenUsage } from "./pricing";
 
-export type ModelCallRefusal = "disabled" | "ceiling" | "not_running" | "invalid_context";
+export type ModelCallRefusal =
+  "disabled" | "ceiling" | "not_running" | "invalid_context" | "deadline";
 
 export class ModelCallRefusedError extends Error {
   constructor(
@@ -35,6 +37,18 @@ export class SpendCeilingError extends ModelCallRefusedError {
   constructor() {
     super("ceiling", "The daily generation spend ceiling is reached.");
     this.name = "SpendCeilingError";
+  }
+}
+
+/**
+ * The call could not finish before its generation's deadline (`MeterContext.deadline`): the
+ * function running the generation would be stopped mid-call (`docs/technology-decisions.md §8.1`,
+ * "Generation execution"), so the call is not made.
+ */
+export class GenerationDeadlineError extends ModelCallRefusedError {
+  constructor() {
+    super("deadline", "The generation's deadline leaves no time for this model call.");
+    this.name = "GenerationDeadlineError";
   }
 }
 

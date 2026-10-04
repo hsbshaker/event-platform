@@ -4,6 +4,7 @@ import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
+  validateWordingText,
   CARD_ENTRY_LIMITS,
   CARD_ENTRY_SLOTS,
   NARROWEST_ZONE_WIDTH,
@@ -170,5 +171,26 @@ describe("validateCardText", () => {
     expect(imports.sort()).toEqual(
       ["./entry-glyphs.json", "./fit", "./layouts", "./slots", "./text/line-break"].sort(),
     );
+  });
+});
+
+describe("validateWordingText: generated wording checked as a host's entry is", () => {
+  it("takes each wording slot's limit", () => {
+    const title = "Lemons and Linen in the Garden at Dusk!!";
+    expect(title).toHaveLength(40);
+    expect(validateWordingText("title", title).ok).toBe(true);
+    expect(validateWordingText("title", `${title}!`)).toMatchObject({ reason: "too-long" });
+    const line = "Please join us for a little garden party with lemons and soft linen too";
+    expect(line.length).toBeLessThanOrEqual(72);
+    expect(validateWordingText("invitationLine", line).ok).toBe(true);
+    expect(validateWordingText("invitationLine", `${line} and more`)).toMatchObject({
+      reason: "too-long",
+    });
+  });
+
+  it("refuses characters the card's fonts cannot draw", () => {
+    expect(validateWordingText("invitationLine", "Join us \u{1F34B}")).toMatchObject({
+      reason: "unsupported-characters",
+    });
   });
 });

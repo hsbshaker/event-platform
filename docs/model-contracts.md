@@ -129,7 +129,10 @@ identity call returns no questions.
 A separate cheaper-model call reads the same raw prompt and returns only facts the prompt literally
 states — event type, hosts, baby name, date, time, venue, address — each as the host's exact
 string. Missing means absent. Its output is written to the event draft as values for the host to
-confirm, never to the identity. The fact check in `docs/model-evals/creative-understanding.json`
+confirm, never to the identity. The pipeline keeps it with the generation
+(`generations.artifacts.facts`). Those values are on the card from the reveal, marked as needing
+confirmation, and in the details form for the host to confirm or correct (`spec.md §7.3`, owner
+decision); an unconfirmed value is never published and never given to the card design as a fact. The fact check in `docs/model-evals/creative-understanding.json`
 (each case's `facts`) applies to this call.
 
 ---
@@ -190,6 +193,13 @@ GenerateCardDesignInput {
 }
 ```
 
+`eventFacts` holds the event's own fields, which only the host enters or confirms, formatted as the
+card shows them. Its `eventType` is the host's own words when the prompt states one (fact
+extraction's value, kept only if it is verbatim in the prompt), else the event's type. It reaches
+the card only through standard wording (§5.3), and only when that wording clears the card's checks;
+otherwise standard wording uses the default type. Extracted card facts — names, date, time, venue —
+reach the design only once the host has confirmed them.
+
 The prompt carries the layout catalog (each layout's purpose and compatible art modes), the art
 modes, the pairing catalog narrowed to the identity's compatible categories, and the global rules.
 It never carries guest data, RSVP or registry contents, private codes, or the raw host prompt.
@@ -203,8 +213,9 @@ In order, deterministic (`card-system.md §4.1`):
    with retry.
 2. **Compatibility**: layout ↔ art mode; layout supports the shape; alternates distinct from
    primary.
-3. **Wording fact check** (§5.4), on model-drafted wording only. Failure → one re-prompt naming the
-   slot; second failure → standard wording for that slot, logged.
+3. **Wording fact check** (§5.4), on model-drafted wording only, together with the checks a host's
+   own text gets (`card-system.md §2.5`): drawable characters and a fit in every design. Failure →
+   one re-prompt naming the slot; second failure → standard wording for that slot, logged.
 4. **Direction distinctness**: same layout, art mode and primary pairing as an earlier direction →
    one re-prompt naming the earlier directions; second repeat → accepted and logged.
 
@@ -388,6 +399,19 @@ bounds and fact check. Model prose is never authorization.
 | Fact extraction | ordinary transient retry | one retry, then no prefill (host enters details) | — |
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
 | Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output; an artwork that would need the legibility panel on its shape: repaint until one needs none, two extra images per artwork in all, then the first valid one with the panel |
+
+Card Design re-prompts are one of each kind per design. When a re-prompt's own call fails — its
+output invalid after the schema re-prompt is spent, or the provider call fails — the earlier valid
+design is kept and the check that asked for the re-prompt takes its fallback (standard wording, or
+the repeat accepted); only a design stage that never produced a valid design fails visibly. A
+`provider-refusal` instruction is repeated on any later re-prompt of the same design, since a call
+carries one re-prompt.
+
+A provider refusal of an artwork's **first** image is that artwork's failure: its one regeneration
+is the re-prompted design's artwork (`spec.md §7.6`), which continues the same budget of two extra
+images — so its own failed validation or refusal is a visible failure, and it has at most one
+repaint left. A refusal of the regeneration of an already-failed first image is the second failure
+and is visible.
 
 There is no library, template or stock fallback for any call. A visible failure always offers a
 retry and never presents itself as a finished design.

@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261005000000_phase5_spend_controls.sql.
+ * Hand-authored to match supabase/migrations/ through 20261006000000_phase5_generation_persistence.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -130,13 +130,21 @@ type InspirationAssetRow = {
   created_at: string;
 };
 
+/**
+ * One Event Identity revision (spec.md §24 EventIdentity; 20261006000000_phase5_generation_
+ * persistence.sql). Immutable; written only through public.record_event_identity.
+ */
 type EventIdentityRow = {
   event_id: string;
+  revision: number;
   identity: Json;
+  /** The accepted identity response as returned by the model. */
+  raw: string;
   prompt_version: string;
   schema_version: string;
+  /** The generation that produced it; null once that generation is gone. */
+  generation_id: string | null;
   created_at: string;
-  updated_at: string;
 };
 
 /**
@@ -158,6 +166,8 @@ type CardDesignRow = {
   raw: Json;
   standard_wording_slots: string[];
   versions: Json;
+  /** The Event Identity revision the design was made from. */
+  identity_revision: number;
   selected_at: string | null;
   created_at: string;
 };
@@ -259,6 +269,8 @@ type GenerationRow = {
   card_design_id: string | null;
   error_code: string | null;
   artifacts: Json;
+  /** The §9.5 record, written when the generation succeeds. Never shown to the host. */
+  telemetry: Json | null;
   started_at: string;
   heartbeat_at: string;
   finished_at: string | null;
@@ -351,7 +363,7 @@ export type Database = {
       >;
       event_identities: Table<
         EventIdentityRow,
-        Insert<EventIdentityRow, "created_at" | "updated_at">
+        Insert<EventIdentityRow, "generation_id" | "created_at">
       >;
       card_designs: Table<
         CardDesignRow,
@@ -404,6 +416,7 @@ export type Database = {
           | "card_design_id"
           | "error_code"
           | "artifacts"
+          | "telemetry"
           | "started_at"
           | "heartbeat_at"
           | "finished_at"
@@ -495,6 +508,66 @@ export type Database = {
       heartbeat_generation: {
         Args: { p_generation_id: string; p_event_id: string };
         Returns: boolean;
+      };
+      /**
+       * The event's next identity revision, written only while the generation is running and the
+       * event unpublished; null when nothing was written
+       * (20261006000000_phase5_generation_persistence.sql).
+       */
+      record_event_identity: {
+        Args: {
+          p_generation_id: string;
+          p_event_id: string;
+          p_identity: Json;
+          p_raw: string;
+          p_prompt_version: string;
+          p_schema_version: string;
+        };
+        Returns: number | null;
+      };
+      /** Sets a running generation's stage and merges its artifacts; false when not running. */
+      record_generation_stage: {
+        Args: { p_generation_id: string; p_event_id: string; p_stage: string; p_artifacts: Json };
+        Returns: boolean;
+      };
+      /** Fails a generation only while it is running; returns whether it did. */
+      fail_generation: {
+        Args: { p_generation_id: string; p_event_id: string; p_error_code: string };
+        Returns: boolean;
+      };
+      /**
+       * The design, its artwork, the first active design and the generation's success, in one
+       * transaction; no row when the generation is not running or the event is published.
+       */
+      persist_generated_card: {
+        Args: {
+          p_generation_id: string;
+          p_event_id: string;
+          p_identity_revision: number;
+          p_name: string;
+          p_description: string;
+          p_shape: CardShape;
+          p_layout: CardLayout;
+          p_art_mode: CardArtMode;
+          p_typography: Json;
+          p_wording: Json;
+          p_art_brief: Json;
+          p_raw: Json;
+          p_versions: Json;
+          p_standard_wording_slots: string[];
+          p_storage_key: string;
+          p_mime_type: string;
+          p_size_bytes: number;
+          p_width: number;
+          p_height: number;
+          p_proportion: CardProportionCode;
+          p_fits_shapes: CardShape[];
+          p_ink: Json;
+          p_image_model: string;
+          p_art_prompt_version: string;
+          p_telemetry: Json;
+        };
+        Returns: { card_design_id: string; round: number }[];
       };
       save_card_customization: {
         Args: {

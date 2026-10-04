@@ -81,6 +81,29 @@ describe.each([
     }
   });
 
+  it("says so plainly when the browser cannot open a HEIC photo, and uploads nothing", async () => {
+    // Chromium has no HEIC decoder, so a HEIC selection must end in the canonical message.
+    const { page, close } = await newPage(browser, viewport);
+    try {
+      let uploads = 0;
+      await page.route("**/api/inspiration", (route) => {
+        uploads += 1;
+        return route.abort();
+      });
+      await page.goto(requireApp().baseUrl, { waitUntil: "domcontentloaded" });
+      await page.locator("input[type=file]").setInputFiles({
+        name: "IMG_0001.HEIC",
+        mimeType: "image/heic",
+        buffer: Buffer.from("not really an image"),
+      });
+      const message = "This browser can't open HEIC photos — please add a JPEG or PNG instead.";
+      await page.getByText(message).waitFor({ timeout: 10_000 });
+      expect(uploads).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+
   it("does not scroll sideways and keeps tap targets reachable", async () => {
     const { page, close } = await newPage(browser, viewport);
     try {
