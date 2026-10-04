@@ -45,7 +45,7 @@ Before proposing or implementing a solution, check it against these rules:
 - **Creation Mode is the invitation itself** — the card and the page beneath it — with contextual `Edit` / `Set up` / `Add` controls.
 - Setup/readiness is not a wizard. Adaptive creative clarification is the one permitted pre-design question: taste only, never logistics, at most three.
 - Guests, Registry and invitations are not publish blockers (`spec.md §23.1`).
-- The models return an `EventIdentity`, a `CardDesign` (layout ID, art mode, pairing IDs, bounded wording, art brief, presentation) and artwork — nothing else. They never emit HTML, CSS, JSX, JavaScript, SVG, text colours, font sizes, positions or line breaks.
+- The models return an `EventIdentity`, a `CardDesign` (shape, layout ID, art mode, pairing IDs, bounded wording, art brief, presentation) and artwork — nothing else. They never emit HTML, CSS, JSX, JavaScript, SVG, text colours, font sizes, positions or line breaks.
 - **Facts come only from the host.** Names, dates, times, venues on the card render from event data; AI wording never states or invents one.
 - **Artwork contains no text.** Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
 - **Code owns legibility and fit.** Ink and legibility panels are chosen deterministically so every card text clears 4.5:1; `layoutCard` alone decides card text size and line breaks; the browser never re-wraps card text.
@@ -53,7 +53,7 @@ Before proposing or implementing a solution, check it against these rules:
 - **The page under the card is one house style for every event.** Card styling, the house-style page and app chrome are separate systems.
 - Personal invitation links identify the party and skip the private code; the platform texts invitations only after publish, after host attestation, within caps. Shared-link RSVP uses name lookup + SMS OTP.
 - No guest accounts. No gift reservation/hold state. No template, layout or artwork gallery.
-- Mobile-first does not mean phone-framed desktop. The card is the same design at every size.
+- Mobile-first does not mean phone-framed desktop. The card is the same design at every size, in one of six shapes (rectangle, rounded rectangle, arch, oval at 5:7; square, circle at 1:1); the design picks it and the host may switch.
 
 If a proposed implementation violates one of these, stop and re-check `spec.md` before coding.
 
@@ -103,7 +103,7 @@ The most commonly violated ones are likely to be:
 - do not send the raw prompt or inspiration images to the image model (#17);
 - do not call a model for legibility, fit or compatibility (#20);
 - do not let the browser re-wrap card text or truncate it silently (#23);
-- do not add a layout, art mode or slot limit without a layout-set version bump and fixtures (#24);
+- do not add a layout, art mode, shape or slot limit without a layout-set version bump and fixtures (#24);
 - do not regenerate or "upgrade" historical designs (#27);
 - do not theme the page under the card per event (#29);
 - do not add host-uploaded, stock or retrieved imagery (#31);
@@ -127,11 +127,11 @@ Current card contract:
 host prompt + inspiration
 → EventIdentity (the only reader of the raw prompt; optional taste clarification)
    ∥ fact extraction (cheaper model) → draft details for the host to confirm
-→ CardDesign (layout from catalog, art mode, pairing + alternates, wording, art brief)
+→ CardDesign (shape of six, layout from catalog, art mode, pairing + alternates, wording, art brief)
 → strict schema + catalog validation · wording fact check · direction distinctness   (one re-prompt each)
-→ art prompt assembled by code (brief + layout rule + global rules) → image model → artwork
-→ artwork validation: type, 5:7, resolution, no embedded text, safety   (one regeneration)
-→ ink + legibility panels resolved deterministically (every card text ≥ 4.5:1)
+→ art prompt assembled by code (brief + layout and shape rules + global rules) → image model → artwork
+→ artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety   (one regeneration)
+→ ink + legibility panels resolved deterministically per supported shape (every card text ≥ 4.5:1)
 → persisted, immutable CardDesign + artwork + ink + versions
 → layoutCard (sizes, line breaks) at save and render → one card component → envelope → house-style page
 ```
@@ -139,7 +139,8 @@ host prompt + inspiration
 Do not:
 - let a model choose a text colour, a size, a position or a line break, or write a fact;
 - put text in artwork, or send the raw prompt or inspiration images to the image model;
-- add a layout, art mode or slot limit without a layout-set version bump and a fixture run;
+- add a layout, art mode, shape or slot limit without a layout-set version bump and a fixture run;
+- let a model draw or position the card's outline, or offer the host a shape the design's layout does not support;
 - let the browser re-wrap card text, or truncate any card text silently;
 - derive CSS from model output;
 - regenerate, recompile or re-resolve the ink of a historical design;

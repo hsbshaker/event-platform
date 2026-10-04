@@ -199,7 +199,8 @@ Cash fund: display-only handles, suggested amounts, blurb.
 `Design` exposes only (§7.14, §20):
 
 - the card's font among the active design's primary and alternate pairings;
-- reset the card's wording and font to the design;
+- the card's shape among those the design's layout supports: same proportion applies instantly; tall ↔ square makes new artwork from the same brief (before publish only);
+- reset the card's wording, font and shape to the design;
 - `Try another direction ✦` (before publish);
 - the designs list (H14).
 
@@ -219,7 +220,7 @@ The primary publish action may remain app-level.
 
 Opened from Design (§20.3). Shows every design generated for the event, each as its card with name and description; the active one is marked.
 
-- Choosing a design makes it active, resets card wording and font to that design, and keeps a title the host supplied or edited. Event details, guests, RSVP, registry, privacy and messages never change.
+- Choosing a design makes it active, resets card wording, font and shape to that design, and keeps a title the host supplied or edited. Event details, guests, RSVP, registry, privacy and messages never change.
 - Read-only after publish (§8.2).
 
 ## H15 — Publish gate
@@ -255,7 +256,7 @@ Priority:
 3. Messages — invitations, reminders (non-responders), announcements (§13.4);
 4. Registry;
 5. Share — link, QR, code;
-6. Edit invitation — details, card wording and font.
+6. Edit invitation — details, card wording, font and shape (same proportion).
 
 Owner additionally: billing, co-host access, delete/archive.
 

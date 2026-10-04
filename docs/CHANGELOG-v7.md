@@ -34,7 +34,7 @@ with the pivot by owner decision; git history is their archive (the last commit 
 | Personal invitation link | Identifies the party (no SMS code) and skips the private event code |
 | AI-written wording | Yes — a title and invitation line, editable; facts only from the host |
 | Artwork | Every card has generated artwork; it may be minimal (a border or texture) |
-| Card shape | Portrait (about 5×7), front only |
+| Card shape | Portrait (about 5×7), front only — extended to six shapes in Revision 7.1 (below) |
 | Designs per round | One at a time, with `Try another direction` |
 | Host edits without AI | Words and font (among the design's curated pairings) |
 | Page under the card | One neutral house style for every event |
@@ -103,6 +103,30 @@ tests and fixtures; the `renderer-proof` CI job; `@sparticuz/chromium`.
 
 Kept for the card: `src/lib/card/color.ts` (WCAG/OKLCH colour maths), `src/lib/card/typography.ts`
 (twelve curated pairings), `public/fonts/card/` and `src/styles/card-fonts.css`.
+
+## Revision 7.1 — card shapes
+
+Asked after the pivot merged: Revision 7 had assumed a plain portrait rectangle without asking about
+the card's outline. Decisions made with the owner:
+
+| Question | Decision |
+| --- | --- |
+| Which shapes for MVP | Six: rectangle, rounded rectangle, arch and oval (portrait 5:7); square and circle (1:1) |
+| Landscape | Not in MVP; portrait and square only |
+| Who picks | The design picks the shape; the host can switch |
+| Switching across proportions (tall ↔ square) | Generates new artwork for that proportion from the same brief; same-proportion switches are instant |
+| Further shapes | Deferred: landscape, scalloped, ticket, pill/capsule, custom die-cuts (shield, cloud, heart, tag) |
+
+Consequences written into the documents: the outline is code-defined geometry applied as a mask,
+never drawn by a model or into the artwork; each shape has a text-safe area; each layout declares
+the shapes it supports, with slot limits that fit every one of them; ink is resolved per supported
+shape; a cross-proportion switch is a generation (before publish only) that adds an artwork to the
+design and keeps the original for an instant switch back. Documents changed: `spec.md` (Revision
+7.1: §0.1, §4.2, §7.7–§7.9, §7.14, §8, §9.3, §10, §11.2–§11.3, §20, §24, §25, §29, §31, §32 #24
+and #28, §33, §35), `card-system.md` (§1, §2.1–§2.3, §3–§9), `model-contracts.md` (§5.1, §5.3,
+§7), `design-system.md`, `screen-spec.md`, `e2e-workflow.md`, `development-plan.md`,
+`technology-decisions.md`, `product-doctrine.md §14`, `CLAUDE.md`, and the `generateCardArt` input
+type.
 
 ## Still open
 

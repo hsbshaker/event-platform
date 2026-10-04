@@ -180,7 +180,7 @@ No model provider owns those steps.
 models on real briefs from the creative-understanding corpus and records the decision here, with:
 
 - the model and provider, and how it is called behind `generateCardArt`;
-- output size and format for a 5:7 card; whether a transparent-background workflow is used;
+- output size and format for 5:7 and 1:1 cards; whether a transparent-background workflow is used;
 - how embedded text and unsafe content are detected (`spec.md §7.8`);
 - measured latency (p50/p75) and cost per card;
 - the evidence: the briefs, the outputs, and the human judgement that chose it.
@@ -189,7 +189,7 @@ Until then no image provider is added to the codebase.
 
 ## 8.2 Card rendering without a production browser
 
-The card is a fixed 5:7 canvas laid out by a deterministic function, so production does **not**
+The card is a fixed canvas (5:7 or 1:1, six shapes) laid out by a deterministic function, so production does **not**
 run a headless browser to verify cards. Revision 6's serverless-Chromium geometry verification
 (and the `@sparticuz/chromium` dependency) is retired. A real browser is used at **test time** to
 prove every layout × pairing fits (`docs/card-system.md §9`); `playwright-core` stays a dev

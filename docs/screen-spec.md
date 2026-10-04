@@ -127,7 +127,7 @@ Message:
 
 Every design generated for the event, each as its card with name and description; the active one is marked. Reached from the result and from `design-panel`.
 
-- Choosing a design makes it active, resets card wording and font to that design, keeps a host-supplied title (§20.3).
+- Choosing a design makes it active, resets card wording, font and shape to that design, keeps a host-supplied title (§20.3).
 - Read-only after publish (§8.2).
 
 ## `creation-mode`
@@ -272,7 +272,8 @@ No campaigns or marketing automation.
 Controls (§7.14, §20):
 
 - font: the design's primary pairing and its alternates;
-- reset card wording and font to the design;
+- shape: outline swatches for the shapes the design's layout supports (of rectangle, rounded rectangle, arch, oval, square, circle). Same proportion: applies instantly. Other proportion (tall ↔ square): states that new artwork will be made, keeps the current card visible while it generates, before publish only (§7.14);
+- reset card wording, font and shape to the design;
 - `Try another direction ✦` before publish;
 - designs list before publish (read-only afterwards).
 

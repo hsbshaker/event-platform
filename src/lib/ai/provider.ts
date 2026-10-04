@@ -16,6 +16,9 @@ export type EventIdentity = Record<string, unknown>;
 export type CardDesign = Record<string, unknown>;
 export type CardArt = { mimeType: string; bytes: Uint8Array };
 
+/** The six card shapes (docs/card-system.md §2.1): four portrait 5:7, two square 1:1. */
+export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
+
 export type ModelOperation = "event_identity" | "card_design" | "card_art";
 
 export interface ModelUsage {
@@ -55,7 +58,8 @@ export interface GenerateCardDesignInput {
 export interface GenerateCardArtInput {
   artBrief: Record<string, unknown>;
   layout: string;
-  aspect: "5:7";
+  shape: CardShape;
+  aspect: "5:7" | "1:1";
 }
 
 export interface AiProvider {

@@ -1,7 +1,7 @@
 # AI-Designed Event Invitation + RSVP + Registry Platform
 
 **Document:** Product Requirements Document (PRD) / `spec.md`
-**Status:** Revision 7 — MVP baseline for implementation (§0)
+**Status:** Revision 7.1 — MVP baseline for implementation (§0; 7.1 adds card shapes, §0.1)
 **Initial launch vertical:** Baby showers
 **Platform architecture:** Event-generic, baby-shower-first
 **Primary build principle:** **AI should remove decisions, not create more decisions.**
@@ -29,11 +29,11 @@ screenshots and sends. The full record is `docs/CHANGELOG-v7.md`.
 | Model calls | Event Identity → DesignIntent ×3 → Composition ×3 | Event Identity → Card Design → Card Art (image model) |
 | Model authority | Structure only, enum tokens, no free text | Card direction: layout from a catalog, art mode, font pairing, an art brief, and the card's wording (title, invitation line) |
 | Imagery | Excluded, then approved as optional Phase 4 artwork | Every card has generated artwork; it may be as minimal as a border or texture |
-| Verification | Headless-browser geometry verification at 390/1280 per concept | Fixed 5:7 canvas; deterministic text fit and ink contrast; browser checks at test time only |
+| Verification | Headless-browser geometry verification at 390/1280 per concept | Fixed canvases (5:7 and 1:1, six shapes); deterministic text fit and ink contrast; browser checks at test time only |
 | Guest arrival | Host shares a link/QR | Host shares a link/QR **and** the platform can text each invited party a personal invitation link |
 | Guest identity | Name lookup + SMS code | Personal invitation link identifies the party; shared-link guests use name lookup + SMS code |
 | Private events | Finished hero visible before the code | Sealed envelope with the event title until the code; personal links skip the code |
-| Host design controls | Curated palette and typography | Edit the card's words; swap among the design's curated font pairings |
+| Host design controls | Curated palette and typography | Edit the card's words; swap among the design's curated font pairings; switch the card's shape |
 
 **Unchanged:** prompt first → auth → generation; Event Identity as the only interpreter of the raw
 prompt and its fact-versus-interpretation boundary; adaptive creative clarification; Creation Mode
@@ -45,6 +45,14 @@ registry, native gift honor system, cash fund; roles; the $49 publish hypothesis
 attractive-token caps, skeleton signatures, the recipe library and its boundary invariant, the
 `ResolvedDesignSpec`, rendered-geometry verification as a production step, per-concept themed
 pages, and the palette override control.
+
+
+### 0.1 Revision 7.1 — card shapes
+
+The card comes in **six shapes**: rectangle, rounded rectangle, arch and oval at portrait 5:7;
+square and circle at 1:1. There is no landscape card. The design picks the shape; the host may
+switch it. Switching between shapes of the same proportion is instant; switching across
+proportions generates new artwork from the same brief (§7.14, `docs/card-system.md §2.1`, §7).
 
 ---
 
@@ -183,11 +191,12 @@ The host describes intent; the system turns intent into an invitation.
 
 The strong model creates:
 - an `EventIdentity` — what the host means and what creative world the event belongs to;
-- a `CardDesign` — a layout from a small catalog, an art mode, a curated font pairing (with up to
-  two alternates), the card's wording (title and invitation line), and an art brief.
+- a `CardDesign` — a shape (one of six), a layout from a small catalog, an art mode, a curated font
+  pairing (with up to two alternates), the card's wording (title and invitation line), and an art
+  brief.
 
-An image model creates the card's **artwork**, from the art brief and the layout's composition
-rule — never from the host's raw prompt.
+An image model creates the card's **artwork**, from the art brief and the layout's and shape's
+composition rules — never from the host's raw prompt.
 
 Deterministic application code:
 1. validates the design against a strict schema and catalogs;
@@ -616,7 +625,8 @@ Once Event Identity is valid, the strong model designs one card (`card_design_sc
 ```ts
 CardDesign {
   presentation { name, description }        // host-facing; e.g. "Heirloom Teddy"
-  layout          // ID from the layout catalog (card_layouts_v1)
+  shape           // rectangle | rounded-rectangle | arch | oval (5:7) · square | circle (1:1)
+  layout          // ID from the layout catalog (card_layouts_v1); must support the shape
   artMode         // illustration | framed | atmosphere | minimal
   typography { primary, alternates[0..2] }  // curated pairing IDs
   wording { title, invitationLine }         // bounded free text; no invented facts
@@ -647,10 +657,12 @@ host's facts, or any ID outside its catalogs.
 ### 7.8 Card artwork generation
 
 Application code assembles the art prompt deterministically from the art brief, the layout's
-composition rule and the global rules (no text, no logos or brands, original style, 5:7 portrait).
+and shape composition rules and the global rules (no text, no logos or brands, original style, the
+shape's proportion: 5:7 or 1:1).
 The image model returns the artwork.
 
-Validation (deterministic, plus the bake-off's chosen checks): file type, 5:7 within tolerance,
+Validation (deterministic, plus the bake-off's chosen checks): file type, the requested proportion
+within tolerance,
 minimum resolution, decodable, **no embedded text**, and content safety. A failure earns one
 regeneration; a second failure is shown honestly to the host with a retry action. There is no
 template or stock fallback.
@@ -665,9 +677,9 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
    slot, logged); host-supplied wording is not checked;
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
-5. resolves ink per text zone from the artwork's own palette, measuring the background
-   conservatively, so every card text clears **4.5:1**; applies the layout's legibility panel when
-   no ink can;
+5. resolves ink per text zone, for every shape of the artwork's proportion that the layout
+   supports, from the artwork's own palette, measuring the background conservatively, so every
+   card text clears **4.5:1**; applies the layout's legibility panel when no ink can;
 6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
 Card text layout — font size and line breaks for every slot — is one pure versioned function
@@ -750,12 +762,17 @@ Creation Mode.
 
 `Design` exposes only:
 - the card's font: the design's primary pairing and its alternates;
-- reset the card's wording and font to the design;
+- the card's shape: any of the six shapes the design's layout supports. A shape of the same
+  proportion applies instantly with no model call. A shape of the other proportion (tall ↔ square)
+  generates new artwork for that proportion from the same art brief — a generation that counts
+  toward §10 limits and is available before publish only; the current card stays as it is until
+  the new artwork is ready, and switching back is instant;
+- reset the card's wording, font and shape to the design;
 - `Try another direction ✦` before publish;
 - the designs generated so far, to choose another before publish.
 
 Wording is edited directly on the card. Do not expose layouts, colours, art modes, ink, panels,
-sizes, positions or anything else.
+sizes, positions, outlines beyond the six shapes, or anything else.
 
 ### 7.15 Try another direction
 
@@ -815,6 +832,7 @@ Owner and co-host may change:
 
 - date/time/location and ordinary event content, including the card's wording;
 - the card's font, among the active design's pairings;
+- the card's shape, among the supported shapes of the proportion that already has artwork;
 - RSVP settings/questions;
 - guest list, invitations and RSVP operations;
 - external registries, native items, native item purchase state, cash fund;
@@ -828,7 +846,8 @@ should announce material changes (date, venue) to guests (§13.4).
 ### 8.2 Not allowed after publish
 
 - generating a new design (`Try another direction`);
-- switching to a different design.
+- switching to a different design;
+- switching to a shape that needs new artwork.
 
 The designs list becomes read-only after publish.
 
@@ -877,6 +896,7 @@ Never call a model for:
 - changing structured date/time/venue or any fact;
 - editing the card's wording;
 - swapping the card's font;
+- switching the card's shape within the same proportion;
 - hiding/reordering simple information blocks;
 - guests/registry/cash-fund operations;
 - sending invitations, reminders or announcements (message text is templated);
@@ -942,7 +962,8 @@ Enforce configurable backend safety limits:
 - idempotency so retries/double taps do not duplicate expensive calls.
 
 A co-host does not receive an independent pool for the same event; event-level limits span all
-collaborators. Each round generates exactly one design and one artwork.
+collaborators. Each round generates exactly one design and one artwork; a cross-proportion shape
+switch generates one artwork and counts as a generation.
 
 Instrument every generation (§29). Use observed rounds per event, conversion, latency, quality and
 actual AI cost to set commercial limits. Do not impose an arbitrary user-facing cap before testing.
@@ -965,17 +986,22 @@ that do not conflict with this PRD.
 
 ### 11.2 Canvas and layers
 
-Portrait 5:7, front only, defined in card units and rendered by uniform scaling, so the card is
-identical on a phone and on desktop. Layers: generated artwork (full bleed); an optional
-art-derived legibility panel; live text.
+Front only, in one of six shapes — rectangle, rounded rectangle, arch, oval (portrait 5:7);
+square, circle (1:1) — defined in card units and rendered by uniform scaling, so the card is
+identical on a phone and on desktop. The outline is code-defined geometry applied as a mask; it is
+never drawn by a model or into the artwork, and text sits only inside each shape's text-safe area.
+Layers: generated artwork (full bleed at the shape's proportion, masked to the outline); an
+optional art-derived legibility panel; live text.
 
 ### 11.3 Layout catalog
 
 A small versioned catalog of text layouts (`card_layouts_v1`, proposed members in
-`docs/card-system.md §2.3`, fixed by the Phase 3 bake-off). Each layout defines its text zones,
-slot order, alignment, size range and maximum lines per slot, slot character limits, the
-composition rule given to the art brief, and its legibility-panel shape. The model picks a layout
-by ID; the host never sees the catalog. Changing the catalog is a layout-set version bump.
+`docs/card-system.md §2.3`, fixed by the Phase 3 bake-off). Each layout declares the shapes it
+supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
+slot, the composition rule given to the art brief, and its legibility-panel shape. Slot character
+limits hold for every shape the layout supports, so a shape switch never breaks fit. The model picks
+a layout by ID; the host never sees the catalog. Changing the catalog, including the shapes'
+outlines, is a layout-set version bump.
 
 ### 11.4 Art modes
 
@@ -1553,7 +1579,8 @@ operational rather than analytical. No vanity analytics.
 Owner/co-host may directly:
 - edit the card's title and invitation line;
 - swap the card's font among the active design's primary and alternate pairings;
-- reset the card's wording and font to the design.
+- switch the card's shape (§7.14);
+- reset the card's wording, font and shape to the design.
 
 Host edits to wording are host content: they may contain any fact the host chooses and are bounded
 only by slot limits, never fact-checked. Facts are edited as event details and appear on the card
@@ -1570,6 +1597,7 @@ Event.title                         // when the host supplied or edited the titl
 Event.cardEdits? {
   invitationLine?
   typographyPairing?                // must be the active design's primary or an alternate
+  shape?                            // one of the shapes the design's layout supports
 }
 ```
 
@@ -1581,7 +1609,7 @@ with no model call.
 
 Before publish, choosing another generated design:
 - switches `activeCardDesignId`;
-- resets `Event.cardEdits` to the new design's wording and typography;
+- resets `Event.cardEdits` to the new design's wording, typography and shape;
 - keeps `Event.title` if the host supplied or edited it (it is content);
 - never changes event details, guests, RSVP, registry, privacy or messaging data.
 
@@ -1709,7 +1737,7 @@ Event {
   slug,
 
   activeCardDesignId?,
-  cardEdits? { invitationLine?, typographyPairing? },
+  cardEdits? { invitationLine?, typographyPairing?, shape? },
 
   invitationAttestedAt?,
   messageSendsUsed,
@@ -1747,13 +1775,12 @@ CardDesign {
   id, eventId,
   round,
   name, description,             // presentation, or deterministic fallback
-  layout, artMode,
+  shape, layout, artMode,
   typography /* { primary, alternates[] } */,
   wording /* { title, invitationLine } — after the fact check */,
   artBrief,
   raw,                           // the model response as returned
-  artAssetId,
-  ink /* per zone: { ink, panel?, panelColor? } */,
+  artAssetIds[],                 // the original; plus one for the other proportion if generated
   standardWordingSlots[],
   versions /* designPrompt, designSchema, layoutSet, compiler, artPrompt, imageModel */,
   selectedAt?,
@@ -1762,7 +1789,9 @@ CardDesign {
 
 CardArtAsset {
   id, eventId, cardDesignId,
+  proportion /* portrait_5_7 | square_1_1 */,
   storageKey, mimeType, width, height, sizeBytes,
+  ink /* per supported shape, per zone: { ink, panel?, panelColor? } */,
   imageModel, artPromptVersion,
   createdAt
 }
@@ -1872,7 +1901,7 @@ configured and at least one party is invited.
 | --- | ---: | ---: | ---: |
 | View event | Yes | Yes | Yes |
 | Edit event details/content and card wording | Yes | Yes | No |
-| Swap card font | Yes | Yes | No |
+| Swap card font or shape | Yes | Yes | No |
 | Manage privacy/access code | Yes | Yes | No |
 | Manage guests / import CSV | Yes | Yes | No |
 | Copy/rotate a party's personal link | Yes | Yes | No |
@@ -1988,7 +2017,7 @@ clarification_answered { youDecide }
 venue_timezone_inferred
 identity_generated
 
-card_design_generated { round, layout, artMode, schemaValidFirstCall, reprompts, standardWordingSlots }
+card_design_generated { round, shape, layout, artMode, schemaValidFirstCall, reprompts, standardWordingSlots }
 card_art_generated { round, imageModel, regenerated, latencyMs }
 card_compiled { round, inkPanels, compilerVersion }
 card_revealed { round, totalLatencyMs }
@@ -2001,6 +2030,7 @@ generation_failed { stage }
 
 card_wording_edited { slot }
 card_font_swapped
+card_shape_switched { from, to, newArtwork }
 creation_context_edit_opened { anchor, action }
 setup_checklist_opened
 publish_readiness_changed
@@ -2136,7 +2166,10 @@ The host should feel:
 - [ ] A host-supplied title is used verbatim.
 - [ ] The art prompt is assembled by code from the art brief, the layout's composition rule and the
   global rules; it never contains the raw prompt.
-- [ ] Artwork is 5:7, decodable, at minimum resolution, contains no embedded text, and passes
+- [ ] Every design has one of the six shapes and a layout that supports it; text zones lie inside
+  the shape's text-safe area; the outline is code-defined and never part of the artwork.
+- [ ] Artwork is at the shape's proportion (5:7 or 1:1), decodable, at minimum resolution, contains
+  no embedded text, and passes
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no
   template or stock fallback exists.
 - [ ] Every card text clears 4.5:1 against the conservatively measured background of its zone;
@@ -2167,8 +2200,11 @@ The host should feel:
 - [ ] Guest workspace returns to prior Creation Mode context.
 - [ ] Setup checklist separates publish blockers from recommended work.
 - [ ] `Ready to publish` can appear even if guests/registry/invitations are incomplete.
-- [ ] Design controls expose only the design's font pairings, reset, `Try another direction` and the
-  designs list.
+- [ ] Design controls expose only the design's font pairings, the shapes its layout supports, reset,
+  `Try another direction` and the designs list.
+- [ ] A same-proportion shape switch applies instantly with no model call; a cross-proportion switch
+  generates one artwork from the same brief, counts as a generation, is unavailable after publish,
+  and keeps earlier artwork so switching back is instant.
 
 ### Try another direction
 - [ ] Available from the reveal and Creation Mode before publish.
@@ -2180,6 +2216,8 @@ The host should feel:
 - [ ] Generation and design switching are disabled after publish.
 
 ### Card rendering and envelope
+- [ ] The card renders in its effective shape with the outline applied as a mask, identical at 390px
+  and 1280px; the envelope fits portrait and square cards.
 - [ ] One card component renders the card everywhere: reveal, Creation Mode, Preview, guest page and
   link previews.
 - [ ] The card is identical in proportion, line breaks and layout at 390px and 1280px.
@@ -2268,7 +2306,7 @@ The host should feel:
    permitted pre-design question: taste only, never logistics, at most three.
 10. Do not count optional Guests/Registry/invitations as publish blockers.
 11. Do not build token/chat-level AI editing.
-12. The models return exactly: an `EventIdentity`; a `CardDesign` (layout ID, art mode, pairing IDs,
+12. The models return exactly: an `EventIdentity`; a `CardDesign` (shape, layout ID, art mode, pairing IDs,
     bounded wording, art brief, presentation); and artwork. Nothing else.
 13. No model emits HTML, CSS, JavaScript, SVG, text colours, sizes, positions or line breaks.
 14. The model owns interpretation, the creative direction, the layout and art-mode choice, the
@@ -2292,16 +2330,18 @@ The host should feel:
     measured background.
 23. `layoutCard` is the only thing that sizes or breaks card text; the renderer never lets the
     browser re-wrap card text; never truncate silently; enforce slot limits at entry.
-24. Adding or changing a layout, art mode or slot limit is a layout-set version bump and re-runs
-    the layout fixtures.
+24. Adding or changing a layout, art mode, shape or slot limit is a layout-set version bump and
+    re-runs the layout fixtures.
 25. Persist Event Identity, every `CardDesign` (raw and validated), artwork, resolved ink and the
     version set; never mutate them; host edits live on the event.
 26. Render the card only through the one card component, from persisted design data and current
     event content.
 27. Never regenerate, recompile or "upgrade" a historical design; renderer bug, accessibility and
     responsive fixes are allowed.
-28. Typography uses curated pairing IDs only; the host's font control offers exactly the design's
-    primary and alternates.
+28. The card is one of the six shapes; outlines are code-defined masks, never model-drawn. The
+    host's shape control offers only shapes the design's layout supports, and a cross-proportion
+    switch is a generation. Typography uses curated pairing IDs only; the host's font control offers
+    exactly the design's primary and alternates.
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
 30. Each round generates one design and one artwork; never generate in bulk to pick from.
@@ -2337,6 +2377,8 @@ Intentionally deferred; may become roadmap items:
 - email invitations;
 - envelopes addressed to each party, envelope liners or themed envelopes;
 - a card back, downloadable/printable card, matching print assets;
+- landscape cards and further die-cut shapes (scalloped, ticket, pill/capsule, custom shapes such as
+  shield, cloud, heart or tag);
 - host photos on the card or page;
 - a themed event page that takes styling from the card;
 - broader event types; custom domains;
@@ -2405,7 +2447,7 @@ CARD REVEAL — out of its envelope
     └── Try another direction (optional feedback → one new, different card)
     ↓
 CREATION MODE — the invitation is the workspace
-    ├── card wording (edit in place) · font (curated)
+    ├── card wording (edit in place) · font (curated) · shape (six)
     ├── details · description · info blocks
     ├── RSVP setup · Registry add/setup
     ├── Guests → focused workspace
