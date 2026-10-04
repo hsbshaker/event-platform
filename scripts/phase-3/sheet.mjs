@@ -76,8 +76,17 @@ async function tile(id, counted) {
   if (!c) {
     const err = art.attempts.at(-1)?.error ?? "";
     const refused = /moderation_blocked|safety system/.test(err);
+    const experiment = path.join(OUT_DIR, id, "homage-experiment.png");
+    let extra = "";
+    if (existsSync(experiment)) {
+      await sharp(experiment)
+        .resize({ width: 380 })
+        .webp({ quality: 80 })
+        .toFile(path.join(dest, "cards", `${id}-experiment.webp`));
+      extra = `<figure class="experiment"><img src="cards/${id}-experiment.webp" alt="Experiment: a looser storybook-bear homage" loading="lazy" width="380"><figcaption>Experiment, not counted: the same brief with the famous character's signature look removed (no red shirt; a plain storybook teddy and honey pot in an English wood). It was not refused. Whether briefs should steer famous characters this way is your call.</figcaption></figure>`;
+    }
     return `<article class="tile failed" data-id="${id}" data-counted="${counted}">
-  <div class="art-slot"><div class="no-card"><strong>${refused ? "Refused by OpenAI's safety filter" : "No card produced"}</strong><span>${refused ? "The image model blocked its own output (output-stage moderation). In the product this shows as a visible failure with Try again." : esc(err.slice(0, 160))}</span></div></div>
+  <div class="art-slot"><div class="no-card"><strong>${refused ? "Refused by OpenAI's safety filter" : "No card produced"}</strong><span>${refused ? "Refused in both rounds. OpenAI's output moderation blocked artwork that came out too close to the famous character. In the product this shows as a visible failure with Try again. Counts as a card that can't be sent." : esc(err.slice(0, 160))}</span></div>${extra}</div>
   <div class="meta">${head(id, design, pairing, counted)}${verdictControls(id)}</div>
 </article>`;
   }
@@ -214,6 +223,8 @@ blockquote::before{content:"\\201C"}blockquote::after{content:"\\201D"}
 .pair-imgs img{width:100%;height:auto}
 .pair figcaption{margin-top:10px;color:var(--muted)}
 .notes{max-width:65ch;color:var(--muted)}
+.art-slot{flex-direction:column;gap:12px}
+.experiment{margin:0}.experiment img{width:100%;height:auto}.experiment figcaption{font-size:13px;color:var(--muted);margin-top:6px}
 .r1-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .r1{margin:0}.r1 img{width:100%;height:auto}.r1 figcaption{font-size:12px;color:var(--muted);text-align:center}
 .notes li{margin-block:4px}

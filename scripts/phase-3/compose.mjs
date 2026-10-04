@@ -120,7 +120,16 @@ async function resolveInk(file, shape, zone, palette) {
   const darkTail = percentile(lums, 8);
   const lightTail = percentile(lums, 92);
   const median = percentile(lums, 50);
-  const worst = (inkL) => (inkL < median ? ratio(inkL, darkTail) : ratio(inkL, lightTail));
+  // The worst background pixel is the one whose luminance is nearest the ink's: an ink darker than
+  // the whole measured range is judged against the dark tail, one lighter than it against the light
+  // tail, and an ink inside the range collides with some of the zone and fails outright. (Round 2
+  // caught the bug this replaces: choosing the tail by the median let a cream ink pass over cream.)
+  const worst = (inkL) => {
+    if (inkL <= darkTail) return ratio(inkL, darkTail);
+    if (inkL >= lightTail) return ratio(inkL, lightTail);
+    return 1;
+  };
+  void median;
 
   const hue = rgbToOklch(parseHex(palette[0].hex)).h;
   const candidates = [

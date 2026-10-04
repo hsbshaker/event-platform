@@ -212,6 +212,22 @@ different provider is a new decision for the owner.
 No provider SDK is added to the codebase until Phase 3 validation needs it; the product provider
 arrives in Phase 5. Model names and SDK calls stay behind `src/lib/ai/provider.ts`.
 
+**What Phase 3 validation established** (2026-10-04; evidence in
+`docs/model-evals/phase-3-validation.md`). Phase 3 called the API with plain `fetch`; no SDK was
+needed.
+
+| Item | Result |
+| --- | --- |
+| API model IDs | `gpt-6.1-sol` (Event Identity, Card Design, artwork inspection); `gpt-6-luna` (fact extraction); `gpt-image-2.5-sunburst-2026-09-08` (artwork, pinned snapshot); `omni-moderation-latest` (image safety) |
+| Raster | 1440 × 2016 (5:7) and 1440 × 1440 (1:1), PNG, opaque full bleed. No transparent-background workflow: the outline is a code mask and the art is painted to every edge |
+| Text and safety detection | The provider's own output moderation, then `omni-moderation-latest`, then a structured GPT 6.1 Sol inspection for text, logos or brand marks, and mockups (≈ 4 s, ≈ $0.005 per artwork) |
+| Latency (p50) | Event Identity 11 s, Card Design 11 s, artwork 31 s at `high`, inspection 4 s; ≈ 57 s prompt to card. `low` text effort and Sunburst `medium`: ≈ 38 s |
+| Cost per card | ≈ $0.08 at `high` (artwork $0.06); ≈ $0.04 with Sunburst `medium` |
+| Flare | Not faster than Sunburst `medium` in the probe, and less faithful to the composition rules; not adopted |
+
+Still open with the owner: the quality setting and reveal-latency target (`spec.md §7.10`), and how
+briefs treat famous characters the provider refuses (`spec.md §7.6`).
+
 ## 8.2 Card rendering without a production browser
 
 The card is a fixed canvas (5:7 or 1:1, six shapes) laid out by a deterministic function, so production does **not**
