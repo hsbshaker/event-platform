@@ -59,6 +59,15 @@ Phase 2 shipped before the pivot. These are known gaps, owned by the phase named
   Phase 5.
 - **Fact extraction.** The prompt is not yet parsed for facts; the details form starts empty.
   Owner: Phase 5 (`spec.md §7.5`).
+- **Provisional title.** `src/lib/events/provisional.ts` still synthesizes a placeholder title from
+  the event type. Under Revision 7 the title is wording (host's verbatim, else design-drafted), so
+  the title placeholder is retired when generation lands. Owner: Phase 5.
+- **Website-era names.** `src/lib/auth/permissions.ts` still names capabilities
+  `generate_redesign_concepts` and `browse_select_concepts`; rename to the Revision 7 vocabulary
+  (`try_another_direction`, `choose_design`). Owner: Phase 6.
+- **Card styling boundary lint.** Add a lint rule that app and guest-page components cannot import
+  `card-fonts.css` or card-renderer styling (`design-system.md §23.7`) when the card renderer
+  lands. Owner: Phase 4.
 - **Database.** The website-era tables and `human_test_1_responses` remain until the Phase 4
   migration. Export the Human Test #1 responses first if they are wanted.
 

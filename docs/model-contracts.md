@@ -118,7 +118,7 @@ Do not re-send raw inspiration once its summary exists.
 The identity call may return up to three taste questions instead of — or before — a final identity
 (`spec.md §7.6b`). Each question must pass *would different answers produce meaningfully different
 creative identities?*, offer `You decide` / `Surprise me`, and never ask about fonts, layouts,
-colours or logistics. The question schema and the surface are designed in Phase 4; until then the
+colours or logistics. The question schema and the surface are designed in Phase 5; until then the
 identity call returns no questions.
 
 ## 4.3 Fact extraction
@@ -194,15 +194,16 @@ In order, deterministic (`card-system.md §4.1`):
    colours valid. Failure → one re-prompt with the error list; second failure → visible failure
    with retry.
 2. **Compatibility**: layout ↔ art mode; alternates distinct from primary.
-3. **Wording fact check** (§5.4). Failure → one re-prompt naming the slot; second failure →
-   standard wording for that slot, logged.
+3. **Wording fact check** (§5.4), on model-drafted wording only. Failure → one re-prompt naming the
+   slot; second failure → standard wording for that slot, logged.
 4. **Direction distinctness**: same layout, art mode and primary pairing as an earlier direction →
    one re-prompt naming the earlier directions; second repeat → accepted and logged.
 
 ## 5.4 Wording rules
 
 - `title` and `invitationLine` follow the identity's `copyTone`.
-- A host-supplied title (in `eventFacts`) is used verbatim as `title`.
+- A host-supplied title (in `eventFacts`) is used verbatim as `title`. It is host content: never
+  fact-checked and never replaced. The same holds for any wording the host later edits.
 - A name may appear only exactly as it appears in `eventFacts`.
 - Wording never contains a date, weekday, month, time, number, place, address, dress code, or any
   other fact. The deterministic check rejects digits, month and weekday names, time expressions,

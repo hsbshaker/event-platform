@@ -1,18 +1,14 @@
 /**
- * spec.md §7.3 "Generation begins; required details run in parallel":
+ * Placeholders for required facts the host has not supplied yet (spec.md §7.3): a date twelve
+ * weeks out on a Saturday, a 1:00 PM start, `Venue to be announced`, hosts omitted, and an RSVP
+ * deadline derived by the canonical rule. Creation Mode shows them on the card marked as needing
+ * confirmation; they are never persisted as real content, never published, and never shown to
+ * guests. This module only reports what is real vs. provisional; it never decides guest visibility.
  *
- * > Provisional values are bounded and event-type specific so the card looks realistic:
- * > a title from the event type (`Baby shower for <family name>` when a name is
- * > known, else `A baby shower`), a date twelve weeks out on a Saturday, a start time
- * > of 1:00 PM, `Venue to be announced`, hosts omitted, deadline derived by the rule
- * > below. A provisional value is never published and never shown to guests;
- * > Creation Mode marks it as needing confirmation.
- *
- * A provisional value is a bounded placeholder shown on the card in Creation Mode until the
- * host supplies the real value (§7.3, §11.4 layer 2 "which fields are provisional"): it is never persisted as real
- * content, never published, and never shown to guests (guest-facing suppression is
- * `FeaturePresentationState`, §11.4 layer 3 — this module only reports what is real
- * vs. provisional, it never decides guest visibility).
+ * Revision 7 note: the provisional *title* below predates the card. Under Revision 7 the title is
+ * wording — the host's verbatim if supplied, otherwise drafted by the card design (spec.md §7.3,
+ * §20.2) — so this title placeholder is retired when generation lands (docs/development-plan.md,
+ * "Revision 7 alignment").
  *
  * Pure, dependency-free: `now` is an explicit argument, nothing reads `Date.now()`.
  */

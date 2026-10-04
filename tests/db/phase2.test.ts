@@ -7,7 +7,7 @@ import { asActor, connect, createAuthUser, databaseUrl, errorCode, resetDatabase
  * (supabase/migrations/20260913010000_phase2_prompt_auth.sql).
  *
  * Covers spec.md §7.2 (the draft becomes exactly one event, retries included), §7.3 (details
- * stay optional), §32 #44 (no new publish requirement) and §27 (server-only draft state).
+ * stay optional), §32 #45 (no new publish requirement) and §27 (server-only draft state).
  */
 
 let db: Client;

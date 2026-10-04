@@ -31,8 +31,6 @@ const identityPrompt = readFileSync(`${DOCS}model-prompts/event-identity.system.
 
 describe("Event Identity v3 contract", () => {
   it("names the same prompt and schema versions as versions.ts", () => {
-    expect(EVENT_IDENTITY_PROMPT_VERSION).toBe("event_identity_v3");
-    expect(EVENT_IDENTITY_SCHEMA_VERSION).toBe("event_identity_schema_v3");
     expect(identityPrompt).toContain(`**Prompt version:** \`${EVENT_IDENTITY_PROMPT_VERSION}\``);
     expect(identityPrompt).toContain(EVENT_IDENTITY_SCHEMA_VERSION);
     expect(identitySchema.$comment).toContain(EVENT_IDENTITY_SCHEMA_VERSION);

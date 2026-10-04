@@ -125,7 +125,7 @@ Mode/layout compatibility is part of the layout set and is validated (§4.1).
 
 | Slot | Source | Notes |
 | --- | --- | --- |
-| `title` | AI-drafted wording, host-editable | The card's headline and the event's name everywhere (`Event.title`). If the host supplied a title, it is used as given. |
+| `title` | AI-drafted wording, host-editable | The card's headline and the event's effective title everywhere (`spec.md §20.2`). If the host supplied a title, it is used as given. |
 | `invitationLine` | AI-drafted wording, host-editable | One short line such as "Please join us for a baby shower". |
 | `babyName` | host fact | Shown when present. |
 | `hosts` | host fact | e.g. "Hosted by Maya & Tom". |
@@ -136,10 +136,12 @@ Mode/layout compatibility is part of the layout set and is validated (§4.1).
 
 Rules:
 
-- **Wording** (`title`, `invitationLine`) may use a name only exactly as the host supplied it, and
-  never contains a date, time, place, dress code or any other fact. Code checks this
-  deterministically where it can (digits, month and weekday names, time expressions, the event's
-  known facts) and the evaluation corpus checks the rest (`docs/model-contracts.md §6`).
+- **Model-drafted wording** (`title`, `invitationLine`) may use a name only exactly as the host
+  supplied it, and never contains a date, time, place, dress code or any other fact. Code checks
+  this deterministically where it can (digits, month and weekday names, time expressions, the
+  event's known facts) and the evaluation corpus checks the rest (`docs/model-contracts.md §6`).
+- **Host wording** — a title the host supplied, or any wording the host edits — is host content:
+  bounded only by slot limits, never fact-checked and never re-prompted.
 - **Facts** render from event data. A fact the host has not supplied is absent from the published
   card. In Creation Mode a missing required fact shows as a placeholder marked as needing
   confirmation; placeholders are never published (`spec.md §7.3`).
@@ -205,10 +207,10 @@ No step here calls a model or regenerates artwork.
 - `CardDesign` against its strict schema (`card_design_schema_v1`): enum IDs (layout, art mode,
   pairings), string length bounds, no extra fields.
 - Layout ↔ art-mode compatibility; alternates distinct from the primary pairing.
-- Wording fact check (§2.5). A failing design earns one re-prompt naming the failing slot; if it
-  fails again, that slot is replaced by standard wording (`title`: the host's title if supplied,
-  else "A Baby Shower"; `invitationLine`: "Please join us for a baby shower"), logged, and visible
-  to the host as ordinary editable text.
+- Wording fact check (§2.5), on model-drafted wording only. A failing design earns one re-prompt
+  naming the failing slot; if it fails again, that slot is replaced by standard wording (`title`:
+  "A Baby Shower"; `invitationLine`: "Please join us for a baby shower"), logged, and visible to the
+  host as ordinary editable text. A host-supplied title is never checked or replaced.
 - Direction distinctness: a design that repeats an earlier direction's layout, art mode and primary
   pairing together earns its one re-prompt naming the earlier directions.
 - Artwork: file type, 5:7 within tolerance, minimum resolution, decodable. Detecting embedded text
@@ -291,11 +293,15 @@ generation reveal, Creation Mode, Preview, the guest page and link-preview image
 A house-designed envelope component, the same for every event (not themed, not generated, and not
 an imitation of any competitor's envelope). It shows the event title on the front.
 
-- **Opening:** the guest taps (or it opens after a short beat) and the card slides out, settling at
-  the top of the event page.
+- **Opening:** the guest taps — an explicit action; the envelope never opens by itself — and the
+  card slides out, settling at the top of the event page.
 - **Private event, shared link:** the envelope stays sealed until the event code is entered.
   Nothing on the card is visible before then (`spec.md §14.2`).
-- **Personal invitation link:** opens directly, with no event code (`spec.md §12.5`).
+- **Personal invitation link:** no event code (`spec.md §12.5`). A bare request still returns only
+  the closed envelope with the title; the card, the page and the party session load when the guest
+  opens it, so link scanners and preview crawlers never receive private content or create a
+  session. Before the event is published, a personal link shows a neutral "not available yet"
+  state.
 - **Reduced motion:** the card appears without the opening animation.
 - The host sees the same reveal when a newly generated card is ready.
 

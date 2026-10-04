@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
  * only what is true (the event was created and its design has not been generated yet) and,
  * once `generationRequestedAt` is older than `STALE_AFTER_MS`, says plainly that the design
  * has not started rather than continuing to imply progress — satisfying §7.10's requirement to
- * measure reality and its ban on unbounded waits (§32 guardrail #45).
+ * measure reality and its ban on unbounded waits (§32 guardrail #46).
  */
 
 const STALE_AFTER_MS = 10 * 60 * 1000;

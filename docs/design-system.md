@@ -782,7 +782,7 @@ Before publish:
 
 Primary action:
 
-`Publish my event`
+`Publish my invitation`
 
 Do not create pricing tiers in the MVP design.
 
@@ -1220,7 +1220,7 @@ This is the most important transition.
 
 The envelope is a house component, the same for every event (§10.20). Recommended sequence:
 1. the sealed envelope shows the event title;
-2. it opens on the guest's tap (or after a short beat);
+2. it opens on the guest's tap — an explicit action, never automatically (`spec.md §12.5`);
 3. the card slides out and settles at the top of the page;
 4. for the host, the reveal message and actions appear shortly after the card is visually stable.
 
@@ -1260,10 +1260,10 @@ With reduced motion:
 Use for the single strongest forward action.
 
 Examples:
-- `Create my event ✦`
+- `Create my invitation ✦`
 - `Choose this direction`
 - `Make it yours`
-- `Publish my event`
+- `Publish my invitation`
 
 Visual:
 - solid dark action background;
@@ -1581,8 +1581,8 @@ A house-designed envelope, the same for every event: not themed, not generated, 
 
 States and behavior:
 - **sealed**: shown for a private event reached by the shared link until the code is entered; shows only the event title, nothing from the card or page (§15.7);
-- **closed → opening → open**: the guest taps (or it opens after a short beat) and the card slides out and settles at the top of the page (§8.3);
-- **personal invitation link**: opens directly, with no code;
+- **closed → opening → open**: the guest taps (an explicit action; it never opens by itself) and the card slides out and settles at the top of the page (§8.3);
+- **personal invitation link**: no code; the envelope still opens on the guest's action (`spec.md §12.5`);
 - the host sees the same reveal when a newly generated card is ready.
 
 Requirements:
@@ -1908,7 +1908,7 @@ The envelope is a house component (§10.20) that fronts every invitation.
 
 - **Public event, shared link:** the envelope shows the event title and opens to the card.
 - **Private event, shared link:** the envelope stays **sealed** with the event title until the event code is entered. Nothing on the card or page is visible before then.
-- **Personal invitation link:** opens directly, with no code.
+- **Personal invitation link:** no code. A bare request returns only the closed envelope; the card, page and party session load when the guest opens it (`spec.md §12.5`).
 - **Link previews:** the rendered card for a public event; the sealed envelope with the title for a private one. Produced from the same card component and layout function, so they cannot disagree with the live card.
 
 The envelope is not themed per event, not generated and not an imitation of any competitor's envelope.
@@ -2132,7 +2132,7 @@ Use:
 - `Make it yours`
 - `Finish setup`
 - `Preview`
-- `Publish my event`
+- `Publish my invitation`
 - `Send invitations`
 
 Avoid:
@@ -2283,7 +2283,7 @@ src/styles/card-fonts.css      card fonts
 card renderer                  the InvitationCard and its styling
 ```
 
-Rules, enforced by lint and tests:
+Rules — enforced by review today, and by lint and tests from the card-renderer phase (`docs/development-plan.md` Phase 4), when the card renderer exists to import:
 - app and guest-page components must not import card styling (`card-fonts.css` or the card renderer's internal styles); they may render `InvitationCard` only through its data-in props;
 - card fonts apply only inside the card; they are never used for app or page text;
 - the card renderer does not consume app component styling;
@@ -2368,7 +2368,7 @@ And guest arrival:
 ```text
 public shared link → envelope → card → RSVP via name lookup
 private shared link → sealed envelope → code → card
-personal invitation link → envelope opens directly → RSVP
+personal invitation link → no code → guest opens the envelope → RSVP
 ```
 
 ## 24.4 Accessibility regression

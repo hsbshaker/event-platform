@@ -272,7 +272,7 @@ Disabled after publish: `Try another direction` and design switching; the design
 The guest opens the link from the platform's text (§12.5).
 
 - The party is identified and the guest-party session established, with no name lookup and no SMS code.
-- The envelope opens directly, skipping the private event code.
+- No private event code is asked; the closed envelope opens on the guest's action, and only then do the card, page and party session load (§12.5).
 - The guest can RSVP immediately, and uses the same link later to view or update the RSVP (G12).
 
 ## G02 — Arrive by shared link

@@ -7,11 +7,11 @@
  * NOT part of this layer: it is deterministic application code.
  *
  * Generation stays unimplemented until spend controls exist
- * (docs/development-plan.md, principle 4). Until then `getAiProvider()` throws,
+ * (docs/development-plan.md, principle 3). Until then `getAiProvider()` throws,
  * so no code path can call a model by accident (spec.md §32 #4).
  */
 
-/** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Phase 4 types them narrowly. */
+/** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Phase 5 types them narrowly. */
 export type EventIdentity = Record<string, unknown>;
 export type CardDesign = Record<string, unknown>;
 export type CardArt = { mimeType: string; bytes: Uint8Array };
@@ -48,8 +48,8 @@ export interface GenerateCardDesignInput {
   eventFacts: Record<string, string>;
   previousDirections?: Record<string, unknown>[];
   feedback?: string;
-  /** Present only on the single allowed re-prompt for schema-invalid output. */
-  reprompt?: { kind: "schema"; feedback: string };
+  /** Present only on an allowed re-prompt, at most once per kind (docs/model-contracts.md §5.3). */
+  reprompt?: { kind: "schema" | "wording" | "repeat-direction"; feedback: string };
 }
 
 export interface GenerateCardArtInput {
@@ -65,5 +65,5 @@ export interface AiProvider {
 }
 
 export function getAiProvider(): AiProvider {
-  throw new Error("AI provider is not configured before Phase 4 (docs/development-plan.md).");
+  throw new Error("AI provider is not configured before Phase 5 (docs/development-plan.md).");
 }

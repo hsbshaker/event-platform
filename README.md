@@ -61,7 +61,8 @@ public/fonts/card/          Self-hosted card fonts
 
 ## Deploying a preview on Vercel
 
-The app deploys as a standard Next.js project; no `vercel.json` is needed.
+The app deploys as a standard Next.js project; `vercel.json` only schedules the daily pre-auth
+cleanup cron.
 
 1. In Vercel, **Add New → Project → Import** `hsbshaker/event-platform` (framework preset:
    Next.js, root directory `/`, Node 22). Production branch `main`; every pull request gets

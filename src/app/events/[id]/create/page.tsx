@@ -49,11 +49,11 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
       {/* Nothing is generating in Phase 2, so nothing here says anything is. The panel beside
           this header states the same truth; a header that promised directions were on the way
           would contradict it on the same screen and hide a wait with no end (spec.md §7.10,
-          §32 guardrail #45). */}
+          §32 guardrail #46). */}
       <header className="flex flex-col gap-2">
         <h1 className="text-heading-xl text-app-text">Your event</h1>
         <p className="text-body-md text-app-text-secondary">
-          Fill in what you can below — nothing here is required to see your design directions, only
+          Fill in what you can below — nothing here is required to see your invitation design, only
           to publish later.
         </p>
       </header>

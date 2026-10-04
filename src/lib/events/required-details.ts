@@ -1,7 +1,7 @@
 /**
  * The publish requirements this phase can collect (spec.md §23.1).
  *
- * §23.1 is the whole list and this module adds nothing to it (§32 #44). Two of its entries are
+ * §23.1 is the whole list and this module adds nothing to it (§32 #45). Two of its entries are
  * out of Phase 2's reach and are deliberately absent here: the selected card design with its artwork
  * (generation phases) and the encrypted access code a private event needs (Phase 6);
  * the owner account exists by construction once the draft is claimed.

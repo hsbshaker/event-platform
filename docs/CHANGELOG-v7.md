@@ -65,6 +65,13 @@ be changed there:
 - inspiration images go to Event Identity only, never to the image model (`spec.md §7.6a`);
 - a failed generation is shown honestly with a retry; there is no template or stock fallback
   (`card-system.md §3`);
+- when model-drafted wording fails the fact check twice, standard wording is used ("A Baby Shower",
+  "Please join us for a baby shower") and becomes the event's effective title until edited;
+  host-supplied or host-edited wording is never fact-checked (`card-system.md §4.1`);
+- a personal invitation link resolves only after publish, and a bare request returns only the closed
+  envelope, so link scanners never receive private content or create a session (`spec.md §12.5`);
+- a party that has opted out of texts is treated like Needs phone on the shared-link path
+  (`spec.md §12.5`);
 - the card-reveal latency target is a working ~30 s at p75 until the bake-off measures a real image
   model (`spec.md §7.10`).
 

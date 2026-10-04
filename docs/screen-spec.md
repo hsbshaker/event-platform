@@ -370,11 +370,11 @@ The envelope and card are the event's themed surface; everything else is house-s
 
 The house-designed envelope, identical for every event, showing the event title (§11.8).
 
-**Opening:** the guest taps (or it opens after a short beat); the card slides out and settles at the top of the page.
+**Opening:** the guest taps (an explicit action; it never opens by itself); the card slides out and settles at the top of the page.
 
 **Entry paths**
 
-- personal invitation link: opens directly, no code (§12.5);
+- personal invitation link: no code; the closed envelope opens on the guest's tap, and only then do the card, page and party session load (§12.5); before publish the link shows a neutral "not available yet" state;
 - shared link, public event: opens;
 - shared link, private event: **sealed** with the title only; an event-code field is shown; nothing on the card or page is visible until the code is accepted (§14.2).
 

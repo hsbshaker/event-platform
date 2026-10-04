@@ -629,14 +629,17 @@ host's own names exactly); on `Try another direction`, the host's optional feedb
 of every earlier direction for this event.
 
 **One design per round.** `Try another direction` produces a design that is genuinely different
-from every earlier one for this event — a different idea, not a palette or font swap. Code rejects
+from every earlier one for this event — a different idea, not a palette or font swap. Code answers
 an exact repeat (same layout, art mode and primary pairing as an earlier direction) with one
-re-prompt; the evaluation corpus judges whether directions *feel* different.
+re-prompt; a second repeat is accepted and logged. The evaluation corpus judges whether directions
+*feel* different.
 
-**Wording rules.** The title and invitation line may use a name only exactly as the host supplied
-it, and never contain a date, time, place, dress code or other fact. If the host supplied a title,
-the design uses it verbatim. Code checks wording deterministically where it can; a slot that fails
-twice falls back to standard wording (§7.9), visible and editable like any other text.
+**Wording rules.** Model-drafted wording — the title and invitation line — may use a name only
+exactly as the host supplied it, and never contains a date, time, place, dress code or other fact.
+Code checks model-drafted wording deterministically where it can; a slot that fails twice falls
+back to standard wording (§7.9), visible and editable like any other text. If the host supplied a
+title, the design uses it verbatim; host-supplied and host-edited wording is host content, bounded
+only by slot limits, and is never fact-checked or re-prompted.
 
 The model cannot emit HTML, CSS, JavaScript, SVG, text colours, sizes, positions, line breaks, the
 host's facts, or any ID outside its catalogs.
@@ -658,7 +661,8 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
 
 1. validates the `CardDesign` against its strict schema and catalogs (one re-prompt on schema
    failure, then a visible failure with retry);
-2. checks wording against facts (one re-prompt, then standard wording for the failing slot, logged);
+2. checks model-drafted wording against facts (one re-prompt, then standard wording for the failing
+   slot, logged); host-supplied wording is not checked;
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
 5. resolves ink per text zone from the artwork's own palette, measuring the background
@@ -1001,8 +1005,8 @@ pairing and up to two alternates; the host's font control offers exactly those.
 
 A house-designed envelope, the same for every event, never themed per event and never an imitation
 of a competitor's envelope. It shows the event title, opens to reveal the card, stays sealed for a
-private event reached by the shared link until the code is entered, opens directly from a personal
-invitation link, and respects reduced motion.
+private event reached by the shared link until the code is entered, opens without a code from a
+personal invitation link (§12.5), and respects reduced motion.
 
 ### 11.9 The house-style event page
 
@@ -1012,9 +1016,9 @@ colours or fonts from the card. Card styling and application chrome are separate
 
 ### 11.10 Link previews
 
-Shared links (including invitation texts) preview as the rendered card for a public event and as
-the sealed envelope with the title for a private one, produced from the same card component and
-layout function.
+Any event link, shared or personal (including the links in invitation texts), previews as the
+rendered card for a public event and as the sealed envelope with the title for a private one,
+produced from the same card component and layout function.
 
 ### 11.11 Imagery boundaries
 
@@ -1112,12 +1116,19 @@ questions; meal choices; dietary-restriction field; optional notes.
 There are two ways a guest is identified.
 
 **Personal invitation link.** Every party has one personal invitation link: a signed, unguessable
-token scoped to this event and this party. It is what the platform texts (§7.18) and what the host
-can copy for any party. Opening it:
+token scoped to this event and this party. It is created with the party, but it is surfaced to the
+host and resolves only once the event is published; before that it shows a neutral "not available
+yet" state and reveals nothing. It is what the platform texts (§7.18) and what the host can copy for
+any party. Opening it:
 - identifies the party and establishes the guest-party session (§12.6) with no name lookup and no
   SMS code;
-- opens the envelope directly, skipping the private event code;
+- skips the private event code — the guest opens the envelope without it;
 - is also the guest's way back to view or update their RSVP.
+
+"Without a code" does not mean pre-opened: a bare request for a personal link returns only the
+closed envelope with the event title. The card, the page and the party session load when the guest
+opens the envelope (an explicit action), so link scanners and preview crawlers that fetch the URL
+from an invitation text never receive private content and never create a session or mark anything.
 
 The host can rotate a party's link (for example if it was forwarded), which invalidates the old
 one. A personal link never reveals any other party.
@@ -1130,7 +1141,8 @@ one. A personal link never reveals any other party.
 3. after a match, show only the minimum first names needed to recognize the party; never show
    phone/email;
 4. if the matched party has a phone, **SMS OTP is required** before viewing/submitting that party's
-   RSVP;
+   RSVP; if that party has opted out of texts (§13.1), no code can be sent, so treat it like Needs
+   phone on this path (step 6);
 5. if the party is explicitly `noPhoneAvailable == true`, allow name-lookup-only RSVP as the
    accepted escape hatch;
 6. if the party is **Needs phone**, do not expose the party RSVP on this path; show a neutral
@@ -1172,8 +1184,8 @@ After submission show a confirmation in the house style:
 
 > **You're all set. We can't wait to celebrate with you.**
 
-If a phone is available and the party arrived by the shared link, text them their personal link so
-they can return/update without repeating lookup + OTP. A guest can always repeat name lookup and
+If a phone is available, the party has not opted out, and they arrived by the shared link, text
+them their personal link so they can return/update without repeating lookup + OTP. A guest can always repeat name lookup and
 the appropriate verification/fallback path.
 
 ### 12.8 Owner/co-host RSVP management view
@@ -1247,7 +1259,7 @@ A private event requires a short human-shareable event code.
 - **A guest arriving by the shared link** sees only the **sealed envelope with the event title**.
   Entering the code opens it. Nothing on the card or page is visible before then.
 - **A guest arriving by their personal invitation link** skips the code: the link already proves
-  they were invited (§12.5).
+  they were invited (§12.5). The envelope still opens only on the guest's action.
 
 Private events carry `noindex`, and their link previews show only the sealed envelope (§11.10).
 
@@ -1543,7 +1555,9 @@ Owner/co-host may directly:
 - swap the card's font among the active design's primary and alternate pairings;
 - reset the card's wording and font to the design.
 
-Facts are edited as event details and appear on the card and page automatically. Content
+Host edits to wording are host content: they may contain any fact the host chooses and are bounded
+only by slot limits, never fact-checked. Facts are edited as event details and appear on the card
+and page automatically. Content
 operations on the page (description, information blocks, their order and visibility) are separate
 from the card.
 
@@ -1807,7 +1821,7 @@ CashFund {
   id, eventId, title, blurb, handles[], suggestedAmounts[], visible
 }
 
-Message {
+Message {                      // host-initiated messages; counted against §13.2 caps
   id, eventId,
   kind /* invitation | reminder | announcement */,
   channel /* sms | email */,
@@ -1830,6 +1844,10 @@ GenerationRun {
   createdAt
 }
 ```
+
+OTP codes and the §12.7 return-link text are guest-triggered transactional messages, not `Message`
+rows: they are outside the host caps, are rate-limited per §12.5, and are never sent to a party that
+has opted out.
 
 The layout catalog, art modes, typography pairings and compiler rules are versioned application
 code/config, not database tables.
@@ -2112,9 +2130,9 @@ The host should feel:
   layout, art-mode or pairing catalogs, and out-of-bounds strings are rejected; a schema failure is
   re-prompted once, then shown as a visible failure with retry.
 - [ ] Layout/art-mode compatibility is validated and alternates differ from the primary pairing.
-- [ ] Wording never contains a date, time, place or dress code, and uses names only exactly as the
-  host supplied them; a failing slot is re-prompted once, then replaced by standard wording that is
-  logged and editable.
+- [ ] Model-drafted wording never contains a date, time, place or dress code, and uses names only
+  exactly as the host supplied them; a failing slot is re-prompted once, then replaced by standard
+  wording that is logged and editable. Host-supplied and host-edited wording is never fact-checked.
 - [ ] A host-supplied title is used verbatim.
 - [ ] The art prompt is assembled by code from the art brief, the layout's composition rule and the
   global rules; it never contains the raw prompt.
@@ -2170,7 +2188,8 @@ The host should feel:
 - [ ] Card text is live, selectable and screen-reader readable; artwork is decorative.
 - [ ] The envelope opens to the card; reduced motion shows the card without the animation.
 - [ ] A private event reached by the shared link shows only the sealed envelope with the title until
-  the code is entered; a personal link opens it directly.
+  the code is entered; a personal link needs no code (the envelope still opens on the guest's
+  action).
 - [ ] Link previews show the card for a public event and the sealed envelope for a private one.
 - [ ] The page beneath the card uses the house style for every event and takes no styling from the
   card.
@@ -2179,7 +2198,11 @@ The host should feel:
 - [ ] Manual add requires phone or explicit no-phone acknowledgement.
 - [ ] CSV with missing phone rows imports and flags Needs phone.
 - [ ] Every party has a personal invitation link that identifies it without OTP, skips the private
-  code, and can be rotated by the host.
+  code, and can be rotated by the host; it resolves only once the event is published.
+- [ ] A bare request for a personal link returns only the closed envelope; the card, page and party
+  session load only when the guest opens it.
+- [ ] An opted-out party is treated like Needs phone on the shared-link path, and no OTP or
+  return-link text is sent to it.
 - [ ] Shared-link guest lookup does not expose contact info.
 - [ ] On the shared-link path, a phone-backed party requires OTP.
 - [ ] OTP throttling includes party/phone and requester/event limits.
@@ -2210,7 +2233,8 @@ The host should feel:
 - [ ] No email bypass after opt-out.
 - [ ] Private code stored encrypted once.
 - [ ] Private code attempts rate-limited.
-- [ ] Nothing on the card or page is visible before the code on the shared-link path.
+- [ ] Nothing on the card or page is visible before the code on the shared-link path, other than the
+  event title on the sealed envelope.
 - [ ] QR does not bypass code.
 
 ### Roles/publishing
@@ -2259,9 +2283,10 @@ The host should feel:
     artwork in a brief or an image.
 19. Validate every card-design response against the strict schema and catalogs, whatever the
     provider claims to enforce.
-20. Re-prompt only for a schema-invalid design, a wording fact-check failure or an exact repeat of
-    an earlier direction, once each; regenerate artwork once only for failed validation. Never call
-    a model for legibility, fit or compatibility.
+20. Re-prompt the card-design call only for a schema-invalid design, a model-wording fact-check
+    failure or an exact repeat of an earlier direction, once each; regenerate artwork once only for
+    failed validation; Event Identity and fact extraction get one repair retry each
+    (`docs/model-contracts.md §9`). Never call a model for legibility, fit or compatibility.
 21. No library, template or stock fallback. A failed generation is shown honestly with a retry.
 22. Choose ink and panels deterministically; every card text clears 4.5:1 against a conservatively
     measured background.
@@ -2338,7 +2363,8 @@ Intentionally deferred; may become roadmap items:
 - Missing-phone imported parties cannot RSVP through the shared link until fixed, overridden or
   sent their personal link.
 - Name lookup reveals minimal party-name existence to someone who can guess.
-- SMS can fail; STOP is not bypassed through email.
+- SMS can fail; STOP is not bypassed through email. A party that has opted out cannot verify by SMS
+  code on the shared-link path; the host sends it its personal link instead.
 - Generated artwork can miss the brief; `Try another direction` is the remedy, not an image editor.
 - Image-generation latency and cost vary and must be measured.
 - Native product thumbnail may be unavailable and must fall back gracefully.

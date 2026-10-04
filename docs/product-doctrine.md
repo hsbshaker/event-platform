@@ -57,8 +57,8 @@ Optimize for excellence on the card and pragmatism everywhere else:
 - **the house-style page, operations, edge cases** — ordinary MVP scope; clean and dependable is
   enough.
 
-`spec.md §34` is the right shape for accepted limitations: every item there is a functional gap,
-and none is an aesthetic concession on the card.
+`spec.md §34` is the right shape for accepted limitations: every item there is a functional gap or
+an operational risk with a stated remedy, and none lowers the bar the first card has to clear.
 
 ## 3. The make-or-break capability is understanding
 
@@ -340,7 +340,7 @@ phase of `docs/development-plan.md`:
 | 2 | The final layout catalog and slot limits | Phase 3 bake-off |
 | 3 | The card-reveal latency target (`spec.md §7.10`, ~30 s working target) | Phase 3 bake-off measurement |
 | 4 | Whether $49 survives comparison with invitation products (`spec.md §3.2`) | Before launch |
-| 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 4 |
+| 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 5 |
 | 6 | An email provider for the reminder/announcement fallback in `spec.md §13.1` (no email provider is in the locked stack) | Phase 10 |
 
 ## 15. Where the work starts

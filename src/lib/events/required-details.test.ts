@@ -36,7 +36,7 @@ const COMPLETE: EventDetailFields = {
 };
 
 describe("required details (spec.md §23.1)", () => {
-  it("adds no requirement beyond the ones §23.1 lists (§32 #44)", () => {
+  it("adds no requirement beyond the ones §23.1 lists (§32 #45)", () => {
     expect([...REQUIRED_DETAIL_KEYS]).toEqual([
       "title",
       "eventDate",
@@ -99,6 +99,6 @@ describe("required details (spec.md §23.1)", () => {
 
 describe("the model boundary stays shut in Phase 2 (spec.md §32 #4)", () => {
   it("refuses to hand out a provider at all, signed in or not", () => {
-    expect(() => getAiProvider()).toThrow(/Phase 4/);
+    expect(() => getAiProvider()).toThrow(/Phase 5/);
   });
 });

@@ -112,7 +112,7 @@ export interface EnsureDraftInput {
   ip: string | null;
   /**
    * `"autosave"` is the background write behind the composer and spends the autosave budget.
-   * `"submit"` is the visitor pressing `Create my event`; it never spends that budget, because
+   * `"submit"` is the visitor pressing `Create my invitation`; it never spends that budget, because
    * a background save limit must not be able to block the primary funnel. Creating a brand new
    * draft row is throttled either way.
    */
