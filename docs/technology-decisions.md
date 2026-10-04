@@ -221,12 +221,14 @@ needed.
 | API model IDs | `gpt-6.1-sol` (Event Identity, Card Design, artwork inspection); `gpt-6-luna` (fact extraction); `gpt-image-2.5-sunburst-2026-09-08` (artwork, pinned snapshot); `omni-moderation-latest` (image safety) |
 | Raster | 1440 × 2016 (5:7) and 1440 × 1440 (1:1), PNG, opaque full bleed. No transparent-background workflow: the outline is a code mask and the art is painted to every edge |
 | Text and safety detection | The provider's own output moderation, then `omni-moderation-latest`, then a structured GPT 6.1 Sol inspection for text, logos or brand marks, and mockups (≈ 4 s, ≈ $0.005 per artwork) |
-| Latency (p50) | Event Identity 11 s, Card Design 11 s, artwork 31 s at `high`, inspection 4 s; ≈ 57 s prompt to card. `low` text effort and Sunburst `medium`: ≈ 38 s |
-| Cost per card | ≈ $0.08 at `high` (artwork $0.06); ≈ $0.04 with Sunburst `medium` |
+| Latency (p50) | Event Identity 11 s, Card Design 11 s, artwork 31 s at `high`, inspection 4 s; ≈ 57 s prompt to card (`low` text effort and Sunburst `medium` would give ≈ 38 s; not adopted) |
+| Cost per card | ≈ $0.08 at `high` (artwork $0.06); ≈ $0.03 at `medium` (artwork $0.017) |
 | Flare | Not faster than Sunburst `medium` in the probe, and less faithful to the composition rules; not adopted |
+| **Quality setting** | **Sunburst `high`** — owner decision, 2026-10-04. All 15 corpus designs were painted at `high` and `medium` and compared as finished cards and at full resolution: no loss of detail at `medium`, but the owner found `high` brighter and more vibrant, and `medium`'s first attempts failed the artwork checks more often (2 of 15 against 1 of 33). `medium` would halve the artwork wait (17 s against 31 s) and cut its cost to $0.017; revisiting that is a deliberate decision recorded here |
+| Rate limits | The account's current image rate limit (a few images per minute) throttled even this test run. Production needs a higher OpenAI usage tier, sized against the per-account and global generation caps of `spec.md §10`, before launch |
 
-Still open with the owner: the quality setting and reveal-latency target (`spec.md §7.10`), and how
-briefs treat famous characters the provider refuses (`spec.md §7.6`).
+The reveal-latency target was re-set with the owner from these measurements (`spec.md §7.10`), and
+the handling of provider refusals of famous characters was decided with them (`spec.md §7.6`).
 
 ## 8.2 Card rendering without a production browser
 

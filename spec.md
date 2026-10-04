@@ -739,12 +739,16 @@ Latency goals, p75:
 
 | Milestone | Target |
 | --- | --- |
-| Event Identity visible | ≤ 5 s |
-| Card revealed | ≤ 30 s — working target |
+| Event Identity visible | ≤ 15 s |
+| Card revealed | ≤ 70 s |
 
-The card target is provisional: it is re-set deliberately from the image-model latency measured in
-Phase 3 validation, never widened quietly to match whatever was built. Measure reality; do not
-silently allow unbounded waits.
+Re-set deliberately with the owner on 2026-10-04 from the Phase 3 measurements
+(`docs/model-evals/phase-3-validation.md`): identity p50 11 s and p75 14 s; card design p50 11 s
+and p75 13 s; artwork p50 31 s and p75 33 s at Sunburst `high`; inspection 4 s — about 57 s prompt
+to card at p50 and 64 s at p75, more when an artwork check earns its regeneration. The owner chose
+`high` over a faster `medium` for its colour; the wait is real work for the host, because the
+details form of §7.3 is offered while it runs. Any further change is again deliberate and measured;
+never widen these quietly.
 
 ### 7.11 Card reveal
 

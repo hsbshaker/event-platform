@@ -166,8 +166,11 @@ CardDesign {
 }
 ```
 
-Exact string bounds are set with the layout set in Phase 3 validation and are generated into the
-schema from the layout catalog, so a valid design always fits (`card-system.md §4.3`).
+String bounds (Phase 3, `model-schemas/card-design.schema.json`): `title` 2–40 characters,
+`invitationLine` 8–72, `artBrief.subject` 8–300, other brief fields 3–200, `avoid` 0–8 items. They
+are generated into the schema from the layout catalog, so a valid design always fits
+(`card-system.md §4.3`). Strict structured output does not enforce `maxLength`, so the prompt
+states the limits and validation checks them.
 
 The palette in the art brief steers the artwork. It never becomes a text, ink or page colour; ink
 is resolved from the finished artwork by code (`card-system.md §4.2`).

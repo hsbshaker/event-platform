@@ -113,8 +113,8 @@ Round 2 also exposed a bug in the mock's ink rule (below), fixed before publishi
   working target of ≤ 30 s is not met by either; re-setting it is an owner decision.
 - Cost per card ≈ **$0.08** (identity $0.004, facts $0.0001, design $0.007, artwork $0.06,
   inspection $0.005).
-- Phase spend so far: **$3.23** of the $25 cap (both rounds, the shape switches, the latency probe
-  and the homage experiment).
+- Phase spend: **$3.61** of the $25 cap — both rounds, the shape switches, the latency probe, the
+  homage experiment and the medium-quality comparison.
 
 ### Open decisions for the owner
 
@@ -147,8 +147,29 @@ prompt and the framed and atmosphere layouts' presence rules, measured on this c
 ### Owner decisions taken on the results
 
 1. **Latency.** The wait is filled by the details form (`spec.md §7.10`), so the reveal target is
-   re-set from the measurements rather than held at 30 s. Sunburst `medium` is adopted only if it
-   shows no loss of quality against `high` on the full corpus (comparison below).
+   re-set from the measurements rather than held at 30 s. Sunburst `medium` was to be adopted only
+   with no loss of quality against `high`; after the full-corpus comparison below, the owner kept
+   `high`.
 2. **Famous characters.** Keep close homage on the first attempt. When the provider refuses it,
    the one regeneration re-prompts the design to evoke the character's world rather than its
    signature look, with a short, plain copyright note to the host (`spec.md §7.6`).
+
+### High against medium, on the full corpus
+
+The 15 round-2 designs that produced artwork were painted again at Sunburst `medium` and composed
+the same way; each pair was compared as finished cards and as full-resolution crops of the most
+detailed part of each artwork (published to the owner as "High vs Medium Artwork").
+
+| | `high` | `medium` |
+| --- | --- | --- |
+| Artwork time, p50 | 31 s | 17 s |
+| Cost per artwork | $0.06 | $0.017 |
+| First attempts caught by the checks | 1 of 33 (a mockup) | 2 of 15 (a mockup; compass-rose lettering) |
+| Detail and brushwork at full resolution | — | no loss found by inspection |
+| Colour | brighter, more vibrant | flatter (owner's judgement) |
+
+**Decision: stay at `high`** (owner, 2026-10-04): "high seems to have brighter and more vibrant
+images". The detail comparison found nothing; the owner's eye found the difference in colour,
+which matters more on a card. `high` keeps the lower check-failure rate too. Prompt to card is
+about 57 s at p50, and the latency targets were re-set to identity ≤ 15 s and card ≤ 70 s at p75
+(`spec.md §7.10`).

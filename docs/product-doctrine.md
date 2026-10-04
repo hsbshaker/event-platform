@@ -228,10 +228,11 @@ request: that is `Try another direction`.
 
 ### Latency, as a north star
 
-Canonical targets are `spec.md §7.10`: identity visible in ~5 s, the card revealed in a working
-target of ~30 s, re-set from measurement once a real image model is chosen.
+Canonical targets are `spec.md §7.10`: identity visible within 15 s and the card revealed within
+70 s at p75, re-set from the Phase 3 measurements. The owner kept the slower, more vibrant `high`
+artwork over a faster setting, and the host fills in details while it runs.
 
-> **30 seconds for something exceptional beats 8 seconds for something mediocre.**
+> **A minute for something exceptional beats eight seconds for something mediocre.**
 
 Quality sets the ceiling first; then latency is optimised aggressively.
 
@@ -339,9 +340,9 @@ phase of `docs/development-plan.md`:
 
 | # | Open question | Where it gets decided |
 | --- | --- | --- |
-| 1 | ~~Which image model~~ — **decided**: GPT 6.1 Sol for text, GPT Image 2.5 Sunburst for artwork (`technology-decisions.md §8.1`). Still open: transparent-background or full-bleed workflow; how embedded text and unsafe content are detected | Phase 3 validation |
-| 2 | The final layout catalog, which shapes each layout supports, slot limits and the shapes' outline geometry | Phase 3 validation |
-| 3 | The card-reveal latency target (`spec.md §7.10`, ~30 s working target) | Phase 3 validation measurement |
+| 1 | ~~Which image model and workflow~~ — **decided**: GPT 6.1 Sol for text, GPT Image 2.5 Sunburst at `high` for artwork, opaque full-bleed, text and safety detection by provider moderation + `omni-moderation-latest` + a GPT 6.1 Sol inspection (`technology-decisions.md §8.1`) | Phase 3 validation — closed |
+| 2 | ~~The layout catalog and shapes~~ — **validated** in Phase 3 (`card-system.md §2.3`); made versioned code, with the outline geometry and per-shape limits, in Phase 4 | Phase 4 |
+| 3 | ~~The card-reveal latency target~~ — **re-set** from measurement with the owner (`spec.md §7.10`) | Phase 3 validation — closed |
 | 4 | Whether $49 survives comparison with invitation products (`spec.md §3.2`) | Before launch |
 | 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 5 |
 | 6 | An email provider for the reminder/announcement fallback in `spec.md §13.1` (no email provider is in the locked stack) | Phase 10 |
@@ -357,3 +358,7 @@ corpus, a first `generateCardDesign`, and GPT Image 2.5 Sunburst on real briefs 
 judged by people, in colour. The models are already chosen; the phase proves the API reproduces
 what the owner saw, fixes the layout catalog and measures latency. Everything else — the compiler,
 Creation Mode, invitations — is built on what it proves.
+
+**Answered on 2026-10-04: yes.** The owner judged 11 of 14 corpus cards ones they would send as
+they are, against a bar of 10 set before any output existed
+(`docs/model-evals/phase-3-validation.md`).

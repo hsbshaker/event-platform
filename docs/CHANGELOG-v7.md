@@ -185,9 +185,29 @@ model is picked there too. Documents changed: `technology-decisions.md` (§2, §
 `development-plan.md` (principles, Phase 3), `spec.md` (§7.6a, §7.8, §7.10, §9.1, §9.2, §11.3),
 `card-system.md`, `model-contracts.md`, `product-doctrine.md §14`–`§15`, `CLAUDE.md`, `README.md`.
 
+### 7.1 — Phase 3 validation: the card clears the bar
+
+The chosen models were run through the API on the fourteen-case corpus and the owner's two briefs
+(`docs/model-evals/phase-3-validation.md`). Before any output existed the owner set the bar —
+10 of 14 cards they would send as they are — and judged round 2 at **11 of 14**. Spend: $3.61 of a
+$25 cap. Decisions taken on the results:
+
+| Question | Decision |
+| --- | --- |
+| Image quality setting | Sunburst `high`: on a full-corpus comparison `medium` lost no detail and would halve the wait, but the owner found `high` brighter and more vibrant |
+| Reveal latency | Re-set from measurement: identity ≤ 15 s, card ≤ 70 s at p75; the details form fills the wait (`spec.md §7.10`) |
+| A famous character the provider refuses | First attempt keeps the close homage; the regeneration steps back to the character's world with a short, plain copyright note (`spec.md §7.6`, §31; `card-design.system.md §10`; re-prompt kind `provider-refusal`) |
+
+Also written in from the run: the validated layout set with each layout's shapes and art modes
+(`card-system.md §2.3`), the 1440-pixel rasters, the text and safety detection chain and pinned model
+IDs (`technology-decisions.md §8.1`), the Card Design string bounds (`model-contracts.md §5.1`),
+the `card_design_v1` and `fact_extraction_v1` prompts and the generated `card-design.schema.json`.
+The corpus's CU-11 `eventType` is corrected to the host's literal "Baby shower", as its own rule
+requires. Carried forward: presence for sparse cards (Phase 5), a unit test for the ink rule's
+tail selection (Phase 4), a higher OpenAI usage tier before launch (Phase 10).
+
 ## Still open
 
-Tracked in `docs/product-doctrine.md §14`: the image-model workflow (transparency, text and safety
-detection); the layout catalog and slot limits; the reveal latency target; the $49 re-check; the
-clarification question schema; an email provider for the reminder fallback; legal review of the
-brand line.
+Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
+re-check; the clarification question schema; an email provider for the reminder fallback; legal
+review of the brand line.

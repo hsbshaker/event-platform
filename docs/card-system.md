@@ -73,8 +73,9 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
   layout are identical on a 390px phone and on desktop. Nothing reflows.
 - Generated artwork is produced at (or resampled to) a fixed raster at the shape's proportion,
   sized for sharp display on high-density phones. GPT Image 2.5 Sunburst takes custom sizes in
-  multiples of 16, so it can paint each proportion natively (for example 1440 × 2016 for 5:7 and
-  1440 × 1440 for 1:1); the exact size is fixed in Phase 3 validation.
+  multiples of 16, so it paints each proportion natively: **1440 × 2016** for 5:7 and
+  **1440 × 1440** for 1:1, PNG, opaque and full bleed (fixed in Phase 3 validation,
+  `technology-decisions.md §8.1`).
 
 **Shapes.** Six, each a proportion plus an outline:
 
@@ -138,15 +139,20 @@ layout declares the shapes it supports, and for each of them defines:
   unfinished; the layout states the presence it wants as well as the space it reserves;
 - its legibility-panel shape, used only when §4.2 needs it.
 
-The initial set is proposed here and **fixed in Phase 3 validation** (`docs/development-plan.md`):
+The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`; the tested geometry,
+composition and presence rules are in `scripts/phase-3/catalog.mjs` until Phase 4 makes them
+versioned product code):
 
-| Layout | Text | Artwork |
-| --- | --- | --- |
-| `art-top` | lower half, centred | subject in the upper half; lower half quiet |
-| `art-bottom` | upper half, centred | subject grounded at the bottom (still life, scenery) |
-| `framed` | centred panel | border, wreath, garland or frame surrounding a quiet centre |
-| `corners` | centred | motifs clustered in two or more corners; centre quiet |
-| `atmosphere` | centred | soft full-bleed wash or texture, low contrast throughout |
+| Layout | Text | Artwork | Shapes | Art modes |
+| --- | --- | --- | --- | --- |
+| `art-top` | lower part, centred | subject in the upper half; the bottom 45% stays clear | all six | `illustration` |
+| `art-bottom` | upper part, centred | subject grounded at the bottom; the top 45% stays clear | all six | `illustration` |
+| `framed` | centred panel | border, wreath, garland or frame — rich, built from the event's motifs — around a quiet centre | all six | `framed`, `minimal` |
+| `corners` | centred | substantial motif clusters in two or more corners; centre quiet | `rectangle`, `rounded-rectangle`, `square` | `illustration`, `framed` |
+| `atmosphere` | centred | full-bleed wash or texture with real depth, low contrast through the centre | all six | `atmosphere`, `minimal` |
+
+Phase 3's two judged misses were both sparse (a frame around a large empty centre, a quiet wash),
+so the presence rules of `framed` and `atmosphere` are the first thing to strengthen.
 
 Not every layout suits every shape (text clustered toward a corner does not belong in an oval or
 a circle); a layout's supported shapes are part of the set and are validated (§4.1).
