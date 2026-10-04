@@ -34,18 +34,24 @@ export const WORDING_LIMITS: Readonly<Record<WordingSlotId, { min: number; max: 
   invitationLine: { min: 8, max: 72 },
 };
 
+/** The fact slots the host types (`docs/card-system.md §2.5`); the others are formatted by code. */
+export const FREE_TEXT_FACT_SLOT_IDS = ["babyName", "hosts", "venue"] as const;
+export type FreeTextFactSlotId = (typeof FREE_TEXT_FACT_SLOT_IDS)[number];
+
+/** The formatted fact slots: date, time and RSVP-by, from stored values (`facts.ts`). */
+export const FORMATTED_FACT_SLOT_IDS = ["date", "time", "rsvpBy"] as const;
+export type FormattedFactSlotId = (typeof FORMATTED_FACT_SLOT_IDS)[number];
+
 /**
- * Maximum characters of a fact entry.
+ * Maximum characters of a free-text fact entry, enforced at entry (`validateCardText`). The date,
+ * time and RSVP-by are formatted by code and bounded by `CARD_FACT_MAX_LENGTH` (`facts.ts`).
  *
- * PROVISIONAL: these are working values, to be proven or adjusted by the Phase 4 layout
- * fixtures (worst-case content in every layout x pairing). Changing one after launch is a
- * layout-set version bump (`spec.md §32 #24`).
+ * Layout-set data (`card_layouts_v2`): proven by the layout fixtures, worst-case content in every
+ * layout × supported shape × pairing. Changing one is a layout-set version bump
+ * (`spec.md §32 #24`).
  */
-export const FACT_ENTRY_LIMITS: Readonly<Record<FactSlotId, number>> = {
+export const FACT_ENTRY_LIMITS: Readonly<Record<FreeTextFactSlotId, number>> = {
   babyName: 40,
   hosts: 60,
-  date: 40,
-  time: 24,
   venue: 60,
-  rsvpBy: 40,
 };

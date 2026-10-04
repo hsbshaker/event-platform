@@ -11,6 +11,7 @@ import { Field } from "@/components/app/Field";
 import { Input } from "@/components/app/Input";
 import { InlineStatus } from "@/components/app/InlineStatus";
 import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
+import { cardTextFieldError, type CardTextField } from "@/lib/events/card-text";
 
 /**
  * The missing-details autosave form (spec.md §7.3, docs/design-system.md §3.7/§11,
@@ -27,7 +28,8 @@ import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+/** `refused`: the value was not saved because the card cannot show it; the message is beside the field. */
+type SaveState = "idle" | "saving" | "saved" | "error" | "refused";
 
 function isoToLocalInputValue(iso: string | null, timeZone: string): string {
   if (!iso) return "";
@@ -153,7 +155,8 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
       setFieldErrors((prev) => ({ ...prev, ...(result.fieldErrors ?? {}) }));
       setFieldStatus((prev) => {
         const next = { ...prev };
-        keys.forEach((key) => (next[key] = "error"));
+        // An entry refusal has its message beside the field; only a real failure is a save error.
+        keys.forEach((key) => (next[key] = result.fieldErrors?.[key] ? "refused" : "error"));
         return next;
       });
     }
@@ -176,6 +179,89 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
       delete debounceTimers.current[debounceKey];
     }
     void commit(patch, keys);
+  }
+
+  /**
+   * A field the card shows as typed (hosts, baby's name, venue name, the address's first line):
+   * checked as the host types,
+   * with the same check the server action applies (`cardTextFieldError`). Text the card could not
+   * show is not saved; its message sits beside the field until the text changes.
+   */
+  function editCardText(field: CardTextField, value: string) {
+    const error = cardTextFieldError(field, value);
+    if (error) {
+      if (debounceTimers.current[field]) {
+        clearTimeout(debounceTimers.current[field]);
+        delete debounceTimers.current[field];
+      }
+      setFieldErrors((prev) => ({ ...prev, [field]: error }));
+      setFieldStatus((prev) => ({ ...prev, [field]: "refused" }));
+      return;
+    }
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    saveDebounced(field, { [field]: value }, [field]);
+  }
+
+  function flushCardText(field: CardTextField, value: string) {
+    if (cardTextFieldError(field, value)) return;
+    flush(field, { [field]: value }, [field]);
+  }
+
+  /**
+   * The venue name and address, which depend on each other: the card shows the address's first
+   * line only when there is no venue name (the same rule the server action applies). Editing
+   * either re-checks both against the current values. A refused value is not saved; when the
+   * edit lifts an earlier refusal on the other field, that field is saved with it, in one
+   * request, so the server sees the same effective pair.
+   */
+  function venuePair(field: "venueName" | "address", value: string, flushNow: boolean) {
+    const venue = field === "venueName" ? value : venueName;
+    const addr = field === "address" ? value : address;
+    const venueError = cardTextFieldError("venueName", venue, { address: addr });
+    const addressError = cardTextFieldError("address", addr, { venueName: venue });
+    const other = field === "venueName" ? "address" : "venueName";
+    const own = field === "venueName" ? venueError : addressError;
+    const otherError = field === "venueName" ? addressError : venueError;
+
+    if (debounceTimers.current.venue) {
+      clearTimeout(debounceTimers.current.venue);
+      delete debounceTimers.current.venue;
+    }
+    if (own) {
+      // When both refuse, the changed field's message is the one to show.
+      setFieldErrors((prev) => {
+        const next = { ...prev, [field]: own };
+        if (otherError) delete next[other];
+        return next;
+      });
+      setFieldStatus((prev) => ({ ...prev, [field]: "refused" }));
+      return;
+    }
+    const patch: EventDetailsPatch = { [field]: value };
+    const keys: string[] = [field];
+    const otherPending = Boolean(fieldErrors[other]) && !otherError;
+    if (otherPending) {
+      patch[other] = other === "venueName" ? venue : addr;
+      keys.push(other);
+    }
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      if (otherPending) delete next[other];
+      return next;
+    });
+    if (flushNow) {
+      void commit(patch, keys);
+    } else {
+      debounceTimers.current.venue = setTimeout(() => {
+        delete debounceTimers.current.venue;
+        void commit(patch, keys);
+      }, AUTOSAVE_DEBOUNCE_MS);
+    }
   }
 
   const rsvpLocalValue = useMemo(
@@ -275,9 +361,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
                   value={venueName}
                   onChange={(event) => {
                     setVenueName(event.target.value);
-                    saveDebounced("venueName", { venueName: event.target.value }, ["venueName"]);
+                    venuePair("venueName", event.target.value, false);
                   }}
-                  onBlur={() => flush("venueName", { venueName }, ["venueName"])}
+                  onBlur={() => venuePair("venueName", venueName, true)}
                 />
               )}
             </Field>
@@ -289,9 +375,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
                   value={address}
                   onChange={(event) => {
                     setAddress(event.target.value);
-                    saveDebounced("address", { address: event.target.value }, ["address"]);
+                    venuePair("address", event.target.value, false);
                   }}
-                  onBlur={() => flush("address", { address }, ["address"])}
+                  onBlur={() => venuePair("address", address, true)}
                 />
               )}
             </Field>
@@ -306,9 +392,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
               value={hosts}
               onChange={(event) => {
                 setHosts(event.target.value);
-                saveDebounced("hosts", { hosts: event.target.value }, ["hosts"]);
+                editCardText("hosts", event.target.value);
               }}
-              onBlur={() => flush("hosts", { hosts }, ["hosts"])}
+              onBlur={() => flushCardText("hosts", hosts)}
             />
           )}
         </Field>
@@ -326,9 +412,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
               value={babyName}
               onChange={(event) => {
                 setBabyName(event.target.value);
-                saveDebounced("babyName", { babyName: event.target.value }, ["babyName"]);
+                editCardText("babyName", event.target.value);
               }}
-              onBlur={() => flush("babyName", { babyName }, ["babyName"])}
+              onBlur={() => flushCardText("babyName", babyName)}
             />
           )}
         </Field>
@@ -426,5 +512,7 @@ function SaveSummary({ status }: { status: Record<string, SaveState> }) {
       </InlineStatus>
     );
   }
+  // A refused entry already has its message beside the field; nothing more to say here.
+  if (values.some((s) => s === "refused")) return null;
   return <InlineStatus variant="success">Saved</InlineStatus>;
 }

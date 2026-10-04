@@ -47,15 +47,86 @@ const SERVICE_ROLE_CALLERS = [
   "src/app/api/cron/purge-pre-auth/route.ts",
 ];
 
+/**
+ * App / card / page boundary — `docs/design-system.md §15.1`, `§23.7`.
+ *
+ * App chrome (`src/components/app`) and the routes and pages (`src/app`, which hold the house-style
+ * guest page) render the card only through `InvitationCard`'s data-in props. They never import the
+ * card fonts or the card renderer's internals, so card styling cannot leak into app chrome or the
+ * page, and the renderer's internals can change without touching them.
+ */
+const CARD_RENDERER = {
+  group: [
+    "**/card-fonts.css",
+    "@/components/card/**",
+    "**/components/card/**",
+    "!@/components/card/InvitationCard",
+    "!**/components/card/InvitationCard",
+  ],
+  message:
+    "App chrome and the guest page take no card styling (design-system.md §15.1, §23.7): render the card through @/components/card/InvitationCard only, and never import card-fonts.css or the card renderer's internals.",
+};
+
+/**
+ * From `src/components/app`, the renderer is a sibling directory: `../card/...`, or `../../card/...`
+ * and so on from folders nested inside app chrome.
+ */
+const CARD_RENDERER_SIBLING = {
+  group: [
+    "../card/**",
+    "../../card/**",
+    "../../../card/**",
+    "!../card/InvitationCard",
+    "!../../card/InvitationCard",
+    "!../../../card/InvitationCard",
+  ],
+  message: CARD_RENDERER.message,
+};
+
+/**
+ * The other direction (`design-system.md §23.7`, "the card renderer does not consume app component
+ * styling"): the card renderer imports no app component, app tokens or global app styles.
+ */
+const APP_STYLING = {
+  group: [
+    "@/components/app/**",
+    "**/components/app/**",
+    "../app/**",
+    "**/app-tokens.css",
+    "**/globals.css",
+  ],
+  message:
+    "The card renderer takes no app styling (design-system.md §15.1, §23.7): no app components, app tokens or global app styles inside the card.",
+};
+
+const CARD_BOUNDARY_FILES = ["src/app/**", "src/components/app/**"];
+
 const restricted = (...patterns) => ({
   "no-restricted-imports": ["error", { patterns }],
 });
 
+// One rule, several boundaries: a later block replaces an earlier block's options for the same
+// files, so each block lists every boundary that applies to its files.
 const boundaryRules = [
   // The service role is off-limits everywhere under src/ ...
   { files: ["src/**"], rules: restricted(SERVICE_ROLE) },
-  // ... except that the modules above have earned it.
+  // ... and app chrome and the pages also stay on their side of the card boundary ...
+  { files: ["src/app/**"], rules: restricted(SERVICE_ROLE, CARD_RENDERER) },
+  {
+    files: ["src/components/app/**"],
+    rules: restricted(SERVICE_ROLE, CARD_RENDERER, CARD_RENDERER_SIBLING),
+  },
+  // ... and the card renderer stays on its own side too.
+  { files: ["src/components/card/**"], rules: restricted(SERVICE_ROLE, APP_STYLING) },
+  // ... except that the modules above have earned the service role,
   { files: SERVICE_ROLE_CALLERS, rules: { "no-restricted-imports": "off" } },
+  // though not an exemption from the card boundary.
+  {
+    files: SERVICE_ROLE_CALLERS.filter((file) =>
+      CARD_BOUNDARY_FILES.some((dir) => file.startsWith(dir.slice(0, -2))),
+    ),
+    rules: restricted(CARD_RENDERER),
+  },
   // Tests are outside the rule.
   { files: ["src/**/*.test.ts"], rules: { "no-restricted-imports": "off" } },
 ];
@@ -75,4 +146,4 @@ const eslintConfig = defineConfig([
 ]);
 
 export default eslintConfig;
-export { SERVICE_ROLE_CALLERS };
+export { CARD_BOUNDARY_FILES, SERVICE_ROLE_CALLERS };

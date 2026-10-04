@@ -3,7 +3,8 @@
 
 **Status:** Revision 3 — invitation-card baseline
 **Prompt versions:** `event_identity_v4`, `card_design_v1` (written in Phase 3 validation),
-`card_art_v1` (deterministic assembly, written in Phase 3 validation)
+`card_art_v2` (deterministic assembly; `card_art_v1` written in Phase 3 validation, `card_art_v2`
+in Phase 4 with `card_layouts_v2`)
 **Schema versions:** `event_identity_schema_v4`, `card_design_schema_v1` (written in Phase 3
 validation)
 **Models:** GPT 6.1 Sol (Event Identity, Card Design); GPT Image 2.5 Sunburst (Card Art) —
@@ -53,9 +54,9 @@ EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v4"
 EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v4"
 CARD_DESIGN_PROMPT_VERSION    = "card_design_v1"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v1"
-CARD_ART_PROMPT_VERSION       = "card_art_v1"
-CARD_LAYOUT_SET_VERSION       = "card_layouts_v1"
-CARD_COMPILER_VERSION         = "card_compiler_v1"
+CARD_ART_PROMPT_VERSION       = "card_art_v2"
+CARD_LAYOUT_SET_VERSION       = "card_layouts_v2"
+CARD_COMPILER_VERSION         = "card_compiler_v2"
 ```
 
 Record every version with generation telemetry, plus the image model per artwork. Do not edit a
@@ -145,7 +146,7 @@ CardDesign {
   }
   shape: "rectangle" | "rounded-rectangle" | "arch" | "oval"   // portrait 5:7
        | "square" | "circle"                                  // square 1:1 (card-system.md §2.1)
-  layout: CardLayoutId           // card_layouts_v1 catalog (card-system.md §2.3); must support shape
+  layout: CardLayoutId           // card_layouts_v2 catalog (card-system.md §2.3); must support shape
   artMode: "illustration" | "framed" | "atmosphere" | "minimal"
   typography: {
     primary: TypographyPairingId                 // src/lib/card/typography.ts
@@ -280,18 +281,21 @@ it — it measures the creative stack, not the compiler.
 
 ---
 
-# 7. Card art (`card_art_v1`)
+# 7. Card art (`card_art_v2`)
 
 ## 7.1 Art prompt assembly
 
 The art prompt is assembled **by application code**, never written verbatim by a model:
 
 - the art brief's subject, medium, mood, palette description and colours, texture;
-- the layout's composition rule (where the subject may sit, which regions stay quiet);
+- the layout's composition and presence rules for the shape (where the subject may sit, which
+  regions stay quiet; on a square, oval or arch card a picture above or below the words takes 40%,
+  `card-system.md §2.3`);
 - the shape's crop-safety rule: for `illustration` and `atmosphere` art, the rule of the tightest
-  outline among the layout's supported shapes of that proportion (everything important inside it),
-  so the artwork fits all of them; for `framed` and `minimal` art, the rule of the requested shape
-  only (`card-system.md §2.4`);
+  outline among the shapes the artwork fits — the layout's supported shapes of that proportion with
+  the same composition and presence (everything important inside it), so the artwork fits all of
+  them; for `framed` and `minimal` art, the rule of the requested shape only (`card-system.md
+  §2.4`);
 - the art mode's instruction (illustration, framed, atmosphere, minimal);
 - the global rules: no text, letters or numbers; no logos, wordmarks, brand or character names, or
   watermarks; no copied campaign artwork; an

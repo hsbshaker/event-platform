@@ -56,7 +56,9 @@ describe.each([
       expect(await page.locator("h1").innerText()).toMatch(/Describe your event/i);
       expect(await becomesVisible(page, "#prompt")).toBe(true);
       expect(await page.getByRole("button", { name: /add inspiration/i }).isVisible()).toBe(true);
-      expect(await page.getByRole("button", { name: /create my event/i }).isVisible()).toBe(true);
+      expect(await page.getByRole("button", { name: /create my invitation/i }).isVisible()).toBe(
+        true,
+      );
       expect(await page.getByRole("link", { name: /^sign in$/i }).isVisible()).toBe(true);
 
       // §32 #3 and #6: nothing stands between arriving and writing. The canonical
@@ -174,13 +176,13 @@ describe("the composer keeps what the visitor wrote", () => {
     const { page, close } = await newPage(browser, DESKTOP);
     try {
       await page.goto(requireApp().baseUrl, { waitUntil: "domcontentloaded" });
-      const create = page.getByRole("button", { name: /create my event/i });
+      const create = page.getByRole("button", { name: /create my invitation/i });
       expect(await create.isDisabled()).toBe(true);
       await page.locator("#prompt").fill("A baby shower");
       await page.waitForFunction(
         () =>
           ![...document.querySelectorAll("button")].find((b) =>
-            /create my event/i.test(b.textContent ?? ""),
+            /create my invitation/i.test(b.textContent ?? ""),
           )?.disabled,
         undefined,
         { timeout: 5_000 },

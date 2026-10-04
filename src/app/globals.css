@@ -99,3 +99,56 @@ html {
 .text-micro {
   font: var(--type-micro);
 }
+
+/*
+ * Envelope opening (docs/design-system.md §8.3, §10.20). The flap lifts and the envelope
+ * settles away while the card rises into place, within `--motion-reveal`. Under reduced motion
+ * (§8.5) the component skips the opening phase entirely, and these animations are also off.
+ */
+@keyframes envelope-flap-open {
+  from {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: rotateX(180deg);
+    opacity: 0;
+  }
+}
+@keyframes envelope-shell-away {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(var(--space-6));
+    opacity: 0;
+  }
+}
+@keyframes envelope-card-rise {
+  from {
+    transform: translateY(var(--space-10));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.envelope-flap-opening {
+  transform-origin: top;
+  animation: envelope-flap-open var(--motion-slow) var(--ease-standard) both;
+}
+.envelope-shell-opening {
+  animation: envelope-shell-away var(--motion-reveal) var(--ease-standard) both;
+}
+.envelope-card-opening {
+  animation: envelope-card-rise var(--motion-reveal) var(--ease-standard) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .envelope-flap-opening,
+  .envelope-shell-opening,
+  .envelope-card-opening {
+    animation: none;
+  }
+}

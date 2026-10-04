@@ -9,6 +9,8 @@ import {
   type ApplyPatchResult,
   type EventPatchStore,
 } from "@/lib/events/apply-patch";
+import { cardVenue } from "@/lib/card/facts";
+import { cardTextFieldErrors } from "@/lib/events/card-text";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
@@ -109,7 +111,7 @@ function toFields(row: EventRow): EventDetailFields {
 
 /** The shape the pure content modules take: one venue display value, not two columns. */
 function toContentSource(fields: EventDetailFields) {
-  return { ...fields, venue: fields.venueName ?? fields.address };
+  return { ...fields, venue: cardVenue(fields.venueName, fields.address) };
 }
 
 function toView(row: EventRow, now: Date): EventDraftView {
@@ -162,6 +164,21 @@ export async function updateEventDetails(
   }
   const input = parsed.data;
 
+  // Words the card shows are refused at entry when the card could not show them (spec.md §31,
+  // "slot limits are enforced at entry"; docs/card-system.md §2.5).
+  // The venue name and address depend on each other (the card shows the address's first line only
+  // without a venue name), so here only the checks that stand alone run: a non-empty venue name.
+  // The address, and a cleared venue name, are checked after auth against the stored values.
+  const cardErrors = cardTextFieldErrors({
+    title: input.title,
+    hosts: input.hosts,
+    babyName: input.babyName,
+    venueName: (input.venueName ?? "") === "" ? undefined : input.venueName,
+  });
+  if (cardErrors) {
+    return { ok: false, error: "Check the highlighted fields.", fieldErrors: cardErrors };
+  }
+
   try {
     await requireEventAccess(eventId, "edit_event_content");
   } catch (error) {
@@ -172,6 +189,30 @@ export async function updateEventDetails(
   }
 
   const supabase = await createClient();
+
+  if (input.venueName !== undefined || input.address !== undefined) {
+    const { data, error } = await supabase
+      .from("events")
+      .select("venue_name, address")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (error) {
+      console.error("updateEventDetails: could not read the venue", { eventId, error });
+      return { ok: false, error: "Could not save that. Try again." };
+    }
+    // Not atomic with the write below: a concurrent writer changing the other venue field in
+    // between can slip past this check. Accepted as a narrow race; the card compiler still
+    // refuses to render text it cannot show, so it costs a retry, never a broken card.
+    const venueErrors = data
+      ? cardTextFieldErrors(
+          { venueName: input.venueName, address: input.address },
+          { venueName: data.venue_name as string | null, address: data.address as string | null },
+        )
+      : null;
+    if (venueErrors) {
+      return { ok: false, error: "Check the highlighted fields.", fieldErrors: venueErrors };
+    }
+  }
 
   // Compare-and-set on `row_version`, so the patch and its derived RSVP deadline can only
   // land on the snapshot they were computed from. A save that loses the race recomputes

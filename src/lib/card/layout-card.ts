@@ -9,8 +9,11 @@
  * with a box for every fact slot). Sizing follows the Phase 3 mock the owner judged
  * (`scripts/phase-3/compose.mjs`): every slot starts at its maximum; the title steps down first,
  * 2 units at a time, then the body slots together, until the stack fits the zone's height and the
- * title is at most three lines. If it cannot fit at minimum sizes the result says `overflow` and
- * the stack runs past the zone's bottom — text is never truncated.
+ * title is at most three lines. A break after a hyphen (`text/line-break.ts`) ranks below a space
+ * here too: the sizes are first searched with no hyphen breaks, and only if nothing fits are they
+ * searched again with them, so "Montgomery-Whitworth" stays whole at any size that allows it. If
+ * it cannot fit at minimum sizes the result says `overflow` and the stack runs past the zone's
+ * bottom — text is never truncated.
  *
  * Widths are measured from the fonts' own metrics (`text/metrics.ts`) with the `FIT_SAFETY` margin.
  */
@@ -166,16 +169,35 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
   const sizeOf = (spec: SlotSpec, titleSize: number, step: number): number =>
     spec.group === "title" ? titleSize : bodySize(spec, proportion, step);
 
-  const place = (item: Item, size: number): Placed => {
-    if (item.text.trim() === "") return { item, size, lines: [], overflow: false, empty: true };
-    const face = metrics(item.font);
-    const style = {
-      size,
-      letterSpacingEm: item.spec.letterSpacingEm,
-      textCase: item.spec.textCase,
-    };
-    const broken = breakLines(item.text, width, (line) => face.measure(line, style));
-    return { item, size, lines: broken.lines, overflow: broken.overflow, empty: false };
+  // The size search re-places every item at every step, though most keep their size between
+  // steps; breaking is pure, so each item is broken once per size and hyphen mode.
+  const placedCache = new Map<Item, Map<string, Placed>>();
+  const place = (item: Item, size: number, hyphens: boolean): Placed => {
+    let bySize = placedCache.get(item);
+    if (!bySize) {
+      bySize = new Map();
+      placedCache.set(item, bySize);
+    }
+    const key = `${size}|${hyphens ? 1 : 0}`;
+    const known = bySize.get(key);
+    if (known) return known;
+    let placed: Placed;
+    if (item.text.trim() === "") {
+      placed = { item, size, lines: [], overflow: false, empty: true };
+    } else {
+      const face = metrics(item.font);
+      const style = {
+        size,
+        letterSpacingEm: item.spec.letterSpacingEm,
+        textCase: item.spec.textCase,
+      };
+      const broken = breakLines(item.text, width, (line) => face.measure(line, style), {
+        hyphens,
+      });
+      placed = { item, size, lines: broken.lines, overflow: broken.overflow, empty: false };
+    }
+    bySize.set(key, placed);
+    return placed;
   };
 
   const stackHeight = (placed: readonly Placed[]): number => {
@@ -190,8 +212,8 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
     return height;
   };
 
-  const attempt = (items: readonly Item[], titleSize: number, step: number) => {
-    const placed = items.map((item) => place(item, sizeOf(item.spec, titleSize, step)));
+  const attempt = (items: readonly Item[], titleSize: number, step: number, hyphens: boolean) => {
+    const placed = items.map((item) => place(item, sizeOf(item.spec, titleSize, step), hyphens));
     const height = stackHeight(placed);
     const fits =
       height <= zone.height + 1e-9 &&
@@ -204,19 +226,24 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
 
   const TITLE = CARD_SLOT_SPECS.title;
   const titleMax = TITLE.max[proportion];
-  const search = (items: readonly Item[]) => {
+  const searchSizes = (items: readonly Item[], hyphens: boolean) => {
     let titleSize = titleMax;
     let step = 0;
-    let result = attempt(items, titleSize, step);
+    let result = attempt(items, titleSize, step, hyphens);
     while (!result.fits && titleSize > TITLE.min) {
       titleSize = Math.max(TITLE.min, titleSize - TITLE_STEP);
-      result = attempt(items, titleSize, step);
+      result = attempt(items, titleSize, step, hyphens);
     }
     while (!result.fits && step < BODY_STEPS) {
       step += 1;
-      result = attempt(items, titleSize, step);
+      result = attempt(items, titleSize, step, hyphens);
     }
-    return { ...result, titleSize, step };
+    return { ...result, titleSize, step, hyphens };
+  };
+  // Without hyphen breaks if any sizes allow it; otherwise with them.
+  const search = (items: readonly Item[]) => {
+    const whole = searchSizes(items, false);
+    return whole.fits ? whole : searchSizes(items, true);
   };
 
   // Every added box if they all fit; otherwise as many as fit, in order, the rest below the zone.
@@ -268,7 +295,7 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
   const below = addedItems.slice(fitted);
   let belowY = Math.max(zone.y + zone.height, y);
   for (const item of below) {
-    const p = place(item, bodySize(item.spec, proportion, result.step));
+    const p = place(item, bodySize(item.spec, proportion, result.step), result.hyphens);
     if (!p.empty) belowY += item.spec.gapBeforeEm * p.size;
     emit(p, belowY);
     belowY += p.lines.length * p.size * item.spec.lineHeight;

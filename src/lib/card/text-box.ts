@@ -13,6 +13,7 @@
  * nothing here checks contrast or position: host edits are the host's (`spec.md §20.1`).
  */
 
+import { breakWidth, FIT_SAFETY } from "./fit";
 import { layoutCard, type CardTextLayout, type LayoutCardInput } from "./layout-card";
 import type { CardShape } from "./shapes";
 import { CARD_SLOT_IDS, type CardSlotId, type FactSlotId, type WordingSlotId } from "./slots";
@@ -68,17 +69,7 @@ export interface CardCustomization {
 /** The event's current words for the card: the effective title and the facts, as display text. */
 export type CardContent = Partial<Record<CardSlotId, string | null>>;
 
-/**
- * Measured width × (1 + FIT_SAFETY) must fit the box: the margin that absorbs browser rendering
- * differences (`docs/card-system.md §4.3`). Measurement agrees with Chromium within 0.03%; the rest
- * is headroom for other engines and sub-pixel rounding.
- */
-export const FIT_SAFETY = 0.03;
-
-/** The width lines are broken at for a box (or zone) of `width`. */
-export function breakWidth(width: number): number {
-  return width / (1 + FIT_SAFETY);
-}
+export { breakWidth, FIT_SAFETY };
 
 /** The text a box shows for the event's current content. */
 export function boxText(box: TextBox, content: CardContent): string {
