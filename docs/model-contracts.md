@@ -2,9 +2,9 @@
 ## Event Identity, Card Design and Card Art
 
 **Status:** Revision 3 — invitation-card baseline
-**Prompt versions:** `event_identity_v3`, `card_design_v1` (written in the Phase 3 bake-off),
+**Prompt versions:** `event_identity_v4`, `card_design_v1` (written in the Phase 3 bake-off),
 `card_art_v1` (deterministic assembly, written in the Phase 3 bake-off)
-**Schema versions:** `event_identity_schema_v3`, `card_design_schema_v1` (written in the Phase 3
+**Schema versions:** `event_identity_schema_v4`, `card_design_schema_v1` (written in the Phase 3
 bake-off)
 **PRD:** `../spec.md` Revision 7
 **Card system:** `card-system.md`
@@ -47,8 +47,8 @@ the assembled art prompt. The card compiler is application code and calls no mod
 Prompts, schemas and the layout set are versioned production assets (`src/lib/ai/versions.ts`):
 
 ```ts
-EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v3"
-EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v3"
+EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v4"
+EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v4"
 CARD_DESIGN_PROMPT_VERSION    = "card_design_v1"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v1"
 CARD_ART_PROMPT_VERSION       = "card_art_v1"
@@ -72,7 +72,7 @@ improvement on top.
 
 ---
 
-# 4. Event Identity (`event_identity_v3`)
+# 4. Event Identity (`event_identity_v4`)
 
 **This call is the product's creative interpreter, not a preprocessing step.** Its question is
 *what does this host mean, and what creative world should this event belong to?*, and the bar on
@@ -212,7 +212,8 @@ In order, deterministic (`card-system.md §4.1`):
   other fact. The deterministic check rejects digits, month and weekday names, time expressions,
   and any venue/location string; names that do not match `eventFacts` exactly are caught by the
   evaluation corpus, and the host reviews the card.
-- No brand names, characters or slogans.
+- No brand names, character names or slogans in model-drafted wording; the host's own wording may
+  contain anything.
 
 ## 5.5 Evals
 
@@ -222,7 +223,8 @@ failure is never acceptable:
 - **CD-01 schema**: share of responses valid on the first call; 100% after one re-prompt or a
   visible failure.
 - **CD-02 fact discipline**: 0 cards stating a fact the host did not supply. Hard.
-- **CD-03 reference translation**: 0 briefs or wordings naming a brand, character or logo. Hard.
+- **CD-03 brand line**: 0 briefs, art prompts or model wordings containing a brand name, character
+  name, logo or wordmark. Hard. A homage described in plain words is allowed (`spec.md §7.6`).
 - **CD-04 intent fidelity**: the design is faithful to the identity, including its negative
   constraints (qualitative, §6).
 - **CD-05 direction diversity**: successive directions for one event are different ideas, not
@@ -230,7 +232,7 @@ failure is never acceptable:
 - **CD-06 wording quality**: the title and invitation line have the right voice and would not need
   rescuing (qualitative).
 - **CD-07 adversarial feedback**: feedback asking for HTML, CSS, a specific hex for the text, a
-  logo, a brand character or text in the artwork yields an ordinary valid design without it.
+  logo, a wordmark or text in the artwork yields an ordinary valid design without it.
 
 ---
 
@@ -254,7 +256,7 @@ Phase 3 bake-off.
 | 3 | Taste / cliché avoidance | Where the prompt asked for restraint, did it avoid the obvious, cheesy or over-literal reading? | Mixed — `mustAvoid` is deterministic |
 | 4 | Fact discipline | Were supplied facts extracted verbatim and none invented — in extraction, identity and wording? | Deterministic |
 | 5 | Clarification judgment | Did it ask only when ambiguity materially affects the identity, ask nothing when the prompt was sufficient, ask no logistics, stay within the ceiling, and always offer `You decide`? | Mixed |
-| 6 | Reference translation | Did a named reference become original visual language, with no logo, character or campaign artwork? | Mixed — `mustAvoid` deterministic |
+| 6 | Reference handling | Did a named reference capture the look the host meant — close homage allowed — with no logo, wordmark, brand or character name, or copied campaign artwork? | Mixed — `mustAvoid` deterministic |
 | 7 | Downstream usefulness | Would a strong human designer know what assignment they had been given? | Qualitative |
 | 8 | Card fidelity | Does the card — artwork, wording, typography — express the identity? | Qualitative; requires the full card |
 | 9 | Direction diversity | Is `Try another direction` a different idea? | Mixed; requires two designs |
@@ -281,7 +283,8 @@ The art prompt is assembled **by application code**, never written verbatim by a
   so the artwork fits all of them; for `framed` and `minimal` art, the rule of the requested shape
   only (`card-system.md §2.4`);
 - the art mode's instruction (illustration, framed, atmosphere, minimal);
-- the global rules: no text, letters or numbers; no logos, brands, characters or watermarks; an
+- the global rules: no text, letters or numbers; no logos, wordmarks, brand or character names, or
+  watermarks; no copied campaign artwork; an
   original style; the shape's proportion (5:7 or 1:1) and its composition rule (e.g. arch: the top
   corners are cut away; oval and circle: keep everything important inside the outline); the
   brief's `avoid` list.
@@ -295,7 +298,8 @@ It contains no raw host prompt, no event facts and no inspiration image.
 ## 7.2 Input and output
 
 ```ts
-GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape }   // proportion derived from shape
+GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape; reference? }
+// proportion derived from shape; reference = the design's own earlier artwork, on a shape switch only
 → { mimeType, bytes }    // plus provider usage and model id for metering
 ```
 
@@ -304,7 +308,10 @@ Image-model specifics (model, size, transparent-background workflow if any) are 
 
 A host's switch to a shape no existing artwork fits (`card-system.md §7`) calls `generateCardArt`
 again with the same art brief and the new shape; the raster's proportion is derived from the shape
-(`src/lib/card/shapes.ts`) and is never passed separately. It is a generation for limits and metering, and it
+(`src/lib/card/shapes.ts`) and is never passed separately. It passes the current artwork as
+`reference` so the subject stays the same (the same character, rearranged for the new outline).
+The reference is always the design's own generated artwork — never a host upload, an inspiration
+image or anything retrieved. It is a generation for limits and metering, and it
 adds an artwork to the design rather than replacing one.
 
 ## 7.3 Validation
@@ -317,12 +324,18 @@ regeneration; a second failure is a visible failure with retry. No template or s
 ## 7.4 Evals
 
 - **CA-01 no text**: 0 accepted artworks containing text. Hard.
-- **CA-02 originality**: 0 artworks reproducing a logo, brand character or campaign image. Hard.
+- **CA-02 brand line**: 0 artworks containing a logo, wordmark, brand or character name, or a copied
+  campaign image. Hard. Close homage to a character is allowed (`spec.md §7.6`).
 - **CA-03 layout respect**: the layout's quiet regions are quiet enough that ink resolution needs a
   legibility panel rarely (measured rate; calibrated in the bake-off).
 - **CA-04 quality**: the artwork looks bespoke and specific to the brief, not generic AI or stock
   imagery (human judgement).
 - **CA-05 latency and cost**: p50/p75 per card, recorded for `spec.md §7.10`.
+- **CA-06 presence**: artwork fills the presence its layout asks for, rather than shrinking to token
+  props around an empty field (human judgement; observed in the owner's test, `CHANGELOG-v7.md`).
+- **CA-07 subject continuity**: regenerating for a new shape with `reference` keeps the same subject
+  (human judgement). If the chosen model cannot, the bake-off records it and the brief alone is
+  used.
 
 ---
 

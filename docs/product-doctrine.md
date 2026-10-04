@@ -91,7 +91,7 @@ into a single vague prompt.
 
 | Stage | Its question | Owns |
 | --- | --- | --- |
-| **`EventIdentity`** | *What does this host mean, and what creative world should this event belong to?* | Interpretation: tone, aesthetic character, sophistication, subjects and symbols, materials and textures, palette territory, typography character, copy voice, what to avoid, and the translation of named references into original language. |
+| **`EventIdentity`** | *What does this host mean, and what creative world should this event belong to?* | Interpretation: tone, aesthetic character, sophistication, subjects and symbols, materials and textures, palette territory, typography character, copy voice, what to avoid, and named references captured as the look the host means (homage allowed, marks never, §11). |
 | **fact extraction** (cheaper model) | *What did the host literally state?* | Names, date, time, venue — quoted, never inferred — into the draft for confirmation. |
 | **`CardDesign`** | *What is one excellent card for this identity?* | Layout from the catalog, art mode, font pairing, the card's wording, and the art brief. |
 | **card artwork** (image model) | *What artwork serves this brief and this layout?* | The image, with no text, leaving the layout's quiet regions quiet. |
@@ -275,16 +275,19 @@ correct, and kept legible.
 above the words, a wreath around them, a floral cluster in a corner — rather than a rectangle with
 text beneath. Layouts and briefs are designed for that.
 
-## 11. Named references become original language
+## 11. Named references: capture the look, never the marks
 
-"Ralph Lauren baby shower" must never produce a Polo Bear, a Ralph Lauren logo, copied campaign
-artwork or proprietary graphics. It should produce heritage American prep, equestrian detail,
-tartan, navy and cream, leather and brass, heirloom teddy energy, classic editorial typography,
-restrained luxury.
+A host who writes "Ralph Lauren bear baby shower" means something specific, and the card should
+deliver it: heritage American prep, tartan, navy and cream, leather and brass — and, when they
+clearly want it, a teddy in preppy knitwear that unmistakably nods to the brand's bear. **Close
+homage is allowed** (owner decision, `CHANGELOG-v7.md`).
 
-**Understand the taste signal; never reproduce the protected asset.** This binds the identity, the
-art brief and the artwork. A brief that names a brand has already failed, whatever the image looks
-like. It applies to every named aesthetic reference, not only fashion houses.
+What is never on the card: a logo, crest, monogram or wordmark; a brand or character name; copied
+campaign photography or artwork. The art brief describes the homage in plain words and never names
+the brand, so the image model never receives one.
+
+This is a deliberate commercial risk, not an oversight: it must be reviewed by counsel before launch
+(§14). It applies to every named reference, not only fashion houses.
 
 ## 12. The deterministic system is the enabler, not the product
 
@@ -342,6 +345,7 @@ phase of `docs/development-plan.md`:
 | 4 | Whether $49 survives comparison with invitation products (`spec.md §3.2`) | Before launch |
 | 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 5 |
 | 6 | An email provider for the reminder/announcement fallback in `spec.md §13.1` (no email provider is in the locked stack) | Phase 10 |
+| 7 | Legal review of the close-homage brand line (`spec.md §7.6`): trademark and copyright exposure for a platform that charges to publish, and image-provider policies that may refuse some requests | Before launch |
 
 ## 15. Where the work starts
 

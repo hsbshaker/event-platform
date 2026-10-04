@@ -140,6 +140,33 @@ available. The same review aligned `spec.md §7.6a` and §31 with the shape comp
 the `generateCardArt` input now derives the raster's proportion from the shape
 (`src/lib/card/shapes.ts`), so an invalid shape/aspect pair cannot be requested.
 
+### 7.1 — the owner's first image-model test, and the brand line
+
+The owner tried a frontier image model (reported as OpenAI GPT 6.1 Sol Max) with two briefs: a spring
+engagement brunch ("romantic and fresh … not rustic farmhouse … not generic wedding-template") and
+a "Ralph Lauren bear" baby shower in navy and brown. Findings, written into the documents:
+
+- **No text, every time.** All six outputs honoured "no words", supporting the core split: the model
+  paints, code sets the words.
+- **Taste was understood**, and feedback steered it ("materially different" changed the structure;
+  "more modern" changed the medium).
+- **Reserved space works when stated.** Told to keep a vertical oval clear for text, it did — the
+  same mechanism as the layout set's quiet regions.
+- **Presence.** Told only where to stay out, it shrank the artwork to token props on an empty field.
+  Layouts now state the presence they want (`card-system.md §2.3`; eval CA-06).
+- **Subject continuity.** Asked to rearrange, it kept the same bear. Shape switches that need new
+  artwork now pass the current artwork as a reference so the subject stays the same
+  (`spec.md §7.14`, `§7.6a`; eval CA-07); the bake-off confirms the chosen model can do it.
+- **Shapes behaved as 7.1 assumes.** Corner-cluster art would be cut by an oval or arch; framed art
+  only fits its own outline. A scalloped edge can be painted as framed art inside a rectangle.
+- **Brand references.** Asked for a "Ralph Lauren bear", it produced a near-replica of the brand's
+  bear. **Owner decision: close homage allowed** — a card may clearly evoke a brand's character or
+  look, but never carries a logo, wordmark, brand or character name, or copied campaign art, and
+  briefs never name the brand (`spec.md §7.6`, §27, §31, §32 #18; `product-doctrine.md §11`;
+  Event Identity prompt and schema v4; corpus cases CU-01, CU-02, CU-04). This carries trademark
+  and copyright risk for a platform that charges to publish; legal review before launch is an open
+  item (`product-doctrine.md §14` #7).
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the image model and its workflow; the layout catalog and

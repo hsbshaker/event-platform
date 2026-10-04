@@ -21,11 +21,11 @@
       "facts": {},
       "expectClarification": "likely",
       "mustAvoid": [
-        "Polo Bear",
         "any Ralph Lauren logo, wordmark or crest",
+        "the brand name in the art brief, art prompt or artwork",
         "copied campaign imagery"
       ],
-      "notes": "The canonical reference-translation case (spec.md §7.6). Heritage prep, equestrian detail, tartan, navy and cream, leather and brass. Ambiguity worth one question: heritage/equestrian vs heirloom-nursery vs country-club prep."
+      "notes": "The canonical brand-reference case (spec.md §7.6): close homage — a teddy in preppy knitwear — is allowed; marks and names are not. Heritage prep, equestrian detail, tartan, navy and cream, leather and brass. Ambiguity worth one question: heritage/equestrian vs heirloom-nursery vs country-club prep."
     },
     {
       "id": "CU-02",
@@ -39,8 +39,7 @@
       },
       "expectClarification": "no",
       "mustAvoid": [
-        "Polo Bear",
-        "any Ralph Lauren logo or crest",
+        "any Ralph Lauren logo, wordmark or crest",
         "cartoon or novelty treatments",
         "primary-blue nursery clichés"
       ],
@@ -74,11 +73,10 @@
       "facts": {},
       "expectClarification": "acceptable",
       "mustAvoid": [
-        "the Disney Winnie-the-Pooh character design",
-        "any Disney trademark or character likeness",
+        "any Disney logo, wordmark or character name in the brief or artwork",
         "primary red and yellow cartoon palette"
       ],
-      "notes": "Reference translation against a protected character. Classic English storybook illustration, honey and moss, hand-lettered restraint, Hundred Acre Wood as a mood rather than a cast."
+      "notes": "Brand reference against a famous character (spec.md §7.6): a close homage to a classic storybook bear is allowed, never the name or a logo. 'Not corny' is the taste instruction: classic English storybook illustration, honey and moss, Hundred Acre Wood as a mood rather than a cartoon cast."
     },
     {
       "id": "CU-05",

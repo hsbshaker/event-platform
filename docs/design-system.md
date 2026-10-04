@@ -708,7 +708,7 @@ Do not expose:
 
 Swapping font re-lays out the card's text only; ink, artwork and every event fact are unchanged.
 
-Switching to a shape the current artwork fits applies instantly. Illustration and atmosphere artwork fits every supported shape of its proportion; border- and frame-led artwork fits only the shape it was made for (`card-system.md §2.4`). Any other switch — tall ↔ square, or a new outline for a bordered design — needs new artwork: say so before it starts ("This makes new artwork for a square card — about as long as a new design"), keep the current card visible while it generates, and show the result in place; switching back is instant. Switches that need new artwork are not offered after publish.
+Switching to a shape the current artwork fits applies instantly. Illustration and atmosphere artwork fits every supported shape of its proportion; border- and frame-led artwork fits only the shape it was made for (`card-system.md §2.4`). Any other switch — tall ↔ square, or a new outline for a bordered design — needs new artwork of the same subject (the same bear, rearranged): say so before it starts ("This makes new artwork for a square card — about as long as a new design"), keep the current card visible while it generates, and show the result in place; switching back is instant. Switches that need new artwork are not offered after publish.
 
 After publish, the font control and switching to shapes an existing artwork fits remain available; `Try another direction`, switches that need new artwork and the designs list do not (§4.12).
 

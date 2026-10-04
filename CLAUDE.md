@@ -36,7 +36,7 @@ Before proposing or implementing a solution, check it against these rules:
 
 - **AI should remove decisions, not create more decisions.** The system makes the design decisions it was hired to make — never which font, which layout, which hex value. `docs/product-doctrine.md §7`.
 - **Design quality and creative understanding are core functionality, not polish.** MVP is permission to omit features, never permission for a mediocre card. `docs/product-doctrine.md §2`.
-- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout and shape rules. `docs/product-doctrine.md §4`.
+- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout and shape rules, plus (on a shape switch) the design's own earlier artwork as a reference — never a host upload. `docs/product-doctrine.md §4`.
 - The landing page is the prompt.
 - Prompt first → auth/save second → generation third. No model call of any kind for anonymous users.
 - Prompt and inspiration must survive auth/OAuth exactly.
@@ -47,6 +47,7 @@ Before proposing or implementing a solution, check it against these rules:
 - Guests, Registry and invitations are not publish blockers (`spec.md §23.1`).
 - The models return an `EventIdentity`, a `CardDesign` (shape, layout ID, art mode, pairing IDs, bounded wording, art brief, presentation) and artwork — nothing else. They never emit HTML, CSS, JSX, JavaScript, SVG, text colours, font sizes, positions or line breaks.
 - **Facts come only from the host.** Names, dates, times, venues on the card render from event data; AI wording never states or invents one.
+- **Brand references: close homage allowed, marks never.** A card may clearly evoke a brand's character or look; it never carries a logo, wordmark, brand or character name, or copied campaign art, and briefs never name the brand (`spec.md §7.6`; pending legal review before launch).
 - **Artwork contains no text.** Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
 - **Code owns legibility and fit.** Ink and legibility panels are chosen deterministically so every card text clears 4.5:1; `layoutCard` alone decides card text size and line breaks; the browser never re-wraps card text.
 - Persist `EventIdentity`, every `CardDesign` (raw and validated), its artwork, resolved ink and version set. Generated design data is immutable; host edits (wording, font, facts) live on the event; renderer code may receive bug/accessibility/responsive fixes.
@@ -138,7 +139,7 @@ host prompt + inspiration
 
 Do not:
 - let a model choose a text colour, a size, a position or a line break, or write a fact;
-- put text in artwork, or send the raw prompt or inspiration images to the image model;
+- put text, logos, wordmarks or brand names in artwork, or send the raw prompt or inspiration images to the image model (the design's own earlier artwork, as a shape-switch reference, is the only image it may receive);
 - add a layout, art mode, shape or slot limit without a layout-set version bump and a fixture run;
 - let a model draw or position the card's outline, or offer the host a shape the design's layout does not support;
 - let the browser re-wrap card text, or truncate any card text silently;

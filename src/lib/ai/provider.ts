@@ -62,6 +62,11 @@ export interface GenerateCardArtInput {
   layout: string;
   /** The raster's proportion is derived from the shape (`proportionOf`), never passed beside it. */
   shape: CardShape;
+  /**
+   * On a shape switch only: the design's own earlier artwork, so the subject stays the same.
+   * Never a host upload or inspiration image (spec.md §7.6a, §32 #17).
+   */
+  reference?: CardArt;
 }
 
 export interface AiProvider {

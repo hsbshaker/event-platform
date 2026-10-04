@@ -47,7 +47,10 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
    leave its zone; inputs that could not fit are bounded at entry (§4.3).
 8. **The raw host prompt never reaches the image model.** The image model receives an art brief
    derived from the persisted `EventIdentity` plus layout and shape rules (§3). Inspiration uploads are
-   inputs to `EventIdentity` only and are never sent to the image model.
+   inputs to `EventIdentity` only and are never sent to the image model; the only image it ever
+   receives is the design's own earlier artwork, as a reference for a shape switch (§7).
+   Brand references follow `spec.md §7.6`: close homage allowed, never a logo, wordmark, brand or
+   character name, or copied campaign artwork.
 9. **Generated design data is immutable.** A `CardDesign` and its artwork never change once
    generated. Host edits live on the event; "Try another direction" creates a new design; artwork
    generated when the host switches to a shape the existing artwork does not fit is an additional
@@ -91,9 +94,14 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
 - **The design picks the shape** (§3); the host may switch it (§7). Every artwork records the
   shapes it **fits** (§2.4). Switching to a shape the current artwork fits is instant and
   deterministic. Switching to any other shape — the other proportion, or another outline when the
-  artwork follows its own outline — generates new artwork for that shape from the same brief.
+  artwork follows its own outline — generates new artwork for that shape from the same brief, with
+  the current artwork passed as a reference so the subject stays the same: the same bear, rearranged
+  for the new outline, not a different bear. Whether the chosen image model holds a subject this way
+  is a Phase 3 bake-off check; where it cannot, the brief alone is used.
 - Rounded-corner radius and the exact outline geometry are part of the layout set (§2.3) and are
   fixed by the Phase 3 bake-off.
+- A decorative edge such as a scallop or wave can be painted as `framed` artwork inside a rectangle;
+  that is artwork, not a shape. Die-cut scalloped cards remain deferred (§10).
 
 ## 2.2 Layers
 
@@ -122,6 +130,10 @@ layout declares the shapes it supports, and for each of them defines:
   supports** (§4.3), so switching shape can never make accepted text stop fitting;
 - the composition instruction added to the art brief: where the subject may sit and which regions
   must stay quiet;
+- the artwork's **presence**: how much of the card it should occupy outside the quiet regions (for
+  example, substantial clusters in two corners, or a subject filling the upper half). Told only
+  where to stay out, image models over-correct into a few token props on an empty field, which reads
+  unfinished; the layout states the presence it wants as well as the space it reserves;
 - its legibility-panel shape, used only when §4.2 needs it.
 
 The initial set is proposed here and **fixed by the Phase 3 bake-off** (`docs/development-plan.md`):
@@ -260,8 +272,8 @@ No step here calls a model or regenerates artwork.
 - Direction distinctness: a design that repeats an earlier direction's layout, art mode and primary
   pairing together earns its one re-prompt naming the earlier directions.
 - Artwork: file type, the requested proportion (5:7 or 1:1) within tolerance, minimum resolution,
-  decodable. Detecting embedded text and unsafe content is required; the mechanism is chosen in the
-  bake-off.
+  decodable. Detecting embedded text (which covers logos and wordmarks) and unsafe content is
+  required; the mechanism is chosen in the bake-off.
 
 ## 4.2 Ink and legibility
 
@@ -383,7 +395,7 @@ with the live card. The rendering mechanism is chosen when the card renderer is 
 | Edit a fact (date, venue, …) | none | event data; card and page update |
 | Swap font (primary or alternates) | none | event data; re-runs `layoutCard` |
 | Switch to a shape an existing artwork fits | none | event data; the shape's zones and pre-resolved ink; re-runs `layoutCard` |
-| Switch to a shape no existing artwork fits (the other proportion, or another outline for `framed`/`minimal` art) | card art | new artwork for that shape from the same brief, attached to the same design; validated and ink-resolved as in §3–§4; counts as a generation (`spec.md §10`); before publish only. The current card stays as it is until the new artwork is ready. Switching back is instant: earlier artwork is kept. |
+| Switch to a shape no existing artwork fits (the other proportion, or another outline for `framed`/`minimal` art) | card art | new artwork for that shape from the same brief, with the current artwork as a reference so the subject stays the same, attached to the same design; validated and ink-resolved as in §3–§4; counts as a generation (`spec.md §10`); before publish only. The current card stays as it is until the new artwork is ready. Switching back is instant: earlier artwork is kept. |
 | Try another direction (optional feedback) | card design + art | a new `CardDesign`; current card stays active until the host chooses |
 | Choose an earlier design | none | `activeCardDesignId`; card-level edits reset |
 
