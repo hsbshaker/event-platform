@@ -129,7 +129,8 @@ identity call returns no questions.
 A separate cheaper-model call reads the same raw prompt and returns only facts the prompt literally
 states — event type, hosts, baby name, date, time, venue, address — each as the host's exact
 string. Missing means absent. Its output is written to the event draft as values for the host to
-confirm, never to the identity. The fact check in `docs/model-evals/creative-understanding.json`
+confirm, never to the identity: it is kept with the generation (`generations.artifacts.facts`) and
+pre-fills the details form, and an event field takes a value only when the host saves it. The fact check in `docs/model-evals/creative-understanding.json`
 (each case's `facts`) applies to this call.
 
 ---
@@ -192,9 +193,10 @@ GenerateCardDesignInput {
 
 `eventFacts` holds the event's own fields, which only the host enters or confirms, formatted as the
 card shows them. Its `eventType` is the host's own words when the prompt states one (fact
-extraction's value, kept only if it is verbatim in the prompt), else the event's type; it never
-appears on the card. Extracted card facts — names, date, time, venue — reach the design only once
-the host has confirmed them.
+extraction's value, kept only if it is verbatim in the prompt), else the event's type. It reaches
+the card only through standard wording (§5.3), and only when that wording clears the card's checks;
+otherwise standard wording uses the default type. Extracted card facts — names, date, time, venue —
+reach the design only once the host has confirmed them.
 
 The prompt carries the layout catalog (each layout's purpose and compatible art modes), the art
 modes, the pairing catalog narrowed to the identity's compatible categories, and the global rules.
@@ -209,8 +211,9 @@ In order, deterministic (`card-system.md §4.1`):
    with retry.
 2. **Compatibility**: layout ↔ art mode; layout supports the shape; alternates distinct from
    primary.
-3. **Wording fact check** (§5.4), on model-drafted wording only. Failure → one re-prompt naming the
-   slot; second failure → standard wording for that slot, logged.
+3. **Wording fact check** (§5.4), on model-drafted wording only, together with the checks a host's
+   own text gets (`card-system.md §2.5`): drawable characters and a fit in every design. Failure →
+   one re-prompt naming the slot; second failure → standard wording for that slot, logged.
 4. **Direction distinctness**: same layout, art mode and primary pairing as an earlier direction →
    one re-prompt naming the earlier directions; second repeat → accepted and logged.
 

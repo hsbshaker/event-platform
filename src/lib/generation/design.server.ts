@@ -5,7 +5,9 @@ import type { EventIdentity } from "@/lib/ai/event-identity";
 import type { GenerateCardDesignInput, PreviousDirection } from "@/lib/ai/provider";
 import { validateCardDesign } from "@/lib/card/design";
 import type { CardDesign } from "@/lib/card/design";
-import type { WordingSlotId } from "@/lib/card/slots";
+import { validateWordingText } from "@/lib/card/entry";
+import { cardTextFitsEveryDesign } from "@/lib/card/entry-fit.server";
+import { WORDING_SLOT_IDS, type WordingSlotId } from "@/lib/card/slots";
 import { checkWording, standardWording } from "@/lib/card/wording";
 import type { WordingFailure } from "@/lib/card/wording";
 
@@ -27,9 +29,12 @@ import type { StageContext } from "./stage";
  *    stage produced a valid design, which is then accepted with its remaining issues resolved by
  *    their own fallbacks below rather than discarded.
  * 2. **Wording fact check** (`checkWording`) on model-drafted wording only: a host-supplied title
- *    (`eventFacts.title`) is used verbatim and never checked. One `wording` re-prompt naming the
- *    failing slots; if they fail again, each failing slot takes `standardWording`, recorded in
- *    `standardWordingSlots`.
+ *    (`eventFacts.title`) is used verbatim and never checked. Model-drafted wording must also clear
+ *    what a host's own text has to (`wordingRenders`): characters the card's fonts can draw, and a
+ *    fit in every design beside the worst-case content, so a generated card never overflows. One
+ *    `wording` re-prompt naming the failing slots; if they fail again, each failing slot takes
+ *    `standardWording`, recorded in `standardWordingSlots`. Standard wording is built from the
+ *    event type, and from the default type when the stated one's wording would not render.
  * 3. **Direction distinctness**: the same layout, art mode and primary pairing as an earlier
  *    direction earns one `repeat-direction` re-prompt naming the earlier directions; a second
  *    repeat is accepted and recorded (`repeatAccepted`).
@@ -141,6 +146,39 @@ function repeatFeedback(repeat: PreviousDirection, all: readonly PreviousDirecti
   );
 }
 
+/**
+ * Whether wording renders on every card as a host's own text would have to: drawable characters,
+ * within the slot's limit, every word on one line of the narrowest zone (`validateWordingText`),
+ * and the slot fitting every design beside the worst-case content (`cardTextFitsEveryDesign`).
+ * Deterministic; no model call (`spec.md §32 #20`).
+ */
+async function wordingRenders(slot: WordingSlotId, value: string): Promise<string | null> {
+  const check = validateWordingText(slot, value);
+  if (!check.ok) {
+    return check.reason === "unsupported-characters"
+      ? `${slot} uses characters the card's fonts cannot draw (${(check.characters ?? []).join(" ")})`
+      : `${slot} is too long for the card`;
+  }
+  if (!(await cardTextFitsEveryDesign(slot, value))) {
+    return `${slot} is too wide for the card: use fewer or narrower letters`;
+  }
+  return null;
+}
+
+/**
+ * Standard wording for the event type, or for the default type when the stated one's wording would
+ * not render (a long verbatim span would overflow the title).
+ */
+async function renderableStandardWording(
+  eventType: string,
+): Promise<Record<WordingSlotId, string>> {
+  const standard = standardWording(eventType);
+  for (const slot of WORDING_SLOT_IDS) {
+    if ((await wordingRenders(slot, standard[slot])) !== null) return standardWording("");
+  }
+  return standard;
+}
+
 function hostTitleOf(eventFacts: Record<string, string>): string | null {
   const title = eventFacts.title?.trim();
   return title ? title : null;
@@ -202,15 +240,13 @@ export async function runDesignStage(
           p.artMode === design.artMode &&
           p.primary === design.typography.primary,
       ) ?? null;
-    return {
-      ok: true,
-      candidate: {
-        design,
-        raw,
-        wordingFailures: checkWording(design.wording, input.eventFacts, { hostSupplied }),
-        repeats,
-      },
-    };
+    const wordingFailures = checkWording(design.wording, input.eventFacts, { hostSupplied });
+    for (const slot of WORDING_SLOT_IDS) {
+      if (hostSupplied.includes(slot) || wordingFailures.some((f) => f.slot === slot)) continue;
+      const reason = await wordingRenders(slot, design.wording[slot]);
+      if (reason) wordingFailures.push({ slot, reason });
+    }
+    return { ok: true, candidate: { design, raw, wordingFailures, repeats } };
   }
 
   let reprompt: GenerateCardDesignInput["reprompt"] = input.providerRefusal
@@ -242,7 +278,7 @@ export async function runDesignStage(
         next("schema", outcome.problems.join("; "));
         continue;
       }
-      if (lastValid) return finish(lastValid, true);
+      if (lastValid) return await finish(lastValid, true);
       throw outcome.invalid
         ? new GenerationStageError(
             "design",
@@ -266,16 +302,19 @@ export async function runDesignStage(
       next("repeat-direction", repeatFeedback(candidate.repeats, previous));
       continue;
     }
-    return finish(candidate, false);
+    return await finish(candidate, false);
   }
 
-  function finish(candidate: Candidate, acceptedEarlierDesign: boolean): DesignStageResult {
+  async function finish(
+    candidate: Candidate,
+    acceptedEarlierDesign: boolean,
+  ): Promise<DesignStageResult> {
     const wording = { ...candidate.design.wording };
     const hostTitleApplied = hostTitle !== null && wording.title !== hostTitle;
     if (hostTitle) wording.title = hostTitle;
     const standardWordingSlots = [...new Set(candidate.wordingFailures.map((f) => f.slot))];
     if (standardWordingSlots.length) {
-      const standard = standardWording(input.eventFacts.eventType ?? "");
+      const standard = await renderableStandardWording(input.eventFacts.eventType ?? "");
       for (const slot of standardWordingSlots) wording[slot] = standard[slot];
     }
     const design: CardDesign = { ...candidate.design, wording };

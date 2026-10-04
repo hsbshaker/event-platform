@@ -20,6 +20,7 @@
 import "server-only";
 
 import type { CardEntrySlot } from "./entry";
+import type { WordingSlotId } from "./slots";
 import type { CardRect } from "./ink";
 import { layoutCardFits, pairingFaces } from "./layout-card";
 import { CARD_LAYOUT_IDS, CARD_LAYOUTS, zoneFor } from "./layouts";
@@ -138,9 +139,9 @@ function memoized(
  * a design's own invitation line in place of the worst-case sentence (`card-system.md §2.5`).
  */
 export async function cardTextFitsEveryDesign(
-  slot: CardEntrySlot,
+  slot: CardEntrySlot | WordingSlotId,
   value: string,
-  companions: Partial<Record<CardEntrySlot, string | null>> = {},
+  companions: Partial<Record<CardEntrySlot | WordingSlotId, string | null>> = {},
 ): Promise<boolean> {
   const text = value.trim();
   if (text === "") return true;

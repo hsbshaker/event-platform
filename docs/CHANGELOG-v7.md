@@ -370,6 +370,29 @@ circles. Two decisions by the owner (2026-10-04):
   worst-case title the fixtures prove fits.
 - **Phase 5:** waits for the owner's go-ahead.
 
+### Phase 5b — the generation pipeline: decisions made while building it
+
+- **The PNG reader is our own.** The image model returns PNG only, so artwork validation and ink
+  sampling use an in-house reader on `node:zlib` (8-bit RGB/RGBA, non-interlaced; CRC and size
+  checked; no more than 40 million pixels) rather than an image library; it also strips the colour
+  and text chunks so artwork is stored untagged. Node 22.2 or later (`technology-decisions.md
+  §8.2`).
+- **A failed re-prompt keeps the earlier valid design.** When a card-design re-prompt's own call
+  fails, the design already in hand is kept and the check that asked for the re-prompt takes its
+  fallback (standard wording, or the repeat accepted); only a stage that never produced a valid
+  design fails visibly (`model-contracts.md §9`).
+- **A provider refusal's regeneration shares the image budget.** The re-prompted design's artwork
+  continues the refused artwork's two extra images; its own failure is visible
+  (`model-contracts.md §9`).
+- **Generated wording clears the host's checks.** Model-drafted wording must use characters the
+  card's fonts draw and fit every design, as a host's own text must; otherwise it is re-prompted,
+  then replaced by standard wording (`card-system.md §4.1`, `model-contracts.md §5.3`).
+- **The event type is the host's words.** The design is told the event type the prompt states
+  (verbatim), not the launch default, so "60th birthday" is not designed as a baby shower
+  (`model-contracts.md §5.2`).
+- **Extracted facts are prefill.** They are kept with the generation and pre-fill the details
+  form; an event field changes only when the host saves it (`model-contracts.md §4.3`).
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

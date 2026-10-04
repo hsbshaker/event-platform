@@ -254,6 +254,42 @@ describe("the wording fact check: one wording re-prompt, then standard wording",
   });
 });
 
+describe("model wording clears what a host's own text must (card-system.md §2.5)", () => {
+  it("re-prompts wording the card's fonts cannot draw", async () => {
+    const { fake, run } = stage([withWording("Lemons \u{1F34B} Linen"), DESIGN]);
+    const result = await run();
+    expect(fake.calls.design[1].reprompt).toMatchObject({ kind: "wording" });
+    expect(fake.calls.design[1].reprompt?.feedback).toContain("cannot draw");
+    expect(result.design.wording).toEqual(DESIGN.wording);
+  });
+
+  it("re-prompts a title too wide for the card, then falls back to standard wording", async () => {
+    const wide = "WWWWWW WWWWWW WWWWWW WWWWWW WWWWWW WWWWW";
+    const { fake, run } = stage([withWording(wide), withWording(wide)]);
+    const result = await run();
+    expect(fake.calls.design[1].reprompt?.feedback).toContain("title");
+    expect(result.design.wording.title).toBe("A Baby Shower");
+    expect(result.telemetry.standardWordingSlots).toEqual(["title"]);
+  });
+
+  it("builds standard wording from the stated event type when it renders", async () => {
+    const { run } = stage([withWording("Brunch on Saturday"), withWording("Brunch on Saturday")], {
+      eventFacts: { ...FACTS, eventType: "garden party" },
+    });
+    expect((await run()).design.wording.title).toBe("A Garden Party");
+  });
+
+  it("falls back to the default type when the stated one's wording would not render", async () => {
+    const { run } = stage([withWording("Brunch on Saturday"), withWording("Brunch on Saturday")], {
+      eventFacts: {
+        ...FACTS,
+        eventType: "surprise sixtieth birthday dinner for my mother-in-law",
+      },
+    });
+    expect((await run()).design.wording.title).toBe("A Baby Shower");
+  });
+});
+
 describe("direction distinctness: one repeat-direction re-prompt, then accept", () => {
   it("re-prompts an exact repeat, naming the earlier directions", async () => {
     const { fake, run } = stage([DESIGN, DIFFERENT], { previousDirections: [EARLIER] });

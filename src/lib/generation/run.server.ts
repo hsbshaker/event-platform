@@ -540,7 +540,10 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   });
   const row = persisted.error ? undefined : persisted.data?.[0];
   if (!row) {
-    await removeUpload(admin, storageKey, Boolean(persisted.error), { generationId, eventId });
+    await removeUpload(admin, storageKey, databaseAnswered(persisted.error), {
+      generationId,
+      eventId,
+    });
     if (persisted.error) throw persisted.error;
     throw new GenerationStoppedError("persisting the card");
   }
@@ -548,30 +551,36 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
 }
 
 /**
- * Takes the uploaded artwork back out when no card names it. After a persist that errored, the
- * call may still have committed (an error on the way back): the object is removed only once the
- * asset row is known not to exist, since a missing object under a persisted card would break
- * it, while a leftover object harms nothing. Best effort: a failure is logged with the key.
+ * Whether the database itself answered the persist, so its transaction is known to have ended
+ * without committing: no error (it wrote nothing because the generation stopped running), or an
+ * error carrying a Postgres SQLSTATE or a PostgREST code (the statement failed and rolled back).
+ * A transport error — a reset socket, an aborted fetch — carries neither: the transaction may still
+ * be running, waiting on a lock, and commit after this worker has given up on it.
+ */
+function databaseAnswered(error: { code?: unknown } | null): boolean {
+  if (!error) return true;
+  const code = typeof error.code === "string" ? error.code : "";
+  return /^[0-9A-Z]{5}$/.test(code) || code.startsWith("PGRST");
+}
+
+/**
+ * Takes the uploaded artwork back out when no card can name it. Only when the database answered
+ * (`databaseAnswered`): otherwise the persist may still commit, and a missing object under an
+ * immutable, persisted card would break it for good, while a leftover object harms nothing. The
+ * kept key is logged. Best effort: a failed removal is logged with the key too.
  */
 async function removeUpload(
   admin: AdminClient,
   storageKey: string,
-  persistErrored: boolean,
+  answered: boolean,
   ids: { generationId: string; eventId: string },
 ): Promise<void> {
-  if (persistErrored) {
-    const { data, error } = await admin
-      .from("card_art_assets")
-      .select("id")
-      .eq("storage_key", storageKey)
-      .maybeSingle();
-    if (error || data) {
-      console.error("[generation] kept the uploaded artwork: the persist may have committed", {
-        ...ids,
-        storageKey,
-      });
-      return;
-    }
+  if (!answered) {
+    console.error("[generation] kept the uploaded artwork: the persist may still commit", {
+      ...ids,
+      storageKey,
+    });
+    return;
   }
   const { error } = await admin.storage.from(CARD_ART_BUCKET).remove([storageKey]);
   if (error) {

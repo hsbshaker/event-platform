@@ -353,10 +353,14 @@ No step here calls a model or regenerates artwork.
   mode, pairings), string length bounds, no extra fields.
 - Layout ↔ art-mode compatibility; the layout supports the chosen shape; alternates distinct from
   the primary pairing.
-- Wording fact check (§2.5), on model-drafted wording only. A failing design earns one re-prompt
-  naming the failing slot; if it fails again, that slot is replaced by standard wording (`title`:
-  "A Baby Shower"; `invitationLine`: "Please join us for a baby shower"), logged, and visible to the
-  host as ordinary editable text. A host-supplied title is never checked or replaced.
+- Wording fact check (§2.5), on model-drafted wording only. Model-drafted wording must also clear
+  what a host's own text has to (§2.5): characters the curated faces can draw, and a fit in every
+  design beside the worst-case content, so a generated card never overflows. A failing design earns
+  one re-prompt naming the failing slot; if it fails again, that slot is replaced by standard
+  wording built from the event type (for a baby shower, `title`: "A Baby Shower";
+  `invitationLine`: "Please join us for a baby shower"; from the default type when a stated type's
+  wording would not itself clear those checks), logged, and visible to the host as ordinary
+  editable text. A host-supplied title is never checked or replaced.
 - Direction distinctness: a design that repeats an earlier direction's layout, art mode and primary
   pairing together earns its one re-prompt naming the earlier directions.
 - Artwork: file type, the requested proportion (5:7 or 1:1) within tolerance, minimum resolution,

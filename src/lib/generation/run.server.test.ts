@@ -707,36 +707,30 @@ describe("nothing is persisted once the generation stopped running", () => {
     expect(failures()).toEqual(["published"]);
   });
 
-  it("removes the upload when the persist errors and no asset names it", async () => {
-    admin.state.errors.persist_generated_card = { message: "check violation", code: "23514" };
-    const { outcome } = await run();
-    expect(outcome).toEqual({ status: "failed", code: "internal" });
-    const key = admin.state.uploads[0].key;
-    expect(admin.state.selects.at(-1)).toMatchObject({
-      table: "card_art_assets",
-      filters: [["storage_key", key]],
-    });
-    expect(admin.state.removes).toEqual([{ bucket: CARD_ART_BUCKET, keys: [key] }]);
+  it("removes the upload when the database answered the persist with an error (rolled back)", async () => {
+    for (const code of ["23514", "PGRST202"]) {
+      admin.state.errors.persist_generated_card = { message: "refused", code };
+      admin.state.removes.length = 0;
+      const { outcome } = await run();
+      expect(outcome).toEqual({ status: "failed", code: "internal" });
+      expect(admin.state.removes).toEqual([
+        { bucket: CARD_ART_BUCKET, keys: [admin.state.uploads.at(-1)!.key] },
+      ]);
+    }
   });
 
-  it("keeps the upload when the persist errored but committed (an asset names it)", async () => {
-    admin.state.errors.persist_generated_card = { message: "fetch failed" };
-    // The persist committed before its response was lost: the asset row names the upload.
-    const storageFrom = admin.client.storage.from;
-    admin.client.storage.from = (bucket: string) => {
-      const objects = storageFrom(bucket);
-      return {
-        ...objects,
-        upload: (key: string, bytes: Uint8Array, options: unknown) => {
-          admin.state.tables.card_art_assets.push({ id: "asset", storage_key: key });
-          return objects.upload(key, bytes, options);
-        },
-      };
-    };
-    const { outcome } = await run();
-    expect(outcome).toEqual({ status: "failed", code: "internal" });
-    expect(admin.state.removes).toEqual([]);
-    expect(admin.state.storage[CARD_ART_BUCKET]).toHaveProperty([admin.state.uploads[0].key]);
+  it("keeps the upload, and logs its key, when the persist's response was lost", async () => {
+    // A transport error: the transaction may still be running and commit after the worker gives
+    // up, so the object a committed card names must never be removed.
+    for (const error of [{ message: "fetch failed" }, { message: "TypeError", code: "" }]) {
+      admin.state.errors.persist_generated_card = error;
+      const { outcome } = await run();
+      expect(outcome).toEqual({ status: "failed", code: "internal" });
+      expect(admin.state.removes).toEqual([]);
+      const key = admin.state.uploads.at(-1)!.key;
+      expect(admin.state.storage[CARD_ART_BUCKET]).toHaveProperty([key]);
+      expect(JSON.stringify(errors.mock.calls)).toContain(key);
+    }
   });
 
   it("a failed removal is logged with its key, not thrown", async () => {
