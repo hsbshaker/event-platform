@@ -63,21 +63,6 @@ export function serverEnv(): ServerEnv {
 }
 
 /**
- * Phase 0 spike token (optional, server-only). Validated here so the spike route never
- * reads process.env directly; removed with the spike.
- */
-const spikeSchema = z.string().min(16).optional();
-
-export function spikeToken(): string | undefined {
-  if (typeof window !== "undefined") {
-    throw new Error("spikeToken() must not be called from client code.");
-  }
-  const parsed = spikeSchema.safeParse(process.env.SPIKE_TOKEN || undefined);
-  if (!parsed.success) fail("SPIKE_TOKEN", parsed.error);
-  return parsed.data;
-}
-
-/**
  * Cleanup-job credential (optional, server-only). It is the sole credential protecting a
  * service-role endpoint, so it is validated here like every other secret rather than read
  * raw from `process.env`: a one-character value would otherwise be accepted. Optional because
@@ -92,35 +77,6 @@ export function cronSecret(): string | undefined {
   }
   const parsed = cronSchema.safeParse(process.env.CRON_SECRET || undefined);
   if (!parsed.success) fail("CRON_SECRET", parsed.error);
-  return parsed.data;
-}
-
-/**
- * Human Test #1 synthetic-submission secret (optional, server-only).
- *
- * Presenting it on `POST /api/human-test-1/submit` routes that submission to
- * `human_test_1_test_responses`, the table the scorer never reads, so the deployed flow can be
- * exercised without contaminating the five real reviewer responses. Optional, and fail-closed
- * when unset: without it every submission is a real one, exactly as a reviewer's is. Length-
- * checked here like every other secret so a one-character value can never become the thing
- * standing between synthetic and real data.
- */
-const humanTestSecretSchema = z
-  .string()
-  .min(32)
-  // Printable ASCII only. A non-ASCII value would pass a length check and then never match:
-  // header values arrive latin1-decoded while the environment value is UTF-8, so the two produce
-  // different bytes. Fail-closed either way, but an operator would see an unexplained refusal
-  // rather than a configuration error, so make it unconfigurable instead.
-  .regex(/^[\x21-\x7e]+$/, "must be printable ASCII with no spaces")
-  .optional();
-
-export function humanTest1TestSecret(): string | undefined {
-  if (typeof window !== "undefined") {
-    throw new Error("humanTest1TestSecret() must not be called from client code.");
-  }
-  const parsed = humanTestSecretSchema.safeParse(process.env.HUMAN_TEST_1_TEST_SECRET || undefined);
-  if (!parsed.success) fail("HUMAN_TEST_1_TEST_SECRET", parsed.error);
   return parsed.data;
 }
 

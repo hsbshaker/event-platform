@@ -5,27 +5,28 @@ This file exists so every agent session starts from the same product, architectu
 
 Do **not** begin implementation by guessing from the codebase alone. Read the authoritative docs in the order below, then make the smallest change that satisfies the current task and the cited acceptance criteria.
 
+**The product (Revision 7):** a host describes their event; the AI designs **one invitation card** — generated artwork with real text set over it — that guests open from an envelope, above a standard event page with details, RSVP and registry in one house style. The earlier custom-website architecture (CompositionTree, primitives, renderer, geometry verification) is retired and deleted. Do not rebuild it. `docs/CHANGELOG-v7.md` records why.
+
 ---
 
 # 1. Read order before coding
 
 Use this source-of-truth order:
 
-0. **`docs/product-doctrine.md`** — what this product promises, the creative bar it has to clear, and the responsibilities of `EventIdentity` / `DesignIntent` / `CompositionTree` / compiler. **Read it first, before any creative or product decision.** It is intent, not requirements: it decides nothing on its own, it never overrides a document below it, and `spec.md` remains the authority for requirements and acceptance criteria. Where it and a lower document disagree about a *requirement*, that is a real conflict to raise — its §14 lists the ones known today — never one to resolve by quietly editing either side.
-1. **`spec.md`** — product, business, data, architecture, permissions, lifecycle, acceptance criteria, and implementation guardrails.
+0. **`docs/product-doctrine.md`** — what this product promises, the creative bar it has to clear, and the responsibilities of `EventIdentity` / fact extraction / `CardDesign` / card artwork / card compiler. **Read it first, before any creative or product decision.** It is intent, not requirements: it decides nothing on its own, it never overrides a document below it, and `spec.md` remains the authority for requirements and acceptance criteria. Where it and a lower document disagree about a *requirement*, that is a real conflict to raise — its §14 lists the open questions — never one to resolve by quietly editing either side.
+1. **`spec.md`** — product, business, data, architecture, permissions, lifecycle, acceptance criteria (§31), and implementation guardrails (§32).
 2. **`docs/technology-decisions.md`** — locked MVP stack. Do not relitigate or substitute infrastructure by preference.
-3. **`docs/design-system.md`** — application UX, interaction patterns, visual tokens, responsive behavior, motion, accessibility, and strict component governance.
-4. **`docs/event-renderer-system.md`** — generated guest-site renderer architecture: `DesignIntent → CompositionTree (model-authored, trusted primitives) → deterministic compiler (validate, repair, caps, geometry verification) → ResolvedDesignSpec → renderer`.
-5. **`docs/model-contracts.md`** — Event Identity, DesignIntent and Composition prompts, structured-output schemas, runtime narrowing, validation, re-prompt policy, and evals. Prompts live in `docs/model-prompts/`, schemas in `docs/model-schemas/` (the composition schema is generated from the validator table).
+3. **`docs/design-system.md`** — application UX, interaction patterns, visual tokens, responsive behavior, motion, accessibility, strict component governance, the house-style guest page and the boundary around the card.
+4. **`docs/card-system.md`** — the invitation card: `EventIdentity → CardDesign (layout, art mode, pairing, wording, art brief) → artwork (image model) → deterministic card compiler (validate, wording fact check, ink/legibility, layoutCard) → one card component`, plus the envelope.
+5. **`docs/model-contracts.md`** — Event Identity, fact extraction, Card Design and Card Art contracts, validation, re-prompt policy, and evals. Prompts live in `docs/model-prompts/`, schemas in `docs/model-schemas/`, the creative-understanding corpus in `docs/model-evals/`.
 6. **`docs/e2e-workflow.md`** — canonical owner/co-host and guest journeys.
 7. **`docs/screen-spec.md`** — screen/surface-level behavior.
-8. **`docs/CHANGELOG-v6.md`** (and `CHANGELOG-v5.md`) — what changed in the current revision and why.
-9. **`docs/prototypes/creation-flow.html`** — behavioral reference only; it does not override the docs above.
-10. **`proof/`, `proof-a1/`, `proof-b/`** — the proof phases that decided the renderer architecture; `proof-b/` is the reference implementation of the composition language, validator, compiler pipeline, planner and regression suite until the production package exists. **`docs/renderer-tests/`** — older visual evidence; not product requirements.
+8. **`docs/CHANGELOG-v7.md`** — what changed in the current revision, why, and the owner's decisions.
+9. **`docs/development-plan.md`** — the build sequence; orders the work, defines no requirements.
 
 If two documents conflict, follow the higher source in this list unless that higher source explicitly delegates an implementation detail to a lower one. Item 0 is the exception, and the only one: it is read first and ranks last, because it explains what we are trying to build rather than what is required.
 
-Historical files such as `spec_v4.md`, old prototypes, and the first renderer gallery are evidence only. Do not make them current by patching them.
+Superseded revisions live only in git history. Do not recreate them in the repository or treat them as current.
 
 ---
 
@@ -33,31 +34,26 @@ Historical files such as `spec_v4.md`, old prototypes, and the first renderer ga
 
 Before proposing or implementing a solution, check it against these rules:
 
-- **AI should remove decisions, not create more decisions.** It means the system makes the design decisions it was hired to make — never which font, which grid, which hex value. `docs/product-doctrine.md §7`.
-- **Design quality and creative understanding are core functionality, not polish.** MVP is permission to omit features, never permission for a mediocre central path. `docs/product-doctrine.md §2`.
-- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. `docs/product-doctrine.md §4`.
+- **AI should remove decisions, not create more decisions.** The system makes the design decisions it was hired to make — never which font, which layout, which hex value. `docs/product-doctrine.md §7`.
+- **Design quality and creative understanding are core functionality, not polish.** MVP is permission to omit features, never permission for a mediocre card. `docs/product-doctrine.md §2`.
+- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout rule. `docs/product-doctrine.md §4`.
 - The landing page is the prompt.
-- Prompt first → auth/save second → strong-model generation third.
+- Prompt first → auth/save second → generation third. No model call of any kind for anonymous users.
 - Prompt and inspiration must survive auth/OAuth exactly.
-- Concept selection leads to a full-site reveal, not a setup dashboard.
-- **Creation Mode is the actual event site.** Use contextual `Edit` / `Set up` / `Add` controls.
-- Setup/readiness is not a wizard.
-- Guests and Registry are not publish blockers unless `spec.md §23.1` says otherwise.
-- `Try another direction` changes design only and never event content/data.
-- The strong model emits a six-field `DesignIntent` (with `family` and `composition`, plus a non-design `presentation` object) and then a `CompositionTree` of trusted primitives with enum tokens. It never emits HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist.
-- The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent). The compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
-- Compiler work is deterministic: schema and structural validation, repair, attractive-token caps, canonicalization, palette compilation, layout resolution and rendered-geometry verification do not call a model. The model is re-prompted only for schema-invalid output, a token-cap violation or a selector collision, once each.
-- A spec is final only when rendered-geometry verification is clean at 390 and 1280. The static fit estimate is advisory.
-- Persist `DesignIntent + CompositionTree (raw and canonical) + every ResolvedDesignSpec revision` with prompt, schema, primitive-set and compiler versions per generated concept. A content edit re-fits into a new revision of the same concept without a model call; nothing persisted is mutated.
-- Capabilities are enabled features, the content profile is present content, and guest visibility is `FeaturePresentationState`; none of them recomposes a page. Required details never block concepts from appearing; provisional content is bounded and re-fit when real values arrive.
-- The Phase A/A.1 recipes are a library: regression fixtures, few-shot examples, repair/fallback macros, calibration. Not a menu, not the creative ceiling, no renderer code per recipe.
-- Generated design data is immutable; renderer code may receive bug/accessibility/responsive fixes.
-- App chrome and event renderer styling are separate systems.
-- No host-uploaded, stock or model-placed site imagery. **Optional AI-generated thematic artwork is approved for Phase 4** (`spec.md §7.6a`): optional and chosen by the creative direction, art-directed to serve the composition, and placed by the compiler through the composition language — never mandatory, never by pixel or model-authored CSS. Not in the current build (`docs/product-doctrine.md §9`–`§10`).
-- No guest accounts.
-- No gift reservation/hold state.
-- Mobile-first does not mean phone-framed desktop.
-- Mobile guest-surface structural convergence is acceptable when usability requires it.
+- **The product makes one invitation card at a time.** `Try another direction` makes one new, genuinely different card and changes design only, never event content/data.
+- The card reveal (out of the envelope) leads to `Make it yours` → Creation Mode, not a setup dashboard.
+- **Creation Mode is the invitation itself** — the card and the page beneath it — with contextual `Edit` / `Set up` / `Add` controls.
+- Setup/readiness is not a wizard. Adaptive creative clarification is the one permitted pre-design question: taste only, never logistics, at most three.
+- Guests, Registry and invitations are not publish blockers (`spec.md §23.1`).
+- The models return an `EventIdentity`, a `CardDesign` (layout ID, art mode, pairing IDs, bounded wording, art brief, presentation) and artwork — nothing else. They never emit HTML, CSS, JSX, JavaScript, SVG, text colours, font sizes, positions or line breaks.
+- **Facts come only from the host.** Names, dates, times, venues on the card render from event data; AI wording never states or invents one.
+- **Artwork contains no text.** Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
+- **Code owns legibility and fit.** Ink and legibility panels are chosen deterministically so every card text clears 4.5:1; `layoutCard` alone decides card text size and line breaks; the browser never re-wraps card text.
+- Persist `EventIdentity`, every `CardDesign` (raw and validated), its artwork, resolved ink and version set. Generated design data is immutable; host edits (wording, font, facts) live on the event; renderer code may receive bug/accessibility/responsive fixes.
+- **The page under the card is one house style for every event.** Card styling, the house-style page and app chrome are separate systems.
+- Personal invitation links identify the party and skip the private code; the platform texts invitations only after publish, after host attestation, within caps. Shared-link RSVP uses name lookup + SMS OTP.
+- No guest accounts. No gift reservation/hold state. No template, layout or artwork gallery.
+- Mobile-first does not mean phone-framed desktop. The card is the same design at every size.
 
 If a proposed implementation violates one of these, stop and re-check `spec.md` before coding.
 
@@ -72,15 +68,16 @@ The MVP stack is already decided:
 - **Next.js App Router + TypeScript**
 - **Supabase Postgres**
 - **Supabase Auth**
-- **Supabase Storage**
-- **Vercel** hosting and event-site subdomain routing
-- **Twilio** for SMS/OTP/event messaging
+- **Supabase Storage** (including generated card artwork)
+- **Vercel** hosting and event subdomain routing
+- **Twilio** for SMS invitations, OTP and event messaging
 - **Stripe-shaped payment boundary**, initially stubbed behind the mock `$49` publish gate
 - thin AI provider interface:
   - `generateEventIdentity(...)`
-  - `generateDesignIntent(...)`
-  - `generateComposition(...)`
-- a headless Chromium pass for rendered-geometry verification (see `docs/technology-decisions.md`)
+  - `generateCardDesign(...)`
+  - `generateCardArt(...)` — the image model is **not yet selected**; the Phase 3 bake-off decides it and records it in `docs/technology-decisions.md §8.1`
+
+Production runs no headless browser; a real browser is used at test time only (layout fixtures, e2e).
 
 Do not introduce competing auth, database, storage, hosting, SMS, payment, backend-framework, microservice, Kubernetes, or generalized AI-orchestration infrastructure unless the task explicitly revisits the technology decision.
 
@@ -92,71 +89,68 @@ If you believe a stack change is genuinely required, do **not** silently make it
 
 **`spec.md §32 — Implementation Guardrails for Coding Agents` is mandatory reading before implementation.**
 
-Treat all 46 guardrails as constraints, not suggestions.
+Treat all 47 guardrails as constraints, not suggestions.
 
-The most commonly violated ones are:
+The most commonly violated ones are likely to be:
 
-- do not reinsert signup before the prompt;
-- do not begin strong-model generation anonymously;
-- do not add a template gallery;
-- do not send concept selection to a pre-publish dashboard;
-- do not create a setup wizard;
-- do not let the model emit HTML/CSS/JSX/JavaScript/pixels/free text/colors/fonts or any node outside the primitive allowlist;
-- do not add a primitive, token or prop to the composition language without a proof run (`spec.md §32 #15`);
-- do not re-prompt the model for structural, coverage, capability, responsive, box, motif-kind or fit defects; repair deterministically and log;
-- do not finalize or persist a spec that has not passed rendered-geometry verification;
-- do not render from anything but the persisted resolved spec;
-- do not silently drop motifs;
-- do not use raw creative palette colors directly as semantic text/background/button roles;
-- do not turn directives, caps or the library into a template menu;
-- do not add site-photo/decorative imagery;
-- do not add retailer scraping/sync/proxies;
-- do not create guest accounts;
-- do not build gift reservations;
-- do not bypass STOP via email;
-- do not add maps/geocoding solely for timezone;
-- do not invent extra `READY_TO_PUBLISH` requirements.
+- do not rebuild any part of the retired website architecture (#1);
+- do not reinsert signup before the prompt; do not begin generation anonymously (#3, #4);
+- do not add a template, layout or artwork gallery, or a template/stock fallback (#6, #21);
+- do not send the card reveal to a pre-publish dashboard; do not create a setup wizard (#7, #9);
+- do not let a model emit HTML/CSS/JS/SVG, text colours, sizes, positions or line breaks (#13);
+- do not let AI wording state a fact; facts come only from host data (#15);
+- do not ask the image model to render text, and reject artwork that contains it (#16);
+- do not send the raw prompt or inspiration images to the image model (#17);
+- do not call a model for legibility, fit or compatibility (#20);
+- do not let the browser re-wrap card text or truncate it silently (#23);
+- do not add a layout, art mode or slot limit without a layout-set version bump and fixtures (#24);
+- do not regenerate or "upgrade" historical designs (#27);
+- do not theme the page under the card per event (#29);
+- do not add host-uploaded, stock or retrieved imagery (#31);
+- do not add retailer scraping/sync/proxies (#33);
+- do not create guest accounts; do not build gift reservations (#34, #38);
+- do not bypass STOP via email; invitations go by text only, after publish and attestation (#39, #40);
+- do not add maps/geocoding solely for timezone (#41);
+- do not invent extra `READY_TO_PUBLISH` requirements (#45).
 
 When in doubt, cite the relevant guardrail number in the PR.
 
 ---
 
-# 5. Renderer-specific stop conditions
+# 5. Card-specific stop conditions
 
-Before editing renderer architecture, read `docs/event-renderer-system.md` completely.
+Before editing card architecture, read `docs/card-system.md` completely.
 
-Current renderer contract:
+Current card contract:
 
 ```text
-DesignIntent (family, tone, palette, typography, density, composition)
-→ sibling planner: three intents, three directives, attractive-token allotments
-→ CompositionTree from the model (trusted primitives, enum tokens, capabilities-scoped)
-→ strict schema (one re-prompt) → structural validation + deterministic repair → planner caps
-→ canonicalize → page system + semantic palette + typography → layout resolution
-→ rendered-geometry verification at 390 and 1280 (authoritative)
-→ immutable ResolvedDesignSpec (verified) → production renderer (one component per primitive)
+host prompt + inspiration
+→ EventIdentity (the only reader of the raw prompt; optional taste clarification)
+   ∥ fact extraction (cheaper model) → draft details for the host to confirm
+→ CardDesign (layout from catalog, art mode, pairing + alternates, wording, art brief)
+→ strict schema + catalog validation · wording fact check · direction distinctness   (one re-prompt each)
+→ art prompt assembled by code (brief + layout rule + global rules) → image model → artwork
+→ artwork validation: type, 5:7, resolution, no embedded text, safety   (one regeneration)
+→ ink + legibility panels resolved deterministically (every card text ≥ 4.5:1)
+→ persisted, immutable CardDesign + artwork + ink + versions
+→ layoutCard (sizes, line breaks) at save and render → one card component → envelope → house-style page
 ```
 
 Do not:
-- add a primitive, prop or token without a proof run and a version bump of the primitive set;
-- let the renderer derive CSS text from model output; classes and numeric custom properties only;
-- weaken the zero-overflow criterion or make the static fit estimate authoritative;
-- give the model a per-node color, font, size, pixel or free-text field;
-- silently recompile historical concepts against a newer compiler or primitive set.
+- let a model choose a text colour, a size, a position or a line break, or write a fact;
+- put text in artwork, or send the raw prompt or inspiration images to the image model;
+- add a layout, art mode or slot limit without a layout-set version bump and a fixture run;
+- let the browser re-wrap card text, or truncate any card text silently;
+- derive CSS from model output;
+- regenerate, recompile or re-resolve the ink of a historical design;
+- add a template, art library, stock set or template fallback;
+- take colours or fonts from the card into the page or app chrome.
 
-## 5.1 The Library Boundary Invariant
+## 5.1 The No-Template Invariant
 
-`docs/event-renderer-system.md §7.1` is binding. The legacy library is **26 hero silhouettes and 13 section recipes** kept as fixtures; it is not the creative space.
+Each card's artwork is generated for that event's card, from that event's `EventIdentity`. There is no library of pre-made cards, artwork or stock images, and no path — selection, nearest match, fallback — by which a host receives a card that was not designed for their event. The layout catalog decides only where words go and which regions the artwork leaves quiet; it is never shown to hosts, never chosen by them, and never the reason two events' cards look alike. A generation that fails is shown honestly with a retry, never replaced with something pre-made.
 
-Production generation accepts and compiles any valid model-authored `CompositionTree`. It never selects, matches, ranks, schedules or maps a composition onto a legacy silhouette or recipe. A tree is legal because the rules admit it, never because it resembles a fixture, and a novel composition with no counterpart in the library is first-class on exactly the same path.
-
-The library may be used **only** for: regression and expressiveness fixtures; rotated few-shot examples; deterministic repair macros where the renderer doc specifies them; the terminal fallback after the documented retry is exhausted; and signature calibration.
-
-Never introduce: template or catalogue selection; normal candidate generation from the library; a recipe or silhouette identifier as a creative decision variable; nearest-library mapping; structural scheduling driven by the library; or renderer code that branches by recipe.
-
-This is the architecture Revision 2 chose when it replaced bundled archetypes. Rebuilding a template system underneath it, by any of the routes above, is the specific regression the invariant exists to prevent — so it is enforced by tests and lint, and a change that needs those relaxed is a stop condition, not a refactor.
-
-Regression gate for any change to the language, validator, compiler, renderer rules or planner: `proof-b/test.js`, `proof-b/adv-run.js`, the library expressiveness render, and a sibling-batch confirmation run evaluated with `proof-b/evaluate.js` against the thresholds in `docs/event-renderer-system.md §9`.
+Regression gate for any change to the card design prompt or schema, layout set, compiler, ink resolution, `layoutCard`, art-prompt assembly or envelope: the unit tests under `src/lib/card/`, the layout fixtures (every layout × pairing in a real browser), and — when a prompt or schema changes — the creative-understanding corpus (`docs/model-contracts.md §6`).
 
 ---
 
@@ -175,11 +169,9 @@ Do not introduce page-local variants of:
 - app colors;
 - typography sizes.
 
-Feature UI must use semantic app tokens/shared components.
+Feature UI and the house-style guest page must use semantic app tokens/shared components.
 
-Event renderer components must use event semantic tokens and renderer-owned components.
-
-Do not leak event-theme styling into application chrome or application styling into themed guest surfaces.
+The invitation card uses its own card system (`docs/card-system.md`, `src/lib/card/`, `src/styles/card-fonts.css`). Do not leak card styling into application chrome or the house-style page, or application styling into the card.
 
 ---
 
@@ -194,16 +186,16 @@ Recommended format:
 ```md
 ## Spec / acceptance criteria
 
-- `spec.md §31 — DesignIntent, composition and compiler`
-  - “Every structural rule … is validated and repaired deterministically, with every repair logged by kind.”
-  - “Content fit is verified against rendered geometry at 390 and 1280 …”
-- `spec.md §32 guardrails #22–24`
+- `spec.md §31 — Card design, artwork and compiler`
+  - “Every card text clears 4.5:1 against the conservatively measured background of its zone …”
+  - “`layoutCard` decides every slot's size and line breaks; no text leaves its zone …”
+- `spec.md §32 guardrails #20, #22, #23`
 
 ## Verification
 
-- [x] unit test: repair rule with fixture
-- [x] adversarial set repairs and renders clean
-- [x] existing renderer regression suite passes
+- [x] unit test: ink resolution including the panel path
+- [x] layout fixtures: every layout × pairing renders worst-case content in its zones
+- [x] existing card test suite passes
 ```
 
 ## 7.1 Required §31 group by PR area
@@ -212,16 +204,16 @@ A PR touching one of these areas must cite **at least one exact bullet from ever
 
 | PR area | Required `spec.md §31` group(s) |
 | --- | --- |
-| Landing composer, pre-auth draft, OAuth/auth restoration, generation start, required details, timezone | **Prompt, auth, and generation** |
-| Event Identity, concept constraint assignment, diversity planning | **Event Identity and diversity** |
-| AI concept output, DesignIntent and composition schemas, primitive-set versioning, compiler, geometry verification, palette/contrast, typography repair, motifs, persistence | **DesignIntent, composition and compiler** |
-| Concept cards, initial `Try another direction`, concept selection, full-site reveal, `Make it yours` | **Concept experience** |
+| Landing composer, pre-auth draft, OAuth/auth restoration, generation start, required details, timezone, generation surface | **Prompt, auth, and generation** |
+| Event Identity, clarification, fact extraction, card direction, direction distinctness | **Event Identity and card direction** |
+| Card Design schema and prompt, artwork generation and validation, wording fact check, ink/legibility, `layoutCard`, persistence and versioning | **Card design, artwork and compiler** |
+| Card reveal, `Make it yours`, designs list, choosing a design | **Card experience** |
 | Inline/contextual editing, collaborator anchors, autosave, readiness checklist, guest workspace, Design panel | **Creation Mode** |
-| Redesign prompt/rounds/keep-current behavior/post-publish lockout | **Redesign** |
-| Renderer architecture, composition language, planner, guest theming, regression gates, confirmation runs | **Renderer proof** **and** **DesignIntent, composition and compiler** |
-| Guest list, CSV, party lookup, OTP, guest session, RSVP/update | **RSVP** |
+| Try-another-direction flow, feedback, keep-current behavior, post-publish lockout | **Try another direction** |
+| Card component, envelope, private sealed state, link previews, layout fixtures, house-style page | **Card rendering and envelope** **and** **Card design, artwork and compiler** |
+| Guest list, CSV, personal invitation links, party lookup, OTP, guest session, RSVP/update | **RSVP** |
 | External registries, native gifts, thumbnails, Buy flow, purchase confirmation, cash fund | **Registry** |
-| SMS, STOP, email fallback, private event code/gate, QR privacy | **Messaging/privacy** |
+| Invitations by text, reminders, announcements, STOP, email fallback, private event code/gate, QR privacy | **Invitations, messaging and privacy** |
 | Owner/co-host permissions, readiness, payment/publish, post-publish capability | **Roles/publishing** |
 | Responsive layout, mobile/desktop behavior, focus/contrast/WCAG, preview width | **Responsive/accessibility** plus the functional group for the feature being changed |
 
@@ -231,18 +223,18 @@ If a PR crosses areas, cite all affected groups.
 
 Examples:
 
-- **Prompt → auth → generation PR:** cite `Prompt, auth, and generation`; if it also creates Event Identity persistence, cite `Event Identity and diversity` too.
-- **Renderer compiler PR:** cite `DesignIntent, composition and compiler` + `Renderer proof` + `Responsive/accessibility` when rendering/UI output changes.
-- **RSVP themed-component PR:** cite `RSVP` + `Renderer proof` + `Responsive/accessibility`.
+- **Prompt → auth → generation PR:** cite `Prompt, auth, and generation`; if it also creates Event Identity persistence, cite `Event Identity and card direction` too.
+- **Card compiler PR:** cite `Card design, artwork and compiler` + `Card rendering and envelope` + `Responsive/accessibility` when rendered output changes.
+- **Personal-link RSVP PR:** cite `RSVP` + `Invitations, messaging and privacy` + `Responsive/accessibility`.
 - **Publish-readiness UI PR:** cite `Creation Mode` + `Roles/publishing`.
-- **Private RSVP gate PR:** cite `RSVP` + `Messaging/privacy` + `Responsive/accessibility`.
+- **Send-invitations PR:** cite `Invitations, messaging and privacy` + `RSVP` + `Roles/publishing`.
 
 ## 7.2 Exact-bullet rule
 
 The PR must quote or paraphrase tightly enough that reviewers can identify the exact checkbox in §31.
 
 Good:
-> `spec.md §31 — Creation Mode: “Ready to publish can appear even if guests/registry are incomplete.”`
+> `spec.md §31 — Creation Mode: “Ready to publish can appear even if guests/registry/invitations are incomplete.”`
 
 Not sufficient:
 > “Creation Mode acceptance criteria.”
@@ -269,16 +261,16 @@ It must still cite any relevant `spec.md §32` guardrails or `docs/technology-de
 
 # 8. PR guardrail citations
 
-In addition to §31 acceptance criteria, cite `spec.md §32` guardrail numbers when the PR touches a guarded architectural boundary.
+In addition to §31 acceptance criteria, cite `spec.md §32` guardrail numbers when the PR touches a guarded boundary.
 
 Examples:
-- AI/renderer contract → #12–31 as applicable.
-- Registry image/network handling → #32–34 and relevant registry requirements.
-- Guest identity → #35–37.
+- AI/card contract → #12–30 as applicable.
+- Imagery, registry image/network handling → #31–33 and relevant registry requirements.
+- Guest identity and personal links → #34–37.
 - Gift state → #38.
-- Messaging opt-out → #39.
-- Timezone → #40.
-- Publish readiness → #44.
+- Messaging and invitations → #39–40.
+- Timezone → #41.
+- Publish readiness → #45.
 
 A PR that deliberately changes a guardrail requires an explicit spec change; code must not quietly diverge.
 
@@ -293,9 +285,9 @@ At minimum:
 3. Run the smallest relevant test set plus regressions for touched shared systems.
 4. For UI changes, check approximately 390px and desktop behavior.
 5. For accessibility-sensitive UI, verify keyboard/focus/contrast as applicable.
-6. For renderer work, run the applicable renderer proof/compiler tests.
+6. For card work, run the card unit tests and the layout fixtures; for prompt/schema changes, the creative-understanding corpus.
 7. For auth/data/security behavior, test failure/edge states, not only happy path.
-8. Confirm no historical revision/prototype was accidentally made authoritative.
+8. Confirm nothing from the retired website architecture was reintroduced.
 9. Fill in the PR acceptance-criteria block with exact §31 citations.
 10. Cite relevant §32 guardrail numbers.
 
@@ -312,7 +304,7 @@ If the requested task is narrow:
 - do not refactor unrelated architecture;
 - do not add future-proof abstractions without a present requirement;
 - do not change the stack by preference;
-- do not “complete” deferred MVP features.
+- do not “complete” deferred MVP features (`spec.md §33`).
 
 If you discover a real adjacent problem, document it separately unless it blocks the current acceptance criteria.
 
@@ -326,10 +318,10 @@ Four project agents live in `.claude/agents/`. Use the least expensive agent tha
 | --- | --- | --- |
 | Haiku | `repo-explorer` (read-only) | locating files, symbols, call sites and tests; targeted search; summarizing logs. Never edits, architecture, or product decisions. |
 | Sonnet | `implementation-worker` | the default for well-defined work: ordinary features, UI, route handlers, routine data changes, localized refactors, ordinary tests, understood bug fixes. Stops and escalates on ambiguity instead of inventing. |
-| Opus | `senior-implementer` | hard engineering with settled architecture: root-cause debugging, complex migrations and RLS, auth and security code, concurrency and idempotency, compiler/renderer internals, AI-pipeline integration, performance, cross-cutting changes, anything Sonnet could not resolve cleanly. The preferred senior implementation model. |
+| Opus | `senior-implementer` | hard engineering with settled architecture: root-cause debugging, complex migrations and RLS, auth and security code, concurrency and idempotency, card compiler internals (ink resolution, `layoutCard`), AI and image pipeline integration and spend controls, performance, cross-cutting changes, anything Sonnet could not resolve cleanly. The preferred senior implementation model. |
 | Fable | lead session and `senior-reviewer` (read-only) | decomposition, ambiguous requirements, architecture and product interpretation, canonical-contract changes, decisions with several materially different valid implementations, high-risk design/security/data decisions, and the final review of meaningful integrated changes. Not the default pair of hands. |
 
-**Delegation.** Do the work directly when it is trivial and sequential; delegation has its own context cost. Delegate when a subtask is independently scoped, parallelizable, context-heavy, or benefits from specialization. Give a worker a small task packet, never the whole project context: objective; the exact `spec.md §31` bullets and `§32` guardrails; files or subsystem; explicit non-goals; expected output; verification required. Workers return concise summaries, not source dumps. The lead owns integration and final correctness.
+**Delegation.** Do the work directly when it is trivial and sequential; delegation has its own context cost. Delegate when a subtask is independently scoped, parallelizable, context-heavy, or benefits from specialization. Give a worker a small task packet, never the whole project context: objective; the exact `spec.md §31` bullets and `§32` guardrails; files or subsystem; explicit non-goals; expected output; verification required. Workers return concise summaries, not source dumps. The lead owns integration and final correctness. Workers that run in an isolated worktree start from the last commit: commit (or hand over) any uncommitted canonical change they depend on before delegating, and bring their output back into the branch yourself.
 
 **Escalation.** A worker stops and reports (decision needed, why it blocks, options found, existing canonical text, recommendation if obvious) when: several reasonable interpretations exist; a product or architecture decision is required; there is meaningful security or data-integrity risk; root cause is not found after a reasonable attempt; the change crosses an important architectural boundary; the fix would change canonical behavior; or the requested implementation would violate the locked stack. Ambiguity is never silently turned into a product decision.
 
@@ -341,13 +333,13 @@ Four project agents live in `.claude/agents/`. Use the least expensive agent tha
 
 # 12. Source-of-truth changes
 
-Changing `spec.md`, `docs/design-system.md`, `docs/event-renderer-system.md`, or `docs/technology-decisions.md` is an architectural/product change, not ordinary cleanup.
+Changing `spec.md`, `docs/design-system.md`, `docs/card-system.md`, or `docs/technology-decisions.md` is an architectural/product change, not ordinary cleanup.
 
 When such a change is explicitly approved:
 - update all directly conflicting canonical docs in the same PR;
 - update acceptance criteria/guardrails when behavior changes;
-- add/update the changelog when the decision is material;
-- preserve historical revision files rather than rewriting history.
+- record a material decision in the current `docs/CHANGELOG-vN.md`, or start the next one for a new revision;
+- do not keep superseded copies in the repository; git history is the archive (owner decision, Revision 7).
 
 ---
 

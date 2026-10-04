@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
  * Idempotent by construction. The session exchange is a one-time code; the claim is decided
  * inside `claim_pre_auth_draft` under a row lock, so a retried or double-fired callback with
  * the same draft token returns the event the first call created instead of making a second
- * one. Nothing here calls a model: generation is Phase 4, and §32 #4 forbids it before auth
+ * one. Nothing here calls a model: generation is Phase 5, and §32 #4 forbids it before auth
  * in any case.
  */
 export const runtime = "nodejs";

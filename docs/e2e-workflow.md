@@ -1,11 +1,13 @@
-# E2E Workflow — AI-Native Baby Shower Event Platform
+# E2E Workflow — AI-Designed Baby Shower Invitation Platform
 
-**Status:** Revision 5 UX workflow  
-**Source of truth:** `spec.md` Revision 5  
+**Status:** Revision 7 UX workflow  
+**Source of truth:** `spec.md` Revision 7  
+**Card system:** `docs/card-system.md`  
 **Design system:** `docs/design-system.md`  
-**Renderer:** `docs/event-renderer-system.md`  
 **Design target:** phone-first, responsive desktop  
 **North star:** **AI should remove decisions, not create more decisions.**
+
+This document sequences the journeys. Behaviour, limits and acceptance criteria live in `spec.md`; section references (§) below point to it unless a document is named.
 
 ---
 
@@ -13,14 +15,17 @@
 
 Two connected journeys:
 
-1. **Owner/co-host:** describe → auth/save → AI creates → choose → reveal → make real → preview → publish → manage.
-2. **Guest:** open → unlock if private → identify → verify → RSVP → registry → update later.
+1. **Owner/co-host:** describe → auth/save → AI designs one card → reveal from the envelope → make it yours → preview → publish → send invitations → manage.
+2. **Guest:** receive a personal link (or open the shared link) → envelope opens → card → page → RSVP → registry → update later.
 
-The event site is simultaneously:
-- the AI-created output;
-- the pre-publish workspace;
-- the guest experience;
+The invitation is simultaneously:
+
+- the AI-designed output (one card);
+- the pre-publish workspace (the card and the page beneath it, editable in place);
+- the guest experience (envelope, card, then a standard page);
 - the referral surface.
+
+The card is the only themed surface. The page under it is one neutral house style for every event (§11.9, §21).
 
 ---
 
@@ -28,359 +33,279 @@ The event site is simultaneously:
 
 ## H01 — Landing composer
 
-**Goal:** get the user creating before configuring.
+**Goal:** get the user creating before configuring (§7.1).
 
 Hero:
 > **Describe your event. We create the whole experience.**
 
 Controls:
+
 - large natural-language composer;
 - `+ Add inspiration`;
-- `Create my event ✦`.
+- `Create my invitation ✦`.
 
 Optional reassurance:
 > Free to create · No templates · Publish when ready
 
-Secondary:
-- Sign in.
+Secondary: Sign in.
 
-Do not show a template gallery.
+Do not show a template or art gallery.
 
 ## H02 — Auth/save
 
-Triggered after the user submits a real event idea.
+Triggered after the user submits a real event idea (§7.2).
 
 Before auth:
-- persist exact prompt in short-lived private draft;
+
+- persist the exact prompt in a short-lived private draft;
 - retain references to successful private inspiration uploads.
 
-Auth:
-- Google / Apple / email;
-- no profile wizard.
+Auth: Google / Apple / email; no profile wizard.
 
 After auth:
-- attach draft to owner/event;
-- restore prompt exactly;
-- restore inspiration;
-- begin strong-model generation.
 
-**Failure condition:** losing or truncating the creative prompt/inspiration through OAuth.
+- attach the draft to the owner/event;
+- restore the prompt and inspiration exactly;
+- begin generation.
 
-## H03 — Required details while AI works
+No generation of any kind happens before auth succeeds.
 
-Event Identity generation starts after auth.
+**Failure condition:** losing or truncating the prompt or inspiration through OAuth.
 
-Ask only missing:
-- date;
-- time;
-- venue/address;
-- hosts;
-- baby name if shown;
-- RSVP deadline;
-- public/private.
+## H03 — Generation
 
-Show lightweight AI progress:
-- creative direction;
-- tone;
-- palette interpretation.
+Runs after auth (§7.3, §7.5, §7.6b, §7.10). Event Identity starts immediately; in parallel a cheaper extraction pulls any facts the prompt states (names, date, time, venue) into the draft for the host to confirm. The card design and its artwork follow the identity.
 
-Timezone inferred from venue text; browser fallback.
+The host sees only real artifacts as they resolve: interpreted creative signals, colour direction, visual vocabulary, then the design's name, description and art direction. Never model reasoning, never invented progress or percentages.
 
-## H04 — Diversity plan + concepts
+**Optional taste clarification.** Usually none; at most three questions; each offers `You decide` / `Surprise me`; never fonts, layouts, colours or logistics (§7.6b).
 
-The sibling planner assigns three concept constraints:
-- family, tone when allowed, typography category and hierarchy (distinct across siblings);
-- a structural directive per sibling;
-- attractive-token allotments.
+**Optional detail entry while waiting.** Genuinely missing details (date, time, venue, hosts, baby name if shown, RSVP deadline, public/private) are offered, never demanded; values extracted from the prompt are pre-filled for confirmation; watching and filling in are equally valid. Timezone is inferred from the venue text with browser fallback and is not asked normally (§7.4).
 
-Strong model generates three six-field DesignIntents, then three CompositionTrees.
+The card is revealed as soon as its artwork and ink resolution exist, whether or not details were entered.
 
-Deterministic compiler creates verified ResolvedDesignSpecs:
-- strict schema (one re-prompt at most);
-- structural repair by kind, capability scoping, token caps;
-- typography repair; motif placement from the tree;
-- semantic palette/contrast; layout resolution;
-- rendered-geometry verification at 390 and 1280;
-- repair/re-prompt telemetry kept separate.
+**Failure:** a failed stage is shown honestly with a retry action; there is no template or stock fallback (§7.8, `docs/card-system.md §3`).
 
-Concepts stream into live production renderer.
+## H04 — Card reveal
 
-## H05 — “Which feels like you?”
+The card comes out of the same envelope guests will see (§7.11). The first card generated for an event becomes the active design.
 
-Three concept cards.
+Shown:
 
-Each:
-- live renderer preview;
-- concept name;
-- one-line description;
-- `Choose this direction`.
+- the card;
+- its creative name and one-line description;
+- `Make it yours →`;
+- `Try another direction ✦`.
 
-Below all three:
-> **None of these feel right?**  
-> `Try another direction ✦`
+Copy:
+> **Your invitation looks great.**  
+> **Let's make it real.**
 
-Mobile may lazy-mount later renderer trees.
+There is no setup dashboard and no choice among simultaneous options. Missing required facts appear on the card as bounded placeholders marked as needing confirmation (§7.3).
 
-## H06 — Full-site reveal
+## H05 — Try another direction
 
-After choose:
-- set active concept;
-- open the full guest site;
-- do not show setup dashboard.
+Available before publish, from the reveal and from Creation Mode (§7.15).
 
-Activation:
-> **Your event looks great.**  
-> **Let’s make it real.**
+1. Optionally say what to change; optionally add private inspiration.
+2. Reassurance: **your event details stay exactly as they are.**
+3. One new card, different from every earlier one, is generated; the current active card stays active.
+4. The new card is revealed from its envelope. The collaborator chooses it, keeps the current one, or tries again.
 
-Actions:
-- `Make it yours →`
-- `Try another direction ✦`
+The loop repeats without restarting onboarding. All designs generated so far remain browsable before publish (H14). No credits or counters are shown (§10).
 
-## H07 — Creation Mode
+## H06 — Creation Mode
 
-`Make it yours` turns the same site into the workspace.
+`Make it yours` turns the same invitation into the workspace (§7.12, §19.1). It does not navigate to a dashboard.
 
-App-level owner toolbar:
-- Design
-- Preview
+App-level owner toolbar: Design · Preview.
 
-Contextual event controls:
-- Event Details → `Edit`
-- RSVP → `Set up`
-- Registry → `Add`
+Contextual controls attach to stable anchors:
 
-Renderer sections expose stable collaborator slots for these controls.
+- the card: wording (title, invitation line) edited in place; card facts via Event Details;
+- Event Details → `Edit`;
+- description and information blocks → `Edit` / `Add`;
+- RSVP → `Set up`;
+- Registry → `Add`.
 
-Routine edits autosave.
+Placeholders for missing required facts stay marked as needing confirmation and are never published. Routine edits autosave and update the card deterministically with no model call (§9.3).
 
-## H08 — Readiness checklist
+## H07 — Readiness checklist
 
-Floating control:
-- `Finish setup`
-- `2 required items left`
-- or `Ready to publish`
+Floating control: `Finish setup` · `2 required items left` · `Ready to publish` (§19.2).
 
-Sheet has two groups.
+The sheet is navigation, not a wizard, with two groups:
 
 **Needed to publish**
-- actual blockers from `READY_TO_PUBLISH`.
+
+- actual blockers from §23.1 only.
 
 **Recommended before sharing**
+
 - Guests;
 - Registry;
 - Co-host;
-- optional work.
+- other optional work.
 
-No rigid order.
+No rigid order. `Ready to publish` can show while recommended items remain.
 
-## H09 — Event details editor
+## H08 — Event details editor
 
-Open from event section.
+Opened from the card or the details section.
 
-Edit:
-- title;
-- hosts;
-- date/time;
-- venue/address;
-- description;
-- simple info blocks.
+Edit: title; hosts; baby name; date/time; venue/address; description; simple information blocks.
 
-Closing returns to the same site context.
+Closing returns to the same place in the invitation. Facts appear on the card and page automatically.
 
-## H10 — Guests workspace
+## H09 — Guests workspace
 
-Dedicated full-screen workspace.
+Dedicated full-screen workspace (§7.13, §12).
 
 Actions:
-- Add guest/household;
-- Import CSV.
 
-States:
-- Ready;
-- Needs phone;
-- No phone available;
-- Awaiting;
-- Attending;
-- Declined.
+- add a guest/household;
+- import CSV (rows without a phone import and are flagged Needs phone).
 
-Close/back returns to Creation Mode.
+States shown:
 
-## H11 — RSVP setup
+- contact: Ready · Needs phone · No phone available;
+- response: Awaiting · Attending · Declined;
+- invitation: Not sent · Sent · Delivery failed · Opted out.
 
-Open from RSVP section.
+After publish, per party: copy its personal invitation link; rotate it (invalidates the old link) (§7.17, §12.5). Invitations are sent from Share after publish (§7.18).
 
-Configure:
-- deadline;
-- party member attendance;
-- plus-one behavior;
-- meals;
-- dietary;
-- custom questions;
-- notes.
+Close/back returns to the prior Creation Mode context.
 
-No open RSVP.
+## H10 — RSVP setup
 
-## H12 — Registry setup
+Opened from the RSVP section.
 
-Open from Registry section.
+Configure: deadline (defaulted per §7.3); plus-one behaviour; adults/children per party; meals; dietary field; custom questions; notes.
 
-External registry:
-- URL;
-- destination card;
-- retailer remains authoritative.
+No open RSVP; RSVP remains invite-only (§12.1, §14.4).
 
-Native gift:
-- product URL;
-- one safe metadata/image attempt;
-- manual fallback;
-- platform-owned normalized thumbnail;
-- no reservation state.
+## H11 — Registry setup
 
-Cash fund:
-- display-only handles/suggested amounts/blurb.
+Opened from the Registry section (§15).
 
-## H13 — Design controls
+External registry: URL; destination card; the retailer remains authoritative.
 
-Curated only:
-- palette;
-- compatible typography;
-- reset;
-- `Try another direction ✦`.
+Native gift: product URL; one safe metadata/image attempt; manual fallback; platform-owned normalized thumbnail or house-style placeholder; no reservation state.
 
-No motif/density/primitive/directive/treatment/card/button controls.
+Cash fund: display-only handles, suggested amounts, blurb.
 
-## H14 — Redesign
+## H12 — Design controls
 
-Optional feedback/inspiration.
+`Design` exposes only (§7.14, §20):
 
-Explicit reassurance:
-> **Your event content stays untouched.**
+- the card's font among the active design's primary and alternate pairings;
+- reset the card's wording and font to the design;
+- `Try another direction ✦` (before publish);
+- the designs list (H14).
 
-System:
-- updates Event Identity if needed;
-- plans three fresh directions;
-- generates DesignIntent and CompositionTree;
-- compiles;
-- shows three fresh concepts.
+No layout, colour, art mode, size, position or page-styling controls.
 
-User:
-- choose;
-- keep current;
-- refine again.
+## H13 — Preview
 
-Never repeat onboarding.
+The production card and page with current content, envelope included (§7.16).
 
-## H15 — Preview
+Removes collaborator controls, the readiness control and the owner toolbar.
 
-Exact production guest renderer.
+On desktop/tablet: defaults to Mobile; a `Mobile / Desktop` toggle exists in Preview only.
 
-Removes:
-- collaborator controls;
-- readiness pill;
-- owner toolbar.
+The primary publish action may remain app-level.
 
-On desktop/tablet:
-- defaults Mobile;
-- toggle Mobile / Desktop.
+## H14 — Designs list
 
-Primary publish action may remain app-level.
+Opened from Design (§20.3). Shows every design generated for the event, each as its card with name and description; the active one is marked.
 
-## H16 — Publish gate
+- Choosing a design makes it active, resets card wording and font to that design, and keeps a title the host supplied or edited. Event details, guests, RSVP, registry, privacy and messages never change.
+- Read-only after publish (§8.2).
 
-Requirements:
-- deterministic readiness passes;
+## H15 — Publish gate
+
+Requirements (§7.17, §23.1, §28):
+
+- deterministic readiness passes (§23.1);
 - $49 one-time shown;
 - owner handles payment.
 
-No tiers/subscription upsell.
+No tiers or subscription upsell. Once paid, owner or co-host may publish.
 
-Once paid:
-- owner or co-host may publish.
+## H16 — Share and send invitations
 
-## H17 — Share
+After publish (§7.17, §7.18, §14.3):
 
-Show:
-- URL;
-- QR;
-- private event code when applicable.
-
-QR points to URL only and does not bypass code.
+- event URL; QR (URL only, never the code); private event code shown separately when private;
+- `Send invitations`: choose all not-yet-invited parties or a selection; attest once per event that you have permission to text these guests; the platform texts each selected party with a usable phone one short message with its personal link; parties without a usable phone are listed with their personal link to copy and send another way;
+- invitation status per party updates in the guest workspace; resends and later additions are allowed within the per-party cap (§13.2);
+- hosts may instead share the link/QR themselves; both paths coexist;
+- a copyable personal link per party.
 
 ---
 
 # 3. Post-publish management journey
 
-After publish, operational Event Home becomes primary.
+After publish, an operational Event Home becomes primary (§19.3).
 
 Priority:
-1. RSVP summary;
-2. awaiting/attending/declined/Needs phone;
-3. Guests;
-4. Messages;
-5. Registry;
-6. Share;
-7. Edit site.
 
-Owner additionally:
-- billing;
-- co-host access;
-- deletion/archive.
+1. RSVPs — summary; awaiting, attending, declined;
+2. Guests — Needs phone, invitations not sent, delivery failed;
+3. Messages — invitations, reminders (non-responders), announcements (§13.4);
+4. Registry;
+5. Share — link, QR, code;
+6. Edit invitation — details, card wording and font.
+
+Owner additionally: billing, co-host access, delete/archive.
 
 No vanity analytics.
 
-AI redesign/concept switching is disabled.
+Disabled after publish: `Try another direction` and design switching; the designs list is read-only (§8.2). Material changes (date, venue) update the live invitation directly; hosts should announce them (§8.1).
 
 ---
 
 # 4. Guest journey
 
-## G01 — Open event
+## G01 — Arrive by personal invitation link
 
-Public:
-- full event.
+The guest opens the link from the platform's text (§12.5).
 
-Private:
-- finished hero remains visible;
-- venue/details/RSVP/registry locked;
-- enter event code.
+- The party is identified and the guest-party session established, with no name lookup and no SMS code.
+- No private event code is asked; the closed envelope opens on the guest's action, and only then do the card, page and party session load (§12.5).
+- The guest can RSVP immediately, and uses the same link later to view or update the RSVP (G12).
 
-## G02 — Event details
+## G02 — Arrive by shared link
 
-Themed production renderer.
+The guest opens the event URL or scans the QR.
 
-Single-scroll by default.
+- **Public event:** the envelope opens.
+- **Private event:** only the sealed envelope with the event title is visible; nothing on the card or page shows. Entering the event code opens it (§14.2).
 
-## G03 — Find invitation
+The guest is not yet identified. They may read the card and page, and must identify themselves (G04) to RSVP.
 
-Input name.
+## G03 — Card to page
 
-Fuzzy-match invite list.
+The envelope opens; the card settles at the top of the page; scrolling reveals details, description, information blocks, RSVP, registry, footer in the house style (§21). Reduced motion shows the card without the opening animation.
 
-Show minimum first-name information needed for recognition.
+## G04 — Find invitation (shared link)
 
-Never show contact info.
+Input name. Fuzzy-match the invite list. Show only the minimum first-name information needed to recognise the party. Never show phone or email (§12.5).
 
-## G04 — Collision resolution
+## G05 — Collision resolution
 
-When multiple possible parties:
-- ask enough additional name detail;
-- do not leak phone/email.
+When multiple parties match, ask for enough additional name detail to identify the intended party; do not leak phone or email.
 
-## G05 — Verify
+## G06 — Verify
 
-Phone-backed party:
-- SMS OTP;
-- abuse throttling.
+- **Phone-backed party:** SMS OTP, with abuse throttling.
+- **`noPhoneAvailable`:** accepted name-lookup-only fallback.
+- **Needs phone:** neutral state directing the guest to contact the host; no RSVP exposure. The host can fix the phone, mark the no-phone override, or send the party its personal link.
 
-`noPhoneAvailable`:
-- accepted name-only fallback.
+## G07 — RSVP
 
-Needs phone:
-- neutral contact-host state; no RSVP exposure.
+Fixed semantic flow in the house style:
 
-## G06 — RSVP
-
-Fixed semantic flow:
 - party members;
 - attendance;
 - plus-one;
@@ -389,46 +314,26 @@ Fixed semantic flow:
 - custom questions;
 - notes.
 
-The tree controls composition and the page system controls visual treatment; neither touches the security order.
+Reached directly from a personal link, or after G04–G06 from the shared link.
 
-At phone width, layouts may converge to a stack.
+## G08 — Confirmation
 
-## G07 — Confirmation
+> **You're all set. We can't wait to celebrate with you.**
 
-Themed confirmation.
+When the guest arrived by the shared link and the party has a phone, the platform texts them their personal link so they can return and update without repeating lookup and OTP (§12.7).
 
-If phone-backed:
-- SMS magic link for return/update.
+## G09 — Registry
 
-## G08 — Registry
+- External: `Shop [Retailer] Registry`.
+- Native: `Buy this gift`; private click; retailer; the click alone does not change availability.
+- Cash fund: display only.
 
-External:
-- Shop [Retailer] Registry.
+## G10 — Native purchase return
 
-Native:
-- Buy this gift;
-- private click;
-- retailer;
-- click alone does not change availability.
-
-Cash:
-- display only.
-
-## G09 — Native purchase return
-
-If prior click can be associated:
+If a prior click can be associated:
 > Did you buy this gift?
 
-Actions:
-- Yes, mark purchased;
-- No;
-- dismiss/no response.
-
-## G10 — RSVP update
-
-Magic link refreshes same scoped party session.
-
-Prepopulate current response.
+Actions: `Yes, mark purchased` · `No` · dismiss/no response (§16.3).
 
 ## G11 — Passed event
 
@@ -436,13 +341,12 @@ Prepopulate current response.
 
 Registry remains accessible.
 
+## G12 — RSVP update
+
+The personal link re-establishes the same scoped party session and pre-populates the current response. A guest without it can repeat name lookup and the appropriate verification path.
+
 ---
 
-# 5. Renderer validation journey
+# 5. Card generation checks
 
-Regression gate for any change to the composition language, validator, compiler, renderer rules or planner (`docs/event-renderer-system.md §9`):
-
-1. `proof-b/test.js` (unit: library validity, every repair rule, schema rejection, token detectors, planner distinctness, signature calibration);
-2. `proof-b/adv-run.js` (every adversarial fixture repairs and renders with zero overflow);
-3. library expressiveness render (all 26 silhouettes, 13 section recipes);
-4. a sibling-batch confirmation run evaluated against the numeric thresholds, reported as separate schema, repair, geometry, invention, token, collision and review metrics.
+Regression gate for any change to the card design prompt or schema, layout set, compiler, ink resolution, `layoutCard`, artwork prompt assembly or envelope: the tests and gates in `docs/card-system.md §9`, and the acceptance criteria in `spec.md §31 — Card design, artwork and compiler` and `§31 — Card rendering and envelope`.

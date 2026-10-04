@@ -19,7 +19,7 @@ export interface PromptComposerProps {
   rows?: number;
   /** Inspiration thumbnails, upload trigger, save indicator — rendered above the action row. */
   attachments?: ReactNode;
-  /** The primary/secondary actions, e.g. "+ Add inspiration" and "Create my event ✦". */
+  /** The primary/secondary actions, e.g. "+ Add inspiration" and "Create my invitation ✦". */
   actions: ReactNode;
 }
 

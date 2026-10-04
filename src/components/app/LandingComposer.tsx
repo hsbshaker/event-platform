@@ -70,7 +70,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
       disabled={disabled || pending}
       className="w-full sm:w-auto"
     >
-      Create my event ✦
+      Create my invitation ✦
     </AppButton>
   );
 }
@@ -89,7 +89,7 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Serializes every autosave (debounce + blur) behind a single chain, so at most one save is
   // ever in flight and each queued save reads the prompt at the moment it actually runs — never
-  // a stale snapshot captured when it was scheduled. `Create my event` awaits this chain before
+  // a stale snapshot captured when it was scheduled. `Create my invitation` awaits this chain before
   // sending its own authoritative save, so an older autosave can never land after and overwrite
   // the prompt the visitor just submitted (spec.md §7.2).
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());

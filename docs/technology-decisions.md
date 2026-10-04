@@ -4,7 +4,7 @@
 **Path:** `docs/technology-decisions.md`  
 **Status:** Locked MVP implementation decisions  
 **Applies to:** all coding agents and implementation work  
-**Companion docs:** `spec.md`, `docs/design-system.md`, `docs/event-renderer-system.md`
+**Companion docs:** `spec.md` (Revision 7), `docs/design-system.md`, `docs/card-system.md`
 
 ---
 
@@ -31,8 +31,9 @@ Do not replace, abstract away, or introduce competing infrastructure unless a co
 | Event-site subdomains | **Vercel-managed routing/subdomains** |
 | SMS / OTP / event messaging | **Twilio** |
 | Payments | **Stripe**, initially **stubbed behind the MVP mock publish gate** |
-| AI/model provider | Provider kept behind a **thin capability interface** |
-| Primary AI capabilities | `generateEventIdentity(...)`, `generateDesignIntent(...)` and `generateComposition(...)` |
+| AI/model provider | Providers kept behind a **thin capability interface** |
+| Primary AI capabilities | `generateEventIdentity(...)` and `generateCardDesign(...)` (strong text model), `generateCardArt(...)` (image model) |
+| Image model | **Not yet selected** — chosen by the Phase 3 bake-off and recorded in §8.1 |
 
 ---
 
@@ -62,8 +63,7 @@ Persist:
 - events;
 - collaborators;
 - Event Identity;
-- DesignIntent;
-- ResolvedDesignSpec;
+- card designs (raw and validated), resolved ink, version sets;
 - guests/parties;
 - RSVP data;
 - registry data;
@@ -84,6 +84,7 @@ Guests do **not** receive Supabase user accounts. Guest-party identity uses the 
 ### Storage
 Use **Supabase Storage** for:
 - temporary private inspiration uploads;
+- generated card artwork;
 - normalized native-registry product thumbnails;
 - other explicitly approved application assets.
 
@@ -101,15 +102,16 @@ Use **Vercel** for:
 
 Do not introduce a second hosting platform or container/orchestration layer for MVP.
 
-The public event renderer and host application remain part of the same Next.js product unless a demonstrated technical constraint requires otherwise.
+The public invitation (envelope, card, house-style page) and the host application remain part of the same Next.js product unless a demonstrated technical constraint requires otherwise.
 
 ---
 
 # 6. Twilio
 
 Use **Twilio** for:
+- invitation texts carrying each party's personal link;
 - SMS OTP delivery;
-- RSVP magic-link SMS;
+- RSVP return-link SMS;
 - host-triggered reminders;
 - host-triggered event announcements.
 
@@ -148,51 +150,60 @@ The mock gate is temporary. The product/payment boundary should not be.
 
 Do not couple product code broadly to one model vendor.
 
-Keep the creative-model boundary deliberately thin:
+Keep the creative-model boundary deliberately thin (`src/lib/ai/provider.ts`):
 
 ```ts
-generateEventIdentity(...)
-generateDesignIntent(...)
-generateComposition(...)
+generateEventIdentity(...)   // strong multimodal text model
+generateCardDesign(...)      // strong text model
+generateCardArt(...)         // image model
 ```
 
-Provider-specific:
-- SDK calls;
-- model names;
-- request formatting;
-- usage parsing;
-- provider request IDs;
+Provider-specific SDK calls, model names, request formatting, usage parsing and provider request
+IDs belong behind these capability functions. The text and image providers may differ; each sits
+behind the same thin boundary. Do not build a large generalized AI-provider framework.
 
-belong behind these capability functions.
-
-Do not build a large generalized AI-provider framework.
-
-The renderer/compiler is **not** part of the model-provider layer. It remains deterministic application code:
+The card compiler is **not** part of the model-provider layer. It is deterministic application
+code (`docs/card-system.md §4`):
 
 ```text
-DesignIntent + CompositionTree
-→ strict schema + structural validation + deterministic repair
-→ attractive-token caps (sibling planner)
-→ canonicalize → page system → semantic palette compiler → layout resolution
-→ rendered-geometry verification (headless Chromium, 390 and 1280)
-→ ResolvedDesignSpec (verified)
+CardDesign → strict schema + catalog validation → wording fact check
+→ art prompt assembly → (image model) → artwork validation
+→ ink and legibility resolution (WCAG 4.5:1) → persisted design
+→ layoutCard (text size and line breaks) at save and render time
 ```
 
-**Geometry verification runtime.** Content fit is verified against rendered DOM geometry before a spec is persisted. This requires a headless Chromium pass per concept at both widths (about one second per concept in the proof). It runs in a Node runtime function with a serverless Chromium build on Vercel; it renders the production renderer's own stylesheet against the spec and returns measurements. This is an addition to the locked stack, not a substitution; it introduces no new hosting, database, auth, or messaging dependency.
+No model provider owns those steps.
 
-**Phase 0 spike verdict (2026-09-12): GO — Vercel serverless Chromium.** Decided on measured evidence from `docs/spike/` (harness, procedure and result files), not preference. The Phase 0 spike ran the real proof-b renderer, harness stylesheet and self-hosted fonts through `@sparticuz/chromium` 153 + `playwright-core` 1.63 in a Vercel Node 22 function (Fluid compute, Standard memory class, `iad1`) on the preview deployment of the scaffold, and locally on a Linux container. Measured:
+## 8.1 Image model
 
-- Correctness: every invocation returned geometry identical across three repeats at 390 and 1280, identical across invocations, and identical between Vercel and the local container (hero 609.16 px @390, 712.03 px @1280); both font families loaded every time; zero page, element or text-node overflow. Verification stays authoritative (`spec.md §32 #24`) and server-side (`docs/development-plan.md`, principle 2); the customer browser is never involved.
-- Reliability: 17/17 deployed invocations succeeded (1 first-instance, 10 back-to-back, 3 separated by idle gaps, 3 on the memory-instrumented build), of which 5 were cold starts, plus 13/13 on the local container; no failures, no retries.
-- Cold start on Vercel: 6.8–9.7 s wall for a first request on a fresh instance (five observed: 6.82, 6.83, 7.05, 8.90, 9.70 s), of which 0.8–1.1 s module import, 2.2–3.1 s browser archive inflate into `/tmp`, 49–101 ms browser launch, 0.8–1.3 s for the six renders and 0.2–1.7 s to close the browser; the remaining 0.8–3.3 s is Vercel's own function cold start. Instances stay warm across back-to-back requests; an idle gap of several minutes produced a cold start each time. `browser.close()` is bimodal, about 0.2 s or about 1.5–1.8 s, and that split is what separates the warm wall times into 1.4 s and 2.7 s clusters; Phase 3 will meet the same behaviour.
-- Warm invocation on Vercel: 9 warm invocations in the ten-run series (run 1 was that instance's cold start at 6.8 s); 1.4–3.0 s wall and 1.1–2.7 s inside the function for six renders (wall median 2.7 s); browser launch 39 ms median; render + measure 148 ms median at 390 and 138 ms at 1280 (about twice the local container, consistent with the Standard vCPU class). One concept (two widths) verifies in well under one second of render time on a warm instance.
-- Package: the function traces to 93 MB per the Vercel build output (67 MB compressed browser archives), under Vercel's 250 MB limit; the archives inflate to ~200 MB in the instance's `/tmp` once per instance. Both packages must be traced whole (`outputFileTracingIncludes`) because they read files by path at runtime; static tracing alone omitted `playwright-core/browsers.json` and failed the first deployed invocation.
-- Memory: Node process RSS ≤ 228 MB on a cold instance and ≤ 175 MB warm; Chromium processes 197–202 MB, read from `/proc` just before close on the three instrumented invocations, whose Node RSS was 172–174 MB, so a verification holds roughly 370–380 MB in total. The Standard memory class (2 GB, from the project settings) is ample and the function needs no larger class.
-- Cost (estimate, not measured): Vercel Fluid compute bills active CPU, provisioned memory and invocations. Estimated from Vercel's published Pro rates as of 2026-09-13, assuming the measured in-function time as active CPU (1.1–2.7 s warm, 4.6–7.3 s cold for six renders, so roughly a third of that per concept at both widths) at the 2 GB Standard class, a warm verification of one concept is on the order of $0.0001 or less and a cold one a few times that: negligible next to the model calls it protects. The Hobby plan used for the spike bills nothing within its included allowance.
+**Not yet selected.** The Phase 3 bake-off (`docs/development-plan.md`) compares candidate image
+models on real briefs from the creative-understanding corpus and records the decision here, with:
 
-Consequences for Phase 3: the production verifier keeps this runtime; it serializes the first-request browser extraction per instance (the package's `existsSync` gate is not atomic under concurrent cold requests), reuses one browser context and page per invocation as the spike does (single-process Chromium tears down when its only page closes; cross-invocation browser reuse was not measured), sets `maxDuration` and `serverExternalPackages` as the spike does, and never treats a per-instance cold flag as per-request. A dedicated render worker is not adopted; it would be revisited only on a measured regression of these numbers in production.
+- the model and provider, and how it is called behind `generateCardArt`;
+- output size and format for a 5:7 card; whether a transparent-background workflow is used;
+- how embedded text and unsafe content are detected (`spec.md §7.8`);
+- measured latency (p50/p75) and cost per card;
+- the evidence: the briefs, the outputs, and the human judgement that chose it.
 
-No model provider should own those steps.
+Until then no image provider is added to the codebase.
+
+## 8.2 Card rendering without a production browser
+
+The card is a fixed 5:7 canvas laid out by a deterministic function, so production does **not**
+run a headless browser to verify cards. Revision 6's serverless-Chromium geometry verification
+(and the `@sparticuz/chromium` dependency) is retired. A real browser is used at **test time** to
+prove every layout × pairing fits (`docs/card-system.md §9`); `playwright-core` stays a dev
+dependency for that and for the end-to-end suite.
+
+Three capabilities the card system needs, decided when it is built and recorded here:
+
+- **image decoding** for artwork validation and ink sampling (an image library on the server);
+- **font metrics** for `layoutCard` measurement from the curated fonts in `public/fonts/card/`;
+- **link-preview rendering** of the card and envelope (`spec.md §11.10`), preferring what Next.js
+  already provides over a new dependency.
+
+Each is justified by a product requirement in `spec.md`; record the choice and why here before
+adding a dependency.
 
 ---
 
@@ -223,7 +234,7 @@ A new dependency is justified by a product requirement or concrete technical blo
 
 If an implementation task can be solved cleanly within:
 
-> **Next.js App Router + Supabase + Vercel + Twilio + Stripe boundary + thin AI provider interface**
+> **Next.js App Router + Supabase + Vercel + Twilio + Stripe boundary + thin AI provider interface (text + image)**
 
 solve it there.
 
@@ -239,4 +250,4 @@ Do not silently introduce an alternative.
 
 # 11. One-line rule
 
-> **Use the stack we already know and have run: Next.js App Router, Supabase, Vercel, Twilio, Stripe-shaped payment boundary, and a thin model-provider interface. Build the product, not a new platform.**
+> **Use the stack we already know and have run: Next.js App Router, Supabase, Vercel, Twilio, Stripe-shaped payment boundary, and a thin model-provider interface for text and image models. Build the product, not a new platform.**

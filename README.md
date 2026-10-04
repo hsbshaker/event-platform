@@ -1,7 +1,10 @@
 # Event Platform
 
-AI-native event website, RSVP and registry platform. Product, architecture and acceptance
-criteria live in [`spec.md`](spec.md); the locked stack in
+AI-designed event invitations, with RSVP and registry. A host describes the event; the AI
+designs an invitation card (generated artwork + real text) that guests open from an envelope,
+above a standard event page. Product, architecture and acceptance criteria live in
+[`spec.md`](spec.md); the card architecture in [`docs/card-system.md`](docs/card-system.md); the
+locked stack in
 [`docs/technology-decisions.md`](docs/technology-decisions.md); the build sequence in
 [`docs/development-plan.md`](docs/development-plan.md). Agents start from
 [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md).
@@ -28,14 +31,13 @@ npm run db:types                  # regenerate src/lib/supabase/database.types.t
 
 ### Checks
 
-| Command              | What it runs                                                                                                                                                                                                                                                                                         |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run lint`       | ESLint (Next.js rules + the app/event boundary rule)                                                                                                                                                                                                                                                 |
-| `npm run typecheck`  | `tsc --noEmit`                                                                                                                                                                                                                                                                                       |
-| `npm test`           | Vitest unit tests (`src/**/*.test.ts`, `tests/unit`)                                                                                                                                                                                                                                                 |
-| `npm run test:db`    | Migration + RLS integration suite against `TEST_DATABASE_URL`; installs an `auth` schema stub, applies `supabase/migrations`, and exercises policies as `anon`, `authenticated` and `service_role`. Runs on Postgres 16 locally and Postgres 17 (the Supabase major in `supabase/config.toml`) in CI |
-| `npm run proof:test` | The renderer proof regression suite in `proof-b/`                                                                                                                                                                                                                                                    |
-| `npm run build`      | Production build                                                                                                                                                                                                                                                                                     |
+| Command             | What it runs                                                                                                                                                                                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run lint`      | ESLint (Next.js rules + the service-role boundary rule)                                                                                                                                                                                                                                              |
+| `npm run typecheck` | `tsc --noEmit`                                                                                                                                                                                                                                                                                       |
+| `npm test`          | Vitest unit tests (`src/**/*.test.ts`, `tests/unit`)                                                                                                                                                                                                                                                 |
+| `npm run test:db`   | Migration + RLS integration suite against `TEST_DATABASE_URL`; installs an `auth` schema stub, applies `supabase/migrations`, and exercises policies as `anon`, `authenticated` and `service_role`. Runs on Postgres 16 locally and Postgres 17 (the Supabase major in `supabase/config.toml`) in CI |
+| `npm run build`     | Production build                                                                                                                                                                                                                                                                                     |
 
 CI (`.github/workflows/ci.yml`) runs all of the above on every pull request.
 
@@ -44,37 +46,35 @@ CI (`.github/workflows/ci.yml`) runs all of the above on every pull request.
 ```text
 src/app/                    App Router routes (route shells; features arrive by phase)
 src/components/app/         Canonical product components (design-system.md §10)
-src/components/event-renderer/  One component per composition primitive (Phase 3)
 src/styles/app-tokens.css   Application chrome tokens (design-system.md §6)
-src/styles/event-tokens.css Renderer-owned tokens; never imported by app chrome
+src/styles/card-fonts.css   Card font faces; imported only by the card renderer
+src/lib/card/               Card colour maths and font pairings (card-system.md)
 src/lib/env.ts              Validated environment (server secrets stay server-only)
 src/lib/supabase/           Browser, server, proxy and service-role clients
 src/lib/auth/               Permission matrix and server-side authorization helpers
-src/lib/ai/                 Thin model-provider boundary (implemented in Phase 4)
+src/lib/ai/                 Thin model-provider boundary (implemented in Phase 5)
 src/proxy.ts                Session refresh on every request
 supabase/                   Project config and migrations
 tests/db/                   Migration and RLS integration tests
-proof-b/, proof-a1/         Renderer proof reference (not product code)
+public/fonts/card/          Self-hosted card fonts
 ```
 
 ## Deploying a preview on Vercel
 
-The app deploys as a standard Next.js project; no `vercel.json` is needed.
+The app deploys as a standard Next.js project; `vercel.json` only schedules the daily pre-auth
+cleanup cron.
 
 1. In Vercel, **Add New → Project → Import** `hsbshaker/event-platform` (framework preset:
    Next.js, root directory `/`, Node 22). Production branch `main`; every pull request gets
    a preview deployment.
-2. Environment variables for the scaffold preview: none are required. Without
-   `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` the session-refresh proxy is a
-   no-op and pages render. Set `SPIKE_TOKEN` (any random string) on the preview environment to
-   enable the Phase 0 spike route; it is 404 without it and always 404 in production. Add Supabase keys only when Phase 2 needs them; never
-   commit them.
+2. Environment variables: without `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   the session-refresh proxy is a no-op and pages render. Set the Supabase keys and the other
+   values in `.env.example` for the prompt → auth → details flow; never commit them.
 3. Verify the deployment: `GET <preview-url>/api/health` returns `{"ok":true}` and `/` renders.
-4. Run the Phase 0 geometry-runtime spike against it (see `docs/spike/README.md`).
 
 ## Phase status
 
-See `docs/development-plan.md`. Phase 0 items that need an operator: the Vercel
-project and preview deployment, the serverless-Chromium geometry spike and the human
-design test #1. Everything else in Phase 0 and the Phase 1 data/auth/security
-foundation is in this repository.
+See `docs/development-plan.md`. Phases 0–2 (scaffold, data/auth/security foundation,
+prompt → auth → details) are complete. Revision 7 retired the website renderer; the next
+phase is the creative bake-off that decides the image model and proves the card
+(`docs/CHANGELOG-v7.md`).

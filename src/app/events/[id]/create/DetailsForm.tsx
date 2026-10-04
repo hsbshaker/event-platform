@@ -22,7 +22,7 @@ import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
  * per §7.4). Once a field appears it stays visible for the rest of this visit even after it
  * autosaves, so the form never yanks away the field the host is mid-edit on.
  *
- * Nothing here is a publish gate (§32 #44): every field may stay empty indefinitely.
+ * Nothing here is a publish gate (§32 #45): every field may stay empty indefinitely.
  */
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
@@ -195,7 +195,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
         <h2 className="text-heading-md text-app-text">A few details</h2>
         <p className="text-body-sm text-app-text-secondary">
           These help guests find and RSVP to the real event. They&apos;re only needed before you
-          publish — leave anything blank for now, and it won&apos;t affect your design directions.
+          publish — leave anything blank for now, and it won&apos;t hold up your invitation design.
         </p>
       </div>
 
@@ -336,7 +336,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
         {visibleMissing.has("visibility") && (
           <fieldset className="flex flex-col gap-2">
             <legend className="text-label-md text-app-text">
-              Who can see this site?
+              Who can see this invitation?
               <span aria-hidden="true" className="text-app-danger">
                 {" "}
                 *

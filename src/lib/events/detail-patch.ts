@@ -71,7 +71,7 @@ export function computeEventPatch(
     (update as Record<string, unknown>)[column] = input[key] === "" ? null : input[key];
   }
 
-  // Timezone: inferred from venue text, browser as fallback, never a geocoder (§7.4, §32 #40).
+  // Timezone: inferred from venue text, browser as fallback, never a geocoder (§7.4, §32 #41).
   // `??` would fall back to the stored value when the host deliberately CLEARS a field, so
   // inference would run on text that is no longer on the event. Test for `undefined` (absent
   // from this patch) instead, exactly as the effective-value reads below do.

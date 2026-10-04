@@ -21,10 +21,10 @@ import {
  * The missing-details flow that runs alongside generation (spec.md §7.3).
  *
  * Required details are publish requirements (§23.1), never generation prerequisites: nothing
- * here blocks generation state, and this module adds no requirement beyond §23.1 (§32 #44).
+ * here blocks generation state, and this module adds no requirement beyond §23.1 (§32 #45).
  * The RSVP deadline follows the canonical rule and is never overwritten once the host edits
  * it; the timezone is inferred from venue text with a browser fallback and no geocoder
- * (§7.4, §32 #40).
+ * (§7.4, §32 #41).
  */
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
@@ -64,7 +64,7 @@ export interface EventDraftView extends EventDetailFields {
   rowVersion: number;
   /** §23.1 requirements not yet satisfied. Informational: nothing is blocked by them now. */
   missing: RequiredDetailKey[];
-  /** What later composition would use today, real values where present (§7.3). */
+  /** Real values where present, and the placeholders the card shows in Creation Mode for the rest (§7.3). */
   provisional: ProvisionalContent;
 }
 

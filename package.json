@@ -14,15 +14,12 @@
     "test:db": "vitest run --project db",
     "test:all": "vitest run --project unit --project db",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
-    "proof:test": "cd proof-b && npx --yes -p typescript@6 tsc -p tsconfig.json && node test.js",
     "test:e2e": "vitest run --project e2e"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^153.0.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "next": "16.3.5",
-    "playwright-core": "^1.63.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
@@ -37,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "pg": "^8.23.0",
+    "playwright-core": "^1.63.0",
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "typescript": "^5",

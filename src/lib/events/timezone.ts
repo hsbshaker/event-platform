@@ -1,5 +1,5 @@
 /**
- * spec.md §7.4 "Venue normalization and timezone inference" and §32 guardrail #40
+ * spec.md §7.4 "Venue normalization and timezone inference" and §32 guardrail #41
  * ("do not add maps/geocoding solely for timezone"): timezone is inferred from an
  * application-side lookup table (state/province/country/city names), never from a
  * maps or geocoding API. Confidence is `high` only for an unambiguous match; ambiguous

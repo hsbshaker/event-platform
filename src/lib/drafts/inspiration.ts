@@ -11,8 +11,8 @@ import { getDraft, type DraftInspiration } from "./store";
  * Inspiration is optional additive context for the model. It is stored in a private bucket,
  * read back only through short-lived signed URLs, re-parented to the event when the draft is
  * claimed, and removed with the draft when one is abandoned. It never becomes public event
- * imagery (§32 #32), and nothing here fetches a remote URL: uploads only, no link ingestion
- * and no scraping (§32 #34).
+ * imagery (§32 #31), and nothing here fetches a remote URL: uploads only, no link ingestion
+ * and no scraping (§32 #33).
  */
 export const INSPIRATION_BUCKET = "inspiration";
 

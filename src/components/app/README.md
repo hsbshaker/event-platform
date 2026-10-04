@@ -5,5 +5,5 @@ Canonical product components from `docs/design-system.md §10` live here (`AppBu
 styling locally (§23.1, §23.4). Styling uses the semantic tokens in
 `src/styles/app-tokens.css` only (§23.2).
 
-Nothing in this directory may import from `src/components/event-renderer` or
-`src/styles/event-tokens.css` (§23.7).
+Nothing in this directory may import card-renderer styling such as `src/styles/card-fonts.css`
+(§23.7).

@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -64,27 +63,5 @@ describe("the service-role client stays where it was authorized", () => {
     expect(allowlist.filter((entry) => !actual.some((file) => allowedBy(file, [entry])))).toEqual(
       [],
     );
-  });
-
-  it("keeps the public survey's own use behind the capability check", () => {
-    // `store.ts` is on the allowlist, so the boundary it relies on has to be real: the route must
-    // resolve a server-issued capability before it can call in, and the store must not be
-    // reachable from the route with a caller-supplied key.
-    const route = readFileSync(path.join(ROOT, "src/app/api/human-test-1/submit/route.ts"), "utf8");
-    expect(route).toContain("resolveCapability(");
-    expect(route).toContain("capability.submissionKey");
-    // The row identifier must come from the resolved capability, never from the request body.
-    expect(route).not.toMatch(/parsed\.value\.submissionKey/);
-    // And the capability must be resolved before the write, not after it.
-    expect(route.indexOf("resolveCapability(")).toBeLessThan(route.indexOf("recordSubmission("));
-  });
-
-  it("does not let the survey route import the service-role client directly", () => {
-    for (const file of [
-      "src/app/api/human-test-1/submit/route.ts",
-      "src/app/api/human-test-1/session/route.ts",
-    ]) {
-      expect(readFileSync(path.join(ROOT, file), "utf8")).not.toContain("supabase/admin");
-    }
   });
 });

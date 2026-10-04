@@ -10,7 +10,7 @@ import { signInspiration, type InspirationPreview } from "@/lib/drafts/inspirati
 /**
  * Composer server actions (spec.md §7.1, §7.2).
  *
- * Saving the prompt is the only thing `Create my event` does before authentication: no model
+ * Saving the prompt is the only thing `Create my invitation` does before authentication: no model
  * is called and no event exists yet (§32 #4). A signed-in visitor who submits the composer
  * skips the sign-in step and goes straight to their new event.
  */
@@ -66,7 +66,7 @@ export async function saveDraft(prompt: string): Promise<SaveDraftResult> {
 }
 
 /**
- * `Create my event ✦`. Saves the prompt, then sends the visitor to sign in, or, when they are
+ * `Create my invitation ✦`. Saves the prompt, then sends the visitor to sign in, or, when they are
  * already signed in, claims the draft immediately so they never see an auth step they do not
  * need. The claim itself is idempotent (see the auth callback).
  */

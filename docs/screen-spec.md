@@ -1,11 +1,11 @@
 # Annotated Screen Spec — Responsive MVP
 
-**Status:** Revision 5  
-**Companion prototype:** `docs/prototypes/creation-flow.html`  
-**PRD:** `spec.md`  
+**Status:** Revision 7  
+**PRD:** `spec.md` Revision 7  
+**Card system:** `docs/card-system.md`  
 **Design system:** `docs/design-system.md`
 
-Screen labels describe product surfaces, not necessarily URL routes.
+Screen labels describe product surfaces, not necessarily URL routes. Section references (§) point to `spec.md` unless a document is named.
 
 ---
 
@@ -13,15 +13,17 @@ Screen labels describe product surfaces, not necessarily URL routes.
 
 - Landing page is the prompt.
 - Prompt first; auth/save second; generation third.
-- Creation Mode keeps the collaborator inside the event.
+- Creation Mode keeps the collaborator inside the invitation: the card and the page beneath it.
 - No generic pre-publish setup dashboard.
 - No wizard for independent tasks.
 - Autosave routine edits.
 - Contextual actions use `Edit`, `Set up`, `Add`.
 - Setup/readiness UI distinguishes publish blockers from optional recommendations.
-- Guest preview uses the exact production renderer.
-- Never expose EventIdentity, DesignIntent, CompositionTree, ResolvedDesignSpec, primitives, directives, token allotments, the library, compiler repairs, model names, token counts, or spend limits.
-- Application chrome stays visually stable; event renderer carries theme.
+- Preview and guest views use the production card, envelope and page.
+- One card component renders everywhere; the card never reflows (§11.2).
+- The card is the only themed surface. The page under it is one house style for every event (§11.9).
+- Never expose Event Identity, card design internals, layouts, art modes, art briefs, ink or legibility panels, compiler steps, model or provider names, token counts, or spend limits (§26).
+- Application chrome stays visually stable; it never takes the card's styling.
 - Phone-first does not mean phone-framed desktop.
 
 ---
@@ -30,23 +32,25 @@ Screen labels describe product surfaces, not necessarily URL routes.
 
 ## `landing-composer`
 
-**Purpose:** creation begins immediately.
+**Purpose:** creation begins immediately (§7.1).
 
-**Primary:** `Create my event ✦`  
+**Primary:** `Create my invitation ✦`  
 **Secondary:** Sign in  
 **Input:** freeform event vision  
 **Optional:** `+ Add inspiration`
 
 **Rules**
-- no template gallery;
+
+- no template or art gallery;
 - no auth required to type;
-- no strong-model generation yet.
+- no model or image generation yet.
 
 ## `auth-save`
 
-**Purpose:** associate a high-intent draft with an account.
+**Purpose:** associate a high-intent draft with an account (§7.2).
 
 **Must preserve**
+
 - exact prompt;
 - successful inspiration assets;
 - composer state.
@@ -57,70 +61,110 @@ Screen labels describe product surfaces, not necessarily URL routes.
 
 **Failure state:** restore failure must not silently discard user input.
 
-## `generation-details`
+## `generation`
 
-**Purpose:** gather missing required event data while Event Identity/concepts are being prepared.
+**Purpose:** the wait is a product surface (§7.3, §7.10). Replaces any separate details step.
 
-**Questions:** only missing date/time/venue/hosts/baby name if shown/deadline/privacy.
+**Shows, as each genuinely resolves:** interpreted creative signals, colour direction, visual vocabulary, then the design's name, description and art direction.
 
-**AI progress:** creative direction/tone/palette interpretation.
+**Never shows:** model reasoning, invented progress or percentages, simulated stages.
 
-## `concepts`
+**Optional details panel**
 
-**Heading:** `Which feels like you?`
+- only missing fields (date, time, venue, hosts, baby name if shown, RSVP deadline, public/private);
+- values extracted from the prompt are pre-filled for confirmation;
+- never blocks and never gates the reveal.
 
-**Content:** three live renderer concepts.
+**Optional taste clarification** (§7.6b): usually absent; at most three questions; each offers `You decide` / `Surprise me`; never fonts, layouts, colours or logistics.
 
-**Each:** name, short description, `Choose this direction`.
+**Failure state:** an honest failure with a retry action; no fallback design.
 
-**Below set:**
-> None of these feel right?  
-> `Try another direction ✦`
+## `card-reveal`
 
-**Desktop:** compare side-by-side where width allows.  
-**Mobile:** stack; lazy-mount later render trees.
+**Purpose:** activation (§7.11).
 
-## `site-reveal`
+Shows the card coming out of the envelope the guests will see, with:
 
-**Purpose:** activation.
-
-Show full event guest site.
-
-Message:
-> **Your event looks great. Let’s make it real.**
-
-Actions:
+- the design's name and one-line description;
 - `Make it yours →`
 - `Try another direction ✦`
 
-No setup dashboard.
+Message:
+> **Your invitation looks great. Let's make it real.**
+
+**Rules**
+
+- one card at a time; the first becomes the active design, later ones only when chosen;
+- missing required facts render as placeholders marked as needing confirmation;
+- no setup dashboard.
+
+## `try-another-direction`
+
+**Purpose:** reimagine the card before publish (§7.15). Replaces the redesign prompt and redesign results.
+
+**Entry:** from `card-reveal` and Creation Mode; unavailable after publish.
+
+**Input**
+
+- Heading: **What should we change?**
+- feedback is optional;
+- `+ Add inspiration` is optional.
+
+**Reassurance:**
+> **Your event details stay exactly as they are.**
+
+**Primary:** `Create a new direction`
+
+**Result:** the new card is revealed from its envelope while the current active card stays active. Actions: `Choose this direction` · `Keep current` · `Try another direction ✦`.
+
+**Rules**
+
+- no onboarding restart;
+- no credits or counters (§10);
+- event details never change.
+
+### Designs list
+
+Every design generated for the event, each as its card with name and description; the active one is marked. Reached from the result and from `design-panel`.
+
+- Choosing a design makes it active, resets card wording and font to that design, keeps a host-supplied title (§20.3).
+- Read-only after publish (§8.2).
 
 ## `creation-mode`
 
-**Purpose:** make the finished-looking event real.
+**Purpose:** make the finished-looking invitation real (§19.1).
 
-Uses production event renderer plus owner-only overlays.
+Uses the production card and page plus owner-only overlays.
 
 Toolbar:
+
 - Design
 - Preview
 
-Context actions:
-- Event Details → Edit
-- RSVP → Set up
-- Registry → Add
+Anchors (stable, absent for guests):
+
+- card: title and invitation line edited in place;
+- Event Details → Edit (also the source of the card's facts);
+- description and information blocks → Edit / Add;
+- RSVP → Set up;
+- Registry → Add.
+
+Placeholders for missing required facts are marked as needing confirmation and never published.
 
 Floating:
+
 - Finish setup / required items left / Ready to publish.
 
 ## `setup-checklist`
 
-**Purpose:** readiness navigation, not wizard.
+**Purpose:** readiness navigation, not wizard (§19.2).
 
 Group 1: **Needed to publish**
-- exact current blockers.
+
+- exact current blockers (§23.1).
 
 Group 2: **Recommended before sharing**
+
 - Guests
 - Registry
 - Co-host
@@ -134,44 +178,54 @@ Publish-ready state is allowed with recommended items incomplete.
 **Desktop:** side panel/modal as appropriate.
 
 Fields:
+
 - title;
 - hosts;
+- baby name;
 - date/time;
 - venue/address;
 - description;
 - simple info blocks.
 
-Autosave.
+Autosave. Card and page update with no model call. Entry limits for card-bound fields come from the layout's slot limits (`docs/card-system.md §2.5`).
 
 ## `guests-workspace`
 
-**Purpose:** focused operational exception to inline editing.
+**Purpose:** focused operational exception to inline editing (§7.13).
 
 Actions:
+
 - Add household;
 - Import CSV.
 
 Rows/cards show:
+
 - household;
 - contact state;
 - party size;
-- RSVP state.
+- RSVP state;
+- invitation status.
 
 States:
-- Ready;
-- Needs phone;
-- No phone available;
-- Awaiting;
-- Attending;
-- Declined.
 
-Close returns to Creation Mode.
+- contact: Ready · Needs phone · No phone available;
+- response: Awaiting · Attending · Declined;
+- invitation: Not sent · Sent · Delivery failed · Opted out.
+
+Per party:
+
+- fix phone / mark No phone available;
+- after publish: `Copy personal link`; `Rotate link` (invalidates the old link; confirm before rotating) (`spec.md §7.17`, `§12.5`).
+
+Invitations are sent from `communications`. Close returns to the prior Creation Mode context.
 
 ## `rsvp-setup`
 
 Fields:
+
 - deadline;
 - plus-one;
+- adults/children per party;
 - meal;
 - dietary;
 - custom questions;
@@ -182,183 +236,187 @@ No open/public signup.
 ## `registry-setup`
 
 Sections:
+
 - External registry
 - Native gifts
 - Cash fund
 
 Native:
+
 - URL;
 - safe metadata attempt;
 - editable/manual fallback;
-- normalized thumbnail or themed placeholder.
+- normalized thumbnail or house-style placeholder.
 
 ## `communications`
 
-Actions:
-- Send RSVP reminder;
-- Send announcement.
+**Purpose:** send messages to guests (§7.18, §13).
 
-SMS first.
+**Send invitations** (after publish only)
 
-No campaigns/marketing automation.
+- recipients: all not-yet-invited parties, or a selection;
+- one-time-per-event attestation that the host has permission to text these guests about this event;
+- each selected party with a usable phone that has not opted out receives one text carrying its personal link;
+- parties without a usable phone are listed with `Copy personal link`;
+- per-party invitation cap shown when reached.
+
+**Send RSVP reminder** — non-responders only.  
+**Send announcement** — invited guests by selected audience.
+
+Suppress opted-out parties. Host-initiated reminders and announcements share the per-event cap. Invitations go by text only.
+
+No campaigns or marketing automation.
 
 ## `design-panel`
 
-Controls:
-- curated palette;
-- compatible typography;
-- reset;
-- `Try another direction ✦` before publish.
+Controls (§7.14, §20):
+
+- font: the design's primary pairing and its alternates;
+- reset card wording and font to the design;
+- `Try another direction ✦` before publish;
+- designs list before publish (read-only afterwards).
+
+Wording is edited directly on the card, not here.
 
 No:
-- primitives, directives or the library;
-- density;
-- motifs;
-- treatment;
-- cards;
-- buttons;
-- CSS;
-- site images.
 
-## `redesign-prompt`
-
-Heading:
-> **What should we change?**
-
-Prompt is optional.
-
-May add inspiration.
-
-Reassurance:
-> **Your event content stays untouched.**
-
-Primary:
-`Create 3 fresh directions`
-
-## `redesign-concepts`
-
-Three fresh concepts.
-
-Actions:
-- Choose this direction;
-- Keep current;
-- Refine the prompt again.
-
-No onboarding restart.
+- colour controls;
+- layout, art mode, ink or panel controls;
+- sizes or positions;
+- artwork editing;
+- page styling;
+- uploads onto the card.
 
 ## `preview`
 
-Exact guest renderer.
+Production card, envelope and page with current content.
 
-No owner controls.
+No owner controls, readiness control or toolbar.
 
 On larger screens:
+
 - Mobile default;
-- Mobile / Desktop toggle.
+- Mobile / Desktop toggle (Preview only).
 
 Primary app action:
+
 - Publish for $49 when appropriate.
 
 ## `publish-gate`
 
 Show:
+
 - one-time $49;
 - readiness;
 - no subscription;
-- primary `Publish my event`.
+- primary `Publish my invitation`.
 
-Owner handles payment.
+Owner handles payment; a co-host may publish only once payment is satisfied.
 
 ## `share`
 
-Show:
-- URL;
-- QR;
-- private code separately.
+Show (§14.3):
+
+- event URL;
+- QR (URL only);
+- private code separately;
+- `Send invitations` (to `communications`);
+- `Copy personal link` per party, in `guests-workspace`, never as one shared bypass.
 
 ## `management-home`
 
-Post-publish operational priority:
-- RSVP summary;
+Post-publish operational priority (§19.3):
+
+- RSVPs summary;
 - Guests;
-- Messages;
+- Messages (invitations, reminders, announcements);
 - Registry;
 - Share;
-- Edit site.
+- Edit invitation.
 
 Owner-only:
+
 - billing;
 - co-host management;
 - delete/archive.
 
+`Try another direction` and design switching are not offered.
+
 ## `cohost-invite-accept`
 
 Signed out:
+
 - event/inviter;
 - authenticate;
 - preserve invitation token.
 
 Signed in:
+
 - role summary;
 - `Join event`.
 
 Expired/invalid:
+
 - calm error;
 - return/contact inviter.
 
 ---
 
-# Guest renderer surfaces
+# Guest surfaces
 
-These are themed event-renderer components, not application forms.
+The envelope and card are the event's themed surface; everything else is house-style page and app-level components, not themed forms.
 
-## `private-access-gate`
+## `envelope`
 
-Visible before code:
-- hero;
-- event name;
-- hosts;
-- date.
+The house-designed envelope, identical for every event, showing the event title (§11.8).
 
-Locked:
-- venue;
-- details;
-- RSVP;
-- registry;
-- cash fund.
+**Opening:** the guest taps (an explicit action; it never opens by itself); the card slides out and settles at the top of the page.
 
-Input:
-- event code.
+**Entry paths**
+
+- personal invitation link: no code; the closed envelope opens on the guest's tap, and only then do the card, page and party session load (§12.5); before publish the link shows a neutral "not available yet" state;
+- shared link, public event: opens;
+- shared link, private event: **sealed** with the title only; an event-code field is shown; nothing on the card or page is visible until the code is accepted (§14.2).
+
+**States**
+
+- sealed (private, shared link): title, code input, attempt-limit and error messages that reveal nothing about the event;
+- opening;
+- reduced motion: the card appears without the animation.
 
 ## `guest-event`
 
-Single-scroll event:
-- Hero
-- Event Details
+Single-scroll (§21):
+
+- Card
+- Event details
+- Description and information blocks
 - RSVP
 - Registry
 - Made with footer
 
+House style for every event. The card is live, selectable, screen-reader-readable text over decorative artwork.
+
 ## `guest-lookup`
 
-Input:
-- name.
+Shared-link path only. Input: name.
 
-No contact info in results.
+No contact info in results. Minimum first names needed to recognise the party.
 
 ## `guest-collision`
 
-Show minimum names needed to disambiguate.
+Show minimum names needed to disambiguate; ask for more name detail.
 
 ## `guest-otp`
 
-Six-digit verification.
+Six-digit verification, for phone-backed parties.
 
-Resend/throttle states.
+Resend/throttle states. For a `No phone available` party the step is skipped (name lookup only). For a Needs-phone party: neutral "please contact the host" message and no RSVP.
 
 ## `guest-rsvp`
 
 Fixed semantic order:
+
 - party/member attendance;
 - plus-one;
 - meal;
@@ -367,32 +425,28 @@ Fixed semantic order:
 - notes;
 - submit.
 
-Visual composition comes from the concept's CompositionTree and page system.
+Reached directly from a personal link, or after lookup and verification. Prefilled with the current response on update.
 
-On mobile, composition may converge to stacked flow.
-
-## `guest-validation`
-
-Inline themed errors.
-
-Errors must remain accessible within every event palette.
+Inline validation errors meet WCAG AA.
 
 ## `guest-confirmation`
 
-Themed success.
+> **You're all set. We can't wait to celebrate with you.**
 
-Magic-link update sent when phone exists.
+When the guest arrived by the shared link and the party has a phone, a text with their personal link is sent for return/update.
 
 ## `guest-registry`
 
 External destination cards.
 
 Native gifts:
-- normalized thumbnail/placeholder;
+
+- normalized thumbnail or house-style placeholder;
 - Available/Purchased;
 - Buy this gift.
 
 Cash fund:
+
 - display-only.
 
 ## `gift-return-confirm`
@@ -401,43 +455,16 @@ Question:
 > Did you buy this gift?
 
 Actions:
+
 - Yes, mark purchased
 - No
 
 ## `guest-update`
 
-Magic-link return/update.
+Personal-link return: same scoped party session, current response pre-populated.
 
 ## `passed`
 
-Thank-you state.
+> Thank you for celebrating with us.
 
 Registry remains accessible.
-
----
-
-# Renderer lab states
-
-The renderer gallery/test harness must be able to show the same guest content under multiple concepts at:
-- 390px;
-- 1280px;
-- color;
-- grayscale.
-
-Required visual states:
-- hero;
-- details;
-- private gate;
-- lookup;
-- collision;
-- OTP;
-- RSVP;
-- validation error;
-- confirmation;
-- registry;
-- native placeholder;
-- purchase return;
-- footer;
-- passed state.
-
-The lab is a development artifact, not customer UI.

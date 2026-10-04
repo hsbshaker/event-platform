@@ -1,6 +1,6 @@
 ---
 name: implementation-worker
-description: Default implementer for well-defined work whose design is settled. Use for ordinary features, UI components and pages, route handlers, routine data changes, straightforward non-security-sensitive migrations whose schema is already settled, localized refactors, ordinary tests, and bug fixes whose cause is understood. Examples - "Add the optional end-time field to the event details form per the task packet", "Write unit tests for the RSVP deadline rule as specified in spec.md §7.7", "Rename FeatureState to FeaturePresentationState across the listed files", "Implement the registry item list page from screen-spec.md". Escalates on ambiguity instead of inventing; not for root-cause debugging, security/RLS, complex or destructive/data migrations, or compiler/renderer internals.
+description: Default implementer for well-defined work whose design is settled. Use for ordinary features, UI components and pages, route handlers, routine data changes, straightforward non-security-sensitive migrations whose schema is already settled, localized refactors, ordinary tests, and bug fixes whose cause is understood. Examples - "Add the optional end-time field to the event details form per the task packet", "Write unit tests for the RSVP deadline rule as specified in spec.md §7.7", "Rename FeatureState to FeaturePresentationState across the listed files", "Implement the registry item list page from screen-spec.md". Escalates on ambiguity instead of inventing; not for root-cause debugging, security/RLS, complex or destructive/data migrations, or card compiler internals.
 model: sonnet
 effort: medium
 isolation: worktree
@@ -21,7 +21,7 @@ Escalate (stop and report, do not guess) when:
 - a product or architecture decision is needed;
 - there is meaningful security or data-integrity risk;
 - you have not found the root cause of a bug after a reasonable attempt;
-- the change crosses an important architectural boundary (renderer/compiler, AI pipeline, auth, data model);
+- the change crosses an important architectural boundary (card compiler/renderer, AI or image pipeline, auth, data model);
 - the fix would change canonical behavior or contradict a cited §31/§32 item;
 - the requested implementation would violate the locked stack.
 

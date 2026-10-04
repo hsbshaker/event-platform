@@ -3,8 +3,8 @@
  * unit-tested against the table and reused by RLS-adjacent server code.
  *
  * Roles: `owner` created the event; `cohost` was invited; `guest` is anyone else
- * (guests never have accounts — spec.md §32 #35). Co-host has near-parity except
- * billing, co-host management and deletion (spec.md §32 #43).
+ * (guests never have accounts — spec.md §32 #34). Co-host has near-parity except
+ * billing, co-host management and deletion (spec.md §32 #44).
  */
 export type EventRole = "owner" | "cohost";
 export type ActorRole = EventRole | "guest";

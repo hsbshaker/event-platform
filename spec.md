@@ -1,99 +1,97 @@
-# AI-Native Event Website + RSVP + Registry Platform
+# AI-Designed Event Invitation + RSVP + Registry Platform
 
 **Document:** Product Requirements Document (PRD) / `spec.md`
-**Status:** Revision 6.1 — MVP baseline for implementation (§0a, §0b; Revision 5 changes recorded in §0)
+**Status:** Revision 7 — MVP baseline for implementation (§0)
 **Initial launch vertical:** Baby showers
 **Platform architecture:** Event-generic, baby-shower-first
 **Primary build principle:** **AI should remove decisions, not create more decisions.**
 
 ---
 
-## 0b. Revision 6.1 — content lifecycle and generation sequencing
+## 0. What changed in Revision 7
 
-Clarifications only; nothing about CompositionTree reopens. (1) Three separate layers: `Capabilities` (enabled features), `ContentProfile` (present content), `FeaturePresentationState` (guest visibility/readiness, never sent to the model) — §11.4. (2) DesignIntent and CompositionTree are immutable; a content edit that affects fit appends a new immutable `ResolvedDesignSpec` revision for the same concept with no model call — §4.10, §7.9, §24. (3) Required details are publish requirements collected during generation, never a prerequisite for concepts; composition uses real content where present and bounded provisional content elsewhere, re-fit when real values arrive — §7.3, §7.10. (4) End time stays optional; the RSVP deadline default has an exact rule — §7.3. (5) Human design review runs twice: now for calibration, and on the frozen production stack as the launch gate — `docs/CHANGELOG-v6.md`.
+Revision 7 changes what the product makes. **The AI no longer generates a custom event website.
+It designs a digital invitation card**, in the spirit of a Paperless Post card: generated artwork
+with real text set over it, delivered in an envelope that opens. Under the card sits a standard
+event page — details, RSVP, registry — in one neutral house style shared by every event.
 
-## 0a. What changed in Revision 6
+Why: Human Test #1 reviewers judged the generated websites to be "well-typeset flyers", and the
+references they supplied as what they wanted were *invitations*: an illustrated anchor, a border,
+a palette drawn from the artwork, quiet typography. A single card is also a far more tractable
+creative problem than a responsive multi-section page, and it is the object a host actually
+screenshots and sends. The full record is `docs/CHANGELOG-v7.md`.
 
-Revision 6 changes one thing, comprehensively: **the renderer architecture moves from versioned archetype bundles to the composition language.** The model now authors the page composition itself as a `CompositionTree` of trusted primitives; a deterministic compiler validates, repairs, fits against rendered geometry and freezes the result. Everything about product flow, roles, RSVP, registry, messaging, publishing and limits is unchanged from Revision 5.
-
-| Area | Revision 5 | Revision 6 |
+| Area | Revision 6.1 | Revision 7 |
 | --- | --- | --- |
-| Model creative authority | Six-field `DesignIntent` selecting an archetype bundle | `DesignIntent` v3 (`family`, `composition` replace `heroArchetype`) plus a `CompositionTree`: nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent |
-| Composition | Archetype bundle owns hero, sections, guest composition and treatments | The model composes from nine containers, five decorative leaves and thirteen semantic nodes, enum tokens only; capability-scoped |
-| Compiler | Typography repair, motif slots, palette, treatments | Strict schema, structural repair by kind, attractive-token caps, canonicalization, palette, layout resolution, **rendered-geometry verification** |
-| Re-prompts | One retry for structurally invalid intent | Only for schema-invalid output, a token-cap violation, or a selector collision; once each; all other defects repaired without a model call |
-| Diversity | Distinct archetypes, tones, categories | Sibling planner: distinct intents and structural directives, token allotments, skeleton-signature collisions at .70 |
-| Recipes/archetypes | The design vocabulary | A library: regression fixtures, few-shot examples, repair/fallback macros, calibration; not the creative ceiling |
-| Persistence | `DesignIntent + archetypeVersion + ResolvedDesignSpec` | `DesignIntent + CompositionTree (raw, canonical) + ResolvedDesignSpec` with prompt, schema, primitive-set and compiler versions |
-| Proof | Three archetypes, five swap tests | Unit, adversarial, expressiveness and confirmation-run gates with numeric thresholds (§11.9) |
+| Creative output | A full custom event website composed by the model (`CompositionTree`) | One AI-designed invitation card: generated artwork + real text in a layout (`docs/card-system.md`) |
+| Event page | Themed per concept, composed by the model | One neutral house style for every event; the card is the only themed surface |
+| Designs per round | Three concepts, diversity-planned | One at a time; `Try another direction` generates a genuinely different one |
+| Model calls | Event Identity → DesignIntent ×3 → Composition ×3 | Event Identity → Card Design → Card Art (image model) |
+| Model authority | Structure only, enum tokens, no free text | Card direction: layout from a catalog, art mode, font pairing, an art brief, and the card's wording (title, invitation line) |
+| Imagery | Excluded, then approved as optional Phase 4 artwork | Every card has generated artwork; it may be as minimal as a border or texture |
+| Verification | Headless-browser geometry verification at 390/1280 per concept | Fixed 5:7 canvas; deterministic text fit and ink contrast; browser checks at test time only |
+| Guest arrival | Host shares a link/QR | Host shares a link/QR **and** the platform can text each invited party a personal invitation link |
+| Guest identity | Name lookup + SMS code | Personal invitation link identifies the party; shared-link guests use name lookup + SMS code |
+| Private events | Finished hero visible before the code | Sealed envelope with the event title until the code; personal links skip the code |
+| Host design controls | Curated palette and typography | Edit the card's words; swap among the design's curated font pairings |
 
-Evidence: `proof/`, `proof-a1/`, `proof-b/` (`RESULTS.md`, `FINAL.md`). Companion docs: `docs/event-renderer-system.md` Revision 2, `docs/model-contracts.md` Revision 2, `docs/CHANGELOG-v6.md`.
+**Unchanged:** prompt first → auth → generation; Event Identity as the only interpreter of the raw
+prompt and its fact-versus-interpretation boundary; adaptive creative clarification; Creation Mode
+as the event itself with contextual controls and no wizard; readiness rules; RSVP, guests,
+registry, native gift honor system, cash fund; roles; the $49 publish hypothesis; the locked stack
+(minus headless Chromium, plus an image model).
 
-## 0. What changed in Revision 5
+**Retired:** the composition language, primitives, sibling planner, structural directives,
+attractive-token caps, skeleton signatures, the recipe library and its boundary invariant, the
+`ResolvedDesignSpec`, rendered-geometry verification as a production step, per-concept themed
+pages, and the palette override control.
 
-Revision 5 reconciles the product with the approved creation UX and the first renderer architecture pressure test. Implementing agents must treat this document as authoritative; where it conflicts with Revision 4, older prototypes, or repository history, **Revision 5 wins**.
-
-The core product scope remains baby-shower-first and the commercial hypothesis remains **$49 one-time to publish**. The important changes are architectural and experiential.
-
-| Area | Revision 4 | Revision 5 |
-| --- | --- | --- |
-| Landing/auth | CTA → account → prompt | **Landing page is the prompt.** User writes the idea first; auth/save occurs before strong-model generation. Prompt and inspiration must survive OAuth intact. |
-| Post-concept flow | Concept selection → setup/admin | **Concept selection → full-site reveal → “Make it yours” → Creation Mode.** The event itself is the setup workspace. |
-| Setup UX | Setup/admin areas | **No pre-publish dashboard/wizard.** Contextual `Edit` / `Set up` / `Add` actions live on the actual event site. |
-| Setup progress | General checklist | Checklist separates **Needed to publish** from **Recommended before sharing**. Optional Guests/Registry never make publish readiness look incomplete. |
-| Redesign entry | Design/gallery flow | `Try another direction` appears on initial concepts, site reveal, and Design controls. It preserves all event content/data. |
-| Preview | Mobile-first preview | Preview uses the production renderer; on larger screens it offers **Mobile / Desktop** width controls. |
-| Model design output | Model returns a mostly orthogonal `DesignSpec` | Model returns a **six-field `DesignIntent`** plus a non-design `presentation` object (concept name and one-line description) that the compiler never reads. It does not emit treatment/card/button/border overrides. |
-| Archetypes | Hero primitive among many independent dimensions | **Versioned archetype bundle owns composition and component defaults**: section treatments, guest-surface composition, cards, borders, buttons, ornamentation, and visual treatment. |
-| Compilation | Model output rendered after schema validation | Deterministic compiler resolves archetype defaults, typography compatibility, motif placement, tone/palette semantics, contrast, and repairs into immutable `ResolvedDesignSpec`. |
-| Persistence | Persist immutable `DesignSpec` | Persist **DesignIntent + archetype version + ResolvedDesignSpec** for every concept. Render concept base only from the resolved spec. |
-| Immutability | Generated concepts immutable | **Generated design data is immutable; renderer code is not.** Bug/accessibility/responsive fixes may improve all events without recompiling historical concepts. |
-| Motifs | Model chooses motif IDs; placement implicit | Motifs declare a kind (pattern or arrangement), supported roles (`field`, `frame`, `band`, `divider`, `accent`), and bounded opacity and scale steps. The tree places them in one of five structural slots; the ornament direction caps how many render. Suppressed motifs are logged, never silently omitted. |
-| Palette | Palette roles could be consumed directly by archetypes | Raw creative palette + tonal direction go through a **semantic palette compiler**. Archetypes never interpret raw palette roles. Required contrast is valid by construction. |
-| Diversity | Archetype/tone plus many treatment dimensions | Primary levers are **archetype/composition → tone when permitted → typography category → motifs → density → palette dominance**. |
-| Guest design | Themed components implied | Renderer explicitly owns themed guest components and archetype-specific guest composition. **Mobile information architecture may converge**; differentiation at phone width comes mainly from framing, typography, motif, density, and component skin. |
-| Renderer validation | Broad visual matrix | Before remaining archetypes are built, the first three must pass constrained-brief, palette-control, grayscale, guest-surface, swap, compiler, and incompatible-intent tests. |
-
-The primary product principle remains:
-
-> **AI should remove decisions, not create more decisions.**
+---
 
 ## 1. Executive Summary
 
-We are building an **AI-native event platform** that lets a host create a beautiful, fully themed event website with **event details, RSVP management, and registry functionality** from a simple natural-language description of the event.
+We are building an **AI-native event invitation platform**: a host describes the event in their
+own words and receives a beautiful, specific invitation card, plus the RSVP, guest list and
+registry around it.
 
-The initial launch is intentionally focused on **baby showers**, because baby showers sit at the intersection of:
+The initial launch is **baby showers**, because they combine strong visual theming, a real need
+for RSVP management, a real need for gift registries, and hosts who want the digital invitation to
+match the event's look.
 
-- strong visual/event theming;
-- a real need for RSVP management;
-- a real need for gift registries;
-- hosts who want the digital experience to match the invitation, venue, decor, and overall aesthetic;
-- fragmented workflows today across website builders, invitation tools, RSVP products, and registry services.
+The product should not feel like a design tool. The host never chooses fonts, layouts, colours or
+clip art.
 
-The product should not feel like a website builder. The host should not need design skills, event-planning expertise, or knowledge of fonts, spacing, layout systems, design tokens, or page builders.
-
-The core promise is:
+The core promise:
 
 > **Describe your event. We create the whole experience.**
 
-A user should be able to say something like:
+A host might write:
 
-> "I am throwing a Ralph Lauren-inspired baby shower for my baby boy. I want it to feel classy, cozy, preppy, and elevated — dark navy, cream, forest green, some equestrian influence, maybe plaid, but not cheesy. It is at a lodge in December."
+> "I'm throwing a Ralph Lauren-inspired baby shower for my baby boy. Classy, cozy, preppy,
+> elevated — navy, cream, forest green, maybe a little equestrian, but not cheesy. It's at a lodge
+> in December."
 
-The platform understands the intent, translates the references into an original visual direction, renders **three distinct concept previews** using the real site renderer, lets the user choose one, and that choice *is* the site.
+The platform understands the taste and the subtext, translates the reference into original visual
+language, and designs one invitation card — artwork, wording, typography — that feels like it read
+the host's mind. If it isn't right, `Try another direction` produces a genuinely different one.
+The chosen card becomes the event's invitation: guests receive it in an envelope, open it, and
+RSVP and browse the registry on the page beneath.
 
-The host may optionally upload inspiration images. This is additive context, not a required part of onboarding.
+The host may optionally upload inspiration images. They are private inputs to the AI's
+understanding, never shown to guests and never sent to the image model.
 
 The MVP includes:
 
-1. **Event details**
-2. **RSVP and guest management**
-3. **Registry presentation, individually tracked gifts, and a cash fund card**
-4. **Basic SMS-first reminders/announcements**
-5. **AI-driven event design and lightweight manual editing**
-6. **Mobile-first host/admin and guest experiences**
+1. an AI-designed invitation card;
+2. event details;
+3. RSVP and guest management;
+4. registry presentation, individually tracked gifts and a cash fund card;
+5. invitations by text with personal links, plus SMS reminders and announcements;
+6. mobile-first host and guest experiences.
 
-It does **not** include a full event-planning suite, a drag-and-drop website builder, seating charts, vendor management, photo galleries, thank-you-note management, printed stationery, public/open RSVP, retailer scraping or sync, or an AI chat copilot.
+It does **not** include a website builder, a custom-designed event website, a template gallery,
+seating charts, vendor management, photo galleries, printed stationery, email invitations,
+public/open RSVP, retailer scraping or sync, or an AI chat copilot.
 
 ---
 
@@ -101,19 +99,13 @@ It does **not** include a full event-planning suite, a drag-and-drop website bui
 
 ### 2.1 The problem
 
-Today a host may need several products to create a polished event experience:
+Today a host stitches together several products for one event: Canva or a designer for the look,
+Paperless Post or Evite for invitations, Partiful or a website builder for RSVP, Amazon or Babylist
+for the registry, and a spreadsheet for guests and gifts. Invitation tools ask the host to browse
+hundreds of templates and still make every design decision.
 
-- Canva or a designer for visual identity;
-- Wix/Squarespace for a website;
-- Partiful/Paperless Post for event communication and RSVP;
-- Amazon/Babylist/Target for registries;
-- spreadsheets or notes to manage guests and gift status.
-
-The host has to make dozens of decisions and manually keep the experience visually consistent.
-
-The underlying problem is:
-
-> **People know the event they want to create, but most do not know how to turn that idea into a cohesive digital experience without doing design and software configuration work themselves.**
+> **People know the event they want, but turning that idea into a cohesive invitation without
+> doing design work themselves is hard.**
 
 ### 2.2 Product solution
 
@@ -121,21 +113,24 @@ The platform acts like an **AI creative director + event operating system**.
 
 The host describes the event in natural language. AI:
 
-- infers the event type;
-- infers the intended mood and aesthetic;
-- translates named references into original design attributes rather than copying protected brand assets;
+- understands the taste, vibe and subtext, including negative constraints;
+- translates named references into original design language rather than copying protected assets;
 - produces a structured creative brief (the Event Identity);
-- produces compact DesignIntent for three clearly different concepts;
-- deterministic renderer code compiles each intent into a versioned, accessible ResolvedDesignSpec;
-- keeps subsequent editing simple and constrained.
+- designs an invitation card: a layout, an art direction, a font pairing and the card's wording;
+- generates original artwork for that card.
 
-The user never "builds a website."
+Deterministic application code sets the host's facts on the card, guarantees the text fits and is
+legible, and renders the same card on every screen. The host never "designs" anything.
 
 ### 2.3 Why people pay, why they stay
 
-- **Design is the reason they come and pay.** The three-concept reveal is the acquisition and conversion moment.
-- **Operations are the reason they stay through the event.** RSVP chasing and gift tracking are the host's real problem in the weeks before the shower.
-- **The guest site is the growth channel.** A one-time event has no per-user retention; retention is referral. Roughly forty guests see the site, and one of them is hosting next. The guest-facing experience must be as polished as the concept preview, and it carries a tasteful "made with" footer line.
+- **The card is why they come and pay.** The moment the envelope opens on a card that reads their
+  mind is the acquisition and conversion moment.
+- **Operations are why they stay through the event.** RSVP chasing and gift tracking are the host's
+  real problem in the weeks before the shower.
+- **The invitation is the growth channel.** Roughly forty guests open it, and one of them is hosting
+  next. The guest experience must be as polished as the card, and carries a tasteful "Made with …"
+  footer line.
 
 ---
 
@@ -143,32 +138,32 @@ The user never "builds a website."
 
 ### 3.1 Initial positioning
 
-Market the product around **baby showers**, not "all events."
+Market around **baby showers**, not "all events".
 
-> **The AI-powered baby shower website that designs itself.**
-
-or
-
-> **Describe your baby shower. We create the whole experience.**
+> **Describe your baby shower. We design the invitation.**
 
 ### 3.2 Commercial model
 
 - Free to create.
-- Free to generate concepts and redesign (within backend limits, see §10).
+- Free to generate designs and try other directions (within backend limits, §10).
 - Free to preview.
-- **$49 one-time fee to publish.** Single flat price, no tiers, no per-guest pricing, no subscription.
+- **$49 one-time fee to publish.** Single flat price, no tiers, no per-guest pricing, no
+  subscription.
 
-Context: the free alternatives (Withjoy, Zola, Partiful, Babylist) set the floor. Paid invitation tools set the ceiling for what a host spends on the digital side of one event. Below roughly $30 the product reads as Evite; above roughly $100 it needs a concierge story. $49 is a hypothesis to test, not a final price. Competitor prices should be re-verified before launch.
+$49 was set when the product was a custom website + RSVP + registry. It remains **a hypothesis to
+test**, and it must be re-checked against what invitation products charge (Paperless Post, Evite,
+Partiful, Canva) before launch.
 
-The mocked payment gate (§28) must display the real price from day one, including during beta with a bypass, so that gate-open → continue is a usable conversion signal before billing exists.
+The mocked payment gate (§28) displays the real price from day one, including during beta with a
+bypass, so gate-open → continue is a usable conversion signal before billing exists.
 
 No refunds. No ownership transfer. These are policy, not product features.
 
 ### 3.3 Long-term platform direction
 
-The architecture uses a generic `Event` concept so the same system can later support bridal showers, weddings, engagement parties, birthdays, gender reveals, graduations, housewarmings, religious celebrations, anniversaries, and other invite-only events.
-
-Do **not** broaden the launch UX or marketing to every event type during MVP.
+The architecture uses a generic `Event` concept so the same system can later support bridal
+showers, weddings, birthdays, graduations and other invite-only events. Do **not** broaden the
+launch UX or marketing during MVP.
 
 ---
 
@@ -178,101 +173,99 @@ These principles are requirements, not suggestions.
 
 ### 4.1 AI should remove decisions, not create more decisions
 
-AI makes opinionated decisions on behalf of the host where it is safe to do so. Do not turn AI into a questionnaire generator. Do not ask the user to choose implementation primitives such as card styles, border radii, spacing, motifs, layout IDs, or button variants.
+AI makes the design decisions on the host's behalf: layout, artwork, palette, typography, wording.
+Do not turn AI into a questionnaire generator. Do not ask the host to choose fonts, layouts,
+colours, borders, clip art or templates.
 
-The host describes intent; the system translates intent into a cohesive event.
+The host describes intent; the system turns intent into an invitation.
 
-### 4.2 AI expresses intent; deterministic systems build and protect quality
+### 4.2 AI designs the card; code sets the facts and guarantees legibility
 
 The strong model creates:
-- an `EventIdentity`;
-- a compact six-field `DesignIntent` for each concept;
-- a `CompositionTree` for each concept: the page's structure as a tree of trusted primitives with semantic leaves, every value an enum token.
+- an `EventIdentity` — what the host means and what creative world the event belongs to;
+- a `CardDesign` — a layout from a small catalog, an art mode, a curated font pairing (with up to
+  two alternates), the card's wording (title and invitation line), and an art brief.
 
-It does **not** generate HTML, CSS, JSX, JavaScript, SVG, pixel positions, free text, colors, fonts, or any component outside the primitive allowlist. The model's authority is structural: nesting, grouping, hierarchy, relative emphasis, section composition and order, surface transitions, alignment, structural motif placement, and allowable responsive intent.
+An image model creates the card's **artwork**, from the art brief and the layout's composition
+rule — never from the host's raw prompt.
 
-A deterministic renderer compiler:
-1. validates the tree against the strict schema (one re-prompt on failure, then a library fallback);
-2. validates structure and repairs deterministically: nesting, depth, limits, box depth, coverage conditional on the event's capabilities, capability references, component placement, motif kind, responsive intent;
-3. applies the sibling planner's attractive-token caps;
-4. canonicalizes; applies the page system; compiles raw palette + tonal direction into accessible semantic event tokens; resolves typography and density;
-5. resolves every token to layout values per breakpoint;
-6. verifies content fit against rendered geometry at 390 and 1280 and repairs until clean;
-7. produces and persists an immutable, verified `ResolvedDesignSpec`.
+Deterministic application code:
+1. validates the design against a strict schema and catalogs;
+2. checks the wording invents no fact;
+3. validates the artwork;
+4. chooses ink colours and any legibility panel so every card text clears 4.5:1;
+5. sizes and breaks every line of card text so it fits;
+6. renders the card identically at every size, inside the envelope, above the house-style page.
 
-The production renderer renders from the resolved spec, one fixed component per primitive.
+The model never emits HTML, CSS, JavaScript, SVG, colours for text, font sizes, positions or line
+breaks, and never writes the host's facts. Architecture: `docs/card-system.md`.
 
-### 4.3 The composition language is the creative surface; there are no templates
+### 4.3 The card is the creative surface; there are no templates
 
-There is no archetype bundle and no recipe menu. The model composes each page from a bounded, versioned primitive set (`docs/event-renderer-system.md §2`). The compiler owns everything about execution: CSS/grid/flex, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, and business logic.
-
-The Phase A/A.1 recipes survive as a **library** with four jobs: regression fixtures, rotated few-shot examples, repair and fallback macros, and signature calibration. They are not the creative ceiling and the renderer carries no code per recipe.
-
-The host never sees primitives, directives, tokens, caps, or the library. There is no template gallery.
+There is no template gallery and no library of artwork. Each card's artwork is generated for that
+event. A small, versioned catalog of **text layouts** decides where words go and where the art must
+stay quiet; the model picks one, the host never sees the catalog. Uniqueness lives in the artwork,
+the wording and the typography, not in the layout.
 
 ### 4.4 Prompt first, auth second, generation third
 
-The user should invest in their creative idea before being asked to authenticate.
+The user invests in their idea before being asked to authenticate.
 
-Canonical sequence:
 1. user writes the event prompt and may add inspiration;
 2. auth/save occurs;
 3. prompt and inspiration are restored exactly;
-4. strong-model generation begins.
+4. generation begins.
 
-Do not burn frontier-model generation on anonymous traffic.
+Do not spend strong-model or image-model generation on anonymous traffic.
 
-### 4.5 Show the finished-looking outcome before setup
+### 4.5 Show the finished invitation before setup
 
-Concept selection leads directly to a full production-rendered site reveal.
+The first thing the host sees after generation is their invitation card coming out of its
+envelope, complete and send-ready-looking. The host should feel:
 
-The product should make the host feel:
+> **This is already my invitation. I only need to make it real.**
 
-> **This is already my event site. I only need to make it real.**
+Do not interrupt that moment with a dashboard.
 
-Do not interrupt that activation moment with a dashboard.
+### 4.6 Creation Mode is the invitation itself
 
-### 4.6 Creation Mode is the event itself
+Before publish, the workspace is the guest experience: the card and the page beneath it.
+Owner/co-host-only contextual controls appear at stable anchors on the card and on each page
+section: `Edit`, `Set up`, `Add`. Focused sheets/panels edit structured data, then return the
+collaborator to the same place.
 
-Before publish, the actual event site is the workspace. Owner/co-host-only contextual controls appear at stable collaborator anchors:
-- `Edit`
-- `Set up`
-- `Add`
-
-Focused sheets/panels may edit structured data, then return the collaborator to the same place.
-
-Guest management is the major exception because household/CSV/phone operations need a dedicated workspace.
+Guest management is the major exception: household/CSV/phone operations get a dedicated workspace.
 
 ### 4.7 No setup wizard
 
-Independent tasks do not require a linear Step 1 → Next → Step 2 workflow.
-
-The floating setup control is navigation and readiness, not a wizard.
+Independent tasks do not require a linear Step 1 → Next → Step 2 workflow. The floating setup
+control is navigation and readiness, not a wizard.
 
 ### 4.8 Mobile first; desktop is real desktop
 
-Every core workflow works from approximately 390px outward.
-
-Desktop must use desktop space intentionally. Creation Mode is not trapped inside a phone frame. Concept comparison may show mobile-shaped previews, but application chrome and the event canvas are responsive desktop UI.
+Every core workflow works from approximately 390px outward. The card is the same design at every
+size. The page and the host's workspace use desktop space intentionally on desktop; nothing is
+trapped inside a phone frame.
 
 ### 4.9 Opinionated design quality
 
-Users may refine within safe boundaries, but the system makes it difficult to create an incoherent site.
-
-Manual design controls remain limited to curated palette and typography choices. Section content/order/visibility are content operations, not a page builder.
+The host refines within safe boundaries — the card's words and a choice among curated font
+pairings — and the system makes an illegible or incoherent card impossible.
 
 ### 4.10 Generated design data is immutable; renderer code is maintainable
 
-Once a concept is generated:
-- its `DesignIntent` is immutable;
-- its `CompositionTree` (raw model output and canonical form) is immutable;
-- every `ResolvedDesignSpec` revision, including its verification record and version set (prompt, schema, primitive set, compiler), is immutable.
+Once generated:
+- the `EventIdentity` revision is immutable;
+- each `CardDesign`, its artwork and its resolved ink are immutable, with their version set (prompt,
+  schema, layout set, compiler, image model).
 
-A concept may carry more than one resolved-spec revision. A content edit that affects fit (a longer venue, an added description) deterministically produces a **new immutable revision for the same concept**: same DesignIntent, same CompositionTree, same `compositionHash`, no model call, no recomposition; only emphasis demotions and box relaxations from rendered-geometry verification differ. `DesignConcept.activeResolvedSpecId` points at the current revision; each revision records `contentVersion`, `supersedesSpecId`, `verified.clean` and `compilerVersion`. Superseded revisions are kept. Nothing inside a persisted revision is ever mutated.
+Host edits — wording, font swap, every fact — are event data and never mutate a design. Do not
+regenerate or "upgrade" the artwork or design of an existing card.
 
-Do not silently recompile an old concept against a newer compiler or primitive set. The renderer must support every primitive-set version that has a live spec.
+Renderer code is normal product code: accessibility, browser, responsive and visual fixes may
+change how every existing card renders. "Design immutability" never blocks renderer maintenance.
 
-However, renderer implementation code is normal product code. Accessibility fixes, browser fixes, responsive fixes, and visual bug fixes may improve every event that renders a compatible resolved spec. “Concept immutability” must never block ordinary renderer maintenance.
+---
 
 ## 5. MVP Scope
 
@@ -280,185 +273,163 @@ However, renderer implementation code is normal product code. Accessibility fixe
 
 **Prompt-first event creation**
 - Landing page is the natural-language event composer.
-- Optional private inspiration images/links may be added directly to the composer.
-- Auth/save occurs after the prompt is written and before strong-model generation.
-- Prompt text and successfully uploaded inspiration must survive auth/OAuth redirects exactly.
+- Optional private inspiration images may be added directly to the composer.
+- Auth/save after the prompt is written and before generation.
+- Prompt text and uploaded inspiration survive auth/OAuth redirects exactly.
 - No front-loaded profile/configuration flow.
 
-**AI identity and design**
-- Strong-model `EventIdentity`.
-- Backend diversity planner assigns concept constraints.
-- Strong-model six-field `DesignIntent` per concept.
-- Deterministic compilation to immutable `ResolvedDesignSpec`.
-- Three live concept previews using the production renderer.
-- Initial `Try another direction` escape hatch under the three concepts.
-- Concept selection followed by full-site reveal.
-- Pre-publish redesign rounds from concept screen, reveal, or Design controls.
-- All generated concepts remain browsable before publish.
-- Current active design remains unchanged until a new concept is explicitly selected.
-- No host-uploaded decorative/event imagery. Original AI-generated thematic artwork is in scope for Phase 4 and is optional, art-directed and compiler-placed — §7.6a.
+**AI identity and card design**
+- Strong-model `EventIdentity`, with optional adaptive creative clarification (§7.6b).
+- Strong-model `CardDesign`, one per round.
+- Image-model artwork for every card; artwork never contains text.
+- Deterministic validation, wording fact check, ink/legibility resolution and text fit.
+- The card revealed from its envelope as soon as it is ready.
+- `Try another direction` with optional feedback, before publish, from the reveal and from Creation
+  Mode.
+- Every design generated for the event stays browsable before publish; the active card stays active
+  until another is explicitly chosen.
 
 **Creation Mode**
-- Selected concept becomes the actual event site.
-- Full-site reveal: **“Your event looks great. Let’s make it real.”**
-- `Make it yours` transitions the same site into Creation Mode.
-- Contextual owner/co-host controls live on stable renderer collaborator slots.
-- Floating readiness/setup control.
-- Checklist separates publish blockers from recommended-but-optional work.
+- The chosen card and the page beneath it are the workspace.
+- `Make it yours` turns the revealed invitation into Creation Mode.
+- Contextual owner/co-host controls on the card (wording, details) and on each page section.
+- Font control limited to the design's curated pairings.
+- Floating readiness/setup control; checklist separates publish blockers from recommended work.
 - Autosave routine edits.
 - Guest management may open a dedicated full-screen workspace.
-- `Preview` removes collaborator controls and shows the exact guest experience.
+- `Preview` shows the exact guest experience, envelope included.
 
-**Event website**
-- Event title/name.
-- Host/parent names as applicable.
-- Date, time, venue, address.
+**Invitation and event page**
+- The invitation card: title, invitation line, baby name and hosts when present, date, time,
+  venue, RSVP-by.
+- Event page in the house style: event title, hosts, date, time, venue, address, description,
+  a small number of simple optional information blocks inferred from the prompt, RSVP, registry.
 - IANA timezone inferred from venue text, browser fallback.
-- Description/welcome copy.
-- Small number of simple optional information blocks inferred from prompt.
-- Public/private.
-- Private access code; finished hero visible before code, sensitive/event-operational content locked.
-- Branded subdomain.
-- QR code.
+- Public/private; private access code; sealed envelope before the code.
+- Branded subdomain, QR code, link previews showing the card (public) or the envelope (private).
 - Tasteful `Made with …` footer.
 
+**Invitations and messaging**
+- Host shares the event link/QR themselves, and/or
+- the platform texts each invited party a personal invitation link (after publish, with host
+  attestation).
+- Host can copy any party's personal link to send another way.
+- SMS reminders and announcements; email fallback only as §13 allows, never as a STOP bypass.
+
 **RSVP and guests**
-- Manual guest-party entry.
-- CSV import.
-- Invite-only RSVP.
+- Manual guest-party entry and CSV import; invite-only RSVP.
 - Household/party grouping, adults/children/plus-ones.
-- Phone-first party contact.
-- Missing-phone CSV rows import as **Needs phone**.
-- Rare explicit `noPhoneAvailable` path.
-- Optional email.
-- RSVP deadline.
-- Attendance, meal, dietary, custom questions, notes.
-- Name lookup.
-- SMS OTP for phone-backed parties.
-- Scoped guest-party session; no guest account.
-- Magic-link return/update.
+- Phone-first party contact; missing-phone CSV rows import as **Needs phone**; rare explicit
+  `noPhoneAvailable` path; optional email.
+- RSVP deadline; attendance, meal, dietary, custom questions, notes.
+- Personal invitation link identifies the party; shared-link guests use name lookup + SMS OTP.
+- Scoped guest-party session; no guest account; return/update through the personal link.
 
 **Registry**
 - External registry destinations.
 - Native gifts by product URL with one safe metadata/image convenience fetch and manual fallback.
 - Platform-owned normalized native product thumbnail where possible.
-- Native gift public state: Available/Purchased only.
-- Private buy-click logging; no reservation state.
-- Optional self-confirm purchase on return.
-- Host/co-host purchase override.
+- Native gift public state: Available/Purchased only; private buy-click logging; no reservations.
+- Optional self-confirm purchase on return; host/co-host purchase override.
 - Display-only cash fund.
 
-**Communication**
-- SMS-first reminders/announcements.
-- Email fallback only for no usable phone / SMS delivery failure, never as a STOP bypass.
-- Initial invitation distribution remains outside platform.
-
 **Roles**
-- Owner.
-- Co-host with near-parity for event work.
-- Guest with no account.
+- Owner; co-host with near-parity for event work; guest with no account.
 
 **Publishing**
-- Free to create/generate/redesign/preview within backend limits.
-- $49 one-time publish hypothesis.
+- Free to create/generate/try other directions/preview within backend limits.
+- $49 one-time publish hypothesis; payment separate from readiness.
 - Deterministic `READY_TO_PUBLISH`.
-- Payment separate from readiness.
-- Post-publish content/operations/curated direct-design edits allowed.
-- Post-publish AI redesign/concept switching disabled.
+- Post-publish content, operations, wording and font edits allowed; post-publish AI generation and
+  design switching disabled.
 
 **Post-event**
-- Passed-event thank-you state.
-- Registry remains accessible.
+- Passed-event thank-you state; registry remains accessible.
 
 ### 5.2 Explicit non-goals for MVP
 
 Implementing agents must **not** add these unless explicitly requested later:
 
-- drag-and-drop page builder, pixel editor, arbitrary CSS, free-form canvas;
-- customer-facing template gallery;
-- model-emitted section/card/button/border/treatment overrides;
-- host controls for card treatment, border treatment, button treatment, spacing, density, motif placement, primitives, directives, or the library;
+- a custom-designed or model-composed event website; per-event themed page styling;
+- drag-and-drop builder, pixel editor, arbitrary CSS, free-form canvas, image editor;
+- customer-facing template, layout or artwork gallery;
+- host controls for layout, colour, palette, art mode, ink, borders, font sizes or text position;
+- free font choice beyond the design's curated pairings;
+- a card back, multi-page cards, animated cards;
+- host-uploaded photos or images on the card or page; stock photography; retrieved web imagery;
+- inspiration images sent to the image model or shown to guests;
+- text rendered inside generated artwork;
+- email invitations; printed stationery; envelope customization;
 - seating charts, timeline/planning modules, vendors, venue marketplace;
-- photo galleries, printed stationery, thank-you-note manager, invitation sending;
-- host decorative site-photo uploads, hero-photo uploads, crop/position controls;
-- host-supplied or stock site photography of any kind;
-- **mandatory** imagery: artwork on every concept regardless of creative direction;
-- model-placed imagery: any image positioned by pixel, by model-authored CSS, or by anything outside the composition language;
-- public/open RSVP;
-- guest accounts;
+- photo galleries, thank-you-note manager;
+- public/open RSVP; guest accounts;
 - browser extensions/bookmarklets;
 - retailer scraping/sync/proxies/anti-bot workarounds;
 - Pinterest-board URL ingestion promise;
-- persistent AI chat/copilot or token-level design editing;
-- AI redesign after publish;
+- persistent AI chat/copilot or token-level AI editing;
+- AI generation or design switching after publish;
 - user-facing AI credits/generation counters during alpha/beta;
-- version-history/rollback system beyond immutable generated concept gallery;
-- gift reservations/holds/timers/public claim state;
-- purchase nudges/collision engine;
+- version-history/rollback beyond the browsable designs generated before publish;
+- gift reservations/holds/timers/public claim state; purchase nudges/collision engine;
 - maps/geocoding solely for timezone;
 - cancel/unpublish/refund/ownership-transfer workflows;
 - custom domains unless trivial/stubbed;
-- native mobile apps;
-- user-facing analytics dashboards;
-- app dark mode in MVP.
+- native mobile apps; user-facing analytics dashboards; app dark mode.
+
+---
 
 ## 6. Primary User Roles
 
-There are no additional personas in MVP. The three roles below are complete.
+There are no additional personas in MVP.
 
 ### 6.1 Owner
 
 The owner created the event. Owner can:
 
-- create the event and enter the initial design prompt;
-- upload private inspiration images/links;
-- generate, redesign, browse, and select concepts before publish;
-- use direct design controls;
+- create the event and enter the initial prompt;
+- upload private inspiration;
+- generate designs, try other directions, browse and choose designs before publish;
+- edit the card's wording and swap its font among the design's pairings;
 - manage event details, privacy, guests, RSVP configuration and responses;
 - manage external registries, native items, cash fund;
-- send reminders/announcements;
+- send invitations, reminders and announcements;
 - invite/remove co-hosts;
 - publish and handle billing/payment;
 - delete/archive the event.
 
 ### 6.2 Co-host
 
-Invited by the owner. Co-host is a **true event collaborator** and has near-parity with the owner for event work.
+Invited by the owner. A **true event collaborator** with near-parity for event work.
 
 Co-host can:
 
-- edit event details and content;
+- edit event details, content and the card's wording and font;
 - manage privacy/access settings;
-- manage guest list and import CSV;
+- manage the guest list and import CSV;
 - manage RSVP settings/questions and view responses;
-- manage external registries, native items, native item purchase state, and cash fund;
-- send reminders/announcements;
-- use direct design controls;
-- enter redesign feedback and add private inspiration input for redesign;
-- generate redesign rounds and browse/select concepts **before publish**;
-- use the same pre-publish AI/design-generation functionality as the owner after joining the event;
-- preview the site;
+- manage external registries, native items, native item purchase state and cash fund;
+- send invitations, reminders and announcements;
+- enter redesign feedback and add private inspiration;
+- try other directions and choose designs **before publish**;
+- preview;
 - publish **only if the event's payment requirement is already satisfied**.
 
-A co-host invitation must preserve its invitation token through authentication. After acceptance, the user enters the existing event workspace; they do not repeat event creation.
+A co-host invitation preserves its token through authentication; after acceptance the co-host
+enters the existing event, not event creation.
 
-Co-host cannot:
+Co-host cannot initiate or manage payment, manage co-hosts, transfer ownership or delete the event.
 
-- initiate or manage payment/billing;
-- invite/remove/manage other co-hosts;
-- transfer ownership;
-- delete the event.
-
-Generation/spend/abuse limits apply at both the event and acting-account level, regardless of whether the caller is the owner or a co-host.
+Generation/spend/abuse limits apply at both the event and acting-account level.
 
 ### 6.3 Guest
 
-- receives the event link/QR code from the host outside the platform;
-- opens the site; enters the event code if private;
-- views event details;
-- finds their party by name lookup and verifies by SMS code;
-- submits and later updates RSVP;
-- browses registry; leaves to shop external registries or native gift retailer links;
+- receives a personal invitation link by text from the platform, or the event link/QR from the host;
+- opens the envelope (entering the event code first if the event is private and they arrived by
+  the shared link);
+- reads the card and the event details;
+- RSVPs for their party — identified by their personal link, or by name lookup + SMS code;
+- updates the RSVP later through their personal link;
+- browses the registry; leaves to shop external registries or retailer links;
 - may self-confirm a native gift purchase;
 - never creates an account.
 
@@ -468,18 +439,12 @@ Generation/spend/abuse limits apply at both the event and acting-account level, 
 
 ### 7.1 Landing page is the prompt
 
-The product should be usable immediately.
-
 Primary message:
 
 > **Describe your event. We create the whole experience.**
 
-The natural-language composer is the hero of the landing page.
-
-Primary controls:
-- large event-description input;
-- `+ Add inspiration`;
-- `Create my event ✦`.
+The natural-language composer is the hero of the landing page. Primary controls: a large
+event-description input; `+ Add inspiration`; `Create my invitation ✦`.
 
 Reassurance may say:
 > Free to create · No templates · Publish when ready
@@ -488,47 +453,46 @@ Do not require signup before the user writes.
 
 ### 7.2 Pre-auth draft and authentication
 
-On `Create my event`:
+On `Create my invitation`:
 1. persist a short-lived private draft containing the exact prompt;
 2. retain references to successfully uploaded private inspiration assets;
 3. retain lightweight client state needed to restore the composer;
 4. authenticate via Google/Apple/email;
 5. attach the draft to the authenticated owner/event;
-6. restore the user's prompt and inspiration exactly.
+6. restore the prompt and inspiration exactly.
 
-**Strong-model generation does not begin until authentication succeeds.**
+**Generation does not begin until authentication succeeds.** Losing the prompt or inspiration
+during OAuth is a critical product failure. Temporary pre-auth assets remain private, expire
+automatically if abandoned, and never become public imagery.
 
-Losing the prompt or inspiration during OAuth is a critical product failure.
-
-Temporary pre-auth assets remain private, expire automatically if abandoned, and never become public event imagery.
-
-### 7.3 Generation begins; required details run in parallel
+### 7.3 Generation begins; details are optional while it runs
 
 After auth:
 - create/attach the event draft;
 - begin Event Identity generation immediately;
-- collect only genuinely missing required event fields while generation runs.
+- in parallel, extract any facts the prompt states (§7.5) into the draft for the host to confirm;
+- offer — never demand — the genuinely missing event details while generation runs.
 
-Potential missing details:
-- event date;
-- start time (end optional);
-- venue/location/address;
-- hosts/parent names;
-- baby name if shown;
-- RSVP deadline;
-- public/private.
+Potential missing details: event date; start time (end optional); venue/location/address; hosts;
+baby name if the host wants it shown; RSVP deadline; public/private. Skip values already supplied.
 
-Skip values already supplied.
+Required details are **publish requirements (§23.1), not generation blockers**. The card is
+designed and revealed without them. On the card in Creation Mode, a missing required fact shows as
+a bounded placeholder marked as needing confirmation — for example a date twelve weeks out on a
+Saturday, 1:00 PM, `Venue to be announced`. A placeholder is never published and never shown to
+guests. When the host enters the real value, the card updates deterministically (§7.9); no model
+is called.
 
-Required details are **publish requirements (§23.1), not generation blockers**. Event Identity starts immediately; DesignIntents start when identity is ready; the composition calls use whatever real details have arrived and a deterministic provisional content snapshot for the rest (§7.9). As a real value arrives, deterministic re-fit produces the next resolved-spec revision (§4.10); no field ever waits for the host to finish the form before concepts appear.
+The card's **title** is wording (§7.7): if the host supplied a title it is used exactly; otherwise
+the design drafts one. The event title is therefore never a blocker to seeing a card.
 
-Provisional values are bounded and event-type specific so geometry is realistic: a title from the event type (`Baby shower for <family name>` when a name is known, else `A baby shower`), a date twelve weeks out on a Saturday, a start time of 1:00 PM, `Venue to be announced`, hosts omitted, deadline derived by the rule below. A provisional value is never published and never shown to guests; Creation Mode marks it as needing confirmation.
+**RSVP deadline default.** If the host does not set one: the event date minus 14 days, at 11:59 PM
+in the event timezone. If that instant is already past when the default is computed, use the day
+before the event at 11:59 PM; if the event is today or tomorrow, use the event start time. The
+default is recomputed only while the host has not edited the deadline; an edited deadline is never
+overwritten.
 
-**RSVP deadline default.** If the host does not set one: the deadline is the event date minus 14 days, at 11:59 PM in the event timezone. If that instant is already past when the default is computed, use the day before the event at 11:59 PM; if the event is today or tomorrow, use the event start time. The default is recomputed only while the host has not edited the deadline; an edited deadline is never overwritten.
-
-End time remains optional.
-
-Do not normally ask timezone; infer it per §7.4.
+End time remains optional. Do not normally ask timezone; infer it per §7.4.
 
 ### 7.4 Venue normalization and timezone inference
 
@@ -537,395 +501,311 @@ Do not introduce a maps/geocoder solely for timezone.
 1. Normalize supplied venue/address text.
 2. Infer candidate IANA timezone + confidence from city/state/region/country.
 3. Validate against an application-side IANA set.
-4. On low/invalid confidence, use owner/co-host browser timezone.
-5. Re-run when venue changes materially.
-6. Ask only when both sources are unavailable/obviously contradictory.
+4. On low/invalid confidence, use the owner/co-host browser timezone.
+5. Re-run when the venue changes materially.
+6. Ask only when both sources are unavailable or obviously contradictory.
 
 Lifecycle calculations always use the stored IANA timezone.
 
 ### 7.5 Event Identity
 
-A strong multimodal model derives and persists the creative brief.
+A strong multimodal model derives and persists the creative brief (`event_identity_schema_v3`,
+`docs/model-contracts.md §4`):
 
 ```ts
 EventIdentity {
   creativeDirection
   toneKeywords[]
-
   colorsExplicitlyConstrained: boolean
-  paletteIntent
-
+  paletteIntent { requiredColors[], preferredColors[], avoidColors[], dominanceNotes }
   tonalIntent
   toneExplicitlyConstrained: boolean
-  compatibleTonalDirections[]       // ranked subset: light | mid | dark
-
-  compatibleFamilies[]              // ranked family IDs: editorial | invitation | statement
-  compatibleTypographyCategories[]  // ranked broad categories, not raw fonts
-
-  visualMotifs[]
+  compatibleTypographyCategories[]   // ranked broad categories, not fonts
+  visualMotifs[]                     // subjects, objects, botanicals, patterns, in words
   textureDirection
   typographyDirection
   copyTone
-  designConstraints[]
+  designConstraints[]                // including every negative constraint
   inspirationSummary
 }
 ```
 
-The Event Identity describes compatibility and intent. It does not contain renderer treatment choices.
-
-**Event Identity is the only stage that interprets the raw host prompt.** It is not validation or
-preprocessing: it is where "what does this host mean, and what creative world should this event
-belong to?" is answered. No later stage receives the prompt text — the planner, the DesignIntent
-call and the composition call all read this object — so an understanding this stage does not reach
-is not recoverable downstream. A raw prompt is never forwarded into a generic website- or
+**Event Identity is the only stage that interprets the raw host prompt.** It is where "what does
+this host mean, and what creative world should this event belong to?" is answered. No later stage
+receives the prompt text — the card-design call reads this object, and the image model reads only
+the art brief derived from the design — so an understanding this stage does not reach is not
+recoverable downstream. A raw prompt is never forwarded into a generic website- or
 image-generation prompt (`docs/product-doctrine.md §4`).
 
-It must hold one boundary exactly:
+It holds one boundary exactly:
 
 - **Grounded facts are preserved, never invented.** Hosts and names, event type, date, time, venue,
-  address and RSVP deadline come only from the host's input or trusted saved event data. Whatever
-  the prompt supplies is carried forward; where the prompt is silent, the field is absent, and the
-  host completes it later (§7.3, §23.1).
-
-  **The mechanism is unspecified and Phase 4 must choose it.** The `EventIdentity` schema is a
-  creative brief: it declares `additionalProperties: false`, carries no operational field, and its
-  prompt states "You are **not** extracting operational event data." So the identity object as it
-  stands cannot be where supplied facts live, and this requirement is not satisfiable by simply
-  running the call as documented today. Two options, neither taken here: extend the identity schema
-  with an operational block, or extract facts on a separate channel from the same raw prompt and
-  persist them onto the event draft. The second is more consistent with the schema's stated purpose
-  and with §7.3's "skip values already supplied", which presumes something has already parsed them.
-  **What this section fixes is the requirement — facts are quoted or absent, never invented — not
-  the plumbing.**
+  address and RSVP deadline come only from the host's input or saved event data. **Facts travel on
+  a separate channel:** a cheaper structured-extraction call (§9.2) reads the same raw prompt,
+  extracts only what it literally states, and writes it into the event draft as values for the host
+  to confirm. `EventIdentity` stays a creative brief and carries no operational field.
 - **Creative interpretation is expected and generous.** Tone, sophistication, visual vocabulary,
-  palette territory, materials and textures, symbols, imagery opportunities and things to avoid are
-  all fair inference. "Lemons in Italy but classy" may imply linen, ceramic detail and an
-  ivory/olive palette.
+  palette territory, materials and textures, subjects and symbols, and things to avoid are all fair
+  inference. "Lemons in Italy but classy" may imply linen, ceramic detail, a refined lemon
+  still-life and an ivory/olive palette.
 - **Inference never becomes a fact.** The same prompt may not conclude that the event is in
   Positano, outdoors, or black-tie. An aesthetic implication is an implication; a date, a place or
   a dress code is a claim about the host's event and is quoted or absent.
 
 ### 7.6 Brand/style references
 
-Named references such as Ralph Lauren are interpreted into original attributes: heritage, equestrian, classic Americana, editorial serif, navy/ivory/forest/camel, restrained plaid, understated luxury.
+Named references such as Ralph Lauren are interpreted into original attributes: heritage,
+equestrian, classic Americana, editorial serif, navy/ivory/forest/camel, restrained plaid,
+understated luxury, heirloom teddy energy.
 
-Never copy protected logos/graphics or reproduce a specific proprietary design.
+Never copy protected logos, characters, campaign artwork or a specific proprietary design — not in
+the identity, not in the art brief, not in the artwork. A brief that names a brand has already
+failed, whatever the image looks like.
 
-### 7.6a Optional AI-generated thematic artwork (Phase 4)
+### 7.6a Card artwork
 
-**Approved decision.** Phase 4 may generate original, theme-specific visual artwork as part of an
-event's creative direction.
+**Every card has original generated artwork**, and the creative direction decides how much it
+carries: a full illustration, a frame or border, an atmospheric wash, or — for a restrained,
+typography-led card — as little as a refined border or paper texture (`docs/card-system.md §2.4`).
 
-> Imagery is **optional**, **art-directed**, and serves the composition. It is never mechanically
-> added to every site.
+Binding rules:
 
-The decision changed on evidence. Revision 6 treated AI imagery as decorative scope and excluded
-it; Human Test #1 reviewers supplied reference invitations whose identity came from a coordinated
-theme-specific visual language — an illustrative anchor, supporting motifs, a border treatment,
-atmospheric artwork, a palette drawn from the artwork, and restrained typography — and read our
-image-free output as abstract by comparison. Thematic visual language is therefore judged part of
-core design quality, not decoration. Evidence: `docs/human-test-1/qualitative-findings.md` F3/F4;
-intent: `docs/product-doctrine.md §9`–`§10`.
+1. **Art-directed to the layout.** The art brief follows the chosen layout: where the subject sits,
+   which regions stay quiet for text, crop safety. Never "generate a picture, then find somewhere
+   to put it."
+2. **No text in the artwork.** No letters, numbers, logos or watermarks. Every word is real text set
+   by code. Embedded text is detected and rejected (§7.8).
+3. **The image model never sees the raw prompt or the inspiration images.** It receives the art
+   brief and the layout's composition rule only.
+4. **Original language only** (§7.6).
+5. **Readability always wins.** Code guarantees text contrast over the artwork (§7.9); the artwork
+   is never the reason a guest cannot read the card.
+6. **No host photography, stock or retrieved imagery.** The artwork is generated for this event.
 
-In scope for Phase 4, as capabilities to design rather than a settled schema:
-
-- an illustrative visual anchor;
-- transparent-background object, character or still-life art;
-- subtle atmospheric or background artwork;
-- framed/editorial illustration.
-
-Binding constraints, which do not wait for the schema:
-
-1. **Optional, and chosen by the creative direction.** "Every event site gets an image" is not a
-   product rule. A sophisticated black-tie concept may be stronger with none.
-2. **Art-directed to the composition.** The brief follows the layout — subject weighting, negative
-   space, crop safety — never "generate a picture, then find somewhere to put it."
-3. **The model never places the image.** No pixels, no model-authored CSS, no free positioning.
-   Placement is a composition-language concern and the compiler realizes it, so any new decorative
-   leaf is a primitive-set version bump and a `docs/event-renderer-system.md §9` gate re-run
-   (§32 #15).
-4. **Original language only.** §7.6 governs: named references are translated, never copied. No
-   logos, proprietary characters or campaign artwork, whatever the host's prompt asks for.
-5. **The deterministic renderer still owns safe realization** — contrast, legibility, responsive
-   behaviour and geometry verification are unchanged, and text readability always wins over
-   artwork.
-6. **Host photography stays out.** This approves *generated original artwork*, not uploads,
-   galleries or stock photography, which remain non-goals (§5.2).
-
-Neither the image model nor the artwork schema is selected here. Transparent-background reliability
-varies by model and is an input to that selection rather than something a prompt adds afterwards.
+The image model is selected by the Phase 3 bake-off and recorded in `docs/technology-decisions.md`.
 
 ### 7.6b Adaptive creative clarification
 
-**Approved decision.** Event Identity **may** ask the host a creative clarifying question before
-concepts are generated, and only when that materially improves understanding of the requested
-creative identity.
+Event Identity **may** ask the host a creative clarifying question before the card is designed,
+only when that materially improves understanding of the requested creative identity.
 
-This is not the setup wizard §4.7 forbids, and the distinction is precise: a wizard is a fixed,
-sequential, gating intake of information the product needs; this is at most a small number of
-questions, generated from an ambiguity actually present in this prompt, about *taste only*.
+This is not the setup wizard §4.7 forbids: a wizard is a fixed, sequential, gating intake of
+information the product needs; this is at most a small number of questions, generated from an
+ambiguity actually present in this prompt, about *taste only*.
 
 Canonical rules:
 
-1. **The preferred number of questions is zero.** Typically 0; sometimes 1–2; a hard working
-   ceiling of 3 before concept generation.
+1. **The preferred number of questions is zero.** Typically 0; sometimes 1–2; a hard ceiling of 3.
 2. **Dynamically generated** from the actual ambiguity. There is no fixed question list.
 3. **Every question must pass:** *would different answers produce meaningfully different creative
    identities?* If no, it is not asked.
-4. **Always offer `You decide` / `Surprise me`** or equivalent. A host must never need design
-   vocabulary to use this product, and one who has none must not get a worse result.
-5. **Never low-level design choices.** Not fonts, grids, hero side, heading treatment or hex
-   values — §4.1 stands unchanged. Clarification establishes the creative identity; it never
-   outsources the design.
-6. **Never logistics.** Clarification may not ask for a missing date, time, venue, address, RSVP
-   deadline or any other operational field, and may not make design generation wait on one. Those
-   are publish requirements collected after the host chooses a concept (§7.3, §23.1). Concept
-   creation is not an event-information intake form.
+4. **Always offer `You decide` / `Surprise me`.** A host must never need design vocabulary, and one
+   who has none must not get a worse result.
+5. **Never low-level design choices.** Not fonts, layouts or colours (§4.1).
+6. **Never logistics.** Never a missing date, time, venue, address, RSVP deadline or other
+   operational field, and never a reason for design to wait on one.
 
-The flow is therefore: prompt → creative understanding → optional creative clarification →
-concepts → choose → complete the operational details.
+The question schema and its surface are designed in the generation phase
+(`docs/model-contracts.md §4`, `docs/development-plan.md`).
 
-Neither the question schema, the model contract change nor the surface that presents a question is
-designed here; see `docs/model-contracts.md §4` and `docs/product-doctrine.md §6`.
+### 7.7 Card design
 
-### 7.7 Diversity planning before concept model calls
-
-Once Event Identity is valid, the deterministic **sibling planner** plans three concept assignments. Each sibling receives:
-
-1. a distinct compatible **family** whenever possible, then distinct **tonal direction** when the brief allows, then distinct **typography category** and **hierarchy**;
-2. a distinct **structural directive**: one value per independent dimension (opening object, primary structure, date treatment, motif use, hero surface, details folded or own, RSVP intro placement, registry layout), assembled into one sentence; siblings differ at least on structure and opening;
-3. an **allotment of attractive tokens** (staggered titles, hero numerals, watermark decorations): each token to at most one sibling in three.
-
-Never the same intent with different seeds: Phase B showed that identical intents produce skeleton collisions the selector cannot resolve. If tone is explicitly constrained, do not force dark/mid; diversity then relies on family, directive, typography and hierarchy.
-
-The assignment is passed to the DesignIntent call; the directive, allotment and DesignIntent are passed to the composition call.
-
-### 7.8 DesignIntent and composition generation
-
-The strong model returns the creative intent surface below, then, in a second call per concept, the composition.
+Once Event Identity is valid, the strong model designs one card (`card_design_schema_v1`,
+`docs/model-contracts.md §5`):
 
 ```ts
-DesignIntent {
-  family                    // editorial | invitation | statement (assigned)
-  tonalDirection            // assigned
-
-  palette: {
-    colors: string[]        // 3–5 validated hex colors
-    dominant: string        // one member of colors[]
-  }
-
-  typographyPairing         // curated ID, in the assigned category
-  density                   // compact | balanced | spacious
-  composition: { asymmetry, hierarchy, rhythm, sectionContrast, ornament }
-  motifs[]                  // curated motif IDs
+CardDesign {
+  presentation { name, description }        // host-facing; e.g. "Heirloom Teddy"
+  layout          // ID from the layout catalog (card_layouts_v1)
+  artMode         // illustration | framed | atmosphere | minimal
+  typography { primary, alternates[0..2] }  // curated pairing IDs
+  wording { title, invitationLine }         // bounded free text; no invented facts
+  artBrief { subject, medium, mood, palette, texture, avoid[] }
 }
 ```
 
-```ts
-CompositionTree { version: "composition_v1"; sections: Section[] }   // docs/event-renderer-system.md §2
-```
+Inputs: the persisted `EventIdentity`; the event facts present so far (so wording can use the
+host's own names exactly); on `Try another direction`, the host's optional feedback and a summary
+of every earlier direction for this event.
 
-The composition call is conditioned on the DesignIntent, the event's capabilities and content profile, the generated primitive spec and rules, the sibling's directive and token allotment, and three rotated library examples. It is re-prompted only for schema-invalid output, a token-cap violation, or a selector collision, once each.
+**One design per round.** `Try another direction` produces a design that is genuinely different
+from every earlier one for this event — a different idea, not a palette or font swap. Code answers
+an exact repeat (same layout, art mode and primary pairing as an earlier direction) with one
+re-prompt; a second repeat is accepted and logged. The evaluation corpus judges whether directions
+*feel* different.
 
-**No model-emitted style overrides exist in MVP.** A tree carries no colors, fonts, sizes, pixels or free text.
+**Wording rules.** Model-drafted wording — the title and invitation line — may use a name only
+exactly as the host supplied it, and never contains a date, time, place, dress code or other fact.
+Code checks model-drafted wording deterministically where it can; a slot that fails twice falls
+back to standard wording (§7.9), visible and editable like any other text. If the host supplied a
+title, the design uses it verbatim; host-supplied and host-edited wording is host content, bounded
+only by slot limits, and is never fact-checked or re-prompted.
 
-The same response also carries a `presentation` object (`name`, `description`) for the concept card. It is host-facing metadata, validated separately, persisted on `DesignConcept`, and never read by the compiler. If it is missing, invalid, or duplicates another concept's name, a deterministic fallback name is derived (see `docs/model-contracts.md` §21).
+The model cannot emit HTML, CSS, JavaScript, SVG, text colours, sizes, positions, line breaks, the
+host's facts, or any ID outside its catalogs.
 
-The model cannot emit:
-- HTML, CSS, JSX, JavaScript, SVG;
-- pixel or absolute positioning; free ratios; custom breakpoints; animation;
-- colors, fonts, sizes; semantic background/text/button colors;
-- free text or copy;
-- any node, prop or value outside the primitive allowlist;
-- RSVP or Registry internals; business logic.
+### 7.8 Card artwork generation
 
-Those belong to the compiler. What the model does own is listed in §4.2.
+Application code assembles the art prompt deterministically from the art brief, the layout's
+composition rule and the global rules (no text, no logos or brands, original style, 5:7 portrait).
+The image model returns the artwork.
 
-### 7.9 Renderer compilation
+Validation (deterministic, plus the bake-off's chosen checks): file type, 5:7 within tolerance,
+minimum resolution, decodable, **no embedded text**, and content safety. A failure earns one
+regeneration; a second failure is shown honestly to the host with a retry action. There is no
+template or stock fallback.
 
-For each concept:
+### 7.9 Card compilation
 
-1. Validate the composition response against the strict schema; on failure re-prompt once with the error list; on a second failure fall back to a library page and record it.
-2. Validate structure and repair deterministically, logging every repair by kind (`structural`, `coverage`, `capability`, `responsive`, `planner`, `fit-estimate`, `fit-verified`).
-3. Apply the sibling's attractive-token caps (one re-prompt, then deterministic neutralization).
-4. Canonicalize (defaults, ids, hash).
-5. Validate typography against family and hierarchy; repair deterministically and record.
-6. Resolve motif placements from the tree within the ornament budget; swap a motif of the wrong kind for its slot and record it; never drop silently.
-7. Compile raw palette + tonal direction into semantic accessible event tokens.
-8. Resolve every token to layout values per breakpoint.
-9. Verify content fit against rendered geometry at 390 and 1280; demote emphasis, then relax boxes, until clean.
-10. Check the skeleton signature against siblings and redesign history; on a collision re-prompt once, then fall back.
-11. Produce the immutable `ResolvedDesignSpec` revision with `verified.clean = true`.
-12. Persist `DesignIntent`, `CompositionTree` (raw and canonical), and the `ResolvedDesignSpec` revision with the version set; set `activeResolvedSpecId`.
+For each card, deterministic code with no model call (`docs/card-system.md §4`):
 
-Steps 7–9 and 11–12 also run, alone, whenever a content edit changes the content profile (**re-fit**): same tree, new revision, no model call. The content profile used for a compilation is recorded on the revision (`contentVersion`), including which fields were provisional.
+1. validates the `CardDesign` against its strict schema and catalogs (one re-prompt on schema
+   failure, then a visible failure with retry);
+2. checks model-drafted wording against facts (one re-prompt, then standard wording for the failing
+   slot, logged); host-supplied wording is not checked;
+3. checks direction distinctness against earlier designs (one re-prompt);
+4. validates the artwork (one regeneration);
+5. resolves ink per text zone from the artwork's own palette, measuring the background
+   conservatively, so every card text clears **4.5:1**; applies the layout's legibility panel when
+   no ink can;
+6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
-No model call is used for compiler validation, repair or re-fit.
+Card text layout — font size and line breaks for every slot — is one pure versioned function
+(`layoutCard`) run when content is saved, when a font is swapped and when the card renders. Slot
+character limits are enforced at entry so it can always fit. The browser never re-wraps card text.
 
 ### 7.10 The wait
 
-Generation is a product surface, not a loading state to hide. It must feel like progress:
+Generation is a product surface, not a loading state to hide.
 
-1. required details run while identity is being created and never block a concept from appearing;
-2. user-facing portions of Event Identity may stream;
-3. three DesignIntent calls, then three composition calls, run in parallel after the planner assigns siblings, using real details where present and provisional content elsewhere;
-4. compilation is deterministic/local;
-5. each concept renders as soon as its resolved spec exists — **concept-level readiness, not one monolithic "generation complete"**. The host may inspect a finished concept while the others are still compiling.
+1. Event Identity starts immediately; user-facing parts of it may stream.
+2. Fact extraction runs in parallel; the host may confirm or fill in details while waiting —
+   watching and filling in are equally valid. This is the §7.3 form, offered, never demanded.
+3. The card design and its artwork follow the identity.
+4. The card is revealed from its envelope **as soon as its artwork and ink resolution exist**.
 
-Two approved behaviours of this surface:
+**What is shown is real output, never theater:** structured creative artifacts the pipeline
+actually produced — interpreted creative signals, palette territory, visual vocabulary, the
+design's name and description, the art direction — surfaced as each genuinely resolves. **Never
+model reasoning or chain-of-thought, and never fabricated progress**: no invented percentages, no
+simulated "thoughts", no stage claiming work that has not happened.
 
-- **What is shown is real output, never theater.** Structured creative artifacts the pipeline actually produced — interpreted creative signals, palette territory, visual vocabulary, concept names, art direction, visual fragments, composition previews, concept readiness — surfaced as each genuinely resolves. **Never model reasoning or chain-of-thought, and never fabricated progress**: no invented percentages, no simulated "thoughts", no stage claiming work that has not happened.
-- **Optional detail entry during generation.** The host may fill in missing facts only they know — honoree/event name, date, time, venue, address, RSVP deadline, host names — while generation runs. Watching and filling in are equally valid and the host may switch freely. This is not a second onboarding: it is the §7.3 form, offered rather than demanded. Missing logistics still never block generation, are never asked during creative clarification (§7.6b), and are never invented (§7.5).
+The surface never becomes a mood-board picker, font or palette chooser, layout selector or
+questionnaire (§4.1).
 
-The surface may reflect the event's resolving creative world, and remains subject to §4.1: it never becomes a mood-board picker, font or palette chooser, layout selector or questionnaire. Intent: `docs/product-doctrine.md §8a`.
-
-Latency targets remain p75 goals:
+Latency goals, p75:
 
 | Milestone | Target |
 | --- | --- |
 | Event Identity visible | ≤ 5 s |
-| First concept rendered | ≤ 15 s |
-| All three concepts rendered | ≤ 45 s |
+| Card revealed | ≤ 30 s — working target |
 
-Measure reality; do not silently allow unbounded waits.
+The card target is provisional: it is re-set deliberately from the Phase 3 bake-off's measured
+image-model latency, never widened quietly to match whatever was built. Measure reality; do not
+silently allow unbounded waits.
 
-**These targets predate §7.6a and budget nothing for image generation.** They are unchanged here. If Phase 4 ships thematic artwork a heavy case will exceed them, and they are then re-set deliberately against a measured imagery path — never widened quietly to match whatever was built. The open mismatch is recorded in `docs/product-doctrine.md §14` conflict 9.
+### 7.11 Card reveal
 
-### 7.11 Three concept previews
+The card comes out of its envelope (the same envelope guests will see). The reveal shows:
+- the card;
+- its creative name and one-line description;
+- `Make it yours →`;
+- `Try another direction ✦`.
 
-Each concept preview uses the production renderer and its persisted `ResolvedDesignSpec`.
+The first card generated for an event becomes its active design. A later card becomes active only
+when the host chooses it.
 
-Use real event values already known. Temporary sample content fills only genuinely missing content.
+Preferred copy:
 
-Each concept displays:
-- creative concept name;
-- one-line description;
-- live renderer preview;
-- `Choose this direction`.
-
-Under the initial set:
-
-> **None of these feel right?**  
-> `Try another direction ✦`
-
-On mobile, later concept renderer trees may lazy-mount near the viewport to avoid unnecessary work.
-
-### 7.12 Concept selection → full-site reveal
-
-Selecting a concept sets `activeConceptId`.
+> **Your invitation looks great.**
+> **Let's make it real.**
 
 There is no separate website-generation step.
 
-Immediately reveal the full production-rendered guest site.
+### 7.12 Make it yours → Creation Mode
 
-Preferred activation:
+`Make it yours` does not navigate to a dashboard. The invitation — card and page beneath — becomes
+editable in place.
 
-> **Your event looks great.**  
-> **Let’s make it real.**
+Collaborator-only controls attach to stable anchors on the card and on each page section:
+`Edit`, `Set up`, `Add`. Editors open as mobile sheets/full-screen flows or desktop panels, then
+return to the same place. Routine edits autosave.
 
-Actions:
-- `Make it yours →`
-- `Try another direction ✦`
+A floating readiness control shows truthful state such as `Finish setup`, `2 required items left`,
+`Ready to publish`. Its sheet separates:
 
-Concept selection changes **design only**, never event content/data.
+**Needed to publish** — the deterministic blockers of §23.1.
 
-### 7.13 Creation Mode
-
-`Make it yours` does not navigate to a dashboard. The same site becomes editable.
-
-Collaborator-only controls attach to stable section-level collaborator slots:
-- `Edit`
-- `Set up`
-- `Add`
-
-Editors open in mobile sheets/full-screen flows or desktop panels/modals as appropriate, then return to the same place.
-
-Routine edits autosave.
-
-A floating readiness control shows truthful state such as:
-- `Finish setup`
-- `2 required items left`
-- `Ready to publish`
-
-Its sheet separates:
-
-**Needed to publish**
-- actual deterministic blockers from §23.1.
-
-**Recommended before sharing**
-- Guests;
-- Registry;
-- Co-host;
-- other useful optional work.
+**Recommended before sharing** — Guests; Registry; Co-host; other useful optional work.
 
 Guests/Registry never make a publish-ready event look blocked.
 
-### 7.14 Guest management exception
+### 7.13 Guest management exception
 
-Guest management may leave the event canvas for a dedicated workspace because household grouping, CSV import, phone state, and response state need room.
+Guest management may leave the invitation for a dedicated workspace because household grouping,
+CSV import, phone state, invitation state and response state need room. Closing returns to
+Creation Mode.
 
-Closing returns to Creation Mode.
+### 7.14 Direct design controls
 
-### 7.15 Direct design controls
+`Design` exposes only:
+- the card's font: the design's primary pairing and its alternates;
+- reset the card's wording and font to the design;
+- `Try another direction ✦` before publish;
+- the designs generated so far, to choose another before publish.
 
-`Design` exposes only curated:
-- palette choices/variants;
-- typography pairings compatible with the concept's family and hierarchy;
-- reset to concept design;
-- `Try another direction ✦` before publish.
+Wording is edited directly on the card. Do not expose layouts, colours, art modes, ink, panels,
+sizes, positions or anything else.
 
-Do not expose primitives, directives, tokens, density, motifs, treatment, borders, cards, buttons, spacing, or CSS.
+### 7.15 Try another direction
 
-Host-side deterministic direct design overrides remain on `Event.designOverrides`; they do not mutate the immutable generated concept.
-
-### 7.16 Redesign
-
-Available before publish from:
-- initial concept screen;
-- site reveal;
-- Design controls.
+Available before publish from the reveal and from Creation Mode.
 
 Flow:
-1. optionally refine the creative brief;
+1. optionally say what to change ("more playful", "less preppy");
 2. optionally add new private inspiration;
-3. reassure: **event content stays untouched**;
-4. update/merge Event Identity when needed;
-5. diversity planner assigns a fresh set of compatible directions;
-6. strong model generates three fresh DesignIntents;
-7. compiler resolves each;
-8. current active concept remains active while reviewing;
-9. collaborator selects one, keeps current, or refines again.
+3. reassure: **your event details stay exactly as they are**;
+4. update/merge Event Identity when the feedback changes the creative brief;
+5. design one new card that is different from every earlier one;
+6. generate its artwork and compile it;
+7. the current active card stays active while the new one is revealed;
+8. the collaborator chooses the new one, keeps the current one, or tries again.
 
 There is no chat-level micro-edit loop.
 
-### 7.17 Preview
+### 7.16 Preview
 
-Preview uses the exact production renderer and actual current content.
+Preview uses the production card and page with actual current content, envelope included, and
+strips collaborator actions, the setup control and the owner toolbar.
 
-Preview strips:
-- collaborator actions;
-- setup control;
-- owner toolbar.
+On larger screens the default preview width is **Mobile**, with a compact `Mobile / Desktop`
+toggle. The toggle exists in Preview only.
 
-On larger screens:
-- default preview width is **Mobile**;
-- compact toggle may switch `Mobile / Desktop`.
+### 7.17 Publish
 
-This device-width control exists in Preview only; Creation Mode is not a breakpoint simulator.
+Publish is gated by the $49 one-time payment hypothesis. The owner completes/manages payment. Once
+payment is satisfied, owner or co-host may publish if deterministic readiness passes.
 
-### 7.18 Publish
+After publish: event URL; QR code; private event code surfaced separately when private; `Send
+invitations` (§7.18); copy any party's personal link.
 
-Publish remains gated by the $49 one-time payment hypothesis.
+### 7.18 Send invitations
 
-Owner completes/manages payment.
+After publish, the host may have the platform text invitations:
 
-Once payment is satisfied, owner or co-host may publish if deterministic readiness passes.
+1. choose recipients: all invited parties not yet invited, or a selection;
+2. attest once per event that they have permission to text these guests about this event (§13.2);
+3. the platform sends each selected party with a usable phone, that has not opted out, one short
+   text with **their personal invitation link** (§12.5);
+4. parties without a usable phone are listed with their personal link to copy and send another way.
 
-After publish:
-- URL available;
-- QR available;
-- private event code surfaced separately;
-- host distributes externally.
+Invitation state per party (not sent / sent / delivery failed / opted out) appears in the guest
+workspace. Invitations go by text only. Resends and later invitations to newly added parties are
+allowed within the per-party cap (§13.2).
+
+Hosts may also simply share the event link/QR themselves; both paths coexist.
+
+---
 
 ## 8. Publishing and Editing Rules
 
@@ -933,293 +813,245 @@ After publish:
 
 Owner and co-host may change:
 
-- date/time/location and ordinary event content;
+- date/time/location and ordinary event content, including the card's wording;
+- the card's font, among the active design's pairings;
 - RSVP settings/questions;
-- guest list and RSVP operations;
+- guest list, invitations and RSVP operations;
 - external registries, native items, native item purchase state, cash fund;
 - reminders/announcements;
 - privacy settings/event code;
-- section order and visibility;
-- curated palette override;
-- curated compatible typography pairing override.
+- section order and visibility of simple information blocks.
 
-No other renderer treatment controls are exposed in MVP.
-
-Changes update the live site directly. No draft/live dual-version workflow.
+Changes update the live invitation directly. There is no draft/live dual-version workflow. Hosts
+should announce material changes (date, venue) to guests (§13.4).
 
 ### 8.2 Not allowed after publish
 
-- AI redesign
-- new concept generation
-- switching/selecting a different generated concept
+- generating a new design (`Try another direction`);
+- switching to a different design.
 
-The concept gallery becomes read-only after publish.
+The designs list becomes read-only after publish.
 
 ### 8.3 Cancellation
 
-There is no cancel/unpublish workflow in MVP. Do not create a hidden workaround such as instructing the host to falsify the event date.
-
-Cancellation handling is a deferred product/policy decision. No refunds or ownership transfer in MVP.
+There is no cancel/unpublish workflow in MVP. Do not create a hidden workaround such as instructing
+the host to falsify the event date. Cancellation is a deferred product/policy decision. No refunds
+or ownership transfer in MVP.
 
 ---
 
 ## 9. AI Architecture and Cost Controls
 
-AI cost is a product constraint from day one, but creative quality materially affects conversion.
+AI cost is a product constraint from day one, but creative quality is the product.
 
-### 9.1 Strong-model usage
-
-Use the strongest appropriate multimodal/reasoning model for:
-
-1. `generateEventIdentity(...)`
-2. `generateDesignIntent(...)` for each concept
-3. `generateComposition(...)` for each concept
-
-These are the only frontier creative operations in MVP.
-
-The model does **not** generate the final renderer schema. Application code compiles the DesignIntent and CompositionTree to a verified ResolvedDesignSpec.
-
-A thin provider capability layer is sufficient:
+### 9.1 Creative model operations
 
 ```ts
-generateEventIdentity(...)
-generateDesignIntent(...)
-generateComposition(...)
+generateEventIdentity(...)   // strong multimodal model
+generateCardDesign(...)      // strong model
+generateCardArt(...)         // image model
 ```
 
-Do not build a large abstraction framework prematurely.
+These are the only frontier creative operations in MVP. A thin provider capability layer is
+sufficient (`src/lib/ai/provider.ts`); do not build a large abstraction framework.
+
+The models do not set the card's facts, colours, sizes, positions or line breaks. Application code
+validates the design and artwork and resolves legibility and layout (§7.9).
 
 ### 9.2 Cheaper-model usage
 
 Use smaller/cheaper models only where ordinary code is insufficient and quality remains acceptable:
-- structured event-detail extraction;
+- structured fact extraction from the prompt (§7.5);
 - missing-field detection;
 - ambiguous date/time normalization;
-- candidate IANA timezone inference + confidence.
+- candidate IANA timezone inference + confidence;
+- artwork validation that code cannot do alone (embedded-text and safety checks), if the bake-off
+  chooses a model for it.
 
-Validate timezone in code.
-
-Do not add models for renderer validation, structural repair, motif placement, contrast, content fit, or design compilation.
+Validate timezone in code. Do not add models for ink, contrast, text fit, layout or compatibility.
 
 ### 9.3 No-model operations
 
 Never call a model for:
 - auth draft persistence;
-- changing structured date/time/venue;
-- hiding/reordering sections;
-- applying host palette/typography overrides;
-- editing text;
+- changing structured date/time/venue or any fact;
+- editing the card's wording;
+- swapping the card's font;
+- hiding/reordering simple information blocks;
 - guests/registry/cash-fund operations;
-- validating Event Identity/DesignIntent/CompositionTree structure;
-- validating enum IDs;
-- planning sibling assignments, directives and token allotments;
-- structural repair, coverage repair, capability repair, responsive overrides, box-depth and motif-kind repair;
-- attractive-token neutralization;
-- typography compatibility repair;
-- resolving motif placements from the tree;
-- semantic palette compilation;
-- contrast derivation;
-- layout resolution and rendered-geometry verification;
-- skeleton signatures and collision detection;
-- producing ResolvedDesignSpec;
+- sending invitations, reminders or announcements (message text is templated);
+- validating Event Identity/CardDesign structure and enum IDs;
+- the wording fact check and direction-distinctness check;
+- assembling the art prompt;
+- ink resolution, legibility panels and contrast;
+- card text layout (`layoutCard`);
+- choosing or switching the active design;
 - enforcing generation limits;
 - gift state transitions;
 - product-image processing.
 
-### 9.4 Persistence and renderer reproducibility
+### 9.4 Persistence and reproducibility
 
 Persist:
-- Event Identity;
-- every generated DesignIntent;
-- every generated CompositionTree, raw and canonical, with its prompt, schema, primitive-set and compiler versions;
-- every immutable ResolvedDesignSpec revision, with `contentVersion` and `supersedesSpecId`, and the concept's `activeResolvedSpecId`;
-- event-level manual design overrides separately.
+- Event Identity (each revision);
+- every `CardDesign`, raw and validated, with its prompt, schema, layout-set and compiler versions;
+- every artwork asset, with its image model and art-prompt version;
+- each design's resolved ink and panels;
+- the event's active design and the host's card edits, separately from the designs.
 
-Do not re-send original raw inspiration for routine redesign after its summary is available.
+Do not re-send original raw inspiration after its summary is available. Do not regenerate or
+recompile historical designs because a prompt, layout set, compiler or image model changes.
+Renderer code may evolve and fix bugs while continuing to render existing cards.
 
-Do not recompile historical concepts merely because the compiler or the primitive set changes.
+### 9.5 Generation telemetry
 
-Renderer code may evolve/fix bugs while continuing to consume the old resolved schema/version.
-
-### 9.5 Compilation telemetry
-
-Each concept compilation may emit deterministic telemetry:
+Each card generation records:
 
 ```ts
-schemaValidFirstCall          // raw model output parsed strictly
-reprompts[]                   // kind: schema | token-cap | collision (at most one each)
-compilerRepairs[]             // { rule, path, kind, before, after }; kind: structural | coverage | capability | responsive | planner | fit-estimate | fit-verified
-verified                      // { desktop, mobile, fitDemotions, clean, authoritative: "rendered-geometry" }
-signature, nearestSibling     // skeleton signature and the worst sibling similarity at accept
-fallback?                     // "library" when the model's tree was replaced
+schemaValidFirstCall
+reprompts[]            // kind: schema | wording | repeat-direction (at most one each)
+artRegenerated         // boolean, with the failed validation reason
+standardWording[]      // slots that fell back to standard wording
+inkPanels[]            // zones that needed a legibility panel
+versions               // prompt, schema, layout set, compiler, image model
+latency                // identity, design, art, total
 ```
 
-Schema validity, deterministic repairs, geometry verification and model re-prompts are separate measures; never fold one into another. Compiler repair must not trigger a model retry; only schema-invalid output, a token-cap violation and a selector collision may.
+Schema validity, wording fallbacks, art regeneration and legibility panels are separate measures;
+never fold one into another.
 
 ### 9.6 Model usage and cost metering
 
-Every model call records, where exposed:
-- provider;
-- request ID;
-- model;
-- operation (`event_identity`, `design_intent`, structured extraction where metered);
-- input/cached/output/reasoning tokens;
-- estimated/actual cost;
-- latency;
-- success/failure;
-- generation round/concept index;
-- diversity assignment.
-
-Application usage should reconcile against provider usage where practical.
+Every model call records, where exposed: provider; request ID; model; operation (`event_identity`,
+`card_design`, `card_art`, `structured_extraction`, …); input/cached/output/reasoning tokens or
+image units; estimated/actual cost; latency; success/failure; generation round. Application usage
+should reconcile against provider usage where practical.
 
 ## 10. Generation Limits
 
-During alpha/beta, creative redesign is **effectively unlimited from the user's perspective**. Do not expose credits or remaining-generation counters.
+During alpha/beta, trying other directions is **effectively unlimited from the user's
+perspective**. Do not expose credits or remaining-generation counters.
 
 Enforce configurable backend safety limits:
 
-- one generation batch in flight per event at a time;
+- one generation in flight per event at a time;
 - per-event daily generation cap;
 - per-account daily generation cap for the acting owner/co-host;
 - global/project spend ceiling and alerts;
 - anti-abuse rate limits and signup throttling;
 - idempotency so retries/double taps do not duplicate expensive calls.
 
-A co-host does not receive an independent unlimited pool for the same event; event-level limits span all collaborators.
+A co-host does not receive an independent pool for the same event; event-level limits span all
+collaborators. Each round generates exactly one design and one artwork.
 
-Instrument every generation (§29). Use observed rounds per event, conversion, latency, model quality, and actual AI COGS to set commercial launch limits. Do not impose an arbitrary user-facing cap before testing.
+Instrument every generation (§29). Use observed rounds per event, conversion, latency, quality and
+actual AI cost to set commercial limits. Do not impose an arbitrary user-facing cap before testing.
 
 The guiding experience:
 
-> **AI creates. Simple controls refine. AI can reimagine before publish.**
+> **AI designs. Simple controls refine. AI can reimagine before publish.**
 
 ---
 
-## 11. Design System and Rendering Architecture
+## 11. Card and Rendering Architecture
 
-This is the core renderer contract. `docs/event-renderer-system.md` Revision 2 is the implementation-level companion and wins on renderer-detail questions that do not conflict with this PRD.
+`docs/card-system.md` is the implementation-level companion and wins on card-detail questions
+that do not conflict with this PRD.
 
 ### 11.1 The rule
 
-> **The model composes from trusted primitives. The compiler validates, repairs, fits against real geometry, and freezes. The renderer only consumes resolved, verified, persisted design data.**
+> **The AI designs the card. Application code sets the words, guarantees they are legible, and
+> renders the same card on every screen.**
 
-The model never emits HTML, CSS, JSX, JavaScript, pixels, free text, colors, fonts, or components outside the allowlist. The renderer must be expressive enough that concepts remain visibly distinct even when palette and tone are constrained; the frozen Phase B confirmation run measured 58 distinct first-screen skeletons in 60 with 78% novel against the recipe library (88–90% in the exploratory runs).
+### 11.2 Canvas and layers
 
-### 11.2 DesignIntent — model contract (v3)
+Portrait 5:7, front only, defined in card units and rendered by uniform scaling, so the card is
+identical on a phone and on desktop. Layers: generated artwork (full bleed); an optional
+art-derived legibility panel; live text.
 
-Six creative fields, plus motifs and the non-design `presentation` object:
+### 11.3 Layout catalog
 
-```ts
-DesignIntent {
-  family: "editorial" | "invitation" | "statement"
-  tonalDirection: "light" | "mid" | "dark"
-  palette: { colors: string[]; dominant: string }     // 3–5 valid hex colors; dominant ∈ colors
-  typographyPairing: string                            // curated ID
-  density: "compact" | "balanced" | "spacious"
-  composition: {
-    asymmetry: "symmetric" | "gentle" | "strong"
-    hierarchy: "restrained" | "editorial" | "dramatic" | "monumental"
-    rhythm: "continuous" | "alternating" | "punctuated"
-    sectionContrast: "low" | "moderate" | "high"
-    ornament: "none" | "restrained" | "decorative"
-  }
-  motifs: string[]
-}
-```
+A small versioned catalog of text layouts (`card_layouts_v1`, proposed members in
+`docs/card-system.md §2.3`, fixed by the Phase 3 bake-off). Each layout defines its text zones,
+slot order, alignment, size range and maximum lines per slot, slot character limits, the
+composition rule given to the art brief, and its legibility-panel shape. The model picks a layout
+by ID; the host never sees the catalog. Changing the catalog is a layout-set version bump.
 
-`family` and `composition` select nothing. They condition the composition call and are measured afterwards. There is **no model `overrides` block**.
+### 11.4 Art modes
 
-### 11.3 CompositionTree — model contract (composition_v1)
+`illustration` · `framed` · `atmosphere` · `minimal`. Every card has artwork; `minimal` is a border
+or paper texture with typography leading. Mode/layout compatibility is validated.
 
-The model's second output per concept. Layout containers `Stack`, `Cluster`, `Split`, `Rail`, `Grid`/`Cell`, `Frame`, `Surface`, `Overlay`; decorative leaves `MotifField`, `MotifBand`, `Rule`, `Glyph`, `Monogram`; semantic leaves `Eyebrow`, `EventTitle`, `Hosts`, `Description`, `Deadline`, `Venue`, `Location`, `Time`, `Date`, `CTA`, `SectionHeading`; opaque components `RSVP`, `Registry`/`RegistryItem`, `CashFund`. Sections `hero | details | rsvp | registry | band` with a surface role and a root node. Every value is an enum token (ratio 38/50/62; widths, heights, insets, gaps in three steps; extents in four; emphasis in four).
+### 11.5 Text slots, facts and wording
 
-Rules the compiler enforces and repairs: the nesting matrix; depth ≤ 5; box depth ≤ 2; per-section and per-page node and primitive caps; 3–6 sections with hero first; coverage conditional on the event's capabilities; component placement (never in a Cluster, a rail, a decoration, or a narrow cell; at least half of a Split); motif kind per slot; responsive-intent overrides. The full table is `docs/event-renderer-system.md §2.4`. Additions to the language require a proof run and a primitive-set version bump.
+Wording slots (`title`, `invitationLine`) are drafted by the model and editable. Fact slots
+(`babyName`, `hosts`, `date`, `time`, `venue`, `rsvpBy`) render from event data only. A slot with no
+value takes no space. Placeholders appear only in Creation Mode and are never published.
 
-### 11.4 Capabilities
+### 11.6 Ink, legibility and fit
 
-Three layers, deliberately separate:
+Ink per text zone comes from the artwork's palette, measured conservatively, reaching **4.5:1** for
+every card text; otherwise the layout's art-derived legibility panel is applied. `layoutCard`
+decides every size and line break deterministically; slot limits make fit always possible; the
+browser never re-wraps card text. A test renders every layout × pairing with worst-case content
+in a real browser; production never needs a browser to verify a card.
 
-1. **`Capabilities`** — what the event is allowed to contain: `{ rsvp, registry, gifts, externalRegistry, cashFund, hosts, description, time, location, deadline }`, derived from the event's enabled features, never from whether content has been entered. For a baby shower at first generation this is the full set, so every first composition has a designed place for RSVP and registry. The prompt names what is unavailable; the validator removes any reference to it as a `capability` repair; nothing unavailable is ever required. Features cannot be disabled before generation; disabling one later is render-time suppression (layer 3), never a recompile.
-2. **`ContentProfile`** — what content currently exists and how large it is (title word count, presence and length of hosts, description, time, location, deadline, registry counts), plus which fields are provisional (§7.3). Sent to the composition call for fit; changes to it trigger deterministic re-fit revisions (§4.10), never recomposition.
-3. **`FeaturePresentationState`** — deterministic guest-visibility/readiness per section and optional leaf, derived from operational data and **never sent to the model**:
-   - `registry`: Creation Mode always shows the designed section in its setup state; guest-visible when at least one external registry, native gift or cash fund exists;
-   - `rsvp`: Creation Mode always shows the designed section in its setup state; guest-visible when RSVP is configured to function and **at least one party has been invited**;
-   - optional text leaves (`Hosts`, `Description`, `Time`, `Location`, `Deadline`): collapsed and hidden from guests when empty; the collaborator affordance (`Add description`) stays anchored to the designed location;
-   - a provisional value is treated as empty for guests and as needing confirmation in Creation Mode.
+### 11.7 Typography
 
-Content and operational state change **visibility**, never composition. Suppressing a section is a render-time flag on the persisted revision's section id; the tree and the revision are untouched.
+Curated pairings only (`src/lib/card/typography.ts`; fonts self-hosted). A design names one primary
+pairing and up to two alternates; the host's font control offers exactly those.
 
-### 11.5 Compilation and repair
+### 11.8 The envelope
 
-Pipeline: strict schema → structural validation and deterministic repair → attractive-token caps → content-fit estimate (advisory) → canonicalize → page system + semantic palette + typography → layout resolution → rendered-geometry verification (authoritative) → immutable `ResolvedDesignSpec`.
+A house-designed envelope, the same for every event, never themed per event and never an imitation
+of a competitor's envelope. It shows the event title, opens to reveal the card, stays sealed for a
+private event reached by the shared link until the code is entered, opens without a code from a
+personal invitation link (§12.5), and respects reduced motion.
 
-Every repair is logged `{ rule, path, kind, before, after }`. Repair kinds: `structural`, `coverage`, `capability`, `responsive`, `planner`, `fit-estimate`, `fit-verified`. No repair calls a model. Library macros (a hero, an rsvp section, a registry section) are the only non-rule repair inputs.
+### 11.9 The house-style event page
 
-Model re-prompts happen for exactly three reasons, at most once each per candidate: schema-invalid output, an attractive-token violation, a selector collision. A second failure falls back to a library page and is recorded as such.
+The page beneath the card — details, description, simple information blocks, RSVP, registry,
+footer — uses one neutral house style for every event (`docs/design-system.md`). It never takes
+colours or fonts from the card. Card styling and application chrome are separate systems.
 
-### 11.6 Rendered-geometry verification
+### 11.10 Link previews
 
-A spec is final only when it has been rendered at 390 and 1280 and every text node is within its line limit and its container, and no element overflows horizontally. The verifier demotes emphasis, then relaxes the innermost box around a persistent overflow, and re-renders; the renderer stylesheet carries a floor (words can always break, glyph rows wrap, decorations clip, numerals in rails are rail-sized) so horizontal overflow is impossible by construction. The static estimate is a hint only. Zero residual overflow is a hard criterion of every confirmation run.
+Any event link, shared or personal (including the links in invitation texts), previews as the
+rendered card for a public event and as the sealed envelope with the title for a private one,
+produced from the same card component and layout function.
 
-### 11.7 Semantic palette compiler, typography, motifs, density
+### 11.11 Imagery boundaries
 
-Unchanged from Revision 5 §11.5–§11.7 in substance: raw palette never becomes text/background/button semantics; the OKLCH semantic compiler produces all required tokens with contrast by construction and the palette-control regression stays a unit test. Typography pairings are curated IDs with categories; compatibility is by family and hierarchy (a pairing must hold at monumental). Motifs declare a kind, the roles they support, and bounded opacity and scale steps; the tree places them in one of five structural slots; the ornament direction is a hard cap on how many render, with every suppression logged as a `motif.budget` deviation and kept in the resolved spec as evidence; a motif of the wrong kind for its slot is swapped and logged, never dropped silently. Density maps to gap, inset and section-spacing scales.
+- **Permitted:** generated card artwork under §7.6a; the native registry product thumbnail, which is
+  product content and never retailer-hotlinked (§15.2).
+- **Not permitted:** host-uploaded photos or images on the card or page, stock photography,
+  retrieved web imagery, text inside artwork, imagery placed by anything other than the card
+  layout.
+- **Inspiration uploads are private model inputs** to Event Identity only; never shown to guests
+  and never sent to the image model (§7.2, §27).
 
-### 11.8 ResolvedDesignSpec — renderer base input (resolved_v2)
+### 11.12 Quality gates
 
-```ts
-ResolvedDesignSpec {
-  version
-  designIntent; presentation
-  composition            // canonical tree after repair, caps and fit
-  compositionHash; capabilities
-  pageSystem; tokens; layout /* per node, per breakpoint, numeric */; motifs
-  compilerRepairs[]; intentDeviations[]; signature
-  verified { desktop, mobile, fitDemotions, clean: true, authoritative: "rendered-geometry" }
-  contentVersion; supersedesSpecId?   // re-fit revisions: same compositionHash, new content profile
-  versions { primitiveSet, compiler, compositionPrompt, compositionSchema, designIntentPrompt, designIntentSchema }
-}
-```
+- unit tests: schema validation, wording fact check, distinctness check, ink resolution (including
+  the panel path), `layoutCard`, slot limits;
+- layout fixtures: every layout × pairing renders with no text outside its zone;
+- creative evaluation: the corpus in `docs/model-evals/creative-understanding.json` against the real
+  identity and card-design calls (`docs/model-contracts.md §6`);
+- **Human Test #2**, on real generated cards from real prompts, in colour, is the launch quality
+  gate. Its protocol and pass threshold are **frozen and recorded before results are reviewed**;
+  the bar is never chosen or moved after the outcome is known.
 
-The renderer reads only this object: one fixed component per primitive and semantic node, a static stylesheet keyed by classes and numeric custom properties. No CSS text is derived from model output. Event-level host overrides (curated palette, curated typography) are a separate deterministic layer applied after selection and never mutate the concept record.
-
-### 11.9 Concept diversity and proof gates
-
-The sibling planner (§7.7) provides distinct intents, directives and token allotments; the skeleton signature (structural tokens of the hero, surface sequence, RSVP and registry skeletons, alignment, typography category, tone; per breakpoint; threshold .70) rejects collisions with siblings and redesign history.
-
-The proof harnesses in `proof-b/` are the regression suite. Any change to the language, validator, compiler, renderer rules or planner reruns: unit tests; the adversarial set (every fixture repairs to zero violations and renders with zero overflow; every schema-invalid payload is rejected); expressiveness (every library silhouette validates and renders); and a sibling-batch confirmation run with these thresholds: ≥ 90% schema-valid on the first call and 100% after one re-prompt; 100% repair-valid; 100% geometry-clean; ≥ 30 distinct hero skeletons and ≥ 40% novel in 60; 0 sibling collisions after the selector; each attractive token in ≤ 1/3 of heroes. Mobile convergence is expressed by the tree's mobile intents and is not a failure.
-
-**The human design-quality bar is deliberately not in that list.** It is a launch gate, not a regression threshold: a code change cannot re-run it, and it measures the product rather than the compiler. Its status is exactly this — **Human Test #1 was stopped early, produced qualitative calibration evidence only, and established no pass/fail result; no score is claimed from it. Human Test #2, on the frozen production creative stack, is the launch-quality human gate, and its threshold is calibrated against the library's score in the same session rather than assumed.** Its protocol and pass threshold are **frozen and recorded before the production results are reviewed**: calibrating against the library happens in the same session, but the bar is never chosen or adjusted after the outcome is known. Moving the goalposts post-result voids the gate. The ≥ 70% figure recorded in earlier revisions was provisional and was never approved as a settled number; treat it as the working expectation to calibrate against, not as a decided threshold. See `docs/CHANGELOG-v6.md` and `docs/human-test-1/qualitative-findings.md`.
-
-### 11.10 Guest-surface component system
-
-Unchanged from Revision 5 §11.9: the themed guest components, the fixed semantic RSVP flow, and mobile convergence. The composition around them is now the tree's; `RSVP`, `Registry`, `RegistryItem` and `CashFund` are opaque nodes that take width from their container, surface from the nearest `Surface`, and card/button/border language from the page system.
-
-### 11.11 Imagery boundaries and visual regression
-
-The imagery boundary is stated here rather than by reference, because the Revision 5 sections this
-previously cited (§11.12–§11.13) are not in this document.
-
-- **Not permitted:** host-uploaded decorative or event photography, venue/maternity galleries,
-  stock photography, crop/position tools, and any image placed by the model rather than by the
-  composition language (§5.2, §32 #32).
-- **Permitted as content, not decoration:** the native registry item thumbnail, which is product
-  content and never retailer-hotlinked (§15.2).
-- **Approved for Phase 4:** original AI-generated thematic artwork, optional, art-directed and
-  compiler-placed, under §7.6a. Text readability and semantic hierarchy always win over artwork.
-- **Inspiration uploads are private model inputs** and never become public site imagery (§7.2,
-  §26, §27).
-
-Visual regression is the confirmation-run renders at 390 and 1280 (gray and color) and the library
-expressiveness sheets, replacing the Revision 5 screenshot matrix.
+---
 
 ## 12. Guest List and RSVP
 
 ### 12.1 Philosophy
 
-MVP RSVP is **invite-only**. Supported host entry: manual guest-party entry and CSV import. A public event may be viewable publicly, but every RSVP submission must map to an invited party.
+MVP RSVP is **invite-only**. Supported host entry: manual guest-party entry and CSV import. A public
+event may be viewable publicly, but every RSVP maps to an invited party.
 
-Mobile phone is the strong default for party identity and communication, but the system needs a narrow operational escape hatch rather than failing an entire event because one relative has no usable phone.
+Mobile phone is the strong default for party identity and communication, with a narrow escape hatch
+so one relative without a usable phone does not break the event.
 
 ### 12.2 Guest data
 
@@ -1230,12 +1062,13 @@ GuestParty {
   displayName
   primaryContactName
   phone?                 // expected/default; may be absent only in needs-phone/no-phone flows
-  email?                 // optional fallback
+  email?                 // optional; used only as §13 allows
   noPhoneAvailable       // explicit collaborator override; default false
   contactConsentSource
   maxAdults
   maxChildren
   plusOneAllowed
+  invitationStatus       // not_sent | sent | delivery_failed | opted_out
   rsvpStatus
   submittedAt?
   updatedAt
@@ -1259,81 +1092,107 @@ Derived contact state:
 - **Needs phone:** `phone` missing and `noPhoneAvailable == false`.
 - **No phone available:** `phone` missing and `noPhoneAvailable == true`.
 
-CSV import must **not reject the entire file** because individual rows lack a phone. Import valid party data and flag missing-phone parties as **Needs phone**. Owner/co-host then either adds a phone number or explicitly marks **No phone available** for that party.
+CSV import must **not reject the entire file** because individual rows lack a phone. Import valid
+party data and flag missing-phone parties as **Needs phone**. Owner/co-host then adds a phone or
+explicitly marks **No phone available**.
 
-Manual party creation should require either a phone number or the explicit **No phone available** acknowledgement before the party is considered RSVP-ready.
+Manual party creation requires either a phone number or the explicit **No phone available**
+acknowledgement before the party is considered ready.
 
-Do not require phone-number uniqueness across parties; shared family numbers may exist. Party identity is not the phone number alone.
+Do not require phone-number uniqueness across parties; shared family numbers exist.
 
 ### 12.3 Household/party grouping
 
-Support party invitations: family as one party; two named adults plus children; named guest plus optional plus-one. RSVP UX makes it obvious who is included.
+Support party invitations: a family as one party; two named adults plus children; a named guest
+plus optional plus-one. RSVP UX makes it obvious who is included.
 
 ### 12.4 RSVP configuration
 
-Owner/co-host configures: deadline; plus-one per party; adults/children per party; custom questions; meal choices; dietary-restriction field; optional notes.
+Owner/co-host configures: deadline; plus-one per party; adults/children per party; custom
+questions; meal choices; dietary-restriction field; optional notes.
 
-### 12.5 Guest identification: name lookup + conditional SMS verification
+### 12.5 Guest identification
 
-1. Guest opens RSVP and enters their name.
-2. Fuzzy match against invited party members. On collisions, ask for enough additional name detail to identify the intended party.
-3. After a match, show only the minimum first names needed to recognize the party. Never show phone/email.
-4. If the matched party has a phone, **SMS OTP is required** before the guest can view/submit that party's RSVP.
-5. If the party is explicitly `noPhoneAvailable == true`, allow name-lookup-only RSVP as the accepted MVP escape hatch.
-6. If the party is **Needs phone**, do not expose the party RSVP. Show a neutral message directing the guest to contact the host; the collaborator must fix the phone or mark the no-phone override.
-7. Guest submits attendance/questions after verification/allowed fallback.
+There are two ways a guest is identified.
+
+**Personal invitation link.** Every party has one personal invitation link: a signed, unguessable
+token scoped to this event and this party. It is created with the party, but it is surfaced to the
+host and resolves only once the event is published; before that it shows a neutral "not available
+yet" state and reveals nothing. It is what the platform texts (§7.18) and what the host can copy for
+any party. Opening it:
+- identifies the party and establishes the guest-party session (§12.6) with no name lookup and no
+  SMS code;
+- skips the private event code — the guest opens the envelope without it;
+- is also the guest's way back to view or update their RSVP.
+
+"Without a code" does not mean pre-opened: a bare request for a personal link returns only the
+closed envelope with the event title. The card, the page and the party session load when the guest
+opens the envelope (an explicit action), so link scanners and preview crawlers that fetch the URL
+from an invitation text never receive private content and never create a session or mark anything.
+
+The host can rotate a party's link (for example if it was forwarded), which invalidates the old
+one. A personal link never reveals any other party.
+
+**Shared link (event URL/QR).** A guest who arrives by the shared link and wants to RSVP:
+
+1. enters their name;
+2. fuzzy match against invited party members; on collisions, ask for enough additional name detail
+   to identify the intended party;
+3. after a match, show only the minimum first names needed to recognize the party; never show
+   phone/email;
+4. if the matched party has a phone, **SMS OTP is required** before viewing/submitting that party's
+   RSVP; if that party has opted out of texts (§13.1), no code can be sent, so treat it like Needs
+   phone on this path (step 6);
+5. if the party is explicitly `noPhoneAvailable == true`, allow name-lookup-only RSVP as the
+   accepted escape hatch;
+6. if the party is **Needs phone**, do not expose the party RSVP on this path; show a neutral
+   message directing the guest to contact the host (the host can fix the phone, mark the no-phone
+   override, or send the party its personal link);
+7. the guest submits attendance/questions.
 
 **OTP abuse protection** is mandatory:
 
-- cooldown/rate limit per `GuestParty` phone (for example a small number per hour);
+- cooldown/rate limit per `GuestParty` phone;
 - rate limit per requester IP/device/session;
 - event-level/global burst protection;
 - expiring, one-time-use codes;
 - verification-attempt cap.
 
-Typing another guest's name must not allow an attacker to repeatedly spam that guest's phone.
+Typing another guest's name must not allow an attacker to repeatedly text that guest's phone.
 
 ### 12.6 Lightweight guest-party session
 
-Successful OTP verification establishes a lightweight guest session scoped to:
+A personal invitation link, successful OTP verification, or the no-phone fallback establishes a
+lightweight guest session scoped to:
 
 ```text
 eventId + partyId
 ```
 
-The no-phone fallback may establish the same scoped session after successful name lookup.
-
 Requirements:
 
 - no guest account;
-- secure/httpOnly cookie where appropriate or equivalent signed session mechanism;
+- secure/httpOnly cookie or equivalent signed session mechanism;
 - signed/scoped so it cannot be changed into another event/party;
 - reasonable expiration through the event window;
-- contains no unnecessary PII in client-trusted form;
-- reused by RSVP updates and registry click/purchase-intent logging;
-- SMS magic links establish/refresh the same party session rather than inventing a second identity system.
+- no unnecessary PII in client-trusted form;
+- reused by RSVP updates and registry click/purchase-intent logging.
 
 ### 12.7 Confirmation and updates
 
-After submission show a themed confirmation:
+After submission show a confirmation in the house style:
 
 > **You're all set. We can't wait to celebrate with you.**
 
-If a phone is available, text a signed magic link so the guest can return/update without repeating lookup + OTP. A guest can always repeat name lookup and the appropriate verification/fallback path.
+If a phone is available, the party has not opted out, and they arrived by the shared link, text
+them their personal link so they can return/update without repeating lookup + OTP. A guest can always repeat name lookup and
+the appropriate verification/fallback path.
 
 ### 12.8 Owner/co-host RSVP management view
 
-Show:
-
-- total invited;
-- attending;
-- declined;
-- no response;
-- adults/children/plus-ones;
-- meal/dietary/custom-question responses;
-- **Needs phone** parties;
-- **No phone available** parties;
-- communication/opt-out state where relevant.
+Show: total invited; invitation status (not sent / sent / delivery failed / opted out); attending;
+declined; no response; adults/children/plus-ones; meal/dietary/custom-question responses; **Needs
+phone** parties; **No phone available** parties.
 
 Keep this operational, not analytical.
 
@@ -1341,40 +1200,51 @@ Keep this operational, not analytical.
 
 ### 13.1 Channels
 
-- Phone is the preferred/default guest-party contact channel.
-- **SMS is primary** when a usable phone is on file and the party has not opted out.
-- Email is optional.
-- Email may be used when a party is explicitly `noPhoneAvailable`, or as fallback when an SMS **delivery attempt fails** and an email exists.
-- **Do not automatically fall back to email after the guest sends STOP or otherwise opts out.** In MVP, an opt-out suppresses automated platform event messaging to that party across channels until they opt back in.
+- **Invitations go by text only** (SMS), to parties with a usable phone that have not opted out.
+  Parties without one get their personal link from the host, sent however the host chooses.
+- **Reminders and announcements:** SMS is primary when a usable phone is on file and the party has
+  not opted out. Email may be used only when a party is explicitly `noPhoneAvailable`, or as
+  fallback when an SMS **delivery attempt fails** and an email exists.
+- **Do not fall back to email after the guest sends STOP or otherwise opts out.** An opt-out
+  suppresses automated platform event messaging to that party across channels until they opt back
+  in.
 - Parties in **Needs phone** state receive no automated messaging until corrected/overridden.
-- Initial invitations remain outside the platform.
 
 ### 13.2 Consent
 
-The main use of SMS is reminding invited guests who may not yet have interacted with the platform, so guest-confirmed consent cannot be the only precondition.
+Platform invitations and reminders reach guests who have not yet interacted with the platform, so
+guest-confirmed consent cannot be the only precondition.
 
 MVP consent model:
 
-- **Host attestation:** before using platform messaging, owner/co-host confirms they have permission to contact guests about this event.
-- **STOP/opt-out handling:** honor opt-outs immediately, persist the status, and show it to collaborators.
-- **Per-event host-initiated message cap** (configurable and deliberately small) so the event cannot become a spam campaign.
+- **Host attestation:** before the platform sends any invitation, reminder or announcement for an
+  event, owner/co-host confirms they have permission to contact these guests about this event.
+- **STOP/opt-out handling:** honor opt-outs immediately, persist the status, show it to
+  collaborators.
+- **Caps:** a small per-party invitation cap (an initial invitation and a bounded number of
+  resends) and a small per-event cap on host-initiated reminders/announcements, both configurable,
+  so an event cannot become a spam campaign.
 - Messages are transactional and event-specific only.
-- A guest who completes OTP/RSVP may upgrade the record to `guest_confirmed` where useful, but that does not erase the need to honor future opt-out.
+- A guest who completes RSVP may upgrade the record to `guest_confirmed` where useful; that never
+  erases the need to honor a future opt-out.
 
 ### 13.3 Operational notes
 
-- US A2P 10DLC registration/compliance may require lead time/business setup; start it before production messaging is needed.
-- Keep messages short, event-specific, and link-light.
+- US A2P 10DLC registration/compliance may require lead time/business setup; start it before
+  production messaging is needed. Invitation texts are part of the registered use case.
+- Keep messages short, event-specific and link-light: an invitation is one line plus the personal
+  link and opt-out language.
 - International SMS remains out of scope unless trivial.
 - Per-message cost is absorbed by the publish fee.
-- Delivery failures should be recorded distinctly from opt-outs because only delivery failure may trigger email fallback.
+- Record delivery failures distinctly from opt-outs; only a delivery failure may trigger email
+  fallback for reminders/announcements.
 
-### 13.4 Reminders and announcements
+### 13.4 Invitations, reminders and announcements
 
+- **Invitations:** after publish; to selected parties; one text with the party's personal link.
 - **Reminders:** non-responders only. Example: `Reminder: please RSVP by December 1.`
-- **Announcements:** invited guests according to the selected audience. Example: time changed, venue detail updated, event reminder.
-- Suppress opted-out parties.
-- Keep these basic. No marketing automation.
+- **Announcements:** invited guests by selected audience. Example: time changed, venue updated.
+- Suppress opted-out parties. Keep these basic. No marketing automation.
 
 ## 14. Event Privacy and Access
 
@@ -1384,38 +1254,37 @@ Public or private.
 
 ### 14.2 Private event gate
 
-A private event requires a short human-shareable event code. The guest-facing gate is fixed:
+A private event requires a short human-shareable event code.
 
-- **Visible before the code:** finished hero showing event name, hosts, and date.
-- **Locked behind the code:** venue/address, event details, RSVP, registry, cash fund.
+- **A guest arriving by the shared link** sees only the **sealed envelope with the event title**.
+  Entering the code opens it. Nothing on the card or page is visible before then.
+- **A guest arriving by their personal invitation link** skips the code: the link already proves
+  they were invited (§12.5). The envelope still opens only on the guest's action.
 
-Private events carry `noindex`.
+Private events carry `noindex`, and their link previews show only the sealed envelope (§11.10).
 
 **Storage and verification**
 
-- Store **one encrypted-at-rest event-code field** under an application-managed encryption secret/key.
+- Store **one encrypted-at-rest event-code field** under an application-managed encryption key.
 - Do not keep a separate hash + encrypted duplicate in MVP.
 - Authorized owner/co-host share UI may decrypt/reveal the code.
-- Guest verification decrypts the stored value server-side and compares against the submitted code using a constant-time comparison.
+- Guest verification decrypts the stored value server-side and compares in constant time.
 - Never log plaintext event codes or send them to analytics.
-- Rate-limit attempts by event + requester/IP/device and add broader abuse protection.
-- Use a reasonably strong randomly generated human-shareable code rather than a trivial 4-digit PIN.
+- Rate-limit attempts by event + requester/IP/device, with broader abuse protection.
+- Use a reasonably strong random human-shareable code, not a trivial 4-digit PIN.
 
-The short shared code is not intended to be high-security authentication; attempt throttling and minimal pre-code exposure are the primary controls.
+The shared code is not high-security authentication; attempt throttling and the sealed envelope are
+the primary controls.
 
 ### 14.3 Sharing
 
-For a private event, publish/share UI must surface together:
-
-- event URL;
-- QR code pointing to the URL only;
-- event code.
-
-The QR code must **not** embed/bypass the event code.
+For a private event, the publish/share UI surfaces together: event URL; QR code pointing to the
+URL only; event code. The QR code must **not** embed/bypass the event code. Personal invitation
+links are surfaced per party in the guest workspace, never as one shareable bypass.
 
 ### 14.4 RSVP remains invite-only
 
-`public` never means `anyone may RSVP`. Event visibility and RSVP eligibility are separate concepts.
+`public` never means `anyone may RSVP`. Event visibility and RSVP eligibility are separate.
 
 ## 15. Registry Product Model
 
@@ -1423,13 +1292,19 @@ Three registry content types. No retailer synchronization.
 
 ### 15.1 External registry destination
 
-Host/co-host adds a registry URL (Amazon, Babylist, Target, Pottery Barn Kids, etc.). The site presents it as a themed destination card with an action like **Shop Amazon Registry**. Clicking leaves to the retailer.
+Host/co-host adds a registry URL (Amazon, Babylist, Target, Pottery Barn Kids, etc.). The page
+presents it as a destination card with an action like **Shop Amazon Registry**. Clicking leaves to
+the retailer.
 
-The retailer remains authoritative for item list, purchase status, quantities, returns, checkout, and registry benefits. The platform does not claim item-level synchronization and never polls/scrapes external registries for state.
+The retailer remains authoritative for item list, purchase status, quantities, returns, checkout
+and registry benefits. The platform does not claim item-level synchronization and never
+polls/scrapes external registries for state.
 
 ### 15.2 Native item
 
-For gifts that are not represented adequately by an external registry—or any specific product the owner/co-host wants surfaced directly—the collaborator pastes a product URL and the platform creates a native gift card.
+For gifts not adequately represented by an external registry — or any specific product the
+owner/co-host wants surfaced directly — the collaborator pastes a product URL and the platform
+creates a native gift card.
 
 ```ts
 NativeRegistryItem {
@@ -1447,41 +1322,48 @@ NativeRegistryItem {
 }
 ```
 
-**Product-image rule.** A native-item thumbnail is the one deliberate imagery exception in MVP because it is **product content**, not event design. The public event renderer still has no decorative/hero/site-photo system.
-
-If no product image is available, render a polished themed placeholder using the event's registry/card treatment. The item must remain fully usable without an image.
+**Product-image rule.** A native-item thumbnail is product content, not event design. If no product
+image is available, render a polished house-style placeholder. The item remains fully usable
+without an image.
 
 #### Add-time metadata and product-image fetch
 
-When a product URL is pasted, the backend may make **one host-initiated safe fetch flow** to prefill retailer/title/price-like display metadata and discover a candidate product image. The collaborator reviews/edits the result. **Manual entry is a first-class path**, especially for Amazon or any site that blocks server fetches.
+When a product URL is pasted, the backend may make **one host-initiated safe fetch flow** to
+prefill retailer/title/price-like display metadata and discover a candidate product image. The
+collaborator reviews/edits the result. **Manual entry is a first-class path**, especially for
+Amazon or any site that blocks server fetches.
 
-Do **not** hotlink the retailer image on the guest site. If a candidate remote product image is available:
+Do **not** hotlink the retailer image on the guest page. If a candidate remote product image is
+available:
 
 1. fetch it through the same centralized SSRF-safe network layer;
 2. validate that the response is an allowed raster image MIME type;
 3. enforce a strict byte-size and dimension/pixel cap before/while decoding;
 4. strip unneeded metadata;
-5. resize/compress to a normalized thumbnail asset (for example bounded around 512px and stored in a modern web format where supported);
+5. resize/compress to a normalized thumbnail asset;
 6. store the platform-owned copy in controlled object storage/CDN;
 7. render only the platform-owned asset URL.
 
-If the host manually enters an image URL, apply the **same safe fetch + normalization path**. There is no direct host image upload for native items in MVP.
+If the host manually enters an image URL, apply the **same safe fetch + normalization path**. There
+is no direct host image upload for native items in MVP.
 
 **SSRF/network safety requirements for all metadata/image URL fetches:**
 
 - allow only `http` / `https`;
 - reject credentials in URLs;
-- reject localhost, loopback, private, link-local, multicast/special-use, and cloud-metadata address ranges for IPv4/IPv6;
+- reject localhost, loopback, private, link-local, multicast/special-use and cloud-metadata address
+  ranges for IPv4/IPv6;
 - resolve DNS and validate the destination before connecting;
 - validate **every redirect** destination before following;
 - small redirect cap (for example 3);
 - short timeout (for example 5–8 seconds);
 - strict HTML response-size cap for metadata (for example 1–2 MB);
 - strict image-byte and decoded-pixel caps for thumbnails;
-- never forward host cookies, retailer credentials, authorization headers, or browser session data;
+- never forward host cookies, retailer credentials, authorization headers or browser session data;
 - never execute page JavaScript;
 - parse only basic HTML/Open Graph metadata needed to prefill the form;
-- treat every failure/block/bot page/non-HTML metadata response as **manual-entry fallback**, not as a scraping problem to solve.
+- treat every failure/block/bot page/non-HTML response as **manual-entry fallback**, not as a
+  scraping problem to solve.
 
 This is a single user-triggered convenience read at add time, not a retailer sync system.
 
@@ -1489,7 +1371,8 @@ The platform owns the honor-system purchase state for native items (§16).
 
 ### 15.3 Cash fund card
 
-Display-only card: payment handle(s) (Venmo, Zelle, etc.), suggested amounts, short blurb. No guest payment processing and no cash-gift tracking in MVP.
+Display-only card: payment handle(s) (Venmo, Zelle, etc.), suggested amounts, short blurb. No
+guest payment processing and no cash-gift tracking in MVP.
 
 ```ts
 CashFund {
@@ -1511,52 +1394,40 @@ No **Tracked by us / Tracked by Amazon** labels. Actions carry the meaning:
 - native item → **Buy this gift**;
 - cash fund → **Send a gift** / service-specific equivalent.
 
-External-registry purchases remain authoritative only at the retailer. Native item purchased state is an MVP honor system (§16).
-
 ---
 
 ## 16. Native Item Honor-System Purchase Flow
 
-Native gift tracking intentionally uses an honor system for MVP. There is no reservation hold, expiration timer, public claim state, collision engine, or retailer verification.
+Native gift tracking intentionally uses an honor system for MVP. There is no reservation hold,
+expiration timer, public claim state, collision engine or retailer verification.
 
 ### 16.1 Public state
 
-For quantity-one items, guest-facing state is conceptually:
-
-```text
-AVAILABLE → PURCHASED
-```
-
-For quantity > 1, availability is derived from:
-
-```text
-remaining = requestedQuantity - purchasedQuantity
-```
-
-There is no `reservedQuantity` in MVP.
+For quantity-one items, guest-facing state is `AVAILABLE → PURCHASED`. For quantity > 1,
+availability is derived from `remaining = requestedQuantity - purchasedQuantity`. There is no
+`reservedQuantity` in MVP.
 
 ### 16.2 Buy this gift
 
 1. Guest taps **Buy this gift**.
 2. Backend writes a private `GiftBuyClick` before redirect when possible.
-3. If the guest has an active verified guest-party session (§12.6), associate the click with that `GuestParty`; otherwise keep only a device/session association where available.
+3. If the guest has an active guest-party session (§12.6), associate the click with that
+   `GuestParty`; otherwise keep only a device/session association where available.
 4. Redirect to retailer.
 5. **Do not change public availability merely because of the click.**
 
-This is intentionally honest: the platform does not know a purchase occurred yet.
-
 ### 16.3 Self-confirmation on return
 
-If the same guest returns and the app can identify the prior click through the guest-party session and/or a lightweight device token, prompt:
+If the same guest returns and the app can identify the prior click through the guest-party session
+and/or a lightweight device token, prompt:
 
 > **Did you buy this gift?**
 > `Yes, mark purchased` · `No`
 
-- **Yes:** increment `purchasedQuantity` by the clicked quantity (bounded by reasonable host-controlled quantity rules), mark the click confirmed, and update the public derived state.
-- **No:** record the response and leave public availability unchanged.
+- **Yes:** increment `purchasedQuantity` by the clicked quantity (bounded by host-controlled
+  quantity rules), mark the click confirmed, update the public derived state.
+- **No:** record the response; leave availability unchanged.
 - **No return/no response:** no state change.
-
-Do not assume a guest will return. The flow must remain valid when they do not.
 
 ### 16.4 Private click log
 
@@ -1574,71 +1445,59 @@ GiftBuyClick {
 }
 ```
 
-Purpose:
-
-- product/UX instrumentation;
-- associate a self-confirmation when possible;
-- optionally give owner/co-host minimal operational context;
-- future input if evidence later justifies nudges/reservations.
-
+Purpose: instrumentation; associating a self-confirmation; minimal host context; future evidence.
 Do not expose click intent publicly. Do not build a reservation UI around it.
 
 ### 16.5 Owner/co-host override
 
-Owner/co-host can:
-
-- adjust requested quantity;
-- adjust purchased quantity;
-- mark available/purchased as appropriate;
-- correct mistakes.
-
-This manual override is the MVP integrity backstop.
+Owner/co-host can adjust requested quantity, adjust purchased quantity, mark available/purchased,
+and correct mistakes. This manual override is the MVP integrity backstop.
 
 ### 16.6 Known limitations (accepted)
 
 - Two guests can buy the same available item before either confirms.
-- A guest can purchase at the retailer and never return to confirm; the platform may continue showing the item available.
-- A guest can buy directly from the retailer without first using **Buy this gift**; the platform will not know.
-- External registry purchases are never tracked item-by-item by this platform.
+- A guest can purchase and never return to confirm.
+- A guest can buy directly from the retailer without using **Buy this gift**.
+- External registry purchases are never tracked item-by-item.
 
-These are accepted MVP limitations. Do not add reservation infrastructure to solve them unless real usage justifies it.
+Do not add reservation infrastructure to solve these unless real usage justifies it.
 
 ### 16.7 Purchaser identity
 
-Never expose purchaser identity publicly.
-
-When a purchase confirmation can be associated with a verified `GuestParty`, owner/co-host may see that party/person in admin. If identity is unknown, show the purchase as host-confirmed/unknown rather than fabricating purchaser information.
+Never expose purchaser identity publicly. When a confirmation is associated with a verified
+`GuestParty`, owner/co-host may see that party in admin; otherwise show host-confirmed/unknown.
 
 ## 17. Registry Guest Experience
 
-The registry section renders from the active concept's `ResolvedDesignSpec` plus any allowed event-level palette/typography override.
+The registry section is part of the house-style page. It contains external-registry destination
+cards, native item cards with `Buy this gift` and Available/Purchased state, and the cash fund
+card. Native product thumbnails use normalized platform assets or the house-style placeholder.
 
-It contains:
-- themed external-registry destination cards;
-- native item cards with `Buy this gift` and Available/Purchased state;
-- cash fund card.
-
-Registry components use the same event semantic tokens and page-system component treatment as RSVP/access surfaces. They must not fall back to generic application cards/forms.
-
-Native product thumbnails remain content imagery and use normalized platform assets or a themed placeholder.
-
-Do not imitate retailer branding beyond permitted names/logos. Do not expose internal click logs or purchaser identity.
+Do not imitate retailer branding beyond permitted names/logos. Do not expose internal click logs or
+purchaser identity.
 
 ## 18. Event Details
 
 Core content:
 
-- event name;
+- event title;
 - date;
 - start/end time;
 - venue;
 - normalized address;
 - hosts/parents;
+- baby name (optional);
 - description/welcome text.
+
+The card shows title, invitation line, baby name and hosts when present, date, time, venue name
+(else address) and RSVP-by. The page shows everything, including the full address and the
+description.
 
 Timezone is inferred and stored as infrastructure data; it is not a normal guest-facing field.
 
-AI may infer a small number of optional informational blocks from the prompt. **Do not** create separate FAQ, parking, dress-code, travel, or itinerary feature modules. Host/co-host can edit, hide, and reorder simple content blocks. Keep this as content, not module expansion.
+AI may infer a small number of optional informational blocks from the prompt. **Do not** create
+separate FAQ, parking, dress-code, travel or itinerary feature modules. Host/co-host can edit, hide
+and reorder simple content blocks. Keep this as content, not module expansion.
 
 ---
 
@@ -1646,171 +1505,134 @@ AI may infer a small number of optional informational blocks from the prompt. **
 
 ### 19.1 Creation Mode — pre-publish default
 
-Before publish, the primary workspace is the actual event site.
+Before publish, the primary workspace is the invitation itself: the active card and the page
+beneath it.
 
 Creation Mode provides:
-- production event renderer;
+- the production card and page;
 - owner/co-host toolbar (`Design`, `Preview`);
-- contextual `Edit` / `Set up` / `Add` controls attached to stable collaborator anchors;
+- contextual `Edit` / `Set up` / `Add` controls on stable anchors — the card's wording, the card's
+  details, and each page section (details, description, information blocks, RSVP, registry);
+- placeholders, marked as needing confirmation, for required facts not yet supplied;
 - floating readiness/setup control;
 - focused sheets/panels for structured editing;
 - dedicated Guest workspace when needed.
 
-Do **not** route concept selection into a generic setup dashboard.
+Do **not** route the card reveal into a generic setup dashboard.
 
 ### 19.2 Readiness checklist
 
 The setup sheet is navigation, not a wizard.
 
-**Needed to publish**
-- derives only from §23.1 blockers.
+**Needed to publish** — derives only from §23.1 blockers.
 
-**Recommended before sharing**
-- Guests;
-- Registry;
-- Co-host;
-- other useful optional work.
+**Recommended before sharing** — Guests; Registry; Co-host; other useful optional work.
 
 An event can display `Ready to publish` while recommended items remain unfinished.
 
 ### 19.3 Management Mode — operational home
 
-After setup/publish, an operational Event Home becomes useful.
+After publish, an operational Event Home becomes useful.
 
 Priority:
 1. RSVP summary;
-2. guest responses / awaiting / Needs phone;
+2. guest responses / awaiting / Needs phone / invitations not sent;
 3. Guests;
-4. Messages;
+4. Messages (invitations, reminders, announcements);
 5. Registry;
-6. Event sharing;
-7. Edit site.
+6. Sharing (link, QR, code);
+7. Edit invitation.
 
-Owner additionally sees billing/co-host management/delete controls as permitted.
-
-Keep this operational rather than analytical. No vanity analytics.
+Owner additionally sees billing/co-host management/delete controls as permitted. Keep this
+operational rather than analytical. No vanity analytics.
 
 ## 20. Design Editing
 
 ### 20.1 Direct design editing
 
-Owner/co-host may directly adjust only:
-- curated palette variants;
-- curated typography pairings compatible with the concept's family and hierarchy;
-- reset to generated concept design.
+Owner/co-host may directly:
+- edit the card's title and invitation line;
+- swap the card's font among the active design's primary and alternate pairings;
+- reset the card's wording and font to the design.
 
-Content operations remain separate:
-- copy;
-- section order;
-- section visibility.
+Host edits to wording are host content: they may contain any fact the host chooses and are bounded
+only by slot limits, never fact-checked. Facts are edited as event details and appear on the card
+and page automatically. Content
+operations on the page (description, information blocks, their order and visibility) are separate
+from the card.
 
-There are no published-site image controls. Should Phase 4 ship thematic artwork (§7.6a), art direction is a property of the concept, not a host-facing image editor.
+### 20.2 Card edits live on the event
 
-### 20.2 Event designOverrides
-
-Manual design edits live on `Event.designOverrides`, conceptually:
+Host card edits are event data, conceptually:
 
 ```ts
-designOverrides? {
-  palette?
-  typographyPairing?
+Event.title                         // when the host supplied or edited the title
+Event.cardEdits? {
+  invitationLine?
+  typographyPairing?                // must be the active design's primary or an alternate
 }
 ```
 
-These deterministic overrides do not mutate `DesignIntent`, `CompositionTree`, or `ResolvedDesignSpec`.
+The effective card title is `Event.title` when present, else the active design's drafted title.
+These edits never mutate a `CardDesign`, its artwork or its ink. Every edit re-runs `layoutCard`
+with no model call.
 
-Applying a palette override runs the same semantic palette compiler/contrast validation.
+### 20.3 Choosing another design
 
-Applying typography validates against the concept's family and hierarchy compatibility.
-
-### 20.3 Selecting another concept
-
-Before publish, selecting another generated concept:
-- switches `activeConceptId`;
-- replaces generated design;
-- clears/resets event-level manual **design** overrides unless the product explicitly offers a compatible carry-forward path;
-- never changes event content, guests, RSVP, registry, privacy, or messaging data.
+Before publish, choosing another generated design:
+- switches `activeCardDesignId`;
+- resets `Event.cardEdits` to the new design's wording and typography;
+- keeps `Event.title` if the host supplied or edited it (it is content);
+- never changes event details, guests, RSVP, registry, privacy or messaging data.
 
 ### 20.4 No treatment-level editing
 
-Do not expose:
-- density;
-- motifs;
-- motif placement;
-- ornamentation;
-- section treatment;
-- guest composition;
-- borders;
-- cards;
-- buttons;
-- spacing;
-- primitives, directives or the library.
-
-These are renderer-owned.
+Do not expose: layouts; colours, palettes, ink or panels; art modes; artwork editing, cropping,
+positioning or regeneration of parts; font sizes; text positions; envelope styling; page styling.
+These are design- or system-owned.
 
 ### 20.5 No persistent AI copilot
 
-AI reimagination exists only at concept granularity through `Try another direction`.
+AI reimagination exists only at design granularity through `Try another direction`. No persistent
+chat assistant, token-level AI edit, or "make the bear bigger" flow.
 
-No persistent chat assistant, token-level AI edit, or “make this button rounder” flow.
-
-## 21. Site Structure
+## 21. Guest Experience Structure
 
 ```text
-Hero / Event Introduction
-Event Details
+Envelope (sealed until the code for a private event reached by the shared link)
+  ↓ opens
+Invitation card
+  ↓ scroll
+Event details (title, hosts, date, time, venue, address)
+Description and simple information blocks
 RSVP
 Registry (external · native · cash fund)
 Footer ("Made with …")
 ```
 
-Single-scroll mobile-first by default. Avoid page fragmentation. Optional simple information blocks may appear within the scroll but do not create separate pages/modules.
+Single-scroll and mobile-first. The page beneath the card is the house style for every event. Avoid
+page fragmentation; optional information blocks stay within the scroll.
 
 ---
 
 ## 22. Mobile-First and Responsive Requirements
 
-Design from approximately **390px outward**, but desktop is a first-class responsive layout.
+Design from approximately **390px outward**; desktop is a first-class responsive layout.
 
-**Owner/co-host from phone**
-- prompt;
-- auth/save;
-- inspiration;
-- required details during generation;
-- concept review/selection;
-- redesign;
-- full-site reveal;
-- Creation Mode contextual editing;
-- readiness checklist;
-- guests/CSV where browser/OS permits;
-- RSVP;
-- registry;
-- communication;
-- privacy;
-- preview;
-- publish;
-- share;
-- post-publish management.
+**Owner/co-host from phone:** prompt; auth/save; inspiration; details during generation; card
+reveal; try another direction; Creation Mode editing; readiness checklist; guests/CSV where
+browser/OS permits; RSVP; registry; invitations and messages; privacy; preview; publish; share;
+post-publish management.
 
-**Guest from phone**
-- private gate;
-- event details;
-- name lookup;
-- OTP;
-- RSVP/update;
-- registry;
-- purchase return confirmation.
+**Guest from phone:** envelope and private gate; card; event details; personal-link RSVP; name
+lookup; OTP; RSVP/update; registry; purchase return confirmation.
 
 **Desktop**
-- uses available space intentionally;
-- concept comparison may use three columns;
-- Creation Mode renders the actual responsive desktop event, not a 390px phone canvas;
+- the card is the same design at a comfortable size; it never reflows;
+- the house-style page and Creation Mode use real desktop layouts, not a 390px phone canvas;
 - contextual editors may become side panels;
 - guest management may use tables/detail panes;
-- Preview offers Mobile/Desktop width toggle and defaults to Mobile.
-
-**Guest surface convergence**
-At phone width, semantic RSVP order may converge across compositions. Do not force artificial layout differences that hurt usability. Visual differentiation must survive through type, framing, motifs, surfaces, component treatment, hierarchy, and density.
+- Preview offers a Mobile/Desktop width toggle and defaults to Mobile.
 
 No critical product capability is desktop-only.
 
@@ -1821,17 +1643,20 @@ DRAFT → DESIGN_SELECTED → READY_TO_PUBLISH → PUBLISHED → PASSED
 ARCHIVED (internal, optional)
 ```
 
-- **DRAFT:** private event draft; identity/concepts/redesign allowed.
-- **DESIGN_SELECTED:** `activeConceptId` points to a concept with immutable DesignIntent + CompositionTree + an active ResolvedDesignSpec revision.
+- **DRAFT:** private event draft; identity, designs and trying other directions allowed.
+- **DESIGN_SELECTED:** `activeCardDesignId` points to a design with validated artwork and resolved
+  ink.
 - **READY_TO_PUBLISH:** deterministic requirements below are valid; payment may remain unsatisfied.
-- **PUBLISHED:** live; operations/content/allowed direct design overrides continue; AI redesign/concept switching disabled.
-- **PASSED:** event time has passed in stored IANA timezone; show thank-you state; registry remains accessible.
+- **PUBLISHED:** live; operations, content, wording and font edits continue; generation and design
+  switching disabled; invitations may be sent.
+- **PASSED:** event time has passed in the stored IANA timezone; show thank-you state; registry
+  remains accessible.
 
 ### 23.1 Minimum READY_TO_PUBLISH requirements
 
 Minimum:
-- selected active concept with valid `ResolvedDesignSpec`;
-- event title;
+- an active card design with validated artwork and resolved ink;
+- an effective event title (§20.2);
 - event date;
 - start time;
 - venue/location display value;
@@ -1841,14 +1666,8 @@ Minimum:
 - encrypted access code when private;
 - valid event owner/account.
 
-Not required:
-- guest rows;
-- registry;
-- cash fund;
-- co-host;
-- inspiration;
-- announcements;
-- completed RSVP responses.
+Not required: guest rows; invitations sent; registry; cash fund; co-host; inspiration;
+announcements; completed RSVP responses.
 
 Payment is separate:
 
@@ -1856,13 +1675,15 @@ Payment is separate:
 READY_TO_PUBLISH + payment satisfied → may PUBLISH
 ```
 
-The Creation Mode readiness UI must reflect exactly this distinction. Optional work must not masquerade as a publish blocker.
-
-There is no cancellation workflow in MVP.
+The Creation Mode readiness UI reflects exactly this distinction. Optional work never masquerades
+as a publish blocker. There is no cancellation workflow in MVP.
 
 ## 24. Domain Model
 
-Conceptual baseline, not an exact database schema.
+Conceptual baseline, not an exact database schema. The current database still carries the
+Revision 6 website tables (`design_concepts`, `resolved_design_specs`, `events.active_concept_id`,
+`events.design_overrides`, the website columns of `generation_runs`, and `human_test_1_responses`);
+the card-data phase replaces them in one forward-only migration (`docs/development-plan.md`).
 
 ```ts
 User {
@@ -1872,26 +1693,25 @@ User {
 Event {
   id, ownerId,
   type /* baby_shower */,
+  prompt,
 
-  title, description,
+  title?, description?,
   date, startTime, endTime?,
   timezone,
   venueName, address,
+  hosts?, babyName?,
 
   visibility /* public | private */,
   accessCodeEncrypted?,
 
-  rsvpDeadline,
+  rsvpDeadline, rsvpDeadlineEdited,
   status,
   slug,
 
-  activeConceptId?,
+  activeCardDesignId?,
+  cardEdits? { invitationLine?, typographyPairing? },
 
-  designOverrides? {
-    palette?,
-    typographyPairing?
-  },
-
+  invitationAttestedAt?,
   messageSendsUsed,
   publishedAt?, paidAt?,
   createdAt, updatedAt
@@ -1904,91 +1724,52 @@ EventMember {
 }
 
 PreAuthEventDraft {
-  id,
-  draftTokenHash,
-  prompt,
-  inspirationAssetIds[],
-  expiresAt,
-  createdAt
-}
-
-EventIdentity {
-  eventId,
-  creativeDirection,
-  toneKeywords[],
-  colorsExplicitlyConstrained,
-  paletteIntent,
-  tonalIntent,
-  toneExplicitlyConstrained,
-  compatibleTonalDirections[],
-  compatibleFamilies[],
-  compatibleTypographyCategories[],
-  visualMotifs[],
-  textureDirection,
-  typographyDirection,
-  copyTone,
-  designConstraints[],
-  inspirationSummary,
-  createdAt, updatedAt
+  id, draftTokenHash, prompt, inspirationAssetIds[], expiresAt, createdAt
 }
 
 InspirationAsset {
-  id, eventId?,
-  preAuthDraftId?,
-  storageKey,
-  mimeType, sizeBytes,
-  expiresAt?,
+  id, eventId?, preAuthDraftId?, storageKey, mimeType, sizeBytes, expiresAt?, createdAt
+}
+
+EventIdentity {
+  eventId, revision,
+  creativeDirection, toneKeywords[],
+  colorsExplicitlyConstrained, paletteIntent,
+  tonalIntent, toneExplicitlyConstrained,
+  compatibleTypographyCategories[],
+  visualMotifs[], textureDirection, typographyDirection, copyTone,
+  designConstraints[], inspirationSummary,
+  promptVersion, schemaVersion,
   createdAt
 }
 
-DesignIntent {
-  family,
-  tonalDirection,
-  palette /* { colors[], dominant } */,
-  typographyPairing,
-  density,
-  composition /* { asymmetry, hierarchy, rhythm, sectionContrast, ornament } */,
-  motifs[]
-}
-
-CompositionTree {
-  version,               // primitive-set version, e.g. composition_v1
-  sections[]             // { kind, surface, align?, fill?, root: Node } — trusted primitives, enum tokens
-}
-
-ResolvedDesignSpec {
-  version,
-  designIntent, presentation,
-  composition,           // canonical tree after repair, caps and verified fit
-  compositionHash, capabilities,
-  pageSystem, tokens /* semantic palette, fonts, scale, spacing */,
-  layout /* per node, per breakpoint, numeric */, motifs,
-  compilerRepairs[], intentDeviations[], signature,
-  verified /* { desktop, mobile, fitDemotions, clean, authoritative } */,
-  versions /* primitiveSet, compiler, compositionPrompt, compositionSchema, designIntentPrompt, designIntentSchema */
-}
-
-DesignConcept {
+CardDesign {
   id, eventId,
   round,
-  conceptIndex,
-
-  name, description,     // from the model's presentation object, or deterministic fallback
-
-  designIntent,          // immutable
-  compositionRaw,        // immutable: the model's tree as returned
-  composition,           // immutable: canonical tree
-  resolvedDesignSpecs[], // immutable revisions r1, r2, …; same composition; re-fit on content change
-  activeResolvedSpecId,  // the revision rendered
-  directive, tokenAllotment, fallback?   // planner record
-
+  name, description,             // presentation, or deterministic fallback
+  layout, artMode,
+  typography /* { primary, alternates[] } */,
+  wording /* { title, invitationLine } — after the fact check */,
+  artBrief,
+  raw,                           // the model response as returned
+  artAssetId,
+  ink /* per zone: { ink, panel?, panelColor? } */,
+  standardWordingSlots[],
+  versions /* designPrompt, designSchema, layoutSet, compiler, artPrompt, imageModel */,
   selectedAt?,
+  createdAt
+}
+
+CardArtAsset {
+  id, eventId, cardDesignId,
+  storageKey, mimeType, width, height, sizeBytes,
+  imageModel, artPromptVersion,
   createdAt
 }
 
 EventSection {
   id, eventId,
-  type /* hero | event_details | rsvp | registry | simple_info */,
+  type /* event_details | description | simple_info | rsvp | registry */,
   position, visible, content
 }
 
@@ -1997,7 +1778,14 @@ GuestParty {
   phone?, email?, noPhoneAvailable,
   contactConsentSource,
   maxAdults, maxChildren, plusOneAllowed,
+  invitationStatus, invitationsSent,
   rsvpStatus, submittedAt?, updatedAt
+}
+
+PartyInviteLink {
+  id, eventId, partyId,
+  tokenHash,
+  createdAt, revokedAt?
 }
 
 GuestPerson {
@@ -2006,14 +1794,11 @@ GuestPerson {
 }
 
 GuestPartySession? {
-  id?, eventId, partyId,
-  tokenHash?, expiresAt,
-  createdAt?, updatedAt?
+  id?, eventId, partyId, tokenHash?, expiresAt, createdAt?, updatedAt?
 }
 
 ExternalRegistry {
-  id, eventId, retailerName, registryUrl,
-  displayName, position, visible, createdAt
+  id, eventId, retailerName, registryUrl, displayName, position, visible, createdAt
 }
 
 NativeRegistryItem {
@@ -2024,28 +1809,21 @@ NativeRegistryItem {
 }
 
 ProductImageAsset {
-  id, eventId, itemId,
-  storageKey, mimeType,
-  width?, height?, sizeBytes?,
-  createdAt
+  id, eventId, itemId, storageKey, mimeType, width?, height?, sizeBytes?, createdAt
 }
 
 GiftBuyClick {
-  id, eventId, itemId,
-  partyId?, deviceTokenHash?, quantity,
-  clickedAt,
-  response? /* purchased | not_purchased | null */,
-  confirmedPurchasedAt?
+  id, eventId, itemId, partyId?, deviceTokenHash?, quantity,
+  clickedAt, response? /* purchased | not_purchased | null */, confirmedPurchasedAt?
 }
 
 CashFund {
-  id, eventId, title, blurb,
-  handles[], suggestedAmounts[], visible
+  id, eventId, title, blurb, handles[], suggestedAmounts[], visible
 }
 
-Message {
+Message {                      // host-initiated messages; counted against §13.2 caps
   id, eventId,
-  kind /* reminder | announcement */,
+  kind /* invitation | reminder | announcement */,
   channel /* sms | email */,
   subject?, body, audience,
   sentAt, createdBy
@@ -2053,68 +1831,60 @@ Message {
 
 GenerationRun {
   id, eventId, userId,
-
   provider, providerRequestId?,
-  operation /* event_identity | design_intent | structured_extraction */,
-  round?, conceptIndex?,
-
+  operation /* event_identity | card_design | card_art | structured_extraction | … */,
+  round?,
   model,
-  inputTokens?, cachedInputTokens?, outputTokens?, reasoningTokens?,
+  inputTokens?, cachedInputTokens?, outputTokens?, reasoningTokens?, imageUnits?,
   costEstimateUsd?,
   latencyMs,
   success,
-
-  promptVersion,         // e.g. event_identity_v1 | design_intent_v2
-  schemaVersion,         // e.g. event_identity_schema_v1 | design_intent_schema_v3 | composition_schema_v1
-  primitiveSetVersion?, compilerVersion?,
-
-  diversityAssignment?,  // family, tone, category, hierarchy, directive, token allotment
-  schemaValidFirstCall?, reprompts?,   // kind: schema | token-cap | collision
-  compilerRepairs?,      // by kind
-  verified?,             // geometry record
-  signature?, nearestSibling?, fallback?,
-
+  promptVersion, schemaVersion?, layoutSetVersion?, compilerVersion?,
+  schemaValidFirstCall?, reprompts?, artRegenerated?, standardWordingSlots?, inkPanels?,
   createdAt
 }
 ```
 
-The primitive set, `MotifDefinition`, typography definitions, the library, directive dimensions, attractive-token list and compiler rules are versioned application code/config rather than required database tables in MVP.
+OTP codes and the §12.7 return-link text are guest-triggered transactional messages, not `Message`
+rows: they are outside the host caps, are rate-limited per §12.5, and are never sent to a party that
+has opted out.
+
+The layout catalog, art modes, typography pairings and compiler rules are versioned application
+code/config, not database tables.
 
 ### Generated-data immutability
 
-For a DesignConcept:
-- `designIntent` is immutable;
-- `compositionRaw` and `composition` are immutable;
-- every `resolvedDesignSpecs[]` revision and its version set are immutable; a content edit appends a revision (`contentVersion`, `supersedesSpecId`) and moves `activeResolvedSpecId`.
-
-Renderer source code may still receive bug, accessibility, and responsive fixes.
+`EventIdentity` revisions, `CardDesign` records, artwork assets and resolved ink are immutable.
+Host edits live on `Event`. Renderer source code may still receive bug, accessibility and
+responsive fixes.
 
 ### Effective render state
 
-Base guest design comes from the selected concept's active resolved-spec revision, filtered by `FeaturePresentationState` (§11.4).
-
-Allowed `Event.designOverrides` are applied deterministically on top for palette/typography. They must use the same compatibility and semantic color compiler as generated concepts.
-
-Do not recompile the concept against a newer compiler or primitive set during normal rendering.
+The card renders from the active `CardDesign`, its artwork and ink, `Event.cardEdits`, the
+effective title and the event's current facts, through `layoutCard`. The page renders from event
+content in the house style. Guest visibility of RSVP and registry follows operational state:
+registry is shown once it has an external registry, native gift or cash fund; RSVP once it is
+configured and at least one party is invited.
 
 ## 25. Permissions Matrix
 
 | Capability | Owner | Co-host | Guest |
 | --- | ---: | ---: | ---: |
 | View event | Yes | Yes | Yes |
-| Edit event details/content | Yes | Yes | No |
+| Edit event details/content and card wording | Yes | Yes | No |
+| Swap card font | Yes | Yes | No |
 | Manage privacy/access code | Yes | Yes | No |
 | Manage guests / import CSV | Yes | Yes | No |
+| Copy/rotate a party's personal link | Yes | Yes | No |
+| Send invitations | Yes | Yes | No |
 | Manage RSVP questions | Yes | Yes | No |
 | View/manage RSVP responses | Yes | Yes | Own party only |
 | Manage external registries/native items/cash fund | Yes | Yes | No |
 | Manage native item purchase state | Yes | Yes | No |
 | Send reminders/announcements | Yes | Yes | No |
-| Use direct design controls | Yes | Yes | No |
-| Add private inspiration for redesign | Yes | Yes | No |
-| Enter redesign feedback | Yes | Yes | No |
-| Generate redesign concepts before publish | Yes | Yes | No |
-| Browse/select concepts before publish | Yes | Yes | No |
+| Add private inspiration / enter feedback | Yes | Yes | No |
+| Try another direction before publish | Yes | Yes | No |
+| Browse/choose designs before publish | Yes | Yes | No |
 | Preview | Yes | Yes | Public/authorized view |
 | Publish after payment is satisfied | Yes | Yes | No |
 | Initiate/manage billing/payment | Yes | No | No |
@@ -2122,62 +1892,76 @@ Do not recompile the concept against a newer compiler or primitive set during no
 | Delete/archive event | Yes | No | No |
 | Transfer ownership | Not in MVP | Not in MVP | No |
 
-Owner/co-host design generation consumes the same event-level generation pool/limits. After publish, AI generation and concept switching are disabled for both.
+Owner/co-host generation consumes the same event-level limits. After publish, generation and design
+switching are disabled for both.
 
 ---
 
 ## 26. Important UX Rules
 
 - Landing page is the prompt.
-- Prompt/auth state must survive OAuth exactly.
-- Do not begin strong-model generation before authentication.
-- **Never expose implementation complexity:** Event Identity, DesignIntent, CompositionTree, ResolvedDesignSpec, primitives, directives, allotments, the library, compiler repairs, provider/model tiers, backend limits.
+- Prompt/auth state survives OAuth exactly.
+- No generation before authentication.
+- **Never expose implementation complexity:** Event Identity, CardDesign, layouts, art modes, art
+  briefs, ink resolution, provider/model names, backend limits.
 - AI should remove decisions, not create more decisions.
-- Show concepts, then show the full site, then make that same site editable.
+- Show the card, then make that same invitation editable.
 - Do not send a newly activated host to a generic setup dashboard.
-- Creation Mode uses contextual editing on the event.
+- Creation Mode uses contextual editing on the invitation.
 - Setup progress distinguishes publish blockers from optional recommended work.
-- `Try another direction` is available from initial concepts, reveal, and Design before publish.
-- Redesign changes design only; event content/data remain untouched.
-- Concept generated data is immutable; renderer code may be fixed.
-- Inspiration images are never public site images.
+- `Try another direction` is available from the reveal and Creation Mode before publish.
+- Trying another direction changes design only; event details and data remain untouched.
+- Generated designs are immutable; renderer code may be fixed.
+- Inspiration images are never shown to guests and never sent to the image model.
 - Guests never need accounts.
 - No generation counters/credits during alpha/beta.
 - No public gift-reservation language/state.
 - Preserve mobile-first usability; use real desktop layouts on desktop.
-- Accept guest-layout convergence on mobile when required for usability.
-- Do not expose renderer-owned card/button/border/motif/treatment controls to hosts.
+- Do not expose layout, colour, art or size controls to hosts.
 
 ## 27. Safety / Integrity / Privacy
 
 - Never expose purchaser identity publicly.
-- **Private event code:** store one encrypted-at-rest representation only; never plaintext. Authorized reveal/validation happens server-side. Compare decrypted values in constant time. Never log/code-analytics plaintext. Rate-limit attempts.
-- Never expose guest lists publicly; after name lookup show only the minimum names required to identify a party.
-- Require SMS OTP before RSVP access when a phone exists; allow the explicit `noPhoneAvailable` name-lookup-only exception.
-- Rate-limit OTP sending **per party/phone** as well as per requester/IP/device and event/global burst.
-- A **Needs phone** party cannot expose RSVP details until fixed or explicitly marked no-phone.
+- **Private event code:** one encrypted-at-rest representation only; server-side reveal and
+  validation; constant-time comparison; never logged or sent to analytics; attempts rate-limited.
+- **Personal invitation links:** signed, unguessable, scoped to event + party, revocable by
+  rotation; never reveal another party; never placed in analytics or logs in plaintext.
+- Never expose guest lists publicly; after name lookup show only the minimum names required to
+  identify a party.
+- On the shared-link path, require SMS OTP before RSVP access when a phone exists; allow the
+  explicit `noPhoneAvailable` name-lookup-only exception.
+- Rate-limit OTP sending **per party/phone** as well as per requester/IP/device and event/global
+  burst.
+- A **Needs phone** party cannot RSVP through the shared-link path until fixed, overridden or sent
+  its personal link.
 - Limit guests to their own party's information.
-- Guest-party sessions must be signed/scoped to event + party, expire reasonably, and contain no unnecessary client-trusted PII.
-- Co-host access is explicit, invitation-based.
-- SMS uses the MVP attestation/opt-out model in §13. A STOP/opt-out must not be circumvented by automatically switching the same party to email.
-- No retailer scraping, bot evasion, proxy workarounds, or credential collection.
-- Product metadata and remote product-image fetches must use the centralized SSRF-safe utility/restrictions in §15.2.
-- Never render arbitrary retailer image URLs directly to guests; render only normalized platform-owned product thumbnails or a themed placeholder.
-- Never collect retailer credentials or request an Amazon/retailer login.
-- External checkout stays on retailer sites.
+- Guest-party sessions are signed/scoped to event + party, expire reasonably, and carry no
+  unnecessary client-trusted PII.
+- Co-host access is explicit and invitation-based.
+- SMS uses the attestation/opt-out/cap model in §13. A STOP/opt-out is never circumvented by
+  switching the same party to email.
+- Generated artwork never contains text, logos, brand characters or watermarks; named references
+  are translated into original language.
+- No retailer scraping, bot evasion, proxy workarounds or credential collection.
+- Product metadata and remote product-image fetches use the centralized SSRF-safe utility (§15.2).
+- Never render arbitrary retailer image URLs to guests; render only normalized platform-owned
+  thumbnails or the house-style placeholder.
+- Never collect retailer credentials. External checkout stays on retailer sites.
 - Do not represent honor-system native purchases as retailer-verified.
-- Inspiration uploads are private AI inputs, stored privately with strict limits and short raw-file retention; never automatically render them on the public event site.
-- Private events are `noindex`.
-- Use signed, scoped, expiring OTP/magic-link/session tokens; do not put sensitive guest data directly in client-trusted tokens.
+- Inspiration uploads are private AI inputs, stored privately with strict limits and short raw-file
+  retention; never rendered for guests and never sent to the image model.
+- Private events are `noindex` and preview only as the sealed envelope.
+- Use signed, scoped, expiring OTP/session tokens; do not put sensitive guest data in
+  client-trusted tokens.
 
 ## 28. Payment
 
-- Free to create, generate, redesign, and preview within backend safety limits.
-- **$49 one-time to publish.**
-- Initial implementation: mock/stub the gate; display the real price; allow internal/test users to simulate success; record `paidAt` or equivalent payment-satisfied state.
-- **Owner** initiates/manages payment.
-- Once payment is satisfied, owner or co-host may execute publish.
-- No refunds, transfers, subscriptions, or pricing tiers in MVP.
+- Free to create, generate, try other directions and preview within backend safety limits.
+- **$49 one-time to publish** — a hypothesis, to be re-checked against invitation products (§3.2).
+- Initial implementation: mock/stub the gate; display the real price; allow internal/test users to
+  simulate success; record `paidAt`.
+- **Owner** initiates/manages payment. Once payment is satisfied, owner or co-host may publish.
+- No refunds, transfers, subscriptions or pricing tiers in MVP.
 - Do not spend MVP effort on billing architecture beyond the stub.
 
 ---
@@ -2198,72 +1982,29 @@ preauth_draft_restore_failed
 event_creation_started
 initial_prompt_submitted
 inspiration_uploaded
-inspiration_link_added
-inspiration_raw_cleanup
-followup_question_answered
-
+facts_extracted { fieldsFound }
+clarification_asked { count }
+clarification_answered { youDecide }
 venue_timezone_inferred
 identity_generated
 
-concept_direction_assigned {
-  round,
-  index,
-  family,
-  tonalDirection,
-  typographyCategory,
-  hierarchy,
-  directive,
-  tokenAllotment,
-  toneConstrained
-}
-
-design_intent_generated {
-  round,
-  index,
-  family,
-  tonalDirection,
-  typographyPairing,
-  density,
-  composition
-}
-
-composition_generated {
-  round,
-  index,
-  schemaValidFirstCall,
-  reprompts,             // schema | token-cap | collision
-  violationsBefore,
-  fallback?
-}
-
-composition_compiled {
-  round,
-  index,
-  primitiveSetVersion,
-  compilerVersion,
-  repairsByKind,
-  verifiedClean,
-  fitDemotions,
-  nearestSibling
-}
-
-concept_rendered
-concepts_generated
-concept_selected
-site_reveal_viewed
+card_design_generated { round, layout, artMode, schemaValidFirstCall, reprompts, standardWordingSlots }
+card_art_generated { round, imageModel, regenerated, latencyMs }
+card_compiled { round, inkPanels, compilerVersion }
+card_revealed { round, totalLatencyMs }
 make_it_yours_clicked
+try_another_direction_started { round, feedbackGiven }
+design_chosen { round, previousRound }
+kept_current_design
+generation_limit_hit
+generation_failed { stage }
 
-creation_context_edit_opened { section, action }
+card_wording_edited { slot }
+card_font_swapped
+creation_context_edit_opened { anchor, action }
 setup_checklist_opened
 publish_readiness_changed
 guest_workspace_opened
-
-redesign_started
-redesign_prompt_refined
-redesign_concepts_generated
-kept_current_design
-gallery_concept_selected
-generation_limit_hit
 
 preview_opened { width: mobile | desktop }
 
@@ -2275,13 +2016,19 @@ event_published
 guest_added
 csv_import_completed
 guest_no_phone_override_set
+invitations_sent { parties }
+invitation_delivery_failed
+personal_link_copied
+personal_link_rotated
 
+envelope_opened { via: personal_link | shared_link }
+private_code_attempted
 rsvp_lookup_started
 rsvp_lookup_collision
 rsvp_otp_requested
 rsvp_otp_throttled
 rsvp_sms_verified
-guest_party_session_created
+guest_party_session_created { via: personal_link | otp | no_phone }
 rsvp_completed
 rsvp_updated
 
@@ -2300,167 +2047,194 @@ message_delivery_failed
 message_opt_out
 ```
 
-Every metered model call also writes a `GenerationRun`.
-
-Compiler repairs/dropped motifs belong on the associated concept-generation instrumentation and must never be silently discarded.
+Every metered model call also writes a `GenerationRun`. Wording fallbacks, art regenerations and
+legibility panels are recorded on the generation and never silently discarded.
 
 ## 30. MVP Success Criteria
 
 A non-technical owner/co-host can:
 
-1. Understand the product immediately from the landing composer.
-2. Describe the shower before creating an account.
-3. Authenticate without losing prompt or inspiration.
-4. Answer only genuinely missing required details while generation runs.
-5. Receive a persisted Event Identity.
-6. See three materially distinct concepts from live production rendering.
-7. Reject all three and request another direction without starting over.
-8. Select one and immediately see a convincing full-site reveal.
-9. Enter Creation Mode by making that same site editable.
-10. Complete required event setup without a wizard.
-11. Understand which items block publish and which are only recommended.
-12. Use contextual editing for details/RSVP/registry and dedicated workspace for guests.
-13. Redesign before publish without changing event content/data.
-14. Preview exact guest experience at mobile and desktop widths.
-15. Manage guests/RSVP/registry/comms from phone.
-16. Publish through the mocked/real-shaped $49 gate.
-17. Share URL/QR/code.
-18. Operate the event after publish.
-19. Let guests unlock, identify, verify, RSVP, update, and browse registry without accounts.
-20. Render a coherent themed guest experience across access, forms, errors, confirmation, registry, and passed state.
+1. understand the product immediately from the landing composer;
+2. describe the shower before creating an account;
+3. authenticate without losing prompt or inspiration;
+4. optionally fill in details while the card is designed, never required to see it;
+5. receive a persisted Event Identity;
+6. see a card that feels like it read their mind, revealed from its envelope;
+7. try another direction and get a genuinely different card without starting over;
+8. make the invitation theirs by editing wording and details in place;
+9. complete required setup without a wizard;
+10. understand which items block publish and which are only recommended;
+11. manage guests in a dedicated workspace;
+12. preview the exact guest experience at mobile and desktop widths;
+13. manage guests/RSVP/registry/messages from a phone;
+14. publish through the mocked/real-shaped $49 gate;
+15. text invitations with personal links, or share the URL/QR/code;
+16. operate the event after publish.
 
-Renderer architecture succeeds when:
-21. The model emits only the six-field DesignIntent plus non-design presentation metadata; the compiler consumes the six fields only.
-22. Compilation deterministically produces accessible immutable ResolvedDesignSpec.
-23. Incompatible typography/motif inputs are repaired/dropped and logged without a model retry.
-24. The same constrained palette can still produce three unmistakably different sites.
-25. The same tonal direction can still produce three meaningfully different sites through family, directive, composition, type, motif and density.
-26. Palette/tone changes cannot produce invalid text/button contrast.
-27. Historical concepts do not change merely because the compiler or primitive set later evolves.
+Guests can open the envelope, RSVP without an account (by personal link or lookup + code), update
+their RSVP, and browse the registry, in a coherent house-style experience across access, forms,
+errors, confirmation, registry and passed state.
+
+The creative system succeeds when:
+
+17. Event Identity understands vague and taste-heavy prompts (`docs/model-contracts.md §6`);
+18. no card ever states a fact the host did not supply;
+19. no artwork contains text, logos or brand characters;
+20. every card text clears 4.5:1 and fits its zone at every size;
+21. `Try another direction` yields a different idea, not a palette or font swap;
+22. historical designs never change because prompts, layouts, the compiler or the image model
+    evolve;
+23. Human Test #2 passes its frozen threshold on real generated cards.
 
 The host should feel:
 
-> **I described what I wanted and it basically built the event for me.**
+> **I described what I wanted and it read my mind.**
 
 ## 31. Acceptance Criteria
 
 ### Prompt, auth, and generation
 - [ ] Landing page contains the primary event composer.
 - [ ] User may write prompt/add inspiration before authentication.
-- [ ] Strong-model generation does not begin before auth succeeds.
+- [ ] No strong-model or image-model generation begins before auth succeeds.
 - [ ] Prompt and successful inspiration uploads restore exactly after OAuth/email auth.
 - [ ] Abandoned pre-auth draft/assets expire and remain private.
-- [ ] Required details are collected only when missing and while generation runs, and never block concepts from appearing.
+- [ ] Missing details are offered only when missing, while generation runs, and never block the card
+  from appearing.
 - [ ] Venue-text timezone inference + validation + browser fallback works.
-- [ ] Adaptive creative clarification asks nothing in the common case, at most three questions ever, never a logistics field, and never gates concepts from appearing (§7.6b).
-- [ ] Every clarification offered is one whose answers would produce materially different creative identities, and every one offers a `You decide` option.
-- [ ] Each concept becomes available as soon as its resolved spec exists; no concept waits on its siblings (§7.10).
-- [ ] The generation surface shows only artifacts the pipeline produced — no model reasoning, no fabricated progress or completion percentages (§7.10).
-- [ ] Missing event facts may optionally be entered during generation, and doing so is never required to reach concepts (§7.10).
+- [ ] Adaptive creative clarification asks nothing in the common case, at most three questions
+  ever, never a logistics field, and never waits on a logistics field (§7.6b).
+- [ ] Every clarification offered is one whose answers would produce materially different creative
+  identities, and every one offers a `You decide` option.
+- [ ] The card is revealed as soon as its artwork and ink resolution exist (§7.10).
+- [ ] The generation surface shows only artifacts the pipeline produced — no model reasoning, no
+  fabricated progress or completion percentages (§7.10).
 
-### Event Identity and diversity
-- [ ] Event Identity persists tone/color constraints and compatible family/tone/typography-category guidance.
-- [ ] Event Identity is the only stage that receives the raw host prompt; the planner, DesignIntent and composition calls read the persisted identity (§7.5).
-- [ ] Event Identity preserves supplied event facts exactly and invents none that the host did not supply, while inferring aesthetic implications freely (§7.5).
-- [ ] Named aesthetic references become original visual language; no logo, proprietary character or campaign artwork is reproduced (§7.6).
-- [ ] The sibling planner assigns three distinct compatible families whenever possible, then distinct tones, typography categories and hierarchies when the brief allows.
-- [ ] Siblings receive distinct structural directives (at least structure and opening differ) and attractive-token allotments (each token to at most one sibling in three).
-- [ ] Siblings never share an identical DesignIntent.
-- [ ] Tone diversity is used only when compatible with the brief.
-- [ ] Skeleton-signature collisions with siblings or redesign history at or above .70 are re-prompted once, then fall back to the library, and are recorded.
+### Event Identity and card direction
+- [ ] Event Identity persists tone/colour constraints, negative constraints and compatible
+  typography-category guidance.
+- [ ] Event Identity is the only stage that receives the raw host prompt; the card-design call reads
+  the persisted identity and the image model reads only the art brief and layout rule (§7.5,
+  §7.6a).
+- [ ] Supplied event facts are extracted exactly onto the draft for confirmation, none is invented,
+  and Event Identity carries no operational field (§7.5).
+- [ ] Named aesthetic references become original visual language; no logo, proprietary character or
+  campaign artwork appears in the identity, the art brief or the artwork (§7.6).
+- [ ] Each round generates exactly one design.
+- [ ] `Try another direction` passes the host's optional feedback and a summary of every earlier
+  direction; an exact repeat (layout, art mode and primary pairing) earns one re-prompt and is
+  recorded (§7.7).
+- [ ] Explicit tone and colour constraints are respected by every design.
 
-### DesignIntent, composition and compiler
-- [ ] Strong model returns `family`, `tonalDirection`, `palette`, `typographyPairing`, `density`, `composition`, `motifs`, plus a `presentation` object (`name`, `description`) that the compiler never reads.
-- [ ] Duplicate or invalid concept names fall back deterministically and are logged as compiler repairs.
-- [ ] The composition response validates against the strict schema; unknown keys, non-enum values, free text and unknown node types are rejected.
-- [ ] A schema-invalid composition is re-prompted exactly once with the validator's errors; a second failure falls back to a library page and is recorded.
-- [ ] The tree references only capabilities the event has; references to disabled capabilities are removed and logged as `capability` repairs; no disabled capability is required.
-- [ ] Every structural rule (nesting matrix, depth, box depth, limits, coverage, component placement, surface sequence, motif kind, responsive intent) is validated and repaired deterministically, with every repair logged by kind.
-- [ ] Attractive-token allotments are enforced: one re-prompt, then deterministic neutralization logged as a `planner` repair.
-- [ ] No structural, coverage, capability, responsive, box, motif-kind or fit repair calls a model.
-- [ ] Incompatible typography repairs deterministically and logs a compiler repair.
-- [ ] Motifs are placed only in slots of the matching kind; a wrong-kind motif is swapped and logged; nothing is dropped silently.
-- [ ] Content fit is verified against rendered geometry at 390 and 1280; a spec revision is final only with `verified.clean = true`; residual horizontal or text overflow is zero.
-- [ ] A content edit that affects fit produces a new immutable resolved-spec revision for the same concept (same composition hash, no model call) and moves `activeResolvedSpecId`; no persisted revision is mutated.
-- [ ] Capabilities derive from enabled features, the content profile from present content, and guest visibility from `FeaturePresentationState`; none of the three causes recomposition.
-- [ ] Concepts appear without waiting for the required-details form; provisional content is bounded, never published, and re-fit when real values arrive.
-- [ ] The static fit estimate never finalizes a spec on its own.
-- [ ] Raw palette is never directly consumed as renderer background/text/button semantics.
-- [ ] Semantic palette compiler produces all required event tokens.
-- [ ] Required normal text/button contrast clears 4.5:1.
-- [ ] Required non-text/focus contrast clears applicable 3:1 thresholds.
-- [ ] Palette-control unit test proves navy-on-navy states are impossible.
-- [ ] Compiler persists immutable, verified ResolvedDesignSpec.
-- [ ] DesignIntent + CompositionTree (raw and canonical) + ResolvedDesignSpec persist per concept with prompt, schema, primitive-set and compiler versions.
-- [ ] Routine rendering never recompiles old concepts against a newer compiler or primitive set.
-- [ ] The renderer has one fixed component per primitive and derives no CSS text from model output.
+### Card design, artwork and compiler
+- [ ] The card-design response validates against the strict schema; unknown keys, IDs outside the
+  layout, art-mode or pairing catalogs, and out-of-bounds strings are rejected; a schema failure is
+  re-prompted once, then shown as a visible failure with retry.
+- [ ] Layout/art-mode compatibility is validated and alternates differ from the primary pairing.
+- [ ] Model-drafted wording never contains a date, time, place or dress code, and uses names only
+  exactly as the host supplied them; a failing slot is re-prompted once, then replaced by standard
+  wording that is logged and editable. Host-supplied and host-edited wording is never fact-checked.
+- [ ] A host-supplied title is used verbatim.
+- [ ] The art prompt is assembled by code from the art brief, the layout's composition rule and the
+  global rules; it never contains the raw prompt.
+- [ ] Artwork is 5:7, decodable, at minimum resolution, contains no embedded text, and passes
+  content safety; a failure is regenerated once, then shown as a visible failure with retry; no
+  template or stock fallback exists.
+- [ ] Every card text clears 4.5:1 against the conservatively measured background of its zone;
+  otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
+- [ ] `layoutCard` decides every slot's size and line breaks; no text leaves its zone; no word is
+  broken; text is never silently truncated; slot limits are enforced at entry.
+- [ ] No legibility, fit, compatibility or wording-fallback step calls a model.
+- [ ] `CardDesign` (raw and validated), artwork, resolved ink and the version set persist per design
+  and are never mutated.
+- [ ] Host wording edits, font swaps and fact edits never mutate a design and never call a model.
+- [ ] Routine rendering never regenerates or recompiles a historical design.
 
-### Concept experience
-- [ ] Three concepts use live production renderer.
-- [ ] Mobile later concept trees may lazy-mount without layout shift.
-- [ ] Initial concept screen includes one `Try another direction` action beneath the set.
-- [ ] Concept selection changes design only.
-- [ ] Concept selection leads directly to full-site reveal.
-- [ ] Reveal offers `Make it yours` and `Try another direction`.
-- [ ] `Make it yours` converts same site into Creation Mode rather than dashboard navigation.
+### Card experience
+- [ ] The card is revealed from the same envelope guests see, with its name and description,
+  `Make it yours` and `Try another direction`.
+- [ ] The first design becomes active; later designs become active only when chosen.
+- [ ] Every design generated for the event is browsable before publish.
+- [ ] Choosing a design changes design only, never event details or data.
+- [ ] `Make it yours` turns the same invitation into Creation Mode rather than navigating to a
+  dashboard.
 
 ### Creation Mode
-- [ ] Renderer sections expose stable collaborator-action anchors.
+- [ ] The card and every page section expose stable collaborator-action anchors.
 - [ ] Contextual Edit/Set up/Add controls are app-styled and absent for guests.
+- [ ] Card wording is editable in place; missing required facts show as placeholders marked as
+  needing confirmation and are never published.
 - [ ] Routine edits autosave.
 - [ ] Guest workspace returns to prior Creation Mode context.
 - [ ] Setup checklist separates publish blockers from recommended work.
-- [ ] `Ready to publish` can appear even if guests/registry are incomplete.
-- [ ] Design controls expose only curated palette/typography + reset/redesign.
+- [ ] `Ready to publish` can appear even if guests/registry/invitations are incomplete.
+- [ ] Design controls expose only the design's font pairings, reset, `Try another direction` and the
+  designs list.
 
-### Redesign
-- [ ] Redesign available from concepts/reveal/Design before publish.
-- [ ] Feedback/inspiration optional.
-- [ ] UI explicitly reassures that event content remains untouched.
-- [ ] Current concept remains active while new concepts are reviewed.
-- [ ] User can choose new, keep current, or refine again.
+### Try another direction
+- [ ] Available from the reveal and Creation Mode before publish.
+- [ ] Feedback and new inspiration are optional.
+- [ ] UI explicitly reassures that event details remain untouched.
+- [ ] The current design remains active while a new one is revealed.
+- [ ] The user can choose the new one, keep the current one, or try again.
 - [ ] No user-facing credits/counters.
-- [ ] Post-publish AI redesign/concept switching disabled.
+- [ ] Generation and design switching are disabled after publish.
 
-### Renderer proof
-- [ ] Unit tests cover the library's validity and canonicalization, every repair rule with a fixture, schema-invalid rejection, attractive-token detectors, planner distinctness and signature calibration.
-- [ ] Every adversarial fixture repairs to zero remaining violations and renders with zero overflow at 390 and 1280; every schema-invalid payload is rejected with a rule and path.
-- [ ] Every library silhouette and section recipe validates and renders through the primitive renderer.
-- [ ] A sibling-batch confirmation run meets the thresholds of §11.9 and is reported as separate schema, repair, geometry, invention, token-distribution, collision and review metrics.
-- [ ] Guest surfaces are themed and coherent beyond the hero.
-- [ ] Tone/palette control remains accessible after the compiler.
-- [ ] Mobile guest flow may converge structurally without being considered a failure.
+### Card rendering and envelope
+- [ ] One card component renders the card everywhere: reveal, Creation Mode, Preview, guest page and
+  link previews.
+- [ ] The card is identical in proportion, line breaks and layout at 390px and 1280px.
+- [ ] Every layout × pairing renders worst-case content in a real browser with no text outside its
+  zone (test-time fixture).
+- [ ] Card text is live, selectable and screen-reader readable; artwork is decorative.
+- [ ] The envelope opens to the card; reduced motion shows the card without the animation.
+- [ ] A private event reached by the shared link shows only the sealed envelope with the title until
+  the code is entered; a personal link needs no code (the envelope still opens on the guest's
+  action).
+- [ ] Link previews show the card for a public event and the sealed envelope for a private one.
+- [ ] The page beneath the card uses the house style for every event and takes no styling from the
+  card.
 
 ### RSVP
 - [ ] Manual add requires phone or explicit no-phone acknowledgement.
 - [ ] CSV with missing phone rows imports and flags Needs phone.
-- [ ] Guest lookup does not expose contact info.
-- [ ] Phone-backed party requires OTP.
+- [ ] Every party has a personal invitation link that identifies it without OTP, skips the private
+  code, and can be rotated by the host; it resolves only once the event is published.
+- [ ] A bare request for a personal link returns only the closed envelope; the card, page and party
+  session load only when the guest opens it.
+- [ ] An opted-out party is treated like Needs phone on the shared-link path, and no OTP or
+  return-link text is sent to it.
+- [ ] Shared-link guest lookup does not expose contact info.
+- [ ] On the shared-link path, a phone-backed party requires OTP.
 - [ ] OTP throttling includes party/phone and requester/event limits.
 - [ ] No-phone override path works.
-- [ ] Needs-phone party cannot expose RSVP.
+- [ ] A Needs-phone party cannot RSVP through the shared-link path.
 - [ ] Guest-party session scopes event + party.
-- [ ] RSVP confirmation + magic-link update path works.
+- [ ] RSVP confirmation and personal-link update path work.
 - [ ] RSVP remains invite-only.
 
 ### Registry
 - [ ] External registry is destination-only; no item sync claim.
 - [ ] Native item safe metadata/image attempt + manual fallback.
 - [ ] Product images normalized/stored, no retailer hotlinks.
-- [ ] Placeholder is themed.
+- [ ] Placeholder uses the house style.
 - [ ] Buy click does not reserve/change public availability.
 - [ ] Optional return confirmation can mark purchased.
 - [ ] Host/co-host may correct purchase quantity/state.
 - [ ] Purchaser identity is never public.
 - [ ] Cash fund processes no payment.
 
-### Messaging/privacy
-- [ ] Host attestation before platform messaging.
-- [ ] STOP/opt-out honored.
+### Invitations, messaging and privacy
+- [ ] Invitations can be sent only after publish and only after host attestation.
+- [ ] Each invitation is one text carrying that party's personal link; parties without a usable phone
+  are listed with a copyable link instead.
+- [ ] Invitations go by text only; per-party invitation caps hold.
+- [ ] Invitation status (not sent / sent / delivery failed / opted out) is visible per party.
+- [ ] STOP/opt-out honored across invitations, reminders and announcements.
 - [ ] No email bypass after opt-out.
 - [ ] Private code stored encrypted once.
 - [ ] Private code attempts rate-limited.
-- [ ] Private hero visible before code; protected content remains locked.
+- [ ] Nothing on the card or page is visible before the code on the shared-link path, other than the
+  event title on the sealed envelope.
 - [ ] QR does not bypass code.
 
 ### Roles/publishing
@@ -2468,65 +2242,89 @@ The host should feel:
 - [ ] Owner-only billing/co-host management/delete.
 - [ ] Co-host may publish after payment satisfied.
 - [ ] READY_TO_PUBLISH uses exactly §23.1.
-- [ ] Guests/registry/co-host/inspiration are not publish prerequisites.
+- [ ] Guests/registry/invitations/co-host/inspiration are not publish prerequisites.
 - [ ] Publish gate displays $49 one-time.
-- [ ] Post-publish allowed operations work; AI redesign does not.
+- [ ] Post-publish allowed operations work; generation and design switching do not.
 
 ### Responsive/accessibility
 - [ ] Complete owner/co-host and guest flows work around 390px.
 - [ ] Desktop is real responsive desktop, not phone-frame UI.
 - [ ] Preview on larger screens has Mobile/Desktop width toggle.
 - [ ] App chrome is light-only MVP.
-- [ ] Renderer and app meet WCAG 2.2 AA targets described in design docs.
+- [ ] App, card and guest page meet WCAG 2.2 AA targets described in the design docs.
 
 ## 32. Implementation Guardrails for Coding Agents
 
-1. Revision 6 and its companion docs are authoritative over older prototypes/specs.
+1. Revision 7 and its companion docs are authoritative. The Revision 6 website architecture is
+   retired; do not rebuild any part of it.
 2. Do not add features because they are conventional for event apps.
 3. Landing page is the prompt; do not reinsert signup before the user can describe the event.
-4. Do not begin strong-model generation for anonymous users.
+4. Do not begin strong-model or image-model generation for anonymous users.
 5. Preserve prompt/inspiration through auth exactly.
-6. Do not add a template gallery.
-7. Do not send concept selection to a generic pre-publish dashboard.
-8. Creation Mode is the actual event with contextual collaborator controls.
-9. Do not turn readiness into a wizard. Adaptive creative clarification (§7.6b) is the one permitted pre-concept question and is bounded: taste only, never logistics, never a gate on concepts appearing.
-10. Do not count optional Guests/Registry as publish blockers.
+6. Do not add a template, layout or artwork gallery.
+7. Do not send the card reveal to a generic pre-publish dashboard.
+8. Creation Mode is the invitation itself with contextual collaborator controls.
+9. Do not turn readiness into a wizard. Adaptive creative clarification (§7.6b) is the one
+   permitted pre-design question: taste only, never logistics, at most three.
+10. Do not count optional Guests/Registry/invitations as publish blockers.
 11. Do not build token/chat-level AI editing.
-12. Strong model returns a six-field DesignIntent (`family`, `composition`, no `heroArchetype`) plus non-design presentation metadata, and a `CompositionTree` of trusted primitives; nothing else.
-13. Do not add a model `overrides` block or any per-node color, font, size, pixel or free-text field.
-14. The model owns structure (nesting, grouping, hierarchy, relative size, section order and surfaces, alignment, structural motifs, mobile intent); the compiler owns execution (CSS, breakpoints, type scale, spacing, color, contrast, touch targets, overflow, nesting validity, RSVP/Registry semantics, business logic).
-15. Do not add a primitive, prop or token to the composition language without a proof run and a primitive-set version bump; never generate arbitrary HTML/layout/CSS/SVG.
-16. Scope every tree to the event's capabilities (enabled features, never content presence); never require or allow a reference to a disabled capability; guest visibility of sections and empty leaves is `FeaturePresentationState`, a render-time flag, never a recomposition.
-17. Validate the composition against the strict schema and the structural rules on every response, whatever the provider claims to enforce.
-18. Persist DesignIntent + CompositionTree (raw and canonical) + every ResolvedDesignSpec revision with prompt, schema, primitive-set and compiler versions; content edits append revisions, never mutate one.
-19. Render generated concept base from the resolved spec, one fixed component per primitive; derive no CSS text from model output.
-20. Generated design data is immutable; a content edit re-fits into a new revision of the same concept without a model call; renderer code bug/accessibility/responsive fixes are allowed.
-21. Repair structural, coverage, capability, responsive, box-depth, motif-kind and fit defects deterministically and log them by kind; re-prompt the model only for schema-invalid output, a token-cap violation or a selector collision, once each.
-22. Motifs must declare kind, roles and bounded opacity/scale steps; the tree places them in one of five structural slots, and the ornament direction is a hard cap on how many render. Suppression is explicit, logged and kept in the resolved spec.
-23. A motif of the wrong kind for its slot is swapped and logged; never dropped silently.
-24. Rendered-geometry verification at 390 and 1280 is authoritative; the static fit estimate never finalizes a spec; residual overflow must be zero.
-25. Raw palette roles are never consumed as backgrounds/text/buttons.
-26. Use semantic palette compiler + contrast validation.
-27. Palette/manual palette overrides run through the same compiler.
-28. Typography must use curated pairing IDs; compatibility is by family and hierarchy.
-29. The sibling planner gives each batch distinct intents, distinct directives and attractive-token allotments; never the same intent with different seeds.
-30. Accept mobile guest-surface structural convergence; do not damage usability to force layout novelty.
-31. The Phase A/A.1 recipes are a library (regression, examples, macros, calibration); do not turn them, directives or caps into a template menu.
-32. Do not add host-uploaded, stock or model-placed site imagery. Original AI-generated thematic artwork is approved for Phase 4 under §7.6a and is optional, art-directed and compiler-placed; it never arrives by pixel, by model-authored CSS, or on every concept by default.
-33. Native product thumbnail is content exception; never hotlink retailer image.
-34. Do not add retailer scraping/sync/proxies/anti-bot workarounds.
-35. Do not require guest accounts.
-36. Missing-phone CSV rows import as Needs phone.
-37. Rare no-phone RSVP requires explicit collaborator override.
+12. The models return exactly: an `EventIdentity`; a `CardDesign` (layout ID, art mode, pairing IDs,
+    bounded wording, art brief, presentation); and artwork. Nothing else.
+13. No model emits HTML, CSS, JavaScript, SVG, text colours, sizes, positions or line breaks.
+14. The model owns interpretation, the creative direction, the layout and art-mode choice, the
+    pairing choice, the wording and the art brief. Code owns facts, text placement, fit, ink,
+    contrast, panels, the envelope, the page, RSVP/registry semantics and business logic.
+15. Facts come only from host-supplied or host-confirmed event data. Never invent them, never let
+    wording state them, never infer them.
+16. Artwork contains no text. Never ask the image model to render words, and reject artwork that
+    contains them.
+17. The raw host prompt never reaches the image model, and inspiration images are never sent to it.
+18. Named references become original language; no logos, proprietary characters or campaign
+    artwork in a brief or an image.
+19. Validate every card-design response against the strict schema and catalogs, whatever the
+    provider claims to enforce.
+20. Re-prompt the card-design call only for a schema-invalid design, a model-wording fact-check
+    failure or an exact repeat of an earlier direction, once each; regenerate artwork once only for
+    failed validation; Event Identity and fact extraction get one repair retry each
+    (`docs/model-contracts.md §9`). Never call a model for legibility, fit or compatibility.
+21. No library, template or stock fallback. A failed generation is shown honestly with a retry.
+22. Choose ink and panels deterministically; every card text clears 4.5:1 against a conservatively
+    measured background.
+23. `layoutCard` is the only thing that sizes or breaks card text; the renderer never lets the
+    browser re-wrap card text; never truncate silently; enforce slot limits at entry.
+24. Adding or changing a layout, art mode or slot limit is a layout-set version bump and re-runs
+    the layout fixtures.
+25. Persist Event Identity, every `CardDesign` (raw and validated), artwork, resolved ink and the
+    version set; never mutate them; host edits live on the event.
+26. Render the card only through the one card component, from persisted design data and current
+    event content.
+27. Never regenerate, recompile or "upgrade" a historical design; renderer bug, accessibility and
+    responsive fixes are allowed.
+28. Typography uses curated pairing IDs only; the host's font control offers exactly the design's
+    primary and alternates.
+29. The page beneath the card is one house style for every event. Card styling never leaks into app
+    chrome or the page, and app chrome never leaks into the card.
+30. Each round generates one design and one artwork; never generate in bulk to pick from.
+31. No host-uploaded, stock or retrieved imagery on the card or page; the native product thumbnail
+    is the only content-image exception.
+32. Native product thumbnail is content; never hotlink a retailer image.
+33. Do not add retailer scraping/sync/proxies/anti-bot workarounds.
+34. Do not require guest accounts.
+35. Missing-phone CSV rows import as Needs phone.
+36. Rare no-phone RSVP requires explicit collaborator override.
+37. Personal invitation links are signed, scoped to event + party, rotatable, and never reveal
+    another party.
 38. Do not build gift reservations/timers/public claim state.
-39. Do not bypass STOP with email.
-40. Do not add maps/geocoding solely for timezone.
-41. Do not expose backend generation/spend counters.
-42. Do not add cancel/unpublish/refund/ownership-transfer workflows.
-43. Co-host remains near-parity except billing/access-management/deletion ownership controls.
-44. Implement READY_TO_PUBLISH exactly from §23.1.
-45. Measure latency; do not hide unbounded waits.
-46. Make the smallest implementation that satisfies the product.
+39. Do not bypass STOP with email. Invitations go by text only.
+40. Platform invitations only after publish, only after host attestation, only to parties with a
+    usable phone that have not opted out, within per-party caps.
+41. Do not add maps/geocoding solely for timezone.
+42. Do not expose backend generation/spend counters.
+43. Do not add cancel/unpublish/refund/ownership-transfer workflows.
+44. Co-host remains near-parity except billing/access-management/deletion ownership controls.
+45. Implement READY_TO_PUBLISH exactly from §23.1.
+46. Measure latency; do not hide unbounded waits.
+47. Make the smallest implementation that satisfies the product.
 
 If a decision conflicts with this principle, stop:
 
@@ -2536,162 +2334,111 @@ If a decision conflicts with this principle, stop:
 
 Intentionally deferred; may become roadmap items:
 
-- host-uploaded public-site imagery (hero/maternity/venue photos) with crop/position/edit controls;
-- broader event types;
-- custom domains;
-- invitations generated from Event Identity and invitation sending;
-- matching print assets, welcome signs, menus, thank-you cards;
+- email invitations;
+- envelopes addressed to each party, envelope liners or themed envelopes;
+- a card back, downloadable/printable card, matching print assets;
+- host photos on the card or page;
+- a themed event page that takes styling from the card;
+- broader event types; custom domains;
 - native gift reservation/hold behavior if real duplicate-purchase data justifies it;
-- SMS purchase nudges, richer click-log workflows, late confirmation/collision view;
+- SMS purchase nudges, richer click-log workflows;
 - photo galleries and post-event thank-you workflows;
 - deeper registry integrations, retailer partnerships, supported auto-sync;
 - group gifting, guest payments;
-- weighted diversity scoring after real-output data exists;
-- pricing tiers, advanced AI generation limits/credits, concierge design tier;
+- pricing tiers, advanced generation limits/credits, concierge design tier;
 - WhatsApp/international SMS;
-- event planning/operations beyond details, RSVP, and registry.
+- event planning/operations beyond details, RSVP and registry.
 
 ---
 
 ## 34. Known Limitations (Accepted for MVP)
 
+- A forwarded personal invitation link lets its holder view the event and RSVP for that party; the
+  host can rotate the link.
+- Invitations go by text only; guests without a usable phone receive their link however the host
+  sends it.
 - Native gift tracking is honor-system and can still duplicate.
 - External registries are not item-synchronized.
-- Rare no-phone RSVP path is intentionally weaker than OTP.
-- Missing-phone imported parties cannot RSVP until fixed/overridden.
+- The rare no-phone RSVP path is intentionally weaker than OTP.
+- Missing-phone imported parties cannot RSVP through the shared link until fixed, overridden or
+  sent their personal link.
 - Name lookup reveals minimal party-name existence to someone who can guess.
-- SMS can fail; STOP is not bypassed through email.
-- Published event visuals have no host photos or stock photography. Original AI-generated thematic artwork is approved for Phase 4 (§7.6a) and is not in the current build.
+- SMS can fail; STOP is not bypassed through email. A party that has opted out cannot verify by SMS
+  code on the shared-link path; the host sends it its personal link instead.
+- Generated artwork can miss the brief; `Try another direction` is the remedy, not an image editor.
+- Image-generation latency and cost vary and must be measured.
 - Native product thumbnail may be unavailable and must fall back gracefully.
 - Inspiration links may fail; uploaded screenshots are the reliable visual input.
 - Raw inspiration requires temporary private storage.
 - Amazon/native metadata may require manual entry.
 - Venue-text timezone inference may fall back to browser timezone.
 - Private event code is a convenience/privacy gate, not high-security auth.
-- AI latency/cost varies and must be measured.
 - No refunds/cancellation/ownership transfer.
-
-Renderer-specific accepted constraints:
-- Mobile guest information architecture may converge across compositions.
-- The model's creative control is structural and bounded by the primitive language; the compiler owns execution.
-- Direct host design controls do not expose motifs/density/treatments/primitives.
-- Any change to the composition language, validator, compiler, renderer rules or planner must pass the regression gates of §11.9 before it ships.
-- Renderer bug fixes may alter pixels on historical events while preserving their immutable design data/intent.
+- Renderer bug fixes may alter pixels on existing cards while preserving their immutable design
+  data.
 
 ## 35. Canonical MVP Flow
 
 ```text
 LANDING = PROMPT
     ↓
-Describe event
-+ optional private inspiration
+Describe event (+ optional private inspiration)
     ↓
-Create my event
+Create my invitation
     ↓
-Persist pre-auth draft
+Persist pre-auth draft → AUTH / SAVE (prompt + inspiration restored exactly)
     ↓
-AUTH / SAVE
-(prompt + inspiration restored exactly)
+Generation begins
+    ├── Event Identity (+ optional taste clarification, usually none)
+    ├── fact extraction → draft details for the host to confirm
+    └── optional detail entry while waiting
     ↓
-Strong-model generation begins
-    ├── Event Identity
-    └── missing required details collected in parallel
+Card design (layout, art mode, font pairing, wording, art brief)
     ↓
-Timezone inferred/validated
+Card artwork (image model; brief + layout rule only; no text)
     ↓
-Sibling planner assigns:
-  family, tone, typography category, hierarchy
-  structural directive
-  attractive-token allotment
+Deterministic compiler: validate · wording fact check · artwork checks · ink 4.5:1 · persist
     ↓
-3 DesignIntent calls in parallel
-    ↓
-3 composition calls in parallel
-    ↓
-Deterministic compiler per concept:
-  strict schema (one re-prompt at most)
-  structural repair by kind, capability scoping, token caps
-  typography compatibility, motif placement
-  semantic palette + contrast, layout resolution
-  rendered-geometry verification at 390 and 1280
-  signature check against siblings
-    ↓
-Persist:
-  DesignIntent
-  CompositionTree (raw, canonical)
-  ResolvedDesignSpec (verified) + versions
-    ↓
-3 live production-rendered concepts
-    ├── choose one
-    └── Try another direction
-    ↓
-FULL SITE REVEAL
-"Your event looks great. Let's make it real."
+CARD REVEAL — out of its envelope
+"Your invitation looks great. Let's make it real."
     ├── Make it yours
-    └── Try another direction
+    └── Try another direction (optional feedback → one new, different card)
     ↓
-CREATION MODE
-actual event site is the workspace
-    ├── contextual Event Details edit
-    ├── RSVP setup
-    ├── Registry add/setup
+CREATION MODE — the invitation is the workspace
+    ├── card wording (edit in place) · font (curated)
+    ├── details · description · info blocks
+    ├── RSVP setup · Registry add/setup
     ├── Guests → focused workspace
-    ├── Design → curated palette/type
-    ├── Preview
-    └── readiness pill
-          ├── Needed to publish
-          └── Recommended before sharing
+    ├── Preview (envelope included; mobile default, desktop toggle)
+    └── readiness pill: Needed to publish / Recommended before sharing
     ↓
-Optional redesign before publish
-(prompt refinement → 3 new intents → compile → choose/keep/refine)
+READY_TO_PUBLISH → $49 one-time gate → owner pays → owner/co-host publishes
     ↓
-PREVIEW
-exact guest renderer
-mobile default / desktop toggle on larger screens
-    ↓
-READY_TO_PUBLISH validation
-    ↓
-$49 one-time gate
-    ↓
-Owner satisfies payment
-    ↓
-Owner/co-host publishes
-    ↓
-URL + QR (+ separate code if private)
-    ↓
-Host distributes externally
+SHARE
+    ├── Send invitations by text (personal links; attestation; caps)
+    ├── copy a party's personal link
+    └── event URL + QR (+ separate code if private)
     ↓
 GUEST
+    ├── personal link → envelope opens → card → page → RSVP (party already identified)
+    └── shared link → (private? sealed envelope → code) → card → page
+                       → name lookup → OTP / no-phone fallback / Needs phone → RSVP
     ↓
-Private? finished hero → access code
+Confirmation → personal link for updates
     ↓
-Details
+Registry: external destination · native gift (private click → retailer → optional confirmation)
+          · cash fund (display only)
     ↓
-Name lookup
-    ├── phone-backed → SMS OTP → scoped session
-    ├── noPhoneAvailable → name fallback → scoped session
-    └── Needs phone → cannot expose RSVP
+POST-PUBLISH MANAGEMENT
+RSVPs · Guests · Messages · Registry · Share · Edit invitation
     ↓
-Party RSVP → confirmation → magic link
-    ↓
-Registry
-    ├── external destination → retailer
-    ├── native gift → private click → retailer
-    │      └── optional return confirmation
-    └── cash fund → display only
-    ↓
-POST-PUBLISH MANAGEMENT MODE
-RSVPs · Guests · Messages · Registry · Share · Edit site
-    ↓
-Event passes
-    ↓
-Thank-you state; registry remains accessible
+Event passes → thank-you state; registry remains accessible
 ```
 
 ## 36. North Star
 
-The product is successful when someone with **zero design skill and zero event-software knowledge** can describe the event they are imagining and receive a beautiful, functioning, cohesive event experience in minutes.
-
-The user should spend their time thinking about **their event**, not configuring software.
+The product is successful when someone with **zero design skill** can describe the event they are
+imagining and, in under a minute, open an invitation so specific to them that they want to send it
+to everyone — and then run the event's RSVPs and registry from their phone.
 
 > **AI should remove decisions, not create more decisions.**

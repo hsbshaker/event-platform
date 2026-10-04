@@ -2,7 +2,7 @@
  * Application chrome tokens — docs/design-system.md §6 (Revision-1 defaults).
  * Feature UI references these semantic tokens, never raw values (§23.2).
  * The application chrome is light-only for MVP (§5.3). Do not add dark-mode variants here.
- * Event-renderer theming lives in event-tokens.css and never leaks into app chrome (§23.7).
+ * Card typography lives in card-fonts.css and the card renderer, and never leaks into app chrome (§23.7).
  */
 :root {
   /* 6.1 Color */
