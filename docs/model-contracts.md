@@ -129,8 +129,9 @@ identity call returns no questions.
 A separate cheaper-model call reads the same raw prompt and returns only facts the prompt literally
 states — event type, hosts, baby name, date, time, venue, address — each as the host's exact
 string. Missing means absent. Its output is written to the event draft as values for the host to
-confirm, never to the identity: it is kept with the generation (`generations.artifacts.facts`) and
-pre-fills the details form, and an event field takes a value only when the host saves it. The fact check in `docs/model-evals/creative-understanding.json`
+confirm, never to the identity. The pipeline keeps it with the generation
+(`generations.artifacts.facts`); how those values reach the details form and the card is settled
+with the details form (Phase 5c). The fact check in `docs/model-evals/creative-understanding.json`
 (each case's `facts`) applies to this call.
 
 ---

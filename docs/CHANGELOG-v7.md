@@ -390,8 +390,9 @@ circles. Two decisions by the owner (2026-10-04):
 - **The event type is the host's words.** The design is told the event type the prompt states
   (verbatim), not the launch default, so "60th birthday" is not designed as a baby shower
   (`model-contracts.md §5.2`).
-- **Extracted facts are prefill.** They are kept with the generation and pre-fill the details
-  form; an event field changes only when the host saves it (`model-contracts.md §4.3`).
+- **Extracted facts are kept with the generation.** They are stored in
+  `generations.artifacts.facts`, never in the identity or the design's inputs; how they reach the
+  details form and the card is an owner question for Phase 5c (`model-contracts.md §4.3`).
 
 ## Still open
 
