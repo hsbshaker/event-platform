@@ -295,13 +295,21 @@ circles. Two decisions by the owner (2026-10-04):
   searches every size without them, so a name stays whole where a slightly smaller size keeps it
   whole.
 - **Formatted facts.** Date "Saturday, June 6", time "1:00 pm – 4:00 pm", RSVP-by "RSVP by May 30"
-  (no year on the card; the page carries the full date). When there is no venue name the card
-  shows the address's first line, the street; the full address is on the page.
+  (no year on the card; the page carries the full date), built by one producer, `cardContent`,
+  which Phase 5 uses to turn event fields into card text. When there is no venue name the card
+  shows the address's first line (up to its first comma or line break); the full address is on
+  the page.
 - **Entry checks** (`validateCardText`): characters the slot's curated faces cannot draw, length,
   and words too wide for the narrowest zone are refused with a plain message beside the field, in
   the details form and its server action (title, hosts, baby's name, venue name, the address's
   first line). The curated font files cover Latin-1 only, so names such as "Łucja" or "Nguyễn"
   are refused today; wider subsets are a launch item.
+- **Re-checked on six cards** (2026-10-04, $0.80): two new designs from approved briefs (a square
+  and an arch) and four shape switches to the 40% compositions, set with the real renderer and
+  every detail. Painted from the earlier artwork as a reference, the switches first kept the
+  subject at its old size (three of four needed the backing panel); the switch prompt now tells
+  the image model to make the subject smaller where the composition gives it less of the card,
+  and one of four needed it. The owner's verdict on those cards is pending.
 - **Square frames and corners** keep their text in a 260–740 band; their composition now names
   the middle 50% of the height to match.
 - **Card text rendering.** `text-rendering: geometricPrecision` on card text: Chromium hints small

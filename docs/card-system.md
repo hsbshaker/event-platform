@@ -250,14 +250,18 @@ Rules:
 - **Facts** render from event data. A fact the host has not supplied is absent from the published
   card. In Creation Mode a missing required fact shows as a placeholder marked as needing
   confirmation; placeholders are never published (`spec.md §7.3`).
-- **Slot limits** are part of the layout set and are enforced at entry, so fitting can never fail.
+- **Slot limits** are part of the layout set and are enforced at entry, so real content always fits
+  (§4.3 states the one exception: deliberately wide text within the limits).
   In `card_layouts_v2`: title 40 characters, invitation line 72, baby name 40, hosts 60, venue 60.
   The date, time and RSVP-by are formatted by code (`src/lib/card/facts.ts`) and are at most 23
   ("Wednesday, September 30"), 19 ("10:00 pm – 11:00 pm") and 20 ("RSVP by September 30")
   characters.
 - **The entry check** (`validateCardText`, `src/lib/card/entry.ts`) runs on everything the host
-  types that the card shows as typed — a host-supplied title, the baby name, the hosts and the venue
-  name — in the details form and, authoritatively, in its server action. It refuses, with a plain
+  types that the card shows as typed — a host-supplied title, the baby name, the hosts, the venue
+  name, and the address's first line (up to its first comma or line break) when there is no venue
+  name, since only then does the card show it — in the details form and, authoritatively, in its
+  server action. Clearing the venue name is refused when the card could not show the address's
+  first line in its place. It refuses, with a plain
   message beside the field: text over the slot limit; a word (or the part of a hyphenated word
   between hyphens) too wide for one line of the layout set's narrowest zone at the slot's minimum
   size in any curated pairing; and characters a curated face for the slot cannot draw ("The card
@@ -377,10 +381,13 @@ font size and line breaks:
 - measure from the fonts' own metrics — the curated fonts, or the font store's for a host font
   carried to a fresh layout (§2.6) — with a safety margin that absorbs browser rendering
   differences;
-- slot character limits and the entry check (§2.5) guarantee that every value accepted at entry
-  fits at the minimum size in every layout, supported shape and pairing. A test renders every
-  layout × supported shape × pairing with worst-case content in a real browser to prove it (§9),
-  with no exceptions.
+- slot character limits and the entry check (§2.5) make every value accepted at entry fit at the
+  minimum size in every layout, supported shape and pairing, for real content: a test renders
+  every layout × supported shape × pairing with worst-case content in a real browser to prove it
+  (§9), with no exceptions. The one gap is text deliberately made of wide letters within the limits
+  (a 40-character title of long all-capital words can need a fourth line in the narrowest zone).
+  `layoutCard` reports it, and the generated card fails visibly with a retry rather than
+  rendering; an entry bound on line count closes it before launch (`docs/development-plan.md`).
 
 The renderer sets exactly the lines and sizes this function returns; the browser does not re-wrap
 card text. The same function runs when the design is compiled, when a new design or shape is seeded
