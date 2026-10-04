@@ -395,11 +395,13 @@ circles. Two decisions by the owner (2026-10-04):
   marked as needing confirmation like a placeholder, and offered in the details form to confirm or
   correct. An unconfirmed value is never published and never given to the design as a fact
   (`spec.md §7.3`, a §31 criterion, `model-contracts.md §4.3`, `screen-spec.md`). Built in 5c.
-- **HEIC inspiration photos are converted on the server (owner decision).** They are accepted at
-  upload but the model takes only PNG, JPEG and WebP, so they reach it converted. The decoder is
-  not yet chosen: the common image library will not decode HEIC because its codec is
-  patent-encumbered, and the alternatives are LGPL builds of the same decoder, so the choice and
-  its licence are put to the owner before it is built, and recorded in `technology-decisions.md`.
+- **HEIC inspiration photos are converted in the browser (owner decision).** The model takes only
+  PNG, JPEG and WebP, and the common image library will not decode HEIC (its codec, HEVC, is
+  patent-encumbered; the Node alternatives are LGPL builds of the same decoder). So the upload page
+  turns a HEIC photo into a JPEG with the device's own decoder before sending it (Apple devices
+  read HEIC natively, and iPhones already convert on upload); a browser that cannot read it gets a
+  plain message asking for a JPEG or PNG. No server decoder and no new dependency. Built with the
+  inspiration work in Phase 5; until then HEIC uploads are stored but not sent to the model.
 
 ## Still open
 
