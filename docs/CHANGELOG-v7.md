@@ -340,17 +340,19 @@ circles. Two decisions by the owner (2026-10-04):
 - **The six re-checked cards: sendable.** The owner would send each. A few small overlaps of text
   and picture are acceptable because the host can nudge a text box in the card editor (Phase 6b).
   `card_art_v2` is still re-checked on the full corpus before the first real card (Phase 5).
-- **One repaint before a panel: yes.** An artwork that passes validation but would need the
-  legibility panel on the design's own shape is repainted once from the same art prompt, and the
-  panel is used only if the repaint needs it too. Code decides from ink resolution; at most one
-  extra image per artwork (a validation regeneration or the repaint, never both); about 6¢ and
-  30 s on the cards that need it. Small overlaps that leave the text legible without a panel do
-  not trigger it. A repaint that fails validation is dropped and the first artwork kept with the
-  panel; only the artwork the card shows is persisted. Updated: `spec.md §7.8`, §9.5, §10, a §31
-  criterion and guardrails #20 and #30; `card-system.md §3`; `model-contracts.md §7.3` and §9.
-  Open for the owner before Phase 5: which artwork the card shows when the repaint needs the panel
-  too (recommended: the first), and whether a shape switch's new artwork gets the same one repaint
-  for its own shape (recommended: yes, with the earlier artwork as the reference again).
+- **Repaints before a panel: yes.** An artwork that passes validation but would need the legibility
+  panel on the shape it was painted for is repainted from the same art prompt; the first artwork
+  that needs no panel is kept, and if none does, the original (first valid) artwork is kept with
+  the panel. The owner then lifted the one-repaint cap ("we don't have to cap the repaints at 1 if
+  they're cheap") and applied the rule to shape switches too. Each repaint costs about 6¢ but adds
+  about 30 s to the reveal, so the cap is **two extra images per artwork in all** (a validation
+  regeneration included): at most about 12¢ and a minute on the cards that need it; Phase 5
+  measures the rate and the cap can rise. Code decides from ink resolution; repaints are made one
+  at a time and stop at the first that clears, so it is a retry, never a pick from a batch
+  (guardrail #30). Small overlaps that leave the text legible without a panel do not trigger it. A
+  repaint that fails validation is dropped; only the artwork the card shows is persisted. Updated:
+  `spec.md §7.8`, §9.5, §10, a §31 criterion and guardrails #20 and #30; `card-system.md §3`;
+  `model-contracts.md §7.3` and §9; the `CLAUDE.md` pipeline sketch.
 - **Wider font coverage: Latin Extended and Vietnamese, in Phase 10.** Greek, Cyrillic and other
   scripts later.
 - **Spend limits for the test period:** a $20/day ceiling across all generation, at most 30

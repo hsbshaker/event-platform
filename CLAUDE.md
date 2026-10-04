@@ -134,7 +134,7 @@ host prompt + inspiration
 → art prompt assembled by code (brief + layout and shape rules + global rules) → image model → artwork
 → artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety   (one regeneration)
 → ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
-   (if the design's own shape needs a panel: one repaint from the same art prompt first — one extra image at most)
+   (while the artwork's shape would need a panel: repaint from the same art prompt — two extra images per artwork at most)
 → persisted, immutable CardDesign + artwork + ink + versions
 → layoutCard (sizes, line breaks) → one card component → envelope → house-style page
 → card editor (optional): host edits the text layer → CardCustomization (stored boxes and line breaks) → same card component
