@@ -41,15 +41,17 @@ function heif(brand: string): Uint8Array {
 
 describe("inspiration limits", () => {
   it("allows only the image types the composer accepts", () => {
-    expect([...ALLOWED_MIME_TYPES]).toEqual([
-      "image/png",
-      "image/jpeg",
-      "image/webp",
+    expect([...ALLOWED_MIME_TYPES]).toEqual(["image/png", "image/jpeg", "image/webp"]);
+    for (const type of ALLOWED_MIME_TYPES) expect(isAllowedMimeType(type)).toBe(true);
+    for (const type of [
       "image/heic",
       "image/heif",
-    ]);
-    for (const type of ALLOWED_MIME_TYPES) expect(isAllowedMimeType(type)).toBe(true);
-    for (const type of ["image/gif", "image/svg+xml", "application/pdf", "text/html", ""]) {
+      "image/gif",
+      "image/svg+xml",
+      "application/pdf",
+      "text/html",
+      "",
+    ]) {
       expect(isAllowedMimeType(type), type).toBe(false);
     }
   });

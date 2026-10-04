@@ -145,6 +145,33 @@ describe("removing an inspiration asset", () => {
   });
 });
 
+describe("HEIC and HEIF uploads", () => {
+  function heicBytes(brand: string): Uint8Array {
+    const bytes = new Uint8Array(32);
+    bytes.set([0x66, 0x74, 0x79, 0x70, ...[...brand].map((c) => c.charCodeAt(0))], 4);
+    return bytes;
+  }
+
+  it("refuses them by declared type, storing nothing", async () => {
+    for (const [type, brand] of [
+      ["image/heic", "heic"],
+      ["image/heif", "mif1"],
+    ]) {
+      await expect(
+        addInspirationToDraft({ name: "a.heic", type, bytes: heicBytes(brand) }),
+      ).rejects.toThrow("Add a PNG, JPEG or WebP image.");
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it("refuses HEIC bytes labelled as JPEG, storing nothing", async () => {
+    await expect(
+      addInspirationToDraft({ name: "a.jpg", type: "image/jpeg", bytes: heicBytes("heic") }),
+    ).rejects.toThrow("Add a PNG, JPEG or WebP image.");
+    expect(calls).toEqual([]);
+  });
+});
+
 describe("adding an inspiration asset", () => {
   it("stores the object and takes the row the database gave it", async () => {
     const asset = await addInspirationToDraft(file());
