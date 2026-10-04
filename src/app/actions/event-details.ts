@@ -9,6 +9,7 @@ import {
   type ApplyPatchResult,
   type EventPatchStore,
 } from "@/lib/events/apply-patch";
+import { cardTextFieldErrors } from "@/lib/events/card-text";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
@@ -161,6 +162,13 @@ export async function updateEventDetails(
     return { ok: false, error: "Check the highlighted fields.", fieldErrors };
   }
   const input = parsed.data;
+
+  // Words the card shows are refused at entry when the card could not show them (spec.md §31,
+  // "slot limits are enforced at entry"; docs/card-system.md §2.5).
+  const cardErrors = cardTextFieldErrors(input);
+  if (cardErrors) {
+    return { ok: false, error: "Check the highlighted fields.", fieldErrors: cardErrors };
+  }
 
   try {
     await requireEventAccess(eventId, "edit_event_content");

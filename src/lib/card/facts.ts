@@ -47,7 +47,7 @@ const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/;
 
 /** Between the start and end time: an en dash with spaces. */
-export const CARD_TIME_RANGE_SEPARATOR = " – ";
+export const CARD_TIME_RANGE_SEPARATOR = " \u2013 ";
 
 /**
  * The longest each formatted fact can be, in characters: "Wednesday, September 30",

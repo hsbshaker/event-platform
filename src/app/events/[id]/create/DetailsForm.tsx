@@ -11,6 +11,7 @@ import { Field } from "@/components/app/Field";
 import { Input } from "@/components/app/Input";
 import { InlineStatus } from "@/components/app/InlineStatus";
 import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
+import { cardTextFieldError, type CardTextField } from "@/lib/events/card-text";
 
 /**
  * The missing-details autosave form (spec.md §7.3, docs/design-system.md §3.7/§11,
@@ -178,6 +179,35 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
     void commit(patch, keys);
   }
 
+  /**
+   * A field the card shows as typed (hosts, baby's name, venue name): checked as the host types,
+   * with the same check the server action applies (`cardTextFieldError`). Text the card could not
+   * show is not saved; its message sits beside the field until the text changes.
+   */
+  function editCardText(field: CardTextField, value: string) {
+    const error = cardTextFieldError(field, value);
+    if (error) {
+      if (debounceTimers.current[field]) {
+        clearTimeout(debounceTimers.current[field]);
+        delete debounceTimers.current[field];
+      }
+      setFieldErrors((prev) => ({ ...prev, [field]: error }));
+      setFieldStatus((prev) => ({ ...prev, [field]: "error" }));
+      return;
+    }
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    saveDebounced(field, { [field]: value }, [field]);
+  }
+
+  function flushCardText(field: CardTextField, value: string) {
+    if (cardTextFieldError(field, value)) return;
+    flush(field, { [field]: value }, [field]);
+  }
+
   const rsvpLocalValue = useMemo(
     () => isoToLocalInputValue(rsvpDeadlineIso, timezone),
     [rsvpDeadlineIso, timezone],
@@ -275,9 +305,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
                   value={venueName}
                   onChange={(event) => {
                     setVenueName(event.target.value);
-                    saveDebounced("venueName", { venueName: event.target.value }, ["venueName"]);
+                    editCardText("venueName", event.target.value);
                   }}
-                  onBlur={() => flush("venueName", { venueName }, ["venueName"])}
+                  onBlur={() => flushCardText("venueName", venueName)}
                 />
               )}
             </Field>
@@ -306,9 +336,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
               value={hosts}
               onChange={(event) => {
                 setHosts(event.target.value);
-                saveDebounced("hosts", { hosts: event.target.value }, ["hosts"]);
+                editCardText("hosts", event.target.value);
               }}
-              onBlur={() => flush("hosts", { hosts }, ["hosts"])}
+              onBlur={() => flushCardText("hosts", hosts)}
             />
           )}
         </Field>
@@ -326,9 +356,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
               value={babyName}
               onChange={(event) => {
                 setBabyName(event.target.value);
-                saveDebounced("babyName", { babyName: event.target.value }, ["babyName"]);
+                editCardText("babyName", event.target.value);
               }}
-              onBlur={() => flush("babyName", { babyName }, ["babyName"])}
+              onBlur={() => flushCardText("babyName", babyName)}
             />
           )}
         </Field>

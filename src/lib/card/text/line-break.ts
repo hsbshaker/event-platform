@@ -44,7 +44,15 @@ const SPACES = /[ \t]+/;
  * A hyphen (HYPHEN-MINUS or HYPHEN) after a letter (or a letter's combining mark) and before a
  * letter: the break goes after it.
  */
-const HYPHEN_BETWEEN_LETTERS = /(?<=[\p{L}\p{M}][-‐])(?=\p{L})/u;
+const HYPHEN_BETWEEN_LETTERS = /(?<=[\p{L}\p{M}][-\u2010])(?=\p{L})/u;
+
+/**
+ * The unbreakable pieces of one word: the word split just after each hyphen between letters
+ * ("Montgomery-Whitworth" → "Montgomery-", "Whitworth"). A line never breaks inside a piece.
+ */
+export function wordPieces(word: string): string[] {
+  return word.split(HYPHEN_BETWEEN_LETTERS);
+}
 
 /** One unbreakable run of a paragraph, and whether a space precedes it. */
 interface Piece {
@@ -56,7 +64,7 @@ interface Piece {
 function piecesOf(words: readonly string[], hyphens: boolean): Piece[] {
   const pieces: Piece[] = [];
   for (const word of words) {
-    (hyphens ? word.split(HYPHEN_BETWEEN_LETTERS) : [word]).forEach((text, k) => {
+    (hyphens ? wordPieces(word) : [word]).forEach((text, k) => {
       pieces.push({ text, spaceBefore: k === 0 && pieces.length > 0 });
     });
   }
