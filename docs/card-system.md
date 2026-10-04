@@ -443,8 +443,9 @@ or the host's switch), the artwork for that shape's proportion, and the text lay
 (resolved ink and panels, the event's current content passed through `layoutCard`). Every text box
 renders its stored lines at its position, width, rotation and style; the browser never re-wraps
 them. It applies the shape's outline as a mask, clipping anything outside it. It is the same
-component in the generation reveal, Creation Mode, the card editor, Preview, the guest page and
-link-preview images.
+component in the generation reveal, Creation Mode, the card editor, Preview and the guest page. A
+link-preview image is the one other drawing of a card: from the same stored data, under this
+component's validation, held to it by a fixture (§6.4).
 
 ## 6.2 The envelope
 

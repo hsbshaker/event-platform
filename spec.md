@@ -1715,9 +1715,11 @@ see. Interaction design: `docs/design-system.md`, `docs/screen-spec.md`.
   browser never re-wraps card text, so the card reads the same at every size, for host and guests.
 - **Fonts.** Every font a card uses is served from the platform's own storage; guests' browsers
   never fetch fonts from a third party (`docs/technology-decisions.md §8.3`).
-- **One component.** The card renders through one card component everywhere — the editor, the
-  reveal, previews, the guest view and link previews. Positions are in card units and scale
-  uniformly.
+- **One component.** The card renders through one card component everywhere it is shown — the
+  editor, the reveal, previews and the guest view. Positions are in card units and scale
+  uniformly. The link-preview image is the one other drawing of a card: made on the server from
+  the same stored data, under the component's validation, and held to the component by a
+  test-time fixture (§11.10).
 - **The generated card's guarantees** (ink 4.5:1, fit, quiet regions) hold until the host changes
   something.
 
@@ -2425,8 +2427,10 @@ The host should feel:
 ### Card rendering and envelope
 - [ ] The card renders in its effective shape with the outline applied as a mask, identical at 390px
   and 1280px; the envelope fits portrait and square cards.
-- [ ] One card component renders the card everywhere: reveal, Creation Mode, the card editor,
-  Preview, guest page and link previews.
+- [ ] One card component renders the card everywhere it is shown: reveal, Creation Mode, the card
+  editor, Preview and the guest page. A link-preview image is drawn from the same stored data
+  under the component's validation, and a real-browser fixture shows every stored line where the
+  component sets it.
 - [ ] The card is identical in proportion, line breaks and layout at 390px and 1280px.
 - [ ] Every layout × pairing renders worst-case content in a real browser with no text outside its
   zone (test-time fixture).
@@ -2547,7 +2551,9 @@ The host should feel:
 25. Persist Event Identity, every `CardDesign` (raw and validated), artwork, resolved ink and the
     version set; never mutate them; host edits live on the event and in card customizations.
 26. Render the card only through the one card component — the card editor included — from
-    persisted design data, the host's customization and current event content.
+    persisted design data, the host's customization and current event content. The link-preview
+    image is the only other drawing of a card: from the same stored data, under the component's
+    validation, held to the component by a real-browser fixture; never a second layout.
 27. Never regenerate, recompile or "upgrade" a historical design; renderer bug, accessibility and
     responsive fixes are allowed.
 28. The card is one of the six shapes; outlines are code-defined masks, never model-drawn. The
