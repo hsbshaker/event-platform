@@ -60,6 +60,12 @@ describe("GET /dev/link-preview", () => {
     expect(pngSize(new Uint8Array(await response.arrayBuffer()))).toEqual([1200, 630]);
   }, 30_000);
 
+  it("refuses a title it cannot draw as unprocessable, not as a server error", async () => {
+    vi.stubEnv("ENABLE_DEV_FIXTURES", "1");
+    const response = await GET(request(`kind=envelope&title=${encodeURIComponent("Party 🎉")}`));
+    expect(response.status).toBe(422);
+  });
+
   it("refuses unknown fixture parameters", async () => {
     vi.stubEnv("ENABLE_DEV_FIXTURES", "1");
     for (const query of [

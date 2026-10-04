@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { validateCardText } from "@/lib/card/entry";
@@ -48,6 +51,26 @@ describe("envelopeTitleLines", () => {
   });
 });
 
+describe("the live envelope this restates", () => {
+  // The preview cannot read the component's CSS, so it restates the geometry it copies; change
+  // `Envelope.tsx` and this names what to change in `envelope-svg.ts`.
+  const source = readFileSync(
+    path.resolve(import.meta.dirname, "../../components/app/Envelope.tsx"),
+    "utf8",
+  );
+
+  it("has the size, title area and title type the preview draws", () => {
+    expect(source).toContain('portrait: "min(100%, calc(var(--width-narrow) * 0.64))"');
+    expect(source).toContain('style={{ top: "58%", bottom: "var(--space-6)" }}');
+    expect(source).toContain(
+      '"absolute inset-x-0 flex items-center justify-center px-4 text-center"',
+    );
+    expect(source).toContain(
+      'const TITLE_CLASSES = "line-clamp-3 break-words text-heading-md text-app-text"',
+    );
+  });
+});
+
 describe("envelopePreviewSvg", () => {
   it("draws the title in the app font, in app-token colours only", () => {
     const title = "Maya & Jonas: A Garden Supper Under the Stars";
@@ -84,9 +107,12 @@ describe("envelopePreviewSvg", () => {
     expect(Number(m![1])).toBeCloseTo(1 + 16 + (innerWidth - width) / 2, 2);
   });
 
-  it("sets Latin, Greek and Cyrillic titles from Inter's subsets, and refuses what Inter lacks", () => {
-    expect(() => envelopePreviewSvg("Łódź · Αθήνα · Москва · Hà Nội", font)).not.toThrow();
-    expect(() => envelopePreviewSvg("Party 🎉", font)).toThrow(UndrawableTextError);
+  it("sets a title from the Inter subset the app loads, and refuses what the app would not set in Inter", () => {
+    expect(() => envelopePreviewSvg("Zoë & Œdipe · Café “Ångström” – 10 €", font)).not.toThrow();
+    // The app loads Inter's latin subset only: a browser sets these in a system fallback face.
+    for (const title of ["Łódź", "Αθήνα", "Москва", "Hà Nội", "Party 🎉"]) {
+      expect(() => envelopePreviewSvg(title, font), title).toThrow(UndrawableTextError);
+    }
   });
 
   it("draws every character a title can hold: the entry check refuses the rest", () => {

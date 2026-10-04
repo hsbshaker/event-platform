@@ -21,8 +21,8 @@ import { HOUSE } from "./house-style";
 const W = HOUSE.widthNarrow * 0.64;
 const H = (W * 7) / 10;
 const BORDER = 1;
-/** `bottom: 1.75rem` under the title area. */
-const TITLE_BOTTOM = 28;
+/** `bottom: var(--space-6)` under the title area. */
+const TITLE_BOTTOM = HOUSE.space6;
 const MAX_TITLE_LINES = 3;
 const ELLIPSIS = "\u2026";
 

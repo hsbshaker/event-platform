@@ -25,9 +25,15 @@ import "server-only";
 
 import { ImageResponse } from "next/og";
 
-import { cardPreviewSvg, type CardPreviewData } from "@/lib/card/preview-svg.server";
-import type { GlyphOutlines, GlyphOutlinesResolver } from "@/lib/card/text/glyph-outlines";
+import { validateCardData } from "@/lib/card/card-data";
+import { artworkMime, cardPreviewSvg, type CardPreviewData } from "@/lib/card/preview-svg.server";
 import { loadCuratedGlyphOutlines } from "@/lib/card/text/curated-fonts";
+import { curatedFontUrl } from "@/lib/card/text/font-files";
+import {
+  UndrawableTextError,
+  type GlyphOutlines,
+  type GlyphOutlinesResolver,
+} from "@/lib/card/text/glyph-outlines";
 import type { FontRef } from "@/lib/card/text/metrics";
 
 import { loadAppFont } from "./app-font.server";
@@ -46,6 +52,18 @@ export interface PreviewImageOptions {
   loadCardFont?: (font: FontRef) => Promise<GlyphOutlines>;
 }
 
+/**
+ * The default face loader: the curated card faces. A face that is not one of them would be set by
+ * a browser in a fallback face, so it is refused like any other text the preview cannot draw.
+ */
+function loadCuratedFace(font: FontRef): Promise<GlyphOutlines> {
+  if (curatedFontUrl(font) === null) {
+    const style = font.italic ? " italic" : "";
+    throw new UndrawableTextError(`${font.family} ${font.weight}${style} is not a curated face`);
+  }
+  return loadCuratedGlyphOutlines(font);
+}
+
 const fontKey = (f: FontRef) => `${f.family}|${f.weight}|${f.italic ? "i" : "n"}`;
 
 async function cardOutlines(
@@ -53,8 +71,8 @@ async function cardOutlines(
   load: (font: FontRef) => Promise<GlyphOutlines>,
 ): Promise<GlyphOutlinesResolver> {
   const wanted = new Map<string, FontRef>();
-  for (const box of card.boxes ?? []) {
-    if (box?.lines?.length > 0 && box.font) wanted.set(fontKey(box.font), box.font);
+  for (const box of card.boxes) {
+    if (box.lines.length > 0) wanted.set(fontKey(box.font), box.font);
   }
   const loaded = new Map(
     await Promise.all([...wanted].map(async ([key, font]) => [key, await load(font)] as const)),
@@ -76,7 +94,15 @@ async function previewSvg(
     return { svg: envelopePreviewSvg(preview.title, font), ...PREVIEW_SIZE };
   }
   const { card } = preview;
-  const outlines = await cardOutlines(card, options.loadCardFont ?? loadCuratedGlyphOutlines);
+  // Validated before any font is loaded, so malformed data is always an `InvalidCardDataError`.
+  validateCardData({
+    shape: card.shape,
+    artworkProportion: card.artwork?.proportion,
+    panels: card.panels ?? [],
+    boxes: card.boxes,
+  });
+  artworkMime(card.artwork.bytes);
+  const outlines = await cardOutlines(card, options.loadCardFont ?? loadCuratedFace);
   const svg = cardPreviewSvg(card, outlines);
   const box = cardPreviewBox(card.shape);
   return { svg, width: box.width, height: box.height };

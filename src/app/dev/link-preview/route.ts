@@ -4,9 +4,10 @@ import type { NextRequest } from "next/server";
 import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
 import { CARD_LAYOUT_IDS, layoutSupportsShape, panelFor, zoneFor } from "@/lib/card/layouts";
 import { CARD_SHAPES, proportionOf, type CardShape } from "@/lib/card/shapes";
+import { UndrawableTextError } from "@/lib/card/text/glyph-outlines";
 import type { CardContent } from "@/lib/card/text-box";
 import { TYPOGRAPHY_KEYS, type TypographyPairingId } from "@/lib/card/typography";
-import { washArtwork } from "@/lib/link-preview/fixture-artwork";
+import { washArtwork } from "@/lib/link-preview/test-artwork";
 import { previewImage, type LinkPreview } from "@/lib/link-preview/preview-image.server";
 
 /**
@@ -101,7 +102,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     return badRequest("kind must be card or envelope");
   }
 
-  const png = await previewImage(preview);
+  let png: Uint8Array;
+  try {
+    png = await previewImage(preview);
+  } catch (error) {
+    // Text the preview cannot draw exactly (an emoji in a title): the request, not the server.
+    if (error instanceof UndrawableTextError) return new Response(error.message, { status: 422 });
+    throw error;
+  }
   const duration = performance.now() - started;
   return new Response(Buffer.from(png), {
     headers: {

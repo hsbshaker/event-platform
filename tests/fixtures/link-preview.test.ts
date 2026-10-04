@@ -10,12 +10,12 @@ import { InvitationCard, type CardPanel } from "@/components/card/InvitationCard
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { panelFor, zoneFor, type CardLayoutId } from "@/lib/card/layouts";
 import { canvasOf, proportionOf, type CardShape } from "@/lib/card/shapes";
-import { TYPICAL } from "@/lib/card/test-content";
-import type { TextBox } from "@/lib/card/text-box";
+import { TYPICAL, WORST } from "@/lib/card/test-content";
+import type { CardContent, TextBox } from "@/lib/card/text-box";
 import { CURATED_FONT_DIR } from "@/lib/card/text/test-fonts";
 import { loadCuratedGlyphOutlines } from "@/lib/card/text/curated-fonts";
 import type { TypographyPairingId } from "@/lib/card/typography";
-import { washArtwork } from "@/lib/link-preview/fixture-artwork";
+import { washArtwork } from "@/lib/link-preview/test-artwork";
 import { cardPreviewBox, PREVIEW_SIZE } from "@/lib/link-preview/geometry";
 import { HOUSE } from "@/lib/link-preview/house-style";
 import { previewImage } from "@/lib/link-preview/preview-image.server";
@@ -51,8 +51,12 @@ import { REPO_ROOT, startStaticServer, type StaticServer } from "./static-server
  *    vertical positions raw: it measures where Chromium put each line's baseline — a zero-size
  *    inline-block at `vertical-align: baseline` appended to every rendered line after the
  *    screenshot, read back with `getBoundingClientRect` and taken into the box's own frame — and
- *    subtracts that line's distance from the exact baseline (up to about 1px at preview scale)
- *    before comparing centroids. Nothing about Blink's rounding is modelled, so the comparison holds
+ *    subtracts that line's distance from the exact baseline before comparing centroids. That
+ *    distance is Blink's pixel snapping, up to about 2px at preview scale. The preview draws with
+ *    the same vertical model as the exact baseline, so a wrong model (ascent, descent,
+ *    half-leading, the opsz instance) would move both alike and pass the centroid check; the model
+ *    is therefore checked on its own, against Chromium's baselines with the card laid out at
+ *    `LARGE_SCALE` px per unit, where snapping is half a card unit. Nothing about Blink's rounding is modelled, so the comparison holds
  *    whatever `text-rendering` mode or Chromium version runs. (An earlier version modelled the
  *    rule — whole-pixel ascent and descent, a floored half-leading, a whole-pixel baseline — which
  *    matched Blink's default text rendering exactly; `text-rendering: geometricPrecision`, which
@@ -64,9 +68,10 @@ import { REPO_ROOT, startStaticServer, type StaticServer } from "./static-server
  *    by up to 1px (measured over the cases below; `test-results/link-preview/report.json`). The
  *    tolerances sit just above that. A disagreement in line placement is far larger: a different
  *    break moves a whole word (tens of px), a wrong alignment, letter spacing or advance moves a
- *    line's ends by several px, a wrong baseline model (ascent, half-leading, opsz) moves lines
- *    vertically by px — and the negative control moves one line by 2px (5 card units at 0.4 px
- *    per unit) and is caught.
+ *    line's ends by several px, a wrong baseline model (ascent, half-leading, opsz) moves the
+ *    measured baseline by px. Three negative controls are caught: the title moved 2px along the
+ *    line (5 card units at 0.4 px per unit), the card moved 2px down, and a vertical model 2px off
+ *    on both sides.
  *
  * Contact sheet for review (gitignored): `test-results/link-preview/`.
  */
@@ -79,6 +84,16 @@ const PANEL_COLOR = "#FBF8F3";
 const CENTROID_TOLERANCE_PX = 0.75;
 /** The line's ends (where its ink reaches 2% and 98% along it), px. */
 const EDGE_TOLERANCE_PX = 1.25;
+/**
+ * The vertical model, checked on its own. The preview draws each baseline with the same model
+ * (ascent, descent, half-leading, the opsz instance) as the exact baseline the centroids are
+ * corrected by, so a wrong model would move both alike and pass the centroid check. Chromium lays
+ * the same card out at `LARGE_SCALE` px per card unit, where Blink's pixel snapping (up to about
+ * 2px at any scale) is half a card unit, and each line's baseline must sit within
+ * `VERTICAL_MODEL_TOLERANCE_UNITS` of the exact one.
+ */
+const LARGE_SCALE = 4;
+const VERTICAL_MODEL_TOLERANCE_UNITS = 0.6;
 /** Total ink of a line, as a ratio between the renderers. */
 const INK_RATIO_TOLERANCE = 0.2;
 /** A pixel is inked at this change in luminance (of 255) for the edge measure. */
@@ -97,11 +112,23 @@ interface Case {
   shape: CardShape;
   pairing: TypographyPairingId;
   panel: boolean;
+  /** The card's words: typical unless given. */
+  content?: CardContent;
   /** Customize the generated boxes, as a host would in the editor. */
   edit?: (boxes: TextBox[]) => TextBox[];
 }
 
 const CASES: Case[] = [
+  {
+    // Every slot at its entry limit, in spaced capitals where the pairing sets them: where an
+    // advance or spacing disagreement shows first.
+    id: "worst-case-art-top-square",
+    layout: "art-top",
+    shape: "square",
+    pairing: "soft_fraunces_manrope",
+    panel: false,
+    content: WORST,
+  },
   {
     id: "art-top-arch",
     layout: "art-top",
@@ -192,6 +219,8 @@ interface Rendered {
   previewMs: number;
   /** Per box, per line: Chromium's measured baseline, px, relative to the exact one (+ is lower). */
   snap: Map<string, number[]>;
+  /** The same at `LARGE_SCALE`, in card units: the vertical model's error plus Blink's snapping. */
+  model: Map<string, number[]>;
 }
 const rendered = new Map<string, Rendered>();
 
@@ -273,6 +302,23 @@ async function renderChromium(
   return { png, baselines: await measureBaselines() };
 }
 
+/** Chromium's baselines for the card already rendered with text, laid out at `LARGE_SCALE`. */
+async function largeBaselines(c: Case, boxes: readonly TextBox[]) {
+  const canvas = canvasOf(c.shape);
+  await page.setViewportSize({
+    width: canvas.width * LARGE_SCALE,
+    height: canvas.height * LARGE_SCALE,
+  });
+  await page.goto(`${server.origin}/page/${c.id}-text.html`, { waitUntil: "load" });
+  await page.evaluate(() => document.fonts.ready);
+  const width = await page.evaluate(
+    () => document.querySelector("[data-card-face]")!.getBoundingClientRect().width,
+  );
+  expect(width).toBeCloseTo(canvas.width * LARGE_SCALE, 3);
+  const shifts = await chromiumBaselineShift(c.shape, boxes, await measureBaselines(), LARGE_SCALE);
+  return new Map([...shifts].map(([id, px]) => [id, px.map((v) => v / LARGE_SCALE)]));
+}
+
 /**
  * Where Chromium laid out each line's baseline, in page px: a zero-size inline-block at
  * `vertical-align: baseline` appended to each line element. Run after the screenshot, so the
@@ -306,8 +352,8 @@ async function chromiumBaselineShift(
   shape: CardShape,
   boxes: readonly TextBox[],
   measured: Record<string, { x: number; y: number }[]>,
+  scale = cardPreviewBox(shape).scale,
 ): Promise<Map<string, number[]>> {
-  const scale = cardPreviewBox(shape).scale;
   const out = new Map<string, number[]>();
   for (const box of boxes) {
     if (box.lines.length === 0) continue;
@@ -413,6 +459,8 @@ interface Comparison {
   lines: number;
   maxCentroid: number;
   maxEdge: number;
+  maxBaselineSnap: number;
+  maxModelError: number;
   worstInkRatio: number;
   meanAbsDiff: number;
   failures: string[];
@@ -422,13 +470,15 @@ function compare(
   id: string,
   shape: CardShape,
   boxes: readonly TextBox[],
-  r: Pick<Rendered, "preview" | "previewBlank" | "chromium" | "chromiumBlank" | "snap">,
+  r: Pick<Rendered, "preview" | "previewBlank" | "chromium" | "chromiumBlank" | "snap" | "model">,
 ): Comparison {
   const a = lineInk(shape, boxes, r.preview, r.previewBlank);
   const b = lineInk(shape, boxes, r.chromium, r.chromiumBlank);
   const failures: string[] = [];
   let maxCentroid = 0;
   let maxEdge = 0;
+  let maxBaselineSnap = 0;
+  let maxModelError = 0;
   let worstInkRatio = 1;
   a.forEach((la, i) => {
     const lb = b[i];
@@ -438,6 +488,18 @@ function compare(
       return;
     }
     const shift = r.snap.get(la.box)?.[la.line] ?? 0;
+    maxBaselineSnap = Math.max(maxBaselineSnap, Math.abs(shift));
+    const model = r.model.get(la.box)?.[la.line];
+    if (model === undefined) {
+      failures.push(`${where}: no baseline measured at ${LARGE_SCALE} px per unit`);
+    } else {
+      maxModelError = Math.max(maxModelError, Math.abs(model));
+      if (Math.abs(model) > VERTICAL_MODEL_TOLERANCE_UNITS) {
+        failures.push(
+          `${where}: Chromium's baseline is ${model.toFixed(2)} units from the exact one at ${LARGE_SCALE} px per unit`,
+        );
+      }
+    }
     const centroid = Math.max(Math.abs(la.cx - lb.cx), Math.abs(la.cy + shift - lb.cy));
     const edge = Math.max(Math.abs(la.left - lb.left), Math.abs(la.right - lb.right));
     const ratio = Math.min(la.ink, lb.ink) / Math.max(la.ink, lb.ink);
@@ -467,6 +529,8 @@ function compare(
     lines: a.length,
     maxCentroid,
     maxEdge,
+    maxBaselineSnap,
+    maxModelError,
     worstInkRatio,
     meanAbsDiff: diff / (r.preview.width * r.preview.height),
     failures,
@@ -484,7 +548,7 @@ beforeAll(async () => {
       layout: c.layout,
       shape: c.shape,
       pairing: c.pairing,
-      content: TYPICAL,
+      content: c.content ?? TYPICAL,
       ink: INK,
     });
     const boxes = c.edit ? c.edit(generated) : generated;
@@ -505,6 +569,7 @@ beforeAll(async () => {
       chromiumBlank: decodePng((await renderChromium(c, base, false)).png),
       previewMs: withText.ms,
       snap: await chromiumBaselineShift(c.shape, boxes, chromium.baselines),
+      model: await largeBaselines(c, boxes),
     });
   }
 }, 600_000);
@@ -579,6 +644,7 @@ describe("the preview cannot disagree with the live card", () => {
         chromium: r.chromium,
         chromiumBlank: r.chromiumBlank,
         snap: r.snap,
+        model: r.model,
       });
       results.push(result);
       expect(result.lines).toBeGreaterThan(0);
@@ -609,8 +675,51 @@ describe("the preview cannot disagree with the live card", () => {
       chromium: r.chromium,
       chromiumBlank: r.chromiumBlank,
       snap: r.snap,
+      model: r.model,
     });
     expect(result.failures.some((f) => f.startsWith("title"))).toBe(true);
+  });
+
+  it("catches a line moved two pixels down (negative control)", () => {
+    const c = CASES[0];
+    const r = rendered.get(c.id)!;
+    const preview = cropCard(r.preview, c.shape);
+    const shifted = { ...preview, rgba: new Uint8Array(preview.rgba) };
+    const rowBytes = preview.width * 4;
+    // The whole card two rows down: every line's centroid moves 2px across the line.
+    shifted.rgba.set(preview.rgba.subarray(0, preview.rgba.length - 2 * rowBytes), 2 * rowBytes);
+    const blank = cropCard(r.previewBlank, c.shape);
+    const blankShifted = { ...blank, rgba: new Uint8Array(blank.rgba) };
+    blankShifted.rgba.set(blank.rgba.subarray(0, blank.rgba.length - 2 * rowBytes), 2 * rowBytes);
+    const result = compare("control", c.shape, r.boxes, {
+      preview: shifted,
+      previewBlank: blankShifted,
+      chromium: r.chromium,
+      chromiumBlank: r.chromiumBlank,
+      snap: r.snap,
+      model: r.model,
+    });
+    expect(result.failures.some((f) => /^title line \d+: centroid/.test(f))).toBe(true);
+  });
+
+  it("catches a wrong vertical model shared by both sides (negative control)", () => {
+    // A baseline model two pixels low moves the preview's lines and the exact baseline alike, so
+    // the corrected centroids still agree (the preview and `snap` are left as they are); only the
+    // distance from Chromium's baseline to the exact one, measured at the large scale, changes.
+    const c = CASES[0];
+    const r = rendered.get(c.id)!;
+    const offBy = (m: Map<string, number[]>, d: number) =>
+      new Map([...m].map(([id, shifts]) => [id, shifts.map((s) => s + d)]));
+    const result = compare("control", c.shape, r.boxes, {
+      preview: cropCard(r.preview, c.shape),
+      previewBlank: cropCard(r.previewBlank, c.shape),
+      chromium: r.chromium,
+      chromiumBlank: r.chromiumBlank,
+      snap: r.snap,
+      model: offBy(r.model, -2 / cardPreviewBox(c.shape).scale),
+    });
+    expect(result.failures.some((f) => /^title line \d+: centroid/.test(f))).toBe(false);
+    expect(result.failures.some((f) => /^title line \d+: Chromium's baseline/.test(f))).toBe(true);
   });
 
   afterAll(() => {
@@ -619,7 +728,12 @@ describe("the preview cannot disagree with the live card", () => {
       path.join(OUT_DIR, "report.json"),
       JSON.stringify(
         {
-          tolerances: { CENTROID_TOLERANCE_PX, EDGE_TOLERANCE_PX, INK_RATIO_TOLERANCE },
+          tolerances: {
+            CENTROID_TOLERANCE_PX,
+            EDGE_TOLERANCE_PX,
+            VERTICAL_MODEL_TOLERANCE_UNITS,
+            INK_RATIO_TOLERANCE,
+          },
           results,
           timings,
         },
@@ -631,7 +745,7 @@ describe("the preview cannot disagree with the live card", () => {
       results
         .map(
           (x) =>
-            `${x.id}: ${x.lines} lines, centroid ≤ ${x.maxCentroid.toFixed(3)} px, edge ≤ ${x.maxEdge.toFixed(3)} px, ink ratio ≥ ${x.worstInkRatio.toFixed(3)}, mean |Δ| ${x.meanAbsDiff.toFixed(2)}`,
+            `${x.id}: ${x.lines} lines, centroid ≤ ${x.maxCentroid.toFixed(3)} px, edge ≤ ${x.maxEdge.toFixed(3)} px, baseline snap ≤ ${x.maxBaselineSnap.toFixed(3)} px, model ≤ ${x.maxModelError.toFixed(3)} units, ink ratio ≥ ${x.worstInkRatio.toFixed(3)}, mean |Δ| ${x.meanAbsDiff.toFixed(2)}`,
         )
         .join("\n"),
     );

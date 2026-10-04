@@ -27,4 +27,6 @@ export const HOUSE = {
   widthNarrow: 560,
   /** `--space-4`, px: the title's side padding (`px-4`). */
   space4: 16,
+  /** `--space-6`, px: the space under the title area (`bottom: var(--space-6)`). */
+  space6: 24,
 } as const;

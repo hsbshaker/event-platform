@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { flatArtwork } from "@/lib/link-preview/fixture-artwork";
+import { flatArtwork } from "@/lib/link-preview/test-artwork";
 
 import { InvalidCardDataError } from "./card-data";
 import { outlinePath } from "./outline";

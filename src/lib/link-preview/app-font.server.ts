@@ -1,6 +1,6 @@
 /**
  * The app's own font for link-preview images: Inter, the application chrome family
- * (`docs/design-system.md §6.2`), as the same files the app serves.
+ * (`docs/design-system.md §6.2`), from the same file the app serves for the subset it loads.
  *
  * The app loads Inter through `next/font/google`, which self-hosts Google Fonts' variable Inter
  * (`wght` 100–900) as WOFF2 files split by `unicode-range` subset. `ImageResponse` (satori) cannot
@@ -8,14 +8,15 @@
  * instance, not at the heading weight (650). So, like card text (`card/text/glyph-outlines.ts`),
  * the envelope title is drawn as HarfBuzz glyph outlines at `wght` 650, from copies of those
  * subset files kept in `./fonts` (Inter v20 from Google Fonts, SIL Open Font License 1.1; the
- * files are byte-identical to what `next/font/google` serves — the latin one is also the card's
+ * latin file is byte-identical to what `next/font/google` serves for the app, and to the card's
  * curated Inter, kept separately because card fonts belong to the card renderer only).
  *
  * Each character is set in the first subset, in CSS's order (the last `@font-face` rule defined
  * is tried first), whose `unicode-range` holds it and whose file has its glyph — what a browser
- * does with `next/font`'s rules. A character no subset covers (an emoji, CJK) would be set by a
- * browser in a system font the server does not have; drawing it is refused
- * (`UndrawableTextError`), never substituted.
+ * does with `next/font`'s rules. A character no loaded subset covers (Greek, Cyrillic, an emoji)
+ * would be set by a browser in a system font the server does not have; drawing it is refused
+ * (`UndrawableTextError`), never substituted. No stored title reaches that: the title's entry
+ * check refuses everything the latin subset lacks (`envelope-svg.test.ts`).
  */
 
 import "server-only";
@@ -31,7 +32,12 @@ import {
 
 const FONT_DIR = path.join(process.cwd(), "src", "lib", "link-preview", "fonts");
 
-/** Google Fonts' Inter subsets, most preferred first (the reverse of their CSS order). */
+/**
+ * The Google Fonts Inter subsets the app loads (`src/app/layout.tsx`: `subsets: ["latin"]`), most
+ * preferred first (the reverse of their CSS order). Only these are drawn: a character outside them
+ * the live envelope sets in a system fallback face, so the preview refuses it. Add a subset here in
+ * step with the app (`app-font.test.ts` holds the two lists equal).
+ */
 export const INTER_SUBSETS: readonly { name: string; ranges: readonly [number, number][] }[] = [
   {
     name: "latin",
@@ -55,79 +61,6 @@ export const INTER_SUBSETS: readonly { name: string; ranges: readonly [number, n
       [0x2215, 0x2215],
       [0xfeff, 0xfeff],
       [0xfffd, 0xfffd],
-    ],
-  },
-  {
-    name: "latin-ext",
-    ranges: [
-      [0x0100, 0x02ba],
-      [0x02bd, 0x02c5],
-      [0x02c7, 0x02cc],
-      [0x02ce, 0x02d7],
-      [0x02dd, 0x02ff],
-      [0x0304, 0x0304],
-      [0x0308, 0x0308],
-      [0x0329, 0x0329],
-      [0x1d00, 0x1dbf],
-      [0x1e00, 0x1e9f],
-      [0x1ef2, 0x1eff],
-      [0x2020, 0x2020],
-      [0x20a0, 0x20ab],
-      [0x20ad, 0x20c0],
-      [0x2113, 0x2113],
-      [0x2c60, 0x2c7f],
-      [0xa720, 0xa7ff],
-    ],
-  },
-  {
-    name: "vietnamese",
-    ranges: [
-      [0x0102, 0x0103],
-      [0x0110, 0x0111],
-      [0x0128, 0x0129],
-      [0x0168, 0x0169],
-      [0x01a0, 0x01a1],
-      [0x01af, 0x01b0],
-      [0x0300, 0x0301],
-      [0x0303, 0x0304],
-      [0x0308, 0x0309],
-      [0x0323, 0x0323],
-      [0x0329, 0x0329],
-      [0x1ea0, 0x1ef9],
-      [0x20ab, 0x20ab],
-    ],
-  },
-  {
-    name: "greek",
-    ranges: [
-      [0x0370, 0x0377],
-      [0x037a, 0x037f],
-      [0x0384, 0x038a],
-      [0x038c, 0x038c],
-      [0x038e, 0x03a1],
-      [0x03a3, 0x03ff],
-    ],
-  },
-  { name: "greek-ext", ranges: [[0x1f00, 0x1fff]] },
-  {
-    name: "cyrillic",
-    ranges: [
-      [0x0301, 0x0301],
-      [0x0400, 0x045f],
-      [0x0490, 0x0491],
-      [0x04b0, 0x04b1],
-      [0x2116, 0x2116],
-    ],
-  },
-  {
-    name: "cyrillic-ext",
-    ranges: [
-      [0x0460, 0x052f],
-      [0x1c80, 0x1c8a],
-      [0x20b4, 0x20b4],
-      [0x2de0, 0x2dff],
-      [0xa640, 0xa69f],
-      [0xfe2e, 0xfe2f],
     ],
   },
 ];

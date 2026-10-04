@@ -23,6 +23,7 @@ describe("the preview's house style", () => {
     expect(`${HOUSE.radiusLg}px`).toBe(token("radius-lg"));
     expect(`${HOUSE.widthNarrow}px`).toBe(token("width-narrow"));
     expect(`${HOUSE.space4}px`).toBe(token("space-4"));
+    expect(`${HOUSE.space6}px`).toBe(token("space-6"));
     const { y, blur, color, opacity } = HOUSE.shadowSoft;
     const rgb = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16)).join(", ");
     expect(token("shadow-soft")).toBe(`0 ${y}px ${blur}px rgba(${rgb}, ${opacity})`);
