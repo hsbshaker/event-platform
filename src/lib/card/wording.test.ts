@@ -41,9 +41,13 @@ describe("checkWording", () => {
     expect(reasons({ ...ok, invitationLine: "Brunch, early a.m. start" })).toContain(
       "invitationLine contains a time expression",
     );
-    expect(reasons({ ...ok, invitationLine: "Evening pm cocktails" })).toContain(
+    expect(reasons({ ...ok, invitationLine: "Evening p.m. cocktails" })).toContain(
       "invitationLine contains a time expression",
     );
+  });
+
+  it("does not treat the words am and pm as times", () => {
+    expect(checkWording({ ...ok, invitationLine: "I am so happy you can join us" })).toEqual([]);
   });
 
   it("does not flag words that merely contain time letters", () => {
@@ -52,11 +56,12 @@ describe("checkWording", () => {
     );
   });
 
-  it("rejects host fact strings case-insensitively, except eventType", () => {
-    const facts = { eventType: "Baby Shower", babyName: "Theo", venue: "The Lodge" };
-    expect(reasons({ ...ok, title: "Welcome THEO" }, facts)).toEqual([
-      "title states the fact babyName",
-    ]);
+  it("rejects non-name host facts case-insensitively; allows names and eventType", () => {
+    const facts = { eventType: "Baby Shower", babyName: "Theo", hosts: "Maya", venue: "The Lodge" };
+    expect(checkWording({ ...ok, title: "Welcome Theo" }, facts)).toEqual([]);
+    expect(
+      checkWording({ ...ok, invitationLine: "Maya invites you to a baby shower" }, facts),
+    ).toEqual([]);
     expect(reasons({ ...ok, invitationLine: "Join us at the lodge please" }, facts)).toEqual([
       "invitationLine states the fact venue",
     ]);

@@ -27,6 +27,13 @@ const MONTHS = [
 
 const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
+/**
+ * Name facts may appear in model-drafted wording, exactly as the host supplied them
+ * (`docs/model-contracts.md §5.4`); whether a name is spelled exactly is caught by the evaluation
+ * corpus, not here. `eventType` is expected in the wording ("a baby shower").
+ */
+const ALLOWED_FACT_KEYS = new Set(["eventType", "hosts", "babyName", "honoree"]);
+
 export interface WordingFailure {
   slot: WordingSlotId;
   reason: string;
@@ -34,8 +41,8 @@ export interface WordingFailure {
 
 /**
  * @param wording the model-drafted wording slots
- * @param eventFacts host-supplied fact strings by key (name, venue, date, ...). `eventType` is
- *   exempt: wording is expected to say "baby shower".
+ * @param eventFacts host-supplied fact strings by key (name, venue, date, ...). `eventType` and
+ *   name facts are exempt (`ALLOWED_FACT_KEYS`); every other supplied fact is rejected.
  */
 export function checkWording(
   wording: Readonly<Record<WordingSlotId, string>>,
@@ -54,12 +61,13 @@ export function checkWording(
     for (const d of WEEKDAYS) {
       if (lower.includes(d)) failures.push({ slot, reason: `${slot} names a weekday (${d})` });
     }
-    if (/\b(a\.?m\.?|p\.?m\.?|noon|o'clock|midnight)(?![a-z])/.test(lower)) {
+    // Bare "am"/"pm" are left out ("I am so happy"); a written time like "7pm" has a digit anyway.
+    if (/\b(a\.m\.?|p\.m\.?|noon|o'clock|midnight)(?![a-z])/.test(lower)) {
       failures.push({ slot, reason: `${slot} contains a time expression` });
     }
     for (const [key, fact] of Object.entries(eventFacts)) {
       const f = fact?.trim().toLowerCase();
-      if (key !== "eventType" && f && lower.includes(f)) {
+      if (!ALLOWED_FACT_KEYS.has(key) && f && lower.includes(f)) {
         failures.push({ slot, reason: `${slot} states the fact ${key}` });
       }
     }
