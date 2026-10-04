@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { NARROWEST_ZONE_WIDTH } from "./entry";
+import { breakWidth } from "./fit";
 import type { CardRect } from "./ink";
 import {
   type CardTextLayout,
@@ -280,6 +282,33 @@ describe("layoutCard", () => {
       widestByFace.set(font.family, facts);
       return facts;
     }
+
+    /**
+     * The formatted facts take one line in every zone at every size: every date, time and RSVP-by,
+     * in every pairing's body face, at the details' largest size, fits one line of the narrowest
+     * zone. So which date, time or RSVP-by an event has never changes the height of its card, and
+     * the entry fit check (`entry-fit.server.ts`) is exact for them with `WORST`'s values.
+     */
+    it("sets every formatted date, time and RSVP-by on one line of the narrowest zone", () => {
+      const room = breakWidth(NARROWEST_ZONE_WIDTH);
+      const spec = CARD_SLOT_SPECS.date;
+      const size = Math.max(...Object.values(spec.max));
+      const style = { size, letterSpacingEm: spec.letterSpacingEm, textCase: spec.textCase };
+      let widest = 0;
+      for (const family of new Set(TYPOGRAPHY_KEYS.map((id) => pairingFaces(id).body.family))) {
+        const face = metrics({ family, weight: 400, italic: false });
+        const width = (v: string) => face.measure(v, style);
+        // A time range is two clocks around a dash: bounded by the widest clock at both ends.
+        const clock = CLOCKS.reduce((a, b) =>
+          width(formatCardTime(b)) > width(formatCardTime(a)) ? b : a,
+        );
+        for (const value of [...DATE_VALUES, ...RSVP_VALUES, formatCardTime(clock, clock)]) {
+          widest = Math.max(widest, width(value));
+        }
+      }
+      // With room to spare for any kerning between the clocks and the dash.
+      expect(widest).toBeLessThan(room * 0.95);
+    }, 60_000);
 
     /**
      * Owner decision (`docs/CHANGELOG-v7.md`, "Phase 4 — fitting every detail on every card"):

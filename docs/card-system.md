@@ -278,7 +278,10 @@ Rules:
   room than the card has here — please shorten it." This catches what the entry check cannot see,
   such as a 40-character title of capitals ("WELCOME WILHELMINA MONTGOMERY-WHITWORTH!" fits 253
   of 300 layout × shape × pairing combinations and is refused). It runs on the server only,
-  because the browser has no font shaper until the card editor (§7).
+  because the browser has no font shaper until the card editor (§7). The formatted date, time and
+  RSVP-by always take one line (`layout-card.test.ts`), so the worst case is exact for them; the
+  invitation line is the model's wording, measured as the worst-case 72-character sentence until a
+  design exists — from Phase 5 the check measures beside the active design's own wording.
 - A slot with no value takes no space.
 
 ## 2.6 Typography
