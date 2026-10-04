@@ -1,0 +1,155 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import { curatedFontFileName, loadCuratedFontMetrics } from "./curated-fonts";
+import {
+  type FontMetricsResolver,
+  applyTextCase,
+  fontFileToSfnt,
+  loadFontMetricsFromFile,
+} from "./metrics";
+import { CURATED_FONT_DIR, allCuratedMetrics, curatedFaces } from "./test-fonts";
+
+let metrics: FontMetricsResolver;
+beforeAll(async () => {
+  metrics = await allCuratedMetrics();
+});
+
+const face = (family: string, weight = 400) => metrics({ family, weight, italic: false });
+const bytesOf = (file: string) => readFileSync(path.join(CURATED_FONT_DIR, file));
+
+describe("curated font loading", () => {
+  it("maps a family and weight to its file, as card-fonts.css names them", () => {
+    for (const f of curatedFaces()) expect(curatedFontFileName(f)).toBe(f.file);
+    expect(() => curatedFontFileName({ family: "Inter", weight: 400, italic: true })).toThrow();
+    expect(() => curatedFontFileName({ family: "../x", weight: 400, italic: false })).toThrow();
+  });
+
+  it("loads every curated face", () => {
+    for (const f of curatedFaces()) {
+      expect(face(f.family, f.weight).measure("Abc", { size: 10 })).toBeGreaterThan(0);
+    }
+  });
+
+  it("refuses a face that is not on disk", async () => {
+    await expect(
+      loadCuratedFontMetrics(
+        { family: "Comic Sans", weight: 400, italic: false },
+        CURATED_FONT_DIR,
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("refuses a file that is not the family asked for, or a weight it lacks", async () => {
+    const inter = bytesOf("Inter-normal-400.woff2");
+    await expect(
+      loadFontMetricsFromFile(inter, { family: "Inter Tight", weight: 400, italic: false }),
+    ).rejects.toThrow(/not "Inter Tight"/);
+    const interTight = bytesOf("InterTight-normal-400.woff2");
+    await expect(
+      loadFontMetricsFromFile(interTight, { family: "Inter", weight: 400, italic: false }),
+    ).rejects.toThrow();
+    const cormorant = bytesOf("CormorantGaramond-normal-400.woff2");
+    await expect(
+      loadFontMetricsFromFile(cormorant, {
+        family: "Cormorant Garamond",
+        weight: 900,
+        italic: false,
+      }),
+    ).rejects.toThrow(/no weight 900/);
+  });
+
+  it("decodes WOFF2 and refuses what is not a supported font file", async () => {
+    const sfnt = await fontFileToSfnt(bytesOf("Inter-normal-400.woff2"));
+    expect(sfnt[0] === 0 && sfnt[1] === 1).toBe(true);
+    await expect(fontFileToSfnt(new TextEncoder().encode("not a font"))).rejects.toThrow();
+    await expect(fontFileToSfnt(new TextEncoder().encode("wOFFxxxxxxxx"))).rejects.toThrow(
+      /WOFF 1/,
+    );
+  });
+});
+
+describe("measure", () => {
+  /**
+   * Widths measured in Chromium 141 (Playwright's chromium-1194) from the same files, `white-space:
+   * pre`, one CSS pixel per card unit. Optical size follows the font size, so Fraunces is ~17%
+   * narrower per em at 104 than at 18.
+   */
+  const CHROMIUM: [string, number, number, number, "none" | "uppercase", string, number][] = [
+    ["Fraunces", 400, 104, 0, "none", "A Little Wild One", 680.109],
+    ["Fraunces", 400, 18, 0, "none", "A Little Wild One", 143.047],
+    ["Newsreader", 400, 104, 0, "none", "Welcome Little One", 922.438],
+    ["Bodoni Moda", 400, 92, 0, "none", "Oh Baby, Baby", 605.313],
+    ["Archivo", 400, 104, 0, "none", "AVATAR Wavy Toffee", 974.781],
+    ["Inter", 400, 24, 0.06, "uppercase", "Saturday, September 12, 2026", 425.906],
+    ["Manrope", 400, 32, 0.02, "none", "Please join us for a baby shower", 485.469],
+    ["Playfair Display", 400, 48, 0, "none", "office affluent", 298.047],
+    ["Cormorant Garamond", 400, 104, 0, "none", "The Hartwell Family", 832.969],
+  ];
+
+  it.each(CHROMIUM)(
+    "%s %i at %i agrees with Chromium (%s)",
+    (family, weight, size, ls, textCase, text, chrome) => {
+      const ours = face(family, weight).measure(text, { size, letterSpacingEm: ls, textCase });
+      expect(Math.abs(ours - chrome) / chrome).toBeLessThan(0.001);
+    },
+  );
+
+  it("applies kerning", () => {
+    const playfair = face("Playfair Display");
+    const pair = playfair.measure("AV", { size: 100 });
+    expect(pair).toBeLessThan(
+      playfair.measure("A", { size: 100 }) + playfair.measure("V", { size: 100 }),
+    );
+  });
+
+  it("measures a variable font at the weight asked for", () => {
+    const text = "Hamburgefonstiv";
+    expect(face("Inter", 600).measure(text, { size: 50 })).toBeGreaterThan(
+      face("Inter", 400).measure(text, { size: 50 }),
+    );
+    // Archivo's default instance is 600; 400 must not measure as the default.
+    expect(face("Archivo", 400).measure(text, { size: 50 })).not.toBeCloseTo(
+      face("Archivo", 900).measure(text, { size: 50 }),
+      0,
+    );
+  });
+
+  it("is linear in size at a fixed optical size and adds letter spacing per character", () => {
+    const inter = face("Inter");
+    const base = inter.measure("Hello world", { size: 20 });
+    expect(inter.measure("Hello world", { size: 40 })).toBeCloseTo(base * 2, 9);
+    expect(inter.measure("Hello world", { size: 20, letterSpacingEm: 0.1 })).toBeCloseTo(
+      inter.measure("Hello world", { size: 20 }) + 11 * 0.1 * 20,
+      1,
+    );
+    // Combining marks join their base character: one grapheme, one spacing.
+    const composed = inter.measure("é", { size: 20, letterSpacingEm: 0.5 });
+    const plain = inter.measure("é", { size: 20 });
+    expect(composed - plain).toBeCloseTo(0.5 * 20, 9);
+  });
+
+  it("applies the case transform before shaping", () => {
+    const inter = face("Inter");
+    expect(inter.measure("venue", { size: 20, textCase: "uppercase" })).toBeCloseTo(
+      inter.measure("VENUE", { size: 20 }),
+      9,
+    );
+    expect(applyTextCase("Straße", "uppercase")).toBe("STRASSE");
+    expect(applyTextCase("ABC", "lowercase")).toBe("abc");
+  });
+
+  it("refuses a line break and a non-positive size", () => {
+    const inter = face("Inter");
+    expect(() => inter.measure("a\nb", { size: 10 })).toThrow();
+    expect(() => inter.measure("a b", { size: 10 })).toThrow();
+    expect(() => inter.measure("a", { size: 0 })).toThrow();
+  });
+
+  it("reports characters the face has no glyph for", () => {
+    expect(face("Inter").missingCharacters("Café 🎈 party 🎈")).toEqual(["🎈"]);
+    expect(face("Inter").missingCharacters("Café")).toEqual([]);
+    expect(face("Inter").missingCharacters("🎈")).toEqual(["🎈"]);
+  });
+});

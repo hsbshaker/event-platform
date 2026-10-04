@@ -14,6 +14,8 @@ import { CARD_LAYOUT_SET_VERSION } from "@/lib/ai/versions";
 import type { ArtMode } from "./art-modes";
 import { CARD_CANVAS, CARD_SHAPES, insideTextSafe, SHAPE_PROPORTION } from "./shapes";
 import type { CardProportion, CardShape } from "./shapes";
+import type { CardSlotId } from "./slots";
+import type { TextCase } from "./text/metrics";
 
 export { CARD_LAYOUT_SET_VERSION };
 
@@ -147,3 +149,79 @@ export function zoneFor(layout: CardLayoutId, shape: CardShape): CardZone {
   }
   return { x: w / 2 - half, y: band.top, width: half * 2, height: band.bottom - band.top };
 }
+
+export type SlotGroup = "title" | "invitation" | "details" | "added";
+
+export interface SlotSpec {
+  role: "display" | "body";
+  group: SlotGroup;
+  /** Starting size per proportion, card units. */
+  max: Record<CardProportion, number>;
+  /** Smallest size, card units. */
+  min: number;
+  lineHeight: number;
+  letterSpacingEm: number;
+  textCase: TextCase;
+  /** Most lines this slot may take; `null` when only the zone's height bounds it. */
+  maxLines: number | null;
+  /** Space above the slot, in em of its own size, when it follows a slot of another group. */
+  gapBeforeEm: number;
+}
+
+const TITLE: SlotSpec = {
+  role: "display",
+  group: "title",
+  max: { "5:7": 104, "1:1": 92 },
+  min: 48,
+  lineHeight: 1.05,
+  letterSpacingEm: 0,
+  textCase: "none",
+  maxLines: 3,
+  gapBeforeEm: 0,
+};
+
+const INVITATION: SlotSpec = {
+  role: "body",
+  group: "invitation",
+  max: { "5:7": 32, "1:1": 32 },
+  min: 22,
+  lineHeight: 1.3,
+  letterSpacingEm: 0.02,
+  textCase: "none",
+  maxLines: null,
+  gapBeforeEm: 0.9,
+};
+
+const DETAIL: SlotSpec = {
+  role: "body",
+  group: "details",
+  max: { "5:7": 24, "1:1": 24 },
+  min: 18,
+  lineHeight: 1.45,
+  letterSpacingEm: 0.06,
+  textCase: "uppercase",
+  maxLines: null,
+  gapBeforeEm: 1.3,
+};
+
+/**
+ * The slot specs of `card_layouts_v1` (`docs/card-system.md §2.3`): in this version one table
+ * serves every layout and shape. They are layout-set data, so changing one is a
+ * `CARD_LAYOUT_SET_VERSION` bump. From the Phase 3 mock: title 104 (5:7) or 92 (1:1) down to 48, line height 1.05,
+ * at most 3 lines; invitation line 32 → 22, 1.3, letter spacing .02em, 0.9em above; details 24 → 18,
+ * 1.45, uppercase, .06em, 1.3em above the group and nothing between its lines. Phase 3 set only the
+ * date, time and venue as details; the baby name, hosts and RSVP-by join that group here.
+ */
+export const CARD_SLOT_SPECS: Readonly<Record<CardSlotId, SlotSpec>> = {
+  title: TITLE,
+  invitationLine: INVITATION,
+  babyName: DETAIL,
+  hosts: DETAIL,
+  date: DETAIL,
+  time: DETAIL,
+  venue: DETAIL,
+  rsvpBy: DETAIL,
+};
+
+/** Text the host added, carried to a fresh layout as extra body lines in the invitation line's style. */
+export const ADDED_SLOT_SPEC: SlotSpec = { ...INVITATION, group: "added" };

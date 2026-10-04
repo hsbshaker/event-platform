@@ -255,6 +255,15 @@ families from fixed Google Fonts hosts, type- and size-checked, with licence tex
 (`spec.md §24`). It also dropped `human_test_1_responses`: by owner decision (2026-10-04), the
 Human Test #1 responses were dropped without an export.
 
+### 7.2 — carried words come only from a customization
+
+Building `carryWords` showed that carrying from a card's generated layout would put one design's
+model-drafted wording onto another: a new direction would arrive wearing the previous design's
+title and invitation line. Carrying now happens only from a customization — words the host has
+edited — and the carried layout is saved as the new card's customization, so it is stored and
+carries on at the next switch (`spec.md §20.6`, `card-system.md §7`). A card the host never edited
+switches to the new card's own generated layout and wording.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

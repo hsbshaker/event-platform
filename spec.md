@@ -1745,8 +1745,9 @@ TextBox {
 }
 ```
 
-A customization is created by the host's first edit, seeded from the generated layout; there is at
-most one per event, design and shape. It never mutates a `CardDesign`, its artwork or its ink, and
+A customization is created by the host's first edit, seeded from the generated layout, or by a
+design or shape switch that carries the host's words (§20.6); there is at most one per event,
+design and shape. It never mutates a `CardDesign`, its artwork or its ink, and
 no edit calls a model. Every save carries the revision it was based on; a save based on a stale
 revision (another collaborator edited meanwhile) is refused and the editor reloads the latest with a
 short notice. `Reset card` is a save like any other: it re-applies the seed as a new revision, and
@@ -1757,10 +1758,12 @@ is never a delete, so a collaborator's stale save is still refused after it.
 Choosing another design (before publish), or switching the card's shape:
 
 - keeps the host's words — the title, the invitation line and every added text box — and their
-  fonts, taken from the card being switched from (the active design and shape), and lays them out
-  fresh in the new card's generated layout; positions, sizes, rotation and colours start from the
-  new card. When the destination already has a customization, that customization is shown
-  instead;
+  fonts, taken from the customization of the card being switched from (the active design and
+  shape), and lays them out fresh in the new card's generated layout; positions, sizes, rotation
+  and colours start from the new card, and the carried layout is saved as the new card's
+  customization. A card the host has not edited has no customization and carries nothing: the new
+  card shows its own generated layout and wording. When the destination already has a
+  customization, that customization is shown instead;
 - keeps every customization already made for another design or shape, so switching back restores
   it;
 - switches `activeCardDesignId` or `activeCardShape`, and never changes event details, guests,
@@ -1944,7 +1947,7 @@ CardArtAsset {
   createdAt
 }
 
-CardCustomization {                 // the host's edited card, one per event × design × shape (§20.5)
+CardCustomization {                 // the host's edited card, one per event × design × shape (§20.5, §20.6)
   id, eventId, cardDesignId, shape,
   boxes /* TextBox[]: source, text?, x, y, width, rotation, font, size, color, align,
            letterSpacing, lineHeight, textCase, z, lines[] */,
@@ -2401,7 +2404,9 @@ The host should feel:
   lines, positions and styles the host saw, at every size; the browser never re-wraps card text.
 - [ ] A stale save from a collaborator is refused and the editor reloads the latest with a notice.
 - [ ] Choosing another design or switching shape keeps the host's words, added text and fonts with
-  a fresh layout, and keeps earlier customizations so switching back restores them.
+  a fresh layout — carried from the customization of the card being switched from, and saved as
+  the new card's customization; a card never edited carries nothing and the new card shows its own
+  wording — and keeps earlier customizations so switching back restores them.
 - [ ] Card-editor edits remain allowed after publish and update the live card.
 
 ### Try another direction
