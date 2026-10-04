@@ -37,35 +37,25 @@ import "@/styles/card-fonts.css";
 import type { CSSProperties } from "react";
 import { preload } from "react-dom";
 
-import { isCanonicalHex } from "@/lib/card/color";
-import type { CardRect } from "@/lib/card/ink";
-import { outlineMaskImage } from "@/lib/card/outline";
 import {
-  CARD_CANVAS,
-  CARD_SHAPES,
-  SHAPE_PROPORTION,
-  type CardProportion,
-  type CardShape,
-} from "@/lib/card/shapes";
+  InvalidCardDataError,
+  readingOrder,
+  validateCardData,
+  type CardPanel,
+} from "@/lib/card/card-data";
+import { outlineMaskImage } from "@/lib/card/outline";
+import { CARD_CANVAS, type CardProportion, type CardShape } from "@/lib/card/shapes";
 import type { TextBox } from "@/lib/card/text-box";
 import { curatedFontUrl } from "@/lib/card/text/font-files";
 import { SHAPING_LANGUAGE } from "@/lib/card/text/shaping-language";
+
+// Validation and ordering are shared with the link-preview image (`card-data.ts`).
+export { InvalidCardDataError, type CardPanel };
 
 /** The artwork for the effective shape's proportion. */
 export interface CardArtwork {
   src: string;
   proportion: CardProportion;
-}
-
-/**
- * A legibility panel behind a text zone (`layouts.ts` `panelFor`), in its resolved paper colour
- * (`ink.ts` `resolveInk`). Drawn opaque: the zone's ink was chosen against exactly this colour.
- */
-export interface CardPanel extends CardRect {
-  radius: number;
-  softEdge: { spread: number; blur: number };
-  /** `#RRGGBB`. */
-  color: string;
 }
 
 export interface InvitationCardProps {
@@ -76,13 +66,6 @@ export interface InvitationCardProps {
   boxes: readonly TextBox[];
 }
 
-export class InvalidCardDataError extends Error {
-  constructor(message: string) {
-    super(`InvitationCard: ${message}`);
-    this.name = "InvalidCardDataError";
-  }
-}
-
 /** Card units to container-query units: the card is 1000 units = 100cqw wide. */
 function cu(units: number): string {
   return `${Math.round(units * 10_000) / 100_000}cqw`;
@@ -91,67 +74,6 @@ function cu(units: number): string {
 /** Up to five decimals, for unitless and em values. */
 function dec(value: number): number {
   return Math.round(value * 100_000) / 100_000;
-}
-
-const ALIGNS = new Set(["left", "center", "right"]);
-const CASES = new Set(["none", "uppercase", "lowercase"]);
-// Control characters and line terminators: a stored line is exactly one line.
-const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
-
-function check(ok: boolean, message: string): void {
-  if (!ok) throw new InvalidCardDataError(message);
-}
-
-function finite(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function validateBox(box: TextBox): void {
-  const id = typeof box.id === "string" ? box.id : "?";
-  check(typeof box.id === "string" && box.id.length > 0, "a box has no id");
-  for (const key of ["x", "y", "rotation", "letterSpacing"] as const) {
-    check(finite(box[key]), `box ${id}: ${key} is not a finite number`);
-  }
-  // z-index takes integers only; a fraction would be dropped and the box would stack at auto.
-  check(Number.isSafeInteger(box.z), `box ${id}: z is not an integer`);
-  for (const key of ["width", "size", "lineHeight"] as const) {
-    check(finite(box[key]) && box[key] > 0, `box ${id}: ${key} must be positive`);
-  }
-  check(isCanonicalHex(box.color), `box ${id}: colour ${String(box.color)} is not #RRGGBB`);
-  check(ALIGNS.has(box.align), `box ${id}: invalid alignment`);
-  check(CASES.has(box.textCase), `box ${id}: invalid text case`);
-  const { font } = box;
-  check(
-    typeof font?.family === "string" && font.family.trim() !== "" && !CONTROL.test(font.family),
-    `box ${id}: invalid font family`,
-  );
-  check(
-    Number.isInteger(font.weight) && font.weight >= 1 && font.weight <= 1000,
-    `box ${id}: invalid font weight`,
-  );
-  check(typeof font.italic === "boolean", `box ${id}: invalid font style`);
-  check(Array.isArray(box.lines), `box ${id}: lines must be an array`);
-  for (const line of box.lines) {
-    check(typeof line === "string" && !CONTROL.test(line), `box ${id}: a line is not one line`);
-  }
-}
-
-function validatePanel(panel: CardPanel, index: number): void {
-  for (const key of ["x", "y"] as const) {
-    check(finite(panel[key]), `panel ${index}: ${key} is not a finite number`);
-  }
-  for (const key of ["width", "height"] as const) {
-    check(finite(panel[key]) && panel[key] > 0, `panel ${index}: ${key} must be positive`);
-  }
-  check(finite(panel.radius) && panel.radius >= 0, `panel ${index}: invalid radius`);
-  check(
-    finite(panel.softEdge?.spread) &&
-      panel.softEdge.spread >= 0 &&
-      finite(panel.softEdge.blur) &&
-      panel.softEdge.blur >= 0,
-    `panel ${index}: invalid soft edge`,
-  );
-  check(isCanonicalHex(panel.color), `panel ${index}: colour is not #RRGGBB`);
 }
 
 /** A CSS `<string>` for a family name; validation already refused control characters. */
@@ -211,28 +133,15 @@ function boxStyle(box: TextBox): CSSProperties {
   };
 }
 
-/** Reading order: top to bottom, then left to right, then as given. Stacking is `z`, not order. */
-function readingOrder(boxes: readonly TextBox[]): TextBox[] {
-  return boxes
-    .map((box, index) => ({ box, index }))
-    .sort((a, b) => a.box.y - b.box.y || a.box.x - b.box.x || a.index - b.index)
-    .map(({ box }) => box);
-}
-
 export function InvitationCard({ shape, artwork, panels = [], boxes }: InvitationCardProps) {
-  check(CARD_SHAPES.includes(shape), `unknown shape ${String(shape)}`);
-  const proportion = SHAPE_PROPORTION[shape];
-  check(
-    artwork?.proportion === proportion,
-    `artwork is ${String(artwork?.proportion)}, the ${shape} card is ${proportion}`,
-  );
-  check(typeof artwork.src === "string" && artwork.src !== "", "artwork has no src");
-  panels.forEach(validatePanel);
-  const ids = new Set<string>();
-  for (const box of boxes) {
-    validateBox(box);
-    check(!ids.has(box.id), `duplicate box id ${box.id}`);
-    ids.add(box.id);
+  const proportion = validateCardData({
+    shape,
+    artworkProportion: artwork?.proportion,
+    panels,
+    boxes,
+  });
+  if (typeof artwork.src !== "string" || artwork.src === "") {
+    throw new InvalidCardDataError("artwork has no src");
   }
   const canvas = CARD_CANVAS[proportion];
   const mask = outlineMaskImage(shape);

@@ -476,7 +476,14 @@ When an invitation link is shared (including the platform's invitation texts), t
 the rendered card (in its shape, on the house background) for a public event and the sealed
 envelope with the title for a private one. The
 preview image is produced from the same card component and layout function, so it cannot disagree
-with the live card. The rendering mechanism is chosen when the card renderer is built.
+with the live card. Mechanism (`docs/technology-decisions.md §8.2`): the card is drawn as an SVG
+from exactly the data the card component renders — the stored text boxes (the customization's, or
+the generated layer from `layoutCard`), the outline, the panels, the artwork and the ink — under the
+component's own validation, with every stored line drawn as glyph outlines at the font instance it
+was measured with, and rasterized on the server by Next.js's `ImageResponse`; no browser runs in
+production. A layout fixture compares it with the card component in a real browser at the same
+scale, line by line. A private event's preview is a static drawing of the house envelope with the
+title, made from the title alone, so nothing of the card can reach it.
 
 ---
 
