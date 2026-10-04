@@ -27,7 +27,7 @@ import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.ser
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
-import { ArtworkProviderRefusalError, GenerationStageError } from "./stage";
+import { ArtworkProviderRefusalError, failureDetailsOf, GenerationStageError } from "./stage";
 import type { StageContext } from "./stage";
 
 /**
@@ -242,26 +242,33 @@ export function failureTelemetry(error: unknown, code: string): Json {
     if (error instanceof ArtworkProviderRefusalError) {
       failure.imagesRequested = error.imagesRequested;
     }
-    const details = error.details as
-      { imagesRequested?: number; validationFailures?: ArtworkValidationFailure[] } | undefined;
-    if (typeof details?.imagesRequested === "number") {
-      failure.imagesRequested = details.imagesRequested;
-    }
-    if (Array.isArray(details?.validationFailures)) {
-      failure.validationFailures = details.validationFailures.map((f) => ({
-        image: f.image,
-        reasons: [...f.reasons],
-        ...(f.detail && !f.reasons.some((r) => INSPECTION_REASONS.has(r))
-          ? { detail: f.detail.slice(0, FAILURE_DETAIL_MAX) }
-          : {}),
-      }));
-    }
   } else if (error instanceof ModelCallRefusedError) {
     failure.refusal = error.reason;
   } else if (error instanceof Error) {
     failure.error = error.name;
   }
+  // Details a stage recorded: its own, or attached to a refusal it passed through.
+  const details = failureDetailsOf(error) as
+    { imagesRequested?: number; validationFailures?: ArtworkValidationFailure[] } | undefined;
+  if (typeof details?.imagesRequested === "number") {
+    failure.imagesRequested = details.imagesRequested;
+  }
+  if (Array.isArray(details?.validationFailures) && details.validationFailures.length > 0) {
+    failure.validationFailures = details.validationFailures.map((f) => ({
+      image: f.image,
+      reasons: [...f.reasons],
+      ...(f.detail && !f.reasons.some((r) => INSPECTION_REASONS.has(r))
+        ? { detail: boundedText(f.detail, FAILURE_DETAIL_MAX) }
+        : {}),
+    }));
+  }
   return { failure };
+}
+
+/** At most `max` characters, cut between code points so no surrogate pair is split. */
+function boundedText(text: string, max: number): string {
+  const points = Array.from(text);
+  return points.length <= max ? text : points.slice(0, max).join("");
 }
 
 function failureCode(error: unknown): string {

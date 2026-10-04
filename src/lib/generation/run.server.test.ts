@@ -623,6 +623,38 @@ describe("failures end the generation with fail_generation", () => {
     });
   });
 
+  const mixed: [string, FakeScript["art"], Record<string, unknown>][] = [
+    ["a provider error", [NOT_PNG, http500()], { code: "provider_error", stage: "artwork" }],
+    ["a provider refusal", [NOT_PNG, refusal()], { code: "provider_refusal", stage: "artwork" }],
+    [
+      "a meter refusal",
+      [NOT_PNG, new SpendCeilingError()],
+      { code: "ceiling", refusal: "ceiling" },
+    ],
+  ];
+  for (const [name, art, expected] of mixed) {
+    it(`keeps the first image's validation failure when the retry ends in ${name}`, async () => {
+      await run({ ...HAPPY, art });
+      expect(admin.rpc("fail_generation")[0].p_telemetry).toMatchObject({
+        failure: { ...expected, validationFailures: [{ image: 1, reasons: ["type"] }] },
+      });
+    });
+  }
+
+  it("never splits a character when it bounds check output", () => {
+    const detail = `${"x".repeat(199)}\u{1F600}and more`;
+    const error = new GenerationStageError("artwork", "artwork_invalid", "failed", {
+      details: { validationFailures: [{ image: 1, reasons: ["moderation"], detail }] },
+    });
+    const recorded = failureTelemetry(error, "artwork_invalid") as {
+      failure: { validationFailures: { detail: string }[] };
+    };
+    const kept = recorded.failure.validationFailures[0].detail;
+    expect(kept.isWellFormed()).toBe(true);
+    expect(Array.from(kept)).toHaveLength(200);
+    expect(kept.endsWith("\u{1F600}")).toBe(true);
+  });
+
   it("records the stage of other failures, and a meter refusal's reason", async () => {
     await run({ ...HAPPY, design: [invalid(), invalid()] });
     expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({

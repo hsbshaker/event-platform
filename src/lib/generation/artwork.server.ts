@@ -23,7 +23,7 @@ import type { DecodedPng } from "@/lib/card/png.server";
 import { CARD_CANVAS, insideOutline, SHAPE_PROPORTION } from "@/lib/card/shapes";
 import type { CardProportion, CardShape } from "@/lib/card/shapes";
 
-import { ArtworkProviderRefusalError, GenerationStageError } from "./stage";
+import { ArtworkProviderRefusalError, attachFailureDetails, GenerationStageError } from "./stage";
 import type { StageContext } from "./stage";
 
 /**
@@ -356,18 +356,34 @@ export async function runArtworkStage(
     return { kind: "valid", image, art, decoded: check.decoded };
   }
 
-  // The artwork, with its one validation regeneration (already spent after a refusal).
+  // The artwork, with its one validation regeneration (already spent after a refusal). Every
+  // error that ends it carries what validation learned so far, for the failure telemetry.
+  const failureDetails = () => ({
+    imagesRequested: images,
+    validationFailures: [...validationFailures],
+  });
   let artRegenerated: ArtworkTelemetry["artRegenerated"] = prior > 0 ? "provider-refusal" : null;
   let first: Extract<Painted, { kind: "valid" }> | null = null;
   while (first === null) {
-    const painted = await paint();
+    let painted: Painted;
+    try {
+      painted = await paint();
+    } catch (error) {
+      // A meter refusal (or a check's telemetry failure) passes through unchanged, with details.
+      if (validationFailures.length > 0) attachFailureDetails(error, failureDetails());
+      throw error;
+    }
     if (painted.kind === "refused") {
       // After an earlier refusal this is the second: the orchestration fails visibly.
-      throw new ArtworkProviderRefusalError(images, { cause: painted.error });
+      throw new ArtworkProviderRefusalError(images, {
+        cause: painted.error,
+        details: failureDetails(),
+      });
     }
     if (painted.kind === "error") {
       throw new GenerationStageError("artwork", "provider_error", "The artwork call failed.", {
         cause: painted.error,
+        details: failureDetails(),
       });
     }
     if (painted.kind === "invalid") {
@@ -381,7 +397,7 @@ export async function runArtworkStage(
             : `The artwork failed validation twice (${validationFailures
                 .map((f) => f.reasons.join("+"))
                 .join(", ")}).`,
-          { details: { imagesRequested: images, validationFailures: [...validationFailures] } },
+          { details: failureDetails() },
         );
       }
       artRegenerated = painted.failure.reasons[0];

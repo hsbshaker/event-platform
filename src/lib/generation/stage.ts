@@ -69,9 +69,32 @@ export class GenerationStageError extends Error {
 export class ArtworkProviderRefusalError extends GenerationStageError {
   constructor(
     readonly imagesRequested: number,
-    options?: { cause?: unknown },
+    options?: { cause?: unknown; details?: Record<string, unknown> },
   ) {
     super("artwork", "provider_refusal", "The image provider refused the artwork.", options);
     this.name = "ArtworkProviderRefusalError";
   }
+}
+
+const FAILURE_DETAILS = Symbol("generation.failureDetails");
+
+/**
+ * Attach failure details to an error a stage passes through unchanged (a meter refusal), so the
+ * failure telemetry keeps what the stage already learned — for the artwork, an earlier image's
+ * validation failure. The error keeps its class and identity.
+ */
+export function attachFailureDetails(error: unknown, details: Record<string, unknown>): void {
+  if (error && typeof error === "object") {
+    Object.defineProperty(error, FAILURE_DETAILS, { value: details, configurable: true });
+  }
+}
+
+/** The details a stage recorded on an error: its own, or attached to a passed-through one. */
+export function failureDetailsOf(error: unknown): Record<string, unknown> | undefined {
+  if (error instanceof GenerationStageError && error.details) return error.details;
+  if (error && typeof error === "object") {
+    const attached = (error as { [FAILURE_DETAILS]?: unknown })[FAILURE_DETAILS];
+    if (attached && typeof attached === "object") return attached as Record<string, unknown>;
+  }
+  return undefined;
 }
