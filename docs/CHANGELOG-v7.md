@@ -264,6 +264,24 @@ edited — and the carried layout is saved as the new card's customization, so i
 carries on at the next switch (`spec.md §20.6`, `card-system.md §7`). A card the host never edited
 switches to the new card's own generated layout and wording.
 
+### Phase 4 — fitting every detail on every card (owner decisions)
+
+The layout fixtures (`tests/fixtures/card-layouts.test.ts`) set every layout × shape × pairing in
+Chromium. Typical content fits everywhere. With every slot at its limit, the cards whose picture
+sits above or below the words on a square, oval or arch, and every such circle, cannot hold all the
+details at a readable size; the cramped text shows even with typical content on squares and
+circles. Two decisions by the owner (2026-10-04):
+
+1. **Every card shows every detail; the picture gives way.** On square, oval and arch cards with
+   the picture above or below the words, the picture shrinks to roughly 40% of the card, so the
+   text area grows. The art instructions change with it, so image quality is re-checked on the
+   corpus. Circles keep the words in the middle: picture-above and picture-below layouts do not
+   offer the circle. Rejected: showing only the essentials on those cards (hosts, baby name and
+   RSVP date on the page alone), and dropping those shapes from the picture layouts.
+2. **Characters the card cannot draw are refused at entry**, with a plain message beside the field
+   (for example an emoji, or an alphabet the card fonts do not cover). Emoji on the card may come
+   later.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
