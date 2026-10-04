@@ -268,6 +268,17 @@ Rules:
   can't show 🎈 — please remove it"). The curated faces cover Latin-1, so emoji, other alphabets
   and scripts written without spaces are refused at entry (owner decision; emoji on the card may
   come later).
+- **The fit check** (`cardTextFitsEveryDesign`, `src/lib/card/entry-fit.server.ts`) then runs in
+  the server action on what the entry check accepted: the value in its slot, laid out by
+  `layoutCard`'s own search (`layoutCardFits`, with the curated fonts' real shaping) in every
+  distinct text zone of the layout set (14) and every curated pairing — first beside the
+  worst-case content for every other slot, so each field has the same room whatever else the
+  event says, then beside the event's own other details where they are filled in, so the
+  combination saved always fits too. Text that some design cannot fit is refused: "This takes more
+  room than the card has here — please shorten it." This catches what the entry check cannot see,
+  such as a 40-character title of capitals ("WELCOME WILHELMINA MONTGOMERY-WHITWORTH!" fits 253
+  of 300 layout × shape × pairing combinations and is refused). It runs on the server only,
+  because the browser has no font shaper until the card editor (§7).
 - A slot with no value takes no space.
 
 ## 2.6 Typography
@@ -383,13 +394,13 @@ font size and line breaks:
 - measure from the fonts' own metrics — the curated fonts, or the font store's for a host font
   carried to a fresh layout (§2.6) — with a safety margin that absorbs browser rendering
   differences;
-- slot character limits and the entry check (§2.5) make every value accepted at entry fit at the
-  minimum size in every layout, supported shape and pairing, for real content: a test renders
-  every layout × supported shape × pairing with worst-case content in a real browser to prove it
-  (§9), with no exceptions. The one gap is text deliberately made of wide letters within the limits
-  (a 40-character title of long all-capital words can need a fourth line in the narrowest zone).
-  `layoutCard` reports it, and the generated card fails visibly with a retry rather than
-  rendering; an entry bound on line count closes it before launch (`docs/development-plan.md`).
+- slot character limits, the entry check and the fit check (§2.5) make every value accepted at
+  entry fit at the minimum size in every layout, supported shape and pairing: a test renders every
+  layout × supported shape × pairing with worst-case content in a real browser to prove the
+  server's measurement is the browser's (§9), with no exceptions, and the fit check runs
+  `layoutCard`'s own search on what the host typed. Text saved before the fit check existed can
+  still overflow; `layoutCard` reports it, and the generated card fails visibly with a retry rather
+  than rendering.
 
 The renderer sets exactly the lines and sizes this function returns; the browser does not re-wrap
 card text. The same function runs when the design is compiled, when a new design or shape is seeded

@@ -15,8 +15,8 @@ import { previewImage, type LinkPreview } from "@/lib/link-preview/preview-image
  * (`docs/card-system.md §6.4`). 404 unless ENABLE_DEV_FIXTURES=1, read at request time so a
  * production build never exposes it by accident.
  *
- * A route handler, not a page: HarfBuzz's WebAssembly loads in route handlers as built, but not in
- * Server Component pages without `serverExternalPackages` (`docs/technology-decisions.md §8.2`).
+ * A route handler, because it answers with an image. (HarfBuzz loads in pages and Server Actions
+ * too, with `serverExternalPackages` in `next.config.ts`: `docs/technology-decisions.md §8.2`.)
  *
  * - `?kind=card&layout=art-top&shape=arch&pairing=hc_playfair_dmsans[&panel=1]` — a public
  *   event's card, laid out by the server path (`generatedTextLayer`) over synthetic artwork;

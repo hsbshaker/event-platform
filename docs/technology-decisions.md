@@ -260,9 +260,13 @@ Three capabilities the card system needs, decided when it is built and recorded 
   (`/_next/static/media/harfbuzz.*.wasm`) and the server's read of that path fails with `ENOENT` —
   `next dev` answers 500 and `next build` fails at "Collecting page data". Adding
   `serverExternalPackages: ["harfbuzzjs", "wawoff2"]` to `next.config.ts` makes the page work in
-  both, with Route Handlers unaffected (verified in Phase 4c). It is not set yet, because nothing
-  measures text in a page; the code that does runs from Route Handlers. Server Actions were not
-  tested and should be assumed to behave like pages until they are. Both libraries also run in the
+  both, with Route Handlers unaffected (verified in Phase 4c). It **is set** since the details
+  form's Server Action measures card text (the entry fit check, `docs/card-system.md §2.5`):
+  without it `next build` fails for the page that carries the action, and with it the action loads
+  the fonts and measures under `next build`/`next start` (verified at Phase 4 close-out; a cold
+  process's first check takes about 190 ms with the font load, a warm check about 25–30 ms, a
+  refusal about 5 ms). `npm run check:traced-fonts` (CI) holds every font file and the HarfBuzz
+  WASM in each such function's trace, which is what Vercel bundles. Both libraries also run in the
   browser, for the card editor (Phase 6b). The renderer must pin `opsz` to the card-unit size
   whatever the on-screen scale, or line widths would change with screen size;
 - **link-preview rendering** of the card and envelope (`spec.md §11.10`) — **decided (Phase 4c):

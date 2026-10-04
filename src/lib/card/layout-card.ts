@@ -137,11 +137,37 @@ function validate(input: LayoutCardInput, slots: readonly CardSlotId[]): void {
   }
 }
 
-/** Lay out the generated card's text layer (see the module comment). */
-export function layoutCard(input: LayoutCardInput): CardTextLayout {
+interface Attempt {
+  placed: Placed[];
+  height: number;
+  fits: boolean;
+}
+
+interface SearchResult extends Attempt {
+  titleSize: number;
+  step: number;
+  hyphens: boolean;
+}
+
+/**
+ * The size search shared by `layoutCard` and `layoutCardFits`: the input's items and the steps
+ * that place, measure and search them. One code path, so the fit test cannot drift from the
+ * layout it predicts.
+ */
+interface Planner {
+  slotItems: Item[];
+  addedItems: Item[];
+  place(item: Item, size: number, hyphens: boolean): Placed;
+  attempt(items: readonly Item[], titleSize: number, step: number, hyphens: boolean): Attempt;
+  search(items: readonly Item[]): SearchResult;
+}
+
+const TITLE = CARD_SLOT_SPECS.title;
+
+function planner(input: LayoutCardInput): Planner {
   const slots = input.slots ?? CARD_SLOT_IDS;
   validate(input, slots);
-  const { zone, proportion, pairing, content, ink, metrics, carried } = input;
+  const { zone, proportion, pairing, content, metrics, carried } = input;
 
   const slotItems: Item[] = slots.map((slot) => {
     const spec = CARD_SLOT_SPECS[slot];
@@ -212,7 +238,12 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
     return height;
   };
 
-  const attempt = (items: readonly Item[], titleSize: number, step: number, hyphens: boolean) => {
+  const attempt = (
+    items: readonly Item[],
+    titleSize: number,
+    step: number,
+    hyphens: boolean,
+  ): Attempt => {
     const placed = items.map((item) => place(item, sizeOf(item.spec, titleSize, step), hyphens));
     const height = stackHeight(placed);
     const fits =
@@ -224,9 +255,8 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
     return { placed, height, fits };
   };
 
-  const TITLE = CARD_SLOT_SPECS.title;
   const titleMax = TITLE.max[proportion];
-  const searchSizes = (items: readonly Item[], hyphens: boolean) => {
+  const searchSizes = (items: readonly Item[], hyphens: boolean): SearchResult => {
     let titleSize = titleMax;
     let step = 0;
     let result = attempt(items, titleSize, step, hyphens);
@@ -241,10 +271,38 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
     return { ...result, titleSize, step, hyphens };
   };
   // Without hyphen breaks if any sizes allow it; otherwise with them.
-  const search = (items: readonly Item[]) => {
+  const search = (items: readonly Item[]): SearchResult => {
     const whole = searchSizes(items, false);
     return whole.fits ? whole : searchSizes(items, true);
   };
+
+  return { slotItems, addedItems, place, attempt, search };
+}
+
+/**
+ * Whether `layoutCard(input)` fits, i.e. would not report `overflow` — without building its boxes.
+ * Exactly `!layoutCard(input).overflow`, from the same search code.
+ *
+ * Fast path: the last attempt `layoutCard`'s search makes — the title at its minimum, the body at
+ * its last step, breaks after hyphens allowed — is its smallest. If the generated slots fit there,
+ * the search reaches a fit at or before it, so `layoutCard` fits; one attempt settles the common
+ * case. If they do not fit there, the full search decides, so the answer stays exact even where a
+ * smaller size would not fit better (a variable face's `opsz` instance can widen as it shrinks).
+ * Added (carried) boxes never cause `overflow` (`layoutCard` stacks those below the zone), so only
+ * the slots are searched: they fit with some added boxes only if they fit alone.
+ */
+export function layoutCardFits(input: LayoutCardInput): boolean {
+  const plan = planner(input);
+  return (
+    plan.attempt(plan.slotItems, TITLE.min, BODY_STEPS, true).fits ||
+    plan.search(plan.slotItems).fits
+  );
+}
+
+/** Lay out the generated card's text layer (see the module comment). */
+export function layoutCard(input: LayoutCardInput): CardTextLayout {
+  const { zone, proportion, ink, metrics } = input;
+  const { slotItems, addedItems, place, search } = planner(input);
 
   // Every added box if they all fit; otherwise as many as fit, in order, the rest below the zone.
   let fitted = addedItems.length;

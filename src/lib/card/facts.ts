@@ -54,7 +54,7 @@ export const CARD_TIME_RANGE_SEPARATOR = " \u2013 ";
 /**
  * The longest each formatted fact can be, in characters: "Wednesday, September 30",
  * "10:00 pm – 11:00 pm", "RSVP by September 30" (`facts.test.ts` proves them by enumeration).
- * The worst-case content of the layout fixtures uses values at these lengths (`test-content.ts`).
+ * The worst-case content of the layout fixtures uses values at these lengths (`worst-case.ts`).
  */
 export const CARD_FACT_MAX_LENGTH = { date: 23, time: 19, rsvpBy: 20 } as const;
 

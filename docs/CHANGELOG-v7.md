@@ -353,7 +353,15 @@ circles. Two decisions by the owner (2026-10-04):
   generations per event per day and 60 per acting host per day (`spec.md §10`; built first in
   Phase 5). The owner has set a monthly budget on the OpenAI account as a backstop.
 - **The dev-fixture routes on Vercel previews:** approved, to confirm on a real deployment that the
-  fonts are bundled. `ENABLE_DEV_FIXTURES=1` is set for the Preview environment only.
+  fonts are bundled. `ENABLE_DEV_FIXTURES=1` is set for the Preview environment only; a preview
+  drew a card and an envelope from the bundled fonts, and CI now checks the build's traces.
+- **Free clean-up, approved:** the fonts' licence texts ship beside the files; and text within the
+  limits that some design cannot fit is refused at entry by an exact fit check on the server
+  (`card-system.md §2.5`). Building it showed the gap was wider than "MMMM …": a 40-character
+  title in capitals, such as "WELCOME WILHELMINA MONTGOMERY-WHITWORTH!", overflows 47 of the 300
+  layout × shape × pairing combinations, and is now asked to be shortened. A browser-side estimate
+  was tried and dropped: an upper bound on glyph widths is 1–3% loose over a line and refused the
+  worst-case title the fixtures prove fits.
 - **Phase 5:** waits for the owner's go-ahead.
 
 ## Still open
