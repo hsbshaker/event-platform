@@ -62,6 +62,10 @@ describe("the live envelope this restates", () => {
   it("has the size, title area and title type the preview draws", () => {
     expect(source).toContain('portrait: "min(100%, calc(var(--width-narrow) * 0.64))"');
     expect(source).toContain('style={{ top: "58%", bottom: "var(--space-6)" }}');
+    // The front fold's notch (54%), the inner flap (58%) and the outer flap (56%).
+    expect(source).toContain('clipPath: "polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)"');
+    expect(source).toContain('height: "58%", clipPath: "polygon(0 0, 100% 0, 50% 100%)"');
+    expect(source).toContain('height: "56%", clipPath: "polygon(0 0, 100% 0, 50% 100%)"');
     expect(source).toContain(
       '"absolute inset-x-0 flex items-center justify-center px-4 text-center"',
     );
