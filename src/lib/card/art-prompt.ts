@@ -148,5 +148,5 @@ export function assembleShapeSwitchPrompt(design: ArtPromptInput, targetShape: C
     throw new Error(`layout ${design.layout} does not support shape ${targetShape}`);
   }
   const switched = { ...design, shape: targetShape };
-  return `${assembleArtPrompt(switched)}\nKeep the same subject, character, medium and palette as the reference artwork — the same ${subjectLead(design.artBrief.subject)} — rearranged for this new canvas and outline. Do not copy the reference's framing; recompose it.`;
+  return `${assembleArtPrompt(switched)}\nKeep the same subject, character, medium and palette as the reference artwork — the same ${subjectLead(design.artBrief.subject)} — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the clear area completely clear.`;
 }
