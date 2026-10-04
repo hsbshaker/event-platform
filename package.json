@@ -16,6 +16,7 @@
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "test:e2e": "vitest run --project e2e",
     "test:fixtures": "vitest run --project fixtures",
+    "corpus:live": "node scripts/corpus/run-live.mjs",
     "check:traced-fonts": "node scripts/card/check-traced-fonts.mjs"
   },
   "dependencies": {
