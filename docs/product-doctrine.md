@@ -103,7 +103,7 @@ reaches a generic generator:
 ```text
 raw prompt + optional inspiration
   → EventIdentity  (+ optional adaptive clarification, §6)
-  → CardDesign  →  art brief + layout rule  →  image model
+  → CardDesign  →  art brief + layout and shape rules  →  image model
   → deterministic card compiler → the card
 ```
 

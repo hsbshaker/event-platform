@@ -128,6 +128,18 @@ and #28, §33, §35), `card-system.md` (§1, §2.1–§2.3, §3–§9), `model-c
 `technology-decisions.md`, `product-doctrine.md §14`, `CLAUDE.md`, and the `generateCardArt` input
 type.
 
+### 7.1 review fix — which shapes an artwork fits
+
+Codex review of the 7.1 change (after it merged) found that artwork composed for one outline can
+lose its subject or look wrong when trimmed to another of the same proportion — a rectangular
+border cut into an oval. Owner decision: **regenerate when needed.** Illustration and atmosphere
+artwork is composed safe for every supported shape of its proportion, so those switches stay
+instant; border- and frame-led artwork (`framed`, `minimal`) fits only the shape it was made for,
+so switching its outline generates new artwork, like a tall ↔ square switch. Every shape stays
+available. The same review aligned `spec.md §7.6a` and §31 with the shape composition rule, and
+the `generateCardArt` input now derives the raster's proportion from the shape
+(`src/lib/card/shapes.ts`), so an invalid shape/aspect pair cannot be requested.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the image model and its workflow; the layout catalog and

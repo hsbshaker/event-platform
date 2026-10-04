@@ -46,12 +46,12 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
 7. **Text always fits.** Card text is laid out by one deterministic function that never lets text
    leave its zone; inputs that could not fit are bounded at entry (§4.3).
 8. **The raw host prompt never reaches the image model.** The image model receives an art brief
-   derived from the persisted `EventIdentity` plus layout rules (§3). Inspiration uploads are
+   derived from the persisted `EventIdentity` plus layout and shape rules (§3). Inspiration uploads are
    inputs to `EventIdentity` only and are never sent to the image model.
 9. **Generated design data is immutable.** A `CardDesign` and its artwork never change once
    generated. Host edits live on the event; "Try another direction" creates a new design; artwork
-   generated for the other proportion when the host switches shape is an additional asset, never a
-   change to the first (§5, §7).
+   generated when the host switches to a shape the existing artwork does not fit is an additional
+   asset, never a change to the first (§5, §7).
 10. **No templates of art, no stock, no uploads on the card.** Artwork is generated for this event's
     card. A small catalog of text layouts is allowed and expected (§2.3); it is where the words go,
     not what the card looks like.
@@ -88,9 +88,10 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
   sizes the outline, and the outline is never part of the artwork.
 - Each shape defines a **text-safe area**: the region inside its outline, inset by a margin, where
   text zones may sit. Text never touches or crosses the outline.
-- **The design picks the shape** (§3); the host may switch it (§7). Switching to a shape of the
-  same proportion is instant and deterministic. Switching to the other proportion needs new
-  artwork at that proportion, generated from the same brief.
+- **The design picks the shape** (§3); the host may switch it (§7). Every artwork records the
+  shapes it **fits** (§2.4). Switching to a shape the current artwork fits is instant and
+  deterministic. Switching to any other shape — the other proportion, or another outline when the
+  artwork follows its own outline — generates new artwork for that shape from the same brief.
 - Rounded-corner radius and the exact outline geometry are part of the layout set (§2.3) and are
   fixed by the Phase 3 bake-off.
 
@@ -155,6 +156,16 @@ The design declares one mode, which tells the art brief how much the artwork car
 Every card has artwork; `minimal` is how the system expresses a restrained, typography-led card.
 Mode/layout compatibility is part of the layout set and is validated (§4.1).
 
+**Which shapes an artwork fits** depends on its mode:
+
+| Mode | Fits | Why |
+| --- | --- | --- |
+| `illustration`, `atmosphere` | every shape of its proportion that the layout supports | The art prompt carries the crop-safety rule of the tightest of those outlines (everything important inside it; corners hold only background that can be lost), so any of them can trim it |
+| `framed`, `minimal` | only the shape it was generated for | Borders, frames and wreaths follow the outline; a rectangular border cut into an oval looks wrong |
+
+Switching to a shape outside the fit set generates artwork for it (§7). Earlier artwork is kept, so
+switching back is instant.
+
 ## 2.5 Text slots
 
 | Slot | Source | Notes |
@@ -203,7 +214,7 @@ host prompt + optional inspiration
   → assemble the art prompt          deterministic: brief + layout and shape composition rules + global rules
   → generateCardArt                  image model; at the shape's proportion, no text
   → validate artwork                 deterministic checks, plus the bake-off's text/safety check
-  → resolve ink and panels           deterministic, for every supported shape of that proportion (§4.2)
+  → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
   → persist CardDesign + artwork + resolved ink    immutable
   → reveal the card
 ```
@@ -254,8 +265,8 @@ No step here calls a model or regenerates artwork.
 
 ## 4.2 Ink and legibility
 
-For each text zone, computed once per artwork, layout and shape — for every shape of the artwork's
-proportion that the layout supports, so a same-proportion shape switch never waits:
+For each text zone, computed once per artwork, layout and shape — for every shape the artwork fits
+(§2.4), so a switch the artwork already fits never waits:
 
 1. Measure the artwork's background in the zone **conservatively**: a high percentile of pixel
    luminance in the direction that lowers contrast, never the mean.
@@ -302,9 +313,9 @@ Persist per event:
 - `EventIdentity`, with its prompt and schema versions;
 - every `CardDesign`: the raw model response, the validated design (including its shape), its
   presentation name and description, and the version set (§8);
-- every artwork asset in Supabase Storage, with its proportion, image model, art-prompt version and
-  resolved ink and panels per shape. A design has its original artwork and, at most, one more for
-  the other proportion, generated when the host first switches across (§7);
+- every artwork asset in Supabase Storage, with its proportion, the shapes it fits, image model,
+  art-prompt version, and resolved ink and panels per fitted shape. A design has its original
+  artwork plus one more for each shape the host switched to that no existing artwork fits (§7);
 - `Event.activeCardDesignId` and the host's card edits on the event (`spec.md §20.2`).
 
 A `CardDesign` and its artwork are immutable. Host wording edits, font swaps and shape switches are
@@ -371,8 +382,8 @@ with the live card. The rendering mechanism is chosen when the card renderer is 
 | Edit title or invitation line | none | event data; re-runs `layoutCard` |
 | Edit a fact (date, venue, …) | none | event data; card and page update |
 | Swap font (primary or alternates) | none | event data; re-runs `layoutCard` |
-| Switch shape, same proportion | none | event data; the shape's zones and pre-resolved ink; re-runs `layoutCard` |
-| Switch shape, other proportion | card art | new artwork for that proportion from the same brief, attached to the same design; validated and ink-resolved as in §3–§4; counts as a generation (`spec.md §10`); before publish only. The current card stays as it is until the new artwork is ready. Switching back is instant: earlier artwork is kept. |
+| Switch to a shape an existing artwork fits | none | event data; the shape's zones and pre-resolved ink; re-runs `layoutCard` |
+| Switch to a shape no existing artwork fits (the other proportion, or another outline for `framed`/`minimal` art) | card art | new artwork for that shape from the same brief, attached to the same design; validated and ink-resolved as in §3–§4; counts as a generation (`spec.md §10`); before publish only. The current card stays as it is until the new artwork is ready. Switching back is instant: earlier artwork is kept. |
 | Try another direction (optional feedback) | card design + art | a new `CardDesign`; current card stays active until the host chooses |
 | Choose an earlier design | none | `activeCardDesignId`; card-level edits reset |
 

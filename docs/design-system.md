@@ -708,9 +708,9 @@ Do not expose:
 
 Swapping font re-lays out the card's text only; ink, artwork and every event fact are unchanged.
 
-Switching shape within the same proportion (among rectangle, rounded rectangle, arch and oval, or between square and circle) applies instantly. Switching across proportions (tall ↔ square) needs new artwork: say so before it starts ("This makes new artwork for a square card — about as long as a new design"), keep the current card visible while it generates, and show the result in place; switching back is instant. Cross-proportion switching is not offered after publish.
+Switching to a shape the current artwork fits applies instantly. Illustration and atmosphere artwork fits every supported shape of its proportion; border- and frame-led artwork fits only the shape it was made for (`card-system.md §2.4`). Any other switch — tall ↔ square, or a new outline for a bordered design — needs new artwork: say so before it starts ("This makes new artwork for a square card — about as long as a new design"), keep the current card visible while it generates, and show the result in place; switching back is instant. Switches that need new artwork are not offered after publish.
 
-After publish, the font control and same-proportion shape switching remain available; `Try another direction`, cross-proportion shape switching and the designs list do not (§4.12).
+After publish, the font control and switching to shapes an existing artwork fits remain available; `Try another direction`, switches that need new artwork and the designs list do not (§4.12).
 
 ---
 
@@ -1814,7 +1814,7 @@ App and guest-page components must not import card styling (§23.7).
 
 Per `docs/card-system.md`:
 
-- The strong model emits an `EventIdentity` and a `CardDesign`: layout (an ID from a small catalog), art mode, a curated typography pairing with up to two alternates, the card's wording (title and invitation line), an art brief, and a host-facing name and description. An image model generates the artwork from the art brief and the layout's composition rule, never from the raw host prompt.
+- The strong model emits an `EventIdentity` and a `CardDesign`: layout (an ID from a small catalog), art mode, a curated typography pairing with up to two alternates, the card's wording (title and invitation line), an art brief, and a host-facing name and description. An image model generates the artwork from the art brief and the layout's and shape's composition rules, never from the raw host prompt.
 - The model does **not** emit HTML, CSS, JSX, JavaScript or SVG; text colours, font sizes, positions or line breaks; the host's facts; or any ID outside its catalogs.
 - Deterministic code (no model call) validates the design and artwork, checks that wording invents no fact, resolves ink and any legibility panel, and sizes and breaks every line of text with one pure layout function. The design, artwork and resolved ink are persisted and immutable.
 - One card component renders from the persisted data only.

@@ -36,7 +36,7 @@ Before proposing or implementing a solution, check it against these rules:
 
 - **AI should remove decisions, not create more decisions.** The system makes the design decisions it was hired to make — never which font, which layout, which hex value. `docs/product-doctrine.md §7`.
 - **Design quality and creative understanding are core functionality, not polish.** MVP is permission to omit features, never permission for a mediocre card. `docs/product-doctrine.md §2`.
-- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout rule. `docs/product-doctrine.md §4`.
+- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout and shape rules. `docs/product-doctrine.md §4`.
 - The landing page is the prompt.
 - Prompt first → auth/save second → generation third. No model call of any kind for anonymous users.
 - Prompt and inspiration must survive auth/OAuth exactly.
@@ -131,7 +131,7 @@ host prompt + inspiration
 → strict schema + catalog validation · wording fact check · direction distinctness   (one re-prompt each)
 → art prompt assembled by code (brief + layout and shape rules + global rules) → image model → artwork
 → artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety   (one regeneration)
-→ ink + legibility panels resolved deterministically per supported shape (every card text ≥ 4.5:1)
+→ ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
 → persisted, immutable CardDesign + artwork + ink + versions
 → layoutCard (sizes, line breaks) at save and render → one card component → envelope → house-style page
 ```

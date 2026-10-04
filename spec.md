@@ -51,8 +51,9 @@ pages, and the palette override control.
 
 The card comes in **six shapes**: rectangle, rounded rectangle, arch and oval at portrait 5:7;
 square and circle at 1:1. There is no landscape card. The design picks the shape; the host may
-switch it. Switching between shapes of the same proportion is instant; switching across
-proportions generates new artwork from the same brief (§7.14, `docs/card-system.md §2.1`, §7).
+switch it. Switching to a shape the current artwork fits is instant; switching to any other shape
+(the other proportion, or another outline for border- and frame-led art) generates new artwork
+from the same brief (§7.14, `docs/card-system.md §2.1`, §2.4, §7).
 
 ---
 
@@ -585,7 +586,7 @@ Binding rules:
 2. **No text in the artwork.** No letters, numbers, logos or watermarks. Every word is real text set
    by code. Embedded text is detected and rejected (§7.8).
 3. **The image model never sees the raw prompt or the inspiration images.** It receives the art
-   brief and the layout's composition rule only.
+   brief and the layout's and shape's composition rules only.
 4. **Original language only** (§7.6).
 5. **Readability always wins.** Code guarantees text contrast over the artwork (§7.9); the artwork
    is never the reason a guest cannot read the card.
@@ -677,8 +678,7 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
    slot, logged); host-supplied wording is not checked;
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
-5. resolves ink per text zone, for every shape of the artwork's proportion that the layout
-   supports, from the artwork's own palette, measuring the background conservatively, so every
+5. resolves ink per text zone, for every shape the artwork fits (`docs/card-system.md §2.4`), from the artwork's own palette, measuring the background conservatively, so every
    card text clears **4.5:1**; applies the layout's legibility panel when no ink can;
 6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
@@ -762,11 +762,13 @@ Creation Mode.
 
 `Design` exposes only:
 - the card's font: the design's primary pairing and its alternates;
-- the card's shape: any of the six shapes the design's layout supports. A shape of the same
-  proportion applies instantly with no model call. A shape of the other proportion (tall ↔ square)
-  generates new artwork for that proportion from the same art brief — a generation that counts
-  toward §10 limits and is available before publish only; the current card stays as it is until
-  the new artwork is ready, and switching back is instant;
+- the card's shape: any of the six shapes the design's layout supports. A shape the current
+  artwork fits applies instantly with no model call: illustration and atmosphere artwork fits every
+  supported shape of its proportion, border- and frame-led artwork (`framed`, `minimal`) fits only
+  the shape it was made for (`docs/card-system.md §2.4`). Any other shape generates new artwork for
+  it from the same art brief — a generation that counts toward §10 limits and is available before
+  publish only; the current card stays as it is until the new artwork is ready, and switching back
+  is instant;
 - reset the card's wording, font and shape to the design;
 - `Try another direction ✦` before publish;
 - the designs generated so far, to choose another before publish.
@@ -832,7 +834,7 @@ Owner and co-host may change:
 
 - date/time/location and ordinary event content, including the card's wording;
 - the card's font, among the active design's pairings;
-- the card's shape, among the supported shapes of the proportion that already has artwork;
+- the card's shape, among the supported shapes an existing artwork already fits;
 - RSVP settings/questions;
 - guest list, invitations and RSVP operations;
 - external registries, native items, native item purchase state, cash fund;
@@ -896,7 +898,7 @@ Never call a model for:
 - changing structured date/time/venue or any fact;
 - editing the card's wording;
 - swapping the card's font;
-- switching the card's shape within the same proportion;
+- switching the card's shape to one an existing artwork fits;
 - hiding/reordering simple information blocks;
 - guests/registry/cash-fund operations;
 - sending invitations, reminders or announcements (message text is templated);
@@ -962,8 +964,8 @@ Enforce configurable backend safety limits:
 - idempotency so retries/double taps do not duplicate expensive calls.
 
 A co-host does not receive an independent pool for the same event; event-level limits span all
-collaborators. Each round generates exactly one design and one artwork; a cross-proportion shape
-switch generates one artwork and counts as a generation.
+collaborators. Each round generates exactly one design and one artwork; a shape switch that needs
+new artwork generates one artwork and counts as a generation.
 
 Instrument every generation (§29). Use observed rounds per event, conversion, latency, quality and
 actual AI cost to set commercial limits. Do not impose an arbitrary user-facing cap before testing.
@@ -1780,7 +1782,7 @@ CardDesign {
   wording /* { title, invitationLine } — after the fact check */,
   artBrief,
   raw,                           // the model response as returned
-  artAssetIds[],                 // the original; plus one for the other proportion if generated
+  artAssetIds[],                 // the original; plus one per shape switch no existing artwork fits
   standardWordingSlots[],
   versions /* designPrompt, designSchema, layoutSet, compiler, artPrompt, imageModel */,
   selectedAt?,
@@ -1790,8 +1792,9 @@ CardDesign {
 CardArtAsset {
   id, eventId, cardDesignId,
   proportion /* portrait_5_7 | square_1_1 */,
+  fitsShapes[],                  // the shapes this artwork may be shown in (card-system §2.4)
   storageKey, mimeType, width, height, sizeBytes,
-  ink /* per supported shape, per zone: { ink, panel?, panelColor? } */,
+  ink /* per fitted shape, per zone: { ink, panel?, panelColor? } */,
   imageModel, artPromptVersion,
   createdAt
 }
@@ -2143,8 +2146,8 @@ The host should feel:
 - [ ] Event Identity persists tone/colour constraints, negative constraints and compatible
   typography-category guidance.
 - [ ] Event Identity is the only stage that receives the raw host prompt; the card-design call reads
-  the persisted identity and the image model reads only the art brief and layout rule (§7.5,
-  §7.6a).
+  the persisted identity and the image model reads only the art brief and the layout and shape
+  rules (§7.5, §7.6a).
 - [ ] Supplied event facts are extracted exactly onto the draft for confirmation, none is invented,
   and Event Identity carries no operational field (§7.5).
 - [ ] Named aesthetic references become original visual language; no logo, proprietary character or
@@ -2164,8 +2167,8 @@ The host should feel:
   exactly as the host supplied them; a failing slot is re-prompted once, then replaced by standard
   wording that is logged and editable. Host-supplied and host-edited wording is never fact-checked.
 - [ ] A host-supplied title is used verbatim.
-- [ ] The art prompt is assembled by code from the art brief, the layout's composition rule and the
-  global rules; it never contains the raw prompt.
+- [ ] The art prompt is assembled by code from the art brief, the layout's and shape's composition
+  rules and the global rules; it never contains the raw prompt.
 - [ ] Every design has one of the six shapes and a layout that supports it; text zones lie inside
   the shape's text-safe area; the outline is code-defined and never part of the artwork.
 - [ ] Artwork is at the shape's proportion (5:7 or 1:1), decodable, at minimum resolution, contains
@@ -2202,9 +2205,11 @@ The host should feel:
 - [ ] `Ready to publish` can appear even if guests/registry/invitations are incomplete.
 - [ ] Design controls expose only the design's font pairings, the shapes its layout supports, reset,
   `Try another direction` and the designs list.
-- [ ] A same-proportion shape switch applies instantly with no model call; a cross-proportion switch
-  generates one artwork from the same brief, counts as a generation, is unavailable after publish,
-  and keeps earlier artwork so switching back is instant.
+- [ ] A switch to a shape an existing artwork fits applies instantly with no model call; a switch to
+  any other shape generates one artwork from the same brief, counts as a generation, is unavailable
+  after publish, and keeps earlier artwork so switching back is instant.
+- [ ] Illustration and atmosphere artwork is composed safe for every supported shape of its
+  proportion; border- and frame-led artwork is recorded as fitting only the shape it was made for.
 
 ### Try another direction
 - [ ] Available from the reveal and Creation Mode before publish.
@@ -2339,8 +2344,8 @@ The host should feel:
 27. Never regenerate, recompile or "upgrade" a historical design; renderer bug, accessibility and
     responsive fixes are allowed.
 28. The card is one of the six shapes; outlines are code-defined masks, never model-drawn. The
-    host's shape control offers only shapes the design's layout supports, and a cross-proportion
-    switch is a generation. Typography uses curated pairing IDs only; the host's font control offers
+    host's shape control offers only shapes the design's layout supports, and a switch to a shape no
+    existing artwork fits is a generation. Typography uses curated pairing IDs only; the host's font control offers
     exactly the design's primary and alternates.
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
@@ -2437,7 +2442,7 @@ Generation begins
     ↓
 Card design (layout, art mode, font pairing, wording, art brief)
     ↓
-Card artwork (image model; brief + layout rule only; no text)
+Card artwork (image model; brief + layout and shape rules only; no text)
     ↓
 Deterministic compiler: validate · wording fact check · artwork checks · ink 4.5:1 · persist
     ↓

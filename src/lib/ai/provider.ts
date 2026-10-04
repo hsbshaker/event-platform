@@ -11,13 +11,12 @@
  * so no code path can call a model by accident (spec.md §32 #4).
  */
 
+import type { CardShape } from "@/lib/card/shapes";
+
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Phase 5 types them narrowly. */
 export type EventIdentity = Record<string, unknown>;
 export type CardDesign = Record<string, unknown>;
 export type CardArt = { mimeType: string; bytes: Uint8Array };
-
-/** The six card shapes (docs/card-system.md §2.1): four portrait 5:7, two square 1:1. */
-export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
 
 export type ModelOperation = "event_identity" | "card_design" | "card_art";
 
@@ -58,8 +57,8 @@ export interface GenerateCardDesignInput {
 export interface GenerateCardArtInput {
   artBrief: Record<string, unknown>;
   layout: string;
+  /** The raster's proportion is derived from the shape (`proportionOf`), never passed beside it. */
   shape: CardShape;
-  aspect: "5:7" | "1:1";
 }
 
 export interface AiProvider {

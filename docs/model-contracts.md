@@ -28,7 +28,7 @@ generateCardDesign(...)           strong model, one per round
         ↓
 CardDesign  → deterministic validation + wording fact check
         ↓
-art prompt assembled by code from the art brief + layout rule + global rules
+art prompt assembled by code from the art brief + layout and shape rules + global rules
         ↓
 generateCardArt(...)              image model
         ↓
@@ -276,6 +276,10 @@ The art prompt is assembled **by application code**, never written verbatim by a
 
 - the art brief's subject, medium, mood, palette description and colours, texture;
 - the layout's composition rule (where the subject may sit, which regions stay quiet);
+- the shape's crop-safety rule: for `illustration` and `atmosphere` art, the rule of the tightest
+  outline among the layout's supported shapes of that proportion (everything important inside it),
+  so the artwork fits all of them; for `framed` and `minimal` art, the rule of the requested shape
+  only (`card-system.md §2.4`);
 - the art mode's instruction (illustration, framed, atmosphere, minimal);
 - the global rules: no text, letters or numbers; no logos, brands, characters or watermarks; an
   original style; the shape's proportion (5:7 or 1:1) and its composition rule (e.g. arch: the top
@@ -287,15 +291,16 @@ It contains no raw host prompt, no event facts and no inspiration image.
 ## 7.2 Input and output
 
 ```ts
-GenerateCardArtInput { artBrief; layout: CardLayoutId; shape: CardShape; aspect: "5:7" | "1:1" }
+GenerateCardArtInput { artBrief; layout: CardLayoutId; shape: CardShape }   // proportion derived from shape
 → { mimeType, bytes }    // plus provider usage and model id for metering
 ```
 
 Image-model specifics (model, size, transparent-background workflow if any) are recorded in
 `technology-decisions.md §8.1` by the bake-off.
 
-A host's cross-proportion shape switch (`card-system.md §7`) calls `generateCardArt` again with the
-same art brief, the new shape and its proportion. It is a generation for limits and metering, and it
+A host's switch to a shape no existing artwork fits (`card-system.md §7`) calls `generateCardArt`
+again with the same art brief and the new shape; the raster's proportion is derived from the shape
+(`src/lib/card/shapes.ts`) and is never passed separately. It is a generation for limits and metering, and it
 adds an artwork to the design rather than replacing one.
 
 ## 7.3 Validation
