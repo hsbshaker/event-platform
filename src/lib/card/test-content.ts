@@ -1,9 +1,10 @@
 /**
  * Test support: the typical and worst-case card content the `layoutCard` unit tests and the layout
- * fixtures (`tests/fixtures/`) set. Imported by tests only.
+ * fixtures (`tests/fixtures/`) set. Imported by tests only; `WORST` itself is product data
+ * (`worst-case.ts`), re-exported here.
  */
 
-import { CARD_FACT_MAX_LENGTH, formatCardDate, formatCardRsvpBy, formatCardTime } from "./facts";
+import { CARD_FACT_MAX_LENGTH } from "./facts";
 import { FACT_ENTRY_LIMITS, WORDING_LIMITS } from "./slots";
 import type { CardContent } from "./text-box";
 
@@ -17,22 +18,7 @@ export const TYPICAL: CardContent = {
   venue: "The Willow House",
 };
 
-/**
- * Every slot at its entry limit, with wide letters (`docs/card-system.md §2.5`): the free text at
- * its slot limit, the formatted facts at their longest and widest (`facts.ts`
- * `CARD_FACT_MAX_LENGTH`; "September 20" and "10:00 am" are the widest of their kind in most
- * curated body faces, and `layout-card.test.ts` also proves each pairing with its own widest).
- */
-export const WORST: Required<{ [K in keyof CardContent]: string }> = {
-  title: "Welcome Wilhelmina Montgomery-Whitworth!",
-  invitationLine: "Please join us as we shower Maximilian with warm wishes and so much love",
-  babyName: "Maximilian Augustin Montgomery-Whitworth",
-  hosts: "Hosted by Wilhelmina Montgomery and Maximilian Worthingtons!",
-  date: formatCardDate("2028-09-20"),
-  time: formatCardTime("10:00", "22:00"),
-  venue: "The Grand Ballroom at Montgomery-Whitworth Manor, Washington",
-  rsvpBy: formatCardRsvpBy("2028-09-30T12:00:00Z", "UTC"),
-};
+export { WORST } from "./worst-case";
 
 /** The entry limit of every slot, which `WORST` sits exactly at. */
 export const LIMITS = {

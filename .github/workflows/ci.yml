@@ -29,6 +29,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # Vercel bundles each function from the build's traces: a font missing there is missing in
+      # production while every test passes.
+      - run: npm run check:traced-fonts
 
   card-fixtures:
     # Every layout × supported shape × pairing rendered and measured in a real browser

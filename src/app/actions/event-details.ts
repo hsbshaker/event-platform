@@ -10,7 +10,8 @@ import {
   type EventPatchStore,
 } from "@/lib/events/apply-patch";
 import { cardVenue } from "@/lib/card/facts";
-import { cardTextFieldErrors } from "@/lib/events/card-text";
+import { cardTextFieldErrors, type VenueContext } from "@/lib/events/card-text";
+import { cardTextFitErrors } from "@/lib/events/card-text-fit.server";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
@@ -190,6 +191,9 @@ export async function updateEventDetails(
 
   const supabase = await createClient();
 
+  // The stored venue name and address, read when the patch changes either (each is checked in
+  // light of the other).
+  let storedVenue: VenueContext = {};
   if (input.venueName !== undefined || input.address !== undefined) {
     const { data, error } = await supabase
       .from("events")
@@ -200,18 +204,45 @@ export async function updateEventDetails(
       console.error("updateEventDetails: could not read the venue", { eventId, error });
       return { ok: false, error: "Could not save that. Try again." };
     }
+    if (data) {
+      storedVenue = {
+        venueName: data.venue_name as string | null,
+        address: data.address as string | null,
+      };
+    }
     // Not atomic with the write below: a concurrent writer changing the other venue field in
     // between can slip past this check. Accepted as a narrow race; the card compiler still
     // refuses to render text it cannot show, so it costs a retry, never a broken card.
     const venueErrors = data
-      ? cardTextFieldErrors(
-          { venueName: input.venueName, address: input.address },
-          { venueName: data.venue_name as string | null, address: data.address as string | null },
-        )
+      ? cardTextFieldErrors({ venueName: input.venueName, address: input.address }, storedVenue)
       : null;
     if (venueErrors) {
       return { ok: false, error: "Check the highlighted fields.", fieldErrors: venueErrors };
     }
+  }
+
+  // Then whether the card can fit each accepted value in every design, with every other detail
+  // at its worst case (docs/card-system.md §2.5, §4.3: every card shows every detail). Measured
+  // with the card fonts, so it runs only after authorization; the venue as the card shows it
+  // (the venue name, else the address's first line).
+  let fitErrors: Record<string, string> | null;
+  try {
+    fitErrors = await cardTextFitErrors(
+      {
+        title: input.title,
+        hosts: input.hosts,
+        babyName: input.babyName,
+        venueName: input.venueName,
+        address: input.address,
+      },
+      storedVenue,
+    );
+  } catch (error) {
+    console.error("updateEventDetails: could not check the card text", { eventId, error });
+    return { ok: false, error: "Could not save that. Try again." };
+  }
+  if (fitErrors) {
+    return { ok: false, error: "Check the highlighted fields.", fieldErrors: fitErrors };
   }
 
   // Compare-and-set on `row_version`, so the patch and its derived RSVP deadline can only

@@ -721,6 +721,16 @@ refusal is a failure; when it refuses a brand or character homage, the regenerat
 re-prompted design that evokes the character's world (§7.6). There is no template or stock
 fallback.
 
+**One repaint before a panel** (owner decision, 2026-10-04). An artwork that passes validation
+but would need the layout's legibility panel on the design's own shape (§7.9, step 5) — the
+picture has run into the text area — is repainted once from the same art prompt, and the panel is
+used only if the repaint needs it too. Code decides this from ink resolution (§7.9, step 5, which
+runs again on the repaint); no model judges legibility. An artwork gets at most one extra image: a validation regeneration or a repaint, never
+both. A repaint that fails validation is dropped and the first artwork is kept with the panel: a
+valid card already exists, so this is never a visible failure. Only the artwork the card shows is
+persisted as the design's artwork; the other image is metered (§9.6) and not kept. The repaint is
+metered and adds about 30 s to the cards that need it.
+
 ### 7.9 Card compilation
 
 For each card, deterministic code with no model call (`docs/card-system.md §4`):
@@ -999,7 +1009,7 @@ Each card generation records:
 ```ts
 schemaValidFirstCall
 reprompts[]            // kind: schema | wording | repeat-direction (at most one each)
-artRegenerated         // boolean, with the failed validation reason
+artRegenerated         // boolean, with the reason: the failed validation, or panel-repaint (§7.8)
 standardWording[]      // slots that fell back to standard wording
 inkPanels[]            // zones that needed a legibility panel
 versions               // prompt, schema, layout set, compiler, image model
@@ -1032,7 +1042,8 @@ Enforce configurable backend safety limits:
 
 A co-host does not receive an independent pool for the same event; event-level limits span all
 collaborators. Each round generates exactly one design and one artwork; a shape switch that needs
-new artwork generates one artwork and counts as a generation.
+new artwork generates one artwork and counts as a generation. An artwork's regeneration or repaint
+(§7.8) is metered and counts toward the spend ceiling, but is not another generation.
 
 Instrument every generation (§29). Use observed rounds per event, conversion, latency, quality and
 actual AI cost to set commercial limits. Do not impose an arbitrary user-facing cap before testing.
@@ -2343,6 +2354,10 @@ The host should feel:
   no embedded text, and passes
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no
   template or stock fallback exists.
+- [ ] An artwork that passes validation but would need the legibility panel on the design's own
+  shape is repainted once from the same art prompt before the panel is used; an artwork gets at
+  most one extra image (a validation regeneration or a repaint, never both), decided by code from
+  ink resolution.
 - [ ] When the image provider refuses a brand or character homage, the one regeneration comes
   from a re-prompted design that evokes the character's world rather than its signature look; the
   host sees a short, plain copyright note, never a provider error; a second refusal is a visible
@@ -2537,8 +2552,10 @@ The host should feel:
     provider claims to enforce.
 20. Re-prompt the card-design call only for a schema-invalid design, a model-wording fact-check
     failure or an exact repeat of an earlier direction, once each; regenerate artwork once only for
-    failed validation; Event Identity and fact extraction get one repair retry each
-    (`docs/model-contracts.md §9`). Never call a model for legibility, fit or compatibility.
+    failed validation, or repaint it once when the design's own shape would need a legibility
+    panel (one or the other, never both); Event Identity and fact extraction get one repair retry
+    each (`docs/model-contracts.md §9`). Never call a model for legibility, fit or compatibility:
+    code decides, and a repaint is a new image from the same art prompt, never a model's judgement.
 21. No library, template or stock fallback. A failed generation is shown honestly with a retry.
 22. Choose ink and panels deterministically; every text of the generated card clears 4.5:1
     against a conservatively measured background. Host colour choices in the card editor are the
@@ -2563,7 +2580,8 @@ The host should feel:
     card editor edits text only — never the artwork, the outline or the envelope.
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
-30. Each round generates one design and one artwork; never generate in bulk to pick from.
+30. Each round generates one design and one artwork (plus at most one regeneration or repaint of
+    that artwork, §7.8); never generate in bulk to pick from.
 31. No host-uploaded, stock or retrieved imagery on the card or page; the native product thumbnail
     is the only content-image exception.
 32. Native product thumbnail is content; never hotlink a retailer image.

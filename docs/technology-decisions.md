@@ -226,6 +226,7 @@ needed.
 | Flare | Not faster than Sunburst `medium` in the probe, and less faithful to the composition rules; not adopted |
 | **Quality setting** | **Sunburst `high`** — owner decision, 2026-10-04. All 15 corpus designs were painted at `high` and `medium` and compared as finished cards and at full resolution: no loss of detail at `medium`, but the owner found `high` brighter and more vibrant, and `medium`'s first attempts failed the artwork checks more often (2 of 15 against 1 of 33). `medium` would halve the artwork wait (17 s against 31 s) and cut its cost to $0.017; revisiting that is a deliberate decision recorded here |
 | Rate limits | The account's current image rate limit (a few images per minute) throttled even this test run. Production needs a higher OpenAI usage tier, sized against the per-account and global generation caps of `spec.md §10`, before launch |
+| Spend limits (test period) | Owner decision, 2026-10-04: a $20/day ceiling across all generation (about 250 cards at ≈ $0.08), at most 30 generations per event per day and 60 per acting host per day (`spec.md §10`). Held as server configuration with these defaults, never in model-facing code; built first in Phase 5. A monthly budget on the OpenAI account is the owner's backstop |
 
 The reveal-latency target was re-set with the owner from these measurements (`spec.md §7.10`), and
 the handling of provider refusals of famous characters was decided with them (`spec.md §7.6`).
@@ -260,9 +261,13 @@ Three capabilities the card system needs, decided when it is built and recorded 
   (`/_next/static/media/harfbuzz.*.wasm`) and the server's read of that path fails with `ENOENT` —
   `next dev` answers 500 and `next build` fails at "Collecting page data". Adding
   `serverExternalPackages: ["harfbuzzjs", "wawoff2"]` to `next.config.ts` makes the page work in
-  both, with Route Handlers unaffected (verified in Phase 4c). It is not set yet, because nothing
-  measures text in a page; the code that does runs from Route Handlers. Server Actions were not
-  tested and should be assumed to behave like pages until they are. Both libraries also run in the
+  both, with Route Handlers unaffected (verified in Phase 4c). It **is set** since the details
+  form's Server Action measures card text (the entry fit check, `docs/card-system.md §2.5`):
+  without it `next build` fails for the page that carries the action, and with it the action loads
+  the fonts and measures under `next build`/`next start` (verified at Phase 4 close-out; a cold
+  process's first check takes about 190 ms with the font load, a warm check about 25–30 ms, a
+  refusal about 5 ms). `npm run check:traced-fonts` (CI) holds every font file and the HarfBuzz
+  WASM in each such function's trace, which is what Vercel bundles. Both libraries also run in the
   browser, for the card editor (Phase 6b). The renderer must pin `opsz` to the card-unit size
   whatever the on-screen scale, or line widths would change with screen size;
 - **link-preview rendering** of the card and envelope (`spec.md §11.10`) — **decided (Phase 4c):
@@ -339,7 +344,9 @@ from the **Google Fonts** library (`spec.md §20`).
   type- and size-checked before they are stored.
 - **Licences travel with the files.** Each stored family keeps its licence name and full licence
   text (`CardFont.licenseName`, `licenseText`, `spec.md §24`), as the SIL Open Font License
-  requires when the fonts are redistributed.
+  requires when the fonts are redistributed. The bundled files do the same on disk: each curated
+  family's `<Family>-OFL.txt` sits beside its files in `public/fonts/card/`, and Inter's beside the
+  link preview's copy in `src/lib/link-preview/fonts/` (`font-files.test.ts`).
 - **The editor is built on the card component, in the DOM.** The card's text is real, selectable,
   screen-reader-readable text (`docs/card-system.md §2.2`), and the editor must show exactly what
   guests see, so the editing surface is the same card component with selection, handles and guides

@@ -1,7 +1,15 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { NARROWEST_ZONE_WIDTH } from "./entry";
+import { breakWidth } from "./fit";
 import type { CardRect } from "./ink";
-import { type CardTextLayout, type LayoutCardInput, layoutCard, pairingFaces } from "./layout-card";
+import {
+  type CardTextLayout,
+  type LayoutCardInput,
+  layoutCard,
+  layoutCardFits,
+  pairingFaces,
+} from "./layout-card";
 import { CARD_LAYOUT_IDS, CARD_SLOT_SPECS, layoutSupportsShape, zoneFor } from "./layouts";
 import { CARD_SHAPES, type CardProportion, proportionOf } from "./shapes";
 import { formatCardDate, formatCardRsvpBy, formatCardTime } from "./facts";
@@ -276,6 +284,33 @@ describe("layoutCard", () => {
     }
 
     /**
+     * The formatted facts take one line in every zone at every size: every date, time and RSVP-by,
+     * in every pairing's body face, at the details' largest size, fits one line of the narrowest
+     * zone. So which date, time or RSVP-by an event has never changes the height of its card, and
+     * the entry fit check (`entry-fit.server.ts`) is exact for them with `WORST`'s values.
+     */
+    it("sets every formatted date, time and RSVP-by on one line of the narrowest zone", () => {
+      const room = breakWidth(NARROWEST_ZONE_WIDTH);
+      const spec = CARD_SLOT_SPECS.date;
+      const size = Math.max(...Object.values(spec.max));
+      const style = { size, letterSpacingEm: spec.letterSpacingEm, textCase: spec.textCase };
+      let widest = 0;
+      for (const family of new Set(TYPOGRAPHY_KEYS.map((id) => pairingFaces(id).body.family))) {
+        const face = metrics({ family, weight: 400, italic: false });
+        const width = (v: string) => face.measure(v, style);
+        // A time range is two clocks around a dash: bounded by the widest clock at both ends.
+        const clock = CLOCKS.reduce((a, b) =>
+          width(formatCardTime(b)) > width(formatCardTime(a)) ? b : a,
+        );
+        for (const value of [...DATE_VALUES, ...RSVP_VALUES, formatCardTime(clock, clock)]) {
+          widest = Math.max(widest, width(value));
+        }
+      }
+      // With room to spare for any kerning between the clocks and the dash.
+      expect(widest).toBeLessThan(room * 0.95);
+    }, 60_000);
+
+    /**
      * Owner decision (`docs/CHANGELOG-v7.md`, "Phase 4 — fitting every detail on every card"):
      * every card shows every detail. Worst-case content fits every layout × supported shape ×
      * pairing at the minimum sizes or above — as `WORST`, and with each pairing's own widest
@@ -313,5 +348,101 @@ describe("layoutCard", () => {
       if (process.env.CARD_FIT_REPORT) console.log(rows.join("\n"));
       expect(failures).toEqual([]);
     }, 60_000);
+  });
+});
+
+describe("layoutCardFits", () => {
+  /** A seeded generator, so the sample is the same on every run. */
+  function seeded(seed: number): () => number {
+    let s = seed;
+    return () => {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      return s / 0x7fffffff;
+    };
+  }
+  function randomWords(rand: () => number, length: number, alphabet: string): string {
+    let text = "";
+    while (text.length < length) {
+      let word = "";
+      for (let i = Math.max(1, Math.floor(rand() * 12)); i > 0; i -= 1) {
+        word += alphabet[Math.floor(rand() * alphabet.length)];
+      }
+      text += (text ? " " : "") + word;
+    }
+    return text.slice(0, length).trim();
+  }
+
+  /**
+   * Exactly `!layoutCard(...).overflow`, both ways, over every layout × supported shape × pairing:
+   * typical and worst-case content, the entry-limit cases that overflow some designs (an all-caps
+   * title, a baby name of wide letters), and random wide and narrow words.
+   */
+  it("agrees with layoutCard's overflow for every layout × supported shape × pairing", () => {
+    const rand = seeded(20261004);
+    const samples: CardContent[] = [
+      TYPICAL,
+      { ...WORST },
+      { ...WORST, title: "WELCOME WILHELMINA MONTGOMERY-WHITWORTH!" },
+      { ...WORST, babyName: "WMWMW WMWMW WMWMW WMWMW WMWMW WMWMW WMWM" },
+      {
+        ...TYPICAL,
+        title: randomWords(rand, 40, "WMOQDHNUmweaon"),
+        hosts: randomWords(rand, 60, "WMHNmwoae"),
+      },
+      {
+        ...TYPICAL,
+        title: randomWords(rand, 36, "iljtfrIl.,"),
+        venue: randomWords(rand, 60, "Wil"),
+      },
+    ];
+    const outcomes = { fits: 0, overflows: 0 };
+    const disagreements: string[] = [];
+    samples.forEach((content, i) => {
+      for (const name of CARD_LAYOUT_IDS) {
+        for (const shape of CARD_SHAPES.filter((sh) => layoutSupportsShape(name, sh))) {
+          for (const id of TYPOGRAPHY_KEYS) {
+            const inp = input({
+              proportion: proportionOf(shape),
+              zone: zoneFor(name, shape),
+              pairing: pairingFaces(id),
+              content,
+            });
+            const fits = !layoutCard(inp).overflow;
+            outcomes[fits ? "fits" : "overflows"] += 1;
+            if (layoutCardFits(inp) !== fits) disagreements.push(`#${i} ${name}/${shape}/${id}`);
+          }
+        }
+      }
+    });
+    expect(disagreements).toEqual([]);
+    // Both directions are exercised.
+    expect(outcomes.fits).toBeGreaterThan(0);
+    expect(outcomes.overflows).toBeGreaterThan(0);
+  }, 120_000);
+
+  it("agrees when the zone is too small, and ignores added text stacked below the zone", () => {
+    const tiny = input({ proportion: "5:7", zone: { x: 400, y: 800, width: 200, height: 120 } });
+    expect(layoutCard(tiny).overflow).toBe(true);
+    expect(layoutCardFits(tiny)).toBe(false);
+    const added = input({
+      proportion: "5:7",
+      carried: {
+        added: [
+          {
+            id: "a1",
+            text: "Brunch to follow in the garden ".repeat(20).trim(),
+            font: pairingFaces("hc_playfair_dmsans").body,
+          },
+        ],
+      },
+    });
+    const layout = layoutCard(added);
+    expect(layout.belowZone).toEqual(["a1"]);
+    expect(layout.overflow).toBe(false);
+    expect(layoutCardFits(added)).toBe(true);
+  });
+
+  it("validates its input as layoutCard does", () => {
+    expect(() => layoutCardFits(input({ proportion: "5:7", ink: "brown" }))).toThrow();
   });
 });
