@@ -1673,7 +1673,7 @@ Renders the invitation card from the persisted design, its artwork, its resolved
 It is **owned by the card system, not by app chrome**: its styling, fonts and ink never come from app tokens, and no app component styles its internals.
 
 Contract:
-- one component renders the card everywhere: the reveal, Creation Mode, Preview, the guest page, the designs list and link-preview images;
+- one component renders the card everywhere it is shown: the reveal, Creation Mode, Preview, the guest page and the designs list; a link-preview image is drawn from the same stored data and validation, and a fixture holds it to the component (§15.7);
 - one of six shapes (rectangle, rounded rectangle, arch, oval at 5:7; square, circle at 1:1); the outline is a code-defined mask; renders at any width by uniform scaling, so outline, line breaks and layout are identical at 390px and 1280px;
 - text is live, selectable and screen-reader readable; the artwork is decorative (`alt=""`);
 - the application passes data (design, artwork, event content, the host's saved text boxes) and a size; it passes no CSS, and it never computes colours, fonts, layouts, positions or line breaks itself (the host's saved boxes carry them, validated and laid out by the card system);
@@ -2110,7 +2110,7 @@ The envelope is a house component (§10.20) that fronts every invitation.
 - **Public event, shared link:** the envelope shows the event title and opens to the card.
 - **Private event, shared link:** the envelope stays **sealed** with the event title until the event code is entered. Nothing on the card or page is visible before then.
 - **Personal invitation link:** no code. A bare request returns only the closed envelope; the card, page and party session load when the guest opens it (`spec.md §12.5`).
-- **Link previews:** the rendered card for a public event; the sealed envelope with the title for a private one. Produced from the same card component and layout function, so they cannot disagree with the live card.
+- **Link previews:** the rendered card for a public event; the sealed envelope with the title for a private one. The card preview is drawn from the same stored data and validation as the card component (`docs/card-system.md §6.4`), so it cannot disagree with the live card.
 
 The envelope is not themed per event, not generated and not an imitation of any competitor's envelope.
 

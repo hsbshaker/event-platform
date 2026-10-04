@@ -21,7 +21,7 @@ Screen labels describe product surfaces, not necessarily URL routes. Section ref
 - Contextual actions use `Edit`, `Set up`, `Add`.
 - Setup/readiness UI distinguishes publish blockers from optional recommendations.
 - Preview and guest views use the production card, envelope and page.
-- One card component renders everywhere; the card never reflows (§11.2).
+- One card component renders the card on every screen; the card never reflows (§11.2).
 - The card is the only themed surface. The page under it is one house style for every event (§11.9).
 - Never expose Event Identity, card design internals, layouts, art modes, art briefs, ink or legibility panels, compiler steps, model or provider names, token counts, or spend limits (§26).
 - Application chrome stays visually stable; it never takes the card's styling.

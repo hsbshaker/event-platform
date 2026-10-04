@@ -253,12 +253,65 @@ Three capabilities the card system needs, decided when it is built and recorded 
   curated file is a variable font, and fontkit cannot set a variable WOFF2 face to a weight
   (`getVariation` fails), while measuring the default instance is wrong (Archivo's default is 600,
   Fraunces's 900, Manrope's 200); on decoded TrueType its widths still differ from Chromium by up to
-  0.6%, because it misses kerning variations. Both libraries run in a Next.js 16 server route
-  without configuration, and the build traces the WASM and the font files into the function. Both
-  also run in the browser, for the card editor (Phase 6b). The renderer must pin `opsz` to the
-  card-unit size whatever the on-screen scale, or line widths would change with screen size;
-- **link-preview rendering** of the card and envelope (`spec.md §11.10`), preferring what Next.js
-  already provides over a new dependency.
+  0.6%, because it misses kerning variations. Both libraries run in a Next.js 16 **Route Handler**
+  without configuration, in `next dev` and in `next build`/`next start`, and the build traces the
+  WASM and the font files into the function. They do **not** load in a **Server Component page**
+  without configuration: there Turbopack emits HarfBuzz's WASM as a client static asset
+  (`/_next/static/media/harfbuzz.*.wasm`) and the server's read of that path fails with `ENOENT` —
+  `next dev` answers 500 and `next build` fails at "Collecting page data". Adding
+  `serverExternalPackages: ["harfbuzzjs", "wawoff2"]` to `next.config.ts` makes the page work in
+  both, with Route Handlers unaffected (verified in Phase 4c). It is not set yet, because nothing
+  measures text in a page; the code that does runs from Route Handlers. Server Actions were not
+  tested and should be assumed to behave like pages until they are. Both libraries also run in the
+  browser, for the card editor (Phase 6b). The renderer must pin `opsz` to the card-unit size
+  whatever the on-screen scale, or line widths would change with screen size;
+- **link-preview rendering** of the card and envelope (`spec.md §11.10`) — **decided (Phase 4c):
+  `next/og`'s `ImageResponse`, no new dependency** (`src/lib/link-preview/`,
+  `src/lib/card/preview-svg.server.ts`). The card is drawn as an SVG in card units from exactly the
+  data `InvitationCard` renders, under the same validation (`src/lib/card/card-data.ts`): the
+  artwork as an `<image>`, the outline from `outline.ts` as a `clipPath`, the opaque panels with
+  their CSS soft edge, and every stored line as HarfBuzz glyph outlines (`Font.drawGlyph`) at the
+  instance the measurement uses (`wght`, and `opsz` = the card-unit size), with the line's drawn
+  width checked against `measure` before it is used; letter spacing, alignment (a line wider than
+  its box start-aligned, as Chromium does), rotation about the box's centre, `textCase`, colour and
+  `z` order follow the component. `ImageResponse` then rasterizes that SVG as one `<img>` over the
+  house background (satori lays it out; its bundled resvg draws it) into a 1200 × 630 PNG. Why
+  outlines: satori sets text only from TTF, OTF or WOFF at a font's default instance — no WOFF2, no
+  variable instance — so it could not set card text as it was measured; as outlines, the preview's
+  text geometry is the measured lines themselves. The fixture `tests/fixtures/link-preview.test.ts`
+  compares the preview with Chromium's `InvitationCard` at the same scale (0.4–0.56 px per card
+  unit), line by line, typical and entry-limit content: each line's ink centroid must agree within
+  0.75 px and its ends within 1.25 px (measured: 0.61 px and 1 px, the difference being FreeType's
+  hinting and Skia's text gamma against resvg's unhinted outlines), once each line is moved by the
+  distance between Chromium's baseline, measured from the DOM, and the exact one the preview draws
+  (Chromium snaps a baseline to the pixel grid, up to about 2 px; the test models nothing about
+  Blink's rounding). Because that correction would absorb an error in the vertical model the
+  preview and the exact baseline share (ascent, descent, half-leading, the `opsz` instance), the
+  model is checked on its own: with the card laid out at 4 px per card unit, where snapping is
+  half a unit, every Chromium baseline must sit within 0.6 units of the exact one (measured: 0.39).
+  Negative controls (a line moved 2 px along, the card moved 2 px down, a vertical model 2 px off on
+  both sides) are caught. The private event's sealed envelope is a static SVG drawing of the house
+  envelope in app-token colours, its title also as outlines in the app's own font: Inter, from the
+  Google Fonts variable WOFF2 file `next/font/google` self-hosts for the one subset the app loads
+  (latin), copied into `src/lib/link-preview/fonts/` for the server because `ImageResponse` cannot
+  load it (WOFF2, variable, weight 650); a test holds the preview's subsets equal to the app's. The
+  copy is a snapshot (Inter v20): if Google Fonts later serves a newer Inter to `next/font`, the
+  preview's title can differ from the app's by that revision's changes until the copy is refreshed,
+  which is cosmetic and never touches the card. A title character outside the loaded subset (Greek,
+  an emoji) the live envelope sets in a system fallback face, so the preview refuses it rather than
+  substituting; no stored title reaches that path, since the entry check (`docs/card-system.md
+  §2.5`) refuses every title character the card's fonts cannot draw and Inter's latin subset draws
+  all the rest (a unit test holds this), so any later path that writes a title — fact extraction's
+  drafts included — must run the same check. Artwork should be stored as untagged sRGB (no `gAMA`,
+  `cHRM` or `iCCP` chunk) when generation stores it (Phase 5): Chromium applies those and resvg does
+  not, so a tagged file would differ in tone between the live card and its preview. Local cost:
+  about 75–100 ms per preview warm (about 270 ms for the first in a process), and about 650 ms with
+  a 4.4 MB incompressible 1024 × 1434 artwork, most of it decoding the artwork. Real event routes (a
+  later phase) should cache each preview keyed by what it is drawn from — the design, its effective
+  shape, the customization's version and the event's title and facts for a card; the title alone
+  for an envelope — so an edit produces a new image and nothing is redrawn per request. Rejected: a
+  headless browser (none in production, above); satori's own text (above); calling resvg or
+  `sharp` directly (a new dependency for what `next/og` already ships).
 
 Each is justified by a product requirement in `spec.md`; record the choice and why here before
 adding a dependency.

@@ -317,6 +317,24 @@ circles. Two decisions by the owner (2026-10-04):
   5% at phone size. Card fonts load with `font-display: block` and are preloaded, so a stored line
   is never drawn in a fallback face.
 
+### Phase 4 — link previews
+
+- **Mechanism.** `next/og`'s `ImageResponse`, no new dependency and no production browser
+  (`technology-decisions.md §8.2`). The card preview is an SVG drawn from the data the card
+  component renders, under its validation, with every stored line as glyph outlines at the
+  measured font instance; the private event's preview is a drawing of the house envelope with the
+  title alone.
+- **Owner decision: two drawings, one data contract, fixture-guarded** (2026-10-04). The spec said
+  one card component renders the card everywhere, link previews included. The component needs a
+  browser and production runs none (`technology-decisions.md §8.2`), and `next/og` cannot set
+  card text as it was measured, so the preview is a second drawing: from the same stored data and
+  line breaks, under the component's validation, with a real-browser fixture comparing the two
+  line by line on every change. The owner chose this over a production browser and over a capture
+  in the host's browser. The guarantee is a test, not structure: the drawing code exists twice
+  (DOM/CSS and SVG) and could drift, and the fixture is what catches it. Updated: `spec.md §11.10`,
+  §20 "One component", the §31 "One card component" criterion and §32 guardrail #26;
+  `card-system.md §6.1` and §6.4; `design-system.md §10.14` and §15.7; `screen-spec.md`.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

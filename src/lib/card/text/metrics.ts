@@ -87,8 +87,11 @@ function graphemeCount(text: string): number {
 /** Line terminators: LF, CR, LINE SEPARATOR, PARAGRAPH SEPARATOR. */
 const LINE_BREAK = new RegExp("[\\n\\r\\u2028\\u2029]");
 
-/** What Chromium disables when letter spacing is non-zero (`FontDescription::LetterSpacing`). */
-const NO_OPTIONAL_LIGATURES = ["liga", "clig", "dlig", "hlig", "calt"];
+/**
+ * What Chromium disables when letter spacing is non-zero (`FontDescription::LetterSpacing`). Shared
+ * with the link preview's glyph outlines, which must shape exactly as this measures.
+ */
+export const NO_OPTIONAL_LIGATURES = ["liga", "clig", "dlig", "hlig", "calt"];
 
 /** The language text is shaped in; the card component sets the same `lang`. */
 export { SHAPING_LANGUAGE };
