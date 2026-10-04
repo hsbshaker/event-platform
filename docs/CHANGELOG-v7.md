@@ -282,6 +282,33 @@ circles. Two decisions by the owner (2026-10-04):
    (for example an emoji, or an alphabet the card fonts do not cover). Emoji on the card may come
    later.
 
+### Phase 4 — how the fit decisions were built
+
+- **`card_layouts_v2`, `card_art_v2`, `card_compiler_v2`.** No card had been made from the v1
+  versions; they are bumped rather than edited, as `card-system.md §8` requires. Composition and
+  presence now come from the shape, so the art prompt depends on it.
+- **Fit sets.** An artwork fits only the shapes of its proportion whose composition is the same: a
+  40%-picture artwork (square, oval, arch) is not reused on a rectangle, where it would leave an
+  empty band between picture and words; switching between those groups paints new artwork from
+  the same brief, as any switch to a shape no artwork fits already does.
+- **Line breaks after a hyphen.** Allowed between letters as a last resort: `layoutCard` first
+  searches every size without them, so a name stays whole where a slightly smaller size keeps it
+  whole.
+- **Formatted facts.** Date "Saturday, June 6", time "1:00 pm – 4:00 pm", RSVP-by "RSVP by May 30"
+  (no year on the card; the page carries the full date). When there is no venue name the card
+  shows the address's first line, the street; the full address is on the page.
+- **Entry checks** (`validateCardText`): characters the slot's curated faces cannot draw, length,
+  and words too wide for the narrowest zone are refused with a plain message beside the field, in
+  the details form and its server action (title, hosts, baby's name, venue name, the address's
+  first line). The curated font files cover Latin-1 only, so names such as "Łucja" or "Nguyễn"
+  are refused today; wider subsets are a launch item.
+- **Square frames and corners** keep their text in a 260–740 band; their composition now names
+  the middle 50% of the height to match.
+- **Card text rendering.** `text-rendering: geometricPrecision` on card text: Chromium hints small
+  text on Linux and in the headless shell, which rounded glyph advances and moved lines by up to
+  5% at phone size. Card fonts load with `font-display: block` and are preloaded, so a stored line
+  is never drawn in a fallback face.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

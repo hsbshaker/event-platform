@@ -147,11 +147,28 @@ const FRAME = {
     "The frame is rich and substantial — a generous band of detail around all sides, not a thin line — unless the mode is minimal, where it is a refined, delicate border.",
 } as const;
 
+/** On square cards the text band is 260–740, so the calm centre is stated as the middle 50%. */
+const FRAME_SQUARE = {
+  ...FRAME,
+  composition: FRAME.composition.replace(
+    "the middle 45% of the height",
+    "the middle 50% of the height",
+  ),
+} as const;
+
 const CORNER_CLUSTERS = {
   composition:
     "Cluster the artwork in at least two corners (for example top-left and bottom-right, or all four), flowing a little along the edges. Keep the centre of the canvas (roughly a vertical oval covering the middle 60% of the width and 45% of the height) calm and open.",
   presence:
     "Each corner cluster is substantial — roughly a quarter to a third of the card's width and height — and full of detail. Do not reduce the artwork to a few small props around an empty field.",
+} as const;
+
+const CORNER_CLUSTERS_SQUARE = {
+  ...CORNER_CLUSTERS,
+  composition: CORNER_CLUSTERS.composition.replace(
+    "and 45% of the height",
+    "and 50% of the height",
+  ),
 } as const;
 
 const WASH = {
@@ -204,8 +221,8 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "rounded-rectangle": { band: band(400, 1000), ...FRAME },
       arch: { band: band(400, 1000), ...FRAME },
       oval: { band: band(400, 1000), ...FRAME },
-      square: { band: band(260, 740), ...FRAME },
-      circle: { band: band(260, 740), ...FRAME },
+      square: { band: band(260, 740), ...FRAME_SQUARE },
+      circle: { band: band(260, 740), ...FRAME_SQUARE },
     },
     panel: PHASE_3_PANEL,
   }),
@@ -216,7 +233,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
     art: {
       rectangle: { band: band(420, 980), ...CORNER_CLUSTERS },
       "rounded-rectangle": { band: band(420, 980), ...CORNER_CLUSTERS },
-      square: { band: band(260, 740), ...CORNER_CLUSTERS },
+      square: { band: band(260, 740), ...CORNER_CLUSTERS_SQUARE },
     },
     panel: PHASE_3_PANEL,
   }),

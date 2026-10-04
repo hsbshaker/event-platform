@@ -9,7 +9,20 @@ describe("card text fields", () => {
       hosts: "hosts",
       babyName: "babyName",
       venueName: "venue",
+      address: "venue",
     });
+  });
+
+  it("checks only the address's first line, which is all the card shows of it", () => {
+    const longRest = `12 Elm St, ${"Suite 100 Building C Industrial Park ".repeat(4)}`;
+    expect(cardTextFieldError("address", longRest)).toBeNull();
+    expect(cardTextFieldError("address", "Café 🎈 Lane, Austin")).toMatch(
+      /^The card shows the address's first line\. The card can't show 🎈/,
+    );
+    expect(cardTextFieldError("address", `${"Long ".repeat(15)}Road, Austin`)).toMatch(
+      /^The card shows the address's first line\. The card has room for 60 characters/,
+    );
+    expect(cardTextFieldError("address", " , ")).toBeNull();
   });
 
   it("accepts what the card can show, and absent or cleared fields", () => {

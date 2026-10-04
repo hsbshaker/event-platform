@@ -234,7 +234,7 @@ switching back is instant.
 | `hosts` | host fact | e.g. "Hosted by Maya & Tom". |
 | `date` | host fact | Formatted by code from the stored date: weekday, month and day, no year ("Saturday, June 6"); the page carries the full date. |
 | `time` | host fact | Formatted by code: "1:00 pm", or "1:00 pm – 4:00 pm" when an end time is stored. |
-| `venue` | host fact | Venue name, else the address; the full address is on the page. |
+| `venue` | host fact | Venue name, else the address's first line (the street); the full address is on the page. |
 | `rsvpBy` | host fact | Formatted by code from the stored RSVP deadline, in the event's timezone: "RSVP by May 30". |
 
 Rules:

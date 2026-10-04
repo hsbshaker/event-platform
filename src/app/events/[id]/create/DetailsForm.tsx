@@ -180,7 +180,8 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
   }
 
   /**
-   * A field the card shows as typed (hosts, baby's name, venue name): checked as the host types,
+   * A field the card shows as typed (hosts, baby's name, venue name, the address's first line):
+   * checked as the host types,
    * with the same check the server action applies (`cardTextFieldError`). Text the card could not
    * show is not saved; its message sits beside the field until the text changes.
    */
@@ -319,9 +320,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
                   value={address}
                   onChange={(event) => {
                     setAddress(event.target.value);
-                    saveDebounced("address", { address: event.target.value }, ["address"]);
+                    editCardText("address", event.target.value);
                   }}
-                  onBlur={() => flush("address", { address }, ["address"])}
+                  onBlur={() => flushCardText("address", address)}
                 />
               )}
             </Field>

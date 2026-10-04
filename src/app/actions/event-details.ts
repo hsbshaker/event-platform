@@ -9,6 +9,7 @@ import {
   type ApplyPatchResult,
   type EventPatchStore,
 } from "@/lib/events/apply-patch";
+import { cardVenue } from "@/lib/card/facts";
 import { cardTextFieldErrors } from "@/lib/events/card-text";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
@@ -110,7 +111,7 @@ function toFields(row: EventRow): EventDetailFields {
 
 /** The shape the pure content modules take: one venue display value, not two columns. */
 function toContentSource(fields: EventDetailFields) {
-  return { ...fields, venue: fields.venueName ?? fields.address };
+  return { ...fields, venue: cardVenue(fields.venueName, fields.address) };
 }
 
 function toView(row: EventRow, now: Date): EventDraftView {

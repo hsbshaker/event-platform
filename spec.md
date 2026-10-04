@@ -678,7 +678,7 @@ Once Event Identity is valid, the strong model designs one card (`card_design_sc
 CardDesign {
   presentation { name, description }        // host-facing; e.g. "Heirloom Teddy"
   shape           // rectangle | rounded-rectangle | arch | oval (5:7) · square | circle (1:1)
-  layout          // ID from the layout catalog (card_layouts_v1); must support the shape
+  layout          // ID from the layout catalog (card_layouts_v2); must support the shape
   artMode         // illustration | framed | atmosphere | minimal
   typography { primary, alternates[0..2] }  // curated pairing IDs
   wording { title, invitationLine }         // bounded free text; no invented facts
@@ -1064,8 +1064,8 @@ optional art-derived legibility panel; live text.
 
 ### 11.3 Layout catalog
 
-A small versioned catalog of text layouts (`card_layouts_v1`, proposed members in
-`docs/card-system.md §2.3`, fixed in Phase 3 validation). Each layout declares the shapes it
+A small versioned catalog of text layouts (`card_layouts_v2`, `docs/card-system.md §2.3`: the set
+validated in Phase 3, refitted in Phase 4 so every detail fits every card). Each layout declares the shapes it
 supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
 slot, the composition rule given to the art brief, and its legibility-panel shape. Slot character
 limits hold for every shape the layout supports, so a shape switch never breaks fit. The model picks
@@ -2347,7 +2347,8 @@ The host should feel:
   of its zone (host-chosen colours in the card editor are not checked);
   otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
 - [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
-  its zone; no word is broken; text is never silently truncated; slot limits are enforced at entry,
+  its zone; no word is broken except just after a hyphen it already contains; text is never
+  silently truncated; slot limits are enforced at entry,
   and characters the card's fonts cannot draw are refused at entry with a plain message.
 - [ ] No legibility, fit, compatibility or wording-fallback step calls a model.
 - [ ] `CardDesign` (raw and validated), artwork, resolved ink and the version set persist per design

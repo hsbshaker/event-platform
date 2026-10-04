@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { CARD_FACT_MAX_LENGTH, formatCardDate, formatCardRsvpBy, formatCardTime } from "./facts";
+import {
+  CARD_FACT_MAX_LENGTH,
+  addressFirstLine,
+  cardVenue,
+  formatCardDate,
+  formatCardRsvpBy,
+  formatCardTime,
+} from "./facts";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -85,5 +92,16 @@ describe("formatCardRsvpBy", () => {
   it(`is at most ${CARD_FACT_MAX_LENGTH.rsvpBy} characters`, () => {
     const lengths = everyDate().map((d) => formatCardRsvpBy(`${d}T12:00:00Z`, "UTC").length);
     expect(Math.max(...lengths)).toBe(CARD_FACT_MAX_LENGTH.rsvpBy);
+  });
+});
+
+describe("the card's venue", () => {
+  it("is the venue name, else the address's first line", () => {
+    expect(cardVenue("The Willow House", "12 Elm St, Austin, TX")).toBe("The Willow House");
+    expect(cardVenue("  ", "12 Elm St, Austin, TX 78701")).toBe("12 Elm St");
+    expect(cardVenue(null, "Flat 3\n12  Elm   St\nAustin")).toBe("Flat 3");
+    expect(cardVenue(null, " , 12 Elm St")).toBe("12 Elm St");
+    expect(cardVenue(undefined, null)).toBeNull();
+    expect(addressFirstLine("   ")).toBeNull();
   });
 });

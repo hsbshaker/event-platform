@@ -1,9 +1,11 @@
 import { validateCardText, type CardEntrySlot } from "@/lib/card/entry";
+import { addressFirstLine } from "@/lib/card/facts";
 
 /**
  * Event detail fields the card shows as the host typed them, and the card slot each fills
  * (`docs/card-system.md §2.5`): a host-supplied title (used verbatim, `spec.md §20.2`), the hosts,
- * the baby's name and the venue name. The details form and its server action check them with the
+ * the baby's name, the venue name, and the address's first line, which the card shows when there
+ * is no venue name. The details form and its server action check them with the
  * card's entry check (`validateCardText`) so the card can always show what was accepted (`spec.md
  * §31`, "slot limits are enforced at entry"). The server action is the authority.
  *
@@ -14,6 +16,7 @@ export const CARD_TEXT_FIELDS = {
   hosts: "hosts",
   babyName: "babyName",
   venueName: "venue",
+  address: "venue",
 } as const satisfies Record<string, CardEntrySlot>;
 
 export type CardTextField = keyof typeof CARD_TEXT_FIELDS;
@@ -24,6 +27,13 @@ export function cardTextFieldError(
   value: string | null | undefined,
 ): string | null {
   if (typeof value !== "string") return null;
+  if (field === "address") {
+    // Only the first line reaches the card; the rest of the address is on the page alone.
+    const line = addressFirstLine(value);
+    if (line === null) return null;
+    const check = validateCardText("venue", line);
+    return check.ok ? null : `The card shows the address's first line. ${check.message}`;
+  }
   const check = validateCardText(CARD_TEXT_FIELDS[field], value);
   return check.ok ? null : check.message;
 }

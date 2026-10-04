@@ -111,3 +111,25 @@ export function formatCardRsvpBy(deadline: string | Date, timeZone: string): str
   const date = calendarDate(part("year"), part("month"), part("day"));
   return `RSVP by ${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}`;
 }
+
+/**
+ * The first line of an address — the street — which is what the card shows when there is no
+ * venue name (`docs/card-system.md §2.5`); the page beneath carries the full address. The first
+ * segment before a line break or comma, or null when there is none.
+ */
+export function addressFirstLine(address: string | null | undefined): string | null {
+  for (const segment of (address ?? "").split(/[\n,]/)) {
+    const line = segment.trim().replace(/\s+/g, " ");
+    if (line !== "") return line;
+  }
+  return null;
+}
+
+/** The card's venue: the venue name, else the address's first line. */
+export function cardVenue(
+  venueName: string | null | undefined,
+  address: string | null | undefined,
+): string | null {
+  const name = venueName?.trim() ?? "";
+  return name !== "" ? name : addressFirstLine(address);
+}

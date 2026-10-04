@@ -97,6 +97,19 @@ describe("layout set card_layouts_v2", () => {
     }
   });
 
+  it("states the square cards' calm centre as the middle 50%, matching their 260–740 band", () => {
+    for (const [layout, shape] of [
+      ["framed", "square"],
+      ["framed", "circle"],
+      ["corners", "square"],
+    ] as const) {
+      const { composition } = layoutArtFor(layout, shape);
+      expect(composition, `${layout}/${shape}`).toMatch(/50% of the height/);
+      expect(composition, `${layout}/${shape}`).not.toMatch(/45%/);
+    }
+    expect(layoutArtFor("framed", "rectangle").composition).toMatch(/middle 45% of the height/);
+  });
+
   it("uses the decided bands", () => {
     const bands = Object.fromEntries(
       CARD_LAYOUT_IDS.flatMap((id) =>
