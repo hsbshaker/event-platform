@@ -11,6 +11,7 @@
  * so no code path can call a model by accident (spec.md §32 #4).
  */
 
+import type { ArtMode } from "@/lib/card/art-modes";
 import type { CardShape } from "@/lib/card/shapes";
 
 /** Wire shapes are the canonical JSON Schemas in docs/model-schemas/. Phase 5 types them narrowly. */
@@ -56,6 +57,8 @@ export interface GenerateCardDesignInput {
 
 export interface GenerateCardArtInput {
   artBrief: Record<string, unknown>;
+  /** Selects the mode instruction and the crop rule (`ART_MODE_FIT`, docs/card-system.md §2.4). */
+  artMode: ArtMode;
   layout: string;
   /** The raster's proportion is derived from the shape (`proportionOf`), never passed beside it. */
   shape: CardShape;

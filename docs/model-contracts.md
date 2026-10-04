@@ -286,12 +286,16 @@ The art prompt is assembled **by application code**, never written verbatim by a
   corners are cut away; oval and circle: keep everything important inside the outline); the
   brief's `avoid` list.
 
+The validated `artMode` is passed with every request, because it selects both the mode
+instruction and the crop rule; it is never inferred from the brief's free text
+(`src/lib/card/art-modes.ts`).
+
 It contains no raw host prompt, no event facts and no inspiration image.
 
 ## 7.2 Input and output
 
 ```ts
-GenerateCardArtInput { artBrief; layout: CardLayoutId; shape: CardShape }   // proportion derived from shape
+GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape }   // proportion derived from shape
 → { mimeType, bytes }    // plus provider usage and model id for metering
 ```
 
