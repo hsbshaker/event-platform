@@ -143,9 +143,9 @@ layout declares the shapes it supports, and for each of them defines:
   unfinished; the layout states the presence it wants as well as the space it reserves;
 - its legibility-panel shape, used only when §4.2 needs it.
 
-The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`; the tested geometry,
-composition and presence rules are in `scripts/phase-3/catalog.mjs` until Phase 4 makes them
-versioned product code):
+The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`), versioned as
+`card_layouts_v1`; the tested geometry, composition and presence rules are product code in
+`src/lib/card/layouts.ts` and `src/lib/card/shapes.ts`:
 
 | Layout | Text | Artwork | Shapes | Art modes |
 | --- | --- | --- | --- | --- |

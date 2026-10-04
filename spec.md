@@ -1856,10 +1856,9 @@ as a publish blocker. There is no cancellation workflow in MVP.
 
 ## 24. Domain Model
 
-Conceptual baseline, not an exact database schema. The current database still carries the
-Revision 6 website tables (`design_concepts`, `resolved_design_specs`, `events.active_concept_id`,
-`events.design_overrides`, the website columns of `generation_runs`, and `human_test_1_responses`);
-the card-data phase replaces them in one forward-only migration (`docs/development-plan.md`).
+Conceptual baseline, not an exact database schema. The card tables are created by
+`supabase/migrations/20261004000000_phase4_card_data.sql`, the forward-only migration that
+replaced the Revision 6 website tables and `human_test_1_responses` (`docs/development-plan.md`).
 
 ```ts
 User {
