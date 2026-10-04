@@ -199,11 +199,22 @@ export async function metered<T>(
     compiler_version: info.compilerVersion ?? null,
   });
   if (run.error) {
+    // Never the call's error object itself: model output (`ModelOutputError.raw`) and provider
+    // response bodies can carry the host's names and places.
     console.error("[meter] could not record the model call", {
       operation,
       generationId: ctx.generationId,
       error: run.error,
-      callError,
+      callError:
+        callError instanceof Error
+          ? {
+              name: callError.name,
+              code: (callError as { code?: unknown }).code,
+              message: callError.message,
+            }
+          : callError === undefined
+            ? undefined
+            : typeof callError,
     });
     throw new MeterRecordError(`could not record the ${operation} call`, callError, {
       cause: run.error,

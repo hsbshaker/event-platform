@@ -261,13 +261,26 @@ the handling of provider refusals of famous characters was decided with them (`s
   cost. A transient failure (429, 408, 5xx, timeout, dropped connection) gets one retry as a
   separately metered attempt. Refusals at the ceiling are logged as errors (the alert, for now).
 
-**Generation execution** (assumed for Phase 5b). A Route Handler or Server Action authorizes the
-host, calls `startGeneration`, answers at once, and runs the pipeline on the server after the
-response with `after()` within the route's `maxDuration` of 300 s (Vercel Pro with Fluid compute
-allows up to 800 s). Stage results are written to `generations` (`stage`, `artifacts`) as they
-resolve, for the wait surface to read. No queue service. A worker can live at most 300 s and every
-metered call refreshes its heartbeat, so a generation whose heartbeat is older than 330 s is dead
-and the next start takes it over.
+**Generation execution** (Phase 5b, within the locked stack: Next.js and Vercel functions only). A
+Route Handler or Server Action calls `startGeneration` (which authorizes the signed-in host
+itself), answers at once, and runs the pipeline on the server after the response with `after()`
+within the route's `maxDuration` of 300 s. The project is on Vercel Pro with Fluid compute
+(checked on the project, 2026-10-04), which allows up to 800 s, so 300 s is a choice, not a
+platform limit. Stage results are written to `generations` (`stage`, `artifacts`) as they resolve,
+for the wait surface to read. No queue service. Two requirements on the pipeline, because the
+per-request timeouts alone (60 s identity and design, 120 s artwork, 30 s the others, plus one
+retry each) can add up to more than 300 s:
+
+- **a generation-level deadline** below `maxDuration`, after which no further model call is made
+  and the generation ends as `failed` with a retry, so the platform never stops a worker
+  mid-generation by surprise;
+- **a stopped worker never looks like a long wait**: every metered call refreshes the heartbeat, a
+  generation whose heartbeat is older than 330 s is dead, and readers (the wait surface) treat it
+  as failed and offer the retry, without waiting for the next start to take it over (`spec.md §32`
+  #46). A dead worker's open reservation stays held until the UTC day ends, which only spends less.
+
+Alerts for the spend ceiling are error logs only during the test period; the owner's monthly budget
+on the OpenAI account is the backstop (§8.1 "Spend limits").
 
 ## 8.2 Card rendering without a production browser
 

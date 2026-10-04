@@ -17,10 +17,11 @@ import { GENERATION_STALE_SECONDS, startGeneration } from "./generations.server"
 
 const admin = vi.hoisted(() => ({ fake: undefined as unknown as FakeAdmin }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => admin.fake.client }));
+const access = vi.hoisted(() => ({ requireEventAccess: vi.fn() }));
+vi.mock("@/lib/auth/event-access", () => access);
 
 const INPUT = {
   eventId: TEST_CONTEXT.eventId,
-  userId: TEST_CONTEXT.userId,
   kind: "initial" as const,
   idempotencyKey: "4d2c8e8a-1b7f-4f0e-9f53-3a6c2f1e9b10",
 };
@@ -28,6 +29,8 @@ const INPUT = {
 let restore: () => void;
 beforeEach(() => {
   admin.fake = fakeAdmin();
+  access.requireEventAccess.mockReset();
+  access.requireEventAccess.mockResolvedValue({ user: { id: TEST_CONTEXT.userId } });
   restore = enableGeneration();
   process.env.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:54321";
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon";
@@ -54,15 +57,16 @@ describe("startGeneration", () => {
     expect(await startGeneration(INPUT)).toEqual({
       outcome: "started",
       generationId: TEST_CONTEXT.generationId,
+      userId: TEST_CONTEXT.userId,
     });
     const [args] = admin.fake.rpc("start_generation");
     expect(args).toEqual({
       p_event_id: INPUT.eventId,
-      p_user_id: INPUT.userId,
+      p_user_id: TEST_CONTEXT.userId,
       p_kind: "initial",
       p_idempotency_key: INPUT.idempotencyKey,
       p_event_key_hash: `\\x${hashRateLimitKey(`event:${INPUT.eventId}`).toString("hex")}`,
-      p_host_key_hash: `\\x${hashRateLimitKey(`user:${INPUT.userId}`).toString("hex")}`,
+      p_host_key_hash: `\\x${hashRateLimitKey(`user:${TEST_CONTEXT.userId}`).toString("hex")}`,
       p_event_cap: 5,
       p_host_cap: 9,
       p_stale_seconds: GENERATION_STALE_SECONDS,
@@ -73,7 +77,11 @@ describe("startGeneration", () => {
 
   it("uses the owner's default caps", async () => {
     admin.fake.state.startRows = [{ generation_id: null, outcome: "host_cap" }];
-    expect(await startGeneration(INPUT)).toEqual({ outcome: "host_cap", generationId: null });
+    expect(await startGeneration(INPUT)).toEqual({
+      outcome: "host_cap",
+      generationId: null,
+      userId: TEST_CONTEXT.userId,
+    });
     expect(admin.fake.rpc("start_generation")[0]).toMatchObject({
       p_event_cap: 30,
       p_host_cap: 60,
@@ -82,6 +90,22 @@ describe("startGeneration", () => {
 
   it("outlasts the longest-lived worker before treating a generation as stale", () => {
     expect(GENERATION_STALE_SECONDS).toBeGreaterThan(300);
+  });
+
+  it("acts as the signed-in collaborator, never an id the caller passes", async () => {
+    admin.fake.state.startRows = [{ generation_id: TEST_CONTEXT.generationId, outcome: "started" }];
+    await startGeneration({ ...INPUT, userId: "someone-else" } as typeof INPUT);
+    expect(access.requireEventAccess).toHaveBeenCalledWith(
+      INPUT.eventId,
+      "generate_redesign_concepts",
+    );
+    expect(admin.fake.rpc("start_generation")[0]).toMatchObject({ p_user_id: TEST_CONTEXT.userId });
+  });
+
+  it("starts nothing for a caller who is not a collaborator", async () => {
+    access.requireEventAccess.mockRejectedValue(new Error("forbidden"));
+    await expect(startGeneration(INPUT)).rejects.toThrow("forbidden");
+    expect(admin.fake.state.rpcs).toEqual([]);
   });
 
   it("surfaces a database error", async () => {

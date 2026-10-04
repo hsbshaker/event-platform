@@ -13,6 +13,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+// Node 22 strips types from .ts imports; the token is validated by the app's secret schema.
+import { supabaseAccessToken } from "../../src/lib/env.ts";
+
 /** The hosted projects (`docs/development-plan.md`, "Database"). Not secrets. */
 const PROJECTS = {
   preview: "ihdaifbyvlvivuctkrwn",
@@ -25,11 +28,7 @@ if (!ref) {
   console.error("usage: push-migrations.mjs <preview|production|project-ref> [--go]");
   process.exit(2);
 }
-const token = process.env.SUPABASE_ACCESS_TOKEN;
-if (!token) {
-  console.error("SUPABASE_ACCESS_TOKEN is not set");
-  process.exit(2);
-}
+const token = supabaseAccessToken();
 
 async function sql(query) {
   for (let attempt = 1; ; attempt += 1) {
@@ -55,6 +54,12 @@ const dir = path.resolve(import.meta.dirname, "../../supabase/migrations");
 const files = readdirSync(dir)
   .filter((f) => f.endsWith(".sql"))
   .sort();
+// The version and name go into SQL below: only well-formed file names are accepted.
+const malformed = files.filter((f) => !/^\d{14}_[a-z0-9_]+\.sql$/.test(f));
+if (malformed.length > 0) {
+  console.error(`malformed migration file names: ${malformed.join(", ")}`);
+  process.exit(1);
+}
 const versionOf = (file) => file.split("_")[0];
 
 const applied = new Set(
@@ -77,6 +82,8 @@ if (flag !== "--go") {
   console.log("dry run: pass --go to apply");
   process.exit(0);
 }
+// Each migration and its history row commit together. If a network error hides a commit and the
+// retry re-sends it, the duplicate history row fails the whole retry: safe, if confusing.
 for (const file of pending) {
   const version = versionOf(file);
   const name = file.replace(/\.sql$/, "").slice(version.length + 1);

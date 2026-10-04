@@ -1,5 +1,6 @@
 import "server-only";
 
+import { requireEventAccess } from "@/lib/auth/event-access";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import { generationEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -17,8 +18,9 @@ import { GenerationDisabledError } from "./errors";
  * (supabase/migrations/20261005000000_phase5_spend_controls.sql), which also refuses a user who is
  * not the event's owner or a co-host.
  *
- * Callers pass the user id of the authenticated session (`requireUser`), never one taken from
- * the request.
+ * The acting user is the signed-in session's, resolved here (`requireEventAccess`), never an id
+ * a caller passes: a caller cannot attribute a generation, or spend a host's daily cap, as anyone
+ * else.
  */
 
 /**
@@ -36,8 +38,6 @@ export const GENERATION_STALE_SECONDS = GENERATION_MAX_DURATION_SECONDS + 30;
 
 export interface StartGenerationInput {
   eventId: string;
-  /** The authenticated owner or co-host. */
-  userId: string;
   kind: GenerationKind;
   /** Chosen per user action by the client, so a retry or double tap finds the same generation. */
   idempotencyKey: string;
@@ -45,6 +45,8 @@ export interface StartGenerationInput {
 
 export interface StartGenerationResult {
   outcome: StartGenerationOutcome;
+  /** The signed-in owner or co-host who started it (for the meter context). */
+  userId: string;
   /** The new or existing generation, or the one in flight; null when a cap refused. */
   generationId: string | null;
 }
@@ -55,15 +57,18 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
   const config = generationEnv();
   // Refused before anything is consumed: with the kill switch off no generation starts.
   if (!config.enabled) throw new GenerationDisabledError();
+  // The session's own collaborator on this event, before the published check in SQL as well.
+  const { user } = await requireEventAccess(input.eventId, "generate_redesign_concepts");
+  const userId = user.id;
   const { data, error } = await createAdminClient().rpc("start_generation", {
     p_event_id: input.eventId,
-    p_user_id: input.userId,
+    p_user_id: userId,
     p_kind: input.kind,
     p_idempotency_key: input.idempotencyKey,
     // The same HMAC keying as every other rate limit (`hashRateLimitKey`); the bucket names
     // (`generation:event`, `generation:host`) are set by the function.
     p_event_key_hash: keyHash(`event:${input.eventId}`),
-    p_host_key_hash: keyHash(`user:${input.userId}`),
+    p_host_key_hash: keyHash(`user:${userId}`),
     p_event_cap: config.eventDailyCap,
     p_host_cap: config.hostDailyCap,
     p_stale_seconds: GENERATION_STALE_SECONDS,
@@ -71,5 +76,5 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
   if (error) throw error;
   const row = data?.[0];
   if (!row) throw new Error("start_generation returned no outcome");
-  return { outcome: row.outcome, generationId: row.generation_id };
+  return { outcome: row.outcome, generationId: row.generation_id, userId };
 }

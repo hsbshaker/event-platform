@@ -66,6 +66,8 @@ describe("the model provider is reachable only through the meter", () => {
       "function createOpenAiProvider",
       "interface OpenAiProviderOptions",
     ]);
+    // Nor by any other form of export.
+    expect(source).not.toMatch(/^export\s*(\{|\*|default\b)/m);
     // One network call site, and every provider method goes through `metered`.
     expect(source.match(/\bfetch\(/g)).toHaveLength(1);
     const methods = source.slice(source.indexOf("return {\n    async generateEventIdentity"));

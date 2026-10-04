@@ -561,6 +561,14 @@ describe("card artwork", () => {
     expect(JSON.stringify(sentJson(1))).not.toContain(CANARY);
     expect(JSON.stringify(sentJson(2))).not.toContain(CANARY);
     expect(String((sent(3)[1].body as FormData).get("prompt"))).not.toContain(CANARY);
+    // Structurally, too: an image request carries exactly these fields, so a new field (a prompt,
+    // a note, inspiration) fails here before it can reach the image model.
+    expect(Object.keys(sentJson(2)).sort()).toEqual(
+      ["background", "model", "n", "output_format", "prompt", "quality", "size"].sort(),
+    );
+    expect([...new Set((sent(3)[1].body as FormData).keys())].sort()).toEqual(
+      ["background", "image[]", "model", "output_format", "prompt", "quality", "size"].sort(),
+    );
   });
 
   it("refuses to build a request for a shape the layout does not support, before the meter", async () => {

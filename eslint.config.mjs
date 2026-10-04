@@ -40,11 +40,12 @@ const SERVICE_ROLE = {
  * - `src/app/auth/callback/route.ts` — runs after the session is established.
  * - `src/app/api/cron/purge-pre-auth/route.ts` — gated on `CRON_SECRET`, 404 without it.
  * - `src/lib/ai/generations.server.ts` — begins a generation only through `start_generation`,
- *   which refuses any user who is not the event's owner or a co-host; its callers pass the
- *   authenticated session's user. Touches only the server-only generation tables and counters.
+ *   for the signed-in session's collaborator (`requireEventAccess`); the function refuses any
+ *   user who is not the event's owner or a co-host. Touches only the server-only generation
+ *   tables and counters.
  * - `src/lib/ai/meter.server.ts` — the spend ledger and model-call telemetry, both server-only;
- *   it acts only for a generation `start_generation` began for an event member, and refuses a
- *   context that names none.
+ *   it acts only while the generation it names is running for its event (`heartbeat_generation`)
+ *   and refuses a context that names none. It does not itself re-check the user.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",

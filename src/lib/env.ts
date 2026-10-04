@@ -81,6 +81,25 @@ export function cronSecret(): string | undefined {
 }
 
 /**
+ * Supabase management credential (optional, operator-only): used by
+ * `scripts/db/push-migrations.mjs` to apply migrations to the hosted databases, never by the app.
+ * A personal access token (`sbp_` and 40 hex characters) can change production, so it is
+ * validated here like every other secret rather than read raw from `process.env`.
+ */
+const supabaseAccessTokenSchema = z.string().regex(/^sbp_[0-9a-f]{40}$/, {
+  message: "expected a Supabase personal access token (sbp_ and 40 hex characters)",
+});
+
+export function supabaseAccessToken(): string {
+  if (typeof window !== "undefined") {
+    throw new Error("supabaseAccessToken() must not be called from client code.");
+  }
+  const parsed = supabaseAccessTokenSchema.safeParse(process.env.SUPABASE_ACCESS_TOKEN);
+  if (!parsed.success) fail("SUPABASE_ACCESS_TOKEN", parsed.error);
+  return parsed.data;
+}
+
+/**
  * Generation configuration (server-only): the kill switch, the model provider's key, and the spend
  * limits (`spec.md §10`; owner decision, `docs/technology-decisions.md §8.1`: $20/day across all
  * generation, 30 generations per event per day, 60 per acting host per day).

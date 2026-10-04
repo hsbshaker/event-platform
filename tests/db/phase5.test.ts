@@ -517,6 +517,27 @@ describe("generations", () => {
     expect(await beat(randomUUID())).toBe(false);
   });
 
+  it("heartbeat_generation fails a generation once its event is published, so it spends no more", async () => {
+    // A collaborator publishes while another's generation is between model calls.
+    const g = await start();
+    const beat = async () =>
+      (
+        await db.query(`select public.heartbeat_generation($1, $2) as ok`, [
+          g.generation_id,
+          eventA,
+        ])
+      ).rows[0].ok as boolean;
+    expect(await beat()).toBe(true);
+    await db.query(`update public.events set status = 'PUBLISHED' where id = $1`, [eventA]);
+    expect(await beat()).toBe(false);
+    const { rows } = await db.query(
+      `select status, error_code, finished_at is not null as finished from public.generations where id = $1`,
+      [g.generation_id],
+    );
+    expect(rows[0]).toEqual({ status: "failed", error_code: "published", finished: true });
+    expect(await beat()).toBe(false);
+  });
+
   it("goes with its event", async () => {
     await start();
     await db.query(`delete from public.events where id = $1`, [eventA]);

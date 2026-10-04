@@ -272,6 +272,17 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- Generation stops at publish (spec.md §23, §8.2): a generation started before another
+  -- collaborator published is failed here, so the meter refuses its next model call.
+  update public.generations g
+  set status = 'failed', error_code = 'published', finished_at = now()
+  from public.events e
+  where g.id = p_generation_id and g.event_id = p_event_id and g.status = 'running'
+    and e.id = g.event_id
+    and (e.published_at is not null or e.status::text in ('PUBLISHED', 'PASSED', 'ARCHIVED'));
+  if found then
+    return false;
+  end if;
   update public.generations g
   set heartbeat_at = now()
   where g.id = p_generation_id and g.event_id = p_event_id and g.status = 'running';
