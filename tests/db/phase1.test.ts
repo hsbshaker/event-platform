@@ -1,42 +1,20 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Client } from "pg";
-import { asActor, connect, createAuthUser, errorCode, resetDatabase } from "./harness";
+import {
+  asActor,
+  connect,
+  createAuthUser,
+  errorCode,
+  insertCardArt,
+  insertCardDesign,
+  resetDatabase,
+} from "./harness";
 
 let db: Client;
 let owner: string;
 let cohost: string;
 let stranger: string;
 let eventId: string;
-
-const CONCEPT_VERSIONS = `
-  design_intent_prompt_version, design_intent_schema_version,
-  composition_prompt_version, composition_schema_version,
-  primitive_set_version, compiler_version`;
-const CONCEPT_VERSION_VALUES = `'design_intent_v3','design_intent_schema_v3','composition_v1_p2','composition_schema_v1','composition_v1','compiler_v0'`;
-
-async function insertConcept(index = 0, round = 1): Promise<string> {
-  const { rows } = await db.query(
-    `insert into public.design_concepts
-       (event_id, round, concept_index, name, description, design_intent, composition_raw,
-        composition, composition_hash, capabilities, ${CONCEPT_VERSIONS})
-     values ($1, $2, $3, 'Concept', 'A direction', '{"family":"editorial"}', '{"version":"composition_v1","sections":[]}',
-        '{"version":"composition_v1","sections":[]}', $4, '{"rsvp":true}', ${CONCEPT_VERSION_VALUES})
-     returning id`,
-    [eventId, round, index, `hash-${index}`],
-  );
-  return rows[0].id as string;
-}
-
-async function insertSpec(conceptId: string, revision = 1, supersedes: string | null = null) {
-  const { rows } = await db.query(
-    `insert into public.resolved_design_specs
-       (concept_id, revision, spec, content_version, supersedes_spec_id, verified_clean, compiler_version, primitive_set_version)
-     values ($1, $2, '{"version":"resolved_v2"}', $2, $3, true, 'compiler_v0', 'composition_v1')
-     returning id`,
-    [conceptId, revision, supersedes],
-  );
-  return rows[0].id as string;
-}
 
 beforeAll(async () => {
   db = await connect();
@@ -167,7 +145,7 @@ describe("events and membership", () => {
       ["published_at", "now()"],
       ["slug", "'squatted'"],
       ["access_code_encrypted", "'\\x00'"],
-      ["design_overrides", "'{}'"],
+      ["active_card_shape", "'square'"],
       ["message_sends_used", "3"],
     ]) {
       expect(
@@ -182,26 +160,26 @@ describe("events and membership", () => {
         cols[0],
       ).toBe("42501");
     }
-    const conceptId = await insertConcept();
+    const designId = await insertCardDesign(db, eventId);
     expect(
       await errorCode(
         asActor(db, { kind: "user", id: stranger }, (q) =>
           q(
-            `insert into public.events (owner_id, prompt, active_concept_id) values ($1, 'x', $2)`,
-            [stranger, conceptId],
+            `insert into public.events (owner_id, prompt, active_card_design_id) values ($1, 'x', $2)`,
+            [stranger, designId],
           ),
         ),
       ),
     ).toBe("42501");
-    // Server code inserting a concept from another event is still rejected.
+    // Server code naming another event's design as active is still rejected.
     expect(
       await errorCode(
         db.query(
-          `insert into public.events (owner_id, prompt, active_concept_id) values ($1, 'x', $2)`,
-          [owner, conceptId],
+          `insert into public.events (owner_id, prompt, active_card_design_id) values ($1, 'x', $2)`,
+          [owner, designId],
         ),
       ),
-    ).toBe("23514");
+    ).toBe("23503");
   });
 
   it("hides events and rosters from non-members and anon", async () => {
@@ -235,7 +213,7 @@ describe("events and membership", () => {
       "message_sends_used = 5",
       "prompt = 'rewritten'",
       "slug = 'taken'",
-      `design_overrides = '{"palette":"x"}'`,
+      "active_card_shape = 'square'",
     ]) {
       expect(
         await errorCode(
@@ -306,17 +284,17 @@ describe("events and membership", () => {
       q(`delete from public.events where id = $1`, [eventId]),
     );
     expect(byCohost.rowCount).toBe(0);
-    const conceptId = await insertConcept();
-    const r1 = await insertSpec(conceptId, 1);
-    const r2 = await insertSpec(conceptId, 2, r1);
-    await db.query(`update public.design_concepts set active_resolved_spec_id = $1 where id = $2`, [
-      r2,
-      conceptId,
-    ]);
-    await db.query(`update public.events set active_concept_id = $1 where id = $2`, [
-      conceptId,
-      eventId,
-    ]);
+    const designId = await insertCardDesign(db, eventId);
+    await insertCardArt(db, eventId, designId);
+    await db.query(
+      `update public.events set active_card_design_id = $1, active_card_shape = 'oval' where id = $2`,
+      [designId, eventId],
+    );
+    await db.query(
+      `insert into public.card_customizations (event_id, card_design_id, shape, boxes)
+       values ($1, $2, 'oval', '[]')`,
+      [eventId, designId],
+    );
     const byOwner = await asActor(
       db,
       { kind: "user", id: owner },
@@ -326,118 +304,11 @@ describe("events and membership", () => {
     expect(byOwner.rowCount).toBe(1);
     const { rows } = await db.query(
       `select (select count(*) from public.event_members)::int as members,
-              (select count(*) from public.design_concepts)::int as concepts,
-              (select count(*) from public.resolved_design_specs)::int as specs`,
+              (select count(*) from public.card_designs)::int as designs,
+              (select count(*) from public.card_art_assets)::int as art,
+              (select count(*) from public.card_customizations)::int as customizations`,
     );
-    expect(rows[0]).toEqual({ members: 0, concepts: 0, specs: 0 });
-  });
-});
-
-describe("generated artifacts are immutable and member-readable", () => {
-  it("members read concepts and specs; strangers and end users cannot write them", async () => {
-    const conceptId = await insertConcept();
-    const specId = await insertSpec(conceptId);
-    await db.query(`update public.design_concepts set active_resolved_spec_id = $1 where id = $2`, [
-      specId,
-      conceptId,
-    ]);
-    const asCohost = await asActor(db, { kind: "user", id: cohost }, (q) =>
-      q(
-        `select c.id, s.revision from public.design_concepts c join public.resolved_design_specs s on s.concept_id = c.id`,
-      ),
-    );
-    expect(asCohost.rows).toEqual([{ id: conceptId, revision: 1 }]);
-    const asStranger = await asActor(db, { kind: "user", id: stranger }, (q) =>
-      q(`select id from public.design_concepts`),
-    );
-    expect(asStranger.rowCount).toBe(0);
-    expect(
-      await errorCode(
-        asActor(db, { kind: "user", id: owner }, (q) =>
-          q(`update public.design_concepts set selected_at = now() where id = $1`, [conceptId]),
-        ),
-      ),
-    ).toBe("42501");
-  });
-
-  it("rejects mutation of design intent, composition and version set", async () => {
-    const conceptId = await insertConcept();
-    for (const set of [
-      `design_intent = '{"family":"statement"}'`,
-      `composition = '{"version":"composition_v1","sections":[{}]}'`,
-      `composition_raw = '{}'`,
-      `composition_hash = 'other'`,
-      `compiler_version = 'compiler_v1'`,
-      `name = 'Renamed'`,
-    ]) {
-      expect(
-        await errorCode(
-          db.query(`update public.design_concepts set ${set} where id = $1`, [conceptId]),
-        ),
-        set,
-      ).toBe("42501");
-    }
-    await db.query(`update public.design_concepts set selected_at = now() where id = $1`, [
-      conceptId,
-    ]);
-  });
-
-  it("never persists an unverified spec and never updates a persisted revision", async () => {
-    const conceptId = await insertConcept();
-    expect(
-      await errorCode(
-        db.query(
-          `insert into public.resolved_design_specs (concept_id, revision, spec, content_version, verified_clean, compiler_version, primitive_set_version)
-           values ($1, 1, '{}', 1, false, 'compiler_v0', 'composition_v1')`,
-          [conceptId],
-        ),
-      ),
-    ).toBe("23514");
-    const specId = await insertSpec(conceptId);
-    expect(
-      await errorCode(
-        db.query(
-          `update public.resolved_design_specs set spec = '{"changed":true}' where id = $1`,
-          [specId],
-        ),
-      ),
-    ).toBe("42501");
-  });
-
-  it("re-fit revisions chain within one concept and activate atomically", async () => {
-    const a = await insertConcept(0);
-    const b = await insertConcept(1);
-    const a1 = await insertSpec(a, 1);
-    expect(await errorCode(insertSpec(a, 2, null))).toBe("23514"); // revision 2 must supersede
-    const b1 = await insertSpec(b, 1);
-    expect(await errorCode(insertSpec(a, 2, b1))).toBe("23514"); // wrong concept
-    const a2 = await insertSpec(a, 2, a1);
-    expect(
-      await errorCode(
-        db.query(`update public.design_concepts set active_resolved_spec_id = $1 where id = $2`, [
-          b1,
-          a,
-        ]),
-      ),
-    ).toBe("23514");
-    await db.query(`update public.design_concepts set active_resolved_spec_id = $1 where id = $2`, [
-      a2,
-      a,
-    ]);
-    expect(
-      await errorCode(db.query(`delete from public.resolved_design_specs where id = $1`, [a1])),
-    ).toBe("23503");
-    // events.active_concept_id must belong to the event.
-    const { rows } = await db.query(
-      `insert into public.events (owner_id, prompt) values ($1, 'Other') returning id`,
-      [owner],
-    );
-    expect(
-      await errorCode(
-        db.query(`update public.events set active_concept_id = $1 where id = $2`, [a, rows[0].id]),
-      ),
-    ).toBe("23514");
-    await db.query(`update public.events set active_concept_id = $1 where id = $2`, [a, eventId]);
+    expect(rows[0]).toEqual({ members: 0, designs: 0, art: 0, customizations: 0 });
   });
 });
 

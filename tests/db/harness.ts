@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
@@ -93,6 +94,81 @@ export async function createAuthUser(
   const { rows } = await client.query(
     `insert into auth.users (email, raw_user_meta_data) values ($1, $2) returning id`,
     [email, JSON.stringify(name ? { full_name: name } : {})],
+  );
+  return rows[0].id as string;
+}
+
+/** Resolves to the Postgres error's code, message and detail when `p` rejects, otherwise null. */
+export async function pgError(
+  p: Promise<unknown>,
+): Promise<{ code: string; message: string; detail?: string } | null> {
+  try {
+    await p;
+    return null;
+  } catch (error) {
+    const e = error as { code?: string; message?: string; detail?: string };
+    return { code: e.code ?? "unknown", message: e.message ?? "", detail: e.detail };
+  }
+}
+
+type CardDesignFixture = { round?: number; shape?: string; layout?: string; artMode?: string };
+
+/** Inserts a generated card design the way server code will (as the connecting superuser). */
+export async function insertCardDesign(
+  client: Client,
+  eventId: string,
+  {
+    round = 1,
+    shape = "rectangle",
+    layout = "art-top",
+    artMode = "illustration",
+  }: CardDesignFixture = {},
+): Promise<string> {
+  const { rows } = await client.query(
+    `insert into public.card_designs
+       (event_id, round, name, description, shape, layout, art_mode, typography, wording,
+        art_brief, raw, versions)
+     values ($1, $2, 'Garden Party', 'Soft watercolour florals over a quiet centre', $3, $4, $5,
+        '{"primary":"oldstyle_garamond_worksans","alternates":["soft_fraunces_manrope"]}',
+        '{"title":"Oh Baby","invitationLine":"Please join us for a baby shower"}',
+        '{"subject":"a cluster of peonies","medium":"watercolour","mood":"tender","palette":"blush","texture":"cold-press paper","avoid":"text"}',
+        '{"presentation":{"name":"Garden Party"}}',
+        '{"designPrompt":"card_design_v1","designSchema":"card_design_schema_v1","layoutSet":"card_layouts_v1","compiler":"card_compiler_v1"}')
+     returning id`,
+    [eventId, round, shape, layout, artMode],
+  );
+  return rows[0].id as string;
+}
+
+export const PORTRAIT_SHAPES = ["rectangle", "rounded-rectangle", "arch", "oval"];
+
+/** Inserts an artwork record for a design; by default a portrait asset fitting all four 5:7 shapes. */
+export async function insertCardArt(
+  client: Client,
+  eventId: string,
+  designId: string,
+  {
+    proportion = "portrait_5_7",
+    fitsShapes = PORTRAIT_SHAPES,
+  }: { proportion?: string; fitsShapes?: string[] } = {},
+): Promise<string> {
+  const ink = Object.fromEntries(fitsShapes.map((shape) => [shape, { main: { ink: "#2b2118" } }]));
+  const { rows } = await client.query(
+    `insert into public.card_art_assets
+       (event_id, card_design_id, proportion, fits_shapes, storage_key, mime_type, width, height,
+        size_bytes, ink, image_model, art_prompt_version)
+     values ($1, $2, $3, $4::public.card_shape[], $5, 'image/png', 1440, $6, 4200000, $7,
+        'gpt-image-2.5-sunburst', 'card_art_v1')
+     returning id`,
+    [
+      eventId,
+      designId,
+      proportion,
+      fitsShapes,
+      `events/${eventId}/${randomUUID()}.png`,
+      proportion === "portrait_5_7" ? 2016 : 1440,
+      ink,
+    ],
   );
   return rows[0].id as string;
 }
