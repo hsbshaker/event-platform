@@ -241,12 +241,36 @@ dependency for that and for the end-to-end suite.
 Three capabilities the card system needs, decided when it is built and recorded here:
 
 - **image decoding** for artwork validation and ink sampling (an image library on the server);
-- **font metrics** for `layoutCard` measurement from the curated fonts in `public/fonts/card/`;
+- **font metrics** for `layoutCard` and the card editor's line breaking, from the curated fonts in
+  `public/fonts/card/` and the font store's fonts (§8.3);
 - **link-preview rendering** of the card and envelope (`spec.md §11.10`), preferring what Next.js
   already provides over a new dependency.
 
 Each is justified by a product requirement in `spec.md`; record the choice and why here before
 adding a dependency.
+
+## 8.3 Card editor and the font store
+
+**Owner decisions (Revision 7.2):** a free text editor on the card, smooth on a phone, with any font
+from the **Google Fonts** library (`spec.md §20`).
+
+- **Fonts come from Google Fonts, served by us.** Google Fonts families are open-licensed (SIL OFL,
+  Apache 2.0, Ubuntu Font Licence), which permits redistribution. When a host first picks a family,
+  the server copies its files into Supabase Storage and extracts its metrics; the editor, guests and
+  link previews load it from our own storage, never from Google. Reasons: guests' browsers do not
+  contact a third party (privacy), a published card does not depend on another service staying up,
+  and line breaking needs the same metrics on the server and in every browser. The family list is a
+  snapshot of the Google Fonts catalog kept by the platform and refreshed deliberately; how it is
+  fetched and refreshed is decided when the editor is built and recorded here.
+- **The editor is built on the card component, in the DOM.** The card's text is real, selectable,
+  screen-reader-readable text (`docs/card-system.md §2.2`), and the editor must show exactly what
+  guests see, so the editing surface is the same card component with selection, handles and guides
+  drawn over it as app chrome — not a `<canvas>` drawing library, whose text is pixels. Gesture
+  handling (drag, pinch, rotate) uses pointer events; a small gesture helper library may be added if
+  the editor phase shows pointer events alone are not enough, recorded here with the reason.
+- **Line breaking** for edited boxes uses one deterministic function over the font store's metrics
+  (`docs/card-system.md §7`); the metrics extraction library is chosen with `layoutCard`'s in
+  Phase 4 and recorded in §8.2.
 
 ---
 
@@ -267,7 +291,9 @@ Do not add or substitute:
 - microservices;
 - an event bus;
 - a generalized repository/data-access framework;
-- a generalized multi-provider AI orchestration platform.
+- a generalized multi-provider AI orchestration platform;
+- a hosted design-editor SDK or a `<canvas>` drawing library for the card editor (§8.3);
+- third-party font hosting for guests (fonts are served from platform storage, §8.3).
 
 A new dependency is justified by a product requirement or concrete technical blocker—not by preference.
 

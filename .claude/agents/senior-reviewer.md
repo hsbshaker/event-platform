@@ -23,7 +23,7 @@ A branch name by itself is not sufficient because this reviewer cannot run Git c
 Review the integrated change against, in this order:
 1. The cited `spec.md §31` acceptance criteria and `§32` guardrails. Quote the exact item when you rely on it.
 2. Source-of-truth compliance: `spec.md`, `docs/` contracts (card system, model contracts, prompts, schemas), and `CLAUDE.md`. Note any change to canonical files and whether it was authorized by the packet.
-3. Architecture drift from the locked stack and canonical design (models own direction, wording and artwork; code owns facts, legibility (4.5:1) and fit; no text in artwork; raw prompt never reaches the image model; immutable designs; one house style for the page; nothing from the retired website architecture).
+3. Architecture drift from the locked stack and canonical design (models own direction, wording and artwork; code owns facts and the generated card's legibility (4.5:1) and fit; the card editor edits text only and line breaks stay deterministic; no text in artwork; raw prompt never reaches the image model; immutable designs; one house style for the page; nothing from the retired website architecture).
 4. Correctness and edge cases, including empty, provisional, and partial content states.
 5. Security, data integrity, and access control (RLS, auth boundaries, idempotency, secrets, input validation).
 6. Tests and failure states: are the deterministic tests meaningful, and does every failure path have an explicit state?

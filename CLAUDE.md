@@ -5,7 +5,7 @@ This file exists so every agent session starts from the same product, architectu
 
 Do **not** begin implementation by guessing from the codebase alone. Read the authoritative docs in the order below, then make the smallest change that satisfies the current task and the cited acceptance criteria.
 
-**The product (Revision 7):** a host describes their event; the AI designs **one invitation card** — generated artwork with real text set over it — that guests open from an envelope, above a standard event page with details, RSVP and registry in one house style. The earlier custom-website architecture (CompositionTree, primitives, renderer, geometry verification) is retired and deleted. Do not rebuild it. `docs/CHANGELOG-v7.md` records why.
+**The product (Revision 7.2):** a host describes their event; the AI designs **one invitation card** — generated artwork with real text set over it — that guests open from an envelope, above a standard event page with details, RSVP and registry in one house style. The host can then edit the card's text freely in the card editor (`spec.md §20`). The earlier custom-website architecture (CompositionTree, primitives, renderer, geometry verification) is retired and deleted. Do not rebuild it. `docs/CHANGELOG-v7.md` records why.
 
 ---
 
@@ -34,7 +34,7 @@ Superseded revisions live only in git history. Do not recreate them in the repos
 
 Before proposing or implementing a solution, check it against these rules:
 
-- **AI should remove decisions, not create more decisions.** The system makes the design decisions it was hired to make — never which font, which layout, which hex value. `docs/product-doctrine.md §7`.
+- **AI should remove decisions, not create more decisions.** The system makes the design decisions it was hired to make and never *requires* the host to choose a font, a layout or a hex value; the first card is complete. The card editor offers that control to hosts who want it (`spec.md §20`). `docs/product-doctrine.md §7`.
 - **Design quality and creative understanding are core functionality, not polish.** MVP is permission to omit features, never permission for a mediocre card. `docs/product-doctrine.md §2`.
 - **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout and shape rules, plus (on a shape switch) the design's own earlier artwork as a reference — never a host upload. `docs/product-doctrine.md §4`.
 - The landing page is the prompt.
@@ -49,8 +49,9 @@ Before proposing or implementing a solution, check it against these rules:
 - **Facts come only from the host.** Names, dates, times, venues on the card render from event data; AI wording never states or invents one.
 - **Brand references: close homage allowed, marks never.** A card may clearly evoke a brand's character or look; it never carries a logo, wordmark, brand or character name, or copied campaign art, and briefs never name the brand (`spec.md §7.6`; pending legal review before launch).
 - **Artwork contains no text.** Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
-- **Code owns legibility and fit.** Ink and legibility panels are chosen deterministically so every card text clears 4.5:1; `layoutCard` alone decides card text size and line breaks; the browser never re-wraps card text.
-- Persist `EventIdentity`, every `CardDesign` (raw and validated), its artwork, resolved ink and version set. Generated design data is immutable; host edits (wording, font, facts) live on the event; renderer code may receive bug/accessibility/responsive fixes.
+- **Code owns the generated card's legibility and fit; the host owns their edits.** Ink and legibility panels are chosen deterministically so every text of the generated card clears 4.5:1, and `layoutCard` sizes and breaks it. In the card editor the host may restyle and move anything, add text, and pick any Google Font and colour, unchecked. Line breaks are always computed deterministically and stored; the browser never re-wraps card text, so guests see exactly what the host saw.
+- **The card editor edits text only.** Every text is a box the host can edit, move, resize, rotate and restyle on phone or desktop; the artwork, outline and envelope are never edited, and no images or graphics are added. Fact boxes stay linked to event details.
+- Persist `EventIdentity`, every `CardDesign` (raw and validated), its artwork, resolved ink and version set. Generated design data is immutable; host edits live on the event and in a `CardCustomization` per design and shape; renderer code may receive bug/accessibility/responsive fixes.
 - **The page under the card is one house style for every event.** Card styling, the house-style page and app chrome are separate systems.
 - Personal invitation links identify the party and skip the private code; the platform texts invitations only after publish, after host attestation, within caps. Shared-link RSVP uses name lookup + SMS OTP.
 - No guest accounts. No gift reservation/hold state. No template, layout or artwork gallery.
@@ -134,7 +135,8 @@ host prompt + inspiration
 → artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety   (one regeneration)
 → ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
 → persisted, immutable CardDesign + artwork + ink + versions
-→ layoutCard (sizes, line breaks) at save and render → one card component → envelope → house-style page
+→ layoutCard (sizes, line breaks) → one card component → envelope → house-style page
+→ card editor (optional): host edits the text layer → CardCustomization (stored boxes and line breaks) → same card component
 ```
 
 Do not:
@@ -143,6 +145,7 @@ Do not:
 - add a layout, art mode, shape or slot limit without a layout-set version bump and a fixture run;
 - let a model draw or position the card's outline, or offer the host a shape the design's layout does not support;
 - let the browser re-wrap card text, or truncate any card text silently;
+- let the card editor touch the artwork, outline or envelope, or fetch fonts for guests from a third party;
 - derive CSS from model output;
 - regenerate, recompile or re-resolve the ink of a historical design;
 - add a template, art library, stock set or template fallback;
@@ -189,8 +192,8 @@ Recommended format:
 ## Spec / acceptance criteria
 
 - `spec.md §31 — Card design, artwork and compiler`
-  - “Every card text clears 4.5:1 against the conservatively measured background of its zone …”
-  - “`layoutCard` decides every slot's size and line breaks; no text leaves its zone …”
+  - “Every text of the generated card clears 4.5:1 against the conservatively measured background of its zone …”
+  - “In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves its zone …”
 - `spec.md §32 guardrails #20, #22, #23`
 
 ## Verification
@@ -211,6 +214,7 @@ A PR touching one of these areas must cite **at least one exact bullet from ever
 | Card Design schema and prompt, artwork generation and validation, wording fact check, ink/legibility, `layoutCard`, persistence and versioning | **Card design, artwork and compiler** |
 | Card reveal, `Make it yours`, designs list, choosing a design | **Card experience** |
 | Inline/contextual editing, collaborator anchors, autosave, readiness checklist, guest workspace, Design panel | **Creation Mode** |
+| Card editor: text boxes, gestures, toolbar, font store, colour picker, stored line breaks, customizations | **Card editor** **and** **Card rendering and envelope** |
 | Try-another-direction flow, feedback, keep-current behavior, post-publish lockout | **Try another direction** |
 | Card component, envelope, private sealed state, link previews, layout fixtures, house-style page | **Card rendering and envelope** **and** **Card design, artwork and compiler** |
 | Guest list, CSV, personal invitation links, party lookup, OTP, guest session, RSVP/update | **RSVP** |

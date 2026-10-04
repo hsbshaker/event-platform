@@ -48,8 +48,10 @@ Heed deprecation notices in those docs over training-data habits.
   ink and legibility, `layoutCard` — and the renderer never call a model
   (`docs/card-system.md §4`).
 - **Card code** lives under `src/lib/card/` (colour maths, typography pairings; the layout set,
-  compiler and fixtures arrive in Phase 4). Card text is laid out only by `layoutCard`; never let
-  the browser re-wrap card text and never derive CSS from model output.
+  compiler and fixtures arrive in Phase 4). The generated card's text is laid out by `layoutCard`,
+  and every edited text box is broken by one deterministic function with its lines stored
+  (`docs/card-system.md §7`); never let the browser re-wrap card text and never derive CSS from
+  model output. The card editor edits the text layer only.
 
 ## Phase 2 notes
 

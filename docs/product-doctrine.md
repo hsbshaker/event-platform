@@ -178,6 +178,12 @@ Do not ask which font, which layout, which colours, how big the bear should be. 
 decisions the product is hired to make. Clarification exists to understand the *identity*, never
 to outsource the design.
 
+**Control after the card is offered, never required.** Once the card exists, the card editor
+(`spec.md §20`, Revision 7.2) lets a host who wants to change the text — its words, font, colour,
+size, position — do so freely, by touch or mouse. The first card is still complete without it: a
+host who never opens the editor has made no design decision, and the editor never opens by
+itself, nags or asks.
+
 ## 8. One card, and another direction that is really another direction
 
 The host sees **one card at a time**. That puts the whole creative burden on the first card being
@@ -329,7 +335,8 @@ Consequences:
 
 **Keep the architecture bounded anyway.** A high creative bar is not licence for agent swarms,
 unnecessary model hops, generic AI orchestration, a persistent copilot, model-authored CSS, an image
-editor, enormous style taxonomies or questionnaire-heavy onboarding.
+editor (the card editor edits text only), enormous style taxonomies or questionnaire-heavy
+onboarding.
 
 **Scope stays consumer.** The wedge is consumer events. Do not add enterprise functionality now.
 

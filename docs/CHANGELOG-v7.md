@@ -206,6 +206,36 @@ The corpus's CU-11 `eventType` is corrected to the host's literal "Baby shower",
 requires. Carried forward: presence for sparse cards (Phase 5), a unit test for the ink rule's
 tail selection (Phase 4), a higher OpenAI usage tier before launch (Phase 10).
 
+## Revision 7.2 — the card editor
+
+Asked after Phase 3: should hosts be able to add and edit text boxes on their card — drag and drop,
+change fonts and colours — once it is generated? Revision 7 had allowed only the card's words and a
+font among the design's pairings. The owner chose the full option — "go big or go home" — with a
+seamless editing experience on a phone, in the spirit of Paperless Post and Canva.
+
+| Question | Decision |
+| --- | --- |
+| How much control | A free text editor: every text is a box the host can edit, move, resize, rotate, duplicate, delete, reorder and restyle, and new boxes can be added |
+| Readability of host colours | No checks — the host's choices are theirs; the generated card still clears 4.5:1, and the page under the card carries every detail accessibly |
+| Artwork | Text only; the painting stays as generated; no images or graphics added |
+| A new direction or shape after editing | Keep the words, added text and fonts; lay them out fresh; keep the edited card to return to |
+| Fonts | The full Google Fonts library |
+
+Defaults chosen in writing it, canonical where cited: fact boxes stay linked to event details
+(`spec.md §20.2`); text past the outline is clipped as guests see it (§20.1); undo/redo, autosave
+and stale-save refusal between collaborators (§20.3, §20.5); edits allowed after publish (§8.1);
+fonts copied into platform storage on first use and served by us, never fetched by guests from
+Google (`technology-decisions.md §8.3`); the editor built on the card component in the DOM, not a
+canvas library (§8.3); line breaks for every box computed deterministically and stored, so guests
+see exactly what the host saw (`card-system.md §7`).
+
+Documents changed: `spec.md` (Revision 7.2: §0, §0.2, §4.2, §4.10, §5.1, §5.2, §7.7, §7.9, §7.14,
+§8.1, §11.6, §11.7, §20 rewritten as Card Editing, §24 `CardCustomization` and `CardFont` replacing
+`Event.cardEdits`, render state, §30, §31 new "Card editor" group, §32 #22, #23, #25, #26, #28),
+`card-system.md` (§1, §2.6, §4.2, §4.3, §5, §6.1, §7 rewritten, §9, §10), `technology-decisions.md`
+§8.2, §8.3, §9, `product-doctrine.md §7`, `§13`, `development-plan.md` (Phase 4 text layer, new
+Phase 6b), `design-system.md`, `screen-spec.md`, `e2e-workflow.md`, `CLAUDE.md`, `AGENTS.md`.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
