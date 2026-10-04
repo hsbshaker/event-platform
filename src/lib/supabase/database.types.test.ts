@@ -1,4 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
+import type { ModelOperation as ProviderOperation } from "@/lib/ai/provider";
 import { ART_MODES, type ArtMode } from "@/lib/card/art-modes";
 import { CARD_LAYOUT_IDS, type CardLayoutId } from "@/lib/card/layouts";
 import { CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
@@ -17,5 +18,11 @@ describe("card enums in the database contract", () => {
     expect(CARD_SHAPES).toHaveLength(6);
     expect(CARD_LAYOUT_IDS).toHaveLength(5);
     expect(ART_MODES).toHaveLength(4);
+  });
+});
+
+describe("model operations in the database contract", () => {
+  it("records every operation the provider performs", () => {
+    expectTypeOf<ProviderOperation>().toExtend<Enums["model_operation"]>();
   });
 });

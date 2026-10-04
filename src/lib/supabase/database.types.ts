@@ -20,8 +20,9 @@ export type ClaimOutcome =
 /** Outcomes of public.attach_inspiration_asset (supabase/migrations/20260913020000_phase2_asset_consistency.sql). */
 export type AttachInspirationOutcome = "attached" | "limit_reached" | "gone";
 
+/** Telemetry operations of generation_runs (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type ModelOperation =
-  "event_identity" | "design_intent" | "composition" | "structured_extraction";
+  "event_identity" | "structured_extraction" | "card_design" | "card_art" | "card_art_inspection";
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";

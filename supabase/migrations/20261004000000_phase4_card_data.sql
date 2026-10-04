@@ -102,6 +102,22 @@ alter table public.generation_runs
   drop column nearest_sibling,
   drop column fallback;
 
+-- The operation vocabulary moves to the card pipeline (spec.md §9.6). Runs of the retired website
+-- operations go with the website (owner decision: website-era data may be dropped).
+delete from public.generation_runs where operation in ('design_intent', 'composition');
+alter type public.model_operation rename to model_operation_r6;
+create type public.model_operation as enum (
+  'event_identity',
+  'structured_extraction', -- fact extraction
+  'card_design',
+  'card_art',
+  'card_art_inspection'    -- the check of generated artwork (card-system §4.1)
+);
+alter table public.generation_runs
+  alter column operation type public.model_operation
+  using operation::text::public.model_operation;
+drop type public.model_operation_r6;
+
 -- Human Test #1 reviewer data. The owner approved dropping it with no export
 -- (docs/development-plan.md, "Database").
 drop table public.human_test_1_responses, public.human_test_1_test_responses;

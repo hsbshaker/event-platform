@@ -1,6 +1,8 @@
 /**
- * The layout set `card_layouts_v1` (`docs/card-system.md §2.3`), ported unchanged from the
- * catalog validated in Phase 3 (`scripts/phase-3/catalog.mjs`).
+ * The layout set `card_layouts_v1` (`docs/card-system.md §2.3`), ported from the catalog validated
+ * in Phase 3 (`scripts/phase-3/catalog.mjs`). One fix since: `zoneFor` also checks the band's
+ * bottom edge, which the catalog's 4-unit step could miss, so a zone narrows by a few units where a
+ * curved outline pinches there (no card had been made from the set yet).
  *
  * A layout decides only where the words go and which regions the artwork leaves quiet. It is
  * never shown to hosts. Adding, removing or changing a layout, a supported shape or a band is a
@@ -131,7 +133,11 @@ export function zoneFor(layout: CardLayoutId, shape: CardShape): CardZone {
   const band = def.band[proportion];
   const w = CARD_CANVAS[proportion].width;
   let half = def.maxWidth / 2;
-  for (let y = band.top; y <= band.bottom; y += 4) {
+  // Every 4 units down the band, and its bottom edge itself, which the step may not land on.
+  const rows: number[] = [];
+  for (let y = band.top; y < band.bottom; y += 4) rows.push(y);
+  rows.push(band.bottom);
+  for (const y of rows) {
     while (
       half > 40 &&
       !(insideTextSafe(shape, w / 2 - half, y) && insideTextSafe(shape, w / 2 + half, y))

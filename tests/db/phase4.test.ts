@@ -157,6 +157,19 @@ describe("the website-era schema is gone", () => {
           'event_identity_schema_v4', 'card_compiler_v1', true, '[]', null, 'k1')`,
       [eventId],
     );
+    const run = (operation: string) =>
+      db.query(
+        `insert into public.generation_runs
+           (event_id, provider, operation, model, latency_ms, success, prompt_version, schema_version)
+         values ($1, 'openai', $2, 'm', 1, true, 'p', 's')`,
+        [eventId, operation],
+      );
+    for (const op of ["structured_extraction", "card_design", "card_art", "card_art_inspection"]) {
+      await run(op);
+    }
+    for (const op of ["design_intent", "composition"]) {
+      expect(await errorCode(run(op)), op).toBe("22P02");
+    }
   });
 });
 

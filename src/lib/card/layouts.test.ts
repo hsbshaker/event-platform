@@ -53,7 +53,7 @@ describe("layout set card_layouts_v1", () => {
         const band = CARD_LAYOUTS[layout].band[SHAPE_PROPORTION[shape]];
         expect(zone.y).toBe(band.top);
         expect(zone.height).toBe(band.bottom - band.top);
-        for (let y = band.top; y <= band.bottom; y += 4) {
+        for (let y = band.top; y <= band.bottom; y += 1) {
           expect(insideTextSafe(shape, zone.x, y), `${layout}/${shape} left @${y}`).toBe(true);
           expect(insideTextSafe(shape, zone.x + zone.width, y)).toBe(true);
         }

@@ -217,9 +217,10 @@ In order, deterministic (`card-system.md §4.1`):
   other fact. The deterministic check rejects digits, month and weekday names, time expressions,
   and any supplied place, logistics or partial-hint fact (venue, location, address, date, time,
   RSVP-by, dress code and their hints); names that do not match `eventFacts` exactly are caught by
-  the evaluation corpus, and the host reviews the card. Its boundary is deliberate: "May" and bare
-  "am"/"pm" pass, being far more often words ("you may", "I am") and a written date or time
-  carries a digit anyway; spelled-out times without a digit ("at five", "half past six") pass the
+  the evaluation corpus, and the host reviews the card. Its boundary is deliberate: "May" counts as the
+  month only where it reads as one ("this May", "in May", "May the fifth"), and bare "am"/"pm"
+  only after a number word ("seven pm"), since both are far more often ordinary words ("you may",
+  "I am"); "half past" and "quarter to" count as times. Times with neither ("at five") pass the
   check and are left to the corpus.
 - No brand names, character names or slogans in model-drafted wording; the host's own wording may
   contain anything.

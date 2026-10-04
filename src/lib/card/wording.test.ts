@@ -22,6 +22,28 @@ describe("checkWording", () => {
     expect(checkWording({ ...ok, invitationLine: "You may bring a friend along" })).toEqual([]);
   });
 
+  it("rejects May where it reads as the month, and keeps the verb", () => {
+    for (const line of [
+      "Please join us this May",
+      "A garden party in May",
+      "Celebrate with us on the first of May",
+      "Join us May the fifth for brunch",
+      "A Day In May",
+    ]) {
+      expect(reasons({ ...ok, invitationLine: line }), line).toContain(
+        "invitationLine names a month (may)",
+      );
+    }
+    for (const line of [
+      "You may bring a friend along",
+      "This may be our happiest day yet",
+      "May your days be merry and bright",
+      "Maybe the sweetest day of all",
+    ]) {
+      expect(checkWording({ ...ok, invitationLine: line }), line).toEqual([]);
+    }
+  });
+
   it("rejects weekday names", () => {
     expect(reasons({ ...ok, invitationLine: "Come celebrate this Saturday" })).toEqual([
       "invitationLine names a weekday (saturday)",
@@ -44,6 +66,20 @@ describe("checkWording", () => {
     expect(reasons({ ...ok, invitationLine: "Evening p.m. cocktails" })).toContain(
       "invitationLine contains a time expression",
     );
+  });
+
+  it("rejects spelled-out times", () => {
+    for (const line of [
+      "Dinner starts at seven pm",
+      "Brunch at eleven am sharp",
+      "Cake at half past six",
+      "Doors open at quarter to eight",
+      "Toasts at seven-thirty pm",
+    ]) {
+      expect(reasons({ ...ok, invitationLine: line }), line).toContain(
+        "invitationLine contains a time expression",
+      );
+    }
   });
 
   it("does not treat the words am and pm as times", () => {

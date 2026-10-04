@@ -15,7 +15,7 @@ const MONTHS = [
   "february",
   "march",
   "april",
-  // "may" is left out: as a word it is far more often a verb, and a May date needs a digit anyway.
+  // "may" is checked by namesMay: as a bare word it is far more often a verb ("you may").
   "june",
   "july",
   "august",
@@ -24,6 +24,38 @@ const MONTHS = [
   "november",
   "december",
 ];
+
+const MAY_BEFORE = new Set(
+  "in this next last early late mid during until till through since by of come".split(" "),
+);
+const ORDINAL =
+  /^(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty|thirtieth|thirty)/i;
+
+/**
+ * "May" read as the month: capitalized, and after a word that only introduces a time ("this May",
+ * "in May", "the first of May") or before an ordinal ("May the fifth"). Lowercase "may" and "May"
+ * elsewhere are the verb ("You may", "this may be", "May your days be bright").
+ */
+function namesMay(value: string): boolean {
+  for (const m of value.matchAll(/(?:(\p{L}+)[\s-]+)?\bMay\b(?:\s+(?:the\s+)?(\p{L}+))?/gu)) {
+    if ((m[1] && MAY_BEFORE.has(m[1].toLowerCase())) || (m[2] && ORDINAL.test(m[2]))) return true;
+  }
+  return false;
+}
+
+const NUMBER_WORDS =
+  "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty";
+
+/**
+ * Time expressions: dotted a.m./p.m., noon, midnight, o'clock, "half past", "quarter to", and a
+ * number word followed by am/pm ("seven pm"). Bare "am"/"pm" alone are left out ("I am so happy");
+ * a written time like "7pm" has a digit anyway.
+ */
+const TIME_EXPRESSION = new RegExp(
+  `\\b(a\\.m\\.?|p\\.m\\.?|noon|o'clock|midnight)(?![a-z])` +
+    `|\\b(half|quarter)\\s+(past|to)\\b` +
+    `|\\b(${NUMBER_WORDS})([\\s-]+(${NUMBER_WORDS}))?\\s*(am|pm)\\b`,
+);
 
 const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
@@ -76,11 +108,11 @@ export function checkWording(
         failures.push({ slot, reason: `${slot} names a month (${m})` });
       }
     }
+    if (namesMay(value)) failures.push({ slot, reason: `${slot} names a month (may)` });
     for (const d of WEEKDAYS) {
       if (lower.includes(d)) failures.push({ slot, reason: `${slot} names a weekday (${d})` });
     }
-    // Bare "am"/"pm" are left out ("I am so happy"); a written time like "7pm" has a digit anyway.
-    if (/\b(a\.m\.?|p\.m\.?|noon|o'clock|midnight)(?![a-z])/.test(lower)) {
+    if (TIME_EXPRESSION.test(lower)) {
       failures.push({ slot, reason: `${slot} contains a time expression` });
     }
     for (const key of CHECKED_FACT_KEYS) {
