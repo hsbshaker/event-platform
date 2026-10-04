@@ -14,7 +14,8 @@
     "test:db": "vitest run --project db",
     "test:all": "vitest run --project unit --project db",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
-    "test:e2e": "vitest run --project e2e"
+    "test:e2e": "vitest run --project e2e",
+    "test:fixtures": "vitest run --project fixtures"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

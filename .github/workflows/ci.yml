@@ -30,6 +30,28 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  card-fixtures:
+    # Every layout × supported shape × pairing rendered and measured in a real browser
+    # (docs/card-system.md §9). Test time only: production runs no browser.
+    name: Card layout fixtures (Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright-core install --with-deps chromium
+      - run: npm run test:fixtures
+      - name: Upload the fixture report and contact sheets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-fixtures
+          path: test-results/card-fixtures/
+          if-no-files-found: ignore
+
   db:
     name: Migrations and RLS
     runs-on: ubuntu-latest

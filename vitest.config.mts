@@ -29,6 +29,18 @@ export default defineConfig({
         },
       },
       {
+        // Layout fixtures: every layout × shape × pairing rendered and measured in Chromium
+        // (docs/card-system.md §9). A test-time check only; production runs no browser.
+        extends: true,
+        test: {
+          name: "fixtures",
+          include: ["tests/fixtures/**/*.test.ts"],
+          testTimeout: 120_000,
+          hookTimeout: 900_000,
+          fileParallelism: false,
+        },
+      },
+      {
         extends: true,
         test: {
           name: "e2e",
