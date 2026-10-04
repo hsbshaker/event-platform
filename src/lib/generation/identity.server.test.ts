@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import { fakeProvider, TEST_METER } from "../../../tests/unit/support/fake-provider";
 import type { FakeScript } from "../../../tests/unit/support/fake-provider";
 
-import { ModelOutputError, ProviderCallError, SpendCeilingError } from "@/lib/ai/errors";
+import {
+  MeterRecordError,
+  ModelOutputError,
+  ProviderCallError,
+  SpendCeilingError,
+} from "@/lib/ai/errors";
 import type { EventIdentity } from "@/lib/ai/event-identity";
 import type { ExtractedFacts } from "@/lib/ai/fact-extraction";
 import type { ModelResult } from "@/lib/ai/provider";
@@ -188,11 +193,17 @@ describe("fact extraction", () => {
     expect(result).toMatchObject({ facts: null, extraction: "failed" });
   });
 
-  it("ends the stage on a meter refusal of the extraction", async () => {
-    const { ctx } = stage({ identity: [IDENTITY], facts: [new SpendCeilingError()] });
-    await expect(runIdentityStage(ctx, { prompt: PROMPT })).rejects.toBeInstanceOf(
-      SpendCeilingError,
-    );
+  it("keeps a resolved identity when the meter refuses the extraction, with no prefill", async () => {
+    for (const refusal of [new SpendCeilingError(), new MeterRecordError("could not record")]) {
+      const { ctx } = stage({ identity: [IDENTITY], facts: [refusal] });
+      const result = await runIdentityStage(ctx, { prompt: PROMPT });
+      expect(result).toMatchObject({ identity: IDENTITY, facts: null, extraction: "failed" });
+    }
+  });
+
+  it("still throws anything else the extraction throws", async () => {
+    const { ctx } = stage({ identity: [IDENTITY], facts: [new TypeError("bug")] });
+    await expect(runIdentityStage(ctx, { prompt: PROMPT })).rejects.toBeInstanceOf(TypeError);
   });
 
   it("is skipped when asked", async () => {
@@ -240,6 +251,46 @@ describe("the verbatim check (spec.md §7.5: only what the prompt literally stat
       { field: "location" },
       { field: "partial", hintField: "dressCode" },
     ]);
+  });
+
+  it("never keeps a fragment of a longer word or number", () => {
+    const prompt = "Joanne's shower on May 20 at 1pm, Rosewood Hall";
+    const { facts, dropped } = keepVerbatimFacts(prompt, {
+      ...FACTS,
+      eventType: "shower",
+      honoree: "Ann",
+      date: "May 2",
+      time: "1pm",
+      venue: "Rosewood Hall",
+      title: null,
+      hosts: null,
+      location: null,
+      partial: [],
+    });
+    expect(facts).toMatchObject({
+      eventType: "shower",
+      honoree: null,
+      date: null,
+      time: "1pm",
+      venue: "Rosewood Hall",
+    });
+    expect(dropped).toEqual([{ field: "honoree" }, { field: "date" }]);
+  });
+
+  it("matches a value whose edge is punctuation without a word boundary there", () => {
+    const { facts } = keepVerbatimFacts("Brunch for Ana & Leo's baby (Maya)", {
+      ...FACTS,
+      eventType: null,
+      title: null,
+      hosts: "Ana & Leo",
+      honoree: "(Maya)",
+      date: null,
+      time: null,
+      venue: null,
+      location: null,
+      partial: [],
+    });
+    expect(facts).toMatchObject({ hosts: "Ana & Leo", honoree: "(Maya)" });
   });
 
   it("treats a blank value as absent, not as a drop", () => {

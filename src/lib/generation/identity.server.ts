@@ -1,6 +1,11 @@
 import "server-only";
 
-import { ModelOutputError, ProviderCallError } from "@/lib/ai/errors";
+import {
+  MeterRecordError,
+  ModelCallRefusedError,
+  ModelOutputError,
+  ProviderCallError,
+} from "@/lib/ai/errors";
 import type { EventIdentity } from "@/lib/ai/event-identity";
 import type { ExtractedFacts } from "@/lib/ai/fact-extraction";
 import type { GenerateEventIdentityInput, ModelResult } from "@/lib/ai/provider";
@@ -66,7 +71,10 @@ export type ExtractionOutcome =
   | "ok"
   /** Extracted on the one retry after invalid output. */
   | "retried"
-  /** No prefill: invalid output twice, or the provider failed. */
+  /**
+   * No prefill: invalid output twice, the provider failed, or the meter refused the extraction (or
+   * could not record it) after the identity had already resolved — the identity is kept.
+   */
   | "failed"
   /** Not run (`extractFacts: false`). */
   | "skipped";
@@ -105,9 +113,31 @@ function normalized(text: string): string {
   return text.normalize("NFC").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+/** A letter, a digit or a combining mark: what a value may not be cut out of. */
+const WORD_CHARACTER = /[\p{L}\p{N}\p{M}]/u;
+
 /**
- * Keep only values that appear in the prompt (`spec.md §7.5`, `docs/model-contracts.md §4.3`). An
- * empty or whitespace-only value is no value: it becomes null without counting as a drop.
+ * Whether `needle` occurs in `haystack` as a whole span: an edge of the value that is a letter or a
+ * digit must not continue a word of the prompt, so "May 2" is not found in "May 20" nor "Ann" in
+ * "Joanne". Both are already `normalized`.
+ */
+function occursWhole(haystack: string, needle: string): boolean {
+  const first = String.fromCodePoint(needle.codePointAt(0) ?? 0);
+  const last = Array.from(needle).at(-1) ?? "";
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    const before = Array.from(haystack.slice(Math.max(0, at - 2), at)).at(-1) ?? "";
+    const after = String.fromCodePoint(haystack.codePointAt(at + needle.length) ?? 0);
+    const startsClean = !WORD_CHARACTER.test(first) || !WORD_CHARACTER.test(before);
+    const endsClean = !WORD_CHARACTER.test(last) || !WORD_CHARACTER.test(after);
+    if (startsClean && endsClean) return true;
+  }
+  return false;
+}
+
+/**
+ * Keep only values that appear in the prompt as a whole span (`spec.md §7.5`,
+ * `docs/model-contracts.md §4.3`): never a fragment of a longer word or number. An empty or
+ * whitespace-only value is no value: it becomes null without counting as a drop.
  */
 export function keepVerbatimFacts(
   prompt: string,
@@ -115,7 +145,7 @@ export function keepVerbatimFacts(
 ): { facts: ExtractedFacts; dropped: DroppedFact[] } {
   const haystack = normalized(prompt);
   const dropped: DroppedFact[] = [];
-  const appears = (value: string) => haystack.includes(normalized(value));
+  const appears = (value: string) => occursWhole(haystack, normalized(value));
   const kept = { ...facts, partial: [] as ExtractedFacts["partial"] };
   for (const field of EXTRACTED_FACT_FIELDS) {
     const value = facts[field];
@@ -230,12 +260,21 @@ export async function runIdentityStage(
       : Promise.resolve({ facts: null, outcome: "skipped" as const }),
   ]);
   if (identitySettled.status === "rejected") throw identitySettled.reason;
-  if (extractionSettled.status === "rejected") {
-    // A meter refusal (or a telemetry failure) of the extraction: the generation cannot go on.
+  let extraction: { facts: ExtractedFacts | null; outcome: ExtractionOutcome };
+  if (extractionSettled.status === "fulfilled") {
+    extraction = extractionSettled.value;
+  } else if (
+    extractionSettled.reason instanceof ModelCallRefusedError ||
+    extractionSettled.reason instanceof MeterRecordError
+  ) {
+    // The meter refused the extraction (or could not record it) while the identity resolved: the
+    // identity is kept, so the orchestration persists it and a retry never interprets the prompt
+    // twice; the extraction degrades to no prefill. A refusal stops the next stage anyway.
+    extraction = { facts: null, outcome: "failed" };
+  } else {
     throw extractionSettled.reason;
   }
   const { result, validFirstCall } = identitySettled.value;
-  const extraction = extractionSettled.value;
   let facts: ExtractedFacts | null = null;
   let droppedFacts: DroppedFact[] = [];
   if (extraction.facts) {
