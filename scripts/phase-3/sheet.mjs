@@ -69,10 +69,22 @@ function checks(art) {
 }
 
 async function tile(id, counted) {
-  const design = readJson(path.join(OUT_DIR, id, "design.json")).design;
-  const art = readJson(path.join(OUT_DIR, id, "art.json"));
+  // A case can fail before artwork exists: a design still invalid after its one re-prompt is
+  // skipped by the art stage, so neither file may be usable. Show it as a hard failure.
+  const designFile = path.join(OUT_DIR, id, "design.json");
+  const designRecord = existsSync(designFile) ? readJson(designFile) : null;
+  const design = designRecord?.ok ? designRecord.design : null;
+  const artFile = path.join(OUT_DIR, id, "art.json");
+  const art = existsSync(artFile) ? readJson(artFile) : { attempts: [] };
   const c = compose[id];
-  const pairing = TYPOGRAPHY[design.typography.primary];
+  const pairing = design ? TYPOGRAPHY[design.typography.primary] : null;
+  if (!design) {
+    const problems = designRecord?.finalProblems?.join("; ") ?? "no design record";
+    return `<article class="tile failed" data-id="${id}" data-counted="${counted}">
+  <div class="art-slot"><div class="no-card"><strong>No valid card design</strong><span>${esc(`Still invalid after its one re-prompt: ${problems}`.slice(0, 200))}</span></div></div>
+  <div class="meta">${head(id, null, null, counted)}${verdictControls(id)}</div>
+</article>`;
+  }
   if (!c) {
     const err = art.attempts.at(-1)?.error ?? "";
     const refused = /moderation_blocked|safety system/.test(err);
@@ -107,9 +119,12 @@ async function tile(id, counted) {
 }
 
 function head(id, design, pairing, counted) {
+  const summary = design
+    ? `<strong>${esc(design.presentation.name)}</strong> · ${SHAPE_LABEL[design.shape]} · ${esc(design.layout)} · ${esc(design.artMode)} · ${esc(pairing.display)} + ${esc(pairing.body)}`
+    : "No design";
   return `<header class="tile-head"><span class="id">${id}</span>${counted ? "" : '<span class="tag">Your brief · not counted</span>'}</header>
     <blockquote>${esc(promptOf(id))}</blockquote>
-    <p class="design"><strong>${esc(design.presentation.name)}</strong> · ${SHAPE_LABEL[design.shape]} · ${esc(design.layout)} · ${esc(design.artMode)} · ${esc(pairing.display)} + ${esc(pairing.body)}</p>`;
+    <p class="design">${summary}</p>`;
 }
 
 function verdictControls(id) {
