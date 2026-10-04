@@ -21,10 +21,12 @@ import type { CardDesign } from "@/lib/card/design";
 import { encodePng, flatArtwork } from "@/lib/link-preview/test-artwork";
 
 import { identityArtifacts } from "./identity.server";
+import { GenerationStageError } from "./stage";
 import {
   CARD_ART_BUCKET,
   GENERATION_DEADLINE_MS,
   GenerationKindNotSupportedError,
+  failureTelemetry,
   hostEventFacts,
   PROVIDER_REFUSAL_FEEDBACK,
   runGeneration,
@@ -605,6 +607,48 @@ describe("failures end the generation with fail_generation", () => {
       expect(admin.rpc("persist_generated_card")).toEqual([]);
     });
   }
+
+  it("records why: the stage and each image's validation failure", async () => {
+    await run({ ...HAPPY, art: [NOT_PNG, NOT_PNG] });
+    expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
+      failure: {
+        code: "artwork_invalid",
+        stage: "artwork",
+        imagesRequested: 2,
+        validationFailures: [
+          { image: 1, reasons: ["type"] },
+          { image: 2, reasons: ["type"] },
+        ],
+      },
+    });
+  });
+
+  it("records the stage of other failures, and a meter refusal's reason", async () => {
+    await run({ ...HAPPY, design: [invalid(), invalid()] });
+    expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
+      failure: { code: "invalid_output", stage: "design" },
+    });
+    expect(failureTelemetry(new SpendCeilingError(), "ceiling")).toEqual({
+      failure: { code: "ceiling", refusal: "ceiling" },
+    });
+  });
+
+  it("keeps check output bounded, and records an unexpected error by name only", () => {
+    const long = "letters ".repeat(80);
+    const error = new GenerationStageError("artwork", "artwork_invalid", "failed", {
+      details: {
+        imagesRequested: 2,
+        validationFailures: [{ image: 1, reasons: ["text"], detail: long }],
+      },
+    });
+    const recorded = failureTelemetry(error, "artwork_invalid") as {
+      failure: { validationFailures: { detail: string }[] };
+    };
+    expect(recorded.failure.validationFailures[0].detail).toHaveLength(200);
+    expect(failureTelemetry(new TypeError("Maya Lopez at Villa Rosa"), "internal")).toEqual({
+      failure: { code: "internal", error: "TypeError" },
+    });
+  });
 
   it("anything unexpected → internal, logged without prompt text or model output", async () => {
     admin.state.errors["record_event_identity"] = { message: "connection reset", code: "08006" };

@@ -381,6 +381,7 @@ export async function runArtworkStage(
             : `The artwork failed validation twice (${validationFailures
                 .map((f) => f.reasons.join("+"))
                 .join(", ")}).`,
+          { details: { imagesRequested: images, validationFailures: [...validationFailures] } },
         );
       }
       artRegenerated = painted.failure.reasons[0];

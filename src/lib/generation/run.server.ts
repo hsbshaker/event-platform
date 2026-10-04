@@ -23,7 +23,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
 
 import { runArtworkStage } from "./artwork.server";
-import type { ArtworkStageResult } from "./artwork.server";
+import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.server";
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
@@ -217,6 +217,42 @@ export function hostEventFacts(
   return facts;
 }
 
+/** The longest check output a failure record keeps per image. */
+const FAILURE_DETAIL_MAX = 200;
+
+/**
+ * What a failed generation records beside its code (`generations.telemetry.failure`, spec.md
+ * §9.5): the stage, and for the artwork each image's validation failure — the checks' reasons and
+ * their own output (moderation categories, the inspection's description of text it found),
+ * bounded. Never prompt text, model wording, names or places: the art prompt carries none.
+ */
+export function failureTelemetry(error: unknown, code: string): Json {
+  const failure: Record<string, Json> = { code };
+  if (error instanceof GenerationStageError) {
+    failure.stage = error.stage;
+    if (error instanceof ArtworkProviderRefusalError) {
+      failure.imagesRequested = error.imagesRequested;
+    }
+    const details = error.details as
+      { imagesRequested?: number; validationFailures?: ArtworkValidationFailure[] } | undefined;
+    if (typeof details?.imagesRequested === "number") {
+      failure.imagesRequested = details.imagesRequested;
+    }
+    if (Array.isArray(details?.validationFailures)) {
+      failure.validationFailures = details.validationFailures.map((f) => ({
+        image: f.image,
+        reasons: [...f.reasons],
+        ...(f.detail ? { detail: f.detail.slice(0, FAILURE_DETAIL_MAX) } : {}),
+      }));
+    }
+  } else if (error instanceof ModelCallRefusedError) {
+    failure.refusal = error.reason;
+  } else if (error instanceof Error) {
+    failure.error = error.name;
+  }
+  return { failure };
+}
+
 function failureCode(error: unknown): string {
   if (error instanceof GenerationStageError) return error.code;
   if (error instanceof ModelCallRefusedError) return error.reason;
@@ -248,11 +284,12 @@ export async function runGeneration(
   const { generationId, eventId, userId } = input;
   const ids = { generationId, eventId };
 
-  async function fail(code: string): Promise<void> {
+  async function fail(code: string, telemetry?: Json): Promise<void> {
     const { error } = await admin.rpc("fail_generation", {
       p_generation_id: generationId,
       p_event_id: eventId,
       p_error_code: code,
+      ...(telemetry ? { p_telemetry: telemetry } : {}),
     });
     if (error) {
       // The generation then reads as failed once it is stale (`getGenerationView`).
@@ -304,7 +341,7 @@ export async function runGeneration(
     }
     const code = failureCode(error);
     console.error("[generation] failed", { ...ids, code, error: errorSummary(error) });
-    await fail(code);
+    await fail(code, failureTelemetry(error, code));
     return { status: "failed", code };
   }
 }

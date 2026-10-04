@@ -40,14 +40,21 @@ export type StageFailureCode =
   "invalid_output" | "provider_error" | "artwork_invalid" | "provider_refusal";
 
 export class GenerationStageError extends Error {
+  /**
+   * What the failure telemetry records beside the code (`generations.telemetry.failure`): for the
+   * artwork, each image's validation failure. Reasons and check output only — never host content.
+   */
+  readonly details: Record<string, unknown> | undefined;
+
   constructor(
     readonly stage: GenerationStage,
     readonly code: StageFailureCode,
     message: string,
-    options?: { cause?: unknown },
+    options?: { cause?: unknown; details?: Record<string, unknown> },
   ) {
     super(message, options);
     this.name = "GenerationStageError";
+    this.details = options?.details;
   }
 }
 
