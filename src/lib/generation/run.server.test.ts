@@ -633,7 +633,7 @@ describe("failures end the generation with fail_generation", () => {
     });
   });
 
-  it("keeps check output bounded, and records an unexpected error by name only", () => {
+  it("keeps code-made check output bounded, never the inspector's text, and an error by name only", () => {
     const long = "letters ".repeat(80);
     const error = new GenerationStageError("artwork", "artwork_invalid", "failed", {
       details: {
@@ -644,7 +644,14 @@ describe("failures end the generation with fail_generation", () => {
     const recorded = failureTelemetry(error, "artwork_invalid") as {
       failure: { validationFailures: { detail: string }[] };
     };
-    expect(recorded.failure.validationFailures[0].detail).toHaveLength(200);
+    expect(recorded.failure.validationFailures[0].detail).toBeUndefined();
+    const moderated = new GenerationStageError("artwork", "artwork_invalid", "failed", {
+      details: { validationFailures: [{ image: 1, reasons: ["moderation"], detail: long }] },
+    });
+    const kept = failureTelemetry(moderated, "artwork_invalid") as {
+      failure: { validationFailures: { detail: string }[] };
+    };
+    expect(kept.failure.validationFailures[0].detail).toHaveLength(200);
     expect(failureTelemetry(new TypeError("Maya Lopez at Villa Rosa"), "internal")).toEqual({
       failure: { code: "internal", error: "TypeError" },
     });

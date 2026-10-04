@@ -128,7 +128,10 @@ class GenerationStoppedError extends Error {
   }
 }
 
-/** The §9.5 record of one generation (`generations.telemetry`). Never shown to the host. */
+/**
+ * The §9.5 record of one generation (`generations.telemetry`) when it succeeds. A failed
+ * generation's telemetry is `{ failure }` instead (`failureTelemetry`). Never shown to the host.
+ */
 export interface GenerationTelemetry {
   schemaValidFirstCall: boolean;
   /** Every design re-prompt, in order, by kind (a provider refusal adds a second design's). */
@@ -221,10 +224,16 @@ export function hostEventFacts(
 const FAILURE_DETAIL_MAX = 200;
 
 /**
+ * Inspection reasons: their detail is the inspector's description of text it saw in the image,
+ * which can echo the art brief (model free text from the identity) — so only the reason is kept.
+ */
+const INSPECTION_REASONS: ReadonlySet<string> = new Set(["text", "logo", "mockup"]);
+
+/**
  * What a failed generation records beside its code (`generations.telemetry.failure`, spec.md
- * §9.5): the stage, and for the artwork each image's validation failure — the checks' reasons and
- * their own output (moderation categories, the inspection's description of text it found),
- * bounded. Never prompt text, model wording, names or places: the art prompt carries none.
+ * §9.5): the stage, and for the artwork each image's validation reasons, with the checks' own
+ * code-made output where it is not the inspector's description (moderation categories, sizes),
+ * bounded. Never prompt text, model wording, names or places. Server-only (`spec.md §32 #42`).
  */
 export function failureTelemetry(error: unknown, code: string): Json {
   const failure: Record<string, Json> = { code };
@@ -242,7 +251,9 @@ export function failureTelemetry(error: unknown, code: string): Json {
       failure.validationFailures = details.validationFailures.map((f) => ({
         image: f.image,
         reasons: [...f.reasons],
-        ...(f.detail ? { detail: f.detail.slice(0, FAILURE_DETAIL_MAX) } : {}),
+        ...(f.detail && !f.reasons.some((r) => INSPECTION_REASONS.has(r))
+          ? { detail: f.detail.slice(0, FAILURE_DETAIL_MAX) }
+          : {}),
       }));
     }
   } else if (error instanceof ModelCallRefusedError) {

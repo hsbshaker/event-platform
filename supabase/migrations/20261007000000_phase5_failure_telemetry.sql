@@ -11,6 +11,8 @@ drop function public.fail_generation(uuid, uuid, text);
 
 -- fail_generation: marks the generation failed with p_error_code, only while it is running, and
 -- stores p_telemetry (a JSON object, or null for none) as its telemetry. Returns whether it did.
+-- A failed generation's telemetry is { failure: {...} }; a succeeded one's is the §9.5 record.
+-- Errors: 22023 invalid argument.
 create function public.fail_generation(
   p_generation_id uuid,
   p_event_id uuid,
