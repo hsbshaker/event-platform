@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   missingRequiredDetails,
   REQUIRED_DETAIL_KEYS,
   REQUIREMENTS_OUTSIDE_PHASE_2,
   type EventDetailFields,
 } from "./required-details";
+import { GenerationDisabledError } from "@/lib/ai/errors";
 import { getAiProvider } from "@/lib/ai/provider";
 
 const EMPTY: EventDetailFields = {
@@ -97,8 +98,24 @@ describe("required details (spec.md §23.1)", () => {
   });
 });
 
-describe("the model boundary stays shut in Phase 2 (spec.md §32 #4)", () => {
-  it("refuses to hand out a provider at all, signed in or not", () => {
-    expect(() => getAiProvider()).toThrow(/Phase 5/);
+describe("the model boundary stays shut until generation is switched on (spec.md §32 #4)", () => {
+  const saved = process.env.GENERATION_ENABLED;
+  afterEach(() => {
+    process.env.GENERATION_ENABLED = saved;
+    vi.restoreAllMocks();
+  });
+
+  it("refuses every model call by default, before any request (src/lib/ai/meter.server.ts)", async () => {
+    delete process.env.GENERATION_ENABLED;
+    const request = vi.spyOn(globalThis, "fetch");
+    const ctx = {
+      eventId: "6f1c1d64-34d4-4a43-9a42-0b6b3e2f6a11",
+      userId: "0b0b8f52-56a2-4b0f-8c4e-7d1d9cf6a9e2",
+      generationId: "c5d7b1a4-3f2e-4c8d-9b7a-1e2f3a4b5c6d",
+    };
+    await expect(
+      getAiProvider().generateEventIdentity(ctx, { prompt: "A garden baby shower" }),
+    ).rejects.toBeInstanceOf(GenerationDisabledError);
+    expect(request).not.toHaveBeenCalled();
   });
 });

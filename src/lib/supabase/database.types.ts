@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261004000000_phase4_card_data.sql.
+ * Hand-authored to match supabase/migrations/ through 20261005000000_phase5_spend_controls.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -20,9 +20,24 @@ export type ClaimOutcome =
 /** Outcomes of public.attach_inspiration_asset (supabase/migrations/20260913020000_phase2_asset_consistency.sql). */
 export type AttachInspirationOutcome = "attached" | "limit_reached" | "gone";
 
-/** Telemetry operations of generation_runs (supabase/migrations/20261004000000_phase4_card_data.sql). */
+/**
+ * Telemetry operations of generation_runs (supabase/migrations/20261004000000_phase4_card_data.sql;
+ * `card_art_moderation` from 20261005000000_phase5_spend_controls.sql).
+ */
 export type ModelOperation =
-  "event_identity" | "structured_extraction" | "card_design" | "card_art" | "card_art_inspection";
+  | "event_identity"
+  | "structured_extraction"
+  | "card_design"
+  | "card_art"
+  | "card_art_inspection"
+  | "card_art_moderation";
+
+/** Generations (supabase/migrations/20261005000000_phase5_spend_controls.sql; spec.md §10). */
+export type GenerationKind = "initial" | "another_direction" | "shape_switch";
+export type GenerationStatus = "running" | "succeeded" | "failed";
+/** Outcomes of public.start_generation. */
+export type StartGenerationOutcome =
+  "started" | "existing" | "published" | "in_flight" | "event_cap" | "host_cap";
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
@@ -212,12 +227,48 @@ type GenerationRunRow = {
   success: boolean;
   error_code: string | null;
   prompt_version: string;
-  schema_version: string;
+  /** Null for calls without a structured-output schema (artwork, moderation). */
+  schema_version: string | null;
   compiler_version: string | null;
   schema_valid_first_call: boolean | null;
   reprompts: Json | null;
   idempotency_key: string | null;
   created_at: string;
+  generation_id: string | null;
+  image_units: number | null;
+  layout_set_version: string | null;
+  art_regenerated: string | null;
+  art_repaints: number | null;
+  standard_wording_slots: string[] | null;
+  ink_panels: Json | null;
+};
+
+/**
+ * One generation request (spec.md §10). Server-only. Holds the event's generation lock while
+ * `running`; begun only by public.start_generation.
+ */
+type GenerationRow = {
+  id: string;
+  event_id: string;
+  kind: GenerationKind;
+  status: GenerationStatus;
+  stage: string | null;
+  requested_by: string | null;
+  idempotency_key: string;
+  round: number | null;
+  card_design_id: string | null;
+  error_code: string | null;
+  artifacts: Json;
+  started_at: string;
+  heartbeat_at: string;
+  finished_at: string | null;
+};
+
+/** The daily spend ledger (UTC day). Server-only; written by the ledger functions. */
+type ModelSpendDayRow = {
+  day: string;
+  reserved_usd: number;
+  spent_usd: number;
 };
 
 type RateLimitRow = {
@@ -326,12 +377,41 @@ export type Database = {
           | "reasoning_tokens"
           | "cost_estimate_usd"
           | "error_code"
+          | "schema_version"
           | "compiler_version"
           | "schema_valid_first_call"
           | "reprompts"
           | "idempotency_key"
           | "created_at"
+          | "generation_id"
+          | "image_units"
+          | "layout_set_version"
+          | "art_regenerated"
+          | "art_repaints"
+          | "standard_wording_slots"
+          | "ink_panels"
         >
+      >;
+      generations: Table<
+        GenerationRow,
+        Insert<
+          GenerationRow,
+          | "id"
+          | "status"
+          | "stage"
+          | "requested_by"
+          | "round"
+          | "card_design_id"
+          | "error_code"
+          | "artifacts"
+          | "started_at"
+          | "heartbeat_at"
+          | "finished_at"
+        >
+      >;
+      model_spend_days: Table<
+        ModelSpendDayRow,
+        Insert<ModelSpendDayRow, "reserved_usd" | "spent_usd">
       >;
       rate_limits: Table<RateLimitRow, Insert<RateLimitRow, "count">>;
     };
@@ -384,6 +464,38 @@ export type Database = {
        * revision n. Returns the new revision; a stale revision raises
        * CARD_CUSTOMIZATION_STALE_SQLSTATE.
        */
+      /**
+       * Reserves an estimate against today's (UTC) spend ceiling. Returns the day booked (to pass
+       * back to settle_model_spend), or null when the reservation would pass the ceiling.
+       */
+      reserve_model_spend: {
+        Args: { p_estimate_usd: number; p_ceiling_usd: number };
+        Returns: string | null;
+      };
+      settle_model_spend: {
+        Args: { p_day: string; p_reserved_usd: number; p_actual_usd: number };
+        Returns: void;
+      };
+      /** Begins a generation under the event lock and the daily caps (spec.md §10). */
+      start_generation: {
+        Args: {
+          p_event_id: string;
+          p_user_id: string;
+          p_kind: GenerationKind;
+          p_idempotency_key: string;
+          p_event_key_hash: string;
+          p_host_key_hash: string;
+          p_event_cap: number;
+          p_host_cap: number;
+          p_stale_seconds: number;
+        };
+        Returns: { generation_id: string | null; outcome: StartGenerationOutcome }[];
+      };
+      /** Bumps a running generation's heartbeat; false when it is not running. */
+      heartbeat_generation: {
+        Args: { p_generation_id: string; p_event_id: string };
+        Returns: boolean;
+      };
       save_card_customization: {
         Args: {
           p_event_id: string;

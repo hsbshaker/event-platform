@@ -73,6 +73,15 @@ Phase 2 shipped before the pivot. These are known gaps, owned by the phase named
 - **Database.** Done in Phase 4: `20261004000000_phase4_card_data.sql` dropped the website-era
   tables and `human_test_1_responses`. By owner decision the Human Test #1 responses were not
   exported.
+- **Hosted databases.** Two Supabase projects: preview (`ihdaifbyvlvivuctkrwn`, used by preview
+  deployments) and production (`oirndvezdrvdnudjicdk`). On 2026-10-04 both still held website-era
+  tables from an abandoned Revision 6 attempt and lacked the Phase 4 card tables; by owner decision
+  ("wipe both and start fresh", logins kept) their app schema was rebuilt from the repo's
+  migrations, profiles were recreated for the existing logins, and the migration history was reset
+  to the repo's. From then on, after a migration PR merges, apply it with
+  `node scripts/db/push-migrations.mjs preview --go`, then `production --go`
+  (`SUPABASE_ACCESS_TOKEN` required); the script refuses when a database's history has drifted
+  from the repo.
 
 ## Recorded deviations
 
