@@ -42,18 +42,22 @@ import { REPO_ROOT, startStaticServer, type StaticServer } from "./static-server
  *    about the centre, line box), and for every line the two renderers' ink is compared:
  *
  *    - the ink centroid, in px, along and across the line: within `CENTROID_TOLERANCE_PX`;
- *    - the ink's horizontal extent (first and last inked column, in the line's own frame): within
- *      `EDGE_TOLERANCE_PX`;
+ *    - the line's ends (where its ink, read along the line in its own frame, reaches 2% and 98%):
+ *      within `EDGE_TOLERANCE_PX`;
  *    - the amount of ink: within `INK_RATIO_TOLERANCE` of each other.
  *
  *    Chromium lays text out on a pixel grid, and the preview deliberately does not: the preview
- *    draws the card's exact geometry, the same at every scale. Blink rounds a line's ascent and
- *    descent to whole pixels, sets the line height in 1/64 px, floors the half-leading, and paints
- *    unrotated text on a whole-pixel baseline — a rule `chromiumBaselineShift` states and that
- *    matched Chromium's own baseline for all 861 combinations of curated face, seven sizes and
- *    three line heights measured while writing this test. That shift (up to about 1.5px at
- *    preview scale) is applied to the preview's vertical centroid before comparing; nothing else is
- *    modelled.
+ *    draws the card's exact geometry, the same at every scale. So the test does not compare
+ *    vertical positions raw: it measures where Chromium put each line's baseline — a zero-size
+ *    inline-block at `vertical-align: baseline` appended to every rendered line after the
+ *    screenshot, read back with `getBoundingClientRect` and taken into the box's own frame — and
+ *    subtracts that line's distance from the exact baseline (up to about 1px at preview scale)
+ *    before comparing centroids. Nothing about Blink's rounding is modelled, so the comparison holds
+ *    whatever `text-rendering` mode or Chromium version runs. (An earlier version modelled the
+ *    rule — whole-pixel ascent and descent, a floored half-leading, a whole-pixel baseline — which
+ *    matched Blink's default text rendering exactly; `text-rendering: geometricPrecision`, which
+ *    the card now sets, has Blink take unhinted font metrics instead and lands the baseline about
+ *    a pixel elsewhere, so the model stopped matching. The measurement replaces it.)
  *
  *    What remains is rasterization: FreeType's hinting and Skia's text gamma against resvg's
  *    unhinted outlines, which move a line's ink-weighted centre by up to about 0.65px and its ends
@@ -73,12 +77,19 @@ const PANEL_COLOR = "#FBF8F3";
 
 /** Ink centroid, px, along and across each line. */
 const CENTROID_TOLERANCE_PX = 0.75;
-/** First and last inked column, px. */
+/** The line's ends (where its ink reaches 2% and 98% along it), px. */
 const EDGE_TOLERANCE_PX = 1.25;
 /** Total ink of a line, as a ratio between the renderers. */
 const INK_RATIO_TOLERANCE = 0.2;
 /** A pixel is inked at this change in luminance (of 255) for the edge measure. */
 const EDGE_INK_THRESHOLD = 48;
+/**
+ * The share of a line's ink outside each of its measured ends. Ends are read from the ink's
+ * distribution, not from the first pixel over a threshold: a hairline (Bodoni Moda's serifs at
+ * 104 units) sits near any threshold, and Skia and resvg shade it a little differently, so a
+ * threshold puts the end on the serif in one renderer and past it in the other.
+ */
+const EDGE_QUANTILE = 0.02;
 
 interface Case {
   id: string;
@@ -179,7 +190,7 @@ interface Rendered {
   chromium: DecodedPng;
   chromiumBlank: DecodedPng;
   previewMs: number;
-  /** Per box, per line: where Chromium's pixel snapping puts the baseline, px, relative to exact. */
+  /** Per box, per line: Chromium's measured baseline, px, relative to the exact one (+ is lower). */
   snap: Map<string, number[]>;
 }
 const rendered = new Map<string, Rendered>();
@@ -255,40 +266,69 @@ async function renderChromium(
     await document.fonts.ready;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
-  return page.screenshot({
+  const png = await page.screenshot({
     clip: { x: 0, y: 0, width: Math.round(box.width), height: Math.round(box.height) },
     animations: "disabled",
+  });
+  return { png, baselines: await measureBaselines() };
+}
+
+/**
+ * Where Chromium laid out each line's baseline, in page px: a zero-size inline-block at
+ * `vertical-align: baseline` appended to each line element. Run after the screenshot, so the
+ * markers are never in an image; a zero-size box on the baseline does not change the line box.
+ */
+function measureBaselines(): Promise<Record<string, { x: number; y: number }[]>> {
+  return page.evaluate(() => {
+    const face = document.querySelector("[data-card-face]")!.getBoundingClientRect();
+    const out: Record<string, { x: number; y: number }[]> = {};
+    for (const p of document.querySelectorAll("[data-card-box]")) {
+      out[p.getAttribute("data-card-box") ?? ""] = [...p.querySelectorAll("[data-card-line]")].map(
+        (line) => {
+          const marker = document.createElement("i");
+          marker.style.cssText =
+            "display:inline-block;width:0;height:0;margin:0;padding:0;border:0;vertical-align:baseline";
+          line.appendChild(marker);
+          const r = marker.getBoundingClientRect();
+          return { x: r.left - face.left, y: r.top - face.top };
+        },
+      );
+    }
+    return out;
   });
 }
 
 /**
- * Where Chromium paints each line's baseline relative to the exact geometry, px (positive is
- * lower), per box and line — see the doc comment above.
+ * Each line's measured Chromium baseline relative to the exact one the preview draws, px, along
+ * the box's own vertical axis (rotation undone), per box and line — see the doc comment above.
  */
 async function chromiumBaselineShift(
   shape: CardShape,
   boxes: readonly TextBox[],
+  measured: Record<string, { x: number; y: number }[]>,
 ): Promise<Map<string, number[]>> {
   const scale = cardPreviewBox(shape).scale;
-  const layoutUnit = (v: number) => Math.round(v * 64) / 64;
   const out = new Map<string, number[]>();
   for (const box of boxes) {
     if (box.lines.length === 0) continue;
+    const points = measured[box.id];
+    if (!points || points.length !== box.lines.length) {
+      throw new Error(`box ${box.id}: ${points?.length ?? 0} baselines measured`);
+    }
     const outlines = await loadCuratedGlyphOutlines(box.font, CURATED_FONT_DIR);
     const { ascent, descent } = outlines.verticalMetrics(box.size);
-    const a = ascent * scale;
-    const d = descent * scale;
-    const lineBox = box.size * box.lineHeight * scale;
-    const exact = (lineBox - (a + d)) / 2 + a;
-    const blink =
-      Math.floor((layoutUnit(lineBox) - Math.round(a) - Math.round(d)) / 2) + Math.round(a);
-    const top = box.y * scale;
+    const lineBox = box.size * box.lineHeight;
+    const exact = (lineBox - (ascent + descent)) / 2 + ascent;
+    const height = lineBox * box.lines.length;
+    const rad = (-box.rotation * Math.PI) / 180;
     out.set(
       box.id,
-      box.lines.map((_, i) => {
-        const want = top + i * lineBox + exact;
-        const laidOut = layoutUnit(top) + i * layoutUnit(lineBox) + blink;
-        return (box.rotation === 0 ? Math.round(laidOut) : laidOut) - want;
+      points.map(({ x, y }, i) => {
+        // Into the box's frame, card units, as `lineInk` does for pixels.
+        const ux = x / scale - (box.x + box.width / 2);
+        const uy = y / scale - (box.y + height / 2);
+        const ly = ux * Math.sin(rad) + uy * Math.cos(rad) + height / 2;
+        return (ly - (i * lineBox + exact)) * scale;
       }),
     );
   }
@@ -322,7 +362,7 @@ function lineInk(
     const cx = box.x + box.width / 2;
     const cy = box.y + height / 2;
     const rad = (-box.rotation * Math.PI) / 180;
-    const acc = box.lines.map(() => ({ ink: 0, sx: 0, sy: 0, left: Infinity, right: -Infinity }));
+    const acc = box.lines.map(() => ({ ink: 0, sx: 0, sy: 0, along: [] as [number, number][] }));
     for (let py = 0; py < withText.height; py += 1) {
       for (let px = 0; px < withText.width; px += 1) {
         const d = Math.abs(lum(withText, px, py) - lum(blank, px, py));
@@ -339,21 +379,29 @@ function lineInk(
         a.ink += d;
         a.sx += d * lx;
         a.sy += d * (ly - index * lineBox);
-        if (d >= EDGE_INK_THRESHOLD) {
-          a.left = Math.min(a.left, lx);
-          a.right = Math.max(a.right, lx);
-        }
+        a.along.push([lx, d]);
       }
     }
     acc.forEach((a, line) => {
+      // The line's ends: where its ink, read along the line, reaches EDGE_QUANTILE and
+      // 1 - EDGE_QUANTILE of the whole.
+      a.along.sort((p, q) => p[0] - q[0]);
+      const at = (fraction: number) => {
+        let sum = 0;
+        for (const [x, d] of a.along) {
+          sum += d;
+          if (sum >= fraction * a.ink) return x;
+        }
+        return Number.NaN;
+      };
       out.push({
         box: box.id,
         line,
         ink: a.ink,
         cx: (a.sx / a.ink) * scale,
         cy: (a.sy / a.ink) * scale,
-        left: a.left * scale,
-        right: a.right * scale,
+        left: at(EDGE_QUANTILE) * scale,
+        right: at(1 - EDGE_QUANTILE) * scale,
       });
     });
   }
@@ -447,16 +495,16 @@ beforeAll(async () => {
     const blank = await renderPreview(c, base, false);
     const preview = decodePng(withText.png);
     writeFileSync(path.join(OUT_DIR, `${c.id}.preview.png`), withText.png);
-    const chromiumPng = await renderChromium(c, base, true);
-    writeFileSync(path.join(OUT_DIR, `${c.id}.chromium.png`), chromiumPng);
+    const chromium = await renderChromium(c, base, true);
+    writeFileSync(path.join(OUT_DIR, `${c.id}.chromium.png`), chromium.png);
     rendered.set(c.id, {
       ...base,
       preview,
       previewBlank: decodePng(blank.png),
-      chromium: decodePng(chromiumPng),
-      chromiumBlank: decodePng(await renderChromium(c, base, false)),
+      chromium: decodePng(chromium.png),
+      chromiumBlank: decodePng((await renderChromium(c, base, false)).png),
       previewMs: withText.ms,
-      snap: await chromiumBaselineShift(c.shape, boxes),
+      snap: await chromiumBaselineShift(c.shape, boxes, chromium.baselines),
     });
   }
 }, 600_000);
