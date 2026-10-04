@@ -1,0 +1,212 @@
+{
+  "chromium": "141.0.7390.37",
+  "cases": [
+    {
+      "family": "Fraunces",
+      "weight": 400,
+      "size": 104,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "A Little Wild One",
+      "width": 680.109
+    },
+    {
+      "family": "Fraunces",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "A Little Wild One",
+      "width": 143.047
+    },
+    {
+      "family": "Newsreader",
+      "weight": 400,
+      "size": 104,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "Welcome Little One",
+      "width": 922.438
+    },
+    {
+      "family": "Bodoni Moda",
+      "weight": 400,
+      "size": 92,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "Oh Baby, Baby",
+      "width": 605.313
+    },
+    {
+      "family": "Archivo",
+      "weight": 400,
+      "size": 104,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "AVATAR Wavy Toffee",
+      "width": 974.781
+    },
+    {
+      "family": "Playfair Display",
+      "weight": 400,
+      "size": 48,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "office affluent",
+      "width": 298.047
+    },
+    {
+      "family": "Cormorant Garamond",
+      "weight": 400,
+      "size": 104,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "The Hartwell Family",
+      "width": 832.969
+    },
+    {
+      "family": "Libre Baskerville",
+      "weight": 400,
+      "size": 48,
+      "letterSpacingEm": 0,
+      "textCase": "none",
+      "text": "Montgomery-Whitworth!",
+      "width": 630.734
+    },
+    {
+      "family": "Manrope",
+      "weight": 400,
+      "size": 32,
+      "letterSpacingEm": 0.02,
+      "textCase": "none",
+      "text": "Please join us for a baby shower",
+      "width": 485.469
+    },
+    {
+      "family": "Manrope",
+      "weight": 400,
+      "size": 22,
+      "letterSpacingEm": 0.02,
+      "textCase": "none",
+      "text": "Please join us as we shower Maximilian",
+      "width": 406.469
+    },
+    {
+      "family": "Manrope",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Hosted by Wilhelmina Montgomery",
+      "width": 362.109
+    },
+    {
+      "family": "Manrope",
+      "weight": 400,
+      "size": 24,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "10:30 pm – 11:30 pm",
+      "width": 241.766
+    },
+    {
+      "family": "Manrope",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "12:30 pm - 4:45 pm (MDT)",
+      "width": 237.016
+    },
+    {
+      "family": "Manrope",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Montgomery-Whitworth Manor",
+      "width": 331.328
+    },
+    {
+      "family": "Manrope",
+      "weight": 400,
+      "size": 24,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Wednesday, September 30, 2026 (Midweek!)",
+      "width": 578.125
+    },
+    {
+      "family": "Inter",
+      "weight": 400,
+      "size": 24,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Saturday, September 12, 2026",
+      "width": 425.906
+    },
+    {
+      "family": "Inter",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Wednesday, September 30",
+      "width": 281.922
+    },
+    {
+      "family": "Inter Tight",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "RSVP by September 30",
+      "width": 218.906
+    },
+    {
+      "family": "DM Sans",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "The Grand Ballroom at Montgomery",
+      "width": 387.688
+    },
+    {
+      "family": "Karla",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Maximilian Augustin",
+      "width": 206.063
+    },
+    {
+      "family": "Work Sans",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Hosted by Maya & Tom",
+      "width": 236.516
+    },
+    {
+      "family": "Figtree",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "12:30 pm – 4:45 pm",
+      "width": 179.078
+    },
+    {
+      "family": "Source Sans 3",
+      "weight": 400,
+      "size": 18,
+      "letterSpacingEm": 0.06,
+      "textCase": "uppercase",
+      "text": "Kindly RSVP by Wednesday",
+      "width": 242.938
+    }
+  ]
+}

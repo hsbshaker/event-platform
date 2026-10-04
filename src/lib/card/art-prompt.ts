@@ -1,10 +1,14 @@
 /**
- * Art prompt assembly, `card_art_v1` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
+ * Art prompt assembly, `card_art_v2` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
  *
  * The art prompt is assembled by code from the validated art brief plus the layout and shape
  * rules; a model never writes it and the raw host prompt is never part of it (`spec.md §32 #17`).
- * Ported faithfully from the catalog validated in Phase 3 (`scripts/phase-3/catalog.mjs`,
- * `run.mjs stageSwitch`); changing any sentence is a `CARD_ART_PROMPT_VERSION` bump.
+ * `card_art_v1` was ported faithfully from the catalog validated in Phase 3
+ * (`scripts/phase-3/catalog.mjs`, `run.mjs stageSwitch`). `card_art_v2` takes the composition and
+ * presence from the layout's entry for the shape (`card_layouts_v2`: a picture above or below the
+ * words takes 40% of a square, oval or arch card), and an artwork fits only the shapes painted
+ * with the same instructions, so its crop rule is the tightest outline among those. Changing any
+ * sentence is a `CARD_ART_PROMPT_VERSION` bump.
  */
 
 import { CARD_ART_PROMPT_VERSION } from "@/lib/ai/versions";
@@ -12,9 +16,9 @@ import { CARD_ART_PROMPT_VERSION } from "@/lib/ai/versions";
 import { ART_MODE_FIT } from "./art-modes";
 import type { ArtMode } from "./art-modes";
 import type { CardDesign } from "./design";
-import { CARD_LAYOUTS } from "./layouts";
+import { CARD_LAYOUTS, layoutArtFor, layoutSupportsShape } from "./layouts";
 import type { CardLayoutId } from "./layouts";
-import { CARD_SHAPES, SHAPE_PROPORTION } from "./shapes";
+import { SHAPE_PROPORTION } from "./shapes";
 import type { CardProportion, CardShape } from "./shapes";
 
 export { CARD_ART_PROMPT_VERSION };
@@ -56,36 +60,45 @@ const TIGHTNESS: readonly CardShape[] = [
 ];
 
 /**
- * The outline whose crop rule the art must obey (`docs/card-system.md §2.4`): the design's own
- * shape for own-shape modes; for proportion-fit modes, the tightest outline of that proportion
- * the layout supports, so the art is safe for every supported shape.
+ * Shapes a finished artwork fits (`docs/card-system.md §2.4`): for own-shape modes, only the shape
+ * it was painted for; for proportion-fit modes, every shape of its proportion the layout supports
+ * whose composition and presence are the ones it was painted with. An artwork painted to keep one
+ * region quiet never fits a shape whose text needs another: a rectangle's picture-above artwork
+ * (bottom 45% quiet) does not fit the oval's 60% band, nor the oval's artwork the rectangle (its
+ * picture would end well above the rectangle's text, leaving an empty gap the layout does not
+ * intend). Throws if the layout does not support the shape.
  */
-export function cropShapeFor(artMode: ArtMode, layout: CardLayoutId, shape: CardShape): CardShape {
-  if (ART_MODE_FIT[artMode] === "own-shape") return shape;
-  const proportion = SHAPE_PROPORTION[shape];
-  const candidates = CARD_LAYOUTS[layout].shapes.filter((s) => SHAPE_PROPORTION[s] === proportion);
-  return TIGHTNESS.find((s) => candidates.includes(s)) ?? shape;
-}
-
-/** Shapes a finished artwork fits. */
 export function fitsShapes(
   artMode: ArtMode,
   layout: CardLayoutId,
   shape: CardShape,
 ): readonly CardShape[] {
+  const own = layoutArtFor(layout, shape);
   if (ART_MODE_FIT[artMode] === "own-shape") return [shape];
   const proportion = SHAPE_PROPORTION[shape];
-  return CARD_SHAPES.filter(
-    (s) => CARD_LAYOUTS[layout].shapes.includes(s) && SHAPE_PROPORTION[s] === proportion,
-  );
+  return CARD_LAYOUTS[layout].shapes.filter((s) => {
+    if (SHAPE_PROPORTION[s] !== proportion) return false;
+    const art = layoutArtFor(layout, s);
+    return art.composition === own.composition && art.presence === own.presence;
+  });
+}
+
+/**
+ * The outline whose crop rule the art must obey (`docs/card-system.md §2.4`): the design's own
+ * shape for own-shape modes; for proportion-fit modes, the tightest outline among the shapes the
+ * artwork fits (`fitsShapes`), so any of them can trim it.
+ */
+export function cropShapeFor(artMode: ArtMode, layout: CardLayoutId, shape: CardShape): CardShape {
+  const fits = fitsShapes(artMode, layout, shape);
+  return TIGHTNESS.find((s) => fits.includes(s)) ?? shape;
 }
 
 type ArtPromptInput = Pick<CardDesign, "artBrief" | "artMode" | "layout" | "shape">;
 
-/** `card_art_v1`: the full art prompt for a validated design. */
+/** `card_art_v2`: the full art prompt for a validated design. */
 export function assembleArtPrompt(design: ArtPromptInput): string {
   const { artBrief: b, artMode, layout, shape } = design;
-  const L = CARD_LAYOUTS[layout];
+  const L = layoutArtFor(layout, shape);
   const proportion = SHAPE_PROPORTION[shape];
   const cropShape = cropShapeFor(artMode, layout, shape);
   const ownShape = ART_MODE_FIT[artMode] === "own-shape";
@@ -121,7 +134,7 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
  * the layout does not support (`CLAUDE.md §5`).
  */
 export function assembleShapeSwitchPrompt(design: ArtPromptInput, targetShape: CardShape): string {
-  if (!CARD_LAYOUTS[design.layout].shapes.includes(targetShape)) {
+  if (!layoutSupportsShape(design.layout, targetShape)) {
     throw new Error(`layout ${design.layout} does not support shape ${targetShape}`);
   }
   const switched = { ...design, shape: targetShape };

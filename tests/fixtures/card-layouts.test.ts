@@ -10,6 +10,7 @@ import { InvitationCard, type CardPanel } from "@/components/card/InvitationCard
 import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
 import {
   CARD_LAYOUT_IDS,
+  CARD_LAYOUT_SET_VERSION,
   CARD_LAYOUTS,
   panelFor,
   zoneFor,
@@ -30,7 +31,6 @@ import { allCuratedMetrics } from "@/lib/card/text/test-fonts";
 import { TYPOGRAPHY_KEYS, type TypographyPairingId } from "@/lib/card/typography";
 
 import { launchChromium } from "./browser";
-import { KNOWN_WORST_CASE_OVERFLOW, knownOverflowKeys } from "./known-overflow";
 import { decodePng } from "./png";
 import { REPO_ROOT, startStaticServer, type StaticServer } from "./static-server";
 
@@ -55,10 +55,10 @@ import { REPO_ROOT, startStaticServer, type StaticServer } from "./static-server
  * is its text's advance horizontally and its line box vertically — the extent `layoutCard` fits;
  * glyph ink above or below the line box is typography, not overflow.
  *
- * Worst-case fit is not settled yet (`docs/development-plan.md` Phase 4): the combinations
- * `layoutCard` reports as overflowing today are listed in `KNOWN_WORST_CASE_OVERFLOW`, refused by
- * the server path, rendered only for the contact sheet and exempt from the zone assertions — and
- * the list must be exact, so fixing a zone forces updating it. Everything else is strict.
+ * Every combination is strict, worst case included (owner decision, `docs/CHANGELOG-v7.md`,
+ * "Phase 4 — fitting every detail on every card"): the server path must lay every one out, and a
+ * refusal fails the run. A refused render is still drawn on the contact sheet, outlined in red, so
+ * a failing run shows what failed.
  *
  * Output for owner review (gitignored): `test-results/card-fixtures/report.json` and contact sheets.
  */
@@ -98,7 +98,7 @@ interface Render extends Combo {
   pairing: TypographyPairingId;
   content: ContentKind;
   panel: boolean;
-  /** Laid out by the server path, or refused by it (rendered for the contact sheet only). */
+  /** Laid out by the server path, or refused by it (a failure; drawn for the contact sheet). */
   status: "laid-out" | "refused";
   refusal?: string;
   boxes: TextBox[];
@@ -548,8 +548,8 @@ async function contactSheets(): Promise<string[]> {
       `.h{font-weight:600;word-break:break-all}.row{padding-top:8px}` +
       `.c{background:#EEE;outline:1px solid #DDD}.refused{outline:4px solid #D0021B}`;
     const legend =
-      `<p><b>Layout fixtures — ${content} content</b> · card_layouts_v1 · ink ${INK} on flat artwork, ` +
-      `zone shaded lighter · red outline: layoutCard overflow (refused for rendering; KNOWN_WORST_CASE_OVERFLOW)</p>`;
+      `<p><b>Layout fixtures — ${content} content</b> · ${CARD_LAYOUT_SET_VERSION} · ink ${INK} on flat artwork, ` +
+      `zone shaded lighter · red outline: refused by the server path (a failure)</p>`;
     server.put(
       `/sheet/${content}.html`,
       pageHtml(`${legend}<div class="g"><div></div>${head}${rows}</div>`, css),
@@ -613,8 +613,7 @@ function writeReport(sheets: string[]): void {
         generatedAt: new Date().toISOString(),
         chromium: browser.version(),
         widths: WIDTHS,
-        layoutSet: "card_layouts_v1",
-        knownWorstCaseOverflow: KNOWN_WORST_CASE_OVERFLOW,
+        layoutSet: CARD_LAYOUT_SET_VERSION,
         fonts: fontReports,
         mask: maskSamples,
         contactSheets: sheets.map((f) => path.relative(REPO_ROOT, f)),
@@ -651,16 +650,13 @@ afterAll(async () => {
 
 describe("layout fixtures: every layout × supported shape × pairing in Chromium", () => {
   it("covers the whole layout set", () => {
-    expect(COMBOS).toHaveLength(27);
-    expect(renders).toHaveLength(27 * (2 * TYPOGRAPHY_KEYS.length + 1));
+    expect(COMBOS).toHaveLength(25);
+    expect(renders).toHaveLength(25 * (2 * TYPOGRAPHY_KEYS.length + 1));
   });
 
-  it("refuses for rendering exactly the known worst-case overflows, and nothing typical", () => {
+  it("lays out every combination, worst case included: nothing is refused", () => {
     const refused = renders.filter((r) => r.status === "refused");
-    expect(refused.filter((r) => r.content === "typical")).toEqual([]);
-    expect(refused.filter((r) => r.refusal !== "overflow").map((r) => r.id)).toEqual([]);
-    const actual = refused.map((r) => `${r.layout}/${r.shape}/${r.pairing}`).sort();
-    expect(actual).toEqual(knownOverflowKeys());
+    expect(refused.map((r) => `${r.id}: ${r.refusal}`)).toEqual([]);
   });
 
   it.each(WIDTHS)("loads every font the cards use at %ipx", (width) => {

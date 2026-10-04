@@ -6,22 +6,16 @@ import {
   CARD_LAYOUT_IDS,
   CARD_LAYOUT_SET_VERSION,
   CARD_LAYOUTS,
+  layoutArtFor,
   layoutSupportsShape,
   panelFor,
   zoneFor,
 } from "./layouts";
-import {
-  CARD_SHAPES,
-  canvasOf,
-  insideOutline,
-  insideTextSafe,
-  SHAPE_GEOMETRY,
-  SHAPE_PROPORTION,
-} from "./shapes";
+import { CARD_SHAPES, canvasOf, insideOutline, insideTextSafe, SHAPE_GEOMETRY } from "./shapes";
 
-describe("layout set card_layouts_v1", () => {
+describe("layout set card_layouts_v2", () => {
   it("is versioned", () => {
-    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v1");
+    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v2");
   });
 
   it("has exactly the five layouts", () => {
@@ -29,13 +23,116 @@ describe("layout set card_layouts_v1", () => {
     expect(Object.keys(CARD_LAYOUTS)).toEqual([...CARD_LAYOUT_IDS]);
   });
 
-  it("supports shapes as validated: corners excludes arch, oval and circle", () => {
+  it("supports shapes as decided: corners excludes arch, oval and circle; pictures above or below exclude circle", () => {
     expect(CARD_LAYOUTS.corners.shapes).toEqual(["rectangle", "rounded-rectangle", "square"]);
-    for (const id of CARD_LAYOUT_IDS.filter((l) => l !== "corners")) {
+    for (const id of ["art-top", "art-bottom"] as const) {
+      expect(CARD_LAYOUTS[id].shapes).toEqual([
+        "rectangle",
+        "rounded-rectangle",
+        "arch",
+        "oval",
+        "square",
+      ]);
+    }
+    for (const id of ["framed", "atmosphere"] as const) {
       expect(CARD_LAYOUTS[id].shapes).toEqual([...CARD_SHAPES]);
     }
     expect(layoutSupportsShape("corners", "circle")).toBe(false);
-    expect(layoutSupportsShape("art-top", "circle")).toBe(true);
+    expect(layoutSupportsShape("art-top", "circle")).toBe(false);
+    expect(layoutSupportsShape("art-bottom", "circle")).toBe(false);
+    expect(layoutSupportsShape("framed", "circle")).toBe(true);
+    // Every shape is offered by some layout.
+    for (const shape of CARD_SHAPES) {
+      expect(
+        CARD_LAYOUT_IDS.some((l) => layoutSupportsShape(l, shape)),
+        shape,
+      ).toBe(true);
+    }
+  });
+
+  it("lists exactly the shapes it has art for, in CARD_SHAPES order", () => {
+    for (const id of CARD_LAYOUT_IDS) {
+      const { art, shapes } = CARD_LAYOUTS[id];
+      expect(CARD_SHAPES.filter((s) => art[s] !== undefined)).toEqual([...shapes]);
+      for (const shape of CARD_SHAPES.filter((s) => !shapes.includes(s))) {
+        expect(() => layoutArtFor(id, shape)).toThrow(/does not support/);
+      }
+    }
+  });
+
+  it("gives the picture 40% of a square, oval or arch card and keeps the text in the other 60%", () => {
+    for (const id of ["art-top", "art-bottom"] as const) {
+      for (const shape of CARD_LAYOUTS[id].shapes) {
+        const art = layoutArtFor(id, shape);
+        const fortyPercent = shape === "square" || shape === "oval" || shape === "arch";
+        expect(art.clear, `${id}/${shape}`).toEqual({
+          edge: id === "art-top" ? "bottom" : "top",
+          percent: fortyPercent ? 60 : 45,
+        });
+      }
+    }
+    expect(layoutArtFor("art-top", "oval").composition).toContain("upper 40% of the canvas");
+    expect(layoutArtFor("art-bottom", "square").composition).toContain(
+      "rising through the lower 40%",
+    );
+    // The half-card wording is Phase 3's, unchanged, where the band is unchanged.
+    expect(layoutArtFor("art-top", "rectangle").composition).toContain("upper half of the canvas");
+  });
+
+  it("keeps every band inside the region its composition keeps clear, at least 30 units from the picture", () => {
+    for (const id of CARD_LAYOUT_IDS) {
+      for (const shape of CARD_LAYOUTS[id].shapes) {
+        const { band, clear, composition } = layoutArtFor(id, shape);
+        if (!clear) continue;
+        const label = `${id}/${shape}`;
+        const h = canvasOf(shape).height;
+        // The composition names the share it keeps clear.
+        expect(composition, label).toContain(`the ${clear.edge} ${clear.percent}%`);
+        if (clear.edge === "bottom") {
+          expect(band.top, label).toBeGreaterThanOrEqual((h * (100 - clear.percent)) / 100 + 30);
+        } else {
+          expect(band.bottom, label).toBeLessThanOrEqual((h * clear.percent) / 100 - 30);
+        }
+      }
+    }
+  });
+
+  it("uses the decided bands", () => {
+    const bands = Object.fromEntries(
+      CARD_LAYOUT_IDS.flatMap((id) =>
+        CARD_LAYOUTS[id].shapes.map((shape) => {
+          const { top, bottom } = layoutArtFor(id, shape).band;
+          return [`${id}/${shape}`, `${top}-${bottom}`];
+        }),
+      ),
+    );
+    expect(bands).toEqual({
+      "art-top/rectangle": "800-1250",
+      "art-top/rounded-rectangle": "800-1250",
+      "art-top/arch": "600-1260",
+      "art-top/oval": "600-1180",
+      "art-top/square": "440-920",
+      "art-bottom/rectangle": "150-600",
+      "art-bottom/rounded-rectangle": "150-600",
+      "art-bottom/arch": "240-800",
+      "art-bottom/oval": "220-800",
+      "art-bottom/square": "80-560",
+      "framed/rectangle": "400-1000",
+      "framed/rounded-rectangle": "400-1000",
+      "framed/arch": "400-1000",
+      "framed/oval": "400-1000",
+      "framed/square": "260-740",
+      "framed/circle": "260-740",
+      "corners/rectangle": "420-980",
+      "corners/rounded-rectangle": "420-980",
+      "corners/square": "260-740",
+      "atmosphere/rectangle": "400-1000",
+      "atmosphere/rounded-rectangle": "400-1000",
+      "atmosphere/arch": "400-1000",
+      "atmosphere/oval": "400-1000",
+      "atmosphere/square": "260-740",
+      "atmosphere/circle": "260-740",
+    });
   });
 
   it("pairs layouts with compatible art modes", () => {
@@ -58,7 +155,7 @@ describe("layout set card_layouts_v1", () => {
         expect(zone.height).toBeGreaterThan(0);
         expect(zone.x + zone.width / 2).toBeCloseTo(w / 2);
         expect(zone.width).toBeLessThanOrEqual(CARD_LAYOUTS[layout].maxWidth);
-        const band = CARD_LAYOUTS[layout].band[SHAPE_PROPORTION[shape]];
+        const { band } = layoutArtFor(layout, shape);
         expect(zone.y).toBe(band.top);
         expect(zone.height).toBe(band.bottom - band.top);
         for (let y = band.top; y <= band.bottom; y += 1) {

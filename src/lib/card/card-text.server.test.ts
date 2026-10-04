@@ -35,11 +35,12 @@ describe("generatedTextLayer", () => {
   });
 
   it("refuses an overflowing layout, keeping it for diagnostics only", async () => {
+    // Worst-case content fits every zone (the layout fixtures); text past the entry limits need not.
     const attempt = generatedTextLayer({
       layout: "art-top",
       shape: "square",
       pairing: "hc_playfair_dmsans",
-      content: { ...WORST },
+      content: { ...WORST, invitationLine: Array(8).fill(WORST.invitationLine).join(" ") },
       ink: INK,
     });
     await expect(attempt).rejects.toBeInstanceOf(CardTextLayoutError);

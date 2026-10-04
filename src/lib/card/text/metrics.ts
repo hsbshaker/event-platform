@@ -11,8 +11,10 @@
  * - `text-transform` is applied before shaping (`applyTextCase`).
  * - `letter-spacing` adds its amount after every typographic character unit (grapheme cluster),
  *   including the last one, as Chromium and Firefox lay it out.
- * - With non-zero letter spacing, browsers stop applying optional ligatures (CSS Text 3 §8.2), so
- *   measurement turns `liga`/`clig`/`dlig` off too.
+ * - With non-zero letter spacing, browsers stop applying optional ligatures (CSS Text 3 §8.2):
+ *   Chromium turns off `liga`, `clig`, `dlig`, `hlig` and `calt`, so measurement turns off the
+ *   same five. (Contextual alternates change advances in some faces — Manrope's spaced body text
+ *   measured 1.1% narrow in the layout fixtures while `calt` stayed on.)
  * - Variable fonts (each curated file is one variable font per family, whatever weight the file
  *   name says) are measured at the instance a browser uses: `wght` = the face's weight and, for a
  *   face with an optical-size axis, `opsz` = the font size in card units — what
@@ -85,7 +87,8 @@ function graphemeCount(text: string): number {
 /** Line terminators: LF, CR, LINE SEPARATOR, PARAGRAPH SEPARATOR. */
 const LINE_BREAK = new RegExp("[\\n\\r\\u2028\\u2029]");
 
-const NO_OPTIONAL_LIGATURES = ["liga", "clig", "dlig"];
+/** What Chromium disables when letter spacing is non-zero (`FontDescription::LetterSpacing`). */
+const NO_OPTIONAL_LIGATURES = ["liga", "clig", "dlig", "hlig", "calt"];
 
 /** The language text is shaped in; the card component sets the same `lang`. */
 export { SHAPING_LANGUAGE };

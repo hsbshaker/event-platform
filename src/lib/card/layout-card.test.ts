@@ -4,6 +4,7 @@ import type { CardRect } from "./ink";
 import { type CardTextLayout, type LayoutCardInput, layoutCard, pairingFaces } from "./layout-card";
 import { CARD_LAYOUT_IDS, CARD_SLOT_SPECS, layoutSupportsShape, zoneFor } from "./layouts";
 import { CARD_SHAPES, type CardProportion, proportionOf } from "./shapes";
+import { formatCardDate, formatCardRsvpBy, formatCardTime } from "./facts";
 import { CARD_SLOT_IDS } from "./slots";
 import { LIMITS, TYPICAL, WORST } from "./test-content";
 import { type CardContent, FIT_SAFETY } from "./text-box";
@@ -25,6 +26,18 @@ const ART_TOP: Record<CardProportion, CardRect> = {
 const INK = "#3A2A1E";
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean);
+
+/** Stored lines back to running text: a line ending after a hyphen between letters joins on. */
+const rejoin = (lines: readonly string[]) =>
+  lines.reduce(
+    (text, line, i) =>
+      i === 0
+        ? line
+        : /[\p{L}\p{M}][-\u2010]$/u.test(text) && /^\p{L}/u.test(line)
+          ? text + line
+          : `${text} ${line}`,
+    "",
+  );
 
 function input(over: Partial<LayoutCardInput> & { proportion: CardProportion }): LayoutCardInput {
   return {
@@ -48,8 +61,9 @@ function checkInvariants(layout: CardTextLayout, inp: LayoutCardInput): void {
   const { zone, content } = inp;
   for (const box of layout.boxes) {
     const slot = box.id as keyof CardContent;
-    // Never truncated: every word of the slot's text is on the box's lines, in order.
-    expect(words(box.lines.join(" "))).toEqual(words(content[slot] ?? ""));
+    // Never truncated: every word of the slot's text is on the box's lines, in order, and a word
+    // is only ever split just after a hyphen.
+    expect(words(rejoin(box.lines))).toEqual(words(content[slot] ?? ""));
     expect(box.color).toBe(inp.ink);
     expect(box.rotation).toBe(0);
     expect(box.x).toBe(zone.x);
@@ -58,7 +72,8 @@ function checkInvariants(layout: CardTextLayout, inp: LayoutCardInput): void {
     const style = { size: box.size, letterSpacingEm: box.letterSpacing, textCase: box.textCase };
     for (const line of box.lines) {
       const w = face.measure(line, style) * (1 + FIT_SAFETY);
-      // A line wider than the zone is only ever a single over-wide word, and then it overflows.
+      // A line wider than the zone is only ever one over-wide piece of a word, and then it
+      // overflows.
       if (w > zone.width + 1e-6) {
         expect(line.includes(" ")).toBe(false);
         expect(layout.overflow).toBe(true);
@@ -141,6 +156,36 @@ describe("layoutCard", () => {
     expect(date.size).toBe(Math.max(18, 24 - b.sizes.bodyStep));
   });
 
+  it("keeps a hyphenated name whole at any size that allows it", () => {
+    const content = { ...TYPICAL, title: "Welcome Wilhelmina Montgomery-Whitworth!" };
+    for (const id of TYPOGRAPHY_KEYS) {
+      const inp = input({ proportion: "5:7", pairing: pairingFaces(id), content });
+      const layout = layoutCard(inp);
+      checkInvariants(layout, inp);
+      const title = layout.boxes.find((b) => b.id === "title")!;
+      // A size exists where the name fits on a line, so it is never broken, though a larger
+      // title with a hyphen break would also fit.
+      expect(title.lines, id).toContain("Montgomery-Whitworth!");
+      expect(layout.overflow).toBe(false);
+    }
+  });
+
+  it("breaks after a hyphen when no size fits the name whole", () => {
+    // 260 wide: "MAXIMILIAN-MONTGOMERY" is wider than the zone even at the details' 18.
+    const inp = input({
+      proportion: "5:7",
+      zone: { x: 370, y: 800, width: 260, height: 400 },
+      content: { babyName: "Maximilian-Montgomery" },
+      slots: ["babyName"],
+    });
+    const layout = layoutCard(inp);
+    checkInvariants(layout, inp);
+    expect(layout.overflow).toBe(false);
+    expect(layout.boxes[0].lines).toEqual(["Maximilian-", "Montgomery"]);
+    // Full size: the hyphen break is taken at the first sizes tried, not after shrinking.
+    expect(layout.boxes[0].size).toBe(CARD_SLOT_SPECS.babyName.max["5:7"]);
+  });
+
   it("reports overflow and keeps every word when the zone is too small", () => {
     const inp = input({ proportion: "5:7", zone: { x: 400, y: 800, width: 200, height: 120 } });
     const layout = layoutCard(inp);
@@ -174,75 +219,99 @@ describe("layoutCard", () => {
     expect(() => layoutCard(input({ proportion: "5:7", slots: ["title", "title"] }))).toThrow();
   });
 
-  describe("worst-case content at the provisional entry limits", () => {
+  describe("worst-case content at the entry limits", () => {
     it("uses strings exactly at the limits", () => {
       for (const [slot, text] of Object.entries(WORST)) {
         expect(text.length, slot).toBe(LIMITS[slot as keyof typeof LIMITS]);
       }
     });
 
-    it.each(["5:7", "1:1"] as const)(
-      "%s art-top: never truncates, for every pairing",
-      (proportion) => {
-        const rows: string[] = [];
-        for (const id of TYPOGRAPHY_KEYS) {
-          const inp = input({ proportion, pairing: pairingFaces(id), content: { ...WORST } });
-          const layout = layoutCard(inp);
-          checkInvariants(layout, inp);
-          rows.push(
-            `${proportion} ${id.padEnd(32)} ${layout.overflow ? "OVERFLOW" : "fits    "} title ${layout.sizes.title} body step ${layout.sizes.bodyStep} height ${stackHeight(layout).toFixed(0)}/${inp.zone.height}`,
-          );
-        }
-        if (process.env.CARD_FIT_REPORT) console.log(rows.join("\n"));
-      },
+    /**
+     * The widest formatted date, time and RSVP-by in a pairing's body face, as the card sets them
+     * (uppercase, spaced, at the details' minimum size): every date of a 28-year calendar cycle and
+     * every minute of the day. `WORST` uses values that are the widest in most faces; this gives
+     * each pairing its own.
+     */
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const DAYS: string[] = [];
+    for (let t = Date.UTC(2028, 0, 1); t < Date.UTC(2056, 0, 1); t += 86_400_000) {
+      const d = new Date(t);
+      DAYS.push(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`);
+    }
+    const DATE_VALUES = [...new Set(DAYS.map(formatCardDate))];
+    const RSVP_VALUES = [...new Set(DAYS.map((d) => d.slice(5)))].map((monthDay) =>
+      formatCardRsvpBy(`2028-${monthDay}T12:00:00Z`, "UTC"),
     );
+    const CLOCKS: string[] = [];
+    for (let h = 0; h < 24; h += 1) {
+      for (let m = 0; m < 60; m += 1) CLOCKS.push(`${pad(h)}:${pad(m)}`);
+    }
+    const CLOCK_VALUES = CLOCKS.map((clock) => formatCardTime(clock));
+    const widestByFace = new Map<string, Pick<CardContent, "date" | "time" | "rsvpBy">>();
+    function widestFacts(
+      id: (typeof TYPOGRAPHY_KEYS)[number],
+    ): Pick<CardContent, "date" | "time" | "rsvpBy"> {
+      const font = pairingFaces(id).body;
+      const known = widestByFace.get(font.family);
+      if (known) return known;
+      const face = metrics(font);
+      const spec = CARD_SLOT_SPECS.date;
+      const style = {
+        size: spec.min,
+        letterSpacingEm: spec.letterSpacingEm,
+        textCase: spec.textCase,
+      };
+      const widest = (values: readonly string[]) =>
+        values
+          .map((value) => ({ value, width: face.measure(value, style) }))
+          .reduce((a, b) => (b.width > a.width ? b : a)).value;
+      const clock = CLOCKS[CLOCK_VALUES.indexOf(widest(CLOCK_VALUES))];
+      const facts = {
+        date: widest(DATE_VALUES),
+        time: formatCardTime(clock, clock),
+        rsvpBy: widest(RSVP_VALUES),
+      };
+      widestByFace.set(font.family, facts);
+      return facts;
+    }
 
     /**
-     * Opt-in report (`CARD_FIT_REPORT=1`): worst-case content in every layout × supported shape zone
-     * of the layout set, for every pairing. Informational until the layout fixtures settle the
-     * per-shape zones and limits (Phase 4c).
+     * Owner decision (`docs/CHANGELOG-v7.md`, "Phase 4 — fitting every detail on every card"):
+     * every card shows every detail. Worst-case content fits every layout × supported shape ×
+     * pairing at the minimum sizes or above — as `WORST`, and with each pairing's own widest
+     * formatted facts. The layout fixtures prove the same in Chromium (`tests/fixtures/`).
+     * `CARD_FIT_REPORT=1` prints the margins.
      */
-    it.runIf(process.env.CARD_FIT_REPORT)(
-      "report: layout × shape zones",
-      () => {
-        const rows: string[] = [];
+    it("fits every layout × supported shape × pairing", () => {
+      const rows: string[] = [];
+      const failures: string[] = [];
+      for (const id of TYPOGRAPHY_KEYS) {
+        const facts = widestFacts(id);
         for (const name of CARD_LAYOUT_IDS) {
           for (const shape of CARD_SHAPES.filter((sh) => layoutSupportsShape(name, sh))) {
-            const proportion = proportionOf(shape);
-            const zone = zoneFor(name, shape);
-            let worst: { id: string; layout: CardTextLayout } | null = null;
-            let fitting = 0;
-            const failing: string[] = [];
-            for (const id of TYPOGRAPHY_KEYS) {
+            for (const [kind, content] of [
+              ["worst", { ...WORST }],
+              ["widest facts", { ...WORST, ...facts }],
+            ] as const) {
               const inp = input({
-                proportion,
-                zone,
+                proportion: proportionOf(shape),
+                zone: zoneFor(name, shape),
                 pairing: pairingFaces(id),
-                content: { ...WORST },
+                content,
               });
               const layout = layoutCard(inp);
               checkInvariants(layout, inp);
-              if (!layout.overflow) fitting += 1;
-              else {
-                const titleLines = layout.boxes.find((b) => b.id === "title")!.lines.length;
-                const tall = stackHeight(layout) > zone.height;
-                const reasons = [
-                  tall ? "height" : "",
-                  titleLines > 3 ? `title ${titleLines} lines` : "",
-                ];
-                const why = reasons.filter(Boolean).join(", ") || "a word wider than the zone";
-                failing.push(`${id} (${why})`);
-              }
-              if (!worst || stackHeight(layout) > stackHeight(worst.layout)) worst = { id, layout };
+              const key = `${name}/${shape}/${id} (${kind})`;
+              if (layout.overflow) failures.push(key);
+              rows.push(
+                `${key.padEnd(70)} ${layout.overflow ? "OVERFLOW" : "fits"} title ${layout.sizes.title} step ${layout.sizes.bodyStep} height ${stackHeight(layout).toFixed(0)}/${inp.zone.height}`,
+              );
             }
-            rows.push(
-              `${name.padEnd(10)} ${shape.padEnd(17)} zone ${zone.width}×${zone.height}  fits ${fitting}/12  tallest ${stackHeight(worst!.layout).toFixed(0)}  ${fitting > 6 ? failing.join(" ") : ""}`,
-            );
           }
         }
-        console.log(rows.join("\n"));
-      },
-      120_000,
-    );
+      }
+      if (process.env.CARD_FIT_REPORT) console.log(rows.join("\n"));
+      expect(failures).toEqual([]);
+    }, 60_000);
   });
 });
