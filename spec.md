@@ -609,7 +609,8 @@ Binding rules:
    is never the reason a guest cannot read the card.
 6. **No host photography, stock or retrieved imagery.** The artwork is generated for this event.
 
-The image model is selected by the Phase 3 bake-off and recorded in `docs/technology-decisions.md`.
+The image model is **GPT Image 2.5 Sunburst** (owner decision, `docs/technology-decisions.md §8.1`);
+Phase 3 validates it through the API before the product is built around it.
 
 ### 7.6b Adaptive creative clarification
 
@@ -679,7 +680,7 @@ and shape composition rules and the global rules (no text, no logos, wordmarks o
 shape's proportion: 5:7 or 1:1).
 The image model returns the artwork.
 
-Validation (deterministic, plus the bake-off's chosen checks): file type, the requested proportion
+Validation (deterministic, plus the text and safety checks chosen in Phase 3 validation): file type, the requested proportion
 within tolerance,
 minimum resolution, decodable, **no embedded text**, and content safety. A failure earns one
 regeneration; a second failure is shown honestly to the host with a retry action. There is no
@@ -729,8 +730,8 @@ Latency goals, p75:
 | Event Identity visible | ≤ 5 s |
 | Card revealed | ≤ 30 s — working target |
 
-The card target is provisional: it is re-set deliberately from the Phase 3 bake-off's measured
-image-model latency, never widened quietly to match whatever was built. Measure reality; do not
+The card target is provisional: it is re-set deliberately from the image-model latency measured in
+Phase 3 validation, never widened quietly to match whatever was built. Measure reality; do not
 silently allow unbounded waits.
 
 ### 7.11 Card reveal
@@ -886,10 +887,13 @@ AI cost is a product constraint from day one, but creative quality is the produc
 ### 9.1 Creative model operations
 
 ```ts
-generateEventIdentity(...)   // strong multimodal model
-generateCardDesign(...)      // strong model
-generateCardArt(...)         // image model
+generateEventIdentity(...)   // GPT 6.1 Sol
+generateCardDesign(...)      // GPT 6.1 Sol
+generateCardArt(...)         // GPT Image 2.5 Sunburst
 ```
+
+The models are chosen by owner decision and recorded in `docs/technology-decisions.md §8.1`; each
+sits behind the thin interface, so changing one is a recorded decision, not a rewrite.
 
 These are the only frontier creative operations in MVP. A thin provider capability layer is
 sufficient (`src/lib/ai/provider.ts`); do not build a large abstraction framework.
@@ -904,8 +908,8 @@ Use smaller/cheaper models only where ordinary code is insufficient and quality 
 - missing-field detection;
 - ambiguous date/time normalization;
 - candidate IANA timezone inference + confidence;
-- artwork validation that code cannot do alone (embedded-text and safety checks), if the bake-off
-  chooses a model for it.
+- artwork validation that code cannot do alone (embedded-text and safety checks), if Phase 3
+  validation chooses a model for it.
 
 Validate timezone in code. Do not add models for ink, contrast, text fit, layout or compatibility.
 
@@ -1016,7 +1020,7 @@ optional art-derived legibility panel; live text.
 ### 11.3 Layout catalog
 
 A small versioned catalog of text layouts (`card_layouts_v1`, proposed members in
-`docs/card-system.md §2.3`, fixed by the Phase 3 bake-off). Each layout declares the shapes it
+`docs/card-system.md §2.3`, fixed in Phase 3 validation). Each layout declares the shapes it
 supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
 slot, the composition rule given to the art brief, and its legibility-panel shape. Slot character
 limits hold for every shape the layout supports, so a shape switch never breaks fit. The model picks

@@ -73,10 +73,10 @@ The MVP stack is already decided:
 - **Vercel** hosting and event subdomain routing
 - **Twilio** for SMS invitations, OTP and event messaging
 - **Stripe-shaped payment boundary**, initially stubbed behind the mock `$49` publish gate
-- thin AI provider interface:
-  - `generateEventIdentity(...)`
-  - `generateCardDesign(...)`
-  - `generateCardArt(...)` — the image model is **not yet selected**; the Phase 3 bake-off decides it and records it in `docs/technology-decisions.md §8.1`
+- thin AI provider interface (models: `docs/technology-decisions.md §8.1`):
+  - `generateEventIdentity(...)` — GPT 6.1 Sol
+  - `generateCardDesign(...)` — GPT 6.1 Sol
+  - `generateCardArt(...)` — GPT Image 2.5 Sunburst
 
 Production runs no headless browser; a real browser is used at test time only (layout fixtures, e2e).
 

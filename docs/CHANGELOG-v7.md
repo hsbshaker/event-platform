@@ -39,7 +39,7 @@ with the pivot by owner decision; git history is their archive (the last commit 
 | Host edits without AI | Words and font (among the design's curated pairings) |
 | Page under the card | One neutral house style for every event |
 | Private event, shared link | Sealed envelope with the event title until the code is entered |
-| Image model | Decided by a bake-off |
+| Image model | Decided by a bake-off — replaced in Revision 7.1: the owner chose the models (below) |
 | Database | No migration in this pass; the card-data phase replaces the website tables |
 | Superseded docs | Deleted; git history only |
 | Price | Keep $49 one-time as the hypothesis |
@@ -72,8 +72,8 @@ be changed there:
   envelope, so link scanners never receive private content or create a session (`spec.md §12.5`);
 - a party that has opted out of texts is treated like Needs phone on the shared-link path
   (`spec.md §12.5`);
-- the card-reveal latency target is a working ~30 s at p75 until the bake-off measures a real image
-  model (`spec.md §7.10`).
+- the card-reveal latency target is a working ~30 s at p75 until Phase 3 validation measures the
+  real image model (`spec.md §7.10`).
 
 ## What changed in the documents
 
@@ -86,7 +86,7 @@ be changed there:
 | `docs/model-prompts/event-identity.system.md`, `docs/model-schemas/event-identity.schema.json` | v3: removed `compatibleTonalDirections` and `compatibleFamilies`; `visualMotifs` names subjects for the artwork |
 | `docs/technology-decisions.md` | Headless Chromium retired; image model added, undecided (§8.1) |
 | `docs/design-system.md`, `docs/e2e-workflow.md`, `docs/screen-spec.md` | Rewritten for the card, envelope, house-style page and invitations |
-| `docs/development-plan.md` | Re-sequenced: bake-off → card compiler/renderer → generation → Creation Mode → guests/RSVP → registry → publish and invitations → launch |
+| `docs/development-plan.md` | Re-sequenced: bake-off (now model validation, 7.1) → card compiler/renderer → generation → Creation Mode → guests/RSVP → registry → publish and invitations → launch |
 | `CLAUDE.md`, `AGENTS.md`, `README.md`, `docs/README.md`, `.claude/agents/*` | Re-pointed at the card architecture |
 
 ## Deleted
@@ -156,7 +156,7 @@ a "Ralph Lauren bear" baby shower in navy and brown. Findings, written into the 
   Layouts now state the presence they want (`card-system.md §2.3`; eval CA-06).
 - **Subject continuity.** Asked to rearrange, it kept the same bear. Shape switches that need new
   artwork now pass the current artwork as a reference so the subject stays the same
-  (`spec.md §7.14`, `§7.6a`; eval CA-07); the bake-off confirms the chosen model can do it.
+  (`spec.md §7.14`, `§7.6a`; eval CA-07); Phase 3 validation confirms the chosen model can do it.
 - **Shapes behaved as 7.1 assumes.** Corner-cluster art would be cut by an oval or arch; framed art
   only fits its own outline. A scalloped edge can be painted as framed art inside a rectangle.
 - **Brand references.** Asked for a "Ralph Lauren bear", it produced a near-replica of the brand's
@@ -167,8 +167,27 @@ a "Ralph Lauren bear" baby shower in navy and brown. Findings, written into the 
   and copyright risk for a platform that charges to publish; legal review before launch is an open
   item (`product-doctrine.md §14` #7).
 
+### 7.1 — the models chosen; no bake-off
+
+Owner decision, 2026-10-04: rather than compare candidate models, the product uses **GPT 6.1 Sol**
+(OpenAI) for `generateEventIdentity` and `generateCardDesign` and **GPT Image 2.5 Sunburst**
+(OpenAI, the quality tier) for `generateCardArt`. The basis is the owner's own test above, and
+Sunburst's published capabilities match what the card system needs: custom sizes in multiples of
+16 for both proportions, transparent backgrounds, and reference images for same-subject shape
+switches. Both stay behind the thin provider interface.
+
+Phase 3 becomes a short **model validation** instead of a bake-off: it runs the chosen models
+through the API on the corpus and the owner's briefs, confirms API output matches what ChatGPT
+produced, checks presence, subject continuity and brand refusals, and fixes the pinned model IDs,
+raster size, text and safety detection, the layout catalog and measured latency and cost. If
+Sunburst misses latency or cost, GPT Image 2.5 Flare is the first fallback. The fact-extraction
+model is picked there too. Documents changed: `technology-decisions.md` (§2, §8, §8.1),
+`development-plan.md` (principles, Phase 3), `spec.md` (§7.6a, §7.8, §7.10, §9.1, §9.2, §11.3),
+`card-system.md`, `model-contracts.md`, `product-doctrine.md §14`–`§15`, `CLAUDE.md`, `README.md`.
+
 ## Still open
 
-Tracked in `docs/product-doctrine.md §14`: the image model and its workflow; the layout catalog and
-slot limits; the reveal latency target; the $49 re-check; the clarification question schema; an
-email provider for the reminder fallback.
+Tracked in `docs/product-doctrine.md §14`: the image-model workflow (transparency, text and safety
+detection); the layout catalog and slot limits; the reveal latency target; the $49 re-check; the
+clarification question schema; an email provider for the reminder fallback; legal review of the
+brand line.

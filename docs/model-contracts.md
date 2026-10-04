@@ -2,10 +2,12 @@
 ## Event Identity, Card Design and Card Art
 
 **Status:** Revision 3 — invitation-card baseline
-**Prompt versions:** `event_identity_v4`, `card_design_v1` (written in the Phase 3 bake-off),
-`card_art_v1` (deterministic assembly, written in the Phase 3 bake-off)
-**Schema versions:** `event_identity_schema_v4`, `card_design_schema_v1` (written in the Phase 3
-bake-off)
+**Prompt versions:** `event_identity_v4`, `card_design_v1` (written in Phase 3 validation),
+`card_art_v1` (deterministic assembly, written in Phase 3 validation)
+**Schema versions:** `event_identity_schema_v4`, `card_design_schema_v1` (written in Phase 3
+validation)
+**Models:** GPT 6.1 Sol (Event Identity, Card Design); GPT Image 2.5 Sunburst (Card Art) —
+`technology-decisions.md §8.1`
 **PRD:** `../spec.md` Revision 7
 **Card system:** `card-system.md`
 
@@ -20,17 +22,17 @@ prompt-injection exposure, stable versioning, and a deterministic handoff to app
 ```text
 Host prompt + private inspiration
         ↓
-generateEventIdentity(...)        strong multimodal model         ── in parallel: structured fact
+generateEventIdentity(...)        GPT 6.1 Sol                     ── in parallel: structured fact
         ↓                                                            extraction (cheaper model)
 EventIdentity  (+ optional clarification questions → answers → refined identity)
         ↓
-generateCardDesign(...)           strong model, one per round
+generateCardDesign(...)           GPT 6.1 Sol, one per round
         ↓
 CardDesign  → deterministic validation + wording fact check
         ↓
 art prompt assembled by code from the art brief + layout and shape rules + global rules
         ↓
-generateCardArt(...)              image model
+generateCardArt(...)              GPT Image 2.5 Sunburst
         ↓
 artwork → deterministic validation → ink resolution → persisted card
 ```
@@ -164,7 +166,7 @@ CardDesign {
 }
 ```
 
-Exact string bounds are set with the layout set in the Phase 3 bake-off and are generated into the
+Exact string bounds are set with the layout set in Phase 3 validation and are generated into the
 schema from the layout catalog, so a valid design always fits (`card-system.md §4.3`).
 
 The palette in the art brief steers the artwork. It never becomes a text, ink or page colour; ink
@@ -217,7 +219,7 @@ In order, deterministic (`card-system.md §4.1`):
 
 ## 5.5 Evals
 
-Thresholds are calibrated on first real run in the bake-off, not invented now, except where a
+Thresholds are calibrated on first real run in Phase 3 validation, not invented now, except where a
 failure is never acceptable:
 
 - **CD-01 schema**: share of responses valid on the first call; 100% after one re-prompt or a
@@ -246,8 +248,8 @@ cases: vague and taste-heavy prompts, prompts carrying a negative constraint, pr
 enough that the right number of questions is zero, prompts carrying facts that must survive
 verbatim, one open delegation, and one genuinely ambiguous case where a question should earn its
 place. Each case declares its class, the facts the host actually supplied, whether clarification is
-expected, and what would count as an outright failure. It is data; the runner is built in the
-Phase 3 bake-off.
+expected, and what would count as an outright failure. It is data; the runner is built in
+Phase 3 validation.
 
 | # | Dimension | Question | Method |
 | --- | --- | --- | --- |
@@ -303,8 +305,10 @@ GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: 
 → { mimeType, bytes }    // plus provider usage and model id for metering
 ```
 
-Image-model specifics (model, size, transparent-background workflow if any) are recorded in
-`technology-decisions.md §8.1` by the bake-off.
+The image model is GPT Image 2.5 Sunburst (`technology-decisions.md §8.1`). It takes custom sizes in
+multiples of 16, transparent backgrounds and reference images; the exact raster size, the
+transparent-background workflow if any, and the pinned API model ID are recorded there by Phase 3
+validation.
 
 A host's switch to a shape no existing artwork fits (`card-system.md §7`) calls `generateCardArt`
 again with the same art brief and the new shape; the raster's proportion is derived from the shape
@@ -318,7 +322,7 @@ adds an artwork to the design rather than replacing one.
 
 Deterministic: decodable allowed image type; the requested proportion within tolerance; minimum
 resolution. Required,
-mechanism chosen in the bake-off: no embedded text; content safety. A failure earns one
+mechanism chosen in Phase 3 validation: no embedded text; content safety. A failure earns one
 regeneration; a second failure is a visible failure with retry. No template or stock fallback.
 
 ## 7.4 Evals
@@ -327,15 +331,15 @@ regeneration; a second failure is a visible failure with retry. No template or s
 - **CA-02 brand line**: 0 artworks containing a logo, wordmark, brand or character name, or a copied
   campaign image. Hard. Close homage to a character is allowed (`spec.md §7.6`).
 - **CA-03 layout respect**: the layout's quiet regions are quiet enough that ink resolution needs a
-  legibility panel rarely (measured rate; calibrated in the bake-off).
+  legibility panel rarely (measured rate; calibrated in Phase 3 validation).
 - **CA-04 quality**: the artwork looks bespoke and specific to the brief, not generic AI or stock
   imagery (human judgement).
 - **CA-05 latency and cost**: p50/p75 per card, recorded for `spec.md §7.10`.
 - **CA-06 presence**: artwork fills the presence its layout asks for, rather than shrinking to token
   props around an empty field (human judgement; observed in the owner's test, `CHANGELOG-v7.md`).
 - **CA-07 subject continuity**: regenerating for a new shape with `reference` keeps the same subject
-  (human judgement). If the chosen model cannot, the bake-off records it and the brief alone is
-  used.
+  (human judgement). If the chosen model cannot over the API, Phase 3 validation records it and the
+  brief alone is used.
 
 ---
 
@@ -367,10 +371,10 @@ retry and never presents itself as a finished design.
 
 # 10. Files
 
-Prompts: `model-prompts/event-identity.system.md` (v3). `model-prompts/card-design.system.md` is
-written in the Phase 3 bake-off.
-Schemas: `model-schemas/event-identity.schema.json` (v3). `model-schemas/card-design.schema.json`
-is generated from the card catalogs in the Phase 3 bake-off.
+Prompts: `model-prompts/event-identity.system.md` (v4). `model-prompts/card-design.system.md` is
+written in Phase 3 validation.
+Schemas: `model-schemas/event-identity.schema.json` (v4). `model-schemas/card-design.schema.json`
+is generated from the card catalogs in Phase 3 validation.
 Evaluation corpus: `model-evals/creative-understanding.json`.
 Catalogs: `src/lib/card/typography.ts`; the layout set and art modes are added with the card
 compiler.

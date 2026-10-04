@@ -72,8 +72,9 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
 - The card renders at any width by uniform scaling, so its proportions, outline, line breaks and
   layout are identical on a 390px phone and on desktop. Nothing reflows.
 - Generated artwork is produced at (or resampled to) a fixed raster at the shape's proportion,
-  sized for sharp display on high-density phones; the exact pixel size is set by the image-model
-  bake-off.
+  sized for sharp display on high-density phones. GPT Image 2.5 Sunburst takes custom sizes in
+  multiples of 16, so it can paint each proportion natively (for example 1440 × 2016 for 5:7 and
+  1440 × 1440 for 1:1); the exact size is fixed in Phase 3 validation.
 
 **Shapes.** Six, each a proportion plus an outline:
 
@@ -96,10 +97,11 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
   deterministic. Switching to any other shape — the other proportion, or another outline when the
   artwork follows its own outline — generates new artwork for that shape from the same brief, with
   the current artwork passed as a reference so the subject stays the same: the same bear, rearranged
-  for the new outline, not a different bear. Whether the chosen image model holds a subject this way
-  is a Phase 3 bake-off check; where it cannot, the brief alone is used.
+  for the new outline, not a different bear. GPT Image 2.5 Sunburst accepts reference images, and
+  whether it holds a subject this way over the API is a Phase 3 validation check; where it cannot,
+  the brief alone is used.
 - Rounded-corner radius and the exact outline geometry are part of the layout set (§2.3) and are
-  fixed by the Phase 3 bake-off.
+  fixed in Phase 3 validation.
 - A decorative edge such as a scallop or wave can be painted as `framed` artwork inside a rectangle;
   that is artwork, not a shape. Die-cut scalloped cards remain deferred (§10).
 
@@ -136,7 +138,7 @@ layout declares the shapes it supports, and for each of them defines:
   unfinished; the layout states the presence it wants as well as the space it reserves;
 - its legibility-panel shape, used only when §4.2 needs it.
 
-The initial set is proposed here and **fixed by the Phase 3 bake-off** (`docs/development-plan.md`):
+The initial set is proposed here and **fixed in Phase 3 validation** (`docs/development-plan.md`):
 
 | Layout | Text | Artwork |
 | --- | --- | --- |
@@ -219,13 +221,13 @@ font choice.
 
 ```text
 host prompt + optional inspiration
-  → generateEventIdentity            strong model; the only stage that reads the raw prompt
+  → generateEventIdentity            GPT 6.1 Sol; the only stage that reads the raw prompt
   → (optional) creative clarification, at most three taste questions, usually none
-  → generateCardDesign               strong model; shape, layout, art mode, typography, wording, art brief
+  → generateCardDesign               GPT 6.1 Sol; shape, layout, art mode, typography, wording, art brief
   → validate CardDesign              deterministic (§4.1)
   → assemble the art prompt          deterministic: brief + layout and shape composition rules + global rules
-  → generateCardArt                  image model; at the shape's proportion, no text
-  → validate artwork                 deterministic checks, plus the bake-off's text/safety check
+  → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
+  → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
   → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
   → persist CardDesign + artwork + resolved ink    immutable
   → reveal the card
@@ -273,7 +275,7 @@ No step here calls a model or regenerates artwork.
   pairing together earns its one re-prompt naming the earlier directions.
 - Artwork: file type, the requested proportion (5:7 or 1:1) within tolerance, minimum resolution,
   decodable. Detecting embedded text (which covers logos and wordmarks) and unsafe content is
-  required; the mechanism is chosen in the bake-off.
+  required; the mechanism is chosen in Phase 3 validation.
 
 ## 4.2 Ink and legibility
 

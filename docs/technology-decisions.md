@@ -32,8 +32,9 @@ Do not replace, abstract away, or introduce competing infrastructure unless a co
 | SMS / OTP / event messaging | **Twilio** |
 | Payments | **Stripe**, initially **stubbed behind the MVP mock publish gate** |
 | AI/model provider | Providers kept behind a **thin capability interface** |
-| Primary AI capabilities | `generateEventIdentity(...)` and `generateCardDesign(...)` (strong text model), `generateCardArt(...)` (image model) |
-| Image model | **Not yet selected** — chosen by the Phase 3 bake-off and recorded in §8.1 |
+| Primary AI capabilities | `generateEventIdentity(...)` and `generateCardDesign(...)` (text model), `generateCardArt(...)` (image model) |
+| Text model | **OpenAI GPT 6.1 Sol** — Event Identity and Card Design (§8.1) |
+| Image model | **OpenAI GPT Image 2.5 Sunburst** — card artwork (§8.1) |
 
 ---
 
@@ -153,9 +154,9 @@ Do not couple product code broadly to one model vendor.
 Keep the creative-model boundary deliberately thin (`src/lib/ai/provider.ts`):
 
 ```ts
-generateEventIdentity(...)   // strong multimodal text model
-generateCardDesign(...)      // strong text model
-generateCardArt(...)         // image model
+generateEventIdentity(...)   // GPT 6.1 Sol (reads the prompt and inspiration images)
+generateCardDesign(...)      // GPT 6.1 Sol
+generateCardArt(...)         // GPT Image 2.5 Sunburst
 ```
 
 Provider-specific SDK calls, model names, request formatting, usage parsing and provider request
@@ -174,18 +175,42 @@ CardDesign → strict schema + catalog validation → wording fact check
 
 No model provider owns those steps.
 
-## 8.1 Image model
+## 8.1 The models
 
-**Not yet selected.** The Phase 3 bake-off (`docs/development-plan.md`) compares candidate image
-models on real briefs from the creative-understanding corpus and records the decision here, with:
+**Decided by the owner, 2026-10-04.** There is no bake-off between candidate models.
 
-- the model and provider, and how it is called behind `generateCardArt`;
+| Capability | Model | Provider |
+| --- | --- | --- |
+| `generateEventIdentity`, `generateCardDesign` | **GPT 6.1 Sol** | OpenAI API |
+| `generateCardArt` | **GPT Image 2.5 Sunburst** | OpenAI API |
+| Fact extraction (`spec.md §7.5`) and the other cheaper-model uses (`spec.md §9.2`) | a smaller, faster model; the same provider by default | chosen in Phase 3 validation |
+
+**Basis.** The owner's hands-on test in ChatGPT (`CHANGELOG-v7.md`, "the owner's first image-model
+test"): every output honoured "no words", taste and feedback were understood, and reserved text
+space was kept when it was stated. Sunburst is the quality tier of GPT Image 2.5. Its published
+capabilities fit the card system: custom output sizes in multiples of 16 (so both 5:7 and 1:1 can
+be painted natively — for example 1440 × 2016 and 1440 × 1440), transparent backgrounds, and
+reference images with better preservation of the referenced subject, which the same-subject shape
+switch relies on (`spec.md §7.14`).
+
+**Phase 3 validation** (`docs/development-plan.md`) confirms the choice through the API before the
+product is built around it, and records the results here:
+
+- the pinned API model IDs (OpenAI names, not marketing names) and how each is called behind the
+  thin interface;
+- that API output matches what the owner saw in ChatGPT for the same briefs;
 - output size and format for 5:7 and 1:1 cards; whether a transparent-background workflow is used;
 - how embedded text and unsafe content are detected (`spec.md §7.8`);
-- measured latency (p50/p75) and cost per card;
-- the evidence: the briefs, the outputs, and the human judgement that chose it.
+- same-subject regeneration from a `reference` artwork (eval CA-07);
+- how often brand-homage briefs are refused, and how a refusal is surfaced (`spec.md §7.6`);
+- measured latency (p50/p75) and cost per card, which re-set `spec.md §7.10`.
 
-Until then no image provider is added to the codebase.
+If Sunburst misses the latency or cost target, **GPT Image 2.5 Flare** (the same model family's
+speed tier) is the first fallback; switching is a recorded decision here, not a code rewrite. A
+different provider is a new decision for the owner.
+
+No provider SDK is added to the codebase until Phase 3 validation needs it; the product provider
+arrives in Phase 5. Model names and SDK calls stay behind `src/lib/ai/provider.ts`.
 
 ## 8.2 Card rendering without a production browser
 

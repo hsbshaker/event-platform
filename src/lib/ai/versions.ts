@@ -2,7 +2,7 @@
  * Versioned production assets — docs/model-contracts.md.
  * Every generation record persists these. Never edit a prompt or schema while
  * keeping the same version. The card-design and card-art prompt/schema files are
- * written in the bake-off phase.
+ * written in Phase 3 (model validation).
  */
 export const EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v4";
 export const EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v4";

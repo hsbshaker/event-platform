@@ -76,5 +76,6 @@ cleanup cron.
 
 See `docs/development-plan.md`. Phases 0–2 (scaffold, data/auth/security foundation,
 prompt → auth → details) are complete. Revision 7 retired the website renderer; the next
-phase is the creative bake-off that decides the image model and proves the card
+phase is the short model validation that runs the chosen models (GPT 6.1 Sol, GPT Image 2.5
+Sunburst — `docs/technology-decisions.md §8.1`) through the API and proves the card
 (`docs/CHANGELOG-v7.md`).

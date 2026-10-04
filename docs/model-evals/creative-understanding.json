@@ -1,5 +1,5 @@
 {
-  "$comment": "Creative-understanding eval corpus. Data only — the runner is built in the Phase 3 bake-off. Contract and rubric: docs/model-contracts.md §6. Doctrine: docs/product-doctrine.md §3, §5, §6. `facts` values are the host's literal strings; the fact check is verbatim, and any normalization belongs to the application rather than the model.",
+  "$comment": "Creative-understanding eval corpus. Data only — the runner is built in Phase 3 validation. Contract and rubric: docs/model-contracts.md §6. Doctrine: docs/product-doctrine.md §3, §5, §6. `facts` values are the host's literal strings; the fact check is verbatim, and any normalization belongs to the application rather than the model.",
   "version": "creative_understanding_v1",
   "clarificationCeiling": 3,
   "classes": {

@@ -339,9 +339,9 @@ phase of `docs/development-plan.md`:
 
 | # | Open question | Where it gets decided |
 | --- | --- | --- |
-| 1 | Which image model; transparent-background or full-bleed workflow; how embedded text and unsafe content are detected | Phase 3 bake-off |
-| 2 | The final layout catalog, which shapes each layout supports, slot limits and the shapes' outline geometry | Phase 3 bake-off |
-| 3 | The card-reveal latency target (`spec.md §7.10`, ~30 s working target) | Phase 3 bake-off measurement |
+| 1 | ~~Which image model~~ — **decided**: GPT 6.1 Sol for text, GPT Image 2.5 Sunburst for artwork (`technology-decisions.md §8.1`). Still open: transparent-background or full-bleed workflow; how embedded text and unsafe content are detected | Phase 3 validation |
+| 2 | The final layout catalog, which shapes each layout supports, slot limits and the shapes' outline geometry | Phase 3 validation |
+| 3 | The card-reveal latency target (`spec.md §7.10`, ~30 s working target) | Phase 3 validation measurement |
 | 4 | Whether $49 survives comparison with invitation products (`spec.md §3.2`) | Before launch |
 | 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 5 |
 | 6 | An email provider for the reminder/announcement fallback in `spec.md §13.1` (no email provider is in the locked stack) | Phase 10 |
@@ -352,7 +352,8 @@ phase of `docs/development-plan.md`:
 The first slice is the one that answers the only question that matters before building anything
 else: **can the system make a card a host would screenshot and send?**
 
-That is the Phase 3 bake-off: the real `generateEventIdentity` against the creative-understanding
-corpus, a first `generateCardDesign`, and a comparison of image models on real briefs, judged by
-people, in colour. It also fixes the layout catalog and measures latency. Everything else — the
-compiler, Creation Mode, invitations — is built on what it proves.
+That is Phase 3 validation: the real `generateEventIdentity` against the creative-understanding
+corpus, a first `generateCardDesign`, and GPT Image 2.5 Sunburst on real briefs through the API,
+judged by people, in colour. The models are already chosen; the phase proves the API reproduces
+what the owner saw, fixes the layout catalog and measures latency. Everything else — the compiler,
+Creation Mode, invitations — is built on what it proves.
