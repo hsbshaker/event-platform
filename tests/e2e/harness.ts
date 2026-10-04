@@ -72,6 +72,8 @@ export async function startApp(): Promise<AppServer | null> {
       NEXT_PUBLIC_SUPABASE_ANON_KEY:
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "e2e-placeholder-anon-key",
       NEXT_PUBLIC_APP_URL: baseUrl,
+      // Enables the development-only fixture routes (src/app/dev) for browser tests.
+      ENABLE_DEV_FIXTURES: "1",
     },
     stdio: "ignore",
     detached: true,
