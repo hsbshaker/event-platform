@@ -8,8 +8,10 @@ import {
   layoutCard,
   pairingFaces,
 } from "./layout-card";
-import type { CardProportion } from "./shapes";
-import { type CardContent, CARD_SLOTS, FIT_SAFETY } from "./text-box";
+import { CARD_LAYOUT_IDS, layoutSupportsShape, zoneFor } from "./layouts";
+import { CARD_SHAPES, type CardProportion, proportionOf } from "./shapes";
+import { CARD_SLOT_IDS, FACT_ENTRY_LIMITS, WORDING_LIMITS } from "./slots";
+import { type CardContent, FIT_SAFETY } from "./text-box";
 import type { FontMetricsResolver } from "./text/metrics";
 import { allCuratedMetrics } from "./text/test-fonts";
 import { TYPOGRAPHY_KEYS } from "./typography";
@@ -19,10 +21,10 @@ beforeAll(async () => {
   metrics = await allCuratedMetrics();
 });
 
-/** Phase 3's art-top zones (`scripts/phase-3/catalog.mjs`): rectangle 5:7 and square 1:1. */
+/** The art-top zones of the layout set: rectangle 5:7 and square 1:1. */
 const ART_TOP: Record<CardProportion, CardRect> = {
-  "5:7": { x: 120, y: 800, width: 760, height: 450 },
-  "1:1": { x: 120, y: 540, width: 760, height: 300 },
+  "5:7": zoneFor("art-top", "rectangle"),
+  "1:1": zoneFor("art-top", "square"),
 };
 
 const INK = "#3A2A1E";
@@ -48,14 +50,9 @@ const WORST: Required<{ [K in keyof CardContent]: string }> = {
   rsvpBy: "Kindly RSVP by Wednesday, September 16th",
 };
 const LIMITS = {
-  title: 40,
-  invitationLine: 72,
-  babyName: 40,
-  hosts: 60,
-  date: 40,
-  time: 24,
-  venue: 60,
-  rsvpBy: 40,
+  title: WORDING_LIMITS.title.max,
+  invitationLine: WORDING_LIMITS.invitationLine.max,
+  ...FACT_ENTRY_LIMITS,
 };
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean);
@@ -131,8 +128,8 @@ describe("layoutCard", () => {
   it("stacks every slot in order, one box each, styled by its spec", () => {
     const inp = input({ proportion: "5:7" });
     const layout = layoutCard(inp);
-    expect(layout.boxes.map((b) => b.id)).toEqual([...CARD_SLOTS]);
-    expect(layout.boxes.map((b) => b.z)).toEqual(CARD_SLOTS.map((_, i) => i));
+    expect(layout.boxes.map((b) => b.id)).toEqual([...CARD_SLOT_IDS]);
+    expect(layout.boxes.map((b) => b.z)).toEqual(CARD_SLOT_IDS.map((_, i) => i));
     const [title, line, , , date] = layout.boxes;
     expect(title.source).toEqual({ kind: "wording", slot: "title" });
     expect(title.text).toBeUndefined();
@@ -158,7 +155,7 @@ describe("layoutCard", () => {
     expect(baby.lines).toEqual([]);
     // The baby name sits where the hosts begin, after the gap the details group takes.
     expect(baby.y).toBeLessThanOrEqual(hosts.y);
-    const without = layoutCard({ ...inp, slots: CARD_SLOTS.filter((s) => s !== "babyName") });
+    const without = layoutCard({ ...inp, slots: CARD_SLOT_IDS.filter((s) => s !== "babyName") });
     expect(without.boxes.find((b) => b.id === "hosts")!.y).toBeCloseTo(hosts.y, 6);
   });
 
@@ -222,84 +219,18 @@ describe("layoutCard", () => {
     );
 
     /**
-     * Opt-in report (`CARD_FIT_REPORT=1`): worst-case content in every Phase 3 layout × shape zone
-     * (`scripts/phase-3/catalog.mjs`, its `zoneFor` reproduced here), the widest-measuring pairing.
-     * Informational: the versioned layout set and its slot limits are fixed with the catalog.
+     * Opt-in report (`CARD_FIT_REPORT=1`): worst-case content in every layout × supported shape zone
+     * of the layout set, for every pairing. Informational until the layout fixtures settle the
+     * per-shape zones and limits (Phase 4c).
      */
     it.runIf(process.env.CARD_FIT_REPORT)(
-      "report: Phase 3 layout × shape zones",
+      "report: layout × shape zones",
       () => {
-        const margin = {
-          rectangle: 80,
-          "rounded-rectangle": 90,
-          arch: 80,
-          oval: 70,
-          square: 70,
-          circle: 70,
-        };
-        const prop = {
-          rectangle: "5:7",
-          "rounded-rectangle": "5:7",
-          arch: "5:7",
-          oval: "5:7",
-          square: "1:1",
-          circle: "1:1",
-        } as const;
-        type Shape = keyof typeof margin;
-        const inside = (shape: Shape, x: number, y: number) => {
-          const w = 1000;
-          const h = prop[shape] === "5:7" ? 1400 : 1000;
-          const m = margin[shape];
-          switch (shape) {
-            case "arch":
-              if (x < m || x > w - m || y > h - m) return false;
-              return y >= w / 2 || Math.hypot(x - w / 2, y - w / 2) <= w / 2 - m;
-            case "oval":
-              return ((x - w / 2) / (w / 2 - m)) ** 2 + ((y - h / 2) / (h / 2 - m)) ** 2 <= 1;
-            case "circle":
-              return Math.hypot(x - w / 2, y - h / 2) <= w / 2 - m;
-            default:
-              return x >= m && x <= w - m && y >= m && y <= h - m;
-          }
-        };
-        const zoneFor = (shape: Shape, band: { top: number; bottom: number }, maxWidth: number) => {
-          let half = maxWidth / 2;
-          for (let y = band.top; y <= band.bottom; y += 4) {
-            while (half > 40 && !(inside(shape, 500 - half, y) && inside(shape, 500 + half, y)))
-              half -= 2;
-          }
-          return { x: 500 - half, y: band.top, width: half * 2, height: band.bottom - band.top };
-        };
-        const all: Shape[] = ["rectangle", "rounded-rectangle", "arch", "oval", "square", "circle"];
-        const layouts = {
-          "art-top": {
-            shapes: all,
-            band: { "5:7": [800, 1250], "1:1": [540, 840] },
-            maxWidth: 760,
-          },
-          "art-bottom": {
-            shapes: all,
-            band: { "5:7": [150, 600], "1:1": [120, 440] },
-            maxWidth: 760,
-          },
-          framed: { shapes: all, band: { "5:7": [400, 1000], "1:1": [280, 720] }, maxWidth: 620 },
-          corners: {
-            shapes: ["rectangle", "rounded-rectangle", "square"] as Shape[],
-            band: { "5:7": [420, 980], "1:1": [300, 700] },
-            maxWidth: 640,
-          },
-          atmosphere: {
-            shapes: all,
-            band: { "5:7": [400, 1000], "1:1": [260, 740] },
-            maxWidth: 680,
-          },
-        };
         const rows: string[] = [];
-        for (const [name, l] of Object.entries(layouts)) {
-          for (const shape of l.shapes) {
-            const proportion = prop[shape];
-            const [top, bottom] = l.band[proportion];
-            const zone = zoneFor(shape, { top, bottom }, l.maxWidth);
+        for (const name of CARD_LAYOUT_IDS) {
+          for (const shape of CARD_SHAPES.filter((sh) => layoutSupportsShape(name, sh))) {
+            const proportion = proportionOf(shape);
+            const zone = zoneFor(name, shape);
             let worst: { id: string; layout: CardTextLayout } | null = null;
             let fitting = 0;
             const failing: string[] = [];

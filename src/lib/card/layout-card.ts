@@ -18,20 +18,14 @@
 import { isCanonicalHex } from "./color";
 import type { CardRect } from "./ink";
 import type { CardProportion } from "./shapes";
-import {
-  breakWidth,
-  CARD_SLOTS,
-  type CardContent,
-  type CardSlot,
-  type TextBox,
-  type TextBoxSource,
-} from "./text-box";
+import { CARD_SLOT_IDS, type CardSlotId } from "./slots";
+import { breakWidth, type CardContent, type TextBox, type TextBoxSource } from "./text-box";
 import { breakLines } from "./text/line-break";
 import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
 import { TYPOGRAPHY, type TypographyPairingId } from "./typography";
 
-/** Version of the slot specs and sizing below; part of the compiler version (`card-system.md §8`). */
-export const LAYOUT_CARD_VERSION = "layout_card_v1";
+// The slot specs, sizing and line breaking below are versioned by CARD_COMPILER_VERSION
+// (`src/lib/ai/versions.ts`, `docs/card-system.md §8`): change them only with a bump.
 
 type SlotGroup = "title" | "invitation" | "details" | "added";
 
@@ -93,7 +87,7 @@ const DETAIL: SlotSpec = {
  * 1.45, uppercase, .06em, 1.3em above the group and nothing between its lines. Phase 3 set only the
  * date, time and venue as details; the baby name, hosts and RSVP-by join that group here.
  */
-export const SLOT_SPECS_V1: Readonly<Record<CardSlot, SlotSpec>> = {
+export const SLOT_SPECS_V1: Readonly<Record<CardSlotId, SlotSpec>> = {
   title: TITLE,
   invitationLine: INVITATION,
   babyName: DETAIL,
@@ -141,7 +135,7 @@ export interface LayoutCardInput {
   ink: string;
   metrics: FontMetricsResolver;
   /** The zone's slots, in order; defaults to every slot in the canonical order. */
-  slots?: readonly CardSlot[];
+  slots?: readonly CardSlotId[];
   /** Carrying words to a fresh layout (`text-box.ts` `carryWords`): kept fonts and added text. */
   carried?: {
     title?: FontRef;
@@ -181,13 +175,13 @@ function round3(v: number): number {
   return Math.round(v * 1000) / 1000;
 }
 
-function sourceOf(slot: CardSlot): TextBoxSource {
+function sourceOf(slot: CardSlotId): TextBoxSource {
   return slot === "title" || slot === "invitationLine"
     ? { kind: "wording", slot }
     : { kind: "fact", slot };
 }
 
-function validate(input: LayoutCardInput, slots: readonly CardSlot[]): void {
+function validate(input: LayoutCardInput, slots: readonly CardSlotId[]): void {
   const { zone } = input;
   if (!(zone.width > 0 && zone.height > 0)) throw new Error("layoutCard: empty zone");
   if (!isCanonicalHex(input.ink)) throw new Error(`layoutCard: ink ${input.ink} is not #RRGGBB`);
@@ -201,7 +195,7 @@ function validate(input: LayoutCardInput, slots: readonly CardSlot[]): void {
 
 /** Lay out the generated card's text layer (see the module comment). */
 export function layoutCard(input: LayoutCardInput): CardTextLayout {
-  const slots = input.slots ?? CARD_SLOTS;
+  const slots = input.slots ?? CARD_SLOT_IDS;
   validate(input, slots);
   const { zone, proportion, pairing, content, ink, metrics, carried } = input;
 

@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { layoutCard, pairingFaces } from "./layout-card";
+import { FACT_SLOT_IDS } from "./slots";
 import {
   type CardContent,
   type TextBox,
-  FACT_SLOTS,
   FIT_SAFETY,
   boxText,
   carryWords,
@@ -68,7 +68,7 @@ function customBox(id: string, text: string, font: FontRef, over: Partial<TextBo
 describe("seedCustomization", () => {
   it("keeps a box for every fact slot, empty ones included, renumbering the stack", () => {
     const boxes = generated();
-    const seed = seedCustomization(boxes, FACT_SLOTS);
+    const seed = seedCustomization(boxes, FACT_SLOT_IDS);
     expect(seed.map((b) => b.id)).toEqual(boxes.map((b) => b.id));
     expect(seed.map((b) => b.z)).toEqual(boxes.map((_, i) => i));
     const baby = seed.find((b) => b.id === "babyName")!;
@@ -79,7 +79,7 @@ describe("seedCustomization", () => {
   it("returns copies the caller can edit without touching the generated layout", () => {
     const boxes = generated();
     const before = structuredClone(boxes);
-    const seed = seedCustomization(boxes, FACT_SLOTS);
+    const seed = seedCustomization(boxes, FACT_SLOT_IDS);
     seed[0].lines.push("x");
     seed[0].font.weight = 900;
     expect(boxes).toEqual(before);
@@ -87,9 +87,9 @@ describe("seedCustomization", () => {
 
   it("refuses a generated layer missing a fact slot or with duplicate ids", () => {
     const boxes = generated().filter((b) => b.id !== "rsvpBy");
-    expect(() => seedCustomization(boxes, FACT_SLOTS)).toThrow(/rsvpBy/);
+    expect(() => seedCustomization(boxes, FACT_SLOT_IDS)).toThrow(/rsvpBy/);
     const dup = generated();
-    expect(() => seedCustomization([...dup, dup[0]], FACT_SLOTS)).toThrow(/Duplicate/);
+    expect(() => seedCustomization([...dup, dup[0]], FACT_SLOT_IDS)).toThrow(/Duplicate/);
   });
 });
 
@@ -158,7 +158,7 @@ describe("rebreakBox", () => {
   });
 
   it("re-breaks every box of a fact after that fact changes, and only those", () => {
-    const seed = seedCustomization(generated(), FACT_SLOTS);
+    const seed = seedCustomization(generated(), FACT_SLOT_IDS);
     const content = { ...CONTENT, babyName: "Maximilian Augustin Montgomery-Whitworth" };
     const after = rebreakFactBoxes(seed, "babyName", content, metrics);
     const baby = after.find((b) => b.id === "babyName")!;
@@ -182,7 +182,7 @@ describe("carryWords", () => {
 
   /** The card being switched from, as the host left it. */
   function hostCard(added: TextBox[] = []): TextBox[] {
-    return seedCustomization(generated(), FACT_SLOTS)
+    return seedCustomization(generated(), FACT_SLOT_IDS)
       .map((box) => {
         if (box.id === "title")
           return { ...box, font: fraunces, x: 10, rotation: -8, color: "#000000" };

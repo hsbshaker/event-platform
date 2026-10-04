@@ -15,21 +15,14 @@
 
 import { layoutCard, type CardTextLayout, type LayoutCardInput } from "./layout-card";
 import type { CardShape } from "./shapes";
+import type { CardSlotId, FactSlotId, WordingSlotId } from "./slots";
 import { breakLines } from "./text/line-break";
 import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
 
-export const WORDING_SLOTS = ["title", "invitationLine"] as const;
-export type WordingSlot = (typeof WORDING_SLOTS)[number];
-
-export const FACT_SLOTS = ["babyName", "hosts", "date", "time", "venue", "rsvpBy"] as const;
-export type FactSlot = (typeof FACT_SLOTS)[number];
-
-/** Every card slot, in the generated layout's stacking order (`docs/card-system.md §2.5`). */
-export const CARD_SLOTS = [...WORDING_SLOTS, ...FACT_SLOTS] as const;
-export type CardSlot = (typeof CARD_SLOTS)[number];
-
 export type TextBoxSource =
-  { kind: "wording"; slot: WordingSlot } | { kind: "fact"; slot: FactSlot } | { kind: "custom" };
+  | { kind: "wording"; slot: WordingSlotId }
+  | { kind: "fact"; slot: FactSlotId }
+  | { kind: "custom" };
 
 export type TextAlign = "left" | "center" | "right";
 
@@ -73,7 +66,7 @@ export interface CardCustomization {
 }
 
 /** The event's current words for the card: the effective title and the facts, as display text. */
-export type CardContent = Partial<Record<CardSlot, string | null>>;
+export type CardContent = Partial<Record<CardSlotId, string | null>>;
 
 /**
  * Measured width × (1 + FIT_SAFETY) must fit the box: the margin that absorbs browser rendering
@@ -116,7 +109,7 @@ function copyBox(box: TextBox): TextBox {
  */
 export function seedCustomization(
   generatedBoxes: readonly TextBox[],
-  factSlots: readonly FactSlot[],
+  factSlots: readonly FactSlotId[],
 ): TextBox[] {
   const ids = new Set<string>();
   for (const box of generatedBoxes) {
@@ -156,7 +149,7 @@ export function rebreakBox(
 /** Re-break every box showing `slot`, after that fact changed (`docs/card-system.md §7`). */
 export function rebreakFactBoxes(
   boxes: readonly TextBox[],
-  slot: FactSlot,
+  slot: FactSlotId,
   content: CardContent,
   metrics: FontMetricsResolver,
 ): TextBox[] {
@@ -168,7 +161,10 @@ export function rebreakFactBoxes(
 }
 
 export interface CarryWordsInput {
-  /** The text layer of the card being switched from: its customization, else its generated layout. */
+  /**
+   * The customization of the card being switched from. A card without one carries nothing: the new
+   * card keeps its own generated layout and wording (`docs/card-system.md §7`).
+   */
   from: readonly TextBox[];
   /** The event's current content (effective title and facts). */
   content: CardContent;
@@ -188,7 +184,7 @@ export interface CarryWordsInput {
  * own fact styling. An invitation line the host deleted stays absent.
  */
 export function carryWords({ from, content, card }: CarryWordsInput): CardTextLayout {
-  const wording = (slot: WordingSlot) =>
+  const wording = (slot: WordingSlotId) =>
     from.find((b) => b.source.kind === "wording" && b.source.slot === slot);
   const title = wording("title");
   const invitation = wording("invitationLine");

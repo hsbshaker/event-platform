@@ -439,9 +439,12 @@ edits the card's **text layer**; the artwork, outline and envelope are never edi
 | Choose another design | none | `activeCardDesignId`; that design's customization if one exists, otherwise its generated layout carrying the host's words, added text and fonts |
 
 **Carrying words to a fresh layout** (a new design or shape with no customization of its own):
-the words and fonts come from the card being switched from — the active design and shape, its
-customization if it has one, else its generated layout. The title, invitation line and added text
-boxes keep their text and fonts; `layoutCard` places
+the words and fonts come from the customization of the card being switched from — the active
+design and shape. A card with no customization carries nothing: the host has not edited it, so the
+new card shows its own generated layout and wording (a new direction's own title and invitation
+line, not the previous design's). The carried layout is saved as the new card's customization, so
+what the host sees is stored and carries on at the next switch. The title, invitation line and
+added text boxes keep their text and fonts; `layoutCard` places
 them in the new layout's text zone — the generated slots first, then added boxes in their order,
 as extra body lines — and sizes and breaks them as usual; positions, rotation and colours come
 from the new card (its resolved ink). The title and invitation line always fit, because they keep
@@ -475,7 +478,7 @@ EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
 CARD_LAYOUT_SET_VERSION        // card_layouts_v1: layouts, per-shape zones and limits, shape outlines
-CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard
+CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard (slot specs, sizing), line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```
 

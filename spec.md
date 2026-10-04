@@ -1757,10 +1757,12 @@ is never a delete, so a collaborator's stale save is still refused after it.
 Choosing another design (before publish), or switching the card's shape:
 
 - keeps the host's words — the title, the invitation line and every added text box — and their
-  fonts, taken from the card being switched from (the active design and shape), and lays them out
-  fresh in the new card's generated layout; positions, sizes, rotation and colours start from the
-  new card. When the destination already has a customization, that customization is shown
-  instead;
+  fonts, taken from the customization of the card being switched from (the active design and
+  shape), and lays them out fresh in the new card's generated layout; positions, sizes, rotation
+  and colours start from the new card, and the carried layout is saved as the new card's
+  customization. A card the host has not edited has no customization and carries nothing: the new
+  card shows its own generated layout and wording. When the destination already has a
+  customization, that customization is shown instead;
 - keeps every customization already made for another design or shape, so switching back restores
   it;
 - switches `activeCardDesignId` or `activeCardShape`, and never changes event details, guests,
@@ -2401,7 +2403,9 @@ The host should feel:
   lines, positions and styles the host saw, at every size; the browser never re-wraps card text.
 - [ ] A stale save from a collaborator is refused and the editor reloads the latest with a notice.
 - [ ] Choosing another design or switching shape keeps the host's words, added text and fonts with
-  a fresh layout, and keeps earlier customizations so switching back restores them.
+  a fresh layout — carried from the customization of the card being switched from, and saved as
+  the new card's customization; a card never edited carries nothing and the new card shows its own
+  wording — and keeps earlier customizations so switching back restores them.
 - [ ] Card-editor edits remain allowed after publish and update the live card.
 
 ### Try another direction

@@ -10,4 +10,5 @@ export const CARD_DESIGN_PROMPT_VERSION = "card_design_v1";
 export const CARD_DESIGN_SCHEMA_VERSION = "card_design_schema_v1";
 export const CARD_ART_PROMPT_VERSION = "card_art_v1";
 export const CARD_LAYOUT_SET_VERSION = "card_layouts_v1";
+/** Design validation, ink resolution, layoutCard's slot specs and sizing, and line breaking. */
 export const CARD_COMPILER_VERSION = "card_compiler_v1";
