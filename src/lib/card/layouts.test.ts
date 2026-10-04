@@ -7,9 +7,17 @@ import {
   CARD_LAYOUT_SET_VERSION,
   CARD_LAYOUTS,
   layoutSupportsShape,
+  panelFor,
   zoneFor,
 } from "./layouts";
-import { CARD_SHAPES, canvasOf, insideTextSafe, SHAPE_PROPORTION } from "./shapes";
+import {
+  CARD_SHAPES,
+  canvasOf,
+  insideOutline,
+  insideTextSafe,
+  SHAPE_GEOMETRY,
+  SHAPE_PROPORTION,
+} from "./shapes";
 
 describe("layout set card_layouts_v1", () => {
   it("is versioned", () => {
@@ -68,5 +76,69 @@ describe("layout set card_layouts_v1", () => {
 
   it("refuses an unsupported shape", () => {
     expect(() => zoneFor("corners", "oval")).toThrow(/does not support/);
+    expect(() => panelFor("corners", "oval")).toThrow(/does not support/);
+  });
+
+  it("gives every layout the Phase 3 legibility panel: the zone padded 40 × 30, radius 28", () => {
+    for (const layout of CARD_LAYOUT_IDS) {
+      expect(CARD_LAYOUTS[layout].panel).toEqual({
+        padX: 40,
+        padY: 30,
+        radius: 28,
+        softEdge: { spread: 20, blur: 40 },
+      });
+    }
+    expect(panelFor("art-top", "rectangle")).toEqual({
+      x: 80,
+      y: 770,
+      width: 840,
+      height: 510,
+      radius: 28,
+      softEdge: { spread: 20, blur: 40 },
+    });
+  });
+
+  it("backs every point of the zone with panel, inside the outline, for every layout x shape", () => {
+    /** Inside the panel's rounded rectangle. */
+    const inPanel = (p: ReturnType<typeof panelFor>, x: number, y: number): boolean => {
+      if (x < p.x || x > p.x + p.width || y < p.y || y > p.y + p.height) return false;
+      const cx = Math.min(Math.max(x, p.x + p.radius), p.x + p.width - p.radius);
+      const cy = Math.min(Math.max(y, p.y + p.radius), p.y + p.height - p.radius);
+      return Math.hypot(x - cx, y - cy) <= p.radius;
+    };
+    /** Inside the drawn outline: `insideOutline` with the rounded rectangle's corners cut. */
+    const inOutline = (shape: (typeof CARD_SHAPES)[number], x: number, y: number): boolean => {
+      if (!insideOutline(shape, x, y)) return false;
+      if (shape !== "rounded-rectangle") return true;
+      const { width: w, height: h } = canvasOf(shape);
+      const r = SHAPE_GEOMETRY[shape].radius!;
+      const cx = Math.min(Math.max(x, r), w - r);
+      const cy = Math.min(Math.max(y, r), h - r);
+      return Math.hypot(x - cx, y - cy) <= r;
+    };
+    for (const layout of CARD_LAYOUT_IDS) {
+      for (const shape of CARD_LAYOUTS[layout].shapes) {
+        const zone = zoneFor(layout, shape);
+        const panel = panelFor(layout, shape);
+        const { width: w, height: h } = canvasOf(shape);
+        const label = `${layout}/${shape}`;
+        // Within the canvas, and padded beyond the zone on every side.
+        expect(panel.x, label).toBeGreaterThanOrEqual(0);
+        expect(panel.y, label).toBeGreaterThanOrEqual(0);
+        expect(panel.x + panel.width, label).toBeLessThanOrEqual(w);
+        expect(panel.y + panel.height, label).toBeLessThanOrEqual(h);
+        expect(zone.x - panel.x, label).toBe(40);
+        expect(zone.y - panel.y, label).toBe(30);
+        expect(panel.x + panel.width - (zone.x + zone.width), label).toBe(40);
+        expect(panel.y + panel.height - (zone.y + zone.height), label).toBe(30);
+        const missed: string[] = [];
+        for (let y = zone.y; y <= zone.y + zone.height; y += 5) {
+          for (let x = zone.x; x <= zone.x + zone.width; x += 5) {
+            if (!(inPanel(panel, x, y) && inOutline(shape, x, y))) missed.push(`${x},${y}`);
+          }
+        }
+        expect(missed, label).toEqual([]);
+      }
+    }
   });
 });

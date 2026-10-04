@@ -2,7 +2,8 @@
  * The layout set `card_layouts_v1` (`docs/card-system.md §2.3`), ported from the catalog validated
  * in Phase 3 (`scripts/phase-3/catalog.mjs`). One fix since: `zoneFor` also checks the band's
  * bottom edge, which the catalog's 4-unit step could miss, so a zone narrows by a few units where a
- * curved outline pinches there (no card had been made from the set yet).
+ * curved outline pinches there; and each layout's legibility-panel shape, ported from the Phase 3
+ * mock (`PanelSpec`). Both landed before any card had been made from the set.
  *
  * A layout decides only where the words go and which regions the artwork leaves quiet. It is
  * never shown to hosts. Adding, removing or changing a layout, a supported shape or a band is a
@@ -46,7 +47,35 @@ export interface CardLayout {
   composition: string;
   /** How much presence the artwork wants (goes into the art prompt verbatim). */
   presence: string;
+  /** The legibility panel's shape, used only when ink resolution needs it (`panelFor`). */
+  panel: PanelSpec;
 }
+
+/**
+ * A layout's legibility-panel shape (`docs/card-system.md §2.2`, §2.3, §4.2): a rounded rectangle
+ * around the text zone, in card units. Ported from the Phase 3 mock the owner judged
+ * (`scripts/phase-3/compose.mjs`): the zone expanded by 40 across and 30 down, radius 28, with a
+ * soft paper edge (the mock's `box-shadow: 0 0 40px 20px`). The mock drew the panel at 0.92
+ * opacity; the product draws it opaque, because ink is resolved against the panel's own colour
+ * (`resolveInk`) and contrast is only what was measured if nothing shows through behind the text.
+ */
+export interface PanelSpec {
+  /** Padding beyond the zone on the left and right. */
+  padX: number;
+  /** Padding beyond the zone above and below. */
+  padY: number;
+  /** Corner radius. */
+  radius: number;
+  /** The soft edge outside the panel: the panel colour spread and blurred, fading to nothing. */
+  softEdge: { spread: number; blur: number };
+}
+
+const PHASE_3_PANEL: PanelSpec = {
+  padX: 40,
+  padY: 30,
+  radius: 28,
+  softEdge: { spread: 20, blur: 40 },
+};
 
 export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
   "art-top": {
@@ -59,6 +88,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "Place the subject in the upper half of the canvas. Keep the lower part of the canvas — the bottom 45% — completely clear: nothing from the subject (feet, paws, tails, ribbons, fabric, shadows, foliage) crosses into it; only the paper, wash or a very soft continuation of the background texture.",
     presence:
       "The subject is large and confident: it fills most of the upper half, with supporting elements that may trail a little way down the sides. It must not shrink to a small vignette floating in empty space.",
+    panel: PHASE_3_PANEL,
   },
   "art-bottom": {
     purpose:
@@ -71,6 +101,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "Ground the subject along the bottom of the canvas, rising through the lower half. Keep the upper part of the canvas — the top 45% — completely clear: nothing from the subject (leaves, steam, branches, shadows) rises into it; only paper, wash or soft sky.",
     presence:
       "The subject is generous and fills most of the lower half, edge to edge where it suits it. It must not shrink to a small object in empty space.",
+    panel: PHASE_3_PANEL,
   },
   framed: {
     purpose: "A border, wreath, garland or frame surrounds a quiet centre that holds the text.",
@@ -82,6 +113,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "Arrange the artwork as a border, wreath, garland or frame running around the outer part of the canvas. Keep the central area (roughly the middle 60% of the width and the middle 45% of the height) calm and open: soft background only.",
     presence:
       "The frame is rich and substantial — a generous band of detail around all sides, not a thin line — unless the mode is minimal, where it is a refined, delicate border.",
+    panel: PHASE_3_PANEL,
   },
   corners: {
     purpose: "Motifs cluster in the corners and along the edges; the centre stays open for text.",
@@ -93,6 +125,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "Cluster the artwork in at least two corners (for example top-left and bottom-right, or all four), flowing a little along the edges. Keep the centre of the canvas (roughly a vertical oval covering the middle 60% of the width and 45% of the height) calm and open.",
     presence:
       "Each corner cluster is substantial — roughly a quarter to a third of the card's width and height — and full of detail. Do not reduce the artwork to a few small props around an empty field.",
+    panel: PHASE_3_PANEL,
   },
   atmosphere: {
     purpose: "A soft full-bleed wash, scenery or texture carries the mood; no discrete subject.",
@@ -104,6 +137,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "Fill the whole canvas with a soft wash, scenery or texture. Keep contrast low and detail quiet through the centre of the canvas, where text will sit.",
     presence:
       "The atmosphere covers the whole card with real depth and variation; it is never a flat, empty field.",
+    panel: PHASE_3_PANEL,
   },
 };
 
@@ -120,6 +154,34 @@ export interface CardZone {
   y: number;
   width: number;
   height: number;
+}
+
+/** The legibility panel behind a zone: a rounded rectangle in card units, and its soft edge. */
+export interface CardPanelShape {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
+  softEdge: { spread: number; blur: number };
+}
+
+/**
+ * The legibility panel for the layout's zone in this shape: the zone expanded by the layout's
+ * panel padding, kept within the canvas. Where the outline is curved the panel is clipped by the
+ * outline, as everything on the card is: the renderer masks the whole card, panel included
+ * (`outline.ts`). The zone lies in the shape's text-safe area, so the clipped panel still backs
+ * all of it (`layouts.test.ts`).
+ */
+export function panelFor(layout: CardLayoutId, shape: CardShape): CardPanelShape {
+  const zone = zoneFor(layout, shape);
+  const { padX, padY, radius, softEdge } = CARD_LAYOUTS[layout].panel;
+  const canvas = CARD_CANVAS[SHAPE_PROPORTION[shape]];
+  const x0 = Math.max(0, zone.x - padX);
+  const y0 = Math.max(0, zone.y - padY);
+  const x1 = Math.min(canvas.width, zone.x + zone.width + padX);
+  const y1 = Math.min(canvas.height, zone.y + zone.height + padY);
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0, radius, softEdge: { ...softEdge } };
 }
 
 /**
