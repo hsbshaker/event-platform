@@ -124,7 +124,7 @@ Bottom to top:
 The card's text is real, selectable, screen-reader-readable text. The artwork is decorative
 (`alt=""`); everything a guest needs is in the text and on the page below.
 
-## 2.3 Layout set (`card_layouts_v1`)
+## 2.3 Layout set (`card_layouts_v2`)
 
 A **layout** says where text goes and, in return, where the artwork must leave calm space. Each
 layout declares the shapes it supports, and for each of them defines:
@@ -132,29 +132,46 @@ layout declares the shapes it supports, and for each of them defines:
 - its text zones, as rectangles in card units inside the shape's text-safe area, and which slots
   (§2.5) each zone holds, in order;
 - alignment per zone;
-- size range (maximum and minimum, in card units) and maximum lines per slot (in `card_layouts_v1`
+- size range (maximum and minimum, in card units) and maximum lines per slot (in `card_layouts_v2`
   one slot-spec table serves every layout and shape: `src/lib/card/layouts.ts`);
 - the character limit per slot that guarantees fit for every pairing **and every shape the layout
   supports** (§4.3), so switching shape can never make accepted text stop fitting;
-- the composition instruction added to the art brief: where the subject may sit and which regions
-  must stay quiet;
+- the composition instruction added to the art brief, per shape: where the subject may sit and
+  which regions must stay quiet;
 - the artwork's **presence**: how much of the card it should occupy outside the quiet regions (for
   example, substantial clusters in two corners, or a subject filling the upper half). Told only
   where to stay out, image models over-correct into a few token props on an empty field, which reads
   unfinished; the layout states the presence it wants as well as the space it reserves;
 - its legibility-panel shape, used only when §4.2 needs it.
 
-The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`), versioned as
-`card_layouts_v1`; the tested geometry, composition and presence rules are product code in
-`src/lib/card/layouts.ts` and `src/lib/card/shapes.ts`:
+The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`) was `card_layouts_v1`.
+`card_layouts_v2` carries the owner's Phase 4 fit decisions (`CHANGELOG-v7.md`, "Phase 4 — fitting
+every detail on every card"), proven by the layout fixtures (§9) with every slot at its limit; no
+card was made from `card_layouts_v1`. The geometry, bands, composition and presence rules are
+product code in `src/lib/card/layouts.ts` and `src/lib/card/shapes.ts`:
 
 | Layout | Text | Artwork | Shapes | Art modes |
 | --- | --- | --- | --- | --- |
-| `art-top` | lower part, centred | subject in the upper half; the bottom 45% stays clear | all six | `illustration` |
-| `art-bottom` | upper part, centred | subject grounded at the bottom; the top 45% stays clear | all six | `illustration` |
+| `art-top` | lower part, centred | subject in the upper half, the bottom 45% clear; on `square`, `oval` and `arch` the upper 40%, the bottom 60% clear | all but `circle` | `illustration` |
+| `art-bottom` | upper part, centred | subject grounded at the bottom, the top 45% clear; on `square`, `oval` and `arch` the lower 40%, the top 60% clear | all but `circle` | `illustration` |
 | `framed` | centred panel | border, wreath, garland or frame — rich, built from the event's motifs — around a quiet centre | all six | `framed`, `minimal` |
 | `corners` | centred | substantial motif clusters in two or more corners; centre quiet | `rectangle`, `rounded-rectangle`, `square` | `illustration`, `framed` |
 | `atmosphere` | centred | full-bleed wash or texture with real depth, low contrast through the centre | all six | `atmosphere`, `minimal` |
+
+**Every card shows every detail; the picture gives way** (owner decision). Where a picture sits
+above or below the words on a `square`, `oval` or `arch` card, it takes roughly 40% of the card and
+the words get the other 60%, with that shape's own composition and presence text ("the upper 40% …
+keep the bottom 60% completely clear"). A circle keeps the words in the middle, so `art-top` and
+`art-bottom` do not offer it. Text bands, in card units (top–bottom); a picture layout's band lies
+at least 30 units inside the region its composition keeps clear:
+
+| Layout | `rectangle`, `rounded-rectangle` | `arch` | `oval` | `square` | `circle` |
+| --- | --- | --- | --- | --- | --- |
+| `art-top` | 800–1250 | 600–1260 | 600–1180 | 440–920 | — |
+| `art-bottom` | 150–600 | 240–800 | 220–800 | 80–560 | — |
+| `framed` | 400–1000 | 400–1000 | 400–1000 | 260–740 | 260–740 |
+| `corners` | 420–980 | — | — | 260–740 | — |
+| `atmosphere` | 400–1000 | 400–1000 | 400–1000 | 260–740 | 260–740 |
 
 Phase 3's two judged misses were both sparse (a frame around a large empty centre, a quiet wash),
 so the presence rules of `framed` and `atmosphere` are the first thing to strengthen.
@@ -162,10 +179,12 @@ so the presence rules of `framed` and `atmosphere` are the first thing to streng
 Not every layout suits every shape (text clustered toward a corner does not belong in an oval or
 a circle); a layout's supported shapes are part of the set and are validated (§4.1).
 
-Layouts are chosen by the card-design model call from this catalog by ID. The catalog — layouts,
-their per-shape zones and limits, and the six shapes' outlines — is versioned together
-(`card_layouts_v1`); adding or changing a layout or a shape is a version bump and re-runs the layout
-fixtures (§9). Layouts are never shown to the host as a gallery and the host does not pick one.
+Layouts are chosen by the card-design model call from this catalog by ID; the catalog given to the
+model at runtime is built from `layouts.ts`, as the validator that checks its choice is. The
+catalog — layouts, their per-shape zones, bands, art instructions and limits, and the six shapes'
+outlines — is versioned together (`card_layouts_v2`); adding or changing a layout or a shape is a
+version bump and re-runs the layout fixtures (§9). Layouts are never shown to the host as a gallery
+and the host does not pick one.
 
 ## 2.4 Art modes
 
@@ -185,8 +204,22 @@ Mode/layout compatibility is part of the layout set and is validated (§4.1).
 
 | Mode | Fits | Why |
 | --- | --- | --- |
-| `illustration`, `atmosphere` | every shape of its proportion that the layout supports | The art prompt carries the crop-safety rule of the tightest of those outlines (everything important inside it; corners hold only background that can be lost), so any of them can trim it |
+| `illustration`, `atmosphere` | every shape of its proportion that the layout supports with the same composition and presence (§2.3) | The art prompt carries the crop-safety rule of the tightest of those outlines (everything important inside it; corners hold only background that can be lost), so any of them can trim it |
 | `framed`, `minimal` | only the shape it was generated for | Borders, frames and wreaths follow the outline; a rectangular border cut into an oval looks wrong |
+
+An artwork painted to keep one region quiet never fits a shape whose words need another. So in
+`card_layouts_v2` the fit sets of `illustration` and `atmosphere` art are:
+
+| Layout | 5:7 | 1:1 |
+| --- | --- | --- |
+| `art-top`, `art-bottom` | `rectangle` + `rounded-rectangle` (half-card picture); `arch` + `oval` (40% picture) | `square` |
+| `corners` | `rectangle` + `rounded-rectangle` | `square` |
+| `atmosphere` | all four | `square` + `circle` |
+
+A 40% picture does not fit the half-card shapes either: on a rectangle its picture would end well
+above the words, leaving an empty band the layout does not intend. The art prompt for every shape
+in a fit set is identical, so any of them could have been the one generated
+(`src/lib/card/art-prompt.ts`).
 
 Switching to a shape outside the fit set generates artwork for it (§7). Earlier artwork is kept, so
 switching back is instant.
@@ -199,10 +232,10 @@ switching back is instant.
 | `invitationLine` | AI-drafted wording, host-editable | One short line such as "Please join us for a baby shower". |
 | `babyName` | host fact | Shown when present. |
 | `hosts` | host fact | e.g. "Hosted by Maya & Tom". |
-| `date` | host fact | Formatted by code from the stored date. |
-| `time` | host fact | Start time; end time when present. |
+| `date` | host fact | Formatted by code from the stored date: weekday, month and day, no year ("Saturday, June 6"); the page carries the full date. |
+| `time` | host fact | Formatted by code: "1:00 pm", or "1:00 pm – 4:00 pm" when an end time is stored. |
 | `venue` | host fact | Venue name, else the address; the full address is on the page. |
-| `rsvpBy` | host fact | Formatted from the stored RSVP deadline. |
+| `rsvpBy` | host fact | Formatted by code from the stored RSVP deadline, in the event's timezone: "RSVP by May 30". |
 
 Rules:
 
@@ -218,6 +251,19 @@ Rules:
   card. In Creation Mode a missing required fact shows as a placeholder marked as needing
   confirmation; placeholders are never published (`spec.md §7.3`).
 - **Slot limits** are part of the layout set and are enforced at entry, so fitting can never fail.
+  In `card_layouts_v2`: title 40 characters, invitation line 72, baby name 40, hosts 60, venue 60.
+  The date, time and RSVP-by are formatted by code (`src/lib/card/facts.ts`) and are at most 23
+  ("Wednesday, September 30"), 19 ("10:00 pm – 11:00 pm") and 20 ("RSVP by September 30")
+  characters.
+- **The entry check** (`validateCardText`, `src/lib/card/entry.ts`) runs on everything the host
+  types that the card shows as typed — a host-supplied title, the baby name, the hosts and the venue
+  name — in the details form and, authoritatively, in its server action. It refuses, with a plain
+  message beside the field: text over the slot limit; a word (or the part of a hyphenated word
+  between hyphens) too wide for one line of the layout set's narrowest zone at the slot's minimum
+  size in any curated pairing; and characters a curated face for the slot cannot draw ("The card
+  can't show 🎈 — please remove it"). The curated faces cover Latin-1, so emoji, other alphabets
+  and scripts written without spaces are refused at entry (owner decision; emoji on the card may
+  come later).
 - A slot with no value takes no space.
 
 ## 2.6 Typography
@@ -324,13 +370,17 @@ font size and line breaks:
 
 - start each slot at the layout's maximum size and step down to its minimum;
 - break lines deterministically and evenly, never leaving a one-word last line where another break
-  exists, never breaking inside a word;
+  exists, never breaking inside a word except just after a hyphen between letters
+  ("Montgomery-" / "Whitworth"), the hyphen kept on the first line. A space always ranks above a
+  hyphen: the sizes are searched first with no hyphen breaks, and only if nothing fits are they
+  searched again with them;
 - measure from the fonts' own metrics — the curated fonts, or the font store's for a host font
   carried to a fresh layout (§2.6) — with a safety margin that absorbs browser rendering
   differences;
-- slot character limits (§2.5) guarantee that every value accepted at entry fits at the minimum size
-  in every layout, supported shape and pairing. A test renders every layout × supported shape ×
-  pairing with worst-case content in a real browser to prove it (§9).
+- slot character limits and the entry check (§2.5) guarantee that every value accepted at entry
+  fits at the minimum size in every layout, supported shape and pairing. A test renders every
+  layout × supported shape × pairing with worst-case content in a real browser to prove it (§9),
+  with no exceptions.
 
 The renderer sets exactly the lines and sizes this function returns; the browser does not re-wrap
 card text. The same function runs when the design is compiled, when a new design or shape is seeded
@@ -466,7 +516,8 @@ editor shows the card exactly as guests will see it.
 **Line breaking for edited boxes.** One deterministic function breaks a box's text at its width
 from the font's own metrics (the font store's extracted metrics, so the server and every browser
 agree), with the same rules as §4.3: even lines, no one-word last line where another break exists,
-never inside a word, a hard break where the host typed one. The result is stored as the box's
+never inside a word except just after a hyphen between letters (a space preferred), a hard break
+where the host typed one. The result is stored as the box's
 `lines` and rendered exactly; a later change to the text, width, font, size, spacing or case
 re-breaks it. A fact edit — in the editor or outside it — re-breaks that fact's boxes in every
 customization of the event on save, so a card restored later never shows stale lines.
@@ -485,7 +536,7 @@ Recorded on every `CardDesign` and generation run (`src/lib/ai/versions.ts`):
 EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
-CARD_LAYOUT_SET_VERSION        // card_layouts_v1: layouts, per-shape zones, slot specs and limits, shape outlines
+CARD_LAYOUT_SET_VERSION        // card_layouts_v2: layouts, per-shape zones and art instructions, slot specs and limits, shape outlines
 CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard's sizing steps, line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```
@@ -506,7 +557,8 @@ set it was generated against; the renderer supports every layout-set version tha
   delete, undo/redo, reset — with the stored card re-rendered for a guest showing the same lines,
   positions and styles as the editor at the same size in the same browser.
 - **Layout fixtures:** every layout × supported shape × pairing with worst-case and typical content
-  renders in a real browser at card scale with no text outside its zone or its shape's outline. This is a test-time check; production does
+  renders in a real browser at card scale with no text outside its zone or its shape's outline, with
+  no exceptions (`npm run test:fixtures`). This is a test-time check; production does
   not run a browser to verify cards.
 - **Creative evaluation:** the corpus in `docs/model-evals/creative-understanding.json` against the
   real identity and card-design calls (`docs/model-contracts.md §6`).

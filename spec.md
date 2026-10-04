@@ -2347,7 +2347,8 @@ The host should feel:
   of its zone (host-chosen colours in the card editor are not checked);
   otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
 - [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
-  its zone; no word is broken; text is never silently truncated; slot limits are enforced at entry.
+  its zone; no word is broken; text is never silently truncated; slot limits are enforced at entry,
+  and characters the card's fonts cannot draw are refused at entry with a plain message.
 - [ ] No legibility, fit, compatibility or wording-fallback step calls a model.
 - [ ] `CardDesign` (raw and validated), artwork, resolved ink and the version set persist per design
   and are never mutated.
