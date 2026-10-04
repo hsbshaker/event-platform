@@ -54,6 +54,13 @@ function breakWord(word: string, fits: (s: string) => boolean): string[] {
 }
 
 /**
+ * CSS's collapsible white space under `white-space: normal` (spaces, tabs and segment breaks). A
+ * no-break space is not among them: it stays, and joins the words either side of it.
+ */
+const COLLAPSIBLE = /[ \t\n\r]+/g;
+const trimCollapsible = (s: string) => s.replace(/^[ \t\n\r]+|[ \t\n\r]+$/g, "");
+
+/**
  * The title's lines as the live envelope sets them: white space collapsed, greedy wrapping at
  * spaces, a word wider than the line broken (`break-words`), and at most three lines, the last one
  * ended with an ellipsis when more text follows (`line-clamp-3`).
@@ -64,7 +71,7 @@ export function envelopeTitleLines(
   width: number,
 ): string[] {
   const fits = (s: string) => measure(s) <= width;
-  const words = title.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  const words = trimCollapsible(title.replace(COLLAPSIBLE, " ")).split(" ").filter(Boolean);
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
@@ -82,8 +89,8 @@ export function envelopeTitleLines(
   if (lines.length <= MAX_TITLE_LINES) return lines;
   let last = lines[MAX_TITLE_LINES - 1];
   const chars = [...graphemes.segment(last)].map((s) => s.segment);
-  while (chars.length > 0 && !fits(`${chars.join("").trimEnd()}${ELLIPSIS}`)) chars.pop();
-  last = `${chars.join("").trimEnd()}${ELLIPSIS}`;
+  while (chars.length > 0 && !fits(`${trimCollapsible(chars.join(""))}${ELLIPSIS}`)) chars.pop();
+  last = `${trimCollapsible(chars.join(""))}${ELLIPSIS}`;
   return [...lines.slice(0, MAX_TITLE_LINES - 1), last];
 }
 

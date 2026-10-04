@@ -26,6 +26,7 @@ import {
   applyTextCase,
   fontFileToSfnt,
   loadFontMetrics,
+  NO_OPTIONAL_LIGATURES,
   SHAPING_LANGUAGE,
   type FontMetrics,
   type FontRef,
@@ -64,7 +65,6 @@ export interface GlyphOutlines {
 
 export type GlyphOutlinesResolver = (font: FontRef) => GlyphOutlines;
 
-const NO_OPTIONAL_LIGATURES = ["liga", "clig", "dlig"];
 /** Hebrew, Arabic and the other right-to-left blocks, and explicit bidi controls. */
 const RIGHT_TO_LEFT =
   /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc\u200f\u202b\u202e\u2067\u{10800}-\u{10fff}\u{1e800}-\u{1efff}]/u;
@@ -150,13 +150,14 @@ export function loadGlyphOutlines(sfnt: Uint8Array, font: FontRef): GlyphOutline
       if (RIGHT_TO_LEFT.test(text)) {
         throw new UndrawableTextError(`right-to-left text is not drawn: ${JSON.stringify(text)}`);
       }
-      const missing = metrics.missingCharacters(text);
+      // As drawn: the case applied first (`ÿ` is in every curated face, `Ÿ` is not in all).
+      const cased = applyTextCase(text, textCase);
+      const missing = metrics.missingCharacters(cased);
       if (missing.length > 0) {
         throw new UndrawableTextError(
           `${font.family} ${font.weight} has no glyph for ${missing.join(" ")}`,
         );
       }
-      const cased = applyTextCase(text, textCase);
       const spaced = letterSpacingEm !== 0;
       const spacing = letterSpacingEm * size;
       const scale = size / upem;

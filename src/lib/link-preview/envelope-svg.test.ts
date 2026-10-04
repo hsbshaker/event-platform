@@ -23,6 +23,17 @@ describe("envelopeTitleLines", () => {
     expect(envelopeTitleLines("", measure, 90)).toEqual([]);
   });
 
+  it("keeps a no-break space: it joins words and is never collapsed or trimmed", () => {
+    expect(envelopeTitleLines("Maya and Jonas", measure, 100)).toEqual(["Maya and", "Jonas"]);
+    expect(envelopeTitleLines("Maya and\u00a0Jonas", measure, 100)).toEqual([
+      "Maya",
+      "and\u00a0Jonas",
+    ]);
+    expect(envelopeTitleLines(" \u00a0Maya\u00a0\u00a0", measure, 100)).toEqual([
+      "\u00a0Maya\u00a0\u00a0",
+    ]);
+  });
+
   it("breaks a word wider than the line", () => {
     expect(envelopeTitleLines("abcdefghijkl x", measure, 50)).toEqual(["abcde", "fghij", "kl x"]);
   });

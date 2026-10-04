@@ -15,6 +15,9 @@ const SAMPLES = [
   "Saturday, June 6 · 1:00 pm",
   "Office ffi fl Wave AV To",
   "é",
+  // Contextual alternates that change advances (Manrope's case-sensitive hyphen in capitals,
+  // Inter's arrow): under letter spacing they are off, as they are when measuring.
+  "Montgomery-Whitworth, a->b",
 ];
 
 describe("glyph outlines", () => {
@@ -88,6 +91,21 @@ describe("glyph outlines", () => {
     expect(() => outlines.line("Shalom שלום", { size: 30 })).toThrow(UndrawableTextError);
     expect(() => outlines.line("a\u202eb", { size: 30 })).toThrow(UndrawableTextError);
     expect(() => outlines.line("two\nlines", { size: 30 })).toThrow(UndrawableTextError);
+  });
+
+  it("checks the characters as drawn, after the box's case", async () => {
+    // `ÿ` is in every curated face; its capital `Ÿ` is not.
+    const lacking = [];
+    for (const f of curatedFaces()) {
+      const outlines = await load(f.family, f.weight);
+      expect(() => outlines.line("ÿ", { size: 30 })).not.toThrow();
+      if (outlines.metrics.missingCharacters("Ÿ").length === 0) continue;
+      lacking.push(f.family);
+      expect(() => outlines.line("ÿ", { size: 30, textCase: "uppercase" })).toThrow(
+        UndrawableTextError,
+      );
+    }
+    expect(lacking.length).toBeGreaterThan(0);
   });
 
   it("refuses a file that is not the family asked for", async () => {
