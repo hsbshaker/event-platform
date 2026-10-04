@@ -272,7 +272,7 @@ No campaigns or marketing automation.
 Controls (§7.14, §20):
 
 - font: the design's primary pairing and its alternates;
-- shape: outline swatches for the shapes the design's layout supports (of rectangle, rounded rectangle, arch, oval, square, circle). Same proportion: applies instantly. Other proportion (tall ↔ square): states that new artwork will be made, keeps the current card visible while it generates, before publish only (§7.14);
+- shape: outline swatches for the shapes the design's layout supports (of rectangle, rounded rectangle, arch, oval, square, circle). A shape the current artwork fits applies instantly; any other (tall ↔ square, or a new outline for a bordered design) states that new artwork of the same subject will be made, keeps the current card visible while it generates, before publish only (§7.14);
 - reset card wording, font and shape to the design;
 - `Try another direction ✦` before publish;
 - designs list before publish (read-only afterwards).

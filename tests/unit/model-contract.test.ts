@@ -29,7 +29,7 @@ const identitySchema = JSON.parse(
 ) as JsonSchema;
 const identityPrompt = readFileSync(`${DOCS}model-prompts/event-identity.system.md`, "utf8");
 
-describe("Event Identity v3 contract", () => {
+describe("Event Identity contract (prompt v4, schema v4)", () => {
   it("names the same prompt and schema versions as versions.ts", () => {
     expect(identityPrompt).toContain(`**Prompt version:** \`${EVENT_IDENTITY_PROMPT_VERSION}\``);
     expect(identityPrompt).toContain(EVENT_IDENTITY_SCHEMA_VERSION);

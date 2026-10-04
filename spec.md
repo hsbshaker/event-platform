@@ -51,8 +51,9 @@ pages, and the palette override control.
 
 The card comes in **six shapes**: rectangle, rounded rectangle, arch and oval at portrait 5:7;
 square and circle at 1:1. There is no landscape card. The design picks the shape; the host may
-switch it. Switching between shapes of the same proportion is instant; switching across
-proportions generates new artwork from the same brief (§7.14, `docs/card-system.md §2.1`, §7).
+switch it. Switching to a shape the current artwork fits is instant; switching to any other shape
+(the other proportion, or another outline for border- and frame-led art) generates new artwork
+from the same brief (§7.14, `docs/card-system.md §2.1`, §2.4, §7).
 
 ---
 
@@ -122,7 +123,8 @@ The platform acts like an **AI creative director + event operating system**.
 The host describes the event in natural language. AI:
 
 - understands the taste, vibe and subtext, including negative constraints;
-- translates named references into original design language rather than copying protected assets;
+- understands named references and captures the look the host means — close homage allowed — without
+  logos, wordmarks, brand names or copied campaign art;
 - produces a structured creative brief (the Event Identity);
 - designs an invitation card: a layout, an art direction, a font pairing and the card's wording;
 - generates original artwork for that card.
@@ -518,7 +520,7 @@ Lifecycle calculations always use the stored IANA timezone.
 
 ### 7.5 Event Identity
 
-A strong multimodal model derives and persists the creative brief (`event_identity_schema_v3`,
+A strong multimodal model derives and persists the creative brief (`event_identity_schema_v4`,
 `docs/model-contracts.md §4`):
 
 ```ts
@@ -563,13 +565,26 @@ It holds one boundary exactly:
 
 ### 7.6 Brand/style references
 
-Named references such as Ralph Lauren are interpreted into original attributes: heritage,
-equestrian, classic Americana, editorial serif, navy/ivory/forest/camel, restrained plaid,
-understated luxury, heirloom teddy energy.
+Named references such as Ralph Lauren are interpreted for the look the host means: heritage,
+equestrian, classic Americana, editorial serif, navy/ivory/forest/camel, plaid, understated
+luxury — and, where the host clearly wants it, a homage to the brand's signature character or
+motif (for a Ralph Lauren baby shower, a teddy bear in preppy knitwear).
 
-Never copy protected logos, characters, campaign artwork or a specific proprietary design — not in
-the identity, not in the art brief, not in the artwork. A brief that names a brand has already
-failed, whatever the image looks like.
+**Close homage is allowed; marks are not.** Artwork may clearly evoke a brand's own character or
+look. It never contains:
+
+- a logo, crest, monogram or wordmark;
+- a brand or character name, in the artwork or in model-drafted wording;
+- copied campaign photography or artwork, or a near-exact reproduction of a specific existing image.
+
+Event Identity may record the reference by name. The art brief and the assembled art prompt never
+name the brand: the brief describes the homage in plain words (for example "a teddy bear in a cream
+cable-knit sweater over a blue oxford collar"), so the image model never receives a brand name.
+
+This line was chosen deliberately by the owner and carries trademark and copyright risk for a
+platform that charges to publish (`docs/CHANGELOG-v7.md`). It must be reviewed by counsel before
+launch (`docs/product-doctrine.md §14`). An image provider may refuse some requests; a refusal is
+a visible failure with retry like any other (§7.8).
 
 ### 7.6a Card artwork
 
@@ -585,13 +600,17 @@ Binding rules:
 2. **No text in the artwork.** No letters, numbers, logos or watermarks. Every word is real text set
    by code. Embedded text is detected and rejected (§7.8).
 3. **The image model never sees the raw prompt or the inspiration images.** It receives the art
-   brief and the layout's composition rule only.
-4. **Original language only** (§7.6).
+   brief and the layout's and shape's composition rules only — plus, when the host switches to a
+   shape no existing artwork fits, the design's own earlier artwork as a reference so the subject
+   stays the same (§7.14). The design's own generated artwork is the only image it ever receives.
+4. **Brand references follow §7.6:** close homage allowed; never a logo, wordmark, brand or
+   character name, or copied campaign artwork.
 5. **Readability always wins.** Code guarantees text contrast over the artwork (§7.9); the artwork
    is never the reason a guest cannot read the card.
 6. **No host photography, stock or retrieved imagery.** The artwork is generated for this event.
 
-The image model is selected by the Phase 3 bake-off and recorded in `docs/technology-decisions.md`.
+The image model is **GPT Image 2.5 Sunburst** (owner decision, `docs/technology-decisions.md §8.1`);
+Phase 3 validates it through the API before the product is built around it.
 
 ### 7.6b Adaptive creative clarification
 
@@ -657,11 +676,11 @@ host's facts, or any ID outside its catalogs.
 ### 7.8 Card artwork generation
 
 Application code assembles the art prompt deterministically from the art brief, the layout's
-and shape composition rules and the global rules (no text, no logos or brands, original style, the
+and shape composition rules and the global rules (no text, no logos, wordmarks or brand names, the
 shape's proportion: 5:7 or 1:1).
 The image model returns the artwork.
 
-Validation (deterministic, plus the bake-off's chosen checks): file type, the requested proportion
+Validation (deterministic, plus the text and safety checks chosen in Phase 3 validation): file type, the requested proportion
 within tolerance,
 minimum resolution, decodable, **no embedded text**, and content safety. A failure earns one
 regeneration; a second failure is shown honestly to the host with a retry action. There is no
@@ -677,8 +696,7 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
    slot, logged); host-supplied wording is not checked;
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
-5. resolves ink per text zone, for every shape of the artwork's proportion that the layout
-   supports, from the artwork's own palette, measuring the background conservatively, so every
+5. resolves ink per text zone, for every shape the artwork fits (`docs/card-system.md §2.4`), from the artwork's own palette, measuring the background conservatively, so every
    card text clears **4.5:1**; applies the layout's legibility panel when no ink can;
 6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
@@ -712,8 +730,8 @@ Latency goals, p75:
 | Event Identity visible | ≤ 5 s |
 | Card revealed | ≤ 30 s — working target |
 
-The card target is provisional: it is re-set deliberately from the Phase 3 bake-off's measured
-image-model latency, never widened quietly to match whatever was built. Measure reality; do not
+The card target is provisional: it is re-set deliberately from the image-model latency measured in
+Phase 3 validation, never widened quietly to match whatever was built. Measure reality; do not
 silently allow unbounded waits.
 
 ### 7.11 Card reveal
@@ -762,11 +780,14 @@ Creation Mode.
 
 `Design` exposes only:
 - the card's font: the design's primary pairing and its alternates;
-- the card's shape: any of the six shapes the design's layout supports. A shape of the same
-  proportion applies instantly with no model call. A shape of the other proportion (tall ↔ square)
-  generates new artwork for that proportion from the same art brief — a generation that counts
-  toward §10 limits and is available before publish only; the current card stays as it is until
-  the new artwork is ready, and switching back is instant;
+- the card's shape: any of the six shapes the design's layout supports. A shape the current
+  artwork fits applies instantly with no model call: illustration and atmosphere artwork fits every
+  supported shape of its proportion, border- and frame-led artwork (`framed`, `minimal`) fits only
+  the shape it was made for (`docs/card-system.md §2.4`). Any other shape generates new artwork for
+  it from the same art brief, with the current artwork passed as a reference so the subject stays
+  the same (the same bear, rearranged for the new outline) where the image model supports it — a
+  generation that counts toward §10 limits and is available before publish only; the current card
+  stays as it is until the new artwork is ready, and switching back is instant;
 - reset the card's wording, font and shape to the design;
 - `Try another direction ✦` before publish;
 - the designs generated so far, to choose another before publish.
@@ -832,7 +853,7 @@ Owner and co-host may change:
 
 - date/time/location and ordinary event content, including the card's wording;
 - the card's font, among the active design's pairings;
-- the card's shape, among the supported shapes of the proportion that already has artwork;
+- the card's shape, among the supported shapes an existing artwork already fits;
 - RSVP settings/questions;
 - guest list, invitations and RSVP operations;
 - external registries, native items, native item purchase state, cash fund;
@@ -866,10 +887,13 @@ AI cost is a product constraint from day one, but creative quality is the produc
 ### 9.1 Creative model operations
 
 ```ts
-generateEventIdentity(...)   // strong multimodal model
-generateCardDesign(...)      // strong model
-generateCardArt(...)         // image model
+generateEventIdentity(...)   // GPT 6.1 Sol
+generateCardDesign(...)      // GPT 6.1 Sol
+generateCardArt(...)         // GPT Image 2.5 Sunburst
 ```
+
+The models are chosen by owner decision and recorded in `docs/technology-decisions.md §8.1`; each
+sits behind the thin interface, so changing one is a recorded decision, not a rewrite.
 
 These are the only frontier creative operations in MVP. A thin provider capability layer is
 sufficient (`src/lib/ai/provider.ts`); do not build a large abstraction framework.
@@ -884,8 +908,8 @@ Use smaller/cheaper models only where ordinary code is insufficient and quality 
 - missing-field detection;
 - ambiguous date/time normalization;
 - candidate IANA timezone inference + confidence;
-- artwork validation that code cannot do alone (embedded-text and safety checks), if the bake-off
-  chooses a model for it.
+- artwork validation that code cannot do alone (embedded-text and safety checks), if Phase 3
+  validation chooses a model for it.
 
 Validate timezone in code. Do not add models for ink, contrast, text fit, layout or compatibility.
 
@@ -896,7 +920,7 @@ Never call a model for:
 - changing structured date/time/venue or any fact;
 - editing the card's wording;
 - swapping the card's font;
-- switching the card's shape within the same proportion;
+- switching the card's shape to one an existing artwork fits;
 - hiding/reordering simple information blocks;
 - guests/registry/cash-fund operations;
 - sending invitations, reminders or announcements (message text is templated);
@@ -962,8 +986,8 @@ Enforce configurable backend safety limits:
 - idempotency so retries/double taps do not duplicate expensive calls.
 
 A co-host does not receive an independent pool for the same event; event-level limits span all
-collaborators. Each round generates exactly one design and one artwork; a cross-proportion shape
-switch generates one artwork and counts as a generation.
+collaborators. Each round generates exactly one design and one artwork; a shape switch that needs
+new artwork generates one artwork and counts as a generation.
 
 Instrument every generation (§29). Use observed rounds per event, conversion, latency, quality and
 actual AI cost to set commercial limits. Do not impose an arbitrary user-facing cap before testing.
@@ -996,7 +1020,7 @@ optional art-derived legibility panel; live text.
 ### 11.3 Layout catalog
 
 A small versioned catalog of text layouts (`card_layouts_v1`, proposed members in
-`docs/card-system.md §2.3`, fixed by the Phase 3 bake-off). Each layout declares the shapes it
+`docs/card-system.md §2.3`, fixed in Phase 3 validation). Each layout declares the shapes it
 supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
 slot, the composition rule given to the art brief, and its legibility-panel shape. Slot character
 limits hold for every shape the layout supports, so a shape switch never breaks fit. The model picks
@@ -1780,7 +1804,7 @@ CardDesign {
   wording /* { title, invitationLine } — after the fact check */,
   artBrief,
   raw,                           // the model response as returned
-  artAssetIds[],                 // the original; plus one for the other proportion if generated
+  artAssetIds[],                 // the original; plus one per shape switch no existing artwork fits
   standardWordingSlots[],
   versions /* designPrompt, designSchema, layoutSet, compiler, artPrompt, imageModel */,
   selectedAt?,
@@ -1790,8 +1814,9 @@ CardDesign {
 CardArtAsset {
   id, eventId, cardDesignId,
   proportion /* portrait_5_7 | square_1_1 */,
+  fitsShapes[],                  // the shapes this artwork may be shown in (card-system §2.4)
   storageKey, mimeType, width, height, sizeBytes,
-  ink /* per supported shape, per zone: { ink, panel?, panelColor? } */,
+  ink /* per fitted shape, per zone: { ink, panel?, panelColor? } */,
   imageModel, artPromptVersion,
   createdAt
 }
@@ -1969,8 +1994,8 @@ switching are disabled for both.
 - Co-host access is explicit and invitation-based.
 - SMS uses the attestation/opt-out/cap model in §13. A STOP/opt-out is never circumvented by
   switching the same party to email.
-- Generated artwork never contains text, logos, brand characters or watermarks; named references
-  are translated into original language.
+- Generated artwork never contains text, logos, wordmarks, brand or character names, watermarks or
+  copied campaign artwork; close homage to a brand's character or look is allowed (§7.6).
 - No retailer scraping, bot evasion, proxy workarounds or credential collection.
 - Product metadata and remote product-image fetches use the centralized SSRF-safe utility (§15.2).
 - Never render arbitrary retailer image URLs to guests; render only normalized platform-owned
@@ -2109,7 +2134,7 @@ The creative system succeeds when:
 
 17. Event Identity understands vague and taste-heavy prompts (`docs/model-contracts.md §6`);
 18. no card ever states a fact the host did not supply;
-19. no artwork contains text, logos or brand characters;
+19. no artwork contains text, logos, wordmarks or brand names;
 20. every card text clears 4.5:1 and fits its zone at every size;
 21. `Try another direction` yields a different idea, not a palette or font swap;
 22. historical designs never change because prompts, layouts, the compiler or the image model
@@ -2143,12 +2168,13 @@ The host should feel:
 - [ ] Event Identity persists tone/colour constraints, negative constraints and compatible
   typography-category guidance.
 - [ ] Event Identity is the only stage that receives the raw host prompt; the card-design call reads
-  the persisted identity and the image model reads only the art brief and layout rule (§7.5,
-  §7.6a).
+  the persisted identity and the image model reads only the art brief and the layout and shape
+  rules, plus the design's own earlier artwork as a reference on a shape switch (§7.5, §7.6a).
 - [ ] Supplied event facts are extracted exactly onto the draft for confirmation, none is invented,
   and Event Identity carries no operational field (§7.5).
-- [ ] Named aesthetic references become original visual language; no logo, proprietary character or
-  campaign artwork appears in the identity, the art brief or the artwork (§7.6).
+- [ ] Named aesthetic references are captured as the look the host means; close homage to a brand's
+  character or look is allowed, but no logo, wordmark, brand or character name, or copied campaign
+  artwork appears in the art brief, the art prompt, the artwork or model-drafted wording (§7.6).
 - [ ] Each round generates exactly one design.
 - [ ] `Try another direction` passes the host's optional feedback and a summary of every earlier
   direction; an exact repeat (layout, art mode and primary pairing) earns one re-prompt and is
@@ -2164,8 +2190,8 @@ The host should feel:
   exactly as the host supplied them; a failing slot is re-prompted once, then replaced by standard
   wording that is logged and editable. Host-supplied and host-edited wording is never fact-checked.
 - [ ] A host-supplied title is used verbatim.
-- [ ] The art prompt is assembled by code from the art brief, the layout's composition rule and the
-  global rules; it never contains the raw prompt.
+- [ ] The art prompt is assembled by code from the art brief, the layout's and shape's composition
+  rules and the global rules; it never contains the raw prompt.
 - [ ] Every design has one of the six shapes and a layout that supports it; text zones lie inside
   the shape's text-safe area; the outline is code-defined and never part of the artwork.
 - [ ] Artwork is at the shape's proportion (5:7 or 1:1), decodable, at minimum resolution, contains
@@ -2202,9 +2228,12 @@ The host should feel:
 - [ ] `Ready to publish` can appear even if guests/registry/invitations are incomplete.
 - [ ] Design controls expose only the design's font pairings, the shapes its layout supports, reset,
   `Try another direction` and the designs list.
-- [ ] A same-proportion shape switch applies instantly with no model call; a cross-proportion switch
-  generates one artwork from the same brief, counts as a generation, is unavailable after publish,
-  and keeps earlier artwork so switching back is instant.
+- [ ] A switch to a shape an existing artwork fits applies instantly with no model call; a switch to
+  any other shape generates one artwork from the same brief with the current artwork as a reference
+  where the image model supports it, counts as a generation, is unavailable after publish, and keeps
+  earlier artwork so switching back is instant.
+- [ ] Illustration and atmosphere artwork is composed safe for every supported shape of its
+  proportion; border- and frame-led artwork is recorded as fitting only the shape it was made for.
 
 ### Try another direction
 - [ ] Available from the reveal and Creation Mode before publish.
@@ -2316,9 +2345,12 @@ The host should feel:
     wording state them, never infer them.
 16. Artwork contains no text. Never ask the image model to render words, and reject artwork that
     contains them.
-17. The raw host prompt never reaches the image model, and inspiration images are never sent to it.
-18. Named references become original language; no logos, proprietary characters or campaign
-    artwork in a brief or an image.
+17. The raw host prompt never reaches the image model, and inspiration images are never sent to it;
+    the design's own earlier artwork, as a reference for a shape switch, is the only image it
+    receives.
+18. Brand references follow §7.6: close homage is allowed; never a logo, wordmark, brand or
+    character name, or copied campaign artwork in a brief, an art prompt, the artwork or
+    model-drafted wording.
 19. Validate every card-design response against the strict schema and catalogs, whatever the
     provider claims to enforce.
 20. Re-prompt the card-design call only for a schema-invalid design, a model-wording fact-check
@@ -2339,8 +2371,8 @@ The host should feel:
 27. Never regenerate, recompile or "upgrade" a historical design; renderer bug, accessibility and
     responsive fixes are allowed.
 28. The card is one of the six shapes; outlines are code-defined masks, never model-drawn. The
-    host's shape control offers only shapes the design's layout supports, and a cross-proportion
-    switch is a generation. Typography uses curated pairing IDs only; the host's font control offers
+    host's shape control offers only shapes the design's layout supports, and a switch to a shape no
+    existing artwork fits is a generation. Typography uses curated pairing IDs only; the host's font control offers
     exactly the design's primary and alternates.
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
@@ -2437,7 +2469,7 @@ Generation begins
     ↓
 Card design (layout, art mode, font pairing, wording, art brief)
     ↓
-Card artwork (image model; brief + layout rule only; no text)
+Card artwork (image model; brief + layout and shape rules only; no text)
     ↓
 Deterministic compiler: validate · wording fact check · artwork checks · ink 4.5:1 · persist
     ↓

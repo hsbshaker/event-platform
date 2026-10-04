@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/event-identity.schema.json",
   "title": "EventIdentity",
-  "description": "Canonical structured output for the event creative brief (event_identity_schema_v3, spec.md §7.5). A creative brief only: it carries no operational event fact. Runtime may narrow the typography-category enum to enabled catalog values.",
+  "description": "Canonical structured output for the event creative brief (event_identity_schema_v4, spec.md §7.5). A creative brief only: it carries no operational event fact. Runtime may narrow the typography-category enum to enabled catalog values.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -134,7 +134,7 @@
         "minLength": 3,
         "maxLength": 90
       },
-      "description": "Subjects, objects, botanicals, scenery and patterns in natural language that could anchor or support the card's artwork (e.g. 'heirloom teddy in a tartan bow', 'lemon branches with blossom', 'fine double-rule border'). Never IDs, logos, brand characters or proprietary assets."
+      "description": "Subjects, objects, botanicals, scenery and patterns in natural language that could anchor or support the card's artwork (e.g. 'heirloom teddy in a tartan bow', 'lemon branches with blossom', 'fine double-rule border'). A close homage to a brand's character may be described in plain visual words; never IDs, logos, wordmarks, or brand or character names (spec.md §7.6)."
     },
     "textureDirection": {
       "type": "string",
@@ -173,5 +173,5 @@
       "description": "Compact summary of inspiration evidence; exactly 'No visual inspiration supplied.' when none exists."
     }
   },
-  "$comment": "event_identity_schema_v3 (Revision 7, invitation card): removed compatibleTonalDirections and compatibleFamilies; visualMotifs names subjects that can anchor the card's artwork."
+  "$comment": "event_identity_schema_v4 (Revision 7.1): visualMotifs allows a plain-words homage to a brand's character, never logos, wordmarks or names. v3 (Revision 7): removed compatibleTonalDirections and compatibleFamilies; visualMotifs names subjects that can anchor the card's artwork."
 }

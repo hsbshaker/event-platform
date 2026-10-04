@@ -199,7 +199,7 @@ Cash fund: display-only handles, suggested amounts, blurb.
 `Design` exposes only (§7.14, §20):
 
 - the card's font among the active design's primary and alternate pairings;
-- the card's shape among those the design's layout supports: same proportion applies instantly; tall ↔ square makes new artwork from the same brief (before publish only);
+- the card's shape among those the design's layout supports: a shape the current artwork fits applies instantly; any other shape makes new artwork from the same brief (before publish only);
 - reset the card's wording, font and shape to the design;
 - `Try another direction ✦` (before publish);
 - the designs list (H14).
@@ -256,7 +256,7 @@ Priority:
 3. Messages — invitations, reminders (non-responders), announcements (§13.4);
 4. Registry;
 5. Share — link, QR, code;
-6. Edit invitation — details, card wording, font and shape (same proportion).
+6. Edit invitation — details, card wording, font and shape (shapes the existing artwork fits).
 
 Owner additionally: billing, co-host access, delete/archive.
 
