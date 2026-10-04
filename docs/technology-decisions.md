@@ -242,7 +242,21 @@ Three capabilities the card system needs, decided when it is built and recorded 
 
 - **image decoding** for artwork validation and ink sampling (an image library on the server);
 - **font metrics** for `layoutCard` and the card editor's line breaking, from the curated fonts in
-  `public/fonts/card/` and the font store's fonts (§8.3);
+  `public/fonts/card/` and the font store's fonts (§8.3) — **decided (Phase 4): `harfbuzzjs` with
+  `wawoff2`** (both MIT, WebAssembly; `src/lib/card/text/metrics.ts`). Stored line breaks are only
+  trustworthy if the server measures text exactly as browsers set it. `harfbuzzjs` is the HarfBuzz
+  project's own build of the shaper Chromium and Firefox use: kerning, ligatures and variable-font
+  instances (`wght`, and `opsz` at the card-unit size) come out the same as in the browser — within
+  0.03% of Chromium for every curated face at 18–104 units, with and without letter spacing and
+  uppercase. HarfBuzz reads TrueType/OpenType only, so `wawoff2` (Google's WOFF2 decoder compiled to
+  WebAssembly) decodes the WOFF2 files first. `fontkit`, the expected choice, was rejected: every
+  curated file is a variable font, and fontkit cannot set a variable WOFF2 face to a weight
+  (`getVariation` fails), while measuring the default instance is wrong (Archivo's default is 600,
+  Fraunces's 900, Manrope's 200); on decoded TrueType its widths still differ from Chromium by up to
+  0.6%, because it misses kerning variations. Both libraries run in a Next.js 16 server route
+  without configuration, and the build traces the WASM and the font files into the function. Both
+  also run in the browser, for the card editor (Phase 6b). The renderer must pin `opsz` to the
+  card-unit size whatever the on-screen scale, or line widths would change with screen size;
 - **link-preview rendering** of the card and envelope (`spec.md §11.10`), preferring what Next.js
   already provides over a new dependency.
 
