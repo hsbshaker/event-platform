@@ -226,6 +226,7 @@ needed.
 | Flare | Not faster than Sunburst `medium` in the probe, and less faithful to the composition rules; not adopted |
 | **Quality setting** | **Sunburst `high`** — owner decision, 2026-10-04. All 15 corpus designs were painted at `high` and `medium` and compared as finished cards and at full resolution: no loss of detail at `medium`, but the owner found `high` brighter and more vibrant, and `medium`'s first attempts failed the artwork checks more often (2 of 15 against 1 of 33). `medium` would halve the artwork wait (17 s against 31 s) and cut its cost to $0.017; revisiting that is a deliberate decision recorded here |
 | Rate limits | The account's current image rate limit (a few images per minute) throttled even this test run. Production needs a higher OpenAI usage tier, sized against the per-account and global generation caps of `spec.md §10`, before launch |
+| Spend limits (test period) | Owner decision, 2026-10-04: a $20/day ceiling across all generation (about 250 cards at ≈ $0.08), at most 30 generations per event per day and 60 per acting host per day (`spec.md §10`). Held as server configuration with these defaults, never in model-facing code; built first in Phase 5. A monthly budget on the OpenAI account is the owner's backstop |
 
 The reveal-latency target was re-set with the owner from these measurements (`spec.md §7.10`), and
 the handling of provider refusals of famous characters was decided with them (`spec.md §7.6`).

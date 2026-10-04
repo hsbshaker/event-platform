@@ -80,7 +80,8 @@ const WORST_TEXTS: readonly string[] = Object.values(WORST);
  * Widths of the worst-case companions' substrings, per face and style, kept for the process.
  * Every check re-breaks the same companions in the same faces at the same sizes; a `measure` that
  * hits its own advance cache still costs microseconds, which over the zones × pairings comes to
- * most of a check. Bounded: only text inside a worst-case value is kept here.
+ * most of a check. Bounded: only text inside a worst-case value is kept here, and `breakLines`
+ * measures only candidate lines of it, at the few sizes the search tries.
  */
 const companionWidths = new Map<string, Map<string, number>>();
 
@@ -133,9 +134,8 @@ function memoized(
  * each distinct zone of the layout set in each curated pairing (see the module comment). Blank
  * text takes no space on the card and is accepted. Rejects only if the fonts cannot be loaded.
  *
- * `companions` replaces the worst case for the other host-typed slots given (blank ones are
- * ignored), to check an event's actual combination: two values that each fit beside the worst
- * case can still be too much together.
+ * `companions` replaces the worst case for the slots given (blank ones are ignored): from Phase 5,
+ * a design's own invitation line in place of the worst-case sentence (`card-system.md §2.5`).
  */
 export async function cardTextFitsEveryDesign(
   slot: CardEntrySlot,

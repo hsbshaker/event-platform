@@ -724,9 +724,12 @@ fallback.
 **One repaint before a panel** (owner decision, 2026-10-04). An artwork that passes validation
 but would need the layout's legibility panel on the design's own shape (§7.9, step 5) — the
 picture has run into the text area — is repainted once from the same art prompt, and the panel is
-used only if the repaint needs it too. Code decides this from ink resolution; no model judges
-legibility. An artwork gets at most one extra image: a validation regeneration or a repaint, never
-both. The repaint is metered and adds about 30 s to the cards that need it.
+used only if the repaint needs it too. Code decides this from ink resolution (§7.9, step 5, which
+runs again on the repaint); no model judges legibility. An artwork gets at most one extra image: a validation regeneration or a repaint, never
+both. A repaint that fails validation is dropped and the first artwork is kept with the panel: a
+valid card already exists, so this is never a visible failure. Only the artwork the card shows is
+persisted as the design's artwork; the other image is metered (§9.6) and not kept. The repaint is
+metered and adds about 30 s to the cards that need it.
 
 ### 7.9 Card compilation
 
@@ -739,8 +742,7 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
 5. resolves ink per text zone, for every shape the artwork fits (`docs/card-system.md §2.4`), from the artwork's own palette, measuring the background conservatively, so every
-   card text clears **4.5:1**; applies the layout's legibility panel when no ink can (after the
-   one repaint of §7.8, when the design's own shape needs it);
+   card text clears **4.5:1**; applies the layout's legibility panel when no ink can;
 6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
 Card text layout for the generated card — font size and line breaks for every slot — is one pure
@@ -2578,7 +2580,8 @@ The host should feel:
     card editor edits text only — never the artwork, the outline or the envelope.
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
-30. Each round generates one design and one artwork; never generate in bulk to pick from.
+30. Each round generates one design and one artwork (plus at most one regeneration or repaint of
+    that artwork, §7.8); never generate in bulk to pick from.
 31. No host-uploaded, stock or retrieved imagery on the card or page; the native product thumbnail
     is the only content-image exception.
 32. Native product thumbnail is content; never hotlink a retailer image.

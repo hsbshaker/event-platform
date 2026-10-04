@@ -57,15 +57,17 @@ describe("the details form's card fit check", () => {
     );
   });
 
-  it("checks the combination the event would have once saved, after each field alone", async () => {
-    // The title fits on its own, but not beside details stored before this check existed.
-    expect(await cardTextFitErrors({ title: WORST.title }, { venueName: WIDE_LINE })).toEqual({
-      title: CARD_TEXT_FIT_MESSAGE,
-    });
+  it("checks each field beside the worst case, never blaming it for a value stored earlier", async () => {
+    // A venue stored before this check existed overflows on its own; the host can still save the
+    // other fields, each judged on its own (the compiler reports the stored venue).
+    expect(await cardTextFitErrors({ hosts: TYPICAL.hosts!, title: WORST.title })).toBeNull();
     expect(
-      await cardTextFitErrors({ title: WORST.title }, { venueName: TYPICAL.venue! }),
+      await cardTextFitErrors(
+        { hosts: TYPICAL.hosts!, title: WORST.title },
+        { venueName: WIDE_LINE },
+      ),
     ).toBeNull();
-    // A field that fails alone is named alone: its value is not held against the others.
+    // A field that fails is named alone.
     expect(await cardTextFitErrors({ title: CAPS_TITLE, hosts: TYPICAL.hosts! })).toEqual({
       title: CARD_TEXT_FIT_MESSAGE,
     });

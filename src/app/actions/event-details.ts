@@ -10,8 +10,8 @@ import {
   type EventPatchStore,
 } from "@/lib/events/apply-patch";
 import { cardVenue } from "@/lib/card/facts";
-import { cardTextFieldErrors } from "@/lib/events/card-text";
-import { cardTextFitErrors, type StoredCardText } from "@/lib/events/card-text-fit.server";
+import { cardTextFieldErrors, type VenueContext } from "@/lib/events/card-text";
+import { cardTextFitErrors } from "@/lib/events/card-text-fit.server";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
@@ -191,55 +191,40 @@ export async function updateEventDetails(
 
   const supabase = await createClient();
 
-  // The event's stored card text, read when the patch changes any of it: the venue name and
-  // address are checked in light of each other, and every card field beside the event's other
-  // details (the fit check below).
-  let stored: StoredCardText = {};
-  const changesCardText = [
-    input.title,
-    input.hosts,
-    input.babyName,
-    input.venueName,
-    input.address,
-  ].some((value) => value !== undefined);
-  if (changesCardText) {
+  // The stored venue name and address, read when the patch changes either (each is checked in
+  // light of the other).
+  let storedVenue: VenueContext = {};
+  if (input.venueName !== undefined || input.address !== undefined) {
     const { data, error } = await supabase
       .from("events")
-      .select("title, baby_name, hosts, venue_name, address")
+      .select("venue_name, address")
       .eq("id", eventId)
       .maybeSingle();
     if (error) {
-      console.error("updateEventDetails: could not read the card text", { eventId, error });
+      console.error("updateEventDetails: could not read the venue", { eventId, error });
       return { ok: false, error: "Could not save that. Try again." };
     }
     if (data) {
-      stored = {
-        title: data.title as string | null,
-        babyName: data.baby_name as string | null,
-        hosts: data.hosts as string | null,
+      storedVenue = {
         venueName: data.venue_name as string | null,
         address: data.address as string | null,
       };
     }
-    // Not atomic with the write below: a concurrent writer changing another card field in
-    // between can slip past these checks. Accepted as a narrow race; the card compiler still
+    // Not atomic with the write below: a concurrent writer changing the other venue field in
+    // between can slip past this check. Accepted as a narrow race; the card compiler still
     // refuses to render text it cannot show, so it costs a retry, never a broken card.
-    const venueErrors =
-      data && (input.venueName !== undefined || input.address !== undefined)
-        ? cardTextFieldErrors(
-            { venueName: input.venueName, address: input.address },
-            { venueName: stored.venueName, address: stored.address },
-          )
-        : null;
+    const venueErrors = data
+      ? cardTextFieldErrors({ venueName: input.venueName, address: input.address }, storedVenue)
+      : null;
     if (venueErrors) {
       return { ok: false, error: "Check the highlighted fields.", fieldErrors: venueErrors };
     }
   }
 
-  // Then whether the card can fit each accepted value in every design, beside the worst case for
-  // every other detail and beside the event's own (docs/card-system.md §2.5, §4.3: every card
-  // shows every detail). Measured with the card fonts, so it runs only after authorization; the
-  // venue as the card shows it (the venue name, else the address's first line).
+  // Then whether the card can fit each accepted value in every design, with every other detail
+  // at its worst case (docs/card-system.md §2.5, §4.3: every card shows every detail). Measured
+  // with the card fonts, so it runs only after authorization; the venue as the card shows it
+  // (the venue name, else the address's first line).
   let fitErrors: Record<string, string> | null;
   try {
     fitErrors = await cardTextFitErrors(
@@ -250,7 +235,7 @@ export async function updateEventDetails(
         venueName: input.venueName,
         address: input.address,
       },
-      stored,
+      storedVenue,
     );
   } catch (error) {
     console.error("updateEventDetails: could not check the card text", { eventId, error });

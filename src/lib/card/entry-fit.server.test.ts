@@ -87,7 +87,7 @@ describe("the entry fit check", () => {
     }
   }, 60_000);
 
-  it("checks beside the event's own details when given, in place of the worst case", async () => {
+  it("measures beside the companions given, in place of the worst case", async () => {
     // The worst-case title fits beside the worst case, but not beside a venue wider than the entry
     // check would now accept (stored before it, say).
     expect(await cardTextFitsEveryDesign("title", WORST.title)).toBe(true);

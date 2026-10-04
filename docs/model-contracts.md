@@ -341,7 +341,8 @@ retry. No template or stock fallback.
 An artwork that passes but would need the layout's legibility panel on the design's own shape —
 decided by ink resolution in code, never by a model — is repainted once from the same art prompt
 before the panel is used (`spec.md §7.8`). An artwork gets at most one extra image: the validation
-regeneration or the repaint, never both.
+regeneration or the repaint, never both. A repaint that fails validation is dropped and the first
+artwork is kept with the panel; only the artwork the card shows is persisted.
 
 A provider refusal of a brand or character homage is a failure whose regeneration comes from a
 `generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md

@@ -345,8 +345,12 @@ circles. Two decisions by the owner (2026-10-04):
   panel is used only if the repaint needs it too. Code decides from ink resolution; at most one
   extra image per artwork (a validation regeneration or the repaint, never both); about 6¢ and
   30 s on the cards that need it. Small overlaps that leave the text legible without a panel do
-  not trigger it. Updated: `spec.md §7.8`, §7.9, §9.5, §10, a §31 criterion and guardrail #20;
-  `card-system.md §3`; `model-contracts.md §7.3` and §9.
+  not trigger it. A repaint that fails validation is dropped and the first artwork kept with the
+  panel; only the artwork the card shows is persisted. Updated: `spec.md §7.8`, §9.5, §10, a §31
+  criterion and guardrails #20 and #30; `card-system.md §3`; `model-contracts.md §7.3` and §9.
+  Open for the owner before Phase 5: which artwork the card shows when the repaint needs the panel
+  too (recommended: the first), and whether a shape switch's new artwork gets the same one repaint
+  for its own shape (recommended: yes, with the earlier artwork as the reference again).
 - **Wider font coverage: Latin Extended and Vietnamese, in Phase 10.** Greek, Cyrillic and other
   scripts later.
 - **Spend limits for the test period:** a $20/day ceiling across all generation, at most 30

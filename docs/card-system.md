@@ -271,10 +271,11 @@ Rules:
 - **The fit check** (`cardTextFitsEveryDesign`, `src/lib/card/entry-fit.server.ts`) then runs in
   the server action on what the entry check accepted: the value in its slot, laid out by
   `layoutCard`'s own search (`layoutCardFits`, with the curated fonts' real shaping) in every
-  distinct text zone of the layout set (14) and every curated pairing — first beside the
-  worst-case content for every other slot, so each field has the same room whatever else the
-  event says, then beside the event's own other details where they are filled in, so the
-  combination saved always fits too. Text that some design cannot fit is refused: "This takes more
+  distinct text zone of the layout set (14) and every curated pairing, beside the worst-case
+  content for every other slot, so each field has the same room whatever else the event says (no
+  realistic pair of values that each fit was found to overflow together, and checking beside the
+  event's own values would blame the field being edited for one stored earlier). Text that some
+  design cannot fit is refused: "This takes more
   room than the card has here — please shorten it." This catches what the entry check cannot see,
   such as a 40-character title of capitals ("WELCOME WILHELMINA MONTGOMERY-WHITWORTH!" fits 253
   of 300 layout × shape × pairing combinations and is refused). It runs on the server only,
@@ -334,7 +335,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
-| `generateCardArt` | the artwork passes validation but the design's own shape would need the legibility panel (§4.2): the picture has run into the text area | the panel is used (owner decision, 2026-10-04). The repaint comes from the same art prompt; an artwork gets at most one extra image, a validation regeneration or this repaint, never both |
+| `generateCardArt` | the artwork passes validation but the design's own shape would need the legibility panel (§4.2): the picture has run into the text area | the panel is used (owner decision, 2026-10-04). The repaint comes from the same art prompt; an artwork gets at most one extra image, a validation regeneration or this repaint, never both; a repaint that fails validation is dropped and the first artwork kept with the panel (`spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it
@@ -401,7 +402,8 @@ font size and line breaks:
   entry fit at the minimum size in every layout, supported shape and pairing: a test renders every
   layout × supported shape × pairing with worst-case content in a real browser to prove the
   server's measurement is the browser's (§9), with no exceptions, and the fit check runs
-  `layoutCard`'s own search on what the host typed. Text saved before the fit check existed can
+  `layoutCard`'s own search on what the host typed. Text saved before the fit check existed (or
+  after a layout-set or font change), or an unobserved combination of values that each fit, can
   still overflow; `layoutCard` reports it, and the generated card fails visibly with a retry rather
   than rendering.
 

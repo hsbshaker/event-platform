@@ -29,6 +29,8 @@ const ENTRIES = [
 ];
 
 /**
+ * (wawoff2 needs no check: its WASM is embedded in its JavaScript, `build/decompress_binding.js`.)
+ *
  * HarfBuzz's WASM as the build traces it: from the package itself when `harfbuzzjs` is a server
  * external package (`next.config.ts`), or as an asset the bundler emitted beside the chunks.
  */
