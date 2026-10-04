@@ -324,8 +324,9 @@ change how every existing card renders. "Design immutability" never blocks rende
 **Creation Mode**
 - The chosen card and the page beneath it are the workspace.
 - `Make it yours` turns the revealed invitation into Creation Mode.
-- Contextual owner/co-host controls on the card (wording, details) and on each page section.
-- Font control limited to the design's curated pairings.
+- Contextual owner/co-host controls on the card and on each page section.
+- The card editor: free editing of the card's text — words, fonts, colours, sizes, positions —
+  by touch or mouse (§20).
 - Floating readiness/setup control; checklist separates publish blockers from recommended work.
 - Autosave routine edits.
 - Guest management may open a dedicated full-screen workspace.
@@ -422,7 +423,7 @@ The owner created the event. Owner can:
 - create the event and enter the initial prompt;
 - upload private inspiration;
 - generate designs, try other directions, browse and choose designs before publish;
-- edit the card's wording and swap its font among the design's pairings;
+- edit the card's text in the card editor (§20);
 - manage event details, privacy, guests, RSVP configuration and responses;
 - manage external registries, native items, cash fund;
 - send invitations, reminders and announcements;
@@ -962,8 +963,8 @@ Validate timezone in code. Do not add models for ink, contrast, text fit, layout
 Never call a model for:
 - auth draft persistence;
 - changing structured date/time/venue or any fact;
-- editing the card's wording;
-- swapping the card's font;
+- anything done in the card editor (§20), including line breaking and adding a font to the font
+  store;
 - switching the card's shape to one an existing artwork fits;
 - hiding/reordering simple information blocks;
 - guests/registry/cash-fund operations;
@@ -2051,7 +2052,7 @@ configured and at least one party is invited.
 | --- | ---: | ---: | ---: |
 | View event | Yes | Yes | Yes |
 | Edit event details/content and card wording | Yes | Yes | No |
-| Swap card font or shape | Yes | Yes | No |
+| Edit the card in the card editor; switch the card's shape | Yes | Yes | No |
 | Manage privacy/access code | Yes | Yes | No |
 | Manage guests / import CSV | Yes | Yes | No |
 | Copy/rotate a party's personal link | Yes | Yes | No |

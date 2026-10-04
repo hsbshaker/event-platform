@@ -1,7 +1,7 @@
 # Annotated Screen Spec — Responsive MVP
 
-**Status:** Revision 7  
-**PRD:** `spec.md` Revision 7  
+**Status:** Revision 7.2 (adds the `card-editor` surface)  
+**PRD:** `spec.md` Revision 7.2  
 **Card system:** `docs/card-system.md`  
 **Design system:** `docs/design-system.md`
 
@@ -17,6 +17,7 @@ Screen labels describe product surfaces, not necessarily URL routes. Section ref
 - No generic pre-publish setup dashboard.
 - No wizard for independent tasks.
 - Autosave routine edits.
+- The card's text is edited in the `card-editor`, directly on the card; the editor's chrome is app-styled and never part of the card.
 - Contextual actions use `Edit`, `Set up`, `Add`.
 - Setup/readiness UI distinguishes publish blockers from optional recommendations.
 - Preview and guest views use the production card, envelope and page.
@@ -133,7 +134,7 @@ Message:
 
 Every design generated for the event, each as its card with name and description; the active one is marked. Reached from the result and from `design-panel`.
 
-- Choosing a design makes it active, resets card wording, font and shape to that design, keeps a host-supplied title (§20.3).
+- Choosing a design makes it active and keeps the host's words, added text and fonts, laid out fresh in the new design; earlier customizations are kept, so choosing the previous design restores them (§20.6). Event details never change.
 - Read-only after publish (§8.2).
 
 ## `creation-mode`
@@ -149,8 +150,8 @@ Toolbar:
 
 Anchors (stable, absent for guests):
 
-- card: title and invitation line edited in place;
-- Event Details → Edit (also the source of the card's facts);
+- card: tap it to open `card-editor`, where every text on the card is edited in place (§20.1);
+- Event Details → Edit (also the source of the card's fact boxes);
 - description and information blocks → Edit / Add;
 - RSVP → Set up;
 - Registry → Add.
@@ -275,28 +276,82 @@ No campaigns or marketing automation.
 
 ## `design-panel`
 
-Controls (§7.14, §20):
+Controls, in order (§7.14, §20):
 
-- font: the design's primary pairing and its alternates;
+- `Edit card` — opens `card-editor`;
 - shape: outline swatches for the shapes the design's layout supports (of rectangle, rounded rectangle, arch, oval, square, circle). A shape the current artwork fits applies instantly; any other (tall ↔ square, or a new outline for a bordered design) states that new artwork of the same subject will be made, keeps the current card visible while it generates, before publish only (§7.14);
-- reset card wording, font and shape to the design;
+  A shape switch keeps the host's words, added text and fonts with a fresh layout; the edited card for each shape is kept, so switching back restores it (§20.6);
+- `Reset card` — back to the design's generated text, fonts, colours and layout for the current shape, after a confirmation (see `card-editor`);
 - `Try another direction ✦` before publish;
 - designs list before publish (read-only afterwards).
 
-Wording is edited directly on the card, not here.
+After publish, `Edit card`, `Reset card` and shapes an existing artwork fits remain; `Try another direction`, shapes that need new artwork and the designs list do not (§8.1, §8.2).
+
+Text is edited on the card in `card-editor`, not here.
 
 No:
 
-- colour controls;
 - layout, art mode, ink or panel controls;
-- sizes or positions;
 - artwork editing;
 - page styling;
 - uploads onto the card.
 
+## `card-editor`
+
+**Purpose:** let the host make the card's text their own (§20; `docs/design-system.md §4.10a`). Every text on the card is a text box. The artwork, outline and envelope are not editable.
+
+**Entry**
+
+- tap the card in `creation-mode`;
+- `Edit card` in `design-panel`.
+
+Owner and co-host only. Available before and after publish; after publish every change updates the live card (§8.1).
+
+**Surface:** the production card component with editor chrome drawn above it. The card is shown exactly as guests will see it, including text clipped at the outline. The chrome (selection frame, handles, guides, toolbar, pickers, status) is app-styled and never part of the card.
+
+**Layout at 390px**
+
+- header: `Done`, `Undo`, `Redo`, saved state, overflow (`Reset card`);
+- the card at the viewport width, 5:7 or 1:1, with its outline;
+- bottom toolbar (a bottom sheet) holding one row of icon buttons; panels open as a half-height sheet that leaves the selected box visible;
+- with the keyboard open, the edited box stays visible above the keyboard and the toolbar;
+- the app's setup pill and owner toolbar are hidden while editing.
+
+**Layout on desktop**
+
+- the card centred at a comfortable size in the canvas, never reflowed; the page beneath stays where it was;
+- side panel on the right for the toolbar and its panels; header across the top with the same controls;
+- selection handles on the frame: width and rotation.
+
+**States**
+
+- **Idle:** no box selected. Toolbar shows `Add text`, `Boxes`, `Undo`, `Redo`.
+- **Box selected:** frame and handles; toolbar header names the box; the row of controls (font, size, colour, align, spacing, layer, duplicate, delete, add text, undo, redo, boxes). Drag moves; pinch scales and twist rotates (phone); handles resize width and rotate (desktop); snapping guides show during a gesture.
+- **Typing:** double-tap (phone) or double-click / `Enter` (desktop) types in place. A compact style row stays above the keyboard. A fact box opens that detail's own field instead (date picker, venue field), and the card and page update together (§20.2). The title box edits the event's title everywhere.
+- **Toolbar panels:** `Font`, `Size`, `Colour`, `Align`, `Spacing` (with case), `Layer`, `Arrange` (exact position, width and rotation). One panel at a time; `Back` returns to the row.
+- **Font picker:** "From this card" first (the design's pairings), search, categories, the full Google Fonts library. A family loading shows a progress indicator and the box keeps its font until it is ready.
+- **Colour picker:** "From this card" artwork swatches, recent colours, a full picker and a hex input. Any colour is accepted. No contrast numbers, warnings or blocks (§20.1).
+- **Box list:** every box in layer order with its role and text; select, bring forward, send back, duplicate, delete.
+- **Saving / Saved:** `Saving…` then `Saved` in the header; autosave, no save button.
+- **Save failed:** "Couldn't save. Your changes are kept here." with `Retry`; `Saved` is not shown.
+- **Stale-save conflict:** a co-host saved first; the save is refused and the editor reloads the latest with a short notice ("<Name> just made changes. Showing the latest."). No modal (§20.5).
+- **Reset confirmation:** `Reset card` opens a dialog that says the card goes back to its generated text, fonts, colours and layout for this shape and that event details are not affected; `Reset card` / `Cancel`. Other shapes' and designs' customizations are kept. `Undo` is offered after.
+- **Font failed to load:** inline "Couldn't load this font." with `Try again`; the box keeps its previous font and nothing is saved for it.
+- **Delete:** removes the box and offers `Undo`. Deleting a fact box says it is removed from the card only and is still on the page.
+- **After publish:** the same surface, with the live card updating on each autosave; `Try another direction` and shape switches that need new artwork are not offered.
+
+**Rules**
+
+- no readability checks or warnings on host choices (§20.1);
+- no image, sticker or graphic can be added; no artwork, outline or envelope controls;
+- no model call from any editor action (§20.5);
+- line breaks come from the deterministic layout function; the browser never re-wraps card text (§20.4);
+- every box reachable from the box list and every property settable by exact value, by keyboard and screen reader (§20.3);
+- `Done` returns to `creation-mode` at the same scroll position.
+
 ## `preview`
 
-Production card, envelope and page with current content.
+Production card, envelope and page with current content, including the host's edited card text.
 
 No owner controls, readiness control or toolbar.
 

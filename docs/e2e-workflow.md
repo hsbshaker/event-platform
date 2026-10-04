@@ -1,7 +1,7 @@
 # E2E Workflow — AI-Designed Baby Shower Invitation Platform
 
-**Status:** Revision 7 UX workflow  
-**Source of truth:** `spec.md` Revision 7  
+**Status:** Revision 7.2 UX workflow (adds the card editor, H12a)  
+**Source of truth:** `spec.md` Revision 7.2  
 **Card system:** `docs/card-system.md`  
 **Design system:** `docs/design-system.md`  
 **Design target:** phone-first, responsive desktop  
@@ -15,7 +15,7 @@ This document sequences the journeys. Behaviour, limits and acceptance criteria 
 
 Two connected journeys:
 
-1. **Owner/co-host:** describe → auth/save → AI designs one card → reveal from the envelope → make it yours → preview → publish → send invitations → manage.
+1. **Owner/co-host:** describe → auth/save → AI designs one card → reveal from the envelope → make it yours → edit the card's text if wanted → preview → publish → send invitations → manage.
 2. **Guest:** receive a personal link (or open the shared link) → envelope opens → card → page → RSVP → registry → update later.
 
 The invitation is simultaneously:
@@ -122,7 +122,7 @@ App-level owner toolbar: Design · Preview.
 
 Contextual controls attach to stable anchors:
 
-- the card: wording (title, invitation line) edited in place; card facts via Event Details;
+- the card: tap it to open the card editor (H12a), where every text on the card is edited in place; fact boxes open the matching Event Details field;
 - Event Details → `Edit`;
 - description and information blocks → `Edit` / `Add`;
 - RSVP → `Set up`;
@@ -198,13 +198,48 @@ Cash fund: display-only handles, suggested amounts, blurb.
 
 `Design` exposes only (§7.14, §20):
 
-- the card's font among the active design's primary and alternate pairings;
-- the card's shape among those the design's layout supports: a shape the current artwork fits applies instantly; any other shape makes new artwork from the same brief (before publish only);
-- reset the card's wording, font and shape to the design;
+- `Edit card` — opens the card editor (H12a);
+- the card's shape among those the design's layout supports: a shape the current artwork fits applies instantly; any other shape makes new artwork from the same brief (before publish only). A switch keeps the host's words, added text and fonts with a fresh layout, and the edited card for each shape is kept (§20.6);
+- `Reset card` — back to the design's generated text, fonts, colours and layout for the current shape, with confirmation;
 - `Try another direction ✦` (before publish);
 - the designs list (H14).
 
-No layout, colour, art mode, size, position or page-styling controls.
+No layout, art-mode, artwork or page-styling controls. Text is edited in the card editor, not here.
+
+## H12a — Card editor
+
+Free, with no model call, no credit and no cap (§20.1, §20.5). Owner and co-host. `docs/design-system.md §4.10a` and `docs/screen-spec.md` (`card-editor`) define the interaction.
+
+**Path (host)**
+
+1. Reveal (H04) → `Make it yours` → Creation Mode (H06).
+2. Tap the card, or `Design` → `Edit card`. The editor opens on the card with nothing selected.
+3. Edit text in place: double-tap (phone) or double-click / `Enter` (desktop) and type. Editing the title box changes the event's title everywhere (§20.2).
+4. Move and resize: drag to move; on a phone pinch to scale and twist to rotate; on desktop use the width and rotation handles and arrow keys. Snapping guides help; the box list and exact-value fields do the same without gestures (§20.3).
+5. Restyle from the toolbar (bottom sheet on a phone, side panel on desktop): font (the design's own pairings first, then any Google Fonts family), size, colour (artwork swatches and recent colours first, then a full picker with hex), alignment, letter spacing, line height, case, and layer order. Duplicate or delete a box. No readability warnings appear for any choice (§20.1).
+6. Add text with `Add text`.
+7. Fact boxes (date, time, venue, hosts, baby name, RSVP-by): tapping to change the text opens that detail's own field; the card and page update together. Deleting a fact box removes it from the card only (§20.2).
+8. Every change autosaves; the header shows `Saving…`, then `Saved`. `Undo` and `Redo` work throughout. `Reset card` (with confirmation) returns the card to its generated text, fonts, colours and layout for this shape.
+9. `Done` returns to Creation Mode. The host opens Preview (H13) and sees the edited card, envelope included, exactly as guests will.
+10. Publish (H15). The card guests see is the edited card: same lines, positions and styles (§20.4).
+
+**Post-publish edit.** After publish the host opens `Edit card` from Creation Mode / Event Home (journey 3) and changes text, fonts, colours, sizes or positions. Each autosave updates the live card (§8.1). `Try another direction` and shape switches that need new artwork stay disabled.
+
+**Co-host conflict.**
+
+1. The owner and a co-host both have the card editor open.
+2. The co-host saves a change to a box.
+3. The owner's next save is based on a stale revision, so it is refused (§20.5).
+4. The owner's editor reloads the latest card and shows a short notice that the co-host made changes. No merge screen; the owner continues from the latest card.
+5. The save indicator never shows `Saved` for the refused change.
+
+**New direction keeps my words.**
+
+1. Before publish, the host has edited the card (changed the invitation line, added a text box, chosen a font).
+2. The host chooses `Try another direction ✦`, then `Choose this direction` on the new card (H05), or switches shape from `Design`.
+3. The new card keeps the host's title, invitation line, added text and fonts, laid out fresh in the new design; positions, sizes and colours come from the new card (§20.6).
+4. Event details, guests, RSVP, registry, privacy and messages are unchanged.
+5. Choosing the earlier design, or switching back to the earlier shape, restores the edited card exactly as the host left it (§20.6).
 
 ## H13 — Preview
 
@@ -218,9 +253,9 @@ The primary publish action may remain app-level.
 
 ## H14 — Designs list
 
-Opened from Design (§20.3). Shows every design generated for the event, each as its card with name and description; the active one is marked.
+Opened from Design (§20.6). Shows every design generated for the event, each as its card with name and description; the active one is marked.
 
-- Choosing a design makes it active, resets card wording, font and shape to that design, and keeps a title the host supplied or edited. Event details, guests, RSVP, registry, privacy and messages never change.
+- Choosing a design makes it active and keeps the host's words, added text and fonts, laid out fresh in the new design; earlier customizations are kept, so choosing the previous design restores them (§20.6). Event details, guests, RSVP, registry, privacy and messages never change.
 - Read-only after publish (§8.2).
 
 ## H15 — Publish gate
@@ -256,7 +291,7 @@ Priority:
 3. Messages — invitations, reminders (non-responders), announcements (§13.4);
 4. Registry;
 5. Share — link, QR, code;
-6. Edit invitation — details, card wording, font and shape (shapes the existing artwork fits).
+6. Edit invitation — details; the card in the card editor (text, fonts, colours, sizes, positions; H12a); and shape (shapes the existing artwork fits).
 
 Owner additionally: billing, co-host access, delete/archive.
 
