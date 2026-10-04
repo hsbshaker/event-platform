@@ -108,6 +108,17 @@ describe("validateCardText", () => {
     );
   });
 
+  it("breaks words exactly where the card does: a no-break space joins, other spaces are characters", () => {
+    // Two words that each fit alone, joined by a no-break space, are one piece on the card.
+    expect(validateCardText("title", "Wolfeschlegel Steinhausen")).toEqual({ ok: true });
+    expect(refusal("title", "Wolfeschlegel\u00a0Steinhausen")?.reason).toBe("word-too-wide");
+    // A space no curated face draws is refused like any other character, not skipped.
+    expect(refusal("venue", "The\u2009Willow House")).toMatchObject({
+      reason: "unsupported-characters",
+      characters: ["\u2009"],
+    });
+  });
+
   /**
    * The word check against the card itself: a piece the check accepts never overflows the
    * narrowest zone at the slot's minimum size in any pairing, as `layoutCard` measures it; and a

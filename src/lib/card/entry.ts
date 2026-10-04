@@ -23,7 +23,7 @@ import { CARD_LAYOUT_IDS, CARD_LAYOUTS, zoneFor } from "./layouts";
 import ENTRY_GLYPHS from "./entry-glyphs.json";
 import { breakWidth } from "./fit";
 import { FACT_ENTRY_LIMITS, WORDING_LIMITS } from "./slots";
-import { wordPieces } from "./text/line-break";
+import { BREAK_CHARACTER, BREAK_RUN, wordPieces } from "./text/line-break";
 
 /** The card slots a host types into: a host-supplied title, and the free-text facts. */
 export const CARD_ENTRY_SLOTS = ["title", "babyName", "hosts", "venue"] as const;
@@ -152,8 +152,10 @@ export function validateCardText(slot: CardEntrySlot, value: string): CardTextCh
   // 1. Characters, as the host sees them: a grapheme is refused if any part of it is.
   const unsupported: string[] = [];
   for (const { segment } of graphemes.segment(text)) {
-    if (/^\s+$/.test(segment)) continue;
-    const drawable = [...segment].every((ch) => /\s/.test(ch) || index.has(ch));
+    // Only break characters are skipped: other whitespace (a no-break space) is drawn, so a face
+    // must have it like any other character.
+    if ([...segment].every((ch) => BREAK_CHARACTER.test(ch))) continue;
+    const drawable = [...segment].every((ch) => BREAK_CHARACTER.test(ch) || index.has(ch));
     if (!drawable && !unsupported.includes(segment)) unsupported.push(segment);
   }
   if (unsupported.length > 0) {
@@ -179,10 +181,10 @@ export function validateCardText(slot: CardEntrySlot, value: string): CardTextCh
 
   // 3. Every unbreakable piece fits one line of the narrowest zone, in every face.
   const room = breakWidth(NARROWEST_ZONE_WIDTH);
-  for (const word of text.split(/\s+/)) {
+  for (const word of text.split(BREAK_RUN)) {
     for (const piece of wordPieces(word)) {
       const widths = entryWordWidths(role, piece);
-      if (widths === null) continue; // unreachable: every character was checked above
+      if (widths === null) continue; // unreachable: every character of a piece was checked above
       if (Object.values(widths).some((w) => w > room)) {
         return {
           ok: false,

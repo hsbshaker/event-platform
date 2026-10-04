@@ -40,6 +40,14 @@ export interface BrokenLines {
 /** Hard breaks: CRLF, LF, CR, LINE SEPARATOR, PARAGRAPH SEPARATOR. */
 const HARD_BREAK = new RegExp("\\r\\n|[\\n\\r\\u2028\\u2029]");
 const SPACES = /[ \t]+/;
+
+/**
+ * Every character a line may break at: the spaces and the hard breaks above. Any other
+ * whitespace (a no-break space, a thin space) joins, and is an ordinary character to measure and
+ * draw. The entry check splits words at exactly these, so what it accepts breaks the same way.
+ */
+export const BREAK_CHARACTER = /[ \t\r\n\u2028\u2029]/;
+export const BREAK_RUN = /[ \t\r\n\u2028\u2029]+/;
 /**
  * A hyphen (HYPHEN-MINUS or HYPHEN) after a letter (or a letter's combining mark) and before a
  * letter: the break goes after it.

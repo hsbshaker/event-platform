@@ -10,6 +10,7 @@ import ENTRY_GLYPHS from "./entry-glyphs.json";
 import { CARD_SLOT_SPECS } from "./layouts";
 import { TYPICAL, WORST } from "./test-content";
 import { curatedFontFileName } from "./text/curated-fonts";
+import { BREAK_CHARACTER } from "./text/line-break";
 import { applyTextCase, fontFileToSfnt, type FontMetricsResolver } from "./text/metrics";
 import { CURATED_FONT_DIR, allCuratedMetrics } from "./text/test-fonts";
 import { TYPOGRAPHY } from "./typography";
@@ -23,7 +24,8 @@ import { TYPOGRAPHY } from "./typography";
  *
  * For each role (`display` for the title, `body` for the facts):
  * - `chars`: every character every face of the role can draw as the card sets it (the details are
- *   capitals, so a body character counts when each face has its capital), whitespace excepted;
+ *   capitals, so a body character counts when each face has its capital), break characters
+ *   excepted (a no-break space is an ordinary character);
  * - for each face, the advance of each of those characters in card units × 100, rounded up, as the
  *   card sets it at the slot's minimum size (the size a word must fit at): letter spacing and case
  *   included, measured by the same HarfBuzz measurement `layoutCard` uses.
@@ -75,7 +77,7 @@ async function generate() {
     const chars = [...candidates]
       .sort((a, b) => a - b)
       .map((cp) => String.fromCodePoint(cp))
-      .filter((ch) => !/\s/.test(ch))
+      .filter((ch) => !BREAK_CHARACTER.test(ch))
       .filter((ch) => {
         const drawn = [...applyTextCase(ch, spec.textCase)].map((c) => c.codePointAt(0)!);
         return cmaps.every((cmap) => drawn.every((cp) => cmap.has(cp)));
