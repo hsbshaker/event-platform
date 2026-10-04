@@ -231,6 +231,44 @@ needed.
 The reveal-latency target was re-set with the owner from these measurements (`spec.md §7.10`), and
 the handling of provider refusals of famous characters was decided with them (`spec.md §7.6`).
 
+**How spend is enforced** (Phase 5a; `supabase/migrations/20261005000000_phase5_spend_controls.sql`,
+`src/lib/ai/`). No new service: Postgres functions behind the service role, and plain `fetch`.
+
+- **Configuration** (`generationEnv()` in `src/lib/env.ts`): `GENERATION_ENABLED` is the kill
+  switch, off unless exactly `"true"`; `OPENAI_API_KEY` is required when it is on;
+  `GENERATION_DAILY_CEILING_USD` (20), `GENERATION_EVENT_DAILY_CAP` (30) and
+  `GENERATION_HOST_DAILY_CAP` (60) default to the owner's limits, and an invalid value is an error,
+  never a fallback.
+- **The generation lock** (`start_generation`, called by `startGeneration`): one row per
+  generation request in `generations`, keyed by a client idempotency key per user action (a repeat
+  returns the same generation). Under the event row's lock it fails a running generation whose
+  heartbeat is older than 330 s as `stale`, answers `in_flight` while another is running (a partial
+  unique index is the backstop), and otherwise consumes the event's and the acting host's daily
+  caps (`consume_rate_limit`, UTC-day windows, HMAC-keyed like every other limit) inside a
+  subtransaction that is rolled back if either refuses — a refused start consumes nothing. It
+  refuses a user who is not the event's owner or a co-host, and starts nothing once the event is
+  published (`spec.md §8.2`).
+- **The meter** (`metered` in `src/lib/ai/meter.server.ts`): every provider request runs inside
+  it, and the provider's request functions are not exported. Before a call it refuses — with no
+  request made — when generation is off, when the generation is no longer running
+  (`heartbeat_generation`, which also refreshes the heartbeat), or when the call's conservative
+  reservation (`src/lib/ai/pricing.ts`) would take today's spent plus reserved past the ceiling
+  (`reserve_model_spend`, atomic under the day's row lock, UTC day). After it, success or failure,
+  the reservation is settled to the cost computed from the reported usage (`settle_model_spend`;
+  zero for a request the provider rejected, the full reservation when the outcome is unknown) and
+  one `generation_runs` row is written. Any ledger error before the call stops it; a failed run
+  row is thrown. Each structured call sends `max_output_tokens`, so its reservation bounds its
+  cost. A transient failure (429, 408, 5xx, timeout, dropped connection) gets one retry as a
+  separately metered attempt. Refusals at the ceiling are logged as errors (the alert, for now).
+
+**Generation execution** (assumed for Phase 5b). A Route Handler or Server Action authorizes the
+host, calls `startGeneration`, answers at once, and runs the pipeline on the server after the
+response with `after()` within the route's `maxDuration` of 300 s (Vercel Pro with Fluid compute
+allows up to 800 s). Stage results are written to `generations` (`stage`, `artifacts`) as they
+resolve, for the wait surface to read. No queue service. A worker can live at most 300 s and every
+metered call refreshes its heartbeat, so a generation whose heartbeat is older than 330 s is dead
+and the next start takes it over.
+
 ## 8.2 Card rendering without a production browser
 
 The card is a fixed canvas (5:7 or 1:1, six shapes) laid out by a deterministic function, so production does **not**

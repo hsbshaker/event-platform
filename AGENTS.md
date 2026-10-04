@@ -43,9 +43,13 @@ Heed deprecation notices in those docs over training-data habits.
 - **Tests**: unit tests next to the code as `*.test.ts`; database tests in `tests/db`.
   Run `npm run lint && npm run typecheck && npm test` before reporting; `npm run test:db`
   when a migration or policy changed.
-- **Model calls**: only through `src/lib/ai/provider.ts` (`generateEventIdentity`,
-  `generateCardDesign`, `generateCardArt`). The card compiler — validation, wording fact check,
-  ink and legibility, `layoutCard` — and the renderer never call a model
+- **Model calls**: only through `src/lib/ai/provider.ts` (`getAiProvider()`: `generateEventIdentity`,
+  `extractEventFacts`, `generateCardDesign`, `generateCardArt`, `moderateCardArt`,
+  `inspectCardArt`). Every method takes the `MeterContext` of a generation begun with
+  `startGeneration` (`src/lib/ai/generations.server.ts`) and runs inside the meter
+  (`src/lib/ai/meter.server.ts`): kill switch, running generation, daily spend ceiling, then a
+  recorded run. Never call the provider's API any other way. The card compiler — validation,
+  wording fact check, ink and legibility, `layoutCard` — and the renderer never call a model
   (`docs/card-system.md §4`).
 - **Card code** lives under `src/lib/card/` (colour maths, typography pairings, the layout set and
   shapes, `CardDesign` validation, the wording check, art-prompt assembly; the rest of the
