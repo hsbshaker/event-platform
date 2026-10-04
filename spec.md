@@ -583,8 +583,18 @@ cable-knit sweater over a blue oxford collar"), so the image model never receive
 
 This line was chosen deliberately by the owner and carries trademark and copyright risk for a
 platform that charges to publish (`docs/CHANGELOG-v7.md`). It must be reviewed by counsel before
-launch (`docs/product-doctrine.md §14`). An image provider may refuse some requests; a refusal is
-a visible failure with retry like any other (§7.8).
+launch (`docs/product-doctrine.md §14`).
+
+**When the image provider refuses a homage.** The provider may refuse artwork that comes out too
+close to a well-known protected character even when nothing is named (Phase 3: a classic
+storybook bear was refused in 2 of 2 attempts; `docs/model-evals/phase-3-validation.md`). Owner
+decision: the first design keeps the close homage. When the provider refuses it, the one
+regeneration (§7.8) re-prompts the card design to evoke the character's **world** — its setting,
+props, palette and illustration style — rather than its signature look, and paints new artwork
+from that brief. While it does, the host sees a short, plain note, for example: "That first take
+came out too close to a well-known character, so for copyright reasons we're trying a fresh take
+on its world." If that attempt is refused too, it is a visible failure whose Try again takes the
+same step back. The note never blames the host and never shows a provider error.
 
 ### 7.6a Card artwork
 
@@ -683,8 +693,10 @@ The image model returns the artwork.
 Validation (deterministic, plus the text and safety checks chosen in Phase 3 validation): file type, the requested proportion
 within tolerance,
 minimum resolution, decodable, **no embedded text**, and content safety. A failure earns one
-regeneration; a second failure is shown honestly to the host with a retry action. There is no
-template or stock fallback.
+regeneration; a second failure is shown honestly to the host with a retry action. A provider
+refusal is a failure; when it refuses a brand or character homage, the regeneration comes from a
+re-prompted design that evokes the character's world (§7.6). There is no template or stock
+fallback.
 
 ### 7.9 Card compilation
 
@@ -2198,6 +2210,10 @@ The host should feel:
   no embedded text, and passes
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no
   template or stock fallback exists.
+- [ ] When the image provider refuses a brand or character homage, the one regeneration comes
+  from a re-prompted design that evokes the character's world rather than its signature look; the
+  host sees a short, plain copyright note, never a provider error; a second refusal is a visible
+  failure whose Try again takes the same step back (§7.6).
 - [ ] Every card text clears 4.5:1 against the conservatively measured background of its zone;
   otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
 - [ ] `layoutCard` decides every slot's size and line breaks; no text leaves its zone; no word is

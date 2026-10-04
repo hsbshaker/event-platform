@@ -79,6 +79,12 @@ Screen labels describe product surfaces, not necessarily URL routes. Section ref
 
 **Failure state:** an honest failure with a retry action; no fallback design.
 
+**Copyright step-back** (`spec.md §7.6`): when the image provider refuses a brand or character
+homage, the surface keeps going and shows one short, plain note — "That first take came out too
+close to a well-known character, so for copyright reasons we're trying a fresh take on its world."
+— while the step-back design and artwork generate. Never a provider error, never blame on the host.
+If that is refused too, the honest failure above, whose Try again takes the same step back.
+
 ## `card-reveal`
 
 **Purpose:** activation (§7.11).

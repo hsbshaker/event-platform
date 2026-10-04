@@ -127,6 +127,28 @@ Round 2 also exposed a bug in the mock's ink rule (below), fixed before publishi
    visible failures, or steer briefs for famous characters toward the character's world rather
    than its signature design.
 
-### The owner's verdict
+### The owner's verdict — the bar is met
 
-Pending — recorded from the review page when the owner has judged all fourteen cards.
+Judged by the owner on 2026-10-04 on the review page, round 2: **11 of 14 would send** (bar: 10).
+
+| Verdict | Cases | Owner's note |
+| --- | --- | --- |
+| Would send | CU-01, CU-03, CU-05, CU-06, CU-07, CU-08, CU-09, CU-10, CU-11, CU-12, CU-13 | — |
+| Wouldn't send | CU-02 | "less white space surrounding text; or change whitespace to some sort of designed background; needs a graphic of multiple graphics" |
+| Wouldn't send | CU-04 | Refused by the provider in both rounds. On the uncounted experiment: "not legible; … artwork takes up too much space of the card" |
+| Wouldn't send | CU-14 | "too plain" |
+
+The owner's own briefs, not counted: O-01 and O-02 would send.
+
+**What the misses say.** Both judged misses are sparse cards — a frame around a large empty
+centre (CU-02) and a quiet wash (CU-14). Presence is the next thing to improve, in the card-design
+prompt and the framed and atmosphere layouts' presence rules, measured on this corpus in Phase 5.
+
+### Owner decisions taken on the results
+
+1. **Latency.** The wait is filled by the details form (`spec.md §7.10`), so the reveal target is
+   re-set from the measurements rather than held at 30 s. Sunburst `medium` is adopted only if it
+   shows no loss of quality against `high` on the full corpus (comparison below).
+2. **Famous characters.** Keep close homage on the first attempt. When the provider refuses it,
+   the one regeneration re-prompts the design to evoke the character's world rather than its
+   signature look, with a short, plain copyright note to the host (`spec.md §7.6`).

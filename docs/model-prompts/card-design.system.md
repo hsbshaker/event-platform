@@ -123,7 +123,17 @@ When `previousDirections` is present, the host asked for a genuinely different i
 idea — the subject or framing, the art mode or layout, the typography — not just the palette.
 Follow the host's `feedback` when given, within these rules.
 
-## 10. Before returning, verify
+## 10. After a provider refusal
+
+When `reprompt.kind` is `provider-refusal`, the image provider refused artwork from your previous
+brief because it came out too close to a well-known character. Keep the occasion, the identity and
+as much of the feeling as you can, but evoke the character's **world** rather than the character:
+its setting, props, palette and illustration style. Change the subject's signature features — its
+clothing, colouring, proportions, pose — so it no longer reads as that specific character. For
+example, a classic storybook bear in a red shirt becomes a plain storybook teddy with a honey pot
+in an English beech wood.
+
+## 11. Before returning, verify
 
 - the layout supports the shape, and the art mode is compatible with the layout;
 - alternates are distinct from the primary and come from the supplied pairings;

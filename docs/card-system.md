@@ -251,6 +251,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
+| `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it
 is never disguised as a finished design.

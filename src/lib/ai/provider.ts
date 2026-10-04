@@ -52,7 +52,12 @@ export interface GenerateCardDesignInput {
   previousDirections?: Record<string, unknown>[];
   feedback?: string;
   /** Present only on an allowed re-prompt, at most once per kind (docs/model-contracts.md §5.3). */
-  reprompt?: { kind: "schema" | "wording" | "repeat-direction"; feedback: string };
+  // `provider-refusal`: the image provider refused a brand or character homage; the new design
+  // evokes the character's world rather than its signature look (spec.md §7.6).
+  reprompt?: {
+    kind: "schema" | "wording" | "repeat-direction" | "provider-refusal";
+    feedback: string;
+  };
 }
 
 export interface GenerateCardArtInput {

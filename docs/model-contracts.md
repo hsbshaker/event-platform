@@ -182,7 +182,7 @@ GenerateCardDesignInput {
     name, layout, artMode, primary, subject
   }[]
   feedback?: string                            // optional "Try another direction" feedback
-  reprompt?: { kind: "schema" | "wording" | "repeat-direction"; feedback: string }
+  reprompt?: { kind: "schema" | "wording" | "repeat-direction" | "provider-refusal"; feedback: string }
 }
 ```
 
@@ -322,8 +322,14 @@ adds an artwork to the design rather than replacing one.
 
 Deterministic: decodable allowed image type; the requested proportion within tolerance; minimum
 resolution. Required,
-mechanism chosen in Phase 3 validation: no embedded text; content safety. A failure earns one
-regeneration; a second failure is a visible failure with retry. No template or stock fallback.
+mechanism chosen in Phase 3 validation (`technology-decisions.md §8.1`): no embedded text;
+content safety. A failure earns one regeneration; a second failure is a visible failure with
+retry. No template or stock fallback.
+
+A provider refusal of a brand or character homage is a failure whose regeneration comes from a
+`generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md
+§10`): the new brief evokes the character's world rather than its signature look
+(`spec.md §7.6`).
 
 ## 7.4 Evals
 

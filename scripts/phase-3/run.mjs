@@ -559,6 +559,8 @@ async function makeArt(c, design, { reference, file, label, promptOverride }) {
     const gen = await generateImage({
       prompt,
       size: RASTER[proportion],
+      // PHASE3_QUALITY lets a run compare quality settings on the same designs.
+      quality: process.env.PHASE3_QUALITY ?? "high",
       reference,
       label: `${label}${i ? " regen" : ""}`,
     });
