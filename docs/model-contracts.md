@@ -215,8 +215,12 @@ In order, deterministic (`card-system.md §4.1`):
 - A name may appear only exactly as it appears in `eventFacts`.
 - Wording never contains a date, weekday, month, time, number, place, address, dress code, or any
   other fact. The deterministic check rejects digits, month and weekday names, time expressions,
-  and any venue/location string; names that do not match `eventFacts` exactly are caught by the
-  evaluation corpus, and the host reviews the card.
+  and any supplied place, logistics or partial-hint fact (venue, location, address, date, time,
+  RSVP-by, dress code and their hints); names that do not match `eventFacts` exactly are caught by
+  the evaluation corpus, and the host reviews the card. Its boundary is deliberate: "May" and bare
+  "am"/"pm" pass, being far more often words ("you may", "I am") and a written date or time
+  carries a digit anyway; spelled-out times without a digit ("at five", "half past six") pass the
+  check and are left to the corpus.
 - No brand names, character names or slogans in model-drafted wording; the host's own wording may
   contain anything.
 

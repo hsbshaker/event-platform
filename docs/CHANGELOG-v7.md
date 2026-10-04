@@ -249,6 +249,12 @@ families from fixed Google Fonts hosts, type- and size-checked, with licence tex
 (`technology-decisions.md §8.3`); host-chosen colours are recorded as an accepted limitation
 (`spec.md §34`).
 
+### Phase 4 — the card data migration
+
+`20261004000000_phase4_card_data.sql` replaced the website-era tables with the card tables
+(`spec.md §24`). It also dropped `human_test_1_responses`: by owner decision (2026-10-04), the
+Human Test #1 responses were dropped without an export.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

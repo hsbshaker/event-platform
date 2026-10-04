@@ -72,6 +72,28 @@ describe("checkWording", () => {
     expect(checkWording(ok, { venue: "", hosts: null, date: undefined })).toEqual([]);
   });
 
+  it("checks only the listed fact keys, so the event type and a title never fail", () => {
+    const facts = { eventType: "baby shower", title: "Bear Necessities", location: "Austin" };
+    expect(checkWording(standardWording("baby shower"), facts)).toEqual([]);
+    expect(checkWording({ ...ok, title: "Bear Necessities" }, facts)).toEqual([]);
+    expect(reasons({ ...ok, invitationLine: "Come to Austin for brunch" }, facts)).toEqual([
+      "invitationLine states the fact location",
+    ]);
+    expect(
+      reasons(
+        { ...ok, invitationLine: "Join us at my mum's house" },
+        { venueHint: "my mum's house" },
+      ),
+    ).toEqual(["invitationLine states the fact venueHint"]);
+  });
+
+  it("never checks a host-supplied slot", () => {
+    const hostTitle = { ...ok, title: "Theo's Saturday at The Lodge" };
+    const facts = { venue: "The Lodge" };
+    expect(checkWording(hostTitle, facts, { hostSupplied: ["title"] })).toEqual([]);
+    expect(reasons(hostTitle, facts)).toContain("title states the fact venue");
+  });
+
   it("names every failing slot", () => {
     const failures = checkWording({ title: "On May 5", invitationLine: "Come on Friday" });
     expect(failures.map((f) => f.slot).sort()).toEqual(["invitationLine", "title"]);
@@ -85,6 +107,11 @@ describe("standardWording", () => {
       invitationLine: "Please join us for a baby shower",
     });
     expect(standardWording(" Baby Shower ")).toEqual(standardWording("baby shower"));
+  });
+
+  it("falls back to the baby shower copy for a blank event type", () => {
+    expect(standardWording("")).toEqual(standardWording("baby shower"));
+    expect(standardWording("   ")).toEqual(standardWording("baby shower"));
   });
 
   it("builds the same pattern from another event type", () => {

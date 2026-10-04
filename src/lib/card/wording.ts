@@ -28,11 +28,25 @@ const MONTHS = [
 const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 /**
- * Name facts may appear in model-drafted wording, exactly as the host supplied them
- * (`docs/model-contracts.md §5.4`); whether a name is spelled exactly is caught by the evaluation
- * corpus, not here. `eventType` is expected in the wording ("a baby shower").
+ * The host facts model-drafted wording must never repeat (`docs/model-contracts.md §5.4`): places,
+ * logistics and the partial hints the fact extraction keeps beside them. Explicit rather than
+ * "every key but the names", so a fact the wording is expected to carry (`eventType`, "a baby
+ * shower") or may carry exactly (`hosts`, `babyName`, `honoree`) can never be rejected by
+ * accident; whether a name is spelled exactly is caught by the evaluation corpus, not here.
  */
-const ALLOWED_FACT_KEYS = new Set(["eventType", "hosts", "babyName", "honoree"]);
+export const CHECKED_FACT_KEYS = [
+  "venue",
+  "location",
+  "address",
+  "date",
+  "time",
+  "rsvpBy",
+  "dressCode",
+  "venueHint",
+  "locationHint",
+  "monthHint",
+] as const;
+export type CheckedFactKey = (typeof CHECKED_FACT_KEYS)[number];
 
 export interface WordingFailure {
   slot: WordingSlotId;
@@ -40,16 +54,20 @@ export interface WordingFailure {
 }
 
 /**
- * @param wording the model-drafted wording slots
- * @param eventFacts host-supplied fact strings by key (name, venue, date, ...). `eventType` and
- *   name facts are exempt (`ALLOWED_FACT_KEYS`); every other supplied fact is rejected.
+ * @param wording the wording slots of a design
+ * @param eventFacts host-supplied fact strings by key. Only `CHECKED_FACT_KEYS` are matched; other
+ *   keys (`eventType`, names, `title`) are ignored.
+ * @param options.hostSupplied slots holding host content, such as a host-supplied title used
+ *   verbatim: never fact-checked (`docs/model-contracts.md §5.4`).
  */
 export function checkWording(
   wording: Readonly<Record<WordingSlotId, string>>,
-  eventFacts: Readonly<Record<string, string | null | undefined>> = {},
+  eventFacts: Readonly<Partial<Record<string, string | null>>> = {},
+  options: { hostSupplied?: readonly WordingSlotId[] } = {},
 ): WordingFailure[] {
   const failures: WordingFailure[] = [];
   for (const slot of WORDING_SLOT_IDS) {
+    if (options.hostSupplied?.includes(slot)) continue;
     const value = wording[slot];
     const lower = value.toLowerCase();
     if (/\d/.test(value)) failures.push({ slot, reason: `${slot} contains a digit` });
@@ -65,17 +83,15 @@ export function checkWording(
     if (/\b(a\.m\.?|p\.m\.?|noon|o'clock|midnight)(?![a-z])/.test(lower)) {
       failures.push({ slot, reason: `${slot} contains a time expression` });
     }
-    for (const [key, fact] of Object.entries(eventFacts)) {
-      const f = fact?.trim().toLowerCase();
-      if (!ALLOWED_FACT_KEYS.has(key) && f && lower.includes(f)) {
+    for (const key of CHECKED_FACT_KEYS) {
+      const f = eventFacts[key]?.trim().toLowerCase();
+      if (f && lower.includes(f)) {
         failures.push({ slot, reason: `${slot} states the fact ${key}` });
       }
     }
   }
   return failures;
 }
-
-const BABY_SHOWER = /^\s*baby shower\s*$/i;
 
 function titleCase(s: string): string {
   return s.replace(/\b([a-z])/gi, (c) => c.toUpperCase());
@@ -91,13 +107,13 @@ function withArticle(noun: string): string {
  *
  * Only the baby shower copy is specified. For any other event type this builds the same pattern
  * from the host's event type string ("A Retirement Party" / "Please join us for a retirement
- * party") and invents no other copy. The result is not truncated; the event type is bounded
- * upstream and the text is editable by the host.
+ * party") and invents no other copy. A blank event type falls back to the baby shower copy, the
+ * only MVP event type. The result is not truncated; the event type is bounded upstream and the
+ * text is editable by the host.
  */
 export function standardWording(eventType: string): Record<WordingSlotId, string> {
-  const noun = BABY_SHOWER.test(eventType)
-    ? "baby shower"
-    : eventType.trim().replace(/\s+/g, " ").toLowerCase();
+  const type = eventType.trim().replace(/\s+/g, " ").toLowerCase();
+  const noun = type || "baby shower";
   return {
     title: titleCase(withArticle(noun)),
     invitationLine: `Please join us for ${withArticle(noun)}`,

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/card-design.schema.json",
   "title": "CardDesign",
-  "description": "card_design_schema_v1 (model-contracts.md §5). Enums are generated from the card catalogs: the draft card_layouts_v1 (scripts/phase-3/catalog.mjs until Phase 4 makes it product code) and src/lib/card/typography.ts.",
+  "description": "card_design_schema_v1 (model-contracts.md §5). Enums are generated from the card catalogs: card_layouts_v1 (src/lib/card/layouts.ts) and src/lib/card/typography.ts.",
   "type": "object",
   "additionalProperties": false,
   "required": [

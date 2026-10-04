@@ -47,8 +47,9 @@ Heed deprecation notices in those docs over training-data habits.
   `generateCardDesign`, `generateCardArt`). The card compiler — validation, wording fact check,
   ink and legibility, `layoutCard` — and the renderer never call a model
   (`docs/card-system.md §4`).
-- **Card code** lives under `src/lib/card/` (colour maths, typography pairings; the layout set,
-  compiler and fixtures arrive in Phase 4). The generated card's text is laid out by `layoutCard`,
+- **Card code** lives under `src/lib/card/` (colour maths, typography pairings, the layout set and
+  shapes, `CardDesign` validation, the wording check, art-prompt assembly; the rest of the
+  compiler and the fixtures are being built in Phase 4). The generated card's text is laid out by `layoutCard`,
   and every edited text box is broken by one deterministic function with its lines stored
   (`docs/card-system.md §7`); never let the browser re-wrap card text and never derive CSS from
   model output. The card editor edits the text layer only.

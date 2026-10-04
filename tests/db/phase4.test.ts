@@ -361,6 +361,16 @@ describe("generated data is immutable", () => {
       ),
     ).toBe("42501");
   });
+
+  it("cannot be truncated by server code, which would skip the row triggers", async () => {
+    for (const sql of [
+      `truncate public.card_art_assets`,
+      `truncate public.card_designs cascade`,
+      `truncate public.events cascade`,
+    ]) {
+      expect(await errorCode(asActor(db, { kind: "service" }, (q) => q(sql))), sql).toBe("42501");
+    }
+  });
 });
 
 describe("design and artwork integrity", () => {
@@ -619,6 +629,14 @@ describe("save_card_customization", () => {
     );
     expect(bumped.rows[0].revision).toBe(2); // a supplied revision is overwritten
     expect(await pgError(save(COHOST(), 1))).toMatchObject({ code: "PT409" });
+  });
+
+  it("does not stale open editors when the last editor's profile is deleted", async () => {
+    await save(OWNER(), 0);
+    expect(await save(COHOST(), 1)).toBe(2);
+    await db.query(`delete from auth.users where id = $1`, [cohost]);
+    expect(await customization()).toMatchObject({ revision: 2, updated_by: null });
+    expect(await save(OWNER(), 2)).toBe(3);
   });
 
   it("never moves a customization to another design or shape", async () => {

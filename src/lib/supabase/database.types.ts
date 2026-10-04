@@ -25,7 +25,8 @@ export type ModelOperation =
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
-export type CardProportion = "portrait_5_7" | "square_1_1";
+/** Database spelling of a proportion; `src/lib/card/shapes.ts` `CardProportion` is "5:7" | "1:1". */
+export type CardProportionCode = "portrait_5_7" | "square_1_1";
 export type CardLayout = "art-top" | "art-bottom" | "framed" | "corners" | "atmosphere";
 export type CardArtMode = "illustration" | "framed" | "atmosphere" | "minimal";
 
@@ -150,7 +151,7 @@ type CardArtAssetRow = {
   id: string;
   event_id: string;
   card_design_id: string;
-  proportion: CardProportion;
+  proportion: CardProportionCode;
   fits_shapes: CardShape[];
   storage_key: string;
   mime_type: string;
@@ -399,7 +400,7 @@ export type Database = {
       event_member_role: EventMemberRole;
       model_operation: ModelOperation;
       card_shape: CardShape;
-      card_proportion: CardProportion;
+      card_proportion: CardProportionCode;
       card_layout: CardLayout;
       card_art_mode: CardArtMode;
     };

@@ -162,6 +162,12 @@ create table public.card_designs (
 -- ===========================================================================
 -- The design's original artwork plus one per shape switch no existing artwork fits. The image
 -- itself is in the private `card-art` bucket under storage_key. Immutable once written.
+--
+-- Two artworks of one design may fit the same shape (a retry after a failed validation, two
+-- concurrent shape switches); nothing here prevents it. The rule for readers: for a design and
+-- shape, the artwork rendered is the newest by created_at among those whose fits_shapes holds
+-- that shape. A generation inserts a design together with its first artwork, so a design with
+-- no artwork is a failure, never a card.
 create table public.card_art_assets (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events (id) on delete cascade,
@@ -281,9 +287,11 @@ create table public.card_customizations (
   event_id uuid not null references public.events (id) on delete cascade,
   card_design_id uuid not null,
   shape public.card_shape not null,
-  -- TextBox[] (spec.md §20.5). Shape of each box is validated by application code; the database
-  -- holds an array of objects under a storage backstop, not a product limit (per-box limits are
-  -- set by the card editor, §20.2).
+  -- TextBox[] (spec.md §20.5). The database holds an array of objects under a storage backstop,
+  -- not a product limit (per-box limits are set by the card editor, §20.2). The box shape is not
+  -- checked here, and save_card_customization is reachable directly over RPC, so stored boxes
+  -- are untrusted: every read parses them through the TextBox schema, and a parse failure is an
+  -- explicit state (the generated layout with a notice), never a broken card.
   boxes jsonb not null check (jsonb_typeof(boxes) = 'array'),
   revision integer not null default 1 check (revision >= 1),
   updated_by uuid references public.profiles (id) on delete set null,
@@ -299,6 +307,8 @@ create table public.card_customizations (
 
 -- Revision is maintained here, not by callers: 1 on create, +1 on every update, so it is
 -- monotonic and cannot be forged. A customization never moves to another event, design or shape.
+-- The one update that is not an edit: deleting a profile nulls updated_by (on delete set null),
+-- which leaves the revision alone so open editors are not made stale by it.
 create or replace function public.maintain_card_customization()
 returns trigger
 language plpgsql
@@ -317,6 +327,12 @@ begin
     raise exception 'a card customization cannot move to another event, design or shape'
       using errcode = 'insufficient_privilege';
   end if;
+  if new.updated_by is null and old.updated_by is not null
+     and new.boxes is not distinct from old.boxes
+     and new.revision is not distinct from old.revision
+     and new.updated_at is not distinct from old.updated_at then
+    return new;
+  end if;
   new.revision := old.revision + 1;
   new.updated_at := now();
   return new;
@@ -333,6 +349,9 @@ create trigger card_customizations_maintain
 --   p_expected_revision = 0  → create at revision 1; refused as stale if one already exists.
 --   p_expected_revision = n  → update only while the stored revision is still n.
 -- Returns the new revision.
+--
+-- It checks that boxes is an array of objects, not that each object is a valid TextBox: a direct
+-- RPC call can store any objects, so readers never trust the stored shape (see boxes above).
 --
 -- Errors (SQLSTATE — meaning):
 --   PT409 — stale revision: someone else saved since p_expected_revision was read (or created
@@ -478,6 +497,9 @@ revoke insert, update, delete, truncate on table public.card_customizations from
 revoke all on table public.card_designs from anon;
 revoke all on table public.card_art_assets from anon;
 revoke all on table public.card_customizations from anon;
+-- TRUNCATE skips row triggers, so the immutability above would not hold against it: no role
+-- below the superuser may truncate generated data.
+revoke truncate on table public.card_designs, public.card_art_assets from service_role;
 
 -- Server-only: no policies for end-user roles, and no grants either.
 revoke all on table public.card_fonts from anon, authenticated;
