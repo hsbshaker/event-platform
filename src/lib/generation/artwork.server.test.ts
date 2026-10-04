@@ -20,6 +20,7 @@ import {
 import type { CardArt } from "@/lib/ai/provider";
 import { assembleArtPrompt, assembleShapeSwitchPrompt, fitsShapes } from "@/lib/card/art-prompt";
 import type { CardDesign } from "@/lib/card/design";
+import type { Rendering } from "@/lib/card/renderings";
 import { MIN_INK_CONTRAST } from "@/lib/card/ink";
 import { panelFor } from "@/lib/card/layouts";
 import { decodePng, pngChunkTypes } from "@/lib/card/png.server";
@@ -126,6 +127,8 @@ const DESIGN: Pick<CardDesign, "artBrief" | "artMode" | "layout"> = {
   artMode: "illustration",
   artBrief: {
     subject: "a lemon branch heavy with fruit and blossom",
+    rendering: "painterly",
+    aesthetic: "romantic",
     medium: "soft gouache illustration",
     mood: "sunlit and calm",
     palette: { description: "lemon, olive and ivory", colors: ["#F2D35B", "#7A8450", "#FBF7EE"] },
@@ -144,12 +147,13 @@ function stage(script: FakeScript, input: ArtworkStageInput = INPUT) {
 
 const flagged = { flagged: true, categories: ["violence"] };
 const inspected = (
-  found: Partial<Record<"hasText" | "hasLogoOrBrandMark" | "isMockup", boolean>>,
+  found: Partial<Record<"hasText" | "hasLogoOrBrandMark" | "isMockup" | "hasPerson", boolean>>,
 ) => ({
   hasText: false,
   textDescription: found.hasText ? "letters in the lower left" : "",
   hasLogoOrBrandMark: false,
   isMockup: false,
+  hasPerson: false,
   description: "artwork",
   ...found,
 });
@@ -267,6 +271,69 @@ describe("validation: one regeneration, then a visible failure", () => {
       image: 1,
       reasons: ["text", "logo", "mockup"],
       detail: "letters in the lower left",
+    });
+  });
+
+  describe("a person in the artwork (owner decision, 2026-10-04)", () => {
+    const rendered = (rendering: Rendering): ArtworkStageInput => ({
+      ...INPUT,
+      design: { ...DESIGN, artBrief: { ...DESIGN.artBrief, rendering } },
+    });
+
+    it.each(["photographic", "editorial", "rendered-3d", "collage"] as const)(
+      "regenerates once when %s artwork shows a person",
+      async (rendering) => {
+        const { fake, run } = stage(
+          { art: [CLEAN, CLEAN], inspection: [inspected({ hasPerson: true })] },
+          rendered(rendering),
+        );
+        const result = await run();
+        expect(fake.calls.art).toHaveLength(2);
+        expect(result.telemetry).toMatchObject({
+          imagesRequested: 2,
+          keptImage: 2,
+          artRegenerated: "person",
+        });
+        expect(result.telemetry.validationFailures).toEqual([{ image: 1, reasons: ["person"] }]);
+      },
+    );
+
+    it("fails visibly when the regeneration shows a person too", async () => {
+      const { fake, run } = stage(
+        {
+          art: [CLEAN, CLEAN],
+          inspection: [inspected({ hasPerson: true }), inspected({ hasPerson: true })],
+        },
+        rendered("photographic"),
+      );
+      await expect(run()).rejects.toMatchObject({ stage: "artwork", code: "artwork_invalid" });
+      expect(fake.calls.art).toHaveLength(2);
+    });
+
+    it.each(["vector", "flat-illustration", "painterly", "line-art", "design-led"] as const)(
+      "accepts a person in %s artwork",
+      async (rendering) => {
+        const { fake, run } = stage(
+          { art: [CLEAN], inspection: [inspected({ hasPerson: true })] },
+          rendered(rendering),
+        );
+        const result = await run();
+        expect(fake.calls.art).toHaveLength(1);
+        expect(result.telemetry).toMatchObject({ artRegenerated: null, validationFailures: [] });
+      },
+    );
+
+    it("drops a repaint that shows a person in photographic artwork", async () => {
+      const { run } = stage(
+        {
+          art: [BUSY, CLEAN, CLEAN],
+          inspection: [inspected({}), inspected({ hasPerson: true }), inspected({})],
+        },
+        rendered("photographic"),
+      );
+      const result = await run();
+      expect(result.telemetry).toMatchObject({ imagesRequested: 3, keptImage: 3, artRepaints: 2 });
+      expect(result.telemetry.validationFailures).toEqual([{ image: 2, reasons: ["person"] }]);
     });
   });
 

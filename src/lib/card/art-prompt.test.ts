@@ -11,9 +11,13 @@ import {
 import { ART_MODE_FIT, ART_MODES } from "./art-modes";
 import type { CardDesign } from "./design";
 import { artModeCompatible, CARD_LAYOUT_IDS, CARD_LAYOUTS, layoutArtFor } from "./layouts";
+import { PEOPLE_FREE_RENDERINGS, RENDERING_ART_PROMPT, RENDERINGS } from "./renderings";
+import type { Rendering } from "./renderings";
 
 const brief: CardDesign["artBrief"] = {
   subject: "A small bear holding a red balloon, standing on grass",
+  rendering: "painterly",
+  aesthetic: "romantic",
   medium: "watercolour on cotton paper",
   mood: "tender and playful",
   palette: { description: "warm honey and dusty rose", colors: ["#F2D7A0", "#C98B8B", "#FFF8EE"] },
@@ -26,18 +30,20 @@ const design = (
   layout: CardDesign["layout"],
   artMode: CardDesign["artMode"],
   avoid = brief.avoid,
-) => ({ shape, layout, artMode, artBrief: { ...brief, avoid } });
+  rendering: Rendering = brief.rendering,
+) => ({ shape, layout, artMode, artBrief: { ...brief, avoid, rendering } });
 
 const ALWAYS = [
   "Absolutely no text of any kind: no letters, words, numbers, initials, monograms, signatures, labels, logos, wordmarks, crests or watermarks anywhere in the image.",
-  "This is the flat artwork itself, not a photograph or mockup: no card, envelope, table, hands, shadows of paper, or frame around the canvas.",
+  "This is the artwork itself, filling the canvas — not a mockup: no photograph of a printed card, no envelope, table edge, hands, shadows of paper or frame around the canvas. The artwork may itself be a photograph when the rendering says so.",
   "The calm area will carry typeset text that is added later, so leave it genuinely clear — but do not leave the rest of the card empty.",
 ];
-const CORNER_LINE = "paint the background all the way into every corner and edge of the canvas";
+const CORNER_LINE =
+  "The trimming is done later by the printer: carry the background all the way into every corner and edge of the canvas. Do not draw the outline itself, a vignette, a border line or blank corners.";
 
-describe("card_art_v2", () => {
+describe("card_art_v3", () => {
   it("is versioned", () => {
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v2");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v3");
     expect(ART_RASTER_SIZE).toEqual({ "5:7": "1440x2016", "1:1": "1440x1440" });
   });
 
@@ -46,8 +52,11 @@ describe("card_art_v2", () => {
     expect(p.startsWith("Original artwork for the front of an invitation card, portrait 5:7")).toBe(
       true,
     );
-    expect(p).toContain("A recognizable, specific subject anchors the card");
+    expect(p).toContain("\nA recognizable, specific subject anchors the card, made with care.\n");
     expect(p).toContain("Subject: A small bear holding a red balloon, standing on grass.");
+    expect(p).toContain(
+      "\nRendering: Painterly artwork: organic hand-painted watercolour or gouache, translucent colour, soft edges and artistic texture. Aesthetic: romantic.\nMedium: ",
+    );
     expect(p).toContain(
       "Medium: watercolour on cotton paper. Texture: soft paper grain. Mood: tender and playful.",
     );
@@ -98,16 +107,81 @@ describe("card_art_v2", () => {
 
   it("assembles a minimal prompt that is own-shape", () => {
     const p = assembleArtPrompt(design("oval", "atmosphere", "minimal", []));
-    expect(p).toContain("Restrained: a refined border or paper texture only");
+    expect(p).toContain(
+      "Restrained: a refined border, pattern or surface texture only, but crafted and visible — never a blank card.",
+    );
     expect(p).toContain("Outline: The card is cut to an oval");
     expect(p).not.toContain(CORNER_LINE);
     expect(p.endsWith("An original style.")).toBe(true);
     expect(p).not.toContain("Do not depict");
   });
 
-  it("is exactly twelve lines for a proportion-fit design, built from the brief, layout and shape only", () => {
+  it("is exactly thirteen lines for a proportion-fit design, built from the brief, layout and shape only", () => {
     const p = assembleArtPrompt(design("rectangle", "corners", "illustration"));
-    expect(p.split("\n")).toHaveLength(12);
+    expect(p.split("\n")).toHaveLength(13);
+  });
+});
+
+describe("rendering families", () => {
+  it.each(RENDERINGS)("puts the exact %s Rendering line right before the Medium line", (r) => {
+    const lines = assembleArtPrompt(design("rectangle", "art-top", "illustration", [], r)).split(
+      "\n",
+    );
+    const at = lines.indexOf(`Rendering: ${RENDERING_ART_PROMPT[r]} Aesthetic: romantic.`);
+    expect(at).toBeGreaterThan(0);
+    expect(lines[at + 1].startsWith("Medium: ")).toBe(true);
+    expect(lines.filter((l) => l.startsWith("Rendering: "))).toHaveLength(1);
+  });
+
+  it("refuses a brief with no known rendering, such as one persisted under schema v1", () => {
+    const d = design("rectangle", "art-top", "illustration");
+    const v1 = { ...d, artBrief: { ...d.artBrief, rendering: undefined } };
+    expect(() => assembleArtPrompt(v1 as unknown as typeof d)).toThrow(/no known rendering/);
+    const odd = { ...d, artBrief: { ...d.artBrief, rendering: "toString" } };
+    expect(() => assembleArtPrompt(odd as unknown as typeof d)).toThrow(/no known rendering/);
+  });
+
+  it("carries the aesthetic on the Rendering line, without a doubled full stop", () => {
+    const d = design("rectangle", "art-top", "illustration");
+    const p = assembleArtPrompt({
+      ...d,
+      artBrief: { ...d.artBrief, aesthetic: "Luxury editorial." },
+    });
+    expect(p).toContain(" Aesthetic: Luxury editorial.\nMedium: ");
+  });
+
+  it("asks for no people in photographic, editorial, 3D and collage artwork only", () => {
+    const people = "No people, faces, hands or bodies.";
+    for (const r of RENDERINGS) {
+      const p = assembleArtPrompt(design("rectangle", "art-top", "illustration", [], r));
+      expect(p.includes(people), r).toBe(PEOPLE_FREE_RENDERINGS.includes(r));
+    }
+  });
+
+  // Regression guard (card_art_v3): the prompt itself never pushes toward paint or away from
+  // photography; only the painterly family's own Rendering line names paint.
+  it("never says paint, painted or not a photograph outside the painterly rendering line", () => {
+    const forbidden = [/\bpaint\b/i, /\bpainted\b/i, /not a photograph/i];
+    for (const layout of CARD_LAYOUT_IDS) {
+      for (const artMode of ART_MODES.filter((m) => artModeCompatible(layout, m))) {
+        for (const shape of CARD_LAYOUTS[layout].shapes) {
+          for (const r of RENDERINGS) {
+            const d = design(shape, layout, artMode, [], r);
+            for (const prompt of [
+              assembleArtPrompt(d),
+              ...CARD_LAYOUTS[layout].shapes.map((to) => assembleShapeSwitchPrompt(d, to)),
+            ]) {
+              const label = `${layout}/${artMode}/${shape}/${r}`;
+              const text =
+                r === "painterly"
+                  ? prompt.replace(`Rendering: ${RENDERING_ART_PROMPT.painterly}`, "")
+                  : prompt;
+              for (const word of forbidden) expect(text, label).not.toMatch(word);
+            }
+          }
+        }
+      }
+    }
   });
 });
 
@@ -194,7 +268,7 @@ describe("assembleShapeSwitchPrompt", () => {
     expect(p).toContain("Place the subject in the upper 40% of the canvas.");
     expect(p).not.toContain("upper half");
     expect(p).toContain(
-      "\nKeep the same subject, character, medium and palette as the reference artwork — the same small bear holding a red balloon — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the clear area completely clear.",
+      "\nKeep the same subject, character, rendering, medium and palette as the reference artwork — the same small bear holding a red balloon — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the clear area completely clear.",
     );
   });
 
@@ -219,6 +293,17 @@ describe("assembleShapeSwitchPrompt", () => {
     }
   });
 
+  it("keeps the design's rendering on a shape switch", () => {
+    for (const r of RENDERINGS) {
+      const p = assembleShapeSwitchPrompt(
+        design("rectangle", "art-top", "illustration", [], r),
+        "oval",
+      );
+      expect(p).toContain(`\nRendering: ${RENDERING_ART_PROMPT[r]} Aesthetic: romantic.\n`);
+      expect(p).toContain("Keep the same subject, character, rendering, medium and palette");
+    }
+  });
+
   it("refuses a shape the layout does not support", () => {
     expect(() =>
       assembleShapeSwitchPrompt(design("rectangle", "corners", "illustration"), "circle"),
@@ -237,6 +322,8 @@ describe("brief fields in the prompt", () => {
       shape: "rectangle" as const,
       artBrief: {
         subject: "An heirloom teddy bear, sitting upright.",
+        rendering: "painterly" as const,
+        aesthetic: "romantic",
         medium: "Watercolour with gouache.",
         texture: "Matte paper grain. ",
         mood: "Quietly celebratory.",

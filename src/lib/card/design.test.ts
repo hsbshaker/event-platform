@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { cardDesignSchema, validateCardDesign } from "./design";
 import type { CardDesign } from "./design";
+import { RENDERINGS } from "./renderings";
 
 const valid: CardDesign = {
   presentation: { name: "Little Bear", description: "A watercolour bear holding a balloon." },
@@ -19,6 +20,8 @@ const valid: CardDesign = {
   wording: { title: "A Little Bear Is Coming", invitationLine: "Please join us for a baby shower" },
   artBrief: {
     subject: "A small bear holding a red balloon",
+    rendering: "painterly",
+    aesthetic: "romantic",
     medium: "watercolour on cotton paper",
     mood: "tender and playful",
     palette: {
@@ -112,6 +115,44 @@ describe("validateCardDesign — schema", () => {
     expect(fails(d, "schema")).toMatch(/artBrief/);
     fails(null, "schema");
     fails("a design", "schema");
+  });
+});
+
+describe("validateCardDesign — rendering (card_design_schema_v2)", () => {
+  it.each(RENDERINGS)("accepts the %s rendering", (rendering) => {
+    const d = clone();
+    d.artBrief.rendering = rendering;
+    expect(validateCardDesign(d).ok).toBe(true);
+  });
+
+  it("rejects a missing rendering", () => {
+    const d = clone();
+    delete d.artBrief.rendering;
+    expect(fails(d, "schema")).toMatch(/artBrief.rendering/);
+  });
+
+  it("rejects an unknown rendering", () => {
+    for (const rendering of ["watercolour", "photo", "3d", "graphic", "craft", "", null]) {
+      const d = clone();
+      d.artBrief.rendering = rendering;
+      expect(fails(d, "schema")).toMatch(/artBrief.rendering/);
+    }
+  });
+
+  it("requires an aesthetic of 3–40 characters, free text", () => {
+    const missing = clone();
+    delete missing.artBrief.aesthetic;
+    expect(fails(missing, "schema")).toMatch(/artBrief.aesthetic/);
+    for (const aesthetic of ["ab", "x".repeat(41)]) {
+      const d = clone();
+      d.artBrief.aesthetic = aesthetic;
+      expect(fails(d, "schema")).toMatch(/artBrief.aesthetic/);
+    }
+    for (const aesthetic of ["bold", "fashion-forward", "x".repeat(40)]) {
+      const d = clone();
+      d.artBrief.aesthetic = aesthetic;
+      expect(validateCardDesign(d).ok).toBe(true);
+    }
   });
 });
 

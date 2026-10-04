@@ -403,6 +403,55 @@ circles. Two decisions by the owner (2026-10-04):
   plain message asking for a JPEG or PNG. No server decoder and no new dependency. Built with the
   inspiration work in Phase 5; until then HEIC uploads are stored but not sent to the model.
 
+### Phase 5 — rendering families (owner decisions)
+
+- **The corpus verdict.** The owner judged the Phase 5 corpus on the production stack: 13 of 14
+  cards sendable. CU-10 ("something unique, idk surprise me") was not: "ugly, doesn't mean
+  anything". CU-02 (the Ralph Lauren baby shower) was sendable, with a note: "consider minimizing
+  white space and adding an image".
+- **Nearly every card looked watercolour or hand-drawn, and our prompts caused it.** The only
+  example media were handmade ("loose watercolour with gouache details", "soft gouache on cream
+  laid paper"); the art prompt said "painted" and "paint the background"; and its rule "not a
+  photograph or mockup", meant to forbid a photo of a printed card, read as "never photographic".
+- **The owner's direction.** Nine rendering directions, not one house look: photographic,
+  cinematic editorial, 3D/CGI, modern vector, flat/playful illustration, painterly/watercolour,
+  line art, collage/mixed media, and pattern/design-led. A separate aesthetic mood (modern,
+  romantic, luxury, preppy, whimsical …) combined with the rendering on purpose. No watercolour
+  reflex: elegant, romantic, floral, garden or beach language is not a request for it. And
+  "actively vary the visual language across generations unless the user's description strongly
+  points toward a particular treatment."
+- **Decision 1: each design names one of nine rendering families and an aesthetic.** The art
+  brief's required `rendering` is one of `photographic`, `editorial`, `rendered-3d`, `vector`,
+  `flat-illustration`, `painterly`, `line-art`, `collage` or `design-led`, and its required
+  `aesthetic` is a mood in a word or two, separate from `mood`. Code turns them into a precise
+  `Rendering: … Aesthetic: …` line in the art prompt (`src/lib/card/renderings.ts`); the mix is
+  measurable from `card_designs.art_brief`; another direction sees each earlier direction's
+  rendering and aesthetic so it can switch them. The repeat rule is unchanged (layout, art mode and
+  primary pairing). The identity prompt carries a host's signal about how the artwork should look,
+  no longer defaults to painted, and does not turn elegant or garden language into watercolour;
+  the art prompt drops "painted" and "paint", and its mockup rule now forbids a photograph of a
+  printed card, not a photograph.
+- **Active variation.** Each generation draws a suggested rendering uniformly at random from the
+  families this event's earlier directions have not used (all nine for a first card), and the
+  design follows it unless the host's words strongly point to a treatment: an explicit style word,
+  or an aesthetic the suggestion would plainly contradict. `generations.telemetry` records the
+  suggestion and whether it was followed, so the mix and the follow rate are measurable.
+- **Design-led cards and lettering.** The owner listed monograms and typography under the
+  pattern/design-led direction. The hard rule stands: artwork contains no letters, initials or
+  monograms (`spec.md §7.6a` rule 2, §32 #16). In a design-led card the pattern carries the
+  artwork and the card's own code-set text is the typography.
+- **Decision 2: no people in photographic, editorial, 3D or collage artwork.** No person, face,
+  hands or body. The art prompt and the design catalog say so for those four families, and the
+  artwork inspection gains `hasPerson` (and a narrower `isMockup`, so a photograph filling the
+  canvas is not a mockup); a person in such artwork fails it like text does, with the one
+  regeneration. The finding's detail is never stored in failure telemetry.
+- **Versions:** `card_design_v2` and `card_design_schema_v2`, `event_identity_v5` (schema
+  unchanged), `card_art_v3`, `card_art_inspection_v2` and `card_art_inspection_schema_v2`.
+  Designs persisted under v1 have no rendering or aesthetic; they are immutable and never
+  re-validated. Updated: `spec.md §7.6`, §7.6a, §7.7, §7.8, §24 and a §31 criterion;
+  `card-system.md §2.4`, §3 and §4.1; `model-contracts.md §4`, §5, §7 and §9; the card-design and
+  event-identity prompts and the card-design schema.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

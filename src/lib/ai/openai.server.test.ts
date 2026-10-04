@@ -62,6 +62,8 @@ const DESIGN: CardDesign = {
   wording: { title: "Lemons & Linen", invitationLine: "Please join us for a baby shower" },
   artBrief: {
     subject: "a lemon branch heavy with fruit and blossom",
+    rendering: "painterly",
+    aesthetic: "romantic",
     medium: "soft gouache illustration",
     mood: "sunlit and calm",
     palette: { description: "lemon, olive and ivory", colors: ["#F2D35B", "#7A8450", "#FBF7EE"] },
@@ -243,6 +245,7 @@ describe("no model call without the meter (spec.md §10, §32 #4)", () => {
                           textDescription: "",
                           hasLogoOrBrandMark: false,
                           isMockup: false,
+                          hasPerson: false,
                           description: "A lemon branch.",
                         },
               ),
@@ -304,7 +307,7 @@ describe("Event Identity", () => {
     });
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "event_identity",
-      prompt_version: "event_identity_v4",
+      prompt_version: "event_identity_v5",
       schema_version: "event_identity_schema_v4",
       cost_estimate_usd: costOf({ model: "gpt-6.1-sol", inputTokens: 2500, outputTokens: 300 }),
       success: true,
@@ -442,6 +445,8 @@ describe("Card Design", () => {
             artMode: "framed",
             primary: "soft_fraunces_manrope",
             subject: "a lemon wreath",
+            rendering: "painterly",
+            aesthetic: "romantic",
           },
         ],
         feedback: "more playful",
@@ -451,7 +456,7 @@ describe("Card Design", () => {
     const body = sentJson();
     expect(body.model).toBe("gpt-6.1-sol");
     expect(body.text.format.name).toBe("CardDesign");
-    expect(body.instructions).toContain("**Prompt version:** `card_design_v1`");
+    expect(body.instructions).toContain("**Prompt version:** `card_design_v2`");
     expect(JSON.stringify(body)).not.toContain(CANARY);
     const data = JSON.parse(body.input[0].content);
     expect(Object.keys(data)).toEqual([
@@ -467,8 +472,8 @@ describe("Card Design", () => {
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "card_design",
       round: 2,
-      prompt_version: "card_design_v1",
-      schema_version: "card_design_schema_v1",
+      prompt_version: "card_design_v2",
+      schema_version: "card_design_schema_v2",
       layout_set_version: "card_layouts_v2",
     });
   });
@@ -512,7 +517,7 @@ describe("card artwork", () => {
       model: "gpt-image-2.5-sunburst-2026-09-08",
       image_units: 1,
       output_tokens: 2000,
-      prompt_version: "card_art_v2",
+      prompt_version: "card_art_v3",
       schema_version: null,
       layout_set_version: "card_layouts_v2",
       cost_estimate_usd: 0.062, // 400 × $5 + 2000 × $30, per 1M
@@ -646,7 +651,8 @@ describe("artwork checks", () => {
       textDescription: "a signature in the corner",
       hasLogoOrBrandMark: false,
       isMockup: false,
-      description: "A lemon branch.",
+      hasPerson: true,
+      description: "A lemon branch held in a hand.",
     };
     answer(responses(inspection));
     const result = await provider.inspectCardArt(TEST_CONTEXT, REFERENCE);
@@ -664,10 +670,11 @@ describe("artwork checks", () => {
       },
     ]);
     expect(result.output).toEqual(inspection);
+    expect(body.text.format.schema.required).toContain("hasPerson");
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "card_art_inspection",
-      prompt_version: "card_art_inspection_v1",
-      schema_version: "card_art_inspection_schema_v1",
+      prompt_version: "card_art_inspection_v2",
+      schema_version: "card_art_inspection_schema_v2",
     });
   });
 });

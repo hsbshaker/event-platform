@@ -25,6 +25,7 @@ import type { TokenUsage } from "./pricing";
 import type { ArtMode } from "@/lib/card/art-modes";
 import type { CardDesign } from "@/lib/card/design";
 import type { CardLayoutId } from "@/lib/card/layouts";
+import type { Rendering } from "@/lib/card/renderings";
 import type { CardShape } from "@/lib/card/shapes";
 import type { TypographyPairingId } from "@/lib/card/typography";
 
@@ -100,12 +101,20 @@ export interface PreviousDirection {
   artMode: ArtMode;
   primary: TypographyPairingId;
   subject: string;
+  /** The brief's rendering and aesthetic (`card_design_v2`), so another direction can change them. */
+  rendering: Rendering;
+  aesthetic: string;
 }
 
 export interface GenerateCardDesignInput {
   eventIdentity: EventIdentity;
   eventFacts: Record<string, string>;
   previousDirections?: PreviousDirection[];
+  /**
+   * The rendering the orchestration drew at random from those this event has not used
+   * (`suggestRendering`); the design follows it unless the identity strongly points elsewhere.
+   */
+  suggestedRendering?: Rendering;
   feedback?: string;
   /** Present only on an allowed re-prompt, at most once per kind (docs/model-contracts.md §5.3). */
   // `provider-refusal`: the image provider refused a brand or character homage; the new design

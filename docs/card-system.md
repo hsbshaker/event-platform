@@ -195,10 +195,37 @@ The design declares one mode, which tells the art brief how much the artwork car
 | `illustration` | a recognizable subject anchors the card (teddy, lemon basket, hot-air balloon, florals) | `art-top`, `art-bottom`, `corners` |
 | `framed` | artwork as border, wreath, corner treatment or frame around the text | `framed`, `corners` |
 | `atmosphere` | no discrete subject; a soft thematic wash, scenery or texture | `atmosphere` |
-| `minimal` | a refined border or paper texture only; the typography leads | `framed`, `atmosphere` |
+| `minimal` | a refined border, pattern or surface texture only; the typography leads | `framed`, `atmosphere` |
 
 Every card has artwork; `minimal` is how the system expresses a restrained, typography-led card.
 Mode/layout compatibility is part of the layout set and is validated (§4.1).
+
+**Rendering family and aesthetic.** Independently of the mode, the art brief names how the
+artwork is made (`artBrief.rendering`) and, separately, an aesthetic mood in a word or two
+(`artBrief.aesthetic`: modern, romantic, luxury, preppy, whimsical …), both `card_design_schema_v2`
+(owner decisions, 2026-10-04). Code turns them into the art prompt's `Rendering:` line, just before
+the brief's medium (`src/lib/card/renderings.ts`, `card_art_v3`). Watercolour is one direction
+among nine, never a reflex, and cards vary actively: the orchestration draws a suggested rendering
+at random from those the event's earlier directions have not used (`suggestRendering`), and the
+design follows it unless the identity strongly points to a treatment (an explicit style word from
+the host, or an aesthetic the suggestion would contradict).
+
+| Rendering | What the artwork is |
+| --- | --- |
+| `photographic` | photographic realism: natural materials, real environments, believable light; no people |
+| `editorial` | cinematic editorial realism: art-directed like a luxury campaign or styled magazine shoot; no people |
+| `rendered-3d` | 3D / CGI: dimensional forms with intentional materials, lighting, depth and shadows; no people |
+| `vector` | modern vector graphic: crisp shapes, controlled geometry, clean edges; no brush texture |
+| `flat-illustration` | flat contemporary illustration: expressive, characterful, playful but not childish |
+| `painterly` | painterly / watercolour: organic hand-painted colour, soft edges, artistic texture |
+| `line-art` | line art: fine-line, botanical or architectural sketching, etching, engraving, toile |
+| `collage` | collage / mixed media: layered cutouts, paper textures, torn edges, overlapping elements; no people |
+| `design-led` | pattern, border, geometry or colour blocking as the whole picture; never letters, initials or monograms — the card's own text is the typography |
+
+The brief's `medium` is the specific making within its rendering. Photographic, editorial, 3D and
+collage artwork shows places, objects, food and materials — never a person, face, hands or body;
+the artwork inspection rejects one that does (§4.1). The rendering does not change which shapes an
+artwork fits. A photograph made by the image model is generated artwork, not stock (invariant 10).
 
 **Which shapes an artwork fits** depends on its mode:
 
@@ -307,8 +334,9 @@ host prompt + optional inspiration
   → generateEventIdentity            GPT 6.1 Sol; the only stage that reads the raw prompt
   → (optional) creative clarification, at most three taste questions, usually none
   → generateCardDesign               GPT 6.1 Sol; shape, layout, art mode, typography, wording, art brief
+                                     (with a randomly suggested rendering it follows unless the identity points elsewhere)
   → validate CardDesign              deterministic (§4.1)
-  → assemble the art prompt          deterministic: brief + layout and shape composition rules + global rules
+  → assemble the art prompt          deterministic: brief (with its rendering line, §2.4) + layout and shape composition rules + global rules
   → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
   → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
@@ -349,8 +377,9 @@ No step here calls a model or regenerates artwork.
 
 ## 4.1 Validation
 
-- `CardDesign` against its strict schema (`card_design_schema_v1`): enum IDs (shape, layout, art
-  mode, pairings), string length bounds, no extra fields.
+- `CardDesign` against its strict schema (`card_design_schema_v2`): enum IDs (shape, layout, art
+  mode, rendering, pairings), string length bounds (the aesthetic included), no extra fields. Designs persisted under an
+  earlier schema are never re-validated (§5).
 - Layout ↔ art-mode compatibility; the layout supports the chosen shape; alternates distinct from
   the primary pairing.
 - Wording fact check (§2.5), on model-drafted wording only. Model-drafted wording must also clear
@@ -365,7 +394,9 @@ No step here calls a model or regenerates artwork.
   pairing together earns its one re-prompt naming the earlier directions.
 - Artwork: file type, the requested proportion (5:7 or 1:1) within tolerance, minimum resolution,
   decodable. Detecting embedded text (which covers logos and wordmarks) and unsafe content is
-  required; the mechanism is chosen in Phase 3 validation.
+  required; the mechanism is chosen in Phase 3 validation. For a `photographic`, `editorial`,
+  `rendered-3d` or `collage` rendering, a person, face, hands or body fails the artwork too (§2.4),
+  with the same one regeneration.
 
 ## 4.2 Ink and legibility
 

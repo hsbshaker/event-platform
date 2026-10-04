@@ -5,6 +5,7 @@ import type { EventIdentity } from "@/lib/ai/event-identity";
 import type { GenerateCardDesignInput, PreviousDirection } from "@/lib/ai/provider";
 import { validateCardDesign } from "@/lib/card/design";
 import type { CardDesign } from "@/lib/card/design";
+import type { Rendering } from "@/lib/card/renderings";
 import { validateWordingText } from "@/lib/card/entry";
 import { cardTextFitsEveryDesign } from "@/lib/card/entry-fit.server";
 import { WORDING_SLOT_IDS, type WordingSlotId } from "@/lib/card/slots";
@@ -58,6 +59,11 @@ export interface DesignStageInput {
   previousDirections?: PreviousDirection[];
   feedback?: string;
   /**
+   * The rendering the orchestration suggests (`suggestRendering`), sent with every call of this
+   * stage; the design follows it unless the identity strongly points elsewhere.
+   */
+  suggestedRendering?: Rendering;
+  /**
    * The previous design's artwork was refused by the image provider (`spec.md §7.6`): the first
    * call carries a `provider-refusal` re-prompt with this feedback, and any later re-prompt repeats
    * it, since a call carries one re-prompt.
@@ -101,6 +107,10 @@ export interface DesignTelemetry {
   acceptedEarlierDesign: boolean;
   /** The host's title replaced what the model put in `title`. */
   hostTitleApplied: boolean;
+  /** The rendering suggested to the design, or null when none was. */
+  suggestedRendering: Rendering | null;
+  /** The accepted design's rendering is the suggested one; null when none was suggested. */
+  followedSuggestion: boolean | null;
 }
 
 export interface DesignStageResult {
@@ -196,6 +206,7 @@ export async function runDesignStage(
     eventIdentity: input.identity,
     eventFacts: input.eventFacts,
     ...(previous.length ? { previousDirections: previous } : {}),
+    ...(input.suggestedRendering ? { suggestedRendering: input.suggestedRendering } : {}),
     ...(input.feedback ? { feedback: input.feedback } : {}),
   };
 
@@ -330,6 +341,10 @@ export async function runDesignStage(
         repeatAccepted: candidate.repeats !== null,
         acceptedEarlierDesign,
         hostTitleApplied,
+        suggestedRendering: input.suggestedRendering ?? null,
+        followedSuggestion: input.suggestedRendering
+          ? design.artBrief.rendering === input.suggestedRendering
+          : null,
       },
       artifacts: {
         name: design.presentation.name,

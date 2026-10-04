@@ -1,11 +1,14 @@
 /**
  * The artwork inspection chosen in Phase 3 validation (`docs/technology-decisions.md §8.1`, "Text
  * and safety detection"): after the provider's own output moderation and `omni-moderation-latest`,
- * a structured GPT 6.1 Sol look at the artwork for text, a logo or brand mark, and a mockup
- * (`spec.md §7.8`, §32 #16).
+ * a structured GPT 6.1 Sol look at the artwork for text, a logo or brand mark, a mockup, and a
+ * person (`spec.md §7.8`, §32 #16).
  *
- * Prompt and schema are ported verbatim from `scripts/phase-3/run.mjs` (`ART_CHECK_PROMPT`,
- * `ART_CHECK_SCHEMA`), the versions the Phase 3 results were measured with. Changing a word is a
+ * v1 was ported verbatim from `scripts/phase-3/run.mjs` (`ART_CHECK_PROMPT`, `ART_CHECK_SCHEMA`),
+ * the versions the Phase 3 results were measured with. v2 (owner decisions, 2026-10-04, with the
+ * rendering families) narrows `isMockup` to a card, sheet or envelope shown as an object, so a
+ * photograph that fills the canvas is not one, and adds `hasPerson`: photographic, editorial, 3D
+ * and collage artwork may show no people. Changing a word is a
  * `CARD_ART_INSPECTION_PROMPT_VERSION` / `_SCHEMA_VERSION` bump. What a failed inspection means
  * (one regeneration, then a visible failure) is the pipeline's decision (Phase 5b), not this
  * module's.
@@ -18,7 +21,8 @@ Report:
 - hasText: true if ANY text-like marks appear anywhere — letters, words, numbers, initials, monograms, signatures, labels, captions, lettering on objects, or pseudo-text squiggles that read as writing — however small or decorative.
 - textDescription: where and what, or "" if none.
 - hasLogoOrBrandMark: true if any logo, crest, emblem, wordmark or recognizable brand mark appears (for example a polo player emblem), even without legible letters.
-- isMockup: true if the image is a photograph or mockup of a card, paper or envelope (an object on a surface, with hands, shadows or a frame around it) rather than flat artwork filling the canvas.
+- isMockup: true only if the image shows a card, invitation, sheet of paper or envelope as an object — on a surface, held in hands, with its own shadow or a frame around it — rather than artwork filling the canvas. A photograph of a scene, interior, landscape, objects, food or materials that fills the canvas is NOT a mockup.
+- hasPerson: true if any person, human face, hands or human body appears, realistic or stylised. Animals and toy animals do not count.
 - description: one sentence describing the artwork.
 
 Be strict: when in doubt about text, answer true.`;
@@ -26,12 +30,20 @@ Be strict: when in doubt about text, answer true.`;
 export const ARTWORK_INSPECTION_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["hasText", "textDescription", "hasLogoOrBrandMark", "isMockup", "description"],
+  required: [
+    "hasText",
+    "textDescription",
+    "hasLogoOrBrandMark",
+    "isMockup",
+    "hasPerson",
+    "description",
+  ],
   properties: {
     hasText: { type: "boolean" },
     textDescription: { type: "string" },
     hasLogoOrBrandMark: { type: "boolean" },
     isMockup: { type: "boolean" },
+    hasPerson: { type: "boolean" },
     description: { type: "string" },
   },
 } as const;
@@ -41,6 +53,7 @@ export const artworkInspectionSchema = z.strictObject({
   textDescription: z.string(),
   hasLogoOrBrandMark: z.boolean(),
   isMockup: z.boolean(),
+  hasPerson: z.boolean(),
   description: z.string(),
 });
 

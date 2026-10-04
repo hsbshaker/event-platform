@@ -1,5 +1,5 @@
 /**
- * Art prompt assembly, `card_art_v2` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
+ * Art prompt assembly, `card_art_v3` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
  *
  * The art prompt is assembled by code from the validated art brief plus the layout and shape
  * rules; a model never writes it and the raw host prompt is never part of it (`spec.md §32 #17`).
@@ -7,8 +7,11 @@
  * (`scripts/phase-3/catalog.mjs`, `run.mjs stageSwitch`). `card_art_v2` takes the composition and
  * presence from the layout's entry for the shape (`card_layouts_v2`: a picture above or below the
  * words takes 40% of a square, oval or arch card), and an artwork fits only the shapes painted
- * with the same instructions, so its crop rule is the tightest outline among those. Changing any
- * sentence is a `CARD_ART_PROMPT_VERSION` bump.
+ * with the same instructions, so its crop rule is the tightest outline among those. `card_art_v3`
+ * (owner decisions, 2026-10-04) adds the brief's rendering family and aesthetic mood as a
+ * `Rendering:` line (`renderings.ts`) and drops the wording that pushed every card toward paint: the art modes no
+ * longer say "painted", the corner line says "carry" rather than "paint", and the mockup line no
+ * longer reads as "never photographic". Changing any sentence is a `CARD_ART_PROMPT_VERSION` bump.
  */
 
 import { CARD_ART_PROMPT_VERSION } from "@/lib/ai/versions";
@@ -18,6 +21,7 @@ import type { ArtMode } from "./art-modes";
 import type { CardDesign } from "./design";
 import { CARD_LAYOUTS, layoutArtFor, layoutSupportsShape } from "./layouts";
 import type { CardLayoutId } from "./layouts";
+import { RENDERING_ART_PROMPT } from "./renderings";
 import { SHAPE_PROPORTION } from "./shapes";
 import type { CardProportion, CardShape } from "./shapes";
 
@@ -31,12 +35,12 @@ export const ART_RASTER_SIZE: Readonly<Record<CardProportion, string>> = {
 
 /** Also the art-mode catalog the card-design call is given (`src/lib/ai/requests.ts`), as in Phase 3. */
 export const ART_MODE_DESCRIPTION: Readonly<Record<ArtMode, string>> = {
-  illustration: "A recognizable, specific subject anchors the card, painted with care.",
+  illustration: "A recognizable, specific subject anchors the card, made with care.",
   framed:
     "The artwork is a border, wreath, garland, corner treatment or frame around the text area.",
   atmosphere: "No discrete subject: a soft thematic wash, scenery or texture across the card.",
   minimal:
-    "Restrained: a refined border or paper texture only, but crafted and visible — never a blank card.",
+    "Restrained: a refined border, pattern or surface texture only, but crafted and visible — never a blank card.",
 };
 
 const CROP_RULE: Readonly<Record<CardShape, string>> = {
@@ -106,9 +110,15 @@ function subjectLead(subject: string): string {
   return clause(subject.split(",")[0]).replace(/^(a|an|the)\s+/i, "");
 }
 
-/** `card_art_v2`: the full art prompt for a validated design. */
+/** `card_art_v3`: the full art prompt for a validated design. */
 export function assembleArtPrompt(design: ArtPromptInput): string {
   const { artBrief: b, artMode, layout, shape } = design;
+  // A brief persisted before `card_design_schema_v2` has no rendering: refuse it rather than
+  // paint with a missing instruction (callers assemble before any image request).
+  const rendering = Object.hasOwn(RENDERING_ART_PROMPT, b.rendering)
+    ? RENDERING_ART_PROMPT[b.rendering]
+    : null;
+  if (rendering === null) throw new Error(`art brief has no known rendering (${b.rendering})`);
   const L = layoutArtFor(layout, shape);
   const proportion = SHAPE_PROPORTION[shape];
   const cropShape = cropShapeFor(artMode, layout, shape);
@@ -122,6 +132,7 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
     `Original artwork for the front of an invitation card, ${proportion === "5:7" ? "portrait 5:7" : "square 1:1"}, filling the entire canvas edge to edge.`,
     `${ART_MODE_DESCRIPTION[artMode]}`,
     `Subject: ${clause(b.subject)}.`,
+    `Rendering: ${rendering} Aesthetic: ${clause(b.aesthetic)}.`,
     `Medium: ${clause(b.medium)}. Texture: ${clause(b.texture)}. Mood: ${clause(b.mood)}.`,
     `Palette: ${clause(b.palette.description)} (${b.palette.colors.join(", ")}).`,
     `Composition: ${L.composition} ${L.presence}`,
@@ -129,11 +140,11 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
     ...(cropShape === shape && ownShape
       ? []
       : [
-          "The trimming is done later by the printer: paint the background all the way into every corner and edge of the canvas. Do not paint the outline itself, a vignette, a border line or blank corners.",
+          "The trimming is done later by the printer: carry the background all the way into every corner and edge of the canvas. Do not draw the outline itself, a vignette, a border line or blank corners.",
         ]),
     "The calm area will carry typeset text that is added later, so leave it genuinely clear — but do not leave the rest of the card empty.",
     "Absolutely no text of any kind: no letters, words, numbers, initials, monograms, signatures, labels, logos, wordmarks, crests or watermarks anywhere in the image.",
-    "This is the flat artwork itself, not a photograph or mockup: no card, envelope, table, hands, shadows of paper, or frame around the canvas.",
+    "This is the artwork itself, filling the canvas — not a mockup: no photograph of a printed card, no envelope, table edge, hands, shadows of paper or frame around the canvas. The artwork may itself be a photograph when the rendering says so.",
     `An original style.${avoid}`,
   ].join("\n");
 }
@@ -149,5 +160,5 @@ export function assembleShapeSwitchPrompt(design: ArtPromptInput, targetShape: C
     throw new Error(`layout ${design.layout} does not support shape ${targetShape}`);
   }
   const switched = { ...design, shape: targetShape };
-  return `${assembleArtPrompt(switched)}\nKeep the same subject, character, medium and palette as the reference artwork — the same ${subjectLead(design.artBrief.subject)} — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the clear area completely clear.`;
+  return `${assembleArtPrompt(switched)}\nKeep the same subject, character, rendering, medium and palette as the reference artwork — the same ${subjectLead(design.artBrief.subject)} — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the clear area completely clear.`;
 }
