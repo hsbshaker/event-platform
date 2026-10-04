@@ -28,6 +28,8 @@
 import * as hb from "harfbuzzjs";
 import { decompress as woff2ToSfnt } from "wawoff2";
 
+import { SHAPING_LANGUAGE } from "./shaping-language";
+
 /** A font face: family, weight and style, as a `TextBox` names it (`spec.md §20.5`). */
 export interface FontRef {
   family: string;
@@ -85,11 +87,8 @@ const LINE_BREAK = new RegExp("[\\n\\r\\u2028\\u2029]");
 
 const NO_OPTIONAL_LIGATURES = ["liga", "clig", "dlig"];
 
-/**
- * The language text is shaped in, set explicitly so `locl` substitutions cannot follow the runtime's
- * locale: the server and every browser shape alike. The card component sets the same `lang`.
- */
-export const SHAPING_LANGUAGE = "en";
+/** The language text is shaped in; the card component sets the same `lang`. */
+export { SHAPING_LANGUAGE };
 
 /** Bounds on per-font caches (a `FontMetrics` lives for the process). */
 const MAX_INSTANCES = 32;

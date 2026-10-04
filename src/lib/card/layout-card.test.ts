@@ -4,7 +4,8 @@ import type { CardRect } from "./ink";
 import { type CardTextLayout, type LayoutCardInput, layoutCard, pairingFaces } from "./layout-card";
 import { CARD_LAYOUT_IDS, CARD_SLOT_SPECS, layoutSupportsShape, zoneFor } from "./layouts";
 import { CARD_SHAPES, type CardProportion, proportionOf } from "./shapes";
-import { CARD_SLOT_IDS, FACT_ENTRY_LIMITS, WORDING_LIMITS } from "./slots";
+import { CARD_SLOT_IDS } from "./slots";
+import { LIMITS, TYPICAL, WORST } from "./test-content";
 import { type CardContent, FIT_SAFETY } from "./text-box";
 import type { FontMetricsResolver } from "./text/metrics";
 import { allCuratedMetrics } from "./text/test-fonts";
@@ -22,32 +23,6 @@ const ART_TOP: Record<CardProportion, CardRect> = {
 };
 
 const INK = "#3A2A1E";
-
-const TYPICAL: CardContent = {
-  title: "A Little Wild One",
-  invitationLine: "Please join us for a baby shower",
-  hosts: "Hosted by Maya & Tom",
-  date: "Saturday, June 6",
-  time: "1:00 pm",
-  venue: "The Willow House",
-};
-
-/** Every slot at its provisional entry limit, with wide letters (`docs/card-system.md §2.5`). */
-const WORST: Required<{ [K in keyof CardContent]: string }> = {
-  title: "Welcome Wilhelmina Montgomery-Whitworth!",
-  invitationLine: "Please join us as we shower Maximilian with warm wishes and so much love",
-  babyName: "Maximilian Augustin Montgomery-Whitworth",
-  hosts: "Hosted by Wilhelmina Montgomery and Maximilian Worthingtons!",
-  date: "Wednesday, September 30, 2026 (Midweek!)",
-  time: "12:30 PM - 4:45 PM (MDT)",
-  venue: "The Grand Ballroom at Montgomery-Whitworth Manor, Washington",
-  rsvpBy: "Kindly RSVP by Wednesday, September 16th",
-};
-const LIMITS = {
-  title: WORDING_LIMITS.title.max,
-  invitationLine: WORDING_LIMITS.invitationLine.max,
-  ...FACT_ENTRY_LIMITS,
-};
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean);
 

@@ -2,8 +2,9 @@
  * Self-hosted card fonts (`docs/card-system.md`). The curated pairings in
  * `src/lib/card/typography.ts` draw from these files in `public/fonts/card/`.
  *
- * Deliberately not imported anywhere yet: the card renderer will load it. Loading all 41 faces
- * on ordinary app pages would be wrong.
+ * Imported only by the card renderer (`src/components/card/InvitationCard.tsx`); app chrome and the
+ * guest page must not import it (`docs/design-system.md §23.7`, enforced in `eslint.config.mjs`).
+ * Faces load only when a card uses them.
  */
 
 @font-face {
