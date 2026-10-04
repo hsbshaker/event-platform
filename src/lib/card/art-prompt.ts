@@ -29,7 +29,8 @@ export const ART_RASTER_SIZE: Readonly<Record<CardProportion, string>> = {
   "1:1": "1440x1440",
 };
 
-const ART_MODE_DESCRIPTION: Readonly<Record<ArtMode, string>> = {
+/** Also the art-mode catalog the card-design call is given (`src/lib/ai/requests.ts`), as in Phase 3. */
+export const ART_MODE_DESCRIPTION: Readonly<Record<ArtMode, string>> = {
   illustration: "A recognizable, specific subject anchors the card, painted with care.",
   framed:
     "The artwork is a border, wreath, garland, corner treatment or frame around the text area.",

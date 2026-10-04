@@ -80,6 +80,72 @@ export function cronSecret(): string | undefined {
   return parsed.data;
 }
 
+/**
+ * Generation configuration (server-only): the kill switch, the model provider's key, and the spend
+ * limits (`spec.md §10`; owner decision, `docs/technology-decisions.md §8.1`: $20/day across all
+ * generation, 30 generations per event per day, 60 per acting host per day).
+ *
+ * Its own accessor rather than part of `serverEnv()`, so a generation misconfiguration fails
+ * generation only, never sign-in or the rest of the app. Fail-closed:
+ *
+ * - generation is off unless `GENERATION_ENABLED` is exactly `"true"`; any value other than
+ *   `"true"`, `"false"` or unset is an error rather than a guess;
+ * - when it is on, `OPENAI_API_KEY` is required, so "enabled" never means "enabled but broken";
+ * - a limit that is not a positive number, or is implausibly large (a typo such as an extra zero
+ *   on the ceiling), is an error, never a fallback to the default.
+ *
+ * Read on every call (not cached): it is cheap, and the kill switch takes effect on the next
+ * call wherever the deployment's environment changes.
+ */
+const generationSchema = z
+  .object({
+    GENERATION_ENABLED: z.enum(["true", "false"]).default("false"),
+    OPENAI_API_KEY: z
+      .string()
+      .regex(/^sk-[A-Za-z0-9_-]{20,}$/, "must be an OpenAI API key (sk-…)")
+      .optional(),
+    GENERATION_DAILY_CEILING_USD: z.coerce.number().positive().max(1000).default(20),
+    GENERATION_EVENT_DAILY_CAP: z.coerce.number().int().positive().max(1000).default(30),
+    GENERATION_HOST_DAILY_CAP: z.coerce.number().int().positive().max(1000).default(60),
+  })
+  .refine((v) => v.GENERATION_ENABLED !== "true" || v.OPENAI_API_KEY !== undefined, {
+    message: "is required when GENERATION_ENABLED is true",
+    path: ["OPENAI_API_KEY"],
+  });
+
+export interface GenerationEnv {
+  enabled: boolean;
+  /** Present whenever `enabled` is true. */
+  openAiApiKey: string | undefined;
+  dailyCeilingUsd: number;
+  eventDailyCap: number;
+  hostDailyCap: number;
+}
+
+export function generationEnv(): GenerationEnv {
+  if (typeof window !== "undefined") {
+    throw new Error("generationEnv() must not be called from client code.");
+  }
+  // An empty assignment in a .env file means unset.
+  const read = (name: string) => process.env[name] || undefined;
+  const parsed = generationSchema.safeParse({
+    GENERATION_ENABLED: read("GENERATION_ENABLED"),
+    OPENAI_API_KEY: read("OPENAI_API_KEY"),
+    GENERATION_DAILY_CEILING_USD: read("GENERATION_DAILY_CEILING_USD"),
+    GENERATION_EVENT_DAILY_CAP: read("GENERATION_EVENT_DAILY_CAP"),
+    GENERATION_HOST_DAILY_CAP: read("GENERATION_HOST_DAILY_CAP"),
+  });
+  if (!parsed.success) fail("generation", parsed.error);
+  const v = parsed.data;
+  return {
+    enabled: v.GENERATION_ENABLED === "true",
+    openAiApiKey: v.OPENAI_API_KEY,
+    dailyCeilingUsd: v.GENERATION_DAILY_CEILING_USD,
+    eventDailyCap: v.GENERATION_EVENT_DAILY_CAP,
+    hostDailyCap: v.GENERATION_HOST_DAILY_CAP,
+  };
+}
+
 /** Test seam: clear cached values after mutating process.env. */
 export function resetEnvCache(): void {
   cachedPublic = undefined;

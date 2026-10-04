@@ -39,12 +39,20 @@ const SERVICE_ROLE = {
  *   cookie resolved to its stored hash before any query.
  * - `src/app/auth/callback/route.ts` — runs after the session is established.
  * - `src/app/api/cron/purge-pre-auth/route.ts` — gated on `CRON_SECRET`, 404 without it.
+ * - `src/lib/ai/generations.server.ts` — begins a generation only through `start_generation`,
+ *   which refuses any user who is not the event's owner or a co-host; its callers pass the
+ *   authenticated session's user. Touches only the server-only generation tables and counters.
+ * - `src/lib/ai/meter.server.ts` — the spend ledger and model-call telemetry, both server-only;
+ *   it acts only for a generation `start_generation` began for an event member, and refuses a
+ *   context that names none.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
   "src/lib/drafts/**",
   "src/app/auth/callback/route.ts",
   "src/app/api/cron/purge-pre-auth/route.ts",
+  "src/lib/ai/generations.server.ts",
+  "src/lib/ai/meter.server.ts",
 ];
 
 /**

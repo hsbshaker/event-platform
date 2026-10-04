@@ -1,0 +1,197 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
+
+import identityJson from "../../../docs/model-schemas/event-identity.schema.json";
+
+import {
+  ARTWORK_INSPECTION_JSON_SCHEMA,
+  ARTWORK_INSPECTION_PROMPT,
+  artworkInspectionSchema,
+} from "./artwork-inspection";
+import { eventIdentitySchema, TYPOGRAPHY_CATEGORIES } from "./event-identity";
+import type { EventIdentity } from "./event-identity";
+import { extractedFactsSchema, FACT_EXTRACTION_JSON_SCHEMA } from "./fact-extraction";
+import { SYSTEM_PROMPTS, systemPrompt } from "./prompts.server";
+
+/**
+ * The application validates every structured response against the canonical schemas
+ * (`docs/model-contracts.md §3`, `spec.md §32 #19`). These tests hold each zod validator to the JSON
+ * Schema the provider is sent, and each ported prompt to its source, so they cannot drift apart.
+ */
+
+const ROOT = process.cwd();
+
+interface Node {
+  [keyword: string]: unknown;
+  properties?: Record<string, Node>;
+  items?: Node;
+}
+
+/** Keywords both schemas must agree on; absent bounds of zero count as equal. */
+function compare(json: Node, zod: Node, at: string, diffs: string[]) {
+  const norm = (key: string, v: unknown) => {
+    if ((key === "minLength" || key === "minItems") && (v === undefined || v === 0)) return 0;
+    if ((key === "required" || key === "enum") && Array.isArray(v)) return [...v].sort();
+    if (key === "type" && Array.isArray(v)) return [...v].sort();
+    return v;
+  };
+  for (const key of [
+    "type",
+    "enum",
+    "minLength",
+    "maxLength",
+    "minItems",
+    "maxItems",
+    "pattern",
+    "required",
+    "additionalProperties",
+  ]) {
+    const a = JSON.stringify(norm(key, json[key]));
+    const b = JSON.stringify(norm(key, zod[key]));
+    if (a !== b) diffs.push(`${at}.${key}: json=${a} zod=${b}`);
+  }
+  const names = new Set([
+    ...Object.keys(json.properties ?? {}),
+    ...Object.keys(zod.properties ?? {}),
+  ]);
+  for (const n of names) {
+    const j = json.properties?.[n];
+    const g = zod.properties?.[n];
+    if (!j || !g) diffs.push(`${at}.${n}: present in only one schema`);
+    else compare(j, g, `${at}.${n}`, diffs);
+  }
+  if (json.items || zod.items) {
+    if (!json.items || !zod.items) diffs.push(`${at}.items: present in only one schema`);
+    else compare(json.items, zod.items, `${at}[]`, diffs);
+  }
+}
+
+/** zod renders `.nullable()` strings as anyOf; the JSON Schema uses a type list. */
+function flattenNullable(node: Node): Node {
+  if (Array.isArray(node.anyOf)) {
+    const types = (node.anyOf as Node[]).map((n) => n.type);
+    return { type: types };
+  }
+  const out: Node = { ...node };
+  if (node.properties) {
+    out.properties = Object.fromEntries(
+      Object.entries(node.properties).map(([k, v]) => [k, flattenNullable(v)]),
+    );
+  }
+  if (node.items) out.items = flattenNullable(node.items);
+  return out;
+}
+
+function diff(json: unknown, schema: z.ZodType): string[] {
+  const generated = flattenNullable(z.toJSONSchema(schema, { io: "input" }) as Node);
+  const diffs: string[] = [];
+  compare(json as Node, generated, "$", diffs);
+  return diffs;
+}
+
+const IDENTITY: EventIdentity = {
+  creativeDirection: "A sunlit Italian lemon grove rendered with linen calm and ceramic detail.",
+  toneKeywords: ["sunlit", "refined", "relaxed"],
+  colorsExplicitlyConstrained: false,
+  paletteIntent: {
+    requiredColors: [],
+    preferredColors: ["olive"],
+    avoidColors: [],
+    dominanceNotes: "",
+  },
+  tonalIntent: "Light and airy.",
+  toneExplicitlyConstrained: false,
+  compatibleTypographyCategories: ["oldstyle"],
+  visualMotifs: [],
+  textureDirection: "gouache",
+  typographyDirection: "Elegant serif.",
+  copyTone: "warm",
+  designConstraints: [],
+  inspirationSummary: "No visual inspiration supplied.",
+};
+
+describe("Event Identity validator (event_identity_schema_v4)", () => {
+  it("matches docs/model-schemas/event-identity.schema.json", () => {
+    expect(diff(identityJson, eventIdentitySchema)).toEqual([]);
+  });
+
+  it("enforces the uniqueness the strict mode cannot", () => {
+    const uniqueFields = (node: Node, at: string, out: string[]) => {
+      if (node.uniqueItems) out.push(at);
+      for (const [k, v] of Object.entries(node.properties ?? {}))
+        uniqueFields(v, `${at}.${k}`, out);
+      return out;
+    };
+    const fields = uniqueFields(identityJson as Node, "$", []);
+    expect(fields.length).toBeGreaterThan(0);
+    for (const at of fields) {
+      const keys = at.split(".").slice(1);
+      const copy = structuredClone(IDENTITY) as Record<string, unknown>;
+      let target = copy;
+      for (const k of keys.slice(0, -1)) target = target[k] as Record<string, unknown>;
+      const last = keys.at(-1)!;
+      const sample =
+        last === "compatibleTypographyCategories"
+          ? "oldstyle"
+          : last === "toneKeywords"
+            ? "calm"
+            : "olive";
+      target[last] = last === "toneKeywords" ? [sample, sample, "warm"] : [sample, sample];
+      expect(eventIdentitySchema.safeParse(copy).success, at).toBe(false);
+    }
+  });
+
+  it("accepts a valid identity and rejects unknown keys", () => {
+    expect(eventIdentitySchema.safeParse(IDENTITY).success).toBe(true);
+    expect(eventIdentitySchema.safeParse({ ...IDENTITY, venue: "Positano" }).success).toBe(false);
+  });
+
+  it("ranks exactly the catalog's typography categories", () => {
+    const schemaEnum = (identityJson as { properties: Record<string, Node> }).properties
+      .compatibleTypographyCategories.items!.enum as string[];
+    expect([...TYPOGRAPHY_CATEGORIES].sort()).toEqual([...schemaEnum].sort());
+  });
+});
+
+describe("fact extraction (fact_extraction_schema_v1)", () => {
+  it("validates with the same schema the provider is sent", () => {
+    expect(diff(FACT_EXTRACTION_JSON_SCHEMA, extractedFactsSchema)).toEqual([]);
+  });
+
+  it("is the Phase 3 schema", () => {
+    const source = readFileSync(path.join(ROOT, "scripts/phase-3/run.mjs"), "utf8");
+    const block = source.match(/const FACTS_SCHEMA = (\{[\s\S]*?\n\});/)![1];
+    const phase3 = new Function(`return (${block});`)();
+    expect(FACT_EXTRACTION_JSON_SCHEMA).toEqual(phase3);
+  });
+});
+
+describe("artwork inspection (card_art_inspection_v1)", () => {
+  const source = readFileSync(path.join(ROOT, "scripts/phase-3/run.mjs"), "utf8");
+
+  it("is the Phase 3 prompt, word for word", () => {
+    const prompt = source.match(/const ART_CHECK_PROMPT = `([\s\S]*?)`;/)![1];
+    expect(ARTWORK_INSPECTION_PROMPT).toBe(prompt);
+  });
+
+  it("is the Phase 3 schema, and validates with it", () => {
+    const block = source.match(/const ART_CHECK_SCHEMA = (\{[\s\S]*?\n\});/)![1];
+    expect(ARTWORK_INSPECTION_JSON_SCHEMA).toEqual(new Function(`return (${block});`)());
+    expect(diff(ARTWORK_INSPECTION_JSON_SCHEMA, artworkInspectionSchema)).toEqual([]);
+  });
+});
+
+describe("system prompts", () => {
+  it.each(Object.keys(SYSTEM_PROMPTS) as (keyof typeof SYSTEM_PROMPTS)[])(
+    "%s is read from docs/model-prompts and declares the recorded version",
+    (name) => {
+      const { file, version } = SYSTEM_PROMPTS[name];
+      const text = systemPrompt(name);
+      expect(text).toBe(readFileSync(path.join(ROOT, "docs/model-prompts", file), "utf8"));
+      expect(text).toContain(`**Prompt version:** \`${version}\``);
+    },
+  );
+});
