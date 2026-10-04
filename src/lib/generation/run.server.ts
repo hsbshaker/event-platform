@@ -178,8 +178,16 @@ interface EventRow {
  * the host enters or confirms. Formatted as the card shows them (`cardContent`), plus the full
  * address and the event type in words. Values are trimmed and otherwise kept as the host wrote
  * them (a host title is used verbatim, `docs/model-contracts.md §5.4`); blank fields are absent.
+ *
+ * The event type is the host's own words when the prompt states one (`statedEventType`: the
+ * extraction's value, which survived the verbatim check), else the event's type column. The
+ * column is the launch default (`baby_shower`), not something the host said, so a host who wrote
+ * "60th birthday" is never designed for as a baby shower. It never appears on the card.
  */
-export function hostEventFacts(event: EventRow): Record<string, string> {
+export function hostEventFacts(
+  event: EventRow,
+  statedEventType?: string | null,
+): Record<string, string> {
   const content = cardContent({
     title: event.title,
     invitationLine: null,
@@ -198,7 +206,7 @@ export function hostEventFacts(event: EventRow): Record<string, string> {
     const text = value?.trim() ?? "";
     if (text !== "") facts[key] = text;
   };
-  put("eventType", event.type.replace(/_/g, " "));
+  put("eventType", statedEventType?.trim() || event.type.replace(/_/g, " "));
   put("title", content.title);
   put("hosts", content.hosts);
   put("babyName", content.babyName);
@@ -360,6 +368,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let extraction: string | null = null;
   let inspirationSkipped = 0;
   let droppedFacts = 0;
+  let statedEventType: string | null = null;
 
   if (!latest) {
     const loaded = await loadInspiration(admin, eventId);
@@ -387,6 +396,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     if (error) throw error;
     if (typeof revision !== "number") throw new GenerationStoppedError("persisting the identity");
     identityRevision = revision;
+    statedEventType = result.facts?.eventType ?? null;
     await recordStage("identity", {
       identity: result.artifacts,
       facts: result.facts,
@@ -398,14 +408,16 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     if (!parsed.success) throw new Error("The persisted Event Identity does not validate.");
     identity = parsed.data;
     identityRevision = latest.revision;
+    const earlier = await earlierFacts(admin, eventId, latest.generation_id);
+    statedEventType = factString(earlier.facts, "eventType");
     await recordStage("identity", {
       identity: identityArtifacts(identity),
-      ...(await earlierFacts(admin, eventId, latest.generation_id)),
+      ...earlier,
     });
   }
 
   // ------------------------------------------------------------------ 3. design
-  const eventFacts = hostEventFacts(event);
+  const eventFacts = hostEventFacts(event, statedEventType);
   const designs: DesignStageResult[] = [];
   let designMs = 0;
   let artMs = 0;
@@ -607,6 +619,13 @@ async function loadInspiration(
     images.push({ mimeType: asset.mime_type, bytes });
   }
   return { images, skipped };
+}
+
+/** A string field of stored extracted facts (`artifacts.facts`), else null. */
+function factString(facts: Json, field: string): string | null {
+  if (!facts || typeof facts !== "object" || Array.isArray(facts)) return null;
+  const value = facts[field];
+  return typeof value === "string" && value.trim() !== "" ? value : null;
 }
 
 /**

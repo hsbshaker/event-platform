@@ -190,6 +190,12 @@ GenerateCardDesignInput {
 }
 ```
 
+`eventFacts` holds the event's own fields, which only the host enters or confirms, formatted as the
+card shows them. Its `eventType` is the host's own words when the prompt states one (fact
+extraction's value, kept only if it is verbatim in the prompt), else the event's type; it never
+appears on the card. Extracted card facts — names, date, time, venue — reach the design only once
+the host has confirmed them.
+
 The prompt carries the layout catalog (each layout's purpose and compatible art modes), the art
 modes, the pairing catalog narrowed to the identity's compatible categories, and the global rules.
 It never carries guest data, RSVP or registry contents, private codes, or the raw host prompt.

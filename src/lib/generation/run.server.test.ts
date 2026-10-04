@@ -286,6 +286,24 @@ describe("the happy path", () => {
     expect(JSON.stringify(fake.calls.art)).not.toContain("Maya");
   });
 
+  it("takes the event type in the host's own words when the prompt states one", async () => {
+    const { fake } = await run({
+      ...HAPPY,
+      facts: [{ ...FACTS, eventType: "garden baby shower" }],
+    });
+    expect(fake.calls.design[0].eventFacts.eventType).toBe("garden baby shower");
+    // Only the event type: the extracted card facts still wait for the host's confirmation.
+    expect(fake.calls.design[0].eventFacts.venue).toBe("Villa Rosa");
+    expect(fake.calls.design[0].eventFacts).not.toHaveProperty("babyName");
+  });
+
+  it("falls back to the event's type when the prompt states none, or the type is not verbatim", async () => {
+    for (const eventType of [null, "60th birthday"]) {
+      const { fake } = await run({ ...HAPPY, facts: [{ ...FACTS, eventType }] });
+      expect(fake.calls.design.at(-1)?.eventFacts.eventType).toBe("baby shower");
+    }
+  });
+
   it("uploads the artwork under a key of this generation, then persists exactly it", async () => {
     await run();
     expect(admin.state.uploads).toHaveLength(1);
@@ -421,6 +439,15 @@ describe("a retry reuses the identity (interpretation happens once)", () => {
       extraction: null,
       latency: { identityMs: null },
     });
+  });
+
+  it("keeps the earlier generation's stated event type on a retry", async () => {
+    admin.state.tables.generations.find((g) => g.id === EARLIER_GENERATION)!.artifacts = {
+      facts: { ...FACTS, eventType: "bridal shower" },
+      droppedFacts: [],
+    };
+    const { fake } = await run({ design: [DESIGN], art: [CLEAN] });
+    expect(fake.calls.design[0].eventFacts.eventType).toBe("bridal shower");
   });
 
   it("shows the identity again and carries the earlier generation's facts", async () => {
