@@ -24,7 +24,7 @@ What changes:
 - one design at a time, with `Try another direction`, replaces three concepts and the concept comparison;
 - the reveal is the card coming out of an envelope, not a full-site reveal;
 - the card is the only themed, generated surface; the page beneath it is house style for every event and takes nothing from the card;
-- hosts edit the card's words and swap font among the design's curated pairings; there is no palette or colour control;
+- hosts edit the card's words, swap font among the design's curated pairings, and switch the card's shape among six (rectangle, rounded rectangle, arch, oval, square, circle); there is no palette or colour control;
 - after publish the platform can text each party a personal invitation link; the guest workspace shows invitation status.
 
 The card's design, generation, legibility, fit and rendering architecture lives in `docs/card-system.md`.
@@ -160,7 +160,7 @@ Do not expose:
 - layout grids;
 - template or artwork galleries.
 
-AI makes the initial creative choices. Direct controls refine within bounded options: the card's words, and the design's curated font pairings.
+AI makes the initial creative choices. Direct controls refine within bounded options: the card's words, the design's curated font pairings, and the card's shape.
 
 ### 1.4 Core activation principle
 
@@ -497,7 +497,7 @@ The card is the same design at a comfortable size, centered; it never reflows. T
 
 ### Mobile
 
-The card fits the viewport width with its 5:7 proportion preserved. Reserve its box before the artwork loads so the layout does not shift.
+The card fits the viewport width with its proportion (5:7 or 1:1) and outline preserved. Reserve its box before the artwork loads so the layout does not shift.
 
 ---
 
@@ -692,7 +692,8 @@ The Design control opens **constrained direct editing**.
 
 Allowed (`spec.md §7.14`):
 - the card's font: the design's primary pairing and its alternates, and nothing else;
-- reset the card's wording and font to the design;
+- the card's shape: the shapes the design's layout supports, shown as small outline swatches (rectangle, rounded rectangle, arch, oval, square, circle); unsupported shapes are not offered;
+- reset the card's wording, font and shape to the design;
 - `Try another direction ✦` before publish;
 - the designs generated so far, to choose another before publish (§10.21).
 
@@ -705,7 +706,11 @@ Do not expose:
 - envelope or page styling;
 - CSS.
 
-Swapping font re-lays out the card's text only; ink, artwork and every event fact are unchanged. After publish, the font control remains available; `Try another direction` and the designs list do not (§4.12).
+Swapping font re-lays out the card's text only; ink, artwork and every event fact are unchanged.
+
+Switching shape within the same proportion (among rectangle, rounded rectangle, arch and oval, or between square and circle) applies instantly. Switching across proportions (tall ↔ square) needs new artwork: say so before it starts ("This makes new artwork for a square card — about as long as a new design"), keep the current card visible while it generates, and show the result in place; switching back is instant. Cross-proportion switching is not offered after publish.
+
+After publish, the font control and same-proportion shape switching remain available; `Try another direction`, cross-proportion shape switching and the designs list do not (§4.12).
 
 ---
 
@@ -1492,7 +1497,7 @@ It is **owned by the card system, not by app chrome**: its styling, fonts and in
 
 Contract:
 - one component renders the card everywhere: the reveal, Creation Mode, Preview, the guest page, the designs list and link-preview images;
-- fixed 5:7 proportion; renders at any width by uniform scaling, so line breaks and layout are identical at 390px and 1280px;
+- one of six shapes (rectangle, rounded rectangle, arch, oval at 5:7; square, circle at 1:1); the outline is a code-defined mask; renders at any width by uniform scaling, so outline, line breaks and layout are identical at 390px and 1280px;
 - text is live, selectable and screen-reader readable; the artwork is decorative (`alt=""`);
 - the application passes data (design, artwork, event content) and a size; it passes no colours, fonts, layouts or positions;
 - it contains no collaborator controls; Creation Mode attaches them through `CollaboratorActionSlot` (§10.19);
@@ -1577,7 +1582,7 @@ This preserves the app/card boundary and means every card layout needs no editor
 
 ## 10.20 `Envelope`
 
-A house-designed envelope, the same for every event: not themed, not generated, and not an imitation of any competitor's envelope. It shows the event title on the front.
+A house-designed envelope, the same for every event: not themed, not generated, and not an imitation of any competitor's envelope. It is sized to the card's proportion (portrait or square) and shows the event title on the front.
 
 States and behavior:
 - **sealed**: shown for a private event reached by the shared link until the code is entered; shows only the event title, nothing from the card or page (§15.7);
@@ -1648,7 +1653,7 @@ Routine navigation away from auto-saved forms should not trigger confirmation.
 Prefer:
 - progressive Event Identity;
 - optional details and, at most, a few taste questions;
-- a stable card-shaped placeholder (5:7) with useful copy;
+- a stable placeholder in the card's proportion (5:7 or 1:1) with useful copy;
 - the card appearing as soon as it is ready.
 
 ## 12.2 Real artifacts only, one card
@@ -1820,9 +1825,9 @@ Facts on the card (names, date, time, venue, RSVP-by) come only from event data 
 
 The card's text layouts exist so the art can leave calm space for words. They are not a gallery and not a host choice.
 
-- The host never sees, picks or switches layouts, art modes or positions; the app never reads them to make UI decisions (§10.19).
+- The host never sees, picks or switches layouts, art modes or positions; the app never reads them to make UI decisions (§10.19). The card's shape is the one visual property the host can switch (§4.10).
 - The card is defined in fixed card units and scaled uniformly: identical proportions and line breaks on a 390px phone and on desktop. Nothing reflows and there are no responsive card variants.
-- Hosts change a card only by editing its words and swapping among the design's curated font pairings, or by trying another direction.
+- Hosts change a card only by editing its words, swapping among the design's curated font pairings, switching its shape, or trying another direction.
 
 ## 15.4 Guest component system (house style)
 
@@ -2415,7 +2420,7 @@ Defines:
 
 ## 25.6 Design
 Defines:
-- constrained manual design controls (font pairings, reset);
+- constrained manual design controls (font pairings, shape, reset);
 - the designs list;
 - pre-publish try-another-direction entry.
 

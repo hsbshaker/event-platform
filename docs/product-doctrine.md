@@ -337,7 +337,7 @@ phase of `docs/development-plan.md`:
 | # | Open question | Where it gets decided |
 | --- | --- | --- |
 | 1 | Which image model; transparent-background or full-bleed workflow; how embedded text and unsafe content are detected | Phase 3 bake-off |
-| 2 | The final layout catalog and slot limits | Phase 3 bake-off |
+| 2 | The final layout catalog, which shapes each layout supports, slot limits and the shapes' outline geometry | Phase 3 bake-off |
 | 3 | The card-reveal latency target (`spec.md §7.10`, ~30 s working target) | Phase 3 bake-off measurement |
 | 4 | Whether $49 survives comparison with invitation products (`spec.md §3.2`) | Before launch |
 | 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 5 |

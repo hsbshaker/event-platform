@@ -141,7 +141,9 @@ CardDesign {
     name: string                 // 2–40 chars, host-facing, e.g. "Heirloom Teddy"
     description: string          // 10–140 chars, one line
   }
-  layout: CardLayoutId           // card_layouts_v1 catalog (card-system.md §2.3)
+  shape: "rectangle" | "rounded-rectangle" | "arch" | "oval"   // portrait 5:7
+       | "square" | "circle"                                  // square 1:1 (card-system.md §2.1)
+  layout: CardLayoutId           // card_layouts_v1 catalog (card-system.md §2.3); must support shape
   artMode: "illustration" | "framed" | "atmosphere" | "minimal"
   typography: {
     primary: TypographyPairingId                 // src/lib/card/typography.ts
@@ -193,7 +195,8 @@ In order, deterministic (`card-system.md §4.1`):
 1. **Strict schema**: unknown keys fail; IDs must be in the catalogs; strings within bounds; hex
    colours valid. Failure → one re-prompt with the error list; second failure → visible failure
    with retry.
-2. **Compatibility**: layout ↔ art mode; alternates distinct from primary.
+2. **Compatibility**: layout ↔ art mode; layout supports the shape; alternates distinct from
+   primary.
 3. **Wording fact check** (§5.4), on model-drafted wording only. Failure → one re-prompt naming the
    slot; second failure → standard wording for that slot, logged.
 4. **Direction distinctness**: same layout, art mode and primary pairing as an earlier direction →
@@ -275,23 +278,30 @@ The art prompt is assembled **by application code**, never written verbatim by a
 - the layout's composition rule (where the subject may sit, which regions stay quiet);
 - the art mode's instruction (illustration, framed, atmosphere, minimal);
 - the global rules: no text, letters or numbers; no logos, brands, characters or watermarks; an
-  original style; portrait 5:7; the brief's `avoid` list.
+  original style; the shape's proportion (5:7 or 1:1) and its composition rule (e.g. arch: the top
+  corners are cut away; oval and circle: keep everything important inside the outline); the
+  brief's `avoid` list.
 
 It contains no raw host prompt, no event facts and no inspiration image.
 
 ## 7.2 Input and output
 
 ```ts
-GenerateCardArtInput { artBrief; layout: CardLayoutId; aspect: "5:7" }
+GenerateCardArtInput { artBrief; layout: CardLayoutId; shape: CardShape; aspect: "5:7" | "1:1" }
 → { mimeType, bytes }    // plus provider usage and model id for metering
 ```
 
 Image-model specifics (model, size, transparent-background workflow if any) are recorded in
 `technology-decisions.md §8.1` by the bake-off.
 
+A host's cross-proportion shape switch (`card-system.md §7`) calls `generateCardArt` again with the
+same art brief, the new shape and its proportion. It is a generation for limits and metering, and it
+adds an artwork to the design rather than replacing one.
+
 ## 7.3 Validation
 
-Deterministic: decodable allowed image type; 5:7 within tolerance; minimum resolution. Required,
+Deterministic: decodable allowed image type; the requested proportion within tolerance; minimum
+resolution. Required,
 mechanism chosen in the bake-off: no embedded text; content safety. A failure earns one
 regeneration; a second failure is a visible failure with retry. No template or stock fallback.
 
