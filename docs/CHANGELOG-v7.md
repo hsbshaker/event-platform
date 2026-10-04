@@ -185,9 +185,72 @@ model is picked there too. Documents changed: `technology-decisions.md` (§2, §
 `development-plan.md` (principles, Phase 3), `spec.md` (§7.6a, §7.8, §7.10, §9.1, §9.2, §11.3),
 `card-system.md`, `model-contracts.md`, `product-doctrine.md §14`–`§15`, `CLAUDE.md`, `README.md`.
 
+### 7.1 — Phase 3 validation: the card clears the bar
+
+The chosen models were run through the API on the fourteen-case corpus and the owner's two briefs
+(`docs/model-evals/phase-3-validation.md`). Before any output existed the owner set the bar —
+10 of 14 cards they would send as they are — and judged round 2 at **11 of 14**. Spend: $3.61 of a
+$25 cap. Decisions taken on the results:
+
+| Question | Decision |
+| --- | --- |
+| Image quality setting | Sunburst `high`: on a full-corpus comparison `medium` lost no detail and would halve the wait, but the owner found `high` brighter and more vibrant |
+| Reveal latency | Re-set from measurement: identity ≤ 15 s, card ≤ 70 s at p75; the details form fills the wait (`spec.md §7.10`) |
+| A famous character the provider refuses | First attempt keeps the close homage; the regeneration steps back to the character's world with a short, plain copyright note (`spec.md §7.6`, §31; `card-design.system.md §10`; re-prompt kind `provider-refusal`) |
+
+Also written in from the run: the validated layout set with each layout's shapes and art modes
+(`card-system.md §2.3`), the 1440-pixel rasters, the text and safety detection chain and pinned model
+IDs (`technology-decisions.md §8.1`), the Card Design string bounds (`model-contracts.md §5.1`),
+the `card_design_v1` and `fact_extraction_v1` prompts and the generated `card-design.schema.json`.
+The corpus's CU-11 `eventType` is corrected to the host's literal "Baby shower", as its own rule
+requires. Carried forward: presence for sparse cards (Phase 5), a unit test for the ink rule's
+tail selection (Phase 4), a higher OpenAI usage tier before launch (Phase 10).
+
+## Revision 7.2 — the card editor
+
+Asked after Phase 3: should hosts be able to add and edit text boxes on their card — drag and drop,
+change fonts and colours — once it is generated? Revision 7 had allowed only the card's words and a
+font among the design's pairings. The owner chose the full option — "go big or go home" — with a
+seamless editing experience on a phone, in the spirit of Paperless Post and Canva.
+
+| Question | Decision |
+| --- | --- |
+| How much control | A free text editor: every text is a box the host can edit, move, resize, rotate, duplicate, delete, reorder and restyle, and new boxes can be added |
+| Readability of host colours | No checks — the host's choices are theirs; the generated card still clears 4.5:1, and the page under the card carries every detail accessibly |
+| Artwork | Text only; the painting stays as generated; no images or graphics added |
+| A new direction or shape after editing | Keep the words, added text and fonts; lay them out fresh; keep the edited card to return to |
+| Fonts | The full Google Fonts library |
+
+Defaults chosen in writing it, canonical where cited: fact boxes stay linked to event details
+(`spec.md §20.2`); text past the outline is clipped as guests see it (§20.1); undo/redo, autosave
+and stale-save refusal between collaborators (§20.3, §20.5); edits allowed after publish (§8.1);
+fonts copied into platform storage on first use and served by us, never fetched by guests from
+Google (`technology-decisions.md §8.3`); the editor built on the card component in the DOM, not a
+canvas library (§8.3); line breaks for every box computed deterministically and stored, so guests
+see exactly what the host saw (`card-system.md §7`).
+
+Documents changed: `spec.md` (Revision 7.2: §0, §0.2, §4.2, §4.10, §5.1, §5.2, §7.7, §7.9, §7.14,
+§8.1, §11.6, §11.7, §20 rewritten as Card Editing, §24 `CardCustomization` and `CardFont` replacing
+`Event.cardEdits`, render state, §30, §31 new "Card editor" group, §32 #22, #23, #25, #26, #28),
+`card-system.md` (§1, §2.6, §4.2, §4.3, §5, §6.1, §7 rewritten, §9, §10), `technology-decisions.md`
+§8.2, §8.3, §9, `product-doctrine.md §7`, `§13`, `development-plan.md` (Phase 4 text layer, new
+Phase 6b), `design-system.md`, `screen-spec.md`, `e2e-workflow.md`, `CLAUDE.md`, `AGENTS.md`.
+
+### 7.2 review fixes
+
+An independent senior review approved 7.2 with fixes and no blockers. Settled in the documents:
+the title and invitation line keep their slot limits, so carried words always fit a fresh layout,
+while added text has a per-box limit (`spec.md §20.2`); carried words come from the card being
+switched from (§20.6); every customization holds a box for every fact slot, and a fact change
+re-breaks those boxes in every customization of the event (§20.2, `card-system.md §7`);
+`Reset card` is a new revision, never a delete, and never reverts the title (§20.5); the font
+picker shows pre-rendered specimen images, and the server's font fetch is limited to catalog
+families from fixed Google Fonts hosts, type- and size-checked, with licence text stored
+(`technology-decisions.md §8.3`); host-chosen colours are recorded as an accepted limitation
+(`spec.md §34`).
+
 ## Still open
 
-Tracked in `docs/product-doctrine.md §14`: the image-model workflow (transparency, text and safety
-detection); the layout catalog and slot limits; the reveal latency target; the $49 re-check; the
-clarification question schema; an email provider for the reminder fallback; legal review of the
-brand line.
+Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
+re-check; the clarification question schema; an email provider for the reminder fallback; legal
+review of the brand line.

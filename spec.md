@@ -1,7 +1,7 @@
 # AI-Designed Event Invitation + RSVP + Registry Platform
 
 **Document:** Product Requirements Document (PRD) / `spec.md`
-**Status:** Revision 7.1 — MVP baseline for implementation (§0; 7.1 adds card shapes, §0.1)
+**Status:** Revision 7.2 — MVP baseline for implementation (§0; 7.1 adds card shapes, §0.1; 7.2 adds the card editor, §0.2)
 **Initial launch vertical:** Baby showers
 **Platform architecture:** Event-generic, baby-shower-first
 **Primary build principle:** **AI should remove decisions, not create more decisions.**
@@ -33,7 +33,7 @@ screenshots and sends. The full record is `docs/CHANGELOG-v7.md`.
 | Guest arrival | Host shares a link/QR | Host shares a link/QR **and** the platform can text each invited party a personal invitation link |
 | Guest identity | Name lookup + SMS code | Personal invitation link identifies the party; shared-link guests use name lookup + SMS code |
 | Private events | Finished hero visible before the code | Sealed envelope with the event title until the code; personal links skip the code |
-| Host design controls | Curated palette and typography | Edit the card's words; swap among the design's curated font pairings; switch the card's shape |
+| Host design controls | Curated palette and typography | A free text editor on the card (Revision 7.2): add, edit, move, resize, rotate and restyle text in any Google Font and colour; switch the card's shape |
 
 **Unchanged:** prompt first → auth → generation; Event Identity as the only interpreter of the raw
 prompt and its fact-versus-interpretation boundary; adaptive creative clarification; Creation Mode
@@ -54,6 +54,22 @@ square and circle at 1:1. There is no landscape card. The design picks the shape
 switch it. Switching to a shape the current artwork fits is instant; switching to any other shape
 (the other proportion, or another outline for border- and frame-led art) generates new artwork
 from the same brief (§7.14, `docs/card-system.md §2.1`, §2.4, §7).
+
+### 0.2 Revision 7.2 — the card editor
+
+The AI's card is the starting point, not the last word. After the reveal, hosts can open the
+**card editor** and freely edit the card's text: every piece of text is a text box they can edit,
+move, resize, rotate, delete and restyle — any font in the Google Fonts library, any size, any
+colour, alignment, spacing and case — and they can add their own. It works by touch on a phone as
+well as with a mouse, in the spirit of Paperless Post and Canva. The artwork stays as generated;
+the shape is switched from the Design panel.
+
+Owner decisions: host-chosen colours are not checked for readability (the card as generated still
+clears 4.5:1, and the page under the card carries every detail in the accessible house style);
+the full Google Fonts library, served from the platform's own storage; a new direction or a new
+shape keeps the host's words, added text and fonts and lays them out fresh, while the edited
+version of the previous card is kept to return to. Line breaks stay deterministic, so guests see
+exactly what the host saw. §20, `docs/card-system.md §7`.
 
 ---
 
@@ -204,12 +220,16 @@ Deterministic application code:
 1. validates the design against a strict schema and catalogs;
 2. checks the wording invents no fact;
 3. validates the artwork;
-4. chooses ink colours and any legibility panel so every card text clears 4.5:1;
+4. chooses ink colours and any legibility panel so every text of the generated card clears 4.5:1;
 5. sizes and breaks every line of card text so it fits;
 6. renders the card identically at every size, inside the envelope, above the house-style page.
 
 The model never emits HTML, CSS, JavaScript, SVG, colours for text, font sizes, positions or line
 breaks, and never writes the host's facts. Architecture: `docs/card-system.md`.
+
+These guarantees describe the card as generated. In the card editor (§20) the host may then edit,
+restyle and move any text, add their own, and choose any font and colour; those choices are the
+host's and are not checked. Line breaking stays deterministic for every text box.
 
 ### 4.3 The card is the creative surface; there are no templates
 
@@ -270,8 +290,9 @@ Once generated:
 - each `CardDesign`, its artwork and its resolved ink are immutable, with their version set (prompt,
   schema, layout set, compiler, image model).
 
-Host edits — wording, font swap, every fact — are event data and never mutate a design. Do not
-regenerate or "upgrade" the artwork or design of an existing card.
+Host edits — wording, every fact, and everything done in the card editor — are stored apart from
+the design and never mutate it. Do not regenerate or "upgrade" the artwork or design of an existing
+card.
 
 Renderer code is normal product code: accessibility, browser, responsive and visual fixes may
 change how every existing card renders. "Design immutability" never blocks renderer maintenance.
@@ -303,8 +324,9 @@ change how every existing card renders. "Design immutability" never blocks rende
 **Creation Mode**
 - The chosen card and the page beneath it are the workspace.
 - `Make it yours` turns the revealed invitation into Creation Mode.
-- Contextual owner/co-host controls on the card (wording, details) and on each page section.
-- Font control limited to the design's curated pairings.
+- Contextual owner/co-host controls on the card and on each page section.
+- The card editor: free editing of the card's text — words, fonts, colours, sizes, positions —
+  by touch or mouse (§20).
 - Floating readiness/setup control; checklist separates publish blockers from recommended work.
 - Autosave routine edits.
 - Guest management may open a dedicated full-screen workspace.
@@ -351,7 +373,7 @@ change how every existing card renders. "Design immutability" never blocks rende
 - Free to create/generate/try other directions/preview within backend limits.
 - $49 one-time publish hypothesis; payment separate from readiness.
 - Deterministic `READY_TO_PUBLISH`.
-- Post-publish content, operations, wording and font edits allowed; post-publish AI generation and
+- Post-publish content, operations and card-editor edits allowed; post-publish AI generation and
   design switching disabled.
 
 **Post-event**
@@ -362,10 +384,11 @@ change how every existing card renders. "Design immutability" never blocks rende
 Implementing agents must **not** add these unless explicitly requested later:
 
 - a custom-designed or model-composed event website; per-event themed page styling;
-- drag-and-drop builder, pixel editor, arbitrary CSS, free-form canvas, image editor;
+- a page builder, arbitrary CSS, or an image editor — the artwork is never edited, cropped,
+  moved or partly regenerated (the card's **text** is fully editable, §20);
+- adding images, stickers, shapes or other graphics to the card;
 - customer-facing template, layout or artwork gallery;
-- host controls for layout, colour, palette, art mode, ink, borders, font sizes or text position;
-- free font choice beyond the design's curated pairings;
+- host controls for the artwork, palette, art mode, borders, the envelope or the page's styling;
 - a card back, multi-page cards, animated cards;
 - host-uploaded photos or images on the card or page; stock photography; retrieved web imagery;
 - inspiration images sent to the image model or shown to guests;
@@ -400,7 +423,7 @@ The owner created the event. Owner can:
 - create the event and enter the initial prompt;
 - upload private inspiration;
 - generate designs, try other directions, browse and choose designs before publish;
-- edit the card's wording and swap its font among the design's pairings;
+- edit the card's text in the card editor (§20);
 - manage event details, privacy, guests, RSVP configuration and responses;
 - manage external registries, native items, cash fund;
 - send invitations, reminders and announcements;
@@ -583,8 +606,18 @@ cable-knit sweater over a blue oxford collar"), so the image model never receive
 
 This line was chosen deliberately by the owner and carries trademark and copyright risk for a
 platform that charges to publish (`docs/CHANGELOG-v7.md`). It must be reviewed by counsel before
-launch (`docs/product-doctrine.md §14`). An image provider may refuse some requests; a refusal is
-a visible failure with retry like any other (§7.8).
+launch (`docs/product-doctrine.md §14`).
+
+**When the image provider refuses a homage.** The provider may refuse artwork that comes out too
+close to a well-known protected character even when nothing is named (Phase 3: a classic
+storybook bear was refused in 2 of 2 attempts; `docs/model-evals/phase-3-validation.md`). Owner
+decision: the first design keeps the close homage. When the provider refuses it, the one
+regeneration (§7.8) re-prompts the card design to evoke the character's **world** — its setting,
+props, palette and illustration style — rather than its signature look, and paints new artwork
+from that brief. While it does, the host sees a short, plain note, for example: "That first take
+came out too close to a well-known character, so for copyright reasons we're trying a fresh take
+on its world." If that attempt is refused too, it is a visible failure whose Try again takes the
+same step back. The note never blames the host and never shows a provider error.
 
 ### 7.6a Card artwork
 
@@ -668,7 +701,7 @@ exactly as the host supplied it, and never contains a date, time, place, dress c
 Code checks model-drafted wording deterministically where it can; a slot that fails twice falls
 back to standard wording (§7.9), visible and editable like any other text. If the host supplied a
 title, the design uses it verbatim; host-supplied and host-edited wording is host content, bounded
-only by slot limits, and is never fact-checked or re-prompted.
+only by length limits, and is never fact-checked or re-prompted.
 
 The model cannot emit HTML, CSS, JavaScript, SVG, text colours, sizes, positions, line breaks, the
 host's facts, or any ID outside its catalogs.
@@ -683,8 +716,10 @@ The image model returns the artwork.
 Validation (deterministic, plus the text and safety checks chosen in Phase 3 validation): file type, the requested proportion
 within tolerance,
 minimum resolution, decodable, **no embedded text**, and content safety. A failure earns one
-regeneration; a second failure is shown honestly to the host with a retry action. There is no
-template or stock fallback.
+regeneration; a second failure is shown honestly to the host with a retry action. A provider
+refusal is a failure; when it refuses a brand or character homage, the regeneration comes from a
+re-prompted design that evokes the character's world (§7.6). There is no template or stock
+fallback.
 
 ### 7.9 Card compilation
 
@@ -700,9 +735,12 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
    card text clears **4.5:1**; applies the layout's legibility panel when no ink can;
 6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
-Card text layout — font size and line breaks for every slot — is one pure versioned function
-(`layoutCard`) run when content is saved, when a font is swapped and when the card renders. Slot
-character limits are enforced at entry so it can always fit. The browser never re-wraps card text.
+Card text layout for the generated card — font size and line breaks for every slot — is one pure
+versioned function (`layoutCard`), run when the design is compiled and whenever the generated layout
+is seeded with new content (a new direction or shape, §20.6). Slot character limits for
+model-drafted wording are enforced at entry so it can always fit. In the card editor the same
+line-breaking rules run for each box at its width and the result is stored (§20.4). The browser
+never re-wraps card text.
 
 ### 7.10 The wait
 
@@ -727,12 +765,16 @@ Latency goals, p75:
 
 | Milestone | Target |
 | --- | --- |
-| Event Identity visible | ≤ 5 s |
-| Card revealed | ≤ 30 s — working target |
+| Event Identity visible | ≤ 15 s |
+| Card revealed | ≤ 70 s |
 
-The card target is provisional: it is re-set deliberately from the image-model latency measured in
-Phase 3 validation, never widened quietly to match whatever was built. Measure reality; do not
-silently allow unbounded waits.
+Re-set deliberately with the owner on 2026-10-04 from the Phase 3 measurements
+(`docs/model-evals/phase-3-validation.md`): identity p50 11 s and p75 14 s; card design p50 11 s
+and p75 13 s; artwork p50 31 s and p75 33 s at Sunburst `high`; inspection 4 s — about 57 s prompt
+to card at p50 and 64 s at p75, more when an artwork check earns its regeneration. The owner chose
+`high` over a faster `medium` for its colour; the wait is real work for the host, because the
+details form of §7.3 is offered while it runs. Any further change is again deliberate and measured;
+never widen these quietly.
 
 ### 7.11 Card reveal
 
@@ -779,7 +821,7 @@ Creation Mode.
 ### 7.14 Direct design controls
 
 `Design` exposes only:
-- the card's font: the design's primary pairing and its alternates;
+- `Edit card` — opens the card editor (§20);
 - the card's shape: any of the six shapes the design's layout supports. A shape the current
   artwork fits applies instantly with no model call: illustration and atmosphere artwork fits every
   supported shape of its proportion, border- and frame-led artwork (`framed`, `minimal`) fits only
@@ -787,13 +829,16 @@ Creation Mode.
   it from the same art brief, with the current artwork passed as a reference so the subject stays
   the same (the same bear, rearranged for the new outline) where the image model supports it — a
   generation that counts toward §10 limits and is available before publish only; the current card
-  stays as it is until the new artwork is ready, and switching back is instant;
-- reset the card's wording, font and shape to the design;
+  stays as it is until the new artwork is ready, and switching back is instant. A switch keeps the
+  host's words, added text and fonts and lays them out fresh for the new shape; the edited card for
+  each shape is kept, so switching back restores it (§20.6);
+- `Reset card` — back to the design's generated text, fonts, colours and layout for the current
+  shape, with confirmation; event details and `Event.title` are content and are not reverted;
 - `Try another direction ✦` before publish;
 - the designs generated so far, to choose another before publish.
 
-Wording is edited directly on the card. Do not expose layouts, colours, art modes, ink, panels,
-sizes, positions, outlines beyond the six shapes, or anything else.
+Text is edited directly on the card in the card editor. Do not expose the layout catalog, art
+modes, ink rules, panels, outlines beyond the six shapes, or any artwork editing.
 
 ### 7.15 Try another direction
 
@@ -852,7 +897,7 @@ Hosts may also simply share the event link/QR themselves; both paths coexist.
 Owner and co-host may change:
 
 - date/time/location and ordinary event content, including the card's wording;
-- the card's font, among the active design's pairings;
+- the card's text in the card editor: wording, added text, fonts, colours, sizes, positions;
 - the card's shape, among the supported shapes an existing artwork already fits;
 - RSVP settings/questions;
 - guest list, invitations and RSVP operations;
@@ -918,8 +963,8 @@ Validate timezone in code. Do not add models for ink, contrast, text fit, layout
 Never call a model for:
 - auth draft persistence;
 - changing structured date/time/venue or any fact;
-- editing the card's wording;
-- swapping the card's font;
+- anything done in the card editor (§20), including line breaking and adding a font to the font
+  store;
 - switching the card's shape to one an existing artwork fits;
 - hiding/reordering simple information blocks;
 - guests/registry/cash-fund operations;
@@ -1040,16 +1085,22 @@ value takes no space. Placeholders appear only in Creation Mode and are never pu
 
 ### 11.6 Ink, legibility and fit
 
-Ink per text zone comes from the artwork's palette, measured conservatively, reaching **4.5:1** for
-every card text; otherwise the layout's art-derived legibility panel is applied. `layoutCard`
-decides every size and line break deterministically; slot limits make fit always possible; the
-browser never re-wraps card text. A test renders every layout × pairing with worst-case content
-in a real browser; production never needs a browser to verify a card.
+For the card as generated: ink per text zone comes from the artwork's palette, measured
+conservatively, reaching **4.5:1** for every text; otherwise the layout's art-derived legibility
+panel is applied. `layoutCard` decides every size and line break deterministically; slot limits
+make fit always possible. A test renders every layout × pairing with worst-case content in a real
+browser; production never needs a browser to verify a card.
+
+In the card editor the host's colours, sizes and positions are not checked (§20). Line breaking
+stays deterministic for every box: one function lays out each box's text at its width from the
+font's own metrics and the result is stored, so the browser never re-wraps card text.
 
 ### 11.7 Typography
 
-Curated pairings only (`src/lib/card/typography.ts`; fonts self-hosted). A design names one primary
-pairing and up to two alternates; the host's font control offers exactly those.
+The generated card uses curated pairings only (`src/lib/card/typography.ts`; fonts self-hosted).
+A design names one primary pairing and up to two alternates; the card editor's font picker shows
+those first. In the editor the host may choose any family in the Google Fonts library; every font a
+card uses is served from the platform's own storage (`docs/technology-decisions.md §8.3`).
 
 ### 11.8 The envelope
 
@@ -1596,57 +1647,130 @@ Priority:
 Owner additionally sees billing/co-host management/delete controls as permitted. Keep this
 operational rather than analytical. No vanity analytics.
 
-## 20. Design Editing
+## 20. Card Editing
 
-### 20.1 Direct design editing
+### 20.1 The card editor
 
-Owner/co-host may directly:
-- edit the card's title and invitation line;
-- swap the card's font among the active design's primary and alternate pairings;
-- switch the card's shape (§7.14);
-- reset the card's wording, font and shape to the design.
+Owner and co-host can open the card editor from Creation Mode (tap the card, or `Edit card` in
+Design). It opens on the current card: the design's generated layout, or the host's saved edits.
 
-Host edits to wording are host content: they may contain any fact the host chooses and are bounded
-only by slot limits, never fact-checked. Facts are edited as event details and appear on the card
-and page automatically. Content
-operations on the page (description, information blocks, their order and visibility) are separate
-from the card.
+Every piece of text on the card is a **text box**. The host may:
 
-### 20.2 Card edits live on the event
+- edit its text in place;
+- move it, resize its width and rotate it;
+- change its font (any family in the Google Fonts library, with the design's own pairings shown
+  first; weight and italic where the family has them), size, colour (any colour, with swatches from
+  the artwork and recent colours first), alignment, letter spacing, line height and case;
+- duplicate or delete it, and bring it forward or send it back;
+- add a new text box.
 
-Host card edits are event data, conceptually:
+The artwork, the outline and the envelope are not editable; the shape is switched from Design
+(§7.14). Images, stickers and other graphics cannot be added.
+
+Host choices are not checked (owner decision, 7.2): a colour may be hard to read over the artwork,
+and text may be moved past the card's outline, where it is clipped exactly as guests will see it.
+Every detail on the card is also on the page beneath it, in the accessible house style.
+
+### 20.2 Words, facts and the title
+
+- **Title.** The title box shows the effective title (`Event.title` when the host supplied or edited
+  it, else the design's drafted title). Editing it edits `Event.title`, which the envelope, page and
+  link previews use too. `Event.title` is event content: `Reset card` never reverts it.
+- **Invitation line and added text** are host content stored with the edited card, never
+  fact-checked. The title and invitation line keep the layout set's slot limits, so they always
+  fit when carried to a fresh layout (§20.6); an added text box is bounded by a per-box length
+  limit set in the editor phase.
+- **Fact boxes stay linked.** The date, time, venue, hosts, baby name and RSVP-by boxes show the
+  event's details. Every customization holds a box for every fact slot its layout defines, even one
+  with no value yet; an empty fact box renders nothing until the fact exists, then appears where
+  the host left it. Tapping to change a fact box's text opens that detail's own field (date picker,
+  venue field), and the card and page update together; a fact change re-breaks the fact boxes of
+  every customization of the event. A fact box can be restyled, moved or deleted; deleting it
+  removes it from the card only (a required fact stays required for publish, §23.1). A host who
+  wants their own wording for a fact deletes the box and adds a text box, which is then ordinary
+  host text.
+- A missing required fact shows as a placeholder in Creation Mode and is never published (§7.3).
+
+### 20.3 Editing on a phone and on a desktop
+
+- **Phone:** tap to select; drag to move; pinch to scale the text; twist to rotate; double-tap to
+  type; a bottom toolbar for font, size, colour, alignment, spacing, layer, duplicate and delete;
+  the card stays in view above the keyboard.
+- **Desktop:** click to select; drag to move; handles for width and rotation; arrow keys nudge
+  (Shift for larger steps); standard shortcuts for undo, redo, duplicate and delete.
+- **Both:** snapping guides to the card's centre lines, the shape's edges and other boxes; undo and
+  redo; autosave with a visible saved state; `Reset card` with confirmation.
+- **Accessible:** every box can be reached from a list and every property set by exact value, by
+  keyboard and screen reader.
+
+The editing surface is the card component itself (§20.4), so what the host edits is what guests
+see. Interaction design: `docs/design-system.md`, `docs/screen-spec.md`.
+
+### 20.4 What the system still owns
+
+- **Line breaks.** One deterministic function lays out each box's text at its width from the font's
+  own metrics; the result is stored with the box, and the renderer sets exactly those lines. The
+  browser never re-wraps card text, so the card reads the same at every size, for host and guests.
+- **Fonts.** Every font a card uses is served from the platform's own storage; guests' browsers
+  never fetch fonts from a third party (`docs/technology-decisions.md §8.3`).
+- **One component.** The card renders through one card component everywhere — the editor, the
+  reveal, previews, the guest view and link previews. Positions are in card units and scale
+  uniformly.
+- **The generated card's guarantees** (ink 4.5:1, fit, quiet regions) hold until the host changes
+  something.
+
+### 20.5 Where edits live
+
+Conceptually:
 
 ```ts
-Event.title                         // when the host supplied or edited the title
-Event.cardEdits? {
-  invitationLine?
-  typographyPairing?                // must be the active design's primary or an alternate
-  shape?                            // one of the shapes the design's layout supports
+Event.title                        // when the host supplied or edited the title
+Event.activeCardShape?             // the active design's own shape unless switched
+CardCustomization {                // one per event × design × shape the host has edited
+  eventId, cardDesignId, shape,
+  boxes: TextBox[],
+  revision, updatedBy, updatedAt
+}
+TextBox {
+  id,
+  source: { kind: "wording", slot: "title" | "invitationLine" }
+        | { kind: "fact", slot: FactSlot }
+        | { kind: "custom" },
+  text?,                           // invitation line and custom boxes; the title lives on Event.title
+  x, y, width, rotation,           // card units and degrees
+  font { family, weight, italic },
+  size, color, align, letterSpacing, lineHeight, textCase,
+  z,
+  lines[]                          // the stored line breaks (§20.4)
 }
 ```
 
-The effective card title is `Event.title` when present, else the active design's drafted title.
-These edits never mutate a `CardDesign`, its artwork or its ink. Every edit re-runs `layoutCard`
-with no model call.
+A customization is created by the host's first edit, seeded from the generated layout; there is at
+most one per event, design and shape. It never mutates a `CardDesign`, its artwork or its ink, and
+no edit calls a model. Every save carries the revision it was based on; a save based on a stale
+revision (another collaborator edited meanwhile) is refused and the editor reloads the latest with a
+short notice. `Reset card` is a save like any other: it re-applies the seed as a new revision, and
+is never a delete, so a collaborator's stale save is still refused after it.
 
-### 20.3 Choosing another design
+### 20.6 New directions and shapes keep the words
 
-Before publish, choosing another generated design:
-- switches `activeCardDesignId`;
-- resets `Event.cardEdits` to the new design's wording, typography and shape;
-- keeps `Event.title` if the host supplied or edited it (it is content);
-- never changes event details, guests, RSVP, registry, privacy or messaging data.
+Choosing another design (before publish), or switching the card's shape:
 
-### 20.4 No treatment-level editing
+- keeps the host's words — the title, the invitation line and every added text box — and their
+  fonts, taken from the card being switched from (the active design and shape), and lays them out
+  fresh in the new card's generated layout; positions, sizes, rotation and colours start from the
+  new card. When the destination already has a customization, that customization is shown
+  instead;
+- keeps every customization already made for another design or shape, so switching back restores
+  it;
+- switches `activeCardDesignId` or `activeCardShape`, and never changes event details, guests,
+  RSVP, registry, privacy or messaging data.
 
-Do not expose: layouts; colours, palettes, ink or panels; art modes; artwork editing, cropping,
-positioning or regeneration of parts; font sizes; text positions; envelope styling; page styling.
-These are design- or system-owned.
+### 20.7 No artwork editing, no AI copilot
 
-### 20.5 No persistent AI copilot
-
-AI reimagination exists only at design granularity through `Try another direction`. No persistent
-chat assistant, token-level AI edit, or "make the bear bigger" flow.
+The artwork is never edited, cropped, moved or partly regenerated, and the page under the card is
+never styled per event. AI reimagination exists only at design granularity through `Try another
+direction`. No persistent chat assistant, token-level AI edit, or "make the bear bigger" flow.
 
 ## 21. Guest Experience Structure
 
@@ -1761,7 +1885,7 @@ Event {
   slug,
 
   activeCardDesignId?,
-  cardEdits? { invitationLine?, typographyPairing?, shape? },
+  activeCardShape?,                 // the active design's own shape unless switched (§20.5)
 
   invitationAttestedAt?,
   messageSendsUsed,
@@ -1819,6 +1943,19 @@ CardArtAsset {
   ink /* per fitted shape, per zone: { ink, panel?, panelColor? } */,
   imageModel, artPromptVersion,
   createdAt
+}
+
+CardCustomization {                 // the host's edited card, one per event × design × shape (§20.5)
+  id, eventId, cardDesignId, shape,
+  boxes /* TextBox[]: source, text?, x, y, width, rotation, font, size, color, align,
+           letterSpacing, lineHeight, textCase, z, lines[] */,
+  revision, updatedBy, updatedAt
+}
+
+CardFont {                          // platform-wide, server-written: a Google Fonts family we serve
+  id, family /* unique */, category, variants[],
+  licenseName, licenseText,         // stored with the files, as OFL redistribution requires
+  storageKeys, metricsVersion, addedAt
 }
 
 EventSection {
@@ -1909,14 +2046,15 @@ code/config, not database tables.
 ### Generated-data immutability
 
 `EventIdentity` revisions, `CardDesign` records, artwork assets and resolved ink are immutable.
-Host edits live on `Event`. Renderer source code may still receive bug, accessibility and
+Host edits live on `Event` and in `CardCustomization`. Renderer source code may still receive bug, accessibility and
 responsive fixes.
 
 ### Effective render state
 
-The card renders from the active `CardDesign`, its artwork and ink, `Event.cardEdits`, the
-effective title and the event's current facts, through `layoutCard`. The page renders from event
-content in the house style. Guest visibility of RSVP and registry follows operational state:
+The card renders from the active `CardDesign` and shape: the host's `CardCustomization` for that
+design and shape when one exists, otherwise the generated layout from its artwork, ink and
+`layoutCard` — with the effective title and the event's current facts in their boxes. The page
+renders from event content in the house style. Guest visibility of RSVP and registry follows operational state:
 registry is shown once it has an external registry, native gift or cash fund; RSVP once it is
 configured and at least one party is invited.
 
@@ -1926,7 +2064,7 @@ configured and at least one party is invited.
 | --- | ---: | ---: | ---: |
 | View event | Yes | Yes | Yes |
 | Edit event details/content and card wording | Yes | Yes | No |
-| Swap card font or shape | Yes | Yes | No |
+| Edit the card in the card editor; switch the card's shape | Yes | Yes | No |
 | Manage privacy/access code | Yes | Yes | No |
 | Manage guests / import CSV | Yes | Yes | No |
 | Copy/rotate a party's personal link | Yes | Yes | No |
@@ -2135,7 +2273,8 @@ The creative system succeeds when:
 17. Event Identity understands vague and taste-heavy prompts (`docs/model-contracts.md §6`);
 18. no card ever states a fact the host did not supply;
 19. no artwork contains text, logos, wordmarks or brand names;
-20. every card text clears 4.5:1 and fits its zone at every size;
+20. every text of the generated card clears 4.5:1 and fits its zone at every size, and every card
+    reads the same for host and guests at every size;
 21. `Try another direction` yields a different idea, not a palette or font swap;
 22. historical designs never change because prompts, layouts, the compiler or the image model
     evolve;
@@ -2198,14 +2337,19 @@ The host should feel:
   no embedded text, and passes
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no
   template or stock fallback exists.
-- [ ] Every card text clears 4.5:1 against the conservatively measured background of its zone;
+- [ ] When the image provider refuses a brand or character homage, the one regeneration comes
+  from a re-prompted design that evokes the character's world rather than its signature look; the
+  host sees a short, plain copyright note, never a provider error; a second refusal is a visible
+  failure whose Try again takes the same step back (§7.6).
+- [ ] Every text of the generated card clears 4.5:1 against the conservatively measured background
+  of its zone (host-chosen colours in the card editor are not checked);
   otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
-- [ ] `layoutCard` decides every slot's size and line breaks; no text leaves its zone; no word is
-  broken; text is never silently truncated; slot limits are enforced at entry.
+- [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
+  its zone; no word is broken; text is never silently truncated; slot limits are enforced at entry.
 - [ ] No legibility, fit, compatibility or wording-fallback step calls a model.
 - [ ] `CardDesign` (raw and validated), artwork, resolved ink and the version set persist per design
   and are never mutated.
-- [ ] Host wording edits, font swaps and fact edits never mutate a design and never call a model.
+- [ ] Card-editor edits and fact edits never mutate a design and never call a model.
 - [ ] Routine rendering never regenerates or recompiles a historical design.
 
 ### Card experience
@@ -2220,20 +2364,46 @@ The host should feel:
 ### Creation Mode
 - [ ] The card and every page section expose stable collaborator-action anchors.
 - [ ] Contextual Edit/Set up/Add controls are app-styled and absent for guests.
-- [ ] Card wording is editable in place; missing required facts show as placeholders marked as
-  needing confirmation and are never published.
+- [ ] Missing required facts show on the card as placeholders marked as needing confirmation and
+  are never published.
 - [ ] Routine edits autosave.
 - [ ] Guest workspace returns to prior Creation Mode context.
 - [ ] Setup checklist separates publish blockers from recommended work.
 - [ ] `Ready to publish` can appear even if guests/registry/invitations are incomplete.
-- [ ] Design controls expose only the design's font pairings, the shapes its layout supports, reset,
-  `Try another direction` and the designs list.
+- [ ] Design controls expose only `Edit card`, the shapes the design's layout supports,
+  `Reset card`, `Try another direction` and the designs list.
 - [ ] A switch to a shape an existing artwork fits applies instantly with no model call; a switch to
   any other shape generates one artwork from the same brief with the current artwork as a reference
   where the image model supports it, counts as a generation, is unavailable after publish, and keeps
   earlier artwork so switching back is instant.
 - [ ] Illustration and atmosphere artwork is composed safe for every supported shape of its
   proportion; border- and frame-led artwork is recorded as fitting only the shape it was made for.
+
+### Card editor
+- [ ] Every text on the card is a text box the owner or co-host can edit in place, move, resize,
+  rotate, duplicate, delete, reorder and restyle (font, size, colour, alignment, letter spacing,
+  line height, case); new text boxes can be added.
+- [ ] Any Google Fonts family can be chosen, with the design's pairings shown first; every font a
+  card uses is served from platform storage and never fetched by a guest's browser from a third
+  party.
+- [ ] Any colour can be chosen, with artwork swatches and recent colours first; host choices are not
+  checked or blocked.
+- [ ] The artwork, outline and envelope cannot be edited, and no images or graphics can be added.
+- [ ] On a 390px phone: tap selects, drag moves, pinch scales, twist rotates, double-tap types; the
+  toolbar is reachable with one thumb and the edited box stays visible above the keyboard.
+- [ ] On desktop: drag, width and rotation handles, arrow-key nudges, undo/redo/duplicate/delete
+  shortcuts.
+- [ ] Snapping guides, undo/redo, autosave with a visible saved state, and `Reset card` with
+  confirmation work on both.
+- [ ] Every box and property can be reached and set by keyboard and screen reader.
+- [ ] The title box edits the event's effective title everywhere; fact boxes stay linked to event
+  details, open the detail's own field when edited, and update with them.
+- [ ] Each box's line breaks are computed deterministically and stored; guests see exactly the
+  lines, positions and styles the host saw, at every size; the browser never re-wraps card text.
+- [ ] A stale save from a collaborator is refused and the editor reloads the latest with a notice.
+- [ ] Choosing another design or switching shape keeps the host's words, added text and fonts with
+  a fresh layout, and keeps earlier customizations so switching back restores them.
+- [ ] Card-editor edits remain allowed after publish and update the live card.
 
 ### Try another direction
 - [ ] Available from the reveal and Creation Mode before publish.
@@ -2247,8 +2417,8 @@ The host should feel:
 ### Card rendering and envelope
 - [ ] The card renders in its effective shape with the outline applied as a mask, identical at 390px
   and 1280px; the envelope fits portrait and square cards.
-- [ ] One card component renders the card everywhere: reveal, Creation Mode, Preview, guest page and
-  link previews.
+- [ ] One card component renders the card everywhere: reveal, Creation Mode, the card editor,
+  Preview, guest page and link previews.
 - [ ] The card is identical in proportion, line breaks and layout at 390px and 1280px.
 - [ ] Every layout × pairing renders worst-case content in a real browser with no text outside its
   zone (test-time fixture).
@@ -2358,22 +2528,25 @@ The host should feel:
     failed validation; Event Identity and fact extraction get one repair retry each
     (`docs/model-contracts.md §9`). Never call a model for legibility, fit or compatibility.
 21. No library, template or stock fallback. A failed generation is shown honestly with a retry.
-22. Choose ink and panels deterministically; every card text clears 4.5:1 against a conservatively
-    measured background.
-23. `layoutCard` is the only thing that sizes or breaks card text; the renderer never lets the
-    browser re-wrap card text; never truncate silently; enforce slot limits at entry.
+22. Choose ink and panels deterministically; every text of the generated card clears 4.5:1
+    against a conservatively measured background. Host colour choices in the card editor are the
+    host's and are not checked.
+23. `layoutCard` sizes and breaks the generated card's text, and one deterministic function breaks
+    every edited text box at its width; the renderer sets the stored lines and never lets the
+    browser re-wrap card text; never truncate silently; enforce length limits at entry.
 24. Adding or changing a layout, art mode, shape or slot limit is a layout-set version bump and
     re-runs the layout fixtures.
 25. Persist Event Identity, every `CardDesign` (raw and validated), artwork, resolved ink and the
-    version set; never mutate them; host edits live on the event.
-26. Render the card only through the one card component, from persisted design data and current
-    event content.
+    version set; never mutate them; host edits live on the event and in card customizations.
+26. Render the card only through the one card component — the card editor included — from
+    persisted design data, the host's customization and current event content.
 27. Never regenerate, recompile or "upgrade" a historical design; renderer bug, accessibility and
     responsive fixes are allowed.
 28. The card is one of the six shapes; outlines are code-defined masks, never model-drawn. The
     host's shape control offers only shapes the design's layout supports, and a switch to a shape no
-    existing artwork fits is a generation. Typography uses curated pairing IDs only; the host's font control offers
-    exactly the design's primary and alternates.
+    existing artwork fits is a generation. The generated card uses curated pairing IDs only; in the
+    card editor the host may choose any Google Fonts family, served from platform storage. The
+    card editor edits text only — never the artwork, the outline or the envelope.
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
 30. Each round generates one design and one artwork; never generate in bulk to pick from.
@@ -2427,6 +2600,9 @@ Intentionally deferred; may become roadmap items:
 
 ## 34. Known Limitations (Accepted for MVP)
 
+- Host-chosen card colours, sizes and positions are not checked: an edited card may be hard to read
+  (owner decision, §20.1). Every detail on the card is also on the page beneath it, in the
+  accessible house style.
 - A forwarded personal invitation link lets its holder view the event and RSVP for that party; the
   host can rotate the link.
 - Invitations go by text only; guests without a usable phone receive their link however the host

@@ -75,7 +75,7 @@ cleanup cron.
 ## Phase status
 
 See `docs/development-plan.md`. Phases 0–2 (scaffold, data/auth/security foundation,
-prompt → auth → details) are complete. Revision 7 retired the website renderer; the next
-phase is the short model validation that runs the chosen models (GPT 6.1 Sol, GPT Image 2.5
-Sunburst — `docs/technology-decisions.md §8.1`) through the API and proves the card
-(`docs/CHANGELOG-v7.md`).
+prompt → auth → details) are complete. Revision 7 retired the website renderer; Phase 3
+validated the chosen models (GPT 6.1 Sol, GPT Image 2.5 Sunburst) through the API: the owner
+judged 11 of 14 test cards sendable (`docs/model-evals/phase-3-validation.md`). Next is Phase 4,
+the card data, compiler and renderer.

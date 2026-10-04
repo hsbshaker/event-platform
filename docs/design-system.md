@@ -24,7 +24,7 @@ What changes:
 - one design at a time, with `Try another direction`, replaces three concepts and the concept comparison;
 - the reveal is the card coming out of an envelope, not a full-site reveal;
 - the card is the only themed, generated surface; the page beneath it is house style for every event and takes nothing from the card;
-- hosts edit the card's words, swap font among the design's curated pairings, and switch the card's shape among six (rectangle, rounded rectangle, arch, oval, square, circle); there is no palette or colour control;
+- hosts edit the card's text layer in a free **card editor** (Revision 7.2, `spec.md §20`): every piece of text is a text box they can edit, move, resize, rotate, restyle (any Google Fonts family, any colour) and add to, by touch or mouse (§4.10a); they switch the card's shape among six (rectangle, rounded rectangle, arch, oval, square, circle) from the Design panel; the artwork, outline and envelope are never editable;
 - after publish the platform can text each party a personal invitation link; the guest workspace shows invitation status.
 
 The card's design, generation, legibility, fit and rendering architecture lives in `docs/card-system.md`.
@@ -152,15 +152,14 @@ Whenever possible:
 Do not expose:
 - layout, art mode, art brief, ink or panel names, IDs or concepts;
 - raw design tokens;
-- arbitrary font pickers;
-- palette, colour or hex-code editing;
+- app-chrome font, palette or colour pickers (the card editor's font and colour pickers act on card text only, §4.10a);
 - border-radius controls;
 - free-form spacing;
 - CSS;
 - layout grids;
 - template or artwork galleries.
 
-AI makes the initial creative choices. Direct controls refine within bounded options: the card's words, the design's curated font pairings, and the card's shape.
+AI makes the initial creative choices, and the host's first card is already finished. The host may then refine the card's text layer freely in the card editor (§4.10a) and switch the card's shape. The host never chooses layouts, art modes or artwork, and nothing about the artwork, outline, envelope or page is editable.
 
 ### 1.4 Core activation principle
 
@@ -545,7 +544,7 @@ Add your registries and gifts here
 
 These controls never appear to guests.
 
-Card wording (title, invitation line) is edited in place on the card. Card facts (names, date, time, venue, RSVP-by) are edited as event details and update the card and the page together.
+Tapping the card (or `Edit card` in Design) opens the card editor (§4.10a), where every text on the card is a text box edited in place. Tapping a fact box's text opens that detail's own field (`spec.md §20.2`), so the card and the page update together.
 
 ### Owner toolbar
 
@@ -627,7 +626,7 @@ The checklist is not a separate setup dashboard.
 Simple editors use bottom sheets or focused full-screen sheets depending on complexity.
 
 Examples:
-- card wording → edited in place on the card;
+- card text → the card editor, edited in place on the card (§4.10a);
 - event details → sheet/full-screen editor;
 - RSVP settings → sheet/full-screen editor;
 - registry add → sheet;
@@ -647,7 +646,7 @@ Do not mechanically render a mobile bottom sheet at desktop width.
 
 ### Card editing
 
-Edits to the card's wording, facts or font re-run the card's deterministic text layout; no model is called and nothing is regenerated. Wording entry is bounded by the card's slot limits so text always fits (`docs/card-system.md §2.5`, `§4.3`); show limit feedback as ordinary field validation (§11.2) and never silently truncate.
+Edits to the card's text, facts, fonts or styles re-run the card's deterministic line breaking for the affected boxes; no model is called and nothing is regenerated (`docs/card-system.md §7`). The card editor is specified in §4.10a. A per-box length limit applies to the invitation line and added text (`spec.md §20.2`); show limit feedback as ordinary field validation (§11.2) and never silently truncate.
 
 ### Close behavior
 
@@ -688,29 +687,207 @@ Do not attempt to embed a guest spreadsheet inside the public event page.
 
 ## 4.10 Design controls
 
-The Design control opens **constrained direct editing**.
+The Design control opens a short panel (`spec.md §7.14`). It does not hold text controls; text is edited on the card itself in the card editor (§4.10a).
 
-Allowed (`spec.md §7.14`):
-- the card's font: the design's primary pairing and its alternates, and nothing else;
+Contents, in order:
+- `Edit card` — opens the card editor;
 - the card's shape: the shapes the design's layout supports, shown as small outline swatches (rectangle, rounded rectangle, arch, oval, square, circle); unsupported shapes are not offered;
-- reset the card's wording, font and shape to the design;
+- `Reset card` — back to the design's generated text, fonts, colours and layout for the current shape, with confirmation (§4.10a);
 - `Try another direction ✦` before publish;
 - the designs generated so far, to choose another before publish (§10.21).
 
 Do not expose:
-- palette, colour, ink or panel controls;
 - layouts or art modes;
 - artwork editing, cropping, positioning or regeneration of parts;
-- font sizes or text positions;
-- arbitrary font libraries;
+- ink or panel controls (the generated card's ink is system-owned; a host's colour choices are made per text box in the card editor);
 - envelope or page styling;
 - CSS.
 
-Swapping font re-lays out the card's text only; ink, artwork and every event fact are unchanged.
+Switching shape keeps the host's words, added text and fonts and lays them out fresh for the new shape; the edited card for each shape is kept, so switching back restores it (`spec.md §20.6`). Every event fact is unchanged.
 
 Switching to a shape the current artwork fits applies instantly. Illustration and atmosphere artwork fits every supported shape of its proportion; border- and frame-led artwork fits only the shape it was made for (`card-system.md §2.4`). Any other switch — tall ↔ square, or a new outline for a bordered design — needs new artwork of the same subject (the same bear, rearranged): say so before it starts ("This makes new artwork for a square card — about as long as a new design"), keep the current card visible while it generates, and show the result in place; switching back is instant. Switches that need new artwork are not offered after publish.
 
-After publish, the font control and switching to shapes an existing artwork fits remain available; `Try another direction`, switches that need new artwork and the designs list do not (§4.12).
+After publish, `Edit card`, `Reset card` and switching to shapes an existing artwork fits remain available and update the live card; `Try another direction`, switches that need new artwork and the designs list do not (§4.12, `spec.md §8.1`).
+
+---
+
+## 4.10a The card editor
+
+The card editor (`spec.md §20`, `docs/card-system.md §7`) is where the host edits the card's text layer. It should feel like Paperless Post or Canva: direct, forgiving, and easy with one thumb. Editing is free; there is no model call, no credit and no cap on edits.
+
+The editing surface is the production `InvitationCard` (§10.14), so the host sees exactly what guests will see, including text clipped at the outline. Everything the editor adds on top of it (selection frames, handles, guides, toolbar, panels, status) is **app chrome** drawn above the card in app tokens (§10.22). Nothing of that chrome is part of the card, and no card styling reaches the chrome (§15.1, §23.7).
+
+### What can and cannot be edited
+
+- Every text on the card is a text box. A box can be edited in place, moved, resized in width, rotated, duplicated, deleted, brought forward or sent back, and restyled: font, size, colour, alignment, letter spacing, line height, case, and weight or italic where the family has them. The host can add a new text box.
+- The artwork, the outline and the envelope are not editable. There is no control to add an image, sticker or graphic, and none to crop, move or replace the artwork. The shape is switched from Design (§4.10).
+- **Title box.** Editing it edits the event's effective title everywhere (envelope, page, link previews).
+- **Fact boxes** (date, time, venue, hosts, baby name, RSVP-by) stay linked to event details. Tapping a fact box's text to change it opens that detail's own field (the date picker, the venue field) in the contextual editor of §4.8, and the card and page update together. A fact box can still be restyled and moved. Deleting one removes it from the card only; the detail stays on the page, and the delete toast says so ("Removed from the card. It's still on the page."). A host who wants their own wording for a fact deletes the box and adds a text box (`spec.md §20.2`).
+- The invitation line and added text are ordinary host text with a per-box length limit; show the limit as field validation (§11.2) and never truncate silently.
+- **No readability checks.** The editor never warns, blocks or nudges about contrast, size, overlap with the artwork, or text moved past the outline (`spec.md §20.1`). Do not add warning chips, contrast meters or "hard to read" hints.
+
+### Entry and exit
+
+- Entry: tap the card in Creation Mode, or `Edit card` in Design (§4.10). It opens on the current card with no box selected.
+- On a phone the editor takes the screen below the app bar: the card above, the toolbar below. On desktop it opens in place in the canvas with the side panel on the right.
+- Exit: `Done` returns to Creation Mode at the same scroll position (§4.8). Leaving is never blocked, because every change is already saved (§3.7).
+- Preview (§4.13) shows the edited card in the envelope, as guests will see it.
+
+### Selection, handles and touch targets
+
+- A selected box shows a frame with handles, drawn above the card in app tokens. The frame must stay visible over any artwork (3:1 against what it sits on, §14.1); use a two-tone line (light inside, dark outside) rather than a colour that depends on the artwork.
+- Handles are small to look at and large to hit: every handle, toolbar control and list row has a hit target of at least `44 × 44px` (§14.5), even when the visible handle is smaller. When boxes overlap, a second tap on the same spot selects the box beneath, and the box list (below) always works.
+- Handles: width (left and right edges) and rotation (a handle on the frame). Pinch scales the text.
+- The toolbar header names the selected box ("Title", "Date", "Added text") so the host always knows which box is active.
+- Tapping empty space deselects.
+
+### Gestures
+
+Phone (touch):
+
+| Gesture | Result |
+| --- | --- |
+| Tap | select the box |
+| Drag | move the selected box |
+| Pinch | scale the text of the selected box |
+| Twist | rotate the selected box |
+| Double-tap | type in the box (a fact box opens that detail's own field) |
+| Tap empty space | deselect |
+
+Desktop (pointer and keyboard):
+
+| Input | Result |
+| --- | --- |
+| Click | select |
+| Drag | move |
+| Width handles | resize width |
+| Rotation handle | rotate |
+| Double-click or `Enter` | type in the box (a fact box opens that detail's own field) |
+| Arrow keys | nudge; `Shift` = a larger step |
+| Undo, redo, duplicate, delete shortcuts | the platform's standard ones |
+| `Escape` | leave typing, then deselect |
+
+Rules:
+- While the editor is open, touch on the card edits the card and does not scroll the page under it. The host leaves with `Done`.
+- A gesture is one undo step, however many frames it produced.
+- Where the device supports haptics, give one light tap when a drag snaps to a guide. Haptics never carry information on their own.
+- Drag thresholds, nudge distances (normal and `Shift`) and the snapping distance are set during the editor phase and recorded here; they are defined once in the editor and not repeated in feature code.
+
+### Snapping guides
+
+While a box is dragged, resized or rotated, show thin guide lines when it aligns with:
+- the card's centre lines (horizontal and vertical);
+- the shape's edges;
+- other boxes' edges and centres.
+
+Rotation snaps to right angles. Guides are app chrome, appear only during the gesture and disappear when it ends. A modifier key on desktop (set during the editor phase) turns snapping off for a free move; exact values are always available in the toolbar (below).
+
+### Typing
+
+- Double-tap, double-click or `Enter` puts the box into typing mode in place: a real caret, with the card's own text in the box's font and size, so typing matches the result. Lines re-break as the host types with the same deterministic function as the saved result (`docs/card-system.md §7`), so nothing jumps when typing ends.
+- On a phone the card stays visible above the software keyboard (this document's §20.3): the edited box is kept fully in view above the keyboard and the toolbar, never behind them.
+- A compact style row (bold and italic where the family has them, alignment, size, colour) stays above the keyboard while typing, so the host need not dismiss the keyboard to restyle. Larger panels open when the keyboard is closed.
+- Pasted text is plain text. Line breaks the host types are kept.
+
+### Toolbar
+
+The toolbar is a **bottom sheet on a phone** and a **side panel on desktop** (`Sheet` §10.6 and `SidePanel` §10.7, wrapped by the editor, not forked). It has two levels.
+
+**Level 1, with a box selected:** a single row of icon buttons, reachable with one thumb at the bottom edge of the phone. It holds `Font`, `Size`, `Colour`, `Align`, `Spacing`, `Layer`, `Arrange`, `Duplicate`, `Delete`, `Add text`, `Undo`, `Redo` and `Boxes` (the box list). The exact order is set during the editor phase. When the row does not fit on a phone it scrolls horizontally with the start and end visibly cut off to show there is more.
+
+**Level 2, one panel at a time:** tapping a control opens its panel in the same sheet (a half-height sheet on a phone that leaves the selected box visible above it) or in the side panel (desktop). Sheets are not nested (§10.6). `Back` returns to the row and keeps the selection.
+
+Panels:
+- **Font** — the font picker (below), plus weight and italic where the family has them.
+- **Size** — a slider with a numeric field.
+- **Colour** — the colour picker (below).
+- **Align** — left, centre, right.
+- **Spacing** — letter spacing and line height, each a slider with a numeric field; and case (as typed, uppercase, lowercase, capitalised), in this panel or its own (set during the editor phase).
+- **Layer** — bring forward, send back.
+- **Arrange** — exact position, width and rotation as numeric fields (see accessibility).
+
+Every slider has a paired numeric field (`Field`, §10.5), so any property can be set by exact value.
+
+With no box selected the toolbar shows `Add text`, `Boxes`, `Undo`, `Redo` and the saved state. `Reset card` is in Design (§4.10) and in the editor's overflow menu.
+
+### Font picker
+
+- Any Google Fonts family can be chosen (`spec.md §20.1`).
+- **The design's own pairings are shown first**, in a "From this card" group: its primary pairing's fonts, then its alternates', so the first thing the host sees is what the card was designed with. Then the full library.
+- **Search** by family name sits at the top of the panel, always visible, as a `Field`.
+- **Categories** (serif, sans serif, display, handwriting, monospace) as `Chip`s (§10.3) filter the library. They do not hide "From this card".
+- Each row shows the family's name as a **pre-rendered specimen image** of that family, so the host chooses by look without the editor loading 1,500 fonts. Specimens are made by the platform when it refreshes its catalog snapshot and served from platform storage (`docs/technology-decisions.md §8.3`); app chrome never loads or applies a card font, and all other picker text stays in app typography (§6.2). Weights and italic appear after the family is chosen, not as separate rows.
+- The list is paged and virtualised so it scrolls smoothly on a phone.
+- **Loading state.** Fonts are served from the platform's own storage (`spec.md §20.4`); the first use of a family not yet in the font store adds it (`docs/card-system.md §7`). While a family loads, its row shows a small loading indicator and the box keeps its current font. The box changes only when the font is ready, so lines are never broken with the wrong metrics. Never show a fallback font on the card as if it were the choice.
+- **Failure state.** If a font fails to load, the box keeps its previous font and nothing is saved for the attempt. The row shows an inline "Couldn't load this font." with `Try again` (§13.2), and the rest of the picker keeps working.
+- Choosing a font applies to the selected box.
+
+### Colour picker
+
+- **Artwork swatches first**, in a "From this card" group: colours taken from this card's artwork, as large swatches. Then **recent colours**. Then a **full picker** (a saturation and brightness field with a hue slider) and a **hex input** (`Field`; accepts upper or lower case, with or without `#`).
+- Any colour is allowed. The picker never shows contrast ratios, warnings or "hard to read" notes (`spec.md §20.1`).
+- The colour in use is marked with a check as well as a ring (§14.6).
+- Colour acts on the selected card text only. The picker is app chrome; it changes no app, page or envelope colour.
+
+### Undo, redo and saved state
+
+- `Undo` and `Redo` are always visible in the toolbar, with the standard shortcuts on desktop. Each step is a gesture, a typed run of text up to a pause or blur, a style change, an add, a delete, a duplicate or a layer change.
+- Autosave (§3.7): every change saves in the background. A status in the editor header (`InlineStatus`, §10.9) shows one of:
+  - `Saving…`;
+  - `Saved`;
+  - a recoverable failure ("Couldn't save. Your changes are kept here.") with `Retry`; the local value is kept and `Saved` is never shown falsely (§11.3);
+  - the conflict notice (below).
+- Each state is text plus an icon, never colour alone (§14.6).
+- A change made in a detail's own field (a fact) saves through that field, as in §4.8.
+
+### Conflict (stale save)
+
+If a co-host saved a newer version while this host was editing, the stale save is refused (`spec.md §20.5`). The editor reloads the latest version and shows a short notice (`InlineStatus` or a toast, §13.1): "<Name> just made changes. Showing the latest." Selection stays on the same box if it still exists. No merge screen and no modal. Whether the host's refused change is offered back is set during the editor phase.
+
+### Box list
+
+`Boxes` opens a list of every text box on the card in layer order. Each row shows a text preview and the box's role ("Title", "Date", "Added text"). Selecting a row selects the box on the card and opens its toolbar. Rows offer `Bring forward`, `Send back`, `Duplicate` and `Delete`, so reordering has a non-drag path (§14.3). The list is how a host reaches a box that sits under another, runs past the outline or is too small to tap, and is a first-class keyboard and screen-reader entry point (below).
+
+### Reset card
+
+`Reset card` opens a `Dialog` (§10.8): "This puts the card back to how it was designed for this shape: its layout, fonts, colours and invitation line, without your added text. Your title and event details stay as they are." It resets only the current design and shape; customizations for other shapes and designs are kept (`spec.md §20.6`). Actions: `Reset card` (destructive, §9.5) and `Cancel`. After a reset, `Undo` is offered in a toast. Reset is available after publish and updates the live card.
+
+### Add and delete
+
+- `Add text` adds a text box near the middle of the visible card with placeholder text, in the design's primary font, selected and in typing mode. It is host text and is never fact-checked (`spec.md §20.2`).
+- `Delete` removes the box at once and offers `Undo` in a toast, without a confirmation dialog, because undo is available (§11.4). Reset is the confirmed action.
+
+### Motion and reduced motion
+
+- Selection frames, guides and handles appear with `motion-instant` / `motion-fast` fades (§8.1) and follow the finger or pointer directly, with no easing lag.
+- The sheet and side panel use the existing transitions (§8.2); switching panels inside them is a fast cross-fade.
+- The card does not animate beyond a short scroll to keep the edited box clear of the keyboard and sheet. No bounce.
+- Reduced motion (§8.5): no slide or scale on sheets, panels or selection; opacity changes only; the scroll that clears the keyboard is immediate.
+
+### Accessibility
+
+The editor is fully operable by keyboard and screen reader (`spec.md §20.3`), not only by gesture.
+
+- **Every box is reachable from a list.** The box list is a labelled list; each row is a button. On the card, boxes are also focusable in layer order and announced with role and text ("Title, Baby Shower for Amelia, 1 of 4").
+- **Every property is settable by exact value.** The `Arrange` panel has numeric fields for position (X, Y), width and rotation; size, letter spacing and line height have numeric fields; font, colour (hex), alignment, case, weight and italic have labelled controls. Dragging, pinching and twisting are shortcuts to values the host can also type.
+- **Keyboard map** (desktop):
+  - `Tab` and `Shift+Tab` move between regions: card, toolbar, panel;
+  - with the card focused, arrow keys move focus between boxes; with a box selected, arrow keys nudge it (`Shift` for a larger step);
+  - `Enter` types in the selected box; `Escape` leaves typing, and a second `Escape` deselects;
+  - `Delete` deletes the box; the platform's undo, redo and duplicate shortcuts work;
+  - layer order has a shortcut or the Layer panel (set during the editor phase);
+  - the toolbar is a single tab stop; arrow keys move within it.
+- **Focus order:** header (`Done`, saved state) → card → toolbar row → open panel → box list. Opening a panel moves focus into it; closing returns focus to the control that opened it (§14.3). When a box is deleted, focus moves to the next box, or to `Add text`.
+- **Focus indicators** follow §14.2: visible on every control and on the focused box's frame, 3:1 against what they sit on, not by colour alone.
+- **Announcements** use a restrained live region (§14.4): selection ("Date selected"), undo and redo ("Undid move"), saved state changes, a conflict reload, a font loaded or failed, "Removed from the card. It's still on the page." Do not announce every nudge or drag frame; announce the final position when a gesture or key repeat ends.
+- Card text stays live, selectable text (§10.14). Targets and contrast follow §14.1 and §14.5.
+
+### Phone and desktop summary
+
+- **390px:** the card at the viewport width with its outline and proportion preserved; the bottom sheet toolbar; the edited box visible above the sheet and above the keyboard; a header with `Done`, the saved state and an overflow menu.
+- **Desktop:** the card centred at a comfortable size, never reflowed (§19.3); the side panel on the right; pointer handles and keyboard shortcuts.
+
+Per-state screens: `docs/screen-spec.md`, `card-editor`.
 
 ---
 
@@ -749,7 +926,7 @@ The current card stays active while a new one is revealed. For the new card, off
 - `Keep current`;
 - `Try another direction ✦` again.
 
-Every design generated for the event stays browsable before publish in the designs list (§10.21). Choosing a design changes design only: it switches the active card and resets the card's wording and font edits to that design; it never changes event details, guests, RSVP, registry, privacy or messages (`spec.md §20.3`).
+Every design generated for the event stays browsable before publish in the designs list (§10.21). Choosing a design changes design only: it switches the active card, keeps the host's words, added text and fonts with a fresh layout in the new design, and keeps earlier customizations so choosing the previous design restores them (`spec.md §20.6`); it never changes event details, guests, RSVP, registry, privacy or messages.
 
 Do not send the user back through initial onboarding. After publish, generation and design switching are disabled and the designs list is read-only (`spec.md §8.2`).
 
@@ -1249,7 +1426,7 @@ This creates the feeling that the finished invitation has simply become editable
 
 ## 8.5 Reduced motion
 
-Honor `prefers-reduced-motion`.
+Honor `prefers-reduced-motion`. The card editor's motion rules are in §4.10a.
 
 With reduced motion:
 - remove large translation/scale;
@@ -1499,8 +1676,8 @@ Contract:
 - one component renders the card everywhere: the reveal, Creation Mode, Preview, the guest page, the designs list and link-preview images;
 - one of six shapes (rectangle, rounded rectangle, arch, oval at 5:7; square, circle at 1:1); the outline is a code-defined mask; renders at any width by uniform scaling, so outline, line breaks and layout are identical at 390px and 1280px;
 - text is live, selectable and screen-reader readable; the artwork is decorative (`alt=""`);
-- the application passes data (design, artwork, event content) and a size; it passes no colours, fonts, layouts or positions;
-- it contains no collaborator controls; Creation Mode attaches them through `CollaboratorActionSlot` (§10.19);
+- the application passes data (design, artwork, event content, the host's saved text boxes) and a size; it passes no CSS, and it never computes colours, fonts, layouts, positions or line breaks itself (the host's saved boxes carry them, validated and laid out by the card system);
+- it contains no collaborator controls; Creation Mode attaches them through `CollaboratorActionSlot` (§10.19), and the card editor draws its chrome above it (§10.22);
 - selected/current state for the designs list is drawn by `DesignsList`, outside the card.
 
 Do not add star ratings, comparison scores or per-card variants.
@@ -1611,6 +1788,23 @@ Requirements:
 - a stable order, so entries do not jump when a new design arrives;
 - choosing a design follows §4.12 and never touches event details;
 - read-only after publish (`spec.md §8.2`).
+
+## 10.22 `CardEditor`
+
+The card editor's chrome (§4.10a), drawn **above** `InvitationCard` (§10.14) and attached to it as `CollaboratorActionSlot` does (§10.19). It is app chrome, in app tokens.
+
+Includes:
+- the selection frame, width and rotation handles, and snapping guides;
+- the toolbar: a bottom `Sheet` on a phone, a `SidePanel` on desktop;
+- the font picker, colour picker, `Arrange` fields and box list;
+- the header: `Done`, `Undo`, `Redo`, the saved state (`InlineStatus`) and the overflow menu;
+- the `Reset card` `Dialog`.
+
+Requirements:
+- it composes existing components (`Sheet`, `SidePanel`, `Dialog`, `IconButton`, `Chip`, `Field`, `InlineStatus`) and adds no new button, field or dialog variant (§23.1);
+- it reads and writes the host's text boxes through the card system's data interface; it never edits card markup or styles directly;
+- nothing it draws is part of the card: guests never receive it, and Preview (§4.13) removes it;
+- states: idle, box selected, typing, panel open, box list, saving, saved, save failed, stale-save conflict, font loading, font failed (`docs/screen-spec.md`, `card-editor`).
 
 ---
 
@@ -1725,7 +1919,7 @@ Application:
 - large text: target `≥ 3:1`;
 - interactive boundaries/focus indicators: target `≥ 3:1` against adjacent surface.
 
-Card text contrast is guaranteed by the card compiler (≥ 4.5:1, §15.6). The house-style page uses app tokens and meets the same targets.
+Card text contrast is guaranteed by the card compiler for the generated card (≥ 4.5:1, §15.6); a host's own colour choices in the card editor are not checked (`spec.md §20.1`). The house-style page uses app tokens and meets the same targets, and carries every detail the card shows. The card editor's own chrome (frames, handles, toolbar) meets the targets above.
 
 ## 14.2 Focus
 
@@ -1741,7 +1935,8 @@ Required:
 - operate sheets/dialogs;
 - close overlays via Escape where appropriate;
 - return focus to the originating control after closing;
-- reorder functionality must have non-drag fallback if reorder is exposed.
+- reorder functionality must have non-drag fallback if reorder is exposed;
+- the card editor must be operable without gestures: every text box reachable from a list and every property settable by exact value (§4.10a).
 
 ## 14.4 Screen readers
 
@@ -1792,7 +1987,7 @@ Three systems, kept separate:
 
 **Invitation card**
 - the only generated, themed surface;
-- driven by the persisted design: its artwork, resolved ink and panels, and typography pairing;
+- driven by the persisted design (its artwork, resolved ink and panels, and typography pairing) and, where the host has edited it, the host's saved text boxes (`spec.md §20.5`);
 - styling and card fonts (`src/styles/card-fonts.css`) live in the card renderer and nowhere else.
 
 **House-style guest page**
@@ -1804,6 +1999,7 @@ The card must never recolour or restyle:
 - account/auth UI;
 - collaborator toolbar;
 - sheets/panels;
+- the card editor's selection frames, handles, guides, toolbar and pickers;
 - billing;
 - management UI;
 - the house-style page or the envelope.
@@ -1825,9 +2021,9 @@ Facts on the card (names, date, time, venue, RSVP-by) come only from event data 
 
 The card's text layouts exist so the art can leave calm space for words. They are not a gallery and not a host choice.
 
-- The host never sees, picks or switches layouts, art modes or positions; the app never reads them to make UI decisions (§10.19). The card's shape is the one visual property the host can switch (§4.10).
+- The host never sees, picks or switches layouts or art modes; the app never reads them to make UI decisions (§10.19). The card's shape is the one property of the generated card the host can switch (§4.10). The host's own text boxes (their positions, sizes and styles) are the host's content in the card editor (§4.10a), not the layout catalog.
 - The card is defined in fixed card units and scaled uniformly: identical proportions and line breaks on a 390px phone and on desktop. Nothing reflows and there are no responsive card variants.
-- Hosts change a card only by editing its words, swapping among the design's curated font pairings, switching its shape, or trying another direction.
+- Hosts change a card by editing its text layer in the card editor, switching its shape, or trying another direction. They never change the artwork, the outline or the envelope.
 
 ## 15.4 Guest component system (house style)
 
@@ -1889,9 +2085,9 @@ Behavior is defined by `spec.md §12`; this section governs only presentation.
 
 ## 15.6 Legibility and contrast
 
-- Every card text clears **4.5:1** against the artwork behind it. Code chooses ink colours (drawn from the artwork first) and, when no ink can clear it, applies an art-derived legibility panel. A model never chooses a colour, size or line break.
+- Every text of the generated card clears **4.5:1** against the artwork behind it. Code chooses ink colours (drawn from the artwork first) and, when no ink can clear it, applies an art-derived legibility panel. A model never chooses a colour, size or line break.
 - Card text is live, selectable and screen-reader readable; artwork is decorative. Everything a guest needs is in the text and on the page.
-- A font swap does not change ink or panels.
+- Changing a font or shape does not change the generated card's ink or panels. A colour the host picks in the card editor applies to that box only and is not checked (`spec.md §20.1`).
 - The house-style page and app chrome meet the contrast targets of §14.1 with app tokens. Card ink and artwork colours are never reused as page or chrome colours.
 
 ## 15.6a Focus indicator contract (guest-facing controls)
@@ -1922,7 +2118,7 @@ The envelope is not themed per event, not generated and not an imitation of any 
 
 Persist per generated design: the raw and validated `CardDesign`, its artwork, its resolved ink and panels, and the version set (prompt, schema, layout set, compiler, image model).
 
-A design and its artwork never change once generated. Host edits (wording, font swap, every fact) are event data and never mutate a design. Do not regenerate or silently "upgrade" an existing card.
+A design and its artwork never change once generated. Host edits (wording, fonts, text boxes, every fact) live on the event, as its card customization, and never mutate a design (`spec.md §20.5`). Do not regenerate or silently "upgrade" an existing card.
 
 Renderer code may receive bug, accessibility, responsive and browser fixes that change how every existing card renders; design immutability never blocks renderer maintenance.
 
@@ -1949,6 +2145,7 @@ Not permitted:
 - stock photography;
 - retrieved web imagery;
 - text inside artwork;
+- images, stickers or graphics added in the card editor;
 - crop/position tools, galleries, or imagery placed by anything other than the card layout.
 
 Inspiration uploads are private model inputs to Event Identity only: never shown to guests and never sent to the image model.
@@ -2108,7 +2305,8 @@ Avoid multi-level nested settings navigation.
 When the software keyboard appears:
 - focused field remains visible;
 - fixed controls should not overlap input;
-- sheets resize/scroll appropriately.
+- sheets resize/scroll appropriately;
+- in the card editor, the box being typed in stays fully visible above the keyboard and the toolbar (§4.10a).
 
 ---
 
@@ -2206,7 +2404,7 @@ Feature-level product UI must not contain:
 Use tokens.
 
 Exceptions:
-- card renderer values (resolved ink and panel colours, card-unit sizes and line breaks) emitted by the card compiler and confined to the card component;
+- card renderer values (resolved ink and panel colours, the host's chosen text colours, fonts and sizes, card-unit sizes, positions and line breaks) emitted by the card system and confined to the card component;
 - one-off mathematical/positioning values that are not design choices and are documented.
 
 ## 23.3 Tailwind rule
@@ -2226,7 +2424,7 @@ z-[9999]
 
 Use design-system utilities/tokens.
 
-Card ink and panel colours are set only by the card renderer, through CSS custom properties or its own resolved values, never through arbitrary Tailwind color classes. No other component sets them.
+Card ink, panel and host-chosen text colours are set only by the card renderer, through CSS custom properties or its own resolved values, never through arbitrary Tailwind color classes. No other component sets them. The card editor's colour picker (app chrome) passes the chosen value as data; it does not apply it.
 
 ## 23.4 Primitive library rule
 
@@ -2290,7 +2488,7 @@ card renderer                  the InvitationCard and its styling
 
 Rules — enforced by review today, and by lint and tests from the card-renderer phase (`docs/development-plan.md` Phase 4), when the card renderer exists to import:
 - app and guest-page components must not import card styling (`card-fonts.css` or the card renderer's internal styles); they may render `InvitationCard` only through its data-in props;
-- card fonts apply only inside the card; they are never used for app or page text;
+- card fonts apply only inside the card; they are never used for app or page text. The card editor's font picker (§4.10a) shows each family as a pre-rendered specimen image, so no card font is loaded or applied in app chrome;
 - the card renderer does not consume app component styling;
 - changing the active design changes nothing about the app chrome or the page's computed styles;
 - no raw colour values in app or guest-page components (§23.2).
@@ -2325,6 +2523,7 @@ Application:
 - creation mode;
 - setup checklist;
 - design panel and designs list;
+- card editor: idle, box selected, typing, font picker, colour picker, box list, saved/saving/failed, conflict notice, reset confirmation (390px and desktop);
 - try another direction;
 - guest management, including invitation status;
 - send invitations and share;
@@ -2357,6 +2556,20 @@ prompt
 → publish gate
 → send invitations
 ```
+
+And the card editor:
+
+```text
+creation mode / design
+→ edit card
+→ edit, move, resize, rotate and restyle a box; add and delete a box
+→ autosave (saved state visible)
+→ undo / redo
+→ reset card (confirmed)
+→ preview shows the edited card
+```
+
+with the phone gestures at 390px, the desktop handles and keyboard, a stale-save conflict, and a new direction or shape switch that keeps the host's words and fonts.
 
 And trying another direction:
 
@@ -2420,9 +2633,16 @@ Defines:
 
 ## 25.6 Design
 Defines:
-- constrained manual design controls (font pairings, shape, reset);
+- the short Design panel: `Edit card`, shape, `Reset card`;
 - the designs list;
 - pre-publish try-another-direction entry.
+
+## 25.6a Card editor
+Defines:
+- gestures, handles, snapping and the toolbar on a phone and on desktop;
+- font and colour pickers (the design's own choices first);
+- saved, saving, failed and conflict states;
+- the app-chrome-over-card boundary (§4.10a).
 
 ## 25.7 Try another direction
 Defines:
@@ -2499,16 +2719,17 @@ Do not add:
 - canvas zoom;
 - breakpoint toolbar;
 - arbitrary block insertion;
-- an image editor, crop or reposition tools;
-- layout, colour or art pickers;
+- an image editor, crop or reposition tools for artwork;
+- layout, art-mode or artwork pickers;
 - CSS controls.
+
+The card editor (§4.10a) is the one deliberate exception for the card's text layer: handles on text boxes, a box list, and font and colour pickers for card text. It adds no left palette, no canvas zoom, no image or sticker insertion, and no controls over the artwork, outline or page.
 
 ## 26.4 Theme settings explosion
 
 Do not expose controls for:
-- palette, ink or panel colours;
+- the generated card's ink or panel colours, or any app-chrome palette (card text colours are chosen per box in the card editor, §4.10a);
 - layout or art mode;
-- font size or text position;
 - envelope styling;
 - page styling (button radius, card radius, shadow amount, heading scale, line-height, padding).
 
@@ -2615,7 +2836,8 @@ Before merge, verify:
 - [ ] App chrome does not inherit card styling; card styling does not leak out of the card renderer.
 - [ ] The page beneath the card takes no colours or fonts from the card.
 - [ ] Production card, envelope and page reused for preview.
-- [ ] No host controls for layout, colour, art mode, size or position introduced.
+- [ ] No host controls for layout, art mode or artwork introduced; text-layer controls exist only in the card editor (§4.10a), whose chrome is app-styled and never part of the card.
+- [ ] Card-editor changes: touch targets ≥ 44px, keyboard and exact-value access, no readability warnings, reduced-motion behaviour.
 - [ ] No HTML/CSS authored by a model; no host, stock or retrieved imagery introduced.
 
 ---

@@ -212,6 +212,24 @@ different provider is a new decision for the owner.
 No provider SDK is added to the codebase until Phase 3 validation needs it; the product provider
 arrives in Phase 5. Model names and SDK calls stay behind `src/lib/ai/provider.ts`.
 
+**What Phase 3 validation established** (2026-10-04; evidence in
+`docs/model-evals/phase-3-validation.md`). Phase 3 called the API with plain `fetch`; no SDK was
+needed.
+
+| Item | Result |
+| --- | --- |
+| API model IDs | `gpt-6.1-sol` (Event Identity, Card Design, artwork inspection); `gpt-6-luna` (fact extraction); `gpt-image-2.5-sunburst-2026-09-08` (artwork, pinned snapshot); `omni-moderation-latest` (image safety) |
+| Raster | 1440 × 2016 (5:7) and 1440 × 1440 (1:1), PNG, opaque full bleed. No transparent-background workflow: the outline is a code mask and the art is painted to every edge |
+| Text and safety detection | The provider's own output moderation, then `omni-moderation-latest`, then a structured GPT 6.1 Sol inspection for text, logos or brand marks, and mockups (≈ 4 s, ≈ $0.005 per artwork) |
+| Latency (p50) | Event Identity 11 s, Card Design 11 s, artwork 31 s at `high`, inspection 4 s; ≈ 57 s prompt to card (`low` text effort and Sunburst `medium` would give ≈ 38 s; not adopted) |
+| Cost per card | ≈ $0.08 at `high` (artwork $0.06); ≈ $0.03 at `medium` (artwork $0.017) |
+| Flare | Not faster than Sunburst `medium` in the probe, and less faithful to the composition rules; not adopted |
+| **Quality setting** | **Sunburst `high`** — owner decision, 2026-10-04. All 15 corpus designs were painted at `high` and `medium` and compared as finished cards and at full resolution: no loss of detail at `medium`, but the owner found `high` brighter and more vibrant, and `medium`'s first attempts failed the artwork checks more often (2 of 15 against 1 of 33). `medium` would halve the artwork wait (17 s against 31 s) and cut its cost to $0.017; revisiting that is a deliberate decision recorded here |
+| Rate limits | The account's current image rate limit (a few images per minute) throttled even this test run. Production needs a higher OpenAI usage tier, sized against the per-account and global generation caps of `spec.md §10`, before launch |
+
+The reveal-latency target was re-set with the owner from these measurements (`spec.md §7.10`), and
+the handling of provider refusals of famous characters was decided with them (`spec.md §7.6`).
+
 ## 8.2 Card rendering without a production browser
 
 The card is a fixed canvas (5:7 or 1:1, six shapes) laid out by a deterministic function, so production does **not**
@@ -223,12 +241,47 @@ dependency for that and for the end-to-end suite.
 Three capabilities the card system needs, decided when it is built and recorded here:
 
 - **image decoding** for artwork validation and ink sampling (an image library on the server);
-- **font metrics** for `layoutCard` measurement from the curated fonts in `public/fonts/card/`;
+- **font metrics** for `layoutCard` and the card editor's line breaking, from the curated fonts in
+  `public/fonts/card/` and the font store's fonts (§8.3);
 - **link-preview rendering** of the card and envelope (`spec.md §11.10`), preferring what Next.js
   already provides over a new dependency.
 
 Each is justified by a product requirement in `spec.md`; record the choice and why here before
 adding a dependency.
+
+## 8.3 Card editor and the font store
+
+**Owner decisions (Revision 7.2):** a free text editor on the card, smooth on a phone, with any font
+from the **Google Fonts** library (`spec.md §20`).
+
+- **Fonts come from Google Fonts, served by us.** Google Fonts families are open-licensed (SIL OFL,
+  Apache 2.0, Ubuntu Font Licence), which permits redistribution. When a host first picks a family,
+  the server copies its files into Supabase Storage and extracts its metrics; the editor, guests and
+  link previews load it from our own storage, never from Google. Reasons: guests' browsers do not
+  contact a third party (privacy), a published card does not depend on another service staying up,
+  and line breaking needs the same metrics on the server and in every browser. The family list is a
+  snapshot of the Google Fonts catalog kept by the platform and refreshed deliberately; how it is
+  fetched and refreshed is decided when the editor is built and recorded here.
+- **The font picker shows pre-rendered specimens.** When the catalog snapshot is refreshed, the
+  platform renders a small specimen image of each family's name and stores it with the snapshot,
+  so the picker never loads 1,500 fonts and never fetches from Google in the host's browser.
+- **The fetch has a narrow trust boundary.** The host supplies only a family name, validated
+  against the catalog snapshot. The server fetches only from fixed Google Fonts hosts, by URLs
+  resolved from the snapshot — never a URL the client supplies — and only the variants a card
+  uses (some families, such as large CJK families, run to tens of megabytes). Fetched files are
+  type- and size-checked before they are stored.
+- **Licences travel with the files.** Each stored family keeps its licence name and full licence
+  text (`CardFont.licenseName`, `licenseText`, `spec.md §24`), as the SIL Open Font License
+  requires when the fonts are redistributed.
+- **The editor is built on the card component, in the DOM.** The card's text is real, selectable,
+  screen-reader-readable text (`docs/card-system.md §2.2`), and the editor must show exactly what
+  guests see, so the editing surface is the same card component with selection, handles and guides
+  drawn over it as app chrome — not a `<canvas>` drawing library, whose text is pixels. Gesture
+  handling (drag, pinch, rotate) uses pointer events; a small gesture helper library may be added if
+  the editor phase shows pointer events alone are not enough, recorded here with the reason.
+- **Line breaking** for edited boxes uses one deterministic function over the font store's metrics
+  (`docs/card-system.md §7`); the metrics extraction library is chosen with `layoutCard`'s in
+  Phase 4 and recorded in §8.2.
 
 ---
 
@@ -249,7 +302,9 @@ Do not add or substitute:
 - microservices;
 - an event bus;
 - a generalized repository/data-access framework;
-- a generalized multi-provider AI orchestration platform.
+- a generalized multi-provider AI orchestration platform;
+- a hosted design-editor SDK or a `<canvas>` drawing library for the card editor (§8.3);
+- third-party font hosting for guests (fonts are served from platform storage, §8.3).
 
 A new dependency is justified by a product requirement or concrete technical blocker—not by preference.
 
