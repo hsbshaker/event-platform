@@ -16,8 +16,14 @@ import {
  *
  * The same for every event: plain CSS built from app tokens, never themed, generated or
  * given card colours or fonts. It never opens by itself. The card is rendered by the caller
- * and exists in the DOM only after the guest opens the envelope, so a sealed or still-closed
- * envelope carries nothing of the card (spec.md §31 — Card rendering and envelope).
+ * and mounted in the DOM only after the guest opens the envelope.
+ *
+ * Keeping the card out of the *response* is the caller's job, not this component's: anything a
+ * Server Component passes as `children` is serialised into the page payload whether or not it is
+ * mounted. So (spec.md §31 — Card rendering and envelope; design-system.md §15.7):
+ * - a sealed envelope takes no card at all (`sealed: true` has no `children`);
+ * - a personal-link page passes no server-rendered card either: it fetches the card in `onOpen`
+ *   and renders it as `children` only after that resolves.
  *
  * The card is exactly as wide as the envelope, the width of its opening, so the card does not
  * change size as it settles. The proportion only chooses the card's aspect ratio and the
@@ -26,14 +32,26 @@ import {
 
 export type EnvelopeProportion = "portrait" | "square";
 
-export interface EnvelopeProps {
+interface EnvelopeBaseProps {
   /** The event title shown on the front and used in the accessible name. */
   title: string;
   proportion: EnvelopeProportion;
-  /** Private event reached by the shared link: only the title and `sealedContent` render. */
-  sealed?: boolean;
-  /** Where the access gate goes while sealed (a later phase supplies it). */
+  className?: string;
+}
+
+/** Private event reached by the shared link: only the title and `sealedContent` render. */
+export interface SealedEnvelopeProps extends EnvelopeBaseProps {
+  sealed: true;
+  /** Where the access gate goes (a later phase supplies it). */
   sealedContent?: ReactNode;
+  /** A sealed envelope is never given the card, so nothing of it reaches the response. */
+  children?: never;
+  onOpen?: never;
+}
+
+export interface OpenableEnvelopeProps extends EnvelopeBaseProps {
+  sealed?: false;
+  sealedContent?: never;
   /**
    * Runs on the guest's action, before the card appears. A personal-link page loads the card
    * here. While it is pending the envelope shows a calm in-progress line; if it rejects the
@@ -42,8 +60,9 @@ export interface EnvelopeProps {
   onOpen?: () => void | Promise<void>;
   /** The card, rendered by the caller. Mounted only once the envelope is opening or open. */
   children: ReactNode;
-  className?: string;
 }
+
+export type EnvelopeProps = SealedEnvelopeProps | OpenableEnvelopeProps;
 
 const ASPECT: Record<EnvelopeProportion, string> = { portrait: "5 / 7", square: "1 / 1" };
 // Fractions of --width-narrow: a 5:7 card at 0.64 stays under ~500px tall; a square can be wider.
@@ -101,7 +120,7 @@ function EnvelopeFace({
       />
       <span
         className="absolute inset-x-0 flex items-center justify-center px-4 text-center"
-        style={{ top: "58%", bottom: "1.75rem" }}
+        style={{ top: "58%", bottom: "var(--space-6)" }}
       >
         {children}
       </span>
@@ -116,15 +135,12 @@ function EnvelopeFace({
 
 const TITLE_CLASSES = "line-clamp-3 break-words text-heading-md text-app-text";
 
-export function Envelope({
-  title,
-  proportion,
-  sealed = false,
-  sealedContent,
-  onOpen,
-  children,
-  className,
-}: EnvelopeProps) {
+export function Envelope(props: EnvelopeProps) {
+  const { title, proportion, className } = props;
+  const sealed = props.sealed === true;
+  const sealedContent = props.sealed ? props.sealedContent : undefined;
+  const onOpen = props.sealed ? undefined : props.onOpen;
+  const children = props.sealed ? null : props.children;
   const [state, dispatch] = useReducer(envelopeReducer, INITIAL_ENVELOPE_STATE);
   const cardRef = useRef<HTMLDivElement>(null);
   const focused = useRef(false);
@@ -144,7 +160,7 @@ export function Envelope({
   useEffect(() => {
     if (cardIsMounted(phase) && !focused.current) {
       focused.current = true;
-      cardRef.current?.focus();
+      cardRef.current?.focus({ preventScroll: true });
     }
     if (phase === "closed") focused.current = false;
   }, [phase]);

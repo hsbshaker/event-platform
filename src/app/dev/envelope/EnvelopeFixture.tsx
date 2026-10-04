@@ -27,17 +27,20 @@ export function EnvelopeFixture({
 
   return (
     <main className="mx-auto w-full max-w-(--width-standard) px-4 py-8">
-      <Envelope
-        title="Maya & Jonas: Garden Supper"
-        proportion={proportion}
-        sealed={sealed}
-        sealedContent={<p className="text-center text-body-md">Event code goes here</p>}
-        onOpen={onOpen}
-      >
-        <div className="flex h-full w-full items-center justify-center rounded-lg border border-app-border-strong bg-app-surface text-body-md">
-          Placeholder card content
-        </div>
-      </Envelope>
+      {sealed ? (
+        <Envelope
+          title="Maya & Jonas: Garden Supper"
+          proportion={proportion}
+          sealed
+          sealedContent={<p className="text-center text-body-md">Event code goes here</p>}
+        />
+      ) : (
+        <Envelope title="Maya & Jonas: Garden Supper" proportion={proportion} onOpen={onOpen}>
+          <div className="flex h-full w-full items-center justify-center rounded-lg border border-app-border-strong bg-app-surface text-body-md">
+            Placeholder card content
+          </div>
+        </Envelope>
+      )}
       <p className="mt-8 text-body-md">Page below the card</p>
     </main>
   );

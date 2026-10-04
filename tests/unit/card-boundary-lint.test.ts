@@ -62,6 +62,34 @@ describe("the card styling boundary", () => {
     ).toEqual([]);
   }, 60_000);
 
+  it("forbids the renderer's internals from folders nested inside app chrome", async () => {
+    for (const [file, code] of [
+      ["src/components/app/editor/Toolbar.tsx", 'import { x } from "../../card/internal";'],
+      ["src/components/app/editor/panels/Fonts.tsx", 'import { x } from "../../../card/internal";'],
+    ]) {
+      expect(await restrictedImports(file, code), file).toHaveLength(1);
+    }
+    expect(
+      await restrictedImports(
+        "src/components/app/editor/Toolbar.tsx",
+        'import { InvitationCard } from "../../card/InvitationCard";\nvoid InvitationCard;',
+      ),
+    ).toEqual([]);
+  }, 60_000);
+
+  it("keeps app components and app styling out of the card renderer", async () => {
+    for (const code of [
+      'import { AppButton } from "@/components/app/AppButton";\nvoid AppButton;',
+      'import { AppButton } from "../app/AppButton";\nvoid AppButton;',
+      'import "@/styles/app-tokens.css";',
+      'import "../../app/globals.css";',
+    ]) {
+      const messages = await restrictedImports("src/components/card/Other.tsx", code);
+      expect(messages, code).toHaveLength(1);
+      expect(messages[0]).toMatch(/§23\.7/);
+    }
+  }, 60_000);
+
   it("leaves the card renderer itself free to load its fonts", async () => {
     expect(
       await restrictedImports("src/components/card/Other.tsx", 'import "@/styles/card-fonts.css";'),

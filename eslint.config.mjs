@@ -67,10 +67,36 @@ const CARD_RENDERER = {
     "App chrome and the guest page take no card styling (design-system.md §15.1, §23.7): render the card through @/components/card/InvitationCard only, and never import card-fonts.css or the card renderer's internals.",
 };
 
-/** From `src/components/app`, the renderer is a sibling directory: `../card/...`. */
+/**
+ * From `src/components/app`, the renderer is a sibling directory: `../card/...`, or `../../card/...`
+ * and so on from folders nested inside app chrome.
+ */
 const CARD_RENDERER_SIBLING = {
-  group: ["../card/**", "!../card/InvitationCard"],
+  group: [
+    "../card/**",
+    "../../card/**",
+    "../../../card/**",
+    "!../card/InvitationCard",
+    "!../../card/InvitationCard",
+    "!../../../card/InvitationCard",
+  ],
   message: CARD_RENDERER.message,
+};
+
+/**
+ * The other direction (`design-system.md §23.7`, "the card renderer does not consume app component
+ * styling"): the card renderer imports no app component, app tokens or global app styles.
+ */
+const APP_STYLING = {
+  group: [
+    "@/components/app/**",
+    "**/components/app/**",
+    "../app/**",
+    "**/app-tokens.css",
+    "**/globals.css",
+  ],
+  message:
+    "The card renderer takes no app styling (design-system.md §15.1, §23.7): no app components, app tokens or global app styles inside the card.",
 };
 
 const CARD_BOUNDARY_FILES = ["src/app/**", "src/components/app/**"];
@@ -90,6 +116,8 @@ const boundaryRules = [
     files: ["src/components/app/**"],
     rules: restricted(SERVICE_ROLE, CARD_RENDERER, CARD_RENDERER_SIBLING),
   },
+  // ... and the card renderer stays on its own side too.
+  { files: ["src/components/card/**"], rules: restricted(SERVICE_ROLE, APP_STYLING) },
   // ... except that the modules above have earned the service role,
   { files: SERVICE_ROLE_CALLERS, rules: { "no-restricted-imports": "off" } },
   // though not an exemption from the card boundary.

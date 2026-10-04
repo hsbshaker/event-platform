@@ -327,6 +327,10 @@ function maskProbePoints(shape: CardShape): [number, number][] {
   ];
 }
 
+/**
+ * The mask is a property of the shape alone (`outline.ts`), so it is probed on one render per
+ * layout × shape, not on every pairing.
+ */
 async function probeMask(page: Page, width: Width, render: Render): Promise<void> {
   const card = page.locator(`[data-fixture="${render.id}"] [data-card-face]`);
   const png = decodePng(await card.screenshot({ animations: "disabled" }));
@@ -681,7 +685,7 @@ describe("layout fixtures: every layout × supported shape × pairing in Chromiu
       },
     );
 
-    it("is identical in line breaks and relative positions at 390px and 1280px", () => {
+    it("sets every stored line at the same relative position at 390px and 1280px", () => {
       const failures = mine().flatMap((r) => acrossWidths(r).failures.map((f) => `${r.id}: ${f}`));
       expect(failures).toEqual([]);
     });

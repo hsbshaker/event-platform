@@ -35,6 +35,7 @@
 import "@/styles/card-fonts.css";
 
 import type { CSSProperties } from "react";
+import { preload } from "react-dom";
 
 import { isCanonicalHex } from "@/lib/card/color";
 import type { CardRect } from "@/lib/card/ink";
@@ -47,6 +48,7 @@ import {
   type CardShape,
 } from "@/lib/card/shapes";
 import type { TextBox } from "@/lib/card/text-box";
+import { curatedFontUrl } from "@/lib/card/text/font-files";
 import { SHAPING_LANGUAGE } from "@/lib/card/text/shaping-language";
 
 /** The artwork for the effective shape's proportion. */
@@ -107,9 +109,11 @@ function finite(value: unknown): value is number {
 function validateBox(box: TextBox): void {
   const id = typeof box.id === "string" ? box.id : "?";
   check(typeof box.id === "string" && box.id.length > 0, "a box has no id");
-  for (const key of ["x", "y", "rotation", "letterSpacing", "z"] as const) {
+  for (const key of ["x", "y", "rotation", "letterSpacing"] as const) {
     check(finite(box[key]), `box ${id}: ${key} is not a finite number`);
   }
+  // z-index takes integers only; a fraction would be dropped and the box would stack at auto.
+  check(Number.isSafeInteger(box.z), `box ${id}: z is not an integer`);
   for (const key of ["width", "size", "lineHeight"] as const) {
     check(finite(box[key]) && box[key] > 0, `box ${id}: ${key} must be positive`);
   }
@@ -162,7 +166,7 @@ function cssFamily(family: string): string {
 const TEXT_RESET: CSSProperties = {
   direction: "ltr",
   writingMode: "horizontal-tb",
-  fontKerning: "auto",
+  fontKerning: "normal",
   fontFeatureSettings: "normal",
   fontVariant: "normal",
   fontStretch: "normal",
@@ -232,6 +236,18 @@ export function InvitationCard({ shape, artwork, panels = [], boxes }: Invitatio
   }
   const canvas = CARD_CANVAS[proportion];
   const mask = outlineMaskImage(shape);
+
+  // Fetch every face the stored lines are set in as early as possible. card-fonts.css holds card
+  // text invisible until its face arrives (font-display: block), so lines measured in one face are
+  // never drawn in a fallback face that would set them wider or narrower.
+  const faces = new Set<string>();
+  for (const box of boxes) {
+    const href = box.lines.length > 0 ? curatedFontUrl(box.font) : null;
+    if (href) faces.add(href);
+  }
+  for (const href of faces) {
+    preload(href, { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
+  }
 
   return (
     <div

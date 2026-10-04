@@ -151,6 +151,7 @@ describe("InvitationCard", () => {
       ["weight", { boxes: [box({ font: { family: "X", weight: 0, italic: false } })] }],
       ["size", { boxes: [box({ size: 0 })] }],
       ["position", { boxes: [box({ x: Number.NaN })] }],
+      ["fractional stacking order", { boxes: [box({ z: 1.5 })] }],
       ["line break in a line", { boxes: [box({ lines: ["two\nlines"] })] }],
       ["duplicate ids", { boxes: [box(), box()] }],
       [
@@ -173,6 +174,42 @@ describe("InvitationCard", () => {
     for (const [label, props] of bad) {
       expect(() => render(props), label).toThrow(InvalidCardDataError);
     }
+  });
+
+  it("preloads each curated face its lines use, once, and no other font", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        "html",
+        null,
+        createElement("head"),
+        createElement(
+          "body",
+          null,
+          createElement(InvitationCard, {
+            shape: "arch",
+            artwork: ART,
+            boxes: [
+              box(),
+              box({ id: "again" }),
+              box({ id: "body", font: { family: "DM Sans", weight: 400, italic: false } }),
+              box({
+                id: "empty",
+                lines: [],
+                font: { family: "Inter", weight: 400, italic: false },
+              }),
+              box({ id: "host", font: { family: "Lobster", weight: 400, italic: false } }),
+            ],
+          }),
+        ),
+      ),
+    );
+    const fonts = [...html.matchAll(/<link rel="preload" href="([^"]+)" as="font"/g)].map(
+      (m) => m[1],
+    );
+    expect(fonts).toEqual([
+      "/fonts/card/PlayfairDisplay-normal-400.woff2",
+      "/fonts/card/DMSans-normal-400.woff2",
+    ]);
   });
 
   it("escapes a family name into a CSS string", () => {

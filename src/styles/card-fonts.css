@@ -5,13 +5,17 @@
  * Imported only by the card renderer (`src/components/card/InvitationCard.tsx`); app chrome and the
  * guest page must not import it (`docs/design-system.md §23.7`, enforced in `eslint.config.mjs`).
  * Faces load only when a card uses them.
+ *
+ * font-display: block, not swap: card lines are broken from these faces' own metrics, so drawing
+ * them in a fallback face for a moment would show a different card from the one compiled. The card
+ * renderer preloads the faces it needs, so the block period is short.
  */
 
 @font-face {
   font-family: "Archivo";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Archivo-normal-400.woff2") format("woff2");
 }
 
@@ -19,7 +23,7 @@
   font-family: "Archivo";
   font-style: normal;
   font-weight: 900;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Archivo-normal-900.woff2") format("woff2");
 }
 
@@ -27,7 +31,7 @@
   font-family: "Bodoni Moda";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/BodoniModa-normal-400.woff2") format("woff2");
 }
 
@@ -35,7 +39,7 @@
   font-family: "Bodoni Moda";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/BodoniModa-normal-700.woff2") format("woff2");
 }
 
@@ -43,7 +47,7 @@
   font-family: "Cormorant Garamond";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/CormorantGaramond-normal-400.woff2") format("woff2");
 }
 
@@ -51,7 +55,7 @@
   font-family: "Cormorant Garamond";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/CormorantGaramond-normal-600.woff2") format("woff2");
 }
 
@@ -59,7 +63,7 @@
   font-family: "Cormorant Garamond";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/CormorantGaramond-normal-700.woff2") format("woff2");
 }
 
@@ -67,7 +71,7 @@
   font-family: "DM Sans";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/DMSans-normal-400.woff2") format("woff2");
 }
 
@@ -75,7 +79,7 @@
   font-family: "DM Sans";
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/DMSans-normal-500.woff2") format("woff2");
 }
 
@@ -83,7 +87,7 @@
   font-family: "DM Serif Display";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/DMSerifDisplay-normal-400.woff2") format("woff2");
 }
 
@@ -91,7 +95,7 @@
   font-family: "EB Garamond";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/EBGaramond-normal-400.woff2") format("woff2");
 }
 
@@ -99,7 +103,7 @@
   font-family: "EB Garamond";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/EBGaramond-normal-600.woff2") format("woff2");
 }
 
@@ -107,7 +111,7 @@
   font-family: "Figtree";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Figtree-normal-400.woff2") format("woff2");
 }
 
@@ -115,7 +119,7 @@
   font-family: "Figtree";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Figtree-normal-600.woff2") format("woff2");
 }
 
@@ -123,7 +127,7 @@
   font-family: "Fraunces";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Fraunces-normal-400.woff2") format("woff2");
 }
 
@@ -131,7 +135,7 @@
   font-family: "Fraunces";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Fraunces-normal-700.woff2") format("woff2");
 }
 
@@ -139,7 +143,7 @@
   font-family: "Instrument Serif";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/InstrumentSerif-normal-400.woff2") format("woff2");
 }
 
@@ -147,7 +151,7 @@
   font-family: "Inter";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Inter-normal-400.woff2") format("woff2");
 }
 
@@ -155,7 +159,7 @@
   font-family: "Inter";
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Inter-normal-500.woff2") format("woff2");
 }
 
@@ -163,7 +167,7 @@
   font-family: "Inter";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Inter-normal-600.woff2") format("woff2");
 }
 
@@ -171,7 +175,7 @@
   font-family: "Inter Tight";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/InterTight-normal-400.woff2") format("woff2");
 }
 
@@ -179,7 +183,7 @@
   font-family: "Inter Tight";
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/InterTight-normal-500.woff2") format("woff2");
 }
 
@@ -187,7 +191,7 @@
   font-family: "Karla";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Karla-normal-400.woff2") format("woff2");
 }
 
@@ -195,7 +199,7 @@
   font-family: "Karla";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Karla-normal-600.woff2") format("woff2");
 }
 
@@ -203,7 +207,7 @@
   font-family: "Libre Baskerville";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/LibreBaskerville-normal-400.woff2") format("woff2");
 }
 
@@ -211,7 +215,7 @@
   font-family: "Libre Baskerville";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/LibreBaskerville-normal-700.woff2") format("woff2");
 }
 
@@ -219,7 +223,7 @@
   font-family: "Libre Caslon Text";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/LibreCaslonText-normal-400.woff2") format("woff2");
 }
 
@@ -227,7 +231,7 @@
   font-family: "Libre Caslon Text";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/LibreCaslonText-normal-700.woff2") format("woff2");
 }
 
@@ -235,7 +239,7 @@
   font-family: "Manrope";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Manrope-normal-400.woff2") format("woff2");
 }
 
@@ -243,7 +247,7 @@
   font-family: "Manrope";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Manrope-normal-600.woff2") format("woff2");
 }
 
@@ -251,7 +255,7 @@
   font-family: "Newsreader";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Newsreader-normal-400.woff2") format("woff2");
 }
 
@@ -259,7 +263,7 @@
   font-family: "Newsreader";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/Newsreader-normal-600.woff2") format("woff2");
 }
 
@@ -267,7 +271,7 @@
   font-family: "Playfair Display";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/PlayfairDisplay-normal-400.woff2") format("woff2");
 }
 
@@ -275,7 +279,7 @@
   font-family: "Playfair Display";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/PlayfairDisplay-normal-700.woff2") format("woff2");
 }
 
@@ -283,7 +287,7 @@
   font-family: "Playfair Display";
   font-style: normal;
   font-weight: 900;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/PlayfairDisplay-normal-900.woff2") format("woff2");
 }
 
@@ -291,7 +295,7 @@
   font-family: "Source Sans 3";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/SourceSans3-normal-400.woff2") format("woff2");
 }
 
@@ -299,7 +303,7 @@
   font-family: "Source Sans 3";
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/SourceSans3-normal-600.woff2") format("woff2");
 }
 
@@ -307,7 +311,7 @@
   font-family: "Space Grotesk";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/SpaceGrotesk-normal-400.woff2") format("woff2");
 }
 
@@ -315,7 +319,7 @@
   font-family: "Space Grotesk";
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/SpaceGrotesk-normal-700.woff2") format("woff2");
 }
 
@@ -323,7 +327,7 @@
   font-family: "Work Sans";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/WorkSans-normal-400.woff2") format("woff2");
 }
 
@@ -331,6 +335,6 @@
   font-family: "Work Sans";
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: block;
   src: url("/fonts/card/WorkSans-normal-500.woff2") format("woff2");
 }
