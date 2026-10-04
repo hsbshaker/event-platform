@@ -73,7 +73,7 @@ Screen labels describe product surfaces, not necessarily URL routes. Section ref
 **Optional details panel**
 
 - only missing fields (date, time, venue, hosts, baby name if shown, RSVP deadline, public/private);
-- values extracted from the prompt are pre-filled for confirmation;
+- values extracted from the prompt are pre-filled for confirmation, and shown on the card marked as needing confirmation until confirmed (`spec.md §7.3`);
 - never blocks and never gates the reveal.
 
 **Optional taste clarification** (§7.6b): usually absent; at most three questions; each offers `You decide` / `Surprise me`; never fonts, layouts, colours or logistics.

@@ -80,7 +80,7 @@ The host sees only real artifacts as they resolve: interpreted creative signals,
 
 **Optional taste clarification.** Usually none; at most three questions; each offers `You decide` / `Surprise me`; never fonts, layouts, colours or logistics (§7.6b).
 
-**Optional detail entry while waiting.** Genuinely missing details (date, time, venue, hosts, baby name if shown, RSVP deadline, public/private) are offered, never demanded; values extracted from the prompt are pre-filled for confirmation; watching and filling in are equally valid. Timezone is inferred from the venue text with browser fallback and is not asked normally (§7.4).
+**Optional detail entry while waiting.** Genuinely missing details (date, time, venue, hosts, baby name if shown, RSVP deadline, public/private) are offered, never demanded; values extracted from the prompt are pre-filled for confirmation, and shown on the card marked as needing confirmation until confirmed (§7.3); watching and filling in are equally valid. Timezone is inferred from the venue text with browser fallback and is not asked normally (§7.4).
 
 The card is revealed as soon as its artwork and ink resolution exist, whether or not details were entered.
 

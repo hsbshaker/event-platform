@@ -390,9 +390,16 @@ circles. Two decisions by the owner (2026-10-04):
 - **The event type is the host's words.** The design is told the event type the prompt states
   (verbatim), not the launch default, so "60th birthday" is not designed as a baby shower
   (`model-contracts.md §5.2`).
-- **Extracted facts are kept with the generation.** They are stored in
-  `generations.artifacts.facts`, never in the identity or the design's inputs; how they reach the
-  details form and the card is an owner question for Phase 5c (`model-contracts.md §4.3`).
+- **Facts the prompt states are on the card from the reveal (owner decision).** They are kept with
+  the generation (`generations.artifacts.facts`), shown on the card as the host wrote them and
+  marked as needing confirmation like a placeholder, and offered in the details form to confirm or
+  correct. An unconfirmed value is never published and never given to the design as a fact
+  (`spec.md §7.3`, a §31 criterion, `model-contracts.md §4.3`, `screen-spec.md`). Built in 5c.
+- **HEIC inspiration photos are converted on the server (owner decision).** They are accepted at
+  upload but the model takes only PNG, JPEG and WebP, so they reach it converted. The decoder is
+  not yet chosen: the common image library will not decode HEIC because its codec is
+  patent-encumbered, and the alternatives are LGPL builds of the same decoder, so the choice and
+  its licence are put to the owner before it is built, and recorded in `technology-decisions.md`.
 
 ## Still open
 
