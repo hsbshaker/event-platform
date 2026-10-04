@@ -171,7 +171,10 @@ const TEXT_RESET: CSSProperties = {
   textIndent: 0,
   textShadow: "none",
   textDecoration: "none",
-  textRendering: "auto",
+  // Unhinted, fractional advances: where Chromium hints small text (Linux, the headless shell),
+  // hinting rounds glyph advances and lines drift from the measured widths by up to ~5% at phone
+  // size. geometricPrecision sets text at the font's own metrics, as the server measures it.
+  textRendering: "geometricPrecision",
   hyphens: "manual",
   WebkitTextSizeAdjust: "100%",
   textSizeAdjust: "100%",
