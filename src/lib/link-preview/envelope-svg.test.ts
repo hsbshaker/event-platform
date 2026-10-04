@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { validateCardText } from "@/lib/card/entry";
+import entryGlyphs from "@/lib/card/entry-glyphs.json";
 import { UndrawableTextError } from "@/lib/card/text/glyph-outlines";
 
 import { loadAppFont, type AppFont } from "./app-font.server";
@@ -74,6 +76,20 @@ describe("envelopePreviewSvg", () => {
   it("sets Latin, Greek and Cyrillic titles from Inter's subsets, and refuses what Inter lacks", () => {
     expect(() => envelopePreviewSvg("Łódź · Αθήνα · Москва · Hà Nội", font)).not.toThrow();
     expect(() => envelopePreviewSvg("Party 🎉", font)).toThrow(UndrawableTextError);
+  });
+
+  it("draws every character a title can hold: the entry check refuses the rest", () => {
+    const accepted = [...entryGlyphs.roles.display.chars].filter(
+      (c) => validateCardText("title", c).ok,
+    );
+    expect(accepted.length).toBeGreaterThan(150);
+    for (const c of accepted) {
+      expect(
+        () => font.line(c, ENVELOPE_TITLE_STYLE),
+        `U+${c.codePointAt(0)!.toString(16)}`,
+      ).not.toThrow();
+    }
+    expect(validateCardText("title", "Party 🎉").ok).toBe(false);
   });
 
   it("is set at the heading weight only", async () => {

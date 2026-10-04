@@ -317,6 +317,19 @@ circles. Two decisions by the owner (2026-10-04):
   5% at phone size. Card fonts load with `font-display: block` and are preloaded, so a stored line
   is never drawn in a fallback face.
 
+### Phase 4 — link previews
+
+- **Mechanism.** `next/og`'s `ImageResponse`, no new dependency and no production browser
+  (`technology-decisions.md §8.2`). The card preview is an SVG drawn from the data the card
+  component renders, under its validation, with every stored line as glyph outlines at the
+  measured font instance; the private event's preview is a drawing of the house envelope with the
+  title alone.
+- **Wording clarified, not changed.** `spec.md §11.10`, `design-system.md §15.7` and
+  `card-system.md §6.4` said the preview is "produced from the same card component". It cannot be
+  the React component itself (the image renderer sets text only from a font's default instance),
+  so the documents now say what guarantees agreement: the same stored data and line breaks, the
+  same validation, and a real-browser fixture that compares the two line by line.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

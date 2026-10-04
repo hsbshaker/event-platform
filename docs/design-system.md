@@ -2110,7 +2110,7 @@ The envelope is a house component (§10.20) that fronts every invitation.
 - **Public event, shared link:** the envelope shows the event title and opens to the card.
 - **Private event, shared link:** the envelope stays **sealed** with the event title until the event code is entered. Nothing on the card or page is visible before then.
 - **Personal invitation link:** no code. A bare request returns only the closed envelope; the card, page and party session load when the guest opens it (`spec.md §12.5`).
-- **Link previews:** the rendered card for a public event; the sealed envelope with the title for a private one. Produced from the same card component and layout function, so they cannot disagree with the live card.
+- **Link previews:** the rendered card for a public event; the sealed envelope with the title for a private one. The card preview is drawn from the same stored data and validation as the card component (`docs/card-system.md §6.4`), so it cannot disagree with the live card.
 
 The envelope is not themed per event, not generated and not an imitation of any competitor's envelope.
 

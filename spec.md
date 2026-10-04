@@ -1118,8 +1118,10 @@ colours or fonts from the card. Card styling and application chrome are separate
 ### 11.10 Link previews
 
 Any event link, shared or personal (including the links in invitation texts), previews as the
-rendered card for a public event and as the sealed envelope with the title for a private one,
-produced from the same card component and layout function.
+rendered card for a public event and as the sealed envelope with the title for a private one.
+The card preview is drawn from the same stored data the card component renders (the same text
+boxes and line breaks from the same layout function), under the component's own validation, so it
+cannot disagree with the live card; a test-time fixture compares the two in a real browser.
 
 ### 11.11 Imagery boundaries
 

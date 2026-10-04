@@ -475,8 +475,8 @@ or fonts from the card. RSVP and registry behaviour are defined in `spec.md §12
 When an invitation link is shared (including the platform's invitation texts), the preview image is
 the rendered card (in its shape, on the house background) for a public event and the sealed
 envelope with the title for a private one. The
-preview image is produced from the same card component and layout function, so it cannot disagree
-with the live card. Mechanism (`docs/technology-decisions.md §8.2`): the card is drawn as an SVG
+card preview is drawn from the same stored data the card component renders, under the component's
+own validation, so it cannot disagree with the live card. Mechanism (`docs/technology-decisions.md §8.2`): the card is drawn as an SVG
 from exactly the data the card component renders — the stored text boxes (the customization's, or
 the generated layer from `layoutCard`), the outline, the panels, the artwork and the ink — under the
 component's own validation, with every stored line drawn as glyph outlines at the font instance it

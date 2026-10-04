@@ -280,17 +280,26 @@ Three capabilities the card system needs, decided when it is built and recorded 
   variable instance — so it could not set card text as it was measured; as outlines, the preview's
   text geometry is the measured lines themselves. The fixture `tests/fixtures/link-preview.test.ts`
   compares the preview with Chromium's `InvitationCard` at the same scale: every line's ink lands
-  within 0.65 px (centroid) and 1 px (ends) at 0.4–0.56 px per card unit, once Blink's pixel-grid
-  baseline is accounted for (it rounds ascent and descent, floors the half-leading and paints on a
-  whole-pixel baseline; the preview deliberately draws the exact geometry instead). The private
+  within 0.65 px (centroid) and 1 px (ends) at 0.4–0.56 px per card unit, once each line is
+  moved by the distance between Chromium's baseline, measured from the DOM, and the exact one
+  (Chromium lays text on a pixel grid, up to about 1 px away; the preview deliberately draws the
+  exact geometry instead, and the test models nothing about Blink's rounding). The private
   event's sealed envelope is a static SVG drawing of the house envelope in app-token colours, its
   title also as outlines in the app's own font: Inter, from the same Google Fonts variable WOFF2
   subsets `next/font/google` self-hosts for the app, copied into `src/lib/link-preview/fonts/` for
-  the server because `ImageResponse` cannot load them (WOFF2, variable, weight 650). A title
-  character no Inter subset has (an emoji, CJK) cannot be drawn and is refused rather than
-  substituted. Local cost: about 75–100 ms per preview warm (about 270 ms for the first in a
-  process), and about 650 ms with a 4.4 MB incompressible 1024 × 1434 artwork, most of it decoding
-  the artwork; real event routes (a later phase) should cache previews per design. Rejected: a
+  the server because `ImageResponse` cannot load them (WOFF2, variable, weight 650). The copies are
+  a snapshot (Inter v20): if Google Fonts later serves a newer Inter to `next/font`, the preview's
+  title can differ from the app's by that revision's changes until the copies are refreshed, which
+  is cosmetic and never touches the card. A title character no Inter subset has (an emoji, CJK)
+  cannot be drawn and is refused rather than substituted; no stored title reaches that path, since
+  the entry check (`docs/card-system.md §2.5`) refuses every title character the card's fonts
+  cannot draw and Inter draws all the rest (a unit test holds this), so any later path that writes
+  a title — fact extraction's drafts included — must run the same check. Local cost: about
+  75–100 ms per preview warm (about 270 ms for the first in a process), and about 650 ms with a
+  4.4 MB incompressible 1024 × 1434 artwork, most of it decoding the artwork. Real event routes (a
+  later phase) should cache each preview keyed by what it is drawn from — the design, its effective shape,
+  the customization's version and the event's title and facts for a card; the title alone for an
+  envelope — so an edit produces a new image and nothing is redrawn per request. Rejected: a
   headless browser (none in production, above); satori's own text (above); calling resvg or
   `sharp` directly (a new dependency for what `next/og` already ships).
 
