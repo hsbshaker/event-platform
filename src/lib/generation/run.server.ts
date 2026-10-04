@@ -23,11 +23,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
 
 import { runArtworkStage } from "./artwork.server";
-import type { ArtworkStageResult } from "./artwork.server";
+import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.server";
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
-import { ArtworkProviderRefusalError, GenerationStageError } from "./stage";
+import { ArtworkProviderRefusalError, failureDetailsOf, GenerationStageError } from "./stage";
 import type { StageContext } from "./stage";
 
 /**
@@ -128,7 +128,10 @@ class GenerationStoppedError extends Error {
   }
 }
 
-/** The §9.5 record of one generation (`generations.telemetry`). Never shown to the host. */
+/**
+ * The §9.5 record of one generation (`generations.telemetry`) when it succeeds. A failed
+ * generation's telemetry is `{ failure }` instead (`failureTelemetry`). Never shown to the host.
+ */
 export interface GenerationTelemetry {
   schemaValidFirstCall: boolean;
   /** Every design re-prompt, in order, by kind (a provider refusal adds a second design's). */
@@ -217,6 +220,57 @@ export function hostEventFacts(
   return facts;
 }
 
+/** The longest check output a failure record keeps per image. */
+const FAILURE_DETAIL_MAX = 200;
+
+/**
+ * Inspection reasons: their detail is the inspector's description of text it saw in the image,
+ * which can echo the art brief (model free text from the identity) — so only the reason is kept.
+ */
+const INSPECTION_REASONS: ReadonlySet<string> = new Set(["text", "logo", "mockup"]);
+
+/**
+ * What a failed generation records beside its code (`generations.telemetry.failure`, spec.md
+ * §9.5): the stage, and for the artwork each image's validation reasons, with the checks' own
+ * code-made output where it is not the inspector's description (moderation categories, sizes),
+ * bounded. Never prompt text, model wording, names or places. Server-only (`spec.md §32 #42`).
+ */
+export function failureTelemetry(error: unknown, code: string): Json {
+  const failure: Record<string, Json> = { code };
+  if (error instanceof GenerationStageError) {
+    failure.stage = error.stage;
+    if (error instanceof ArtworkProviderRefusalError) {
+      failure.imagesRequested = error.imagesRequested;
+    }
+  } else if (error instanceof ModelCallRefusedError) {
+    failure.refusal = error.reason;
+  } else if (error instanceof Error) {
+    failure.error = error.name;
+  }
+  // Details a stage recorded: its own, or attached to a refusal it passed through.
+  const details = failureDetailsOf(error) as
+    { imagesRequested?: number; validationFailures?: ArtworkValidationFailure[] } | undefined;
+  if (typeof details?.imagesRequested === "number") {
+    failure.imagesRequested = details.imagesRequested;
+  }
+  if (Array.isArray(details?.validationFailures) && details.validationFailures.length > 0) {
+    failure.validationFailures = details.validationFailures.map((f) => ({
+      image: f.image,
+      reasons: [...f.reasons],
+      ...(f.detail && !f.reasons.some((r) => INSPECTION_REASONS.has(r))
+        ? { detail: boundedText(f.detail, FAILURE_DETAIL_MAX) }
+        : {}),
+    }));
+  }
+  return { failure };
+}
+
+/** At most `max` characters, cut between code points so no surrogate pair is split. */
+function boundedText(text: string, max: number): string {
+  const points = Array.from(text);
+  return points.length <= max ? text : points.slice(0, max).join("");
+}
+
 function failureCode(error: unknown): string {
   if (error instanceof GenerationStageError) return error.code;
   if (error instanceof ModelCallRefusedError) return error.reason;
@@ -248,11 +302,12 @@ export async function runGeneration(
   const { generationId, eventId, userId } = input;
   const ids = { generationId, eventId };
 
-  async function fail(code: string): Promise<void> {
+  async function fail(code: string, telemetry?: Json): Promise<void> {
     const { error } = await admin.rpc("fail_generation", {
       p_generation_id: generationId,
       p_event_id: eventId,
       p_error_code: code,
+      ...(telemetry ? { p_telemetry: telemetry } : {}),
     });
     if (error) {
       // The generation then reads as failed once it is stale (`getGenerationView`).
@@ -304,7 +359,7 @@ export async function runGeneration(
     }
     const code = failureCode(error);
     console.error("[generation] failed", { ...ids, code, error: errorSummary(error) });
-    await fail(code);
+    await fail(code, failureTelemetry(error, code));
     return { status: "failed", code };
   }
 }

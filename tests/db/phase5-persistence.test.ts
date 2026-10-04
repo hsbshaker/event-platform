@@ -321,8 +321,43 @@ describe("record_generation_stage and fail_generation touch only a running gener
     expect(await generationRow(done)).toMatchObject({ status: "succeeded", error_code: null });
   });
 
+  it("records the failure telemetry with the code, only while running", async () => {
+    const g = await start();
+    const telemetry = {
+      failure: {
+        code: "artwork_invalid",
+        stage: "artwork",
+        validationFailures: [{ image: 1, reasons: ["text"] }],
+      },
+    };
+    const { rows } = await db.query(`select public.fail_generation($1, $2, $3, $4) as ok`, [
+      g,
+      eventA,
+      "artwork_invalid",
+      telemetry,
+    ]);
+    expect(rows[0].ok).toBe(true);
+    expect(await generationRow(g)).toMatchObject({
+      status: "failed",
+      error_code: "artwork_invalid",
+      telemetry,
+    });
+    // Already failed: the telemetry is not overwritten.
+    const again = await db.query(`select public.fail_generation($1, $2, $3, $4) as ok`, [
+      g,
+      eventA,
+      "internal",
+      { failure: { code: "internal" } },
+    ]);
+    expect(again.rows[0].ok).toBe(false);
+    expect((await generationRow(g)).telemetry).toEqual(telemetry);
+  });
+
   it("rejects invalid arguments", async () => {
     const g = await start();
+    expect(
+      await errorCode(db.query(`select public.fail_generation('${g}', '${eventA}', 'x', '[]')`)),
+    ).toBe("22023");
     for (const sql of [
       `select public.record_generation_stage('${g}', '${eventA}', '', '{}')`,
       `select public.record_generation_stage('${g}', '${eventA}', 'design', '[]')`,

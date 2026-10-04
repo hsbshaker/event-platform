@@ -532,7 +532,13 @@ export type Database = {
       };
       /** Fails a generation only while it is running; returns whether it did. */
       fail_generation: {
-        Args: { p_generation_id: string; p_event_id: string; p_error_code: string };
+        Args: {
+          p_generation_id: string;
+          p_event_id: string;
+          p_error_code: string;
+          /** The failure telemetry (`generations.telemetry`); omitted keeps none. */
+          p_telemetry?: Json;
+        };
         Returns: boolean;
       };
       /**
