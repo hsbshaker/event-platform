@@ -1,14 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { CardRect } from "./ink";
-import {
-  type CardTextLayout,
-  type LayoutCardInput,
-  SLOT_SPECS_V1,
-  layoutCard,
-  pairingFaces,
-} from "./layout-card";
-import { CARD_LAYOUT_IDS, layoutSupportsShape, zoneFor } from "./layouts";
+import { type CardTextLayout, type LayoutCardInput, layoutCard, pairingFaces } from "./layout-card";
+import { CARD_LAYOUT_IDS, CARD_SLOT_SPECS, layoutSupportsShape, zoneFor } from "./layouts";
 import { CARD_SHAPES, type CardProportion, proportionOf } from "./shapes";
 import { CARD_SLOT_IDS, FACT_ENTRY_LIMITS, WORDING_LIMITS } from "./slots";
 import { type CardContent, FIT_SAFETY } from "./text-box";
@@ -108,13 +102,14 @@ function checkInvariants(layout: CardTextLayout, inp: LayoutCardInput): void {
 }
 
 describe("layoutCard", () => {
-  it("sets typical content at full size, centred in the zone, for every pairing and proportion", () => {
+  it("sets typical content with body text at full size, centred in the zone, for every pairing and proportion", () => {
     for (const proportion of ["5:7", "1:1"] as const) {
       for (const id of TYPOGRAPHY_KEYS) {
         const inp = input({ proportion, pairing: pairingFaces(id) });
         const layout = layoutCard(inp);
         checkInvariants(layout, inp);
         expect(layout.overflow).toBe(false);
+        expect(layout.sizes.bodyStep).toBe(0);
         const visible = layout.boxes.filter((b) => b.lines.length > 0);
         const top = visible[0].y - inp.zone.y;
         const last = visible[visible.length - 1];
@@ -141,7 +136,7 @@ describe("layoutCard", () => {
     expect(date.source).toEqual({ kind: "fact", slot: "date" });
     expect(date.text).toBeUndefined();
     expect(date.textCase).toBe("uppercase");
-    expect(date.letterSpacing).toBe(SLOT_SPECS_V1.date.letterSpacingEm);
+    expect(date.letterSpacing).toBe(CARD_SLOT_SPECS.date.letterSpacingEm);
     for (let i = 1; i < layout.boxes.length; i += 1) {
       expect(layout.boxes[i].y).toBeGreaterThanOrEqual(layout.boxes[i - 1].y);
     }
@@ -178,6 +173,15 @@ describe("layoutCard", () => {
     checkInvariants(layout, inp);
     expect(layout.boxes[0].y).toBe(800);
     expect(layout.sizes).toEqual({ title: 48, bodyStep: 10 });
+  });
+
+  it("reports characters a box's face lacks, and none for ordinary text", () => {
+    const plain = layoutCard(input({ proportion: "5:7" }));
+    expect(plain.missingCharacters).toEqual({});
+    const layout = layoutCard(
+      input({ proportion: "5:7", content: { ...TYPICAL, title: "Oh Baby 🎈", venue: "Café 🌿" } }),
+    );
+    expect(layout.missingCharacters).toEqual({ title: ["🎈"], venue: ["🌿"] });
   });
 
   it("is deterministic", () => {

@@ -11,7 +11,8 @@
  *    (the `text-wrap: balance` shape) rather than greedy-full-then-short.
  *
  * A single word wider than `maxWidth` goes on its own line and sets `overflow`; nothing is ever
- * truncated. Ties resolve to the earliest break, so the result depends only on the inputs.
+ * truncated. Ties resolve by a fixed rule — within the lines before the last, the later break; for
+ * the last line, the earlier start — so the result depends only on the inputs.
  *
  * Whitespace inside a paragraph collapses to single spaces and is trimmed at line ends, so stored
  * lines are exactly what is drawn. A blank line the host typed between paragraphs is kept as an

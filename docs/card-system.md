@@ -132,7 +132,8 @@ layout declares the shapes it supports, and for each of them defines:
 - its text zones, as rectangles in card units inside the shape's text-safe area, and which slots
   (§2.5) each zone holds, in order;
 - alignment per zone;
-- size range (maximum and minimum, in card units) and maximum lines per slot;
+- size range (maximum and minimum, in card units) and maximum lines per slot (in `card_layouts_v1`
+  one slot-spec table serves every layout and shape: `src/lib/card/layouts.ts`);
 - the character limit per slot that guarantees fit for every pairing **and every shape the layout
   supports** (§4.3), so switching shape can never make accepted text stop fitting;
 - the composition instruction added to the art brief: where the subject may sit and which regions
@@ -306,7 +307,8 @@ For each text zone, computed once per artwork, layout and shape — for every sh
    range fails (Phase 3 found the bug a median-based rule lets through: cream ink over cream).
 2. Candidate inks: colours drawn from the artwork's own palette first, then a near-black and a
    near-white tuned toward the artwork's hue.
-3. Choose the most harmonious candidate (art-derived first) that reaches **4.5:1** against the
+3. Choose the first candidate, in that order (the artwork's palette by share of the artwork, then
+   the tuned neutrals), that reaches **4.5:1** against the
    measured background (`src/lib/card/color.ts`, WCAG 2.x luminance).
 4. If none does, apply the layout's legibility panel in an art-derived paper colour and choose the
    ink against the panel.
@@ -354,7 +356,8 @@ Persist per event:
   art-prompt version, and resolved ink and panels per fitted shape. A design has its original
   artwork plus one more for each shape the host switched to that no existing artwork fits (§7);
 - `Event.activeCardDesignId`, `Event.activeCardShape` and `Event.title` (`spec.md §20.2`, §20.5);
-- one `CardCustomization` per design and shape the host has edited: the full text layer — every
+- one `CardCustomization` per design and shape the host has edited, or switched to carrying their
+  words (§7): the full text layer — every
   box's source, text, position, width, rotation, font, size, colour, alignment, spacing, case,
   stacking order and stored line breaks — with a revision for collaborator conflicts
   (`spec.md §20.5`).
@@ -427,7 +430,7 @@ edits the card's **text layer**; the artwork, outline and envelope are never edi
 
 | Host action | Model call | Changes |
 | --- | --- | --- |
-| First edit of a card | none | creates a `CardCustomization` for this design and shape, seeded from the generated layout, with a box for every fact slot the layout defines (an empty fact box renders nothing until its fact exists) |
+| First edit of a card | none | creates a `CardCustomization` for this design and shape (unless a switch that carried words already did, §7 below), seeded from the generated layout, with a box for every fact slot the layout defines (an empty fact box renders nothing until its fact exists) |
 | Edit, move, resize, rotate, restyle, duplicate, reorder or delete a text box; add one | none | the customization; the edited box's lines re-broken and stored |
 | Choose a font (any Google Fonts family) | none | the box's font; the family added to the font store on first use; lines re-broken |
 | Edit the title box | none | `Event.title`, used everywhere; lines re-broken |
@@ -447,9 +450,14 @@ what the host sees is stored and carries on at the next switch. The title, invit
 added text boxes keep their text and fonts; `layoutCard` places
 them in the new layout's text zone — the generated slots first, then added boxes in their order,
 as extra body lines — and sizes and breaks them as usual; positions, rotation and colours come
-from the new card (its resolved ink). The title and invitation line always fit, because they keep
-their slot limits; when the added boxes cannot all fit the zone at minimum size, the overflowing
-added boxes are stacked below the zone, for the host to arrange.
+from the new card (its resolved ink). In the pairing's own faces the title and invitation line
+always fit, because they keep their slot limits; a carried host font wide enough not to fit at
+minimum size is set at minimum size and runs below the zone, and when the added boxes cannot all
+fit the zone at minimum size, the overflowing added boxes are stacked below the zone — host
+content either way, for the host to arrange. A customization holds the whole text layer, including
+the generated wording it was seeded with, so once the host has edited a card its title and
+invitation line travel with it to the next design — deliberately: the host has made that card
+theirs.
 
 **What the host's edits are not checked for** (owner decision, `spec.md §20.1`): contrast, a box
 crossing the outline (clipped as guests will see it), overlap with the artwork's subject. The
@@ -477,8 +485,8 @@ Recorded on every `CardDesign` and generation run (`src/lib/ai/versions.ts`):
 EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
-CARD_LAYOUT_SET_VERSION        // card_layouts_v1: layouts, per-shape zones and limits, shape outlines
-CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard (slot specs, sizing), line breaking
+CARD_LAYOUT_SET_VERSION        // card_layouts_v1: layouts, per-shape zones, slot specs and limits, shape outlines
+CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard's sizing steps, line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```
 

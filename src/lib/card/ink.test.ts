@@ -98,6 +98,14 @@ describe("sampleZoneLuminance", () => {
     expect(Math.min(...masked)).toBeCloseTo(1, 10);
   });
 
+  it("refuses a buffer that is neither 5:7 nor 1:1", () => {
+    const wide = image(140, 100, () => [0, 0, 0]);
+    const zone = { x: 0, y: 0, width: 100, height: 100 };
+    expect(() => sampleZoneLuminance(wide, 140, 100, zone, () => true)).toThrow(/neither/);
+    const square = image(100, 100, () => [0, 0, 0]);
+    expect(sampleZoneLuminance(square, 100, 100, zone, () => true).length).toBe(100);
+  });
+
   it("reads RGBA buffers too", () => {
     const rgba = image(w, h, (x) => (x < 50 ? [0, 0, 0] : [255, 255, 255]), 4);
     const a = sampleZoneLuminance(

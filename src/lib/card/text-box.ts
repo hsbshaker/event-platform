@@ -15,7 +15,7 @@
 
 import { layoutCard, type CardTextLayout, type LayoutCardInput } from "./layout-card";
 import type { CardShape } from "./shapes";
-import type { CardSlotId, FactSlotId, WordingSlotId } from "./slots";
+import { CARD_SLOT_IDS, type CardSlotId, type FactSlotId, type WordingSlotId } from "./slots";
 import { breakLines } from "./text/line-break";
 import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
 
@@ -181,7 +181,8 @@ export interface CarryWordsInput {
  * added boxes in their order as extra body lines — and sizes and breaks them as usual. Positions,
  * rotation and colours come from the new card. Added boxes that cannot all fit the zone at minimum
  * size are stacked below it, for the host to arrange. Facts come from `content`, in the new card's
- * own fact styling. An invitation line the host deleted stays absent.
+ * own fact styling. An invitation line the host deleted stays absent: the carried layout has no box
+ * for it.
  */
 export function carryWords({ from, content, card }: CarryWordsInput): CardTextLayout {
   const wording = (slot: WordingSlotId) =>
@@ -194,6 +195,10 @@ export function carryWords({ from, content, card }: CarryWordsInput): CardTextLa
 
   return layoutCard({
     ...card,
+    // A deleted invitation line is left out, not carried as an empty box the host cannot see.
+    slots: invitation
+      ? card.slots
+      : (card.slots ?? CARD_SLOT_IDS).filter((s) => s !== "invitationLine"),
     content: { ...content, invitationLine: invitation?.text ?? null },
     carried: {
       ...(title ? { title: { ...title.font } } : {}),

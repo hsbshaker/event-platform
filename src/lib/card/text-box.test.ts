@@ -250,7 +250,8 @@ describe("carryWords", () => {
   it("keeps an invitation line the host deleted absent", () => {
     const from = hostCard().filter((b) => b.id !== "invitationLine");
     const layout = carryWords({ from, content: CONTENT, card: newCard() });
-    expect(layout.boxes.find((b) => b.id === "invitationLine")!.lines).toEqual([]);
+    expect(layout.boxes.find((b) => b.id === "invitationLine")).toBeUndefined();
+    expect(layout.boxes.find((b) => b.id === "title")!.lines.length).toBeGreaterThan(0);
   });
 
   it("is deterministic", () => {

@@ -85,6 +85,16 @@ const LINE_BREAK = new RegExp("[\\n\\r\\u2028\\u2029]");
 
 const NO_OPTIONAL_LIGATURES = ["liga", "clig", "dlig"];
 
+/**
+ * The language text is shaped in, set explicitly so `locl` substitutions cannot follow the runtime's
+ * locale: the server and every browser shape alike. The card component sets the same `lang`.
+ */
+export const SHAPING_LANGUAGE = "en";
+
+/** Bounds on per-font caches (a `FontMetrics` lives for the process). */
+const MAX_INSTANCES = 32;
+const MAX_CACHED_ADVANCES = 20_000;
+
 function startsWith(bytes: Uint8Array, tag: string): boolean {
   return (
     bytes.length >= 4 &&
@@ -195,12 +205,14 @@ export function loadFontMetrics(sfnt: Uint8Array, font: FontRef): FontMetrics {
   const opticalSize = (size: number): number =>
     opsz ? Math.min(opsz.max, Math.max(opsz.min, size)) : 0;
 
-  // One instance per optical size actually used; a static face has one instance.
+  // One instance per optical size in use; a static face has one instance. Bounded, because a
+  // FontMetrics lives as long as the process; harfbuzzjs frees a dropped instance itself.
   const instances = new Map<number, hb.Font>();
   const instanceFor = (size: number): hb.Font => {
     const optical = opticalSize(size);
     let instance = instances.get(optical);
     if (!instance) {
+      if (instances.size >= MAX_INSTANCES) instances.clear();
       instance = new hb.Font(face);
       const variations: hb.Variation[] = [];
       if (wght) variations.push(new hb.Variation("wght", font.weight));
@@ -212,7 +224,8 @@ export function loadFontMetrics(sfnt: Uint8Array, font: FontRef): FontMetrics {
   };
 
   const ligaturesOff = NO_OPTIONAL_LIGATURES.map((tag) => new hb.Feature(tag, 0));
-  // Advance in font units of a cased string, per optical size and ligature mode.
+  // Advance in font units of a cased string, per optical size and ligature mode. Bounded like the
+  // instances: line breaking measures many substrings, and editing re-breaks on every change.
   const cache = new Map<string, number>();
   const advance = (text: string, size: number, spaced: boolean): number => {
     const key = `${opticalSize(size)}|${spaced ? 1 : 0}|${text}`;
@@ -222,10 +235,12 @@ export function loadFontMetrics(sfnt: Uint8Array, font: FontRef): FontMetrics {
       if (text.length > 0) {
         const buffer = new hb.Buffer();
         buffer.addText(text);
+        buffer.setLanguage(SHAPING_LANGUAGE);
         buffer.guessSegmentProperties();
         hb.shape(instanceFor(size), buffer, spaced ? ligaturesOff : undefined);
         for (const position of buffer.getGlyphPositions()) units += position.xAdvance;
       }
+      if (cache.size >= MAX_CACHED_ADVANCES) cache.clear();
       cache.set(key, units);
     }
     return units;

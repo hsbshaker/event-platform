@@ -95,6 +95,10 @@ export function sampleZoneLuminance(
 ): Float64Array {
   const channels = channelsOf(pixels, width, height);
   const scale = width / CARD_WIDTH;
+  const unitsHigh = height / scale;
+  if (Math.abs(unitsHigh - 1400) > 2 && Math.abs(unitsHigh - 1000) > 2) {
+    throw new Error(`artwork ${width}×${height} is neither 5:7 nor 1:1`);
+  }
   const x0 = Math.max(0, Math.floor(zone.x * scale));
   const x1 = Math.min(width, Math.ceil((zone.x + zone.width) * scale));
   const y0 = Math.max(0, Math.floor(zone.y * scale));

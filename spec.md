@@ -1745,8 +1745,9 @@ TextBox {
 }
 ```
 
-A customization is created by the host's first edit, seeded from the generated layout; there is at
-most one per event, design and shape. It never mutates a `CardDesign`, its artwork or its ink, and
+A customization is created by the host's first edit, seeded from the generated layout, or by a
+design or shape switch that carries the host's words (§20.6); there is at most one per event,
+design and shape. It never mutates a `CardDesign`, its artwork or its ink, and
 no edit calls a model. Every save carries the revision it was based on; a save based on a stale
 revision (another collaborator edited meanwhile) is refused and the editor reloads the latest with a
 short notice. `Reset card` is a save like any other: it re-applies the seed as a new revision, and
@@ -1946,7 +1947,7 @@ CardArtAsset {
   createdAt
 }
 
-CardCustomization {                 // the host's edited card, one per event × design × shape (§20.5)
+CardCustomization {                 // the host's edited card, one per event × design × shape (§20.5, §20.6)
   id, eventId, cardDesignId, shape,
   boxes /* TextBox[]: source, text?, x, y, width, rotation, font, size, color, align,
            letterSpacing, lineHeight, textCase, z, lines[] */,

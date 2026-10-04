@@ -17,89 +17,16 @@
 
 import { isCanonicalHex } from "./color";
 import type { CardRect } from "./ink";
+import { ADDED_SLOT_SPEC, CARD_SLOT_SPECS, type SlotGroup, type SlotSpec } from "./layouts";
 import type { CardProportion } from "./shapes";
 import { CARD_SLOT_IDS, type CardSlotId } from "./slots";
 import { breakWidth, type CardContent, type TextBox, type TextBoxSource } from "./text-box";
 import { breakLines } from "./text/line-break";
-import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
+import { applyTextCase, type FontMetricsResolver, type FontRef } from "./text/metrics";
 import { TYPOGRAPHY, type TypographyPairingId } from "./typography";
 
-// The slot specs, sizing and line breaking below are versioned by CARD_COMPILER_VERSION
-// (`src/lib/ai/versions.ts`, `docs/card-system.md §8`): change them only with a bump.
-
-type SlotGroup = "title" | "invitation" | "details" | "added";
-
-export interface SlotSpec {
-  role: "display" | "body";
-  group: SlotGroup;
-  /** Starting size per proportion, card units. */
-  max: Record<CardProportion, number>;
-  /** Smallest size, card units. */
-  min: number;
-  lineHeight: number;
-  letterSpacingEm: number;
-  textCase: TextCase;
-  /** Most lines this slot may take; `null` when only the zone's height bounds it. */
-  maxLines: number | null;
-  /** Space above the slot, in em of its own size, when it follows a slot of another group. */
-  gapBeforeEm: number;
-}
-
-const TITLE: SlotSpec = {
-  role: "display",
-  group: "title",
-  max: { "5:7": 104, "1:1": 92 },
-  min: 48,
-  lineHeight: 1.05,
-  letterSpacingEm: 0,
-  textCase: "none",
-  maxLines: 3,
-  gapBeforeEm: 0,
-};
-
-const INVITATION: SlotSpec = {
-  role: "body",
-  group: "invitation",
-  max: { "5:7": 32, "1:1": 32 },
-  min: 22,
-  lineHeight: 1.3,
-  letterSpacingEm: 0.02,
-  textCase: "none",
-  maxLines: null,
-  gapBeforeEm: 0.9,
-};
-
-const DETAIL: SlotSpec = {
-  role: "body",
-  group: "details",
-  max: { "5:7": 24, "1:1": 24 },
-  min: 18,
-  lineHeight: 1.45,
-  letterSpacingEm: 0.06,
-  textCase: "uppercase",
-  maxLines: null,
-  gapBeforeEm: 1.3,
-};
-
-/**
- * v1 slot specs, from the Phase 3 mock: title 104 (5:7) or 92 (1:1) down to 48, line height 1.05,
- * at most 3 lines; invitation line 32 → 22, 1.3, letter spacing .02em, 0.9em above; details 24 → 18,
- * 1.45, uppercase, .06em, 1.3em above the group and nothing between its lines. Phase 3 set only the
- * date, time and venue as details; the baby name, hosts and RSVP-by join that group here.
- */
-export const SLOT_SPECS_V1: Readonly<Record<CardSlotId, SlotSpec>> = {
-  title: TITLE,
-  invitationLine: INVITATION,
-  babyName: DETAIL,
-  hosts: DETAIL,
-  date: DETAIL,
-  time: DETAIL,
-  venue: DETAIL,
-  rsvpBy: DETAIL,
-};
-
-/** Text the host added, carried to a fresh layout as extra body lines in the invitation line's style. */
-export const ADDED_SPEC_V1: SlotSpec = { ...INVITATION, group: "added" };
+// The slot specs are layout-set data (`layouts.ts`, CARD_LAYOUT_SET_VERSION); the sizing steps
+// and line breaking below are versioned by CARD_COMPILER_VERSION (`docs/card-system.md §8`).
 
 const TITLE_STEP = 2;
 /** Body steps: the invitation line (and added text) lose 1 unit per step, details 1 until 18. */
@@ -146,10 +73,24 @@ export interface LayoutCardInput {
 
 export interface CardTextLayout {
   boxes: TextBox[];
-  /** The generated slots do not fit the zone even at minimum sizes; nothing was truncated. */
+  /**
+   * The generated slots do not fit the zone even at minimum sizes; nothing was truncated. In the
+   * pairing's own faces this cannot happen for content within the entry limits (proven by the
+   * layout fixtures, `docs/card-system.md §4.3`), so for a generated card it is a failure to report,
+   * never a card to render. With carried host fonts it can, and the stack runs below the zone for
+   * the host to arrange (§7).
+   */
   overflow: boolean;
   /** Added boxes that did not fit and were stacked below the zone (carried words only). */
   belowZone: string[];
+  /**
+   * Characters a box's face lacks, by box id (boxes with none are left out). They were measured
+   * with the face's replacement glyph, while a browser would draw them from a fallback font, so
+   * the stored lines may not match what is drawn. Never ignored: the policy for them (fallback
+   * face, or refusal at entry) is settled with the layout fixtures; until then a caller treats a
+   * non-empty map as a failure for the generated card.
+   */
+  missingCharacters: Record<string, string[]>;
   /** The sizes chosen. */
   sizes: { title: number; bodyStep: number };
 }
@@ -200,7 +141,7 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
   const { zone, proportion, pairing, content, ink, metrics, carried } = input;
 
   const slotItems: Item[] = slots.map((slot) => {
-    const spec = SLOT_SPECS_V1[slot];
+    const spec = CARD_SLOT_SPECS[slot];
     const carriedFont = slot === "title" || slot === "invitationLine" ? carried?.[slot] : undefined;
     const text = content[slot] ?? "";
     return {
@@ -217,7 +158,7 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
     source: { kind: "custom" },
     text: a.text,
     storedText: a.text,
-    spec: ADDED_SPEC_V1,
+    spec: ADDED_SLOT_SPEC,
     font: a.font,
   }));
 
@@ -261,6 +202,7 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
     return { placed, height, fits };
   };
 
+  const TITLE = CARD_SLOT_SPECS.title;
   const titleMax = TITLE.max[proportion];
   const search = (items: readonly Item[]) => {
     let titleSize = titleMax;
@@ -332,10 +274,21 @@ export function layoutCard(input: LayoutCardInput): CardTextLayout {
     belowY += p.lines.length * p.size * item.spec.lineHeight;
   }
 
+  const missingCharacters: Record<string, string[]> = {};
+  for (const box of boxes) {
+    if (box.lines.length === 0) continue;
+    // As drawn: the box's case applied.
+    const missing = metrics(box.font).missingCharacters(
+      applyTextCase(box.lines.join(" "), box.textCase),
+    );
+    if (missing.length > 0) missingCharacters[box.id] = missing;
+  }
+
   return {
     boxes,
     overflow,
     belowZone: below.map((item) => item.id),
+    missingCharacters,
     sizes: { title: result.titleSize, bodyStep: result.step },
   };
 }
