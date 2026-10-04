@@ -194,7 +194,7 @@ describe("assembleShapeSwitchPrompt", () => {
     expect(p).toContain("Place the subject in the upper 40% of the canvas.");
     expect(p).not.toContain("upper half");
     expect(p).toContain(
-      "\nKeep the same subject, character, medium and palette as the reference artwork — the same A small bear holding a red balloon — rearranged for this new canvas and outline. Do not copy the reference's framing; recompose it.",
+      "\nKeep the same subject, character, medium and palette as the reference artwork — the same small bear holding a red balloon — rearranged for this new canvas and outline. Do not copy the reference's framing; recompose it.",
     );
   });
 
@@ -226,5 +226,29 @@ describe("assembleShapeSwitchPrompt", () => {
     expect(() =>
       assembleShapeSwitchPrompt(design("square", "art-top", "illustration"), "circle"),
     ).toThrow(/does not support/);
+  });
+});
+
+describe("brief fields in the prompt", () => {
+  it("never doubles a full stop the brief already ends with, and drops a leading article in the switch", () => {
+    const design = {
+      artMode: "illustration" as const,
+      layout: "art-top" as const,
+      shape: "rectangle" as const,
+      artBrief: {
+        subject: "An heirloom teddy bear, sitting upright.",
+        medium: "Watercolour with gouache.",
+        texture: "Matte paper grain. ",
+        mood: "Quietly celebratory.",
+        palette: { description: "Navy and brown.", colors: ["#172638", "#735039", "#E7DDCA"] },
+        avoid: [],
+      },
+    };
+    const prompt = assembleShapeSwitchPrompt(design, "rounded-rectangle");
+    expect(prompt).not.toMatch(/\.\./);
+    expect(prompt).toContain("Subject: An heirloom teddy bear, sitting upright.");
+    expect(prompt).toContain("Texture: Matte paper grain. Mood: Quietly celebratory.");
+    expect(prompt).toContain("Palette: Navy and brown (#172638, #735039, #E7DDCA).");
+    expect(prompt).toContain("the same heirloom teddy bear — rearranged");
   });
 });

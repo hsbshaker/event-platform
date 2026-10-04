@@ -95,6 +95,16 @@ export function cropShapeFor(artMode: ArtMode, layout: CardLayoutId, shape: Card
 
 type ArtPromptInput = Pick<CardDesign, "artBrief" | "artMode" | "layout" | "shape">;
 
+/** A brief field as one sentence's worth: trimmed, without the full stop the template adds. */
+function clause(text: string): string {
+  return text.trim().replace(/[.\s]+$/, "");
+}
+
+/** The subject's lead phrase, for "the same …": up to the first comma, without a leading article. */
+function subjectLead(subject: string): string {
+  return clause(subject.split(",")[0]).replace(/^(a|an|the)\s+/i, "");
+}
+
 /** `card_art_v2`: the full art prompt for a validated design. */
 export function assembleArtPrompt(design: ArtPromptInput): string {
   const { artBrief: b, artMode, layout, shape } = design;
@@ -110,9 +120,9 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
   return [
     `Original artwork for the front of an invitation card, ${proportion === "5:7" ? "portrait 5:7" : "square 1:1"}, filling the entire canvas edge to edge.`,
     `${ART_MODE_DESCRIPTION[artMode]}`,
-    `Subject: ${b.subject}.`,
-    `Medium: ${b.medium}. Texture: ${b.texture}. Mood: ${b.mood}.`,
-    `Palette: ${b.palette.description} (${b.palette.colors.join(", ")}).`,
+    `Subject: ${clause(b.subject)}.`,
+    `Medium: ${clause(b.medium)}. Texture: ${clause(b.texture)}. Mood: ${clause(b.mood)}.`,
+    `Palette: ${clause(b.palette.description)} (${b.palette.colors.join(", ")}).`,
     `Composition: ${L.composition} ${L.presence}`,
     `Outline: ${CROP_RULE[cropShape]}${framedOutline}`,
     ...(cropShape === shape && ownShape
@@ -138,5 +148,5 @@ export function assembleShapeSwitchPrompt(design: ArtPromptInput, targetShape: C
     throw new Error(`layout ${design.layout} does not support shape ${targetShape}`);
   }
   const switched = { ...design, shape: targetShape };
-  return `${assembleArtPrompt(switched)}\nKeep the same subject, character, medium and palette as the reference artwork — the same ${design.artBrief.subject.split(",")[0]} — rearranged for this new canvas and outline. Do not copy the reference's framing; recompose it.`;
+  return `${assembleArtPrompt(switched)}\nKeep the same subject, character, medium and palette as the reference artwork — the same ${subjectLead(design.artBrief.subject)} — rearranged for this new canvas and outline. Do not copy the reference's framing; recompose it.`;
 }
