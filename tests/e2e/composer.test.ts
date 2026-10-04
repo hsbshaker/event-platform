@@ -56,7 +56,9 @@ describe.each([
       expect(await page.locator("h1").innerText()).toMatch(/Describe your event/i);
       expect(await becomesVisible(page, "#prompt")).toBe(true);
       expect(await page.getByRole("button", { name: /add inspiration/i }).isVisible()).toBe(true);
-      expect(await page.getByRole("button", { name: /create my invitation/i }).isVisible()).toBe(true);
+      expect(await page.getByRole("button", { name: /create my invitation/i }).isVisible()).toBe(
+        true,
+      );
       expect(await page.getByRole("link", { name: /^sign in$/i }).isVisible()).toBe(true);
 
       // §32 #3 and #6: nothing stands between arriving and writing. The canonical
