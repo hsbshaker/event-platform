@@ -46,6 +46,14 @@ const SERVICE_ROLE = {
  * - `src/lib/ai/meter.server.ts` — the spend ledger and model-call telemetry, both server-only;
  *   it acts only while the generation it names is running for its event (`heartbeat_generation`)
  *   and refuses a context that names none. It does not itself re-check the user.
+ * - `src/lib/generation/run.server.ts` — runs one generation that `startGeneration` began for an
+ *   authorized collaborator, and only while it is running for its event: it refuses a generation
+ *   not requested by the user it is given, reads that event's own rows and inspiration, and
+ *   writes only through the generation functions that write nothing once the generation stopped
+ *   running (`record_event_identity`, `record_generation_stage`, `persist_generated_card`,
+ *   `fail_generation`) and to its own key in the private `card-art` bucket.
+ * - `src/lib/generation/status.server.ts` — reads the server-only `generations` table after
+ *   `requireEventAccess(eventId, "view_event")`, for that event only, returning no telemetry.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
@@ -54,6 +62,8 @@ const SERVICE_ROLE_CALLERS = [
   "src/app/api/cron/purge-pre-auth/route.ts",
   "src/lib/ai/generations.server.ts",
   "src/lib/ai/meter.server.ts",
+  "src/lib/generation/run.server.ts",
+  "src/lib/generation/status.server.ts",
 ];
 
 /**

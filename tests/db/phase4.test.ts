@@ -238,9 +238,9 @@ describe("access to card data", () => {
     const written = await asActor(db, { kind: "service" }, async (q) => {
       const d = await q(
         `insert into public.card_designs (event_id, round, name, description, shape, layout, art_mode,
-           typography, wording, art_brief, raw, versions)
+           typography, wording, art_brief, raw, versions, identity_revision)
          values ($1, 2, 'Moonlit', 'A night sky', 'circle', 'atmosphere', 'atmosphere', '{}', '{}',
-           '{}', '{}', '{}')
+           '{}', '{}', '{}', 1)
          returning id`,
         [eventId],
       );

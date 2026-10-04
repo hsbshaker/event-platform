@@ -10,6 +10,7 @@ import {
 import type { FakeScript } from "../../../tests/unit/support/fake-provider";
 
 import {
+  GenerationDeadlineError,
   GenerationDisabledError,
   ModelOutputError,
   ProviderCallError,
@@ -471,6 +472,23 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       artRepaints: 1,
       repaintsStoppedBy: "ceiling",
     });
+  });
+
+  it("stops repainting at the generation's deadline, keeping the valid artwork", async () => {
+    const { fake, run } = stage({ art: [BUSY, new GenerationDeadlineError(), CLEAN] });
+    const result = await run();
+    expect(fake.calls.art).toHaveLength(2);
+    expect(result.telemetry).toMatchObject({
+      imagesRequested: 1,
+      keptImage: 1,
+      artRepaints: 0,
+      repaintsStoppedBy: "deadline",
+    });
+    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
+    // Before a valid artwork exists, the same refusal ends the stage.
+    await expect(stage({ art: [new GenerationDeadlineError()] }).run()).rejects.toBeInstanceOf(
+      GenerationDeadlineError,
+    );
   });
 
   it("repaints a shape switch with the same reference", async () => {

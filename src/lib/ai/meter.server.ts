@@ -4,6 +4,7 @@ import { generationEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
+  GenerationDeadlineError,
   GenerationDisabledError,
   MeterRecordError,
   ModelCallRefusedError,
@@ -13,6 +14,7 @@ import {
 import { costOf } from "./pricing";
 import type { TokenUsage } from "./pricing";
 import type { MeterContext, ModelOperation, ModelResult } from "./provider";
+import { REQUEST_TIMEOUT_MS } from "./timeouts";
 
 /**
  * The meter: the one gate every model call passes (`spec.md §9.6`, §10; docs/development-plan.md
@@ -21,7 +23,9 @@ import type { MeterContext, ModelOperation, ModelResult } from "./provider";
  * In order, fail-closed at every step before the call:
  *
  * 1. the context must name an event, an acting user and a generation (no anonymous call, §32 #4);
- * 2. generation must be switched on (`GENERATION_ENABLED`, the kill switch);
+ * 2. generation must be switched on (`GENERATION_ENABLED`, the kill switch), and the call must
+ *    be able to finish by the generation's deadline (`ctx.deadline`, if set): now plus the
+ *    operation's request timeout (`REQUEST_TIMEOUT_MS`) may not pass it;
  * 3. the generation must still be running (`heartbeat_generation`, which also proves the worker is
  *    alive): a worker whose generation finished, failed or was taken over as stale cannot spend;
  * 4. the call's conservative estimate must fit under today's ceiling (`reserve_model_spend`);
@@ -67,6 +71,10 @@ function assertContext(ctx: MeterContext): void {
       "A model call needs an event, an acting member and a running generation.",
     );
   }
+  // A deadline that is not a number would compare false and let every call through.
+  if (ctx.deadline !== undefined && !Number.isFinite(ctx.deadline)) {
+    throw new ModelCallRefusedError("invalid_context", "A generation deadline must be a time.");
+  }
 }
 
 /** USD with the ledger's precision (numeric(12, 6)), never below zero. */
@@ -105,6 +113,11 @@ export async function metered<T>(
   }
   const config = generationEnv();
   if (!config.enabled) throw new GenerationDisabledError();
+  // Before the heartbeat and the reservation: a call that could still be running when the
+  // generation's function is stopped is not made at all.
+  if (ctx.deadline !== undefined && Date.now() + REQUEST_TIMEOUT_MS[operation] > ctx.deadline) {
+    throw new GenerationDeadlineError();
+  }
 
   const admin = createAdminClient();
 

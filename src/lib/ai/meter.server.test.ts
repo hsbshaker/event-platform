@@ -4,6 +4,7 @@ import { enableGeneration, fakeAdmin, TEST_CONTEXT } from "../../../tests/unit/s
 import type { FakeAdmin } from "../../../tests/unit/support/fake-admin";
 
 import {
+  GenerationDeadlineError,
   GenerationDisabledError,
   MeterRecordError,
   ModelCallRefusedError,
@@ -14,6 +15,7 @@ import {
 import { metered } from "./meter.server";
 import type { MeteredCallResult, RunInfo } from "./meter.server";
 import { costOf } from "./pricing";
+import { REQUEST_TIMEOUT_MS } from "./timeouts";
 
 /**
  * The meter (`spec.md §9.6`, §10; docs/development-plan.md principle 3): no call without a running
@@ -83,6 +85,43 @@ describe("the meter refuses before any call", () => {
     ]) {
       const error = await metered(ctx, "event_identity", 0.2, INFO, call).catch((e) => e);
       expect(error).toBeInstanceOf(ModelCallRefusedError);
+      expect(error.reason).toBe("invalid_context");
+    }
+    expect(call).not.toHaveBeenCalled();
+    expect(admin.fake.state.rpcs).toEqual([]);
+  });
+
+  it("when the call could not finish before the generation's deadline", async () => {
+    const now = 1_800_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    const call = vi.fn(async () => ok());
+    // The artwork's timeout is 120 s: 119 s left is not enough.
+    const ctx = { ...TEST_CONTEXT, deadline: now + REQUEST_TIMEOUT_MS.card_art - 1_000 };
+    const error = await metered(ctx, "card_art", 0.4, INFO, call).catch((e) => e);
+    expect(error).toBeInstanceOf(GenerationDeadlineError);
+    expect(error).toBeInstanceOf(ModelCallRefusedError);
+    expect(error.reason).toBe("deadline");
+    expect(call).not.toHaveBeenCalled();
+    // Before the heartbeat and the reservation: nothing is touched.
+    expect(admin.fake.state.rpcs).toEqual([]);
+    expect(admin.fake.runs()).toEqual([]);
+    // The same time is enough for a 30 s moderation, and exactly the timeout is allowed.
+    await expect(metered(ctx, "card_art_moderation", 0, INFO, call)).resolves.toBeTruthy();
+    const exact = { ...TEST_CONTEXT, deadline: now + REQUEST_TIMEOUT_MS.card_art };
+    await expect(metered(exact, "card_art", 0.4, INFO, call)).resolves.toBeTruthy();
+    expect(call).toHaveBeenCalledTimes(2);
+  });
+
+  it("with a deadline that is not a time", async () => {
+    const call = vi.fn(async () => ok());
+    for (const deadline of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      const error = await metered(
+        { ...TEST_CONTEXT, deadline },
+        "event_identity",
+        0.2,
+        INFO,
+        call,
+      ).catch((e) => e);
       expect(error.reason).toBe("invalid_context");
     }
     expect(call).not.toHaveBeenCalled();

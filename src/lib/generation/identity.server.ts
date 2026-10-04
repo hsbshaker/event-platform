@@ -135,7 +135,8 @@ export function keepVerbatimFacts(
   return { facts: kept, dropped };
 }
 
-function identityArtifacts(identity: EventIdentity): IdentityArtifacts {
+/** The identity's wait-surface artifacts, also for an identity reused from an earlier generation. */
+export function identityArtifacts(identity: EventIdentity): IdentityArtifacts {
   const palette = [
     ...new Set([
       ...identity.paletteIntent.requiredColors,

@@ -1,0 +1,636 @@
+import "server-only";
+
+import { randomUUID } from "node:crypto";
+
+import { ModelCallRefusedError } from "@/lib/ai/errors";
+import { eventIdentitySchema } from "@/lib/ai/event-identity";
+import type { EventIdentity } from "@/lib/ai/event-identity";
+import { MODELS } from "@/lib/ai/models";
+import { getAiProvider } from "@/lib/ai/provider";
+import type { AiProvider, GenerateEventIdentityInput } from "@/lib/ai/provider";
+import {
+  CARD_ART_PROMPT_VERSION,
+  CARD_COMPILER_VERSION,
+  CARD_DESIGN_PROMPT_VERSION,
+  CARD_DESIGN_SCHEMA_VERSION,
+  CARD_LAYOUT_SET_VERSION,
+  EVENT_IDENTITY_PROMPT_VERSION,
+  EVENT_IDENTITY_SCHEMA_VERSION,
+} from "@/lib/ai/versions";
+import { cardContent } from "@/lib/card/facts";
+import { INSPIRATION_BUCKET, sniffImageType } from "@/lib/drafts/inspiration";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/lib/supabase/database.types";
+
+import { runArtworkStage } from "./artwork.server";
+import type { ArtworkStageResult } from "./artwork.server";
+import { runDesignStage } from "./design.server";
+import type { DesignStageResult } from "./design.server";
+import { identityArtifacts, runIdentityStage } from "./identity.server";
+import { ArtworkProviderRefusalError, GenerationStageError } from "./stage";
+import type { StageContext } from "./stage";
+
+/**
+ * One card generation, run on the server after the request that started it (`after()`,
+ * `src/app/actions/generation.ts`; `docs/technology-decisions.md §8.1`, "Generation execution";
+ * `spec.md §7.3`–§7.11, §9.4, §9.5; `docs/card-system.md §3`).
+ *
+ * Kind `initial` only; another direction and shape switches are Phase 5d.
+ *
+ * 1. **Load** the event and, when the event has no identity yet, its inspiration (PNG, JPEG and
+ *    WEBP only: the provider takes no HEIC/HEIF, so those are skipped and counted).
+ * 2. **Identity** (`runIdentityStage`, with fact extraction), persisted as the next revision
+ *    (`record_event_identity`). Interpretation happens once: a retry after a failure reuses the
+ *    latest revision and makes neither call. Extracted facts are prefill for the host to confirm
+ *    and are kept only in `generations.artifacts.facts`, never written to the event.
+ * 3. **Design** (`runDesignStage`) from the identity and the event's own fields — host-entered or
+ *    host-confirmed values, never the unconfirmed extraction (`spec.md §32 #15`).
+ * 4. **Artwork** (`runArtworkStage`) for the design's shape. A provider refusal of the first image
+ *    re-prompts the design (`provider-refusal`) and paints its artwork as that refusal's
+ *    regeneration, with a notice for the host (`spec.md §7.6`); any other refusal, or a second
+ *    one, is a visible failure.
+ * 5. **Persist**: the artwork is uploaded to the private `card-art` bucket under a key unique to
+ *    this generation, then `persist_generated_card` writes the design, its artwork, the first
+ *    active design and the generation's success in one transaction. When it writes nothing (the
+ *    generation stopped running, or the event was published) the upload is removed.
+ *
+ * Every model call is metered against the running generation with a deadline
+ * (`GENERATION_DEADLINE_MS` after the request began) below the function's `maxDuration`, so no
+ * call outlives the function. Every write goes through a function that writes only while the
+ * generation is running: a worker taken over as stale, failed, or overtaken by a publish writes
+ * nothing more.
+ *
+ * Failures end the generation with `fail_generation`, which touches only a running generation: a
+ * stage's code (`GenerationStageError`), a meter refusal's reason (`ModelCallRefusedError`), or
+ * `internal`. Logs carry the error's name, code and message only — never prompt text, model
+ * output, names or places.
+ */
+
+/**
+ * The function's `maxDuration` is 300 s (`GENERATION_MAX_DURATION_SECONDS`); no model call may be
+ * running 285 s after the request began, which leaves the upload and the persist their time.
+ */
+export const GENERATION_DEADLINE_MS = 285_000;
+
+/** The private artwork bucket (`supabase/migrations/20261004000000_phase4_card_data.sql`). */
+export const CARD_ART_BUCKET = "card-art";
+
+/** Inspiration image types the provider accepts; HEIC and HEIF are not among them. */
+export const MODEL_INSPIRATION_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/webp"];
+
+/**
+ * The `provider-refusal` re-prompt (`spec.md §7.6`, owner decision): keep the homage's world,
+ * drop the character's signature look. The orchestration's words, never the host's.
+ */
+export const PROVIDER_REFUSAL_FEEDBACK =
+  "The image provider refused this design's artwork: it came out too close to a well-known " +
+  "protected character. Keep the event's creative direction, but write a new art brief that " +
+  "evokes the character's world — its setting, props, palette and illustration style — rather " +
+  "than the character's signature look. Do not depict that character or a close likeness of it, " +
+  "and never name a brand or a character.";
+
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+export interface RunGenerationInput {
+  generationId: string;
+  eventId: string;
+  /** The owner or co-host who started it (`startGeneration`); every model call is theirs. */
+  userId: string;
+  /** Epoch ms when the request that started it began; the deadline counts from here. */
+  startedAt?: number;
+}
+
+export interface RunGenerationDeps {
+  provider?: AiProvider;
+  admin?: AdminClient;
+  now?: () => number;
+}
+
+export type RunGenerationOutcome =
+  | { status: "succeeded"; cardDesignId: string; round: number }
+  /** The generation was failed with this code. */
+  | { status: "failed"; code: string }
+  /** It was no longer running (or its event was published): nothing more was written. */
+  | { status: "stopped" };
+
+export class GenerationKindNotSupportedError extends Error {
+  constructor(readonly kind: string) {
+    super(`Generation kind ${kind} is not yet supported.`);
+    this.name = "GenerationKindNotSupportedError";
+  }
+}
+
+/** The generation left `running` (or its event was published) while this worker held it. */
+class GenerationStoppedError extends Error {
+  constructor(step: string) {
+    super(`The generation stopped running before ${step}.`);
+    this.name = "GenerationStoppedError";
+  }
+}
+
+/** The §9.5 record of one generation (`generations.telemetry`). Never shown to the host. */
+export interface GenerationTelemetry {
+  schemaValidFirstCall: boolean;
+  /** Every design re-prompt, in order, by kind (a provider refusal adds a second design's). */
+  reprompts: string[];
+  artRegenerated: string | null;
+  artRepaints: number;
+  standardWording: string[];
+  inkPanels: { shape: string; zone: string }[];
+  versions: {
+    identityPrompt: string;
+    identitySchema: string;
+    designPrompt: string;
+    designSchema: string;
+    layoutSet: string;
+    compiler: string;
+    artPrompt: string;
+    imageModel: string;
+  };
+  latency: { identityMs: number | null; designMs: number; artMs: number; totalMs: number };
+  /** Null when the identity was reused from an earlier generation. */
+  identityValidFirstCall: boolean | null;
+  identityReused: boolean;
+  extraction: string | null;
+  inspirationSkipped: number;
+  droppedFacts: number;
+  imagesRequested: number;
+  repaintsStoppedBy: string | null;
+  providerRefusal: boolean;
+}
+
+interface EventRow {
+  id: string;
+  prompt: string;
+  type: string;
+  title: string | null;
+  hosts: string | null;
+  baby_name: string | null;
+  venue_name: string | null;
+  address: string | null;
+  event_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+}
+
+/**
+ * The facts present so far (`docs/model-contracts.md §5.2`): the event's own fields, which only
+ * the host enters or confirms. Formatted as the card shows them (`cardContent`), plus the full
+ * address and the event type in words. Values are trimmed and otherwise kept as the host wrote
+ * them (a host title is used verbatim, `docs/model-contracts.md §5.4`); blank fields are absent.
+ */
+export function hostEventFacts(event: EventRow): Record<string, string> {
+  const content = cardContent({
+    title: event.title,
+    invitationLine: null,
+    babyName: event.baby_name,
+    hosts: event.hosts,
+    eventDate: event.event_date,
+    startTime: event.start_time,
+    endTime: event.end_time,
+    venueName: event.venue_name,
+    address: event.address,
+    rsvpDeadline: null,
+    timezone: null,
+  });
+  const facts: Record<string, string> = {};
+  const put = (key: string, value: string | null | undefined) => {
+    const text = value?.trim() ?? "";
+    if (text !== "") facts[key] = text;
+  };
+  put("eventType", event.type.replace(/_/g, " "));
+  put("title", content.title);
+  put("hosts", content.hosts);
+  put("babyName", content.babyName);
+  put("date", content.date);
+  put("time", content.time);
+  put("venue", content.venue);
+  put("address", event.address);
+  return facts;
+}
+
+function failureCode(error: unknown): string {
+  if (error instanceof GenerationStageError) return error.code;
+  if (error instanceof ModelCallRefusedError) return error.reason;
+  return "internal";
+}
+
+/**
+ * Name, code and message only — never the cause chain, a database error's details, model output
+ * or host content. Supabase's errors may arrive as plain objects with the same fields.
+ */
+function errorSummary(error: unknown): { name: string; code?: string; message?: string } {
+  if (error && typeof error === "object") {
+    const { name, code, message } = error as { name?: unknown; code?: unknown; message?: unknown };
+    return {
+      name: typeof name === "string" ? name : error instanceof Error ? "Error" : "object",
+      ...(typeof code === "string" ? { code } : {}),
+      ...(typeof message === "string" ? { message } : {}),
+    };
+  }
+  return { name: typeof error };
+}
+
+export async function runGeneration(
+  input: RunGenerationInput,
+  deps: RunGenerationDeps = {},
+): Promise<RunGenerationOutcome> {
+  const admin = deps.admin ?? createAdminClient();
+  const now = deps.now ?? Date.now;
+  const { generationId, eventId, userId } = input;
+  const ids = { generationId, eventId };
+
+  async function fail(code: string): Promise<void> {
+    const { error } = await admin.rpc("fail_generation", {
+      p_generation_id: generationId,
+      p_event_id: eventId,
+      p_error_code: code,
+    });
+    if (error) {
+      // The generation then reads as failed once it is stale (`getGenerationView`).
+      console.error("[generation] could not mark the generation failed", {
+        ...ids,
+        code,
+        error: errorSummary(error),
+      });
+    }
+  }
+
+  const { data: generation, error: readError } = await admin
+    .from("generations")
+    .select("id, kind, status, requested_by")
+    .eq("id", generationId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (readError) {
+    console.error("[generation] could not read the generation", {
+      ...ids,
+      error: errorSummary(readError),
+    });
+    await fail("internal");
+    return { status: "failed", code: "internal" };
+  }
+  if (!generation || generation.status !== "running") return { status: "stopped" };
+  if (generation.kind !== "initial") {
+    await fail("unsupported_kind");
+    throw new GenerationKindNotSupportedError(generation.kind);
+  }
+
+  try {
+    if (generation.requested_by !== userId) {
+      throw new Error("The generation was started by another member.");
+    }
+    return await pipeline({
+      ...input,
+      admin,
+      provider: deps.provider ?? getAiProvider(),
+      now,
+      startedAt: input.startedAt ?? now(),
+    });
+  } catch (error) {
+    if (error instanceof GenerationStoppedError) {
+      // Not running any more, or its event was published under it. fail_generation touches only
+      // a running generation: here, one whose event was published.
+      await fail("published");
+      return { status: "stopped" };
+    }
+    const code = failureCode(error);
+    console.error("[generation] failed", { ...ids, code, error: errorSummary(error) });
+    await fail(code);
+    return { status: "failed", code };
+  }
+}
+
+interface PipelineInput extends RunGenerationInput {
+  admin: AdminClient;
+  provider: AiProvider;
+  now: () => number;
+  startedAt: number;
+}
+
+async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
+  const { admin, provider, now, generationId, eventId, userId, startedAt } = input;
+  const ctx: StageContext = {
+    provider,
+    meter: {
+      eventId,
+      userId,
+      generationId,
+      round: null,
+      deadline: startedAt + GENERATION_DEADLINE_MS,
+    },
+  };
+
+  async function recordStage(stage: string, artifacts: Record<string, unknown>): Promise<void> {
+    const { data, error } = await admin.rpc("record_generation_stage", {
+      p_generation_id: generationId,
+      p_event_id: eventId,
+      p_stage: stage,
+      p_artifacts: artifacts as Json,
+    });
+    if (error) throw error;
+    if (data !== true) throw new GenerationStoppedError(`recording the ${stage} stage`);
+  }
+
+  // ------------------------------------------------------------------ 1. load
+  const { data: event, error: eventError } = await admin
+    .from("events")
+    .select(
+      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time",
+    )
+    .eq("id", eventId)
+    .maybeSingle();
+  if (eventError) throw eventError;
+  if (!event) throw new Error("The generation's event was not found.");
+
+  const { data: latest, error: identityError } = await admin
+    .from("event_identities")
+    .select("revision, identity, generation_id")
+    .eq("event_id", eventId)
+    .order("revision", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (identityError) throw identityError;
+
+  // ------------------------------------------------------------------ 2. identity
+  let identity: EventIdentity;
+  let identityRevision: number;
+  let identityMs: number | null = null;
+  let identityValidFirstCall: boolean | null = null;
+  let extraction: string | null = null;
+  let inspirationSkipped = 0;
+  let droppedFacts = 0;
+
+  if (!latest) {
+    const loaded = await loadInspiration(admin, eventId);
+    inspirationSkipped = loaded.skipped;
+    const begun = now();
+    const result = await runIdentityStage(ctx, {
+      prompt: event.prompt,
+      ...(loaded.images.length ? { inspiration: loaded.images } : {}),
+      extractFacts: true,
+    });
+    identityMs = now() - begun;
+    identity = result.identity;
+    identityValidFirstCall = result.identityValidFirstCall;
+    extraction = result.extraction;
+    droppedFacts = result.droppedFacts.length;
+
+    const { data: revision, error } = await admin.rpc("record_event_identity", {
+      p_generation_id: generationId,
+      p_event_id: eventId,
+      p_identity: result.identity as unknown as Json,
+      p_raw: result.identityRaw,
+      p_prompt_version: EVENT_IDENTITY_PROMPT_VERSION,
+      p_schema_version: EVENT_IDENTITY_SCHEMA_VERSION,
+    });
+    if (error) throw error;
+    if (typeof revision !== "number") throw new GenerationStoppedError("persisting the identity");
+    identityRevision = revision;
+    await recordStage("identity", {
+      identity: result.artifacts,
+      facts: result.facts,
+      droppedFacts: result.droppedFacts.map((d) => d.field),
+    });
+  } else {
+    // A retry after a failure: the identity is never interpreted twice (spec.md §7.5).
+    const parsed = eventIdentitySchema.safeParse(latest.identity);
+    if (!parsed.success) throw new Error("The persisted Event Identity does not validate.");
+    identity = parsed.data;
+    identityRevision = latest.revision;
+    await recordStage("identity", {
+      identity: identityArtifacts(identity),
+      ...(await earlierFacts(admin, eventId, latest.generation_id)),
+    });
+  }
+
+  // ------------------------------------------------------------------ 3. design
+  const eventFacts = hostEventFacts(event);
+  const designs: DesignStageResult[] = [];
+  let designMs = 0;
+  let artMs = 0;
+  const design = async (providerRefusal?: { feedback: string }) => {
+    const begun = now();
+    const result = await runDesignStage(ctx, {
+      identity,
+      eventFacts,
+      ...(providerRefusal ? { providerRefusal } : {}),
+    });
+    designMs += now() - begun;
+    designs.push(result);
+    await recordStage("design", { design: result.artifacts });
+    return result;
+  };
+  const artwork = async (
+    chosen: DesignStageResult,
+    afterRefusal?: { imagesRequested: number },
+  ): Promise<ArtworkStageResult> => {
+    const begun = now();
+    try {
+      return await runArtworkStage(ctx, {
+        design: chosen.design,
+        shape: chosen.design.shape,
+        ...(afterRefusal ? { afterRefusal } : {}),
+      });
+    } finally {
+      artMs += now() - begun;
+    }
+  };
+
+  let chosen = await design();
+
+  // ------------------------------------------------------------------ 4. artwork
+  let art: ArtworkStageResult;
+  let providerRefusal = false;
+  try {
+    art = await artwork(chosen);
+  } catch (error) {
+    // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
+    // §9); a refusal after a failed first image is the second failure, and visible.
+    if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) throw error;
+    providerRefusal = true;
+    await recordStage("design", { notice: "provider_refusal" });
+    chosen = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
+    art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+  }
+
+  // ------------------------------------------------------------------ 5. persist
+  const telemetry: GenerationTelemetry = {
+    schemaValidFirstCall: designs[0].telemetry.schemaValidFirstCall,
+    reprompts: designs.flatMap((d) => d.telemetry.reprompts.map((r) => r.kind)),
+    artRegenerated: art.telemetry.artRegenerated,
+    artRepaints: art.telemetry.artRepaints,
+    standardWording: [...chosen.telemetry.standardWordingSlots],
+    inkPanels: art.telemetry.inkPanels.map((p) => ({ shape: p.shape, zone: p.zone })),
+    versions: {
+      identityPrompt: EVENT_IDENTITY_PROMPT_VERSION,
+      identitySchema: EVENT_IDENTITY_SCHEMA_VERSION,
+      designPrompt: CARD_DESIGN_PROMPT_VERSION,
+      designSchema: CARD_DESIGN_SCHEMA_VERSION,
+      layoutSet: CARD_LAYOUT_SET_VERSION,
+      compiler: CARD_COMPILER_VERSION,
+      artPrompt: CARD_ART_PROMPT_VERSION,
+      imageModel: MODELS.image,
+    },
+    latency: { identityMs, designMs, artMs, totalMs: now() - startedAt },
+    identityValidFirstCall,
+    identityReused: latest !== null,
+    extraction,
+    inspirationSkipped,
+    droppedFacts,
+    imagesRequested: art.telemetry.imagesRequested,
+    repaintsStoppedBy: art.telemetry.repaintsStoppedBy,
+    providerRefusal,
+  };
+
+  const storageKey = `${eventId}/${generationId}/${randomUUID()}.png`;
+  const bucket = admin.storage.from(CARD_ART_BUCKET);
+  const { error: uploadError } = await bucket.upload(storageKey, art.bytes, {
+    contentType: art.mimeType,
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+
+  const d = chosen.design;
+  const persisted = await admin.rpc("persist_generated_card", {
+    p_generation_id: generationId,
+    p_event_id: eventId,
+    p_identity_revision: identityRevision,
+    p_name: d.presentation.name,
+    p_description: d.presentation.description,
+    p_shape: d.shape,
+    p_layout: d.layout,
+    p_art_mode: d.artMode,
+    p_typography: d.typography as unknown as Json,
+    p_wording: d.wording as unknown as Json,
+    p_art_brief: d.artBrief as unknown as Json,
+    p_raw: JSON.parse(chosen.raw) as Json,
+    p_versions: {
+      designPrompt: CARD_DESIGN_PROMPT_VERSION,
+      designSchema: CARD_DESIGN_SCHEMA_VERSION,
+      layoutSet: CARD_LAYOUT_SET_VERSION,
+      compiler: CARD_COMPILER_VERSION,
+      artPrompt: CARD_ART_PROMPT_VERSION,
+      imageModel: MODELS.image,
+    },
+    p_standard_wording_slots: [...chosen.telemetry.standardWordingSlots],
+    p_storage_key: storageKey,
+    p_mime_type: art.mimeType,
+    p_size_bytes: art.bytes.byteLength,
+    p_width: art.width,
+    p_height: art.height,
+    p_proportion: art.proportion === "5:7" ? "portrait_5_7" : "square_1_1",
+    p_fits_shapes: [...art.fitsShapes],
+    p_ink: art.ink as unknown as Json,
+    p_image_model: MODELS.image,
+    p_art_prompt_version: CARD_ART_PROMPT_VERSION,
+    p_telemetry: telemetry as unknown as Json,
+  });
+  const row = persisted.error ? undefined : persisted.data?.[0];
+  if (!row) {
+    await removeUpload(admin, storageKey, Boolean(persisted.error), { generationId, eventId });
+    if (persisted.error) throw persisted.error;
+    throw new GenerationStoppedError("persisting the card");
+  }
+  return { status: "succeeded", cardDesignId: row.card_design_id, round: row.round };
+}
+
+/**
+ * Takes the uploaded artwork back out when no card names it. After a persist that errored, the
+ * call may still have committed (an error on the way back): the object is removed only once the
+ * asset row is known not to exist, since a missing object under a persisted card would break
+ * it, while a leftover object harms nothing. Best effort: a failure is logged with the key.
+ */
+async function removeUpload(
+  admin: AdminClient,
+  storageKey: string,
+  persistErrored: boolean,
+  ids: { generationId: string; eventId: string },
+): Promise<void> {
+  if (persistErrored) {
+    const { data, error } = await admin
+      .from("card_art_assets")
+      .select("id")
+      .eq("storage_key", storageKey)
+      .maybeSingle();
+    if (error || data) {
+      console.error("[generation] kept the uploaded artwork: the persist may have committed", {
+        ...ids,
+        storageKey,
+      });
+      return;
+    }
+  }
+  const { error } = await admin.storage.from(CARD_ART_BUCKET).remove([storageKey]);
+  if (error) {
+    console.error("[generation] left an orphaned artwork object", {
+      ...ids,
+      storageKey,
+      error: errorSummary(error),
+    });
+  }
+}
+
+/**
+ * The event's inspiration images for the identity call, oldest first. Only the types the provider
+ * accepts are sent; the rest (HEIC, HEIF, or bytes that are not what the row says) are skipped and
+ * counted. A download failure fails the generation rather than designing without what the host
+ * gave.
+ */
+async function loadInspiration(
+  admin: AdminClient,
+  eventId: string,
+): Promise<{ images: NonNullable<GenerateEventIdentityInput["inspiration"]>; skipped: number }> {
+  const { data, error } = await admin
+    .from("inspiration_assets")
+    .select("id, storage_key, mime_type, created_at")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  const images: NonNullable<GenerateEventIdentityInput["inspiration"]> = [];
+  let skipped = 0;
+  for (const asset of data ?? []) {
+    if (!MODEL_INSPIRATION_TYPES.includes(asset.mime_type)) {
+      skipped += 1;
+      continue;
+    }
+    const { data: blob, error: downloadError } = await admin.storage
+      .from(INSPIRATION_BUCKET)
+      .download(asset.storage_key);
+    if (downloadError) throw downloadError;
+    if (!blob) throw new Error("An inspiration image could not be read.");
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (sniffImageType(bytes) !== asset.mime_type) {
+      skipped += 1;
+      continue;
+    }
+    images.push({ mimeType: asset.mime_type, bytes });
+  }
+  return { images, skipped };
+}
+
+/**
+ * On a retry that reuses the identity, the facts extracted by the generation that interpreted it
+ * are carried to this one, so the host's prefill (`artifacts.facts`) survives the retry.
+ */
+async function earlierFacts(
+  admin: AdminClient,
+  eventId: string,
+  generationId: string | null,
+): Promise<{ facts: Json; droppedFacts: Json }> {
+  const none = { facts: null, droppedFacts: [] };
+  if (!generationId) return none;
+  const { data, error } = await admin
+    .from("generations")
+    .select("artifacts")
+    .eq("id", generationId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (error) throw error;
+  const artifacts = data?.artifacts;
+  if (!artifacts || typeof artifacts !== "object" || Array.isArray(artifacts)) return none;
+  return {
+    facts: artifacts.facts ?? null,
+    droppedFacts: artifacts.droppedFacts ?? [],
+  };
+}
