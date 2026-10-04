@@ -16,6 +16,8 @@
  * Invalid input throws: a fact the card cannot state correctly is a failure, never a guess.
  */
 
+import type { CardContent } from "./text-box";
+
 const WEEKDAYS = [
   "Sunday",
   "Monday",
@@ -132,4 +134,54 @@ export function cardVenue(
 ): string | null {
   const name = venueName?.trim() ?? "";
   return name !== "" ? name : addressFirstLine(address);
+}
+
+/** The event fields the card is made from, as stored (`events` columns, camel-cased). */
+export interface CardContentInput {
+  title: string | null | undefined;
+  invitationLine: string | null | undefined;
+  babyName: string | null | undefined;
+  hosts: string | null | undefined;
+  /** `YYYY-MM-DD`. */
+  eventDate: string | null | undefined;
+  /** `HH:MM` or `HH:MM:SS`. */
+  startTime: string | null | undefined;
+  endTime: string | null | undefined;
+  venueName: string | null | undefined;
+  address: string | null | undefined;
+  /** An ISO instant. */
+  rsvpDeadline: string | null | undefined;
+  /** IANA zone the deadline's calendar date is read in. */
+  timezone: string | null | undefined;
+}
+
+function trimmed(value: string | null | undefined): string | null {
+  const text = value?.trim() ?? "";
+  return text === "" ? null : text;
+}
+
+/**
+ * The only way event fields become `CardContent` for `generatedTextLayer` (Phase 5 must use it,
+ * never build the object by hand): the fit guarantee (`CARD_FACT_MAX_LENGTH`, the fixtures' worst
+ * case) holds only for the date, time and RSVP-by slots formatted here. Every string is trimmed,
+ * a missing fact is `null`, `venue` is the venue name else the address's first line, and the
+ * RSVP-by slot needs both a deadline and a timezone. Throws, like the formatters, on a stored value
+ * that is not valid.
+ */
+export function cardContent(input: CardContentInput): CardContent {
+  const eventDate = trimmed(input.eventDate);
+  const startTime = trimmed(input.startTime);
+  const rsvpDeadline = trimmed(input.rsvpDeadline);
+  const timezone = trimmed(input.timezone);
+  return {
+    title: trimmed(input.title),
+    invitationLine: trimmed(input.invitationLine),
+    babyName: trimmed(input.babyName),
+    hosts: trimmed(input.hosts),
+    date: eventDate === null ? null : formatCardDate(eventDate),
+    time: startTime === null ? null : formatCardTime(startTime, trimmed(input.endTime)),
+    venue: cardVenue(input.venueName, input.address),
+    rsvpBy:
+      rsvpDeadline === null || timezone === null ? null : formatCardRsvpBy(rsvpDeadline, timezone),
+  };
 }

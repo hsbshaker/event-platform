@@ -133,7 +133,7 @@ export async function insertCardDesign(
         '{"title":"Oh Baby","invitationLine":"Please join us for a baby shower"}',
         '{"subject":"a cluster of peonies","medium":"watercolour","mood":"tender","palette":"blush","texture":"cold-press paper","avoid":"text"}',
         '{"presentation":{"name":"Garden Party"}}',
-        '{"designPrompt":"card_design_v1","designSchema":"card_design_schema_v1","layoutSet":"card_layouts_v1","compiler":"card_compiler_v1"}')
+        '{"designPrompt":"card_design_v1","designSchema":"card_design_schema_v1","layoutSet":"card_layouts_v2","compiler":"card_compiler_v2"}')
      returning id`,
     [eventId, round, shape, layout, artMode],
   );

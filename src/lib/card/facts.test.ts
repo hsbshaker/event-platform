@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CARD_FACT_MAX_LENGTH,
   addressFirstLine,
+  cardContent,
   cardVenue,
   formatCardDate,
   formatCardRsvpBy,
@@ -103,5 +104,81 @@ describe("the card's venue", () => {
     expect(cardVenue(null, " , 12 Elm St")).toBe("12 Elm St");
     expect(cardVenue(undefined, null)).toBeNull();
     expect(addressFirstLine("   ")).toBeNull();
+  });
+});
+
+describe("cardContent", () => {
+  const full = {
+    title: "  A Little Wild One ",
+    invitationLine: " Please join us for a baby shower ",
+    babyName: " Zoë ",
+    hosts: " Hosted by Maya & Tom ",
+    eventDate: "2026-06-06",
+    startTime: "13:00:00",
+    endTime: "16:00",
+    venueName: " The Willow House ",
+    address: "12 Elm St, Austin",
+    rsvpDeadline: "2026-05-30T12:00:00Z",
+    timezone: "America/Chicago",
+  };
+
+  it("formats the facts, trims every string and takes the venue from the card's rule", () => {
+    expect(cardContent(full)).toEqual({
+      title: "A Little Wild One",
+      invitationLine: "Please join us for a baby shower",
+      babyName: "Zoë",
+      hosts: "Hosted by Maya & Tom",
+      date: "Saturday, June 6",
+      time: "1:00 pm \u2013 4:00 pm",
+      venue: "The Willow House",
+      rsvpBy: "RSVP by May 30",
+    });
+    expect(cardContent({ ...full, venueName: "  " }).venue).toBe("12 Elm St");
+  });
+
+  it("gives null for every missing fact", () => {
+    const none = {
+      title: null,
+      invitationLine: undefined,
+      babyName: "  ",
+      hosts: "",
+      eventDate: null,
+      startTime: null,
+      endTime: "16:00",
+      venueName: null,
+      address: null,
+      rsvpDeadline: null,
+      timezone: null,
+    };
+    expect(cardContent(none)).toEqual({
+      title: null,
+      invitationLine: null,
+      babyName: null,
+      hosts: null,
+      date: null,
+      time: null,
+      venue: null,
+      rsvpBy: null,
+    });
+    expect(cardContent({ ...full, timezone: null }).rsvpBy).toBeNull();
+    expect(cardContent({ ...full, endTime: null }).time).toBe("1:00 pm");
+  });
+
+  it("keeps the formatted facts within CARD_FACT_MAX_LENGTH", () => {
+    const worst = cardContent({
+      ...full,
+      eventDate: "2026-09-30",
+      startTime: "22:00",
+      endTime: "23:00",
+      rsvpDeadline: "2026-09-30T12:00:00Z",
+      timezone: "UTC",
+    });
+    expect(worst.date).toHaveLength(CARD_FACT_MAX_LENGTH.date);
+    expect(worst.time).toHaveLength(CARD_FACT_MAX_LENGTH.time);
+    expect(worst.rsvpBy).toHaveLength(CARD_FACT_MAX_LENGTH.rsvpBy);
+  });
+
+  it("refuses a stored value that is not valid rather than guessing", () => {
+    expect(() => cardContent({ ...full, eventDate: "June 6" })).toThrow();
   });
 });
