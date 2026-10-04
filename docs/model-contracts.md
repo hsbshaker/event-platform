@@ -389,6 +389,19 @@ bounds and fact check. Model prose is never authorization.
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
 | Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output; an artwork that would need the legibility panel on its shape: repaint until one needs none, two extra images per artwork in all, then the first valid one with the panel |
 
+Card Design re-prompts are one of each kind per design. When a re-prompt's own call fails — its
+output invalid after the schema re-prompt is spent, or the provider call fails — the earlier valid
+design is kept and the check that asked for the re-prompt takes its fallback (standard wording, or
+the repeat accepted); only a design stage that never produced a valid design fails visibly. A
+`provider-refusal` instruction is repeated on any later re-prompt of the same design, since a call
+carries one re-prompt.
+
+A provider refusal of an artwork's **first** image is that artwork's failure: its one regeneration
+is the re-prompted design's artwork (`spec.md §7.6`), which continues the same budget of two extra
+images — so its own failed validation or refusal is a visible failure, and it has at most one
+repaint left. A refusal of the regeneration of an already-failed first image is the second failure
+and is visible.
+
 There is no library, template or stock fallback for any call. A visible failure always offers a
 retry and never presents itself as a finished design.
 

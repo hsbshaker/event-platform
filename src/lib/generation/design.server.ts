@@ -54,7 +54,8 @@ export interface DesignStageInput {
   feedback?: string;
   /**
    * The previous design's artwork was refused by the image provider (`spec.md §7.6`): the first
-   * call carries a `provider-refusal` re-prompt with this feedback.
+   * call carries a `provider-refusal` re-prompt with this feedback, and any later re-prompt repeats
+   * it, since a call carries one re-prompt.
    */
   providerRefusal?: { feedback: string };
 }
@@ -224,7 +225,12 @@ export async function runDesignStage(
 
   const next = (kind: DesignRepromptKind, feedback: string) => {
     used.add(kind);
-    reprompt = { kind, feedback };
+    reprompt = {
+      kind,
+      feedback: input.providerRefusal
+        ? `${feedback} Keep to the earlier instruction: ${input.providerRefusal.feedback}`
+        : feedback,
+    };
     reprompts.push(reprompt);
   };
 

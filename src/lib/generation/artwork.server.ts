@@ -53,6 +53,8 @@ import type { StageContext } from "./stage";
  * **Provider refusal**: a refused image request (the brand-homage case, `spec.md §7.6`) ends the
  * stage with `ArtworkProviderRefusalError` before a valid artwork exists, so the orchestration can
  * re-prompt the design (`provider-refusal`); a refused repaint is dropped like any failed repaint.
+ * The re-prompted design's artwork is that refusal's regeneration (`afterRefusal`): it continues the
+ * same image budget, and its own failed validation or refusal is a visible failure.
  * Any other provider failure before a valid artwork exists is a visible failure (`provider_error`).
  * A meter refusal before a valid artwork exists passes through unchanged; during repaints it stops
  * them and the valid artwork is kept.
@@ -144,18 +146,25 @@ export interface ArtworkStageInput {
   shape: CardShape;
   /** A shape switch only: the design's own earlier artwork (never a host upload). */
   reference?: CardArt;
+  /**
+   * The image provider refused this artwork for an earlier design, and this design is the
+   * re-prompted one (`spec.md §7.6`): its artwork is that refusal's one regeneration. It continues
+   * the same budget — the refused requests count — and a failed validation is a visible failure.
+   */
+  afterRefusal?: { imagesRequested: number };
 }
 
 export interface ArtworkTelemetry {
-  /** Image requests made for this artwork, 1 to `1 + extraImages`. */
+  /** Image requests made for this artwork, 1 to `1 + extraImages` (refused ones included). */
   imagesRequested: number;
   /** Which request produced the kept artwork (1-based). */
   keptImage: number;
   /**
    * Null, or why the artwork was regenerated (`generation_runs.art_regenerated`): the first
-   * failed validation reason, or `panel-repaint` when only repaints were made.
+   * failed validation reason, `provider-refusal` when the image provider refused the first
+   * design's artwork, or `panel-repaint` when only repaints were made.
    */
-  artRegenerated: ArtworkFailureReason | "panel-repaint" | null;
+  artRegenerated: ArtworkFailureReason | "provider-refusal" | "panel-repaint" | null;
   /** Repaints made because the artwork would need a panel, dropped ones included (0–2). */
   artRepaints: number;
   /** Every image that failed validation, in order. */
@@ -309,7 +318,11 @@ export async function runArtworkStage(
     ...(reference ? { reference } : {}),
   };
   const maxImages = 1 + ARTWORK_LIMITS.extraImages;
-  let images = 0;
+  const prior = input.afterRefusal?.imagesRequested ?? 0;
+  if (!Number.isInteger(prior) || prior < 0 || prior >= maxImages) {
+    throw new Error(`runArtworkStage: ${prior} earlier images leave no budget`);
+  }
+  let images = prior;
   const validationFailures: ArtworkValidationFailure[] = [];
 
   async function paint(): Promise<Painted> {
@@ -343,12 +356,13 @@ export async function runArtworkStage(
     return { kind: "valid", image, art, decoded: check.decoded };
   }
 
-  // The artwork, with its one validation regeneration.
-  let artRegenerated: ArtworkTelemetry["artRegenerated"] = null;
+  // The artwork, with its one validation regeneration (already spent after a refusal).
+  let artRegenerated: ArtworkTelemetry["artRegenerated"] = prior > 0 ? "provider-refusal" : null;
   let first: Extract<Painted, { kind: "valid" }> | null = null;
   while (first === null) {
     const painted = await paint();
     if (painted.kind === "refused") {
+      // After an earlier refusal this is the second: the orchestration fails visibly.
       throw new ArtworkProviderRefusalError(images, { cause: painted.error });
     }
     if (painted.kind === "error") {
@@ -362,9 +376,11 @@ export async function runArtworkStage(
         throw new GenerationStageError(
           "artwork",
           "artwork_invalid",
-          `The artwork failed validation twice (${validationFailures
-            .map((f) => f.reasons.join("+"))
-            .join(", ")}).`,
+          prior > 0
+            ? `The artwork after a provider refusal failed validation (${painted.failure.reasons.join("+")}).`
+            : `The artwork failed validation twice (${validationFailures
+                .map((f) => f.reasons.join("+"))
+                .join(", ")}).`,
         );
       }
       artRegenerated = painted.failure.reasons[0];

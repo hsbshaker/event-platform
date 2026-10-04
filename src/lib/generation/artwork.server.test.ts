@@ -282,6 +282,49 @@ describe("validation: one regeneration, then a visible failure", () => {
     await expect(run()).rejects.toMatchObject({ code: "provider_refusal", imagesRequested: 2 });
   });
 
+  describe("after a provider refusal (spec.md §7.6): the re-prompted design's artwork", () => {
+    const AFTER: ArtworkStageInput = { ...INPUT, afterRefusal: { imagesRequested: 1 } };
+
+    it("is the refusal's regeneration, numbered after the refused image", async () => {
+      const result = await stage({ art: [CLEAN] }, AFTER).run();
+      expect(result.telemetry).toMatchObject({
+        imagesRequested: 2,
+        keptImage: 2,
+        artRegenerated: "provider-refusal",
+        artRepaints: 0,
+      });
+    });
+
+    it("fails visibly on a failed validation, with no second regeneration", async () => {
+      const { fake, run } = stage({ art: [NOT_PNG, CLEAN] }, AFTER);
+      await expect(run()).rejects.toMatchObject({ stage: "artwork", code: "artwork_invalid" });
+      expect(fake.calls.art).toHaveLength(1);
+    });
+
+    it("repaints within what is left of the same budget", async () => {
+      const { fake, run } = stage({ art: [BUSY, BUSY, BUSY] }, AFTER);
+      const result = await run();
+      expect(fake.calls.art).toHaveLength(2);
+      expect(result.telemetry).toMatchObject({ imagesRequested: 3, keptImage: 2, artRepaints: 1 });
+    });
+
+    it("reports a second refusal for the orchestration to fail visibly", async () => {
+      await expect(stage({ art: [refusal()] }, AFTER).run()).rejects.toMatchObject({
+        code: "provider_refusal",
+        imagesRequested: 2,
+      });
+    });
+
+    it("refuses a budget already spent, before any call", async () => {
+      const { fake, run } = stage(
+        { art: [CLEAN] },
+        { ...INPUT, afterRefusal: { imagesRequested: 1 + ARTWORK_LIMITS.extraImages } },
+      );
+      await expect(run()).rejects.toThrow(/leave no budget/);
+      expect(fake.calls.meters).toEqual([]);
+    });
+  });
+
   it("fails visibly on a provider failure, and passes a meter refusal through", async () => {
     await expect(stage({ art: [http500()] }).run()).rejects.toMatchObject({
       stage: "artwork",

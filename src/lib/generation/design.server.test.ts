@@ -350,4 +350,15 @@ describe("each re-prompt kind at most once (docs/model-contracts.md §5.3)", () 
     });
     expect(result.attempts[0].reprompt).toBe("provider-refusal");
   });
+
+  it("repeats the provider-refusal instruction on a later re-prompt", async () => {
+    const { fake, run } = stage([withWording("Brunch on Saturday"), DESIGN], {
+      providerRefusal: { feedback: "evoke the character's world" },
+    });
+    await run();
+    expect(fake.calls.design[1].reprompt).toMatchObject({ kind: "wording" });
+    expect(fake.calls.design[1].reprompt?.feedback).toContain(
+      "Keep to the earlier instruction: evoke the character's world",
+    );
+  });
 });
