@@ -339,7 +339,9 @@ from the **Google Fonts** library (`spec.md §20`).
   type- and size-checked before they are stored.
 - **Licences travel with the files.** Each stored family keeps its licence name and full licence
   text (`CardFont.licenseName`, `licenseText`, `spec.md §24`), as the SIL Open Font License
-  requires when the fonts are redistributed.
+  requires when the fonts are redistributed. The bundled files do the same on disk: each curated
+  family's `<Family>-OFL.txt` sits beside its files in `public/fonts/card/`, and Inter's beside the
+  link preview's copy in `src/lib/link-preview/fonts/` (`font-files.test.ts`).
 - **The editor is built on the card component, in the DOM.** The card's text is real, selectable,
   screen-reader-readable text (`docs/card-system.md §2.2`), and the editor must show exactly what
   guests see, so the editing surface is the same card component with selection, handles and guides

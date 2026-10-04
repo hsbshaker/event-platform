@@ -338,6 +338,11 @@ mechanism chosen in Phase 3 validation (`technology-decisions.md §8.1`): no emb
 content safety. A failure earns one regeneration; a second failure is a visible failure with
 retry. No template or stock fallback.
 
+An artwork that passes but would need the layout's legibility panel on the design's own shape —
+decided by ink resolution in code, never by a model — is repainted once from the same art prompt
+before the panel is used (`spec.md §7.8`). An artwork gets at most one extra image: the validation
+regeneration or the repaint, never both.
+
 A provider refusal of a brand or character homage is a failure whose regeneration comes from a
 `generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md
 §10`): the new brief evokes the character's world rather than its signature look
@@ -380,7 +385,7 @@ bounds and fact check. Model prose is never authorization.
 | Event Identity | ordinary transient retry | one repair retry, then visible failure | — |
 | Fact extraction | ordinary transient retry | one retry, then no prefill (host enters details) | — |
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
-| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output |
+| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output; an artwork that would need the legibility panel on the design's shape: one repaint, then the panel (one extra image at most) |
 
 There is no library, template or stock fallback for any call. A visible failure always offers a
 retry and never presents itself as a finished design.

@@ -297,6 +297,7 @@ host prompt + optional inspiration
   → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
   → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
+  → (if the design's shape needs a panel) repaint the artwork once, same art prompt; validate; resolve again
   → persist CardDesign + artwork + resolved ink    immutable
   → reveal the card
 ```
@@ -319,6 +320,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
+| `generateCardArt` | the artwork passes validation but the design's own shape would need the legibility panel (§4.2): the picture has run into the text area | the panel is used (owner decision, 2026-10-04). The repaint comes from the same art prompt; an artwork gets at most one extra image, a validation regeneration or this repaint, never both |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it

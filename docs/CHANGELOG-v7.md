@@ -309,7 +309,7 @@ circles. Two decisions by the owner (2026-10-04):
   every detail. Painted from the earlier artwork as a reference, the switches first kept the
   subject at its old size (three of four needed the backing panel); the switch prompt now tells
   the image model to make the subject smaller where the composition gives it less of the card,
-  and one of four needed it. The owner's verdict on those cards is pending.
+  and one of four needed it. The owner judged all six sendable (below).
 - **Square frames and corners** keep their text in a 260–740 band; their composition now names
   the middle 50% of the height to match.
 - **Card text rendering.** `text-rendering: geometricPrecision` on card text: Chromium hints small
@@ -334,6 +334,27 @@ circles. Two decisions by the owner (2026-10-04):
   (DOM/CSS and SVG) and could drift, and the fixture is what catches it. Updated: `spec.md §11.10`,
   §20 "One component", the §31 "One card component" criterion and §32 guardrail #26;
   `card-system.md §6.1` and §6.4; `design-system.md §10.14` and §15.7; `screen-spec.md`.
+
+### Phase 4 close-out — owner decisions (2026-10-04)
+
+- **The six re-checked cards: sendable.** The owner would send each. A few small overlaps of text
+  and picture are acceptable because the host can nudge a text box in the card editor (Phase 6b).
+  `card_art_v2` is still re-checked on the full corpus before the first real card (Phase 5).
+- **One repaint before a panel: yes.** An artwork that passes validation but would need the
+  legibility panel on the design's own shape is repainted once from the same art prompt, and the
+  panel is used only if the repaint needs it too. Code decides from ink resolution; at most one
+  extra image per artwork (a validation regeneration or the repaint, never both); about 6¢ and
+  30 s on the cards that need it. Small overlaps that leave the text legible without a panel do
+  not trigger it. Updated: `spec.md §7.8`, §7.9, §9.5, §10, a §31 criterion and guardrail #20;
+  `card-system.md §3`; `model-contracts.md §7.3` and §9.
+- **Wider font coverage: Latin Extended and Vietnamese, in Phase 10.** Greek, Cyrillic and other
+  scripts later.
+- **Spend limits for the test period:** a $20/day ceiling across all generation, at most 30
+  generations per event per day and 60 per acting host per day (`spec.md §10`; built first in
+  Phase 5). The owner has set a monthly budget on the OpenAI account as a backstop.
+- **The dev-fixture routes on Vercel previews:** approved, to confirm on a real deployment that the
+  fonts are bundled. `ENABLE_DEV_FIXTURES=1` is set for the Preview environment only.
+- **Phase 5:** waits for the owner's go-ahead.
 
 ## Still open
 
