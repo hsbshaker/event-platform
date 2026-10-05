@@ -30,6 +30,14 @@ import { EventUnavailable } from "./EventUnavailable";
  * yet goes to the wait that makes it.
  */
 
+/**
+ * The Design panel's shape control starts a generation (`switchCardShape`) that runs after its
+ * response, within this page's `maxDuration` (Server Actions take the timeout of the page that
+ * invokes them): 300 s is `GENERATION_MAX_DURATION_SECONDS`, as on the create and direction pages;
+ * a literal, because route segment config is read statically.
+ */
+export const maxDuration = 300;
+
 const CARD_WIDTH = {
   "5:7": "min(100%, calc(var(--width-narrow) * 0.86))",
   "1:1": "min(100%, calc(var(--width-narrow) * 1.05))",

@@ -17,7 +17,7 @@ import {
  * `docs/card-system.md §7`).
  *
  * The page that invokes `switchCardShape` must declare `export const maxDuration = 300`
- * (`GENERATION_MAX_DURATION_SECONDS`), as `src/app/events/[id]/create/page.tsx` does: Server
+ * (`GENERATION_MAX_DURATION_SECONDS`), as `src/app/events/[id]/page.tsx` (the Design panel) does: Server
  * Actions take the timeout of the page that invokes them, and a shape switch that needs new
  * artwork runs its generation after the response within it.
  */

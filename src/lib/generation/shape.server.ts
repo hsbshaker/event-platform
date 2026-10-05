@@ -192,7 +192,9 @@ export async function switchActiveCardShape(input: {
         throw new Error("start_generation answered designed for a shape switch");
     }
   }
-  throw new Error("The card kept changing while its shape was being switched.");
+  // The card kept changing under the switch (designs chosen, artwork made meanwhile): another
+  // change is under way, so the host is asked to try again in a moment.
+  return result("busy");
 }
 
 export interface CardShapeOption {

@@ -664,6 +664,31 @@ circles. Two decisions by the owner (2026-10-04):
   `e2e-workflow.md` H05; `card-system.md` §1, §3, §4.1, §7; `model-contracts.md` §5.1–§5.5, §7.2;
   `development-plan.md`.
 
+### Phase 5d — shape switches and one card at a time (build decisions, 2026-10-05; for the owner to confirm)
+
+Made while building, overnight, each the one reading consistent with rules already decided; listed
+here so the owner can overturn any of them.
+
+- **A shape switch's provider refusal fails visibly, with no re-prompt.** A shape switch paints new
+  artwork for the existing design from its own brief. The design is immutable (§32 #27), and a
+  re-prompt would make a new design, while a switch changes the shape only. So the copyright step-back
+  of a new card does not apply: the host sees "We couldn't make that shape …" with Try again, and
+  the card stays as it is.
+- **One card at a time, honestly.** `spec.md §10` allows one generation in flight per event. A
+  `Try another direction` or a shape switch that meets a *different* generation in flight is told
+  "Another card is being made" with Try again. It is never shown the other card as its own result;
+  only the same request (a retry after a lost answer) waits on the one in flight.
+- **A design from before rendering families keeps only the shapes its artwork already fits.** Its
+  brief lacks what painting now needs, so new artwork is never offered for it. It can still be
+  changed through `Try another direction`.
+- **A shape switch's telemetry** records only the artwork's part, plus the shape asked for, the
+  reference artwork's shape and the shapes the new artwork fits (`spec.md §9.5`).
+- **When the new shape's artwork lands, the card moves to that shape** if its design is still the
+  active one and the event is unpublished, even if the host switched to another instant shape
+  meanwhile.
+- **Updated:** `spec.md` §7.6, §9.5, §31 (Card design, artwork and compiler); `card-system.md` §3,
+  §5; `screen-spec.md` `generation`, `try-another-direction`; `development-plan.md`.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

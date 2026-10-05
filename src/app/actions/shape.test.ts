@@ -304,10 +304,11 @@ describe("switchCardShape", () => {
     expect(scheduled).toEqual([]);
   });
 
-  it("gives up, with an error, on a card that keeps changing", async () => {
+  it("answers busy, starting nothing, for a card that keeps changing", async () => {
     admin.fake.state.rpcAnswers.switch_card_shape = "not_active";
-    await expect(switchCardShape(INPUT)).rejects.toThrow(/kept changing/);
+    expect(await switchCardShape(INPUT)).toEqual({ outcome: "busy", generationId: null });
     expect(admin.fake.rpc("switch_card_shape")).toHaveLength(SWITCH_ATTEMPTS);
+    expect(admin.fake.rpc("start_generation")).toEqual([]);
   });
 
   it("validates its input before anything else", async () => {

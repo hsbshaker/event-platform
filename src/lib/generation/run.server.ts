@@ -1511,7 +1511,7 @@ async function loadArtwork(
     .order("created_at", { ascending: false });
   if (error) throw error;
   const asset = (data ?? []).find((a) => a.fits_shapes.includes(shape));
-  if (!asset) throw new Error(`The changed design has no artwork for the ${shape} card.`);
+  if (!asset) throw new Error(`The design has no artwork for the ${shape} card.`);
   const { data: blob, error: downloadError } = await admin.storage
     .from(CARD_ART_BUCKET)
     .download(asset.storage_key);

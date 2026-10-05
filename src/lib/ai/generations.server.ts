@@ -82,6 +82,8 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
   // Refused before anything is consumed: with the kill switch off no generation starts.
   if (!config.enabled) throw new GenerationDisabledError();
   // The session's own collaborator on this event, before the published check in SQL as well.
+  // Every kind needs the same capability: an owner or co-host, before publish (a shape switch's
+  // new artwork included, spec.md §8.2).
   const { user } = await requireEventAccess(input.eventId, "try_another_direction");
   const userId = user.id;
   const { data, error } = await createAdminClient().rpc("start_generation", {
