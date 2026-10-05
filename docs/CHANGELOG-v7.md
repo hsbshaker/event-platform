@@ -555,7 +555,8 @@ circles. Two decisions by the owner (2026-10-04):
   record label" — however firmly they said "no lettering" — and a 3D Ralph Lauren-style bear in a
   sweater, to which the image model adds the brand's mark. The design prompt now describes only
   the look of a lettered object ("flowing coastline contours", never "a map"), and a brand homage's
-  clothing as plain and unbranded. Seven seeds image models letter (lanterns, boats, balloons, a
+  clothing — and any manufactured thing that carries a maker's mark, such as an instrument — as
+  plain and unbranded (CU-13's photographed saxophone came back with a maker's logo on its bell). Seven seeds image models letter (lanterns, boats, balloons, a
   carousel, a snow globe) were swapped for others. Telemetry records `lineAreasFallback`, the
   shapes judged on the whole zone alone.
 - **Versions:** `card_compiler_v4`; `event_identity_v6` and `card_design_v3` gain the seed and the

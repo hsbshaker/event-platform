@@ -132,7 +132,9 @@ must stand on its own.
   paper disc", not "a record label". The more photographic the rendering, the more this matters.
 - A close homage to a brand's character or look describes its clothing and objects as plain and
   unbranded — no emblem, badge, patch, embroidered motif or monogram on a chest, cuff or collar —
-  because image models add a brand's mark to its signature look.
+  because image models add a brand's mark to its signature look. The same holds for manufactured
+  things that carry a maker's mark in real life — instruments, watches, cameras, cars, shoes: say
+  "unbranded and unengraved", or the picture comes back with a logo.
 - `rendering`: one family from the runtime `renderings` catalog. Do not default to watercolour,
   painterly or hand-drawn imagery. Treat rendering as an intentional design decision based on the
   event, the desired atmosphere, the audience and the aesthetic. Choose ONE rendering, and
