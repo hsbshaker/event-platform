@@ -343,7 +343,7 @@ describe("the happy path", () => {
         designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v3",
         compiler: "card_compiler_v4",
-        artPrompt: "card_art_v3",
+        artPrompt: "card_art_v4",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       p_standard_wording_slots: [],
@@ -355,7 +355,7 @@ describe("the happy path", () => {
       p_proportion: "portrait_5_7",
       p_fits_shapes: [...fitsShapes("illustration", "art-top", "rectangle")],
       p_image_model: "gpt-image-2.5-sunburst-2026-09-08",
-      p_art_prompt_version: "card_art_v3",
+      p_art_prompt_version: "card_art_v4",
     });
     expect(Object.keys(args.p_ink as object).sort()).toEqual(
       [...fitsShapes("illustration", "art-top", "rectangle")].sort(),
@@ -378,7 +378,7 @@ describe("the happy path", () => {
         designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v3",
         compiler: "card_compiler_v4",
-        artPrompt: "card_art_v3",
+        artPrompt: "card_art_v4",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       latency: { identityMs: 0, designMs: 0, artMs: 0, totalMs: 0 },

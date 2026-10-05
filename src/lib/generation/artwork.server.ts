@@ -413,11 +413,14 @@ export async function runArtworkStage(
   let images = prior;
   const validationFailures: ArtworkValidationFailure[] = [];
 
-  async function paint(): Promise<Painted> {
+  // A repaint follows a picture that ran into the words' area: its prompt says what to keep clear.
+  async function paint(repaint = false): Promise<Painted> {
     const image = images + 1;
     let art: CardArt;
     try {
-      art = (await ctx.provider.generateCardArt(ctx.meter, request)).output;
+      art = (
+        await ctx.provider.generateCardArt(ctx.meter, repaint ? { ...request, repaint } : request)
+      ).output;
       images = image;
     } catch (error) {
       // A meter refusal made no request, so it spends no image.
@@ -501,7 +504,7 @@ export async function runArtworkStage(
   while (needsPanel(keptInk, shape) && images < maxImages) {
     let painted: Painted;
     try {
-      painted = await paint();
+      painted = await paint(true);
     } catch (error) {
       if (!(error instanceof ModelCallRefusedError)) throw error;
       repaintsStoppedBy = error.reason;

@@ -150,6 +150,20 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
 }
 
 /**
+ * The line a repaint adds (`card_art_v4`; owner decision, 2026-10-05). A repaint follows an
+ * artwork whose picture ran into the area the words need (`docs/card-system.md §3`); repeating the
+ * identical prompt tended to repeat the composition (round three: a giraffe's head under the title
+ * in all three images), so the repaint says plainly what to keep clear.
+ */
+export const REPAINT_COMPOSITION =
+  "The previous attempt let the picture run into the calm area kept for the words. This time keep the whole subject — including anything tall or reaching, such as a neck, a branch, a tower or a wave — entirely outside that calm area, with clear space between them: the calm area holds only background.";
+
+/** An art prompt as a repaint sends it: the same prompt, with `REPAINT_COMPOSITION` added. */
+export function withRepaintComposition(prompt: string): string {
+  return `${prompt}\n${REPAINT_COMPOSITION}`;
+}
+
+/**
  * The prompt for regenerating a design's artwork at another shape, with the design's own earlier
  * artwork sent as the reference image (the only image the image model may receive).
  * The target shape must be one the design's layout supports: the host is never offered a shape

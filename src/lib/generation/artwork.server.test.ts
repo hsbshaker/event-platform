@@ -460,8 +460,10 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     const { fake, run } = stage({ art: [BUSY, CLEAN, BUSY] });
     const result = await run();
     expect(fake.calls.art).toHaveLength(2);
-    // Every repaint is the same request: same brief, same shape.
-    expect(fake.calls.art[1]).toEqual(fake.calls.art[0]);
+    // A repaint is the same request — same brief, same shape — marked as a repaint, so its prompt
+    // says what to keep clear of the words (card_art_v4); the first image is not.
+    expect(fake.calls.art[0]).not.toHaveProperty("repaint");
+    expect(fake.calls.art[1]).toEqual({ ...fake.calls.art[0], repaint: true });
     expect(result.telemetry).toMatchObject({
       imagesRequested: 2,
       keptImage: 2,
@@ -572,6 +574,8 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     const { fake, run } = stage({ art: [NOT_PNG, BUSY, BUSY, CLEAN] });
     const result = await run();
     expect(fake.calls.art).toHaveLength(3);
+    // The validation regeneration repeats the request; only the repaint is marked as one.
+    expect(fake.calls.art.map((c) => c.repaint ?? false)).toEqual([false, false, true]);
     expect(result.telemetry).toMatchObject({
       imagesRequested: 3,
       keptImage: 2,
@@ -649,6 +653,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     const result = await run();
     expect(fake.calls.art).toHaveLength(2);
     expect(fake.calls.art.every((c) => c.reference === CLEAN)).toBe(true);
+    expect(fake.calls.art[1].repaint).toBe(true);
     expect(result.telemetry).toMatchObject({ keptImage: 2, artRepaints: 1 });
   });
 });

@@ -7,6 +7,8 @@ import {
   CARD_ART_PROMPT_VERSION,
   cropShapeFor,
   fitsShapes,
+  REPAINT_COMPOSITION,
+  withRepaintComposition,
 } from "./art-prompt";
 import { ART_MODE_FIT, ART_MODES } from "./art-modes";
 import type { CardDesign } from "./design";
@@ -41,9 +43,9 @@ const ALWAYS = [
 const CORNER_LINE =
   "The trimming is done later by the printer: carry the background all the way into every corner and edge of the canvas. Do not draw the outline itself, a vignette, a border line or blank corners.";
 
-describe("card_art_v3", () => {
+describe("card_art_v4", () => {
   it("is versioned", () => {
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v3");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v4");
     expect(ART_RASTER_SIZE).toEqual({ "5:7": "1440x2016", "1:1": "1440x1440" });
   });
 
@@ -337,5 +339,16 @@ describe("brief fields in the prompt", () => {
     expect(prompt).toContain("Texture: Matte paper grain. Mood: Quietly celebratory.");
     expect(prompt).toContain("Palette: Navy and brown (#172638, #735039, #E7DDCA).");
     expect(prompt).toContain("the same heirloom teddy bear — rearranged");
+  });
+});
+
+describe("the repaint composition line (card_art_v4, owner decision 2026-10-05)", () => {
+  it("adds one line to the prompt, after everything else", () => {
+    const prompt = "line one\nline two";
+    expect(withRepaintComposition(prompt)).toBe(`${prompt}\n${REPAINT_COMPOSITION}`);
+    expect(REPAINT_COMPOSITION).toMatch(/calm area kept for the words/);
+    expect(REPAINT_COMPOSITION).not.toMatch(
+      /\b(text|letters?|words?) (in|on) the (image|picture)\b/i,
+    );
   });
 });

@@ -20,6 +20,7 @@ import {
   ART_RASTER_SIZE,
   assembleArtPrompt,
   assembleShapeSwitchPrompt,
+  withRepaintComposition,
 } from "@/lib/card/art-prompt";
 import { CARD_LAYOUTS, CARD_LAYOUT_IDS } from "@/lib/card/layouts";
 import { RENDERING_DESCRIPTION } from "@/lib/card/renderings";
@@ -282,15 +283,16 @@ export function cardArtRequest(input: GenerateCardArtInput): ArtRequest {
     output_format: "png" as const,
     background: "opaque" as const,
   };
+  const repaint = (prompt: string) => (input.repaint ? withRepaintComposition(prompt) : prompt);
   if (input.reference) {
     return {
       endpoint: "images/edits",
       ...base,
-      prompt: assembleShapeSwitchPrompt(design, input.shape),
+      prompt: repaint(assembleShapeSwitchPrompt(design, input.shape)),
       reference: input.reference,
     };
   }
-  return { endpoint: "images/generations", ...base, prompt: assembleArtPrompt(design) };
+  return { endpoint: "images/generations", ...base, prompt: repaint(assembleArtPrompt(design)) };
 }
 
 /** `omni-moderation-latest` on the artwork alone. */

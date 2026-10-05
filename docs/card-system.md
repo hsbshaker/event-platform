@@ -116,15 +116,21 @@ Bottom to top:
 
 1. **Artwork** — the generated image, full bleed at the shape's proportion, masked to the shape's
    outline.
-2. **Legibility panel** (optional) — a soft paper panel, defined by the layout, placed behind a text
-   zone only when the ink rules of §4.2 require it. Its colour is derived from the artwork.
+2. **Legibility panel** (optional) — paper in a colour derived from the artwork, defined by the
+   layout, behind a text zone only when the ink rules of §4.2 require it: opaque over the whole
+   zone, then fading into the artwork (`card_layouts_v3`, owner decisions 2026-10-05). Where the
+   words sit at one end of the card (`art-top`, `art-bottom`) it runs the card's full width from
+   that edge and fades over 180 card units toward the picture, so the sky or background reads as
+   turning to paper; where they sit in the middle (`framed`, `corners`, `atmosphere`) it is the
+   padded zone with a 70-unit feather. The fade is eased, in one colour. `card_layouts_v2` drew a
+   rounded box with a soft shadow edge; artwork persisted with it keeps that panel.
 3. **Text** — live text in the layout's zones, in the design's typography pairing and the resolved
    ink colour.
 
 The card's text is real, selectable, screen-reader-readable text. The artwork is decorative
 (`alt=""`); everything a guest needs is in the text and on the page below.
 
-## 2.3 Layout set (`card_layouts_v2`)
+## 2.3 Layout set (`card_layouts_v3`)
 
 A **layout** says where text goes and, in return, where the artwork must leave calm space. Each
 layout declares the shapes it supports, and for each of them defines:
@@ -132,7 +138,7 @@ layout declares the shapes it supports, and for each of them defines:
 - its text zones, as rectangles in card units inside the shape's text-safe area, and which slots
   (§2.5) each zone holds, in order;
 - alignment per zone;
-- size range (maximum and minimum, in card units) and maximum lines per slot (in `card_layouts_v2`
+- size range (maximum and minimum, in card units) and maximum lines per slot (since `card_layouts_v2`
   one slot-spec table serves every layout and shape: `src/lib/card/layouts.ts`);
 - the character limit per slot that guarantees fit for every pairing **and every shape the layout
   supports** (§4.3), so switching shape can never make accepted text stop fitting;
@@ -142,12 +148,14 @@ layout declares the shapes it supports, and for each of them defines:
   example, substantial clusters in two corners, or a subject filling the upper half). Told only
   where to stay out, image models over-correct into a few token props on an empty field, which reads
   unfinished; the layout states the presence it wants as well as the space it reserves;
-- its legibility-panel shape, used only when §4.2 needs it.
+- its legibility panel — padding and fade (an edge fade from the top or bottom, or a wash) — used
+  only when §4.2 needs it.
 
 The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`) was `card_layouts_v1`.
 `card_layouts_v2` carries the owner's Phase 4 fit decisions (`CHANGELOG-v7.md`, "Phase 4 — fitting
 every detail on every card"), proven by the layout fixtures (§9) with every slot at its limit; no
-card was made from `card_layouts_v1`. The geometry, bands, composition and presence rules are
+card was made from `card_layouts_v1`. `card_layouts_v3` changes only the panel (owner verdict on
+CU-08, 2026-10-05: a box over the picture read as a hard edge); v2 panels render unchanged. The geometry, bands, composition and presence rules are
 product code in `src/lib/card/layouts.ts` and `src/lib/card/shapes.ts`:
 
 | Layout | Text | Artwork | Shapes | Art modes |
@@ -182,7 +190,7 @@ a circle); a layout's supported shapes are part of the set and are validated (§
 Layouts are chosen by the card-design model call from this catalog by ID; the catalog given to the
 model at runtime is built from `layouts.ts`, as the validator that checks its choice is. The
 catalog — layouts, their per-shape zones, bands, art instructions and limits, and the six shapes'
-outlines — is versioned together (`card_layouts_v2`); adding or changing a layout or a shape is a
+outlines — is versioned together (`card_layouts_v3`); adding or changing a layout or a shape is a
 version bump and re-runs the layout fixtures (§9). Layouts are never shown to the host as a gallery
 and the host does not pick one.
 
@@ -204,7 +212,7 @@ Mode/layout compatibility is part of the layout set and is validated (§4.1).
 artwork is made (`artBrief.rendering`) and, separately, an aesthetic mood in a word or two
 (`artBrief.aesthetic`: modern, romantic, luxury, preppy, whimsical …), both `card_design_schema_v2`
 (owner decisions, 2026-10-04). Code turns them into the art prompt's `Rendering:` line, just before
-the brief's medium (`src/lib/card/renderings.ts`, `card_art_v3`). Watercolour is one direction
+the brief's medium (`src/lib/card/renderings.ts`, since `card_art_v3`). Watercolour is one direction
 among nine, never a reflex, and cards vary actively: the orchestration draws a suggested rendering
 at random from those the event's earlier directions have not used (`suggestRendering`), and the
 design follows it unless the identity carries an explicit style signal from the host pointing to
@@ -236,7 +244,7 @@ artwork fits. A photograph made by the image model is generated artwork, not sto
 | `framed`, `minimal` | only the shape it was generated for | Borders, frames and wreaths follow the outline; a rectangular border cut into an oval looks wrong |
 
 An artwork painted to keep one region quiet never fits a shape whose words need another. So in
-`card_layouts_v2` the fit sets of `illustration` and `atmosphere` art are:
+`card_layouts_v2` and `v3` the fit sets of `illustration` and `atmosphere` art are:
 
 | Layout | 5:7 | 1:1 |
 | --- | --- | --- |
@@ -280,7 +288,7 @@ Rules:
   confirmation; placeholders are never published (`spec.md §7.3`).
 - **Slot limits** are part of the layout set and are enforced at entry, so real content always fits
   (§4.3 states the one exception: deliberately wide text within the limits).
-  In `card_layouts_v2`: title 40 characters, invitation line 72, baby name 40, hosts 60, venue 60.
+  Since `card_layouts_v2`: title 40 characters, invitation line 72, baby name 40, hosts 60, venue 60.
   The date, time and RSVP-by are formatted by code (`src/lib/card/facts.ts`) and are at most 23
   ("Wednesday, September 30"), 19 ("10:00 pm – 11:00 pm") and 20 ("RSVP by September 30")
   characters.
@@ -341,7 +349,7 @@ host prompt + optional inspiration
   → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
   → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
-  → (while its shape needs a panel) repaint, same art prompt; validate; resolve again — two extra images at most
+  → (while its shape needs a panel) repaint: same art prompt + what to keep clear; validate; resolve again — two extra images at most
   → persist CardDesign + artwork + resolved ink    immutable
   → reveal the card
 ```
@@ -364,7 +372,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
-| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) would need the legibility panel (§4.2): the picture has run into the text area | repainted from the same art prompt (a switch keeps its reference) until an artwork needs no panel, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept with the panel; a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
+| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) would need the legibility panel (§4.2): the picture has run into the text area | repainted from the same art prompt plus one line saying what to keep clear of the words (`card_art_v4`, owner decision 2026-10-05; a switch keeps its reference) until an artwork needs no panel, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept with the panel; a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it
@@ -626,7 +634,7 @@ Recorded on every `CardDesign` and generation run (`src/lib/ai/versions.ts`):
 EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
-CARD_LAYOUT_SET_VERSION        // card_layouts_v2: layouts, per-shape zones and art instructions, slot specs and limits, shape outlines
+CARD_LAYOUT_SET_VERSION        // card_layouts_v3: layouts, per-shape zones and art instructions, slot specs and limits, shape outlines
 CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard's sizing steps, line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```

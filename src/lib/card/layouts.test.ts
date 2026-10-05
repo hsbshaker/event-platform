@@ -192,7 +192,7 @@ describe("layout set card_layouts_v3", () => {
   it("fades the panel by layout: from the words' end of the card, or a wash around them", () => {
     const fromTop = { kind: "edge", from: "top", length: 180 };
     const fromBottom = { kind: "edge", from: "bottom", length: 180 };
-    const wash = { kind: "wash", feather: 140 };
+    const wash = { kind: "wash", feather: 70 };
     const want = {
       "art-top": fromBottom,
       "art-bottom": fromTop,

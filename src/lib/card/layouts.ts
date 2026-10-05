@@ -124,11 +124,13 @@ export interface PanelSpec {
  * Fade lengths, card units. `edge`: 180, about an eighth of a 5:7 card's height. The opaque paper
  * ends at the boundary of the region the composition keeps clear or up to 10 units inside it, so
  * the fade runs 170–180 units into the picture's part of the card: long enough to read as the sky
- * or background turning to paper, short enough to leave most of the subject. `wash`: 140, enough
- * that no edge is seen, while reaching only the inner edge of a frame or corner cluster.
+ * or background turning to paper, short enough to leave most of the subject. `wash`: 70 (owner
+ * decision, 2026-10-05, from 140, 100 and 70 rendered on round-three cards): on a dark frame a
+ * wider feather reads as fog over the knit and the subject, while 70 keeps the frame crisp and
+ * still reads as soft light on a light one.
  */
 const EDGE_FADE_LENGTH = 180;
-const WASH_FEATHER = 140;
+const WASH_FEATHER = 70;
 
 /** Words above, picture below: paper from the top edge down, fading toward the picture. */
 const PANEL_FROM_TOP: PanelSpec = {
