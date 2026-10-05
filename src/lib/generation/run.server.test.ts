@@ -341,7 +341,7 @@ describe("the happy path", () => {
       p_versions: {
         designPrompt: "card_design_v3",
         designSchema: "card_design_schema_v2",
-        layoutSet: "card_layouts_v2",
+        layoutSet: "card_layouts_v3",
         compiler: "card_compiler_v4",
         artPrompt: "card_art_v3",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
@@ -376,7 +376,7 @@ describe("the happy path", () => {
         identitySchema: "event_identity_schema_v5",
         designPrompt: "card_design_v3",
         designSchema: "card_design_schema_v2",
-        layoutSet: "card_layouts_v2",
+        layoutSet: "card_layouts_v3",
         compiler: "card_compiler_v4",
         artPrompt: "card_art_v3",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",

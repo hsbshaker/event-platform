@@ -1,5 +1,5 @@
 /**
- * The layout set `card_layouts_v2` (`docs/card-system.md §2.3`).
+ * The layout set `card_layouts_v3` (`docs/card-system.md §2.3`).
  *
  * `card_layouts_v1` was ported from the catalog validated in Phase 3 (`scripts/phase-3/catalog.mjs`),
  * with two fixes that landed before any card was made from it: `zoneFor` also checks the band's
@@ -13,7 +13,14 @@
  * - `framed` and `corners` take a 260–740 band on square cards, as `atmosphere` already did;
  * - free-text fact limits cover the baby name, hosts and venue only; the date, time and RSVP-by
  *   are formatted by code (`slots.ts`, `facts.ts`).
- * No card was made from `card_layouts_v1`, so the renderer carries `card_layouts_v2` only.
+ * No card was made from `card_layouts_v1`, so the renderer carries `card_layouts_v2` onward only.
+ *
+ * `card_layouts_v3` changes only the legibility panel (owner verdict on round-three CU-08,
+ * 2026-10-05: the panel read as a box laid over the picture): it fades into the artwork instead of
+ * ending at a soft-edged rounded rectangle (`PanelSpec.fade`). Bands, zones, composition and
+ * presence are those of `card_layouts_v2`. A panel persisted with `card_layouts_v2` artwork has no
+ * `fade` and is still drawn as it was (`card-data.ts`); persisted ink and panels are never
+ * re-resolved (`spec.md §32 #27`).
  *
  * A layout decides only where the words go and which regions the artwork leaves quiet. It is
  * never shown to hosts. Adding, removing or changing a layout, a supported shape or a band is a
@@ -80,29 +87,68 @@ export interface CardLayout {
 }
 
 /**
- * A layout's legibility-panel shape (`docs/card-system.md §2.2`, §2.3, §4.2): a rounded rectangle
- * around the text zone, in card units. Ported from the Phase 3 mock the owner judged
- * (`scripts/phase-3/compose.mjs`): the zone expanded by 40 across and 30 down, radius 28, with a
- * soft paper edge (the mock's `box-shadow: 0 0 40px 20px`). The mock drew the panel at 0.92
- * opacity; the product draws it opaque, because ink is resolved against the panel's own colour
- * (`resolveInk`) and contrast is only what was measured if nothing shows through behind the text.
+ * How a layout's legibility panel gives way to the picture (`card_layouts_v3`). The paper is the
+ * panel colour throughout, opaque over the panel's rectangle, then eased to transparent
+ * (`PANEL_FADE_STOPS`, `card-data.ts`):
+ *
+ * - `edge` — for words at one end of the card and the picture at the other: the paper runs the
+ *   card's full width from the edge named by `from` to the far side of the text zone (plus the
+ *   padding), then fades over `length` card units toward the picture, so the background blends
+ *   into paper rather than a box sitting on it;
+ * - `wash` — for words in the middle: the paper covers the zone plus the padding and feathers out
+ *   over `feather` card units on every side, with no visible boundary.
+ */
+export type PanelFade =
+  { kind: "edge"; from: "top" | "bottom"; length: number } | { kind: "wash"; feather: number };
+
+/**
+ * A layout's legibility-panel shape (`docs/card-system.md §2.2`, §2.3, §4.2), in card units. The
+ * opaque paper covers at least the text zone padded by `padX` across and `padY` down (the Phase 3
+ * mock's padding, `scripts/phase-3/compose.mjs`), then fades (`fade`). It is drawn opaque, because
+ * ink is resolved against the panel's own colour (`resolveInk`) and contrast is only what was
+ * measured if nothing shows through behind the text: every text of the zone sits on the opaque
+ * part (`layouts.test.ts`, the layout fixtures).
+ *
+ * `card_layouts_v2` drew the zone ± padding as a rounded rectangle (radius 28) with a soft edge
+ * (`box-shadow: 0 0 40 20`); panels persisted with it keep those fields and render unchanged.
  */
 export interface PanelSpec {
-  /** Padding beyond the zone on the left and right. */
+  /** Padding beyond the zone on the left and right (a `wash` panel; an `edge` spans the card). */
   padX: number;
   /** Padding beyond the zone above and below. */
   padY: number;
-  /** Corner radius. */
-  radius: number;
-  /** The soft edge outside the panel: the panel colour spread and blurred, fading to nothing. */
-  softEdge: { spread: number; blur: number };
+  fade: PanelFade;
 }
 
-const PHASE_3_PANEL: PanelSpec = {
+/**
+ * Fade lengths, card units. `edge`: 180, about an eighth of a 5:7 card's height. The opaque paper
+ * ends at the boundary of the region the composition keeps clear or up to 10 units inside it, so
+ * the fade runs 170–180 units into the picture's part of the card: long enough to read as the sky
+ * or background turning to paper, short enough to leave most of the subject. `wash`: 140, enough
+ * that no edge is seen, while reaching only the inner edge of a frame or corner cluster.
+ */
+const EDGE_FADE_LENGTH = 180;
+const WASH_FEATHER = 140;
+
+/** Words above, picture below: paper from the top edge down, fading toward the picture. */
+const PANEL_FROM_TOP: PanelSpec = {
   padX: 40,
   padY: 30,
-  radius: 28,
-  softEdge: { spread: 20, blur: 40 },
+  fade: { kind: "edge", from: "top", length: EDGE_FADE_LENGTH },
+};
+
+/** Picture above, words below: paper from the bottom edge up, fading toward the picture. */
+const PANEL_FROM_BOTTOM: PanelSpec = {
+  padX: 40,
+  padY: 30,
+  fade: { kind: "edge", from: "bottom", length: EDGE_FADE_LENGTH },
+};
+
+/** Words in the middle: the padded zone, feathered out on every side. */
+const PANEL_WASH: PanelSpec = {
+  padX: 40,
+  padY: 30,
+  fade: { kind: "wash", feather: WASH_FEATHER },
 };
 
 // Art instructions shared by several shapes. The half-card wording for a picture above or below
@@ -196,7 +242,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       oval: { band: band(600, 1180), ...PICTURE_ABOVE_40 },
       square: { band: band(440, 920), ...PICTURE_ABOVE_40 },
     },
-    panel: PHASE_3_PANEL,
+    panel: PANEL_FROM_BOTTOM,
   }),
   "art-bottom": defineLayout({
     purpose:
@@ -210,7 +256,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       oval: { band: band(220, 800), ...PICTURE_BELOW_40 },
       square: { band: band(80, 560), ...PICTURE_BELOW_40 },
     },
-    panel: PHASE_3_PANEL,
+    panel: PANEL_FROM_TOP,
   }),
   framed: defineLayout({
     purpose: "A border, wreath, garland or frame surrounds a quiet centre that holds the text.",
@@ -224,7 +270,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(260, 740), ...FRAME_SQUARE },
       circle: { band: band(260, 740), ...FRAME_SQUARE },
     },
-    panel: PHASE_3_PANEL,
+    panel: PANEL_WASH,
   }),
   corners: defineLayout({
     purpose: "Motifs cluster in the corners and along the edges; the centre stays open for text.",
@@ -235,7 +281,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "rounded-rectangle": { band: band(420, 980), ...CORNER_CLUSTERS },
       square: { band: band(260, 740), ...CORNER_CLUSTERS_SQUARE },
     },
-    panel: PHASE_3_PANEL,
+    panel: PANEL_WASH,
   }),
   atmosphere: defineLayout({
     purpose: "A soft full-bleed wash, scenery or texture carries the mood; no discrete subject.",
@@ -249,7 +295,7 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(260, 740), ...WASH },
       circle: { band: band(260, 740), ...WASH },
     },
-    panel: PHASE_3_PANEL,
+    panel: PANEL_WASH,
   }),
 };
 
@@ -275,7 +321,12 @@ export interface CardZone {
   height: number;
 }
 
-/** The legibility panel behind a zone: a rounded rectangle in card units, and its soft edge. */
+/**
+ * The legibility panel behind a zone, in card units: the rectangle the paper covers opaque, and
+ * how it fades (`fade`). A panel persisted with `card_layouts_v2` artwork has no `fade`: it is a
+ * rounded rectangle (`radius`) with a soft edge (`softEdge`, CSS `box-shadow: 0 0 blur spread`).
+ * A faded panel has neither: `radius` 0 and `softEdge` zero.
+ */
 export interface CardPanelShape {
   x: number;
   y: number;
@@ -283,24 +334,40 @@ export interface CardPanelShape {
   height: number;
   radius: number;
   softEdge: { spread: number; blur: number };
+  fade?: PanelFade;
 }
 
 /**
- * The legibility panel for the layout's zone in this shape: the zone expanded by the layout's
- * panel padding, kept within the canvas. Where the outline is curved the panel is clipped by the
- * outline, as everything on the card is: the renderer masks the whole card, panel included
- * (`outline.ts`). The zone lies in the shape's text-safe area, so the clipped panel still backs
- * all of it (`layouts.test.ts`).
+ * The legibility panel for the layout's zone in this shape, kept within the canvas: for an `edge`
+ * fade, the card's full width from the `from` edge to the zone's far side plus `padY`; for a
+ * `wash`, the zone expanded by the padding. The fade lies outside this rectangle and the text
+ * zone inside it. Where the outline is curved the panel is clipped by the outline, as everything
+ * on the card is: the renderer masks the whole card, panel included (`outline.ts`). The zone lies
+ * in the shape's text-safe area, so the clipped panel still backs all of it (`layouts.test.ts`).
  */
 export function panelFor(layout: CardLayoutId, shape: CardShape): CardPanelShape {
   const zone = zoneFor(layout, shape);
-  const { padX, padY, radius, softEdge } = CARD_LAYOUTS[layout].panel;
+  const { padX, padY, fade } = CARD_LAYOUTS[layout].panel;
   const canvas = CARD_CANVAS[SHAPE_PROPORTION[shape]];
-  const x0 = Math.max(0, zone.x - padX);
-  const y0 = Math.max(0, zone.y - padY);
-  const x1 = Math.min(canvas.width, zone.x + zone.width + padX);
-  const y1 = Math.min(canvas.height, zone.y + zone.height + padY);
-  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0, radius, softEdge: { ...softEdge } };
+  let x0 = Math.max(0, zone.x - padX);
+  let y0 = Math.max(0, zone.y - padY);
+  let x1 = Math.min(canvas.width, zone.x + zone.width + padX);
+  let y1 = Math.min(canvas.height, zone.y + zone.height + padY);
+  if (fade.kind === "edge") {
+    x0 = 0;
+    x1 = canvas.width;
+    if (fade.from === "top") y0 = 0;
+    else y1 = canvas.height;
+  }
+  return {
+    x: x0,
+    y: y0,
+    width: x1 - x0,
+    height: y1 - y0,
+    radius: 0,
+    softEdge: { spread: 0, blur: 0 },
+    fade: { ...fade },
+  };
 }
 
 /**
@@ -382,7 +449,7 @@ const DETAIL: SlotSpec = {
 };
 
 /**
- * The slot specs of `card_layouts_v2`, unchanged from `card_layouts_v1` (`docs/card-system.md
+ * The slot specs of `card_layouts_v3`, unchanged from `card_layouts_v1` (`docs/card-system.md
  * §2.3`): in this version one table
  * serves every layout and shape. They are layout-set data, so changing one is a
  * `CARD_LAYOUT_SET_VERSION` bump. From the Phase 3 mock: title 104 (5:7) or 92 (1:1) down to 48, line height 1.05,

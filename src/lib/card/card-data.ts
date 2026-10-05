@@ -11,12 +11,19 @@
 
 import { isCanonicalHex } from "./color";
 import type { CardRect } from "./ink";
+import type { PanelFade } from "./layouts";
 import { CARD_SHAPES, SHAPE_PROPORTION, type CardProportion, type CardShape } from "./shapes";
 import type { TextBox } from "./text-box";
 
 /**
  * A legibility panel behind a text zone (`layouts.ts` `panelFor`), in its resolved paper colour
- * (`ink.ts` `resolveInk`). Drawn opaque: the zone's ink was chosen against exactly this colour.
+ * (`ink.ts` `resolveInk`). Its rectangle is drawn opaque: the zone's ink was chosen against
+ * exactly this colour.
+ *
+ * Two forms, by the layout set the artwork was made with:
+ * - with `fade` (`card_layouts_v3`): the rectangle is the opaque paper, square-cornered, and the
+ *   paper fades out beyond it (`panelFeather`, `panelFadeAxis`); `radius` and `softEdge` are zero;
+ * - without (`card_layouts_v2`): a rounded rectangle with a soft edge, drawn as it always was.
  */
 export interface CardPanel extends CardRect {
   radius: number;
@@ -24,6 +31,73 @@ export interface CardPanel extends CardRect {
   softEdge: { spread: number; blur: number };
   /** `#RRGGBB`. */
   color: string;
+  /** How the paper fades into the artwork beyond the rectangle; absent on `card_layouts_v2`. */
+  fade?: PanelFade;
+}
+
+/**
+ * The fade's alpha by progress across it, from the opaque edge (`at` 0) to nothing (`at` 1):
+ * `(1 + cos πt) / 2` at every eighth. The curve leaves the opaque paper and reaches nothing with
+ * zero slope, so neither end of the fade draws a line, and nine stops keep the linear
+ * interpolation between them from showing as bands. Both renderers draw exactly these stops.
+ */
+export const PANEL_FADE_STOPS: readonly { at: number; alpha: number }[] = Array.from(
+  { length: 9 },
+  (_, i) => ({ at: i / 8, alpha: Math.round(((1 + Math.cos((Math.PI * i) / 8)) / 2) * 1e4) / 1e4 }),
+);
+
+/** How far a faded panel's paper reaches beyond its opaque rectangle on each side, card units. */
+export interface PanelFeather {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * The fade beyond each side of a panel's rectangle: an `edge` fade on the side away from its
+ * `from` edge only, a `wash` on every side. Zero everywhere for a panel without `fade`.
+ */
+export function panelFeather(panel: Pick<CardPanel, "fade">): PanelFeather {
+  const { fade } = panel;
+  if (!fade) return { top: 0, right: 0, bottom: 0, left: 0 };
+  if (fade.kind === "wash") {
+    const f = fade.feather;
+    return { top: f, right: f, bottom: f, left: f };
+  }
+  return fade.from === "top"
+    ? { top: 0, right: 0, bottom: fade.length, left: 0 }
+    : { top: fade.length, right: 0, bottom: 0, left: 0 };
+}
+
+/**
+ * The paper's alpha along one axis of a faded panel's drawn extent — `before` units fading in,
+ * `opaque` units of opaque paper, `after` units fading out — as gradient stops at offsets 0–1 of
+ * the whole extent. A side without a fade starts or ends opaque. The paper's alpha at a point is
+ * the product of its two axes' alphas, so a `wash` panel's corners round off softly.
+ */
+export function panelFadeAxis(
+  before: number,
+  opaque: number,
+  after: number,
+): { offset: number; alpha: number }[] {
+  const total = before + opaque + after;
+  const stops: { offset: number; alpha: number }[] = [];
+  if (before > 0) {
+    for (const s of [...PANEL_FADE_STOPS].reverse()) {
+      stops.push({ offset: (before * (1 - s.at)) / total, alpha: s.alpha });
+    }
+  } else {
+    stops.push({ offset: 0, alpha: 1 });
+  }
+  if (after > 0) {
+    for (const s of PANEL_FADE_STOPS) {
+      stops.push({ offset: (before + opaque + after * s.at) / total, alpha: s.alpha });
+    }
+  } else {
+    stops.push({ offset: 1, alpha: 1 });
+  }
+  return stops;
 }
 
 export class InvalidCardDataError extends Error {
@@ -93,6 +167,24 @@ function validatePanel(panel: CardPanel, index: number): void {
     `panel ${index}: invalid soft edge`,
   );
   check(isCanonicalHex(panel.color), `panel ${index}: colour is not #RRGGBB`);
+  if (panel.fade === undefined) return;
+  const fade = panel.fade as Partial<Record<string, unknown>> | null;
+  check(
+    typeof fade === "object" &&
+      fade !== null &&
+      ((fade.kind === "edge" &&
+        (fade.from === "top" || fade.from === "bottom") &&
+        finite(fade.length) &&
+        fade.length > 0) ||
+        (fade.kind === "wash" && finite(fade.feather) && fade.feather > 0)),
+    `panel ${index}: invalid fade`,
+  );
+  // A faded panel is drawn by its fade alone; a radius or soft edge would be a second, different
+  // edge that the two renderers would each have to guess how to combine.
+  check(
+    panel.radius === 0 && panel.softEdge.spread === 0 && panel.softEdge.blur === 0,
+    `panel ${index}: a faded panel has no radius or soft edge`,
+  );
 }
 
 export interface CardData {

@@ -39,6 +39,8 @@ import { preload } from "react-dom";
 
 import {
   InvalidCardDataError,
+  panelFadeAxis,
+  panelFeather,
   readingOrder,
   validateCardData,
   type CardPanel,
@@ -133,6 +135,79 @@ function boxStyle(box: TextBox): CSSProperties {
   };
 }
 
+/** A `card_layouts_v2` panel: an opaque rounded rectangle with a soft edge (`box-shadow`). */
+function roundedPanelStyle(panel: CardPanel): CSSProperties {
+  return {
+    position: "absolute",
+    left: cu(panel.x),
+    top: cu(panel.y),
+    width: cu(panel.width),
+    height: cu(panel.height),
+    borderRadius: cu(panel.radius),
+    background: panel.color,
+    opacity: 1,
+    boxShadow:
+      panel.softEdge.spread > 0 || panel.softEdge.blur > 0
+        ? `0 0 ${cu(panel.softEdge.blur)} ${cu(panel.softEdge.spread)} ${panel.color}`
+        : undefined,
+  };
+}
+
+/** `#RRGGBB` at an alpha, as a CSS colour. */
+function withAlpha(hex: string, alpha: number): string {
+  if (alpha >= 1) return hex;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgb(${r} ${g} ${b} / ${dec(alpha)})`;
+}
+
+/** A gradient along one axis of a faded panel (`panelFadeAxis`), in a colour. */
+function fadeGradient(
+  direction: "to bottom" | "to right",
+  stops: readonly { offset: number; alpha: number }[],
+  hex: string,
+): string {
+  const list = stops.map((s) => `${withAlpha(hex, s.alpha)} ${dec(s.offset * 100)}%`);
+  return `linear-gradient(${direction}, ${list.join(", ")})`;
+}
+
+/**
+ * A `card_layouts_v3` panel: one element over the opaque rectangle and its fade, filled with the
+ * panel colour whose alpha is the vertical fade (`background`) times the horizontal fade (`mask`,
+ * only where the panel fades sideways). Both are 1 across the rectangle, so it is opaque.
+ */
+function fadedPanelStyle(panel: CardPanel): CSSProperties {
+  const f = panelFeather(panel);
+  const width = f.left + panel.width + f.right;
+  const height = f.top + panel.height + f.bottom;
+  const mask =
+    f.left > 0 || f.right > 0
+      ? fadeGradient("to right", panelFadeAxis(f.left, panel.width, f.right), "#000000")
+      : undefined;
+  return {
+    position: "absolute",
+    left: cu(panel.x - f.left),
+    top: cu(panel.y - f.top),
+    width: cu(width),
+    height: cu(height),
+    background: fadeGradient(
+      "to bottom",
+      panelFadeAxis(f.top, panel.height, f.bottom),
+      panel.color,
+    ),
+    opacity: 1,
+    ...(mask
+      ? {
+          maskImage: mask,
+          maskSize: "100% 100%",
+          maskRepeat: "no-repeat",
+          WebkitMaskImage: mask,
+          WebkitMaskSize: "100% 100%",
+          WebkitMaskRepeat: "no-repeat",
+        }
+      : {}),
+  };
+}
+
 export function InvitationCard({ shape, artwork, panels = [], boxes }: InvitationCardProps) {
   const proportion = validateCardData({
     shape,
@@ -208,20 +283,7 @@ export function InvitationCard({ shape, artwork, panels = [], boxes }: Invitatio
             key={index}
             data-card-panel={index}
             aria-hidden="true"
-            style={{
-              position: "absolute",
-              left: cu(panel.x),
-              top: cu(panel.y),
-              width: cu(panel.width),
-              height: cu(panel.height),
-              borderRadius: cu(panel.radius),
-              background: panel.color,
-              opacity: 1,
-              boxShadow:
-                panel.softEdge.spread > 0 || panel.softEdge.blur > 0
-                  ? `0 0 ${cu(panel.softEdge.blur)} ${cu(panel.softEdge.spread)} ${panel.color}`
-                  : undefined,
-            }}
+            style={panel.fade ? fadedPanelStyle(panel) : roundedPanelStyle(panel)}
           />
         ))}
         <div

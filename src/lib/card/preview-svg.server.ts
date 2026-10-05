@@ -7,7 +7,9 @@
  * the same order:
  *
  * 1. the artwork, stretched to the canvas (`object-fit: fill`);
- * 2. each panel's soft edge (CSS `box-shadow: 0 0 blur spread`) and the opaque panel;
+ * 2. each panel: with a fade (`card_layouts_v3`), the opaque paper and its eased fade as gradients;
+ *    without (`card_layouts_v2`), its soft edge (CSS `box-shadow: 0 0 blur spread`) and the opaque
+ *    rounded rectangle;
  * 3. every box with lines, in paint order (`z`, then reading order), each stored line drawn as
  *    glyph outlines (`text/glyph-outlines.ts`) at the box's position, width, alignment, rotation
  *    about its centre, size, line height, letter spacing, case and colour;
@@ -20,7 +22,14 @@
 
 import "server-only";
 
-import { paintOrder, validateCardData, type CardPanel, InvalidCardDataError } from "./card-data";
+import {
+  paintOrder,
+  panelFadeAxis,
+  panelFeather,
+  validateCardData,
+  type CardPanel,
+  InvalidCardDataError,
+} from "./card-data";
 import { outlinePath } from "./outline";
 import { CARD_CANVAS, type CardProportion, type CardShape } from "./shapes";
 import type { TextBox } from "./text-box";
@@ -57,6 +66,11 @@ function n(value: number): string {
   return Object.is(r, -0) ? "0" : String(r);
 }
 
+/** Up to five decimals, for an alpha (as `InvitationCard` writes it). */
+function n5(value: number): string {
+  return String(Math.round(value * 100_000) / 100_000);
+}
+
 function attr(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -76,7 +90,54 @@ function spreadRadius(radius: number, spread: number): number {
   return radius + spread * (1 + (r - 1) ** 3);
 }
 
+/** Gradient stops (`panelFadeAxis`) in a colour, alpha as `stop-opacity`. */
+function fadeStops(stops: readonly { offset: number; alpha: number }[], color: string): string {
+  return stops
+    .map(
+      (s) =>
+        `<stop offset="${n(s.offset * 100)}%" stop-color="${color}"` +
+        (s.alpha >= 1 ? "" : ` stop-opacity="${n5(s.alpha)}"`) +
+        "/>",
+    )
+    .join("");
+}
+
+/**
+ * A `card_layouts_v3` panel, as `InvitationCard` draws it: a rectangle over the opaque paper and
+ * its fade, filled with the panel colour at the vertical fade's alpha, masked by the horizontal
+ * fade where the panel fades sideways. Gradients interpolate the same stops linearly in both.
+ */
+function fadedPanelSvg(panel: CardPanel, index: number): { defs: string; body: string } {
+  const f = panelFeather(panel);
+  const x0 = panel.x - f.left;
+  const y0 = panel.y - f.top;
+  const w = f.left + panel.width + f.right;
+  const h = f.top + panel.height + f.bottom;
+  const fillId = `card-panel-fade-${index}`;
+  let defs =
+    `<linearGradient id="${fillId}" gradientUnits="userSpaceOnUse" ` +
+    `x1="0" y1="${n(y0)}" x2="0" y2="${n(y0 + h)}">` +
+    fadeStops(panelFadeAxis(f.top, panel.height, f.bottom), panel.color) +
+    `</linearGradient>`;
+  let mask = "";
+  if (f.left > 0 || f.right > 0) {
+    const sideId = `card-panel-side-${index}`;
+    const maskId = `card-panel-mask-${index}`;
+    defs +=
+      `<linearGradient id="${sideId}" gradientUnits="userSpaceOnUse" ` +
+      `x1="${n(x0)}" y1="0" x2="${n(x0 + w)}" y2="0">` +
+      fadeStops(panelFadeAxis(f.left, panel.width, f.right), "#FFFFFF") +
+      `</linearGradient>` +
+      `<mask id="${maskId}" maskUnits="userSpaceOnUse" x="${n(x0)}" y="${n(y0)}" width="${n(w)}" height="${n(h)}">` +
+      `<rect x="${n(x0)}" y="${n(y0)}" width="${n(w)}" height="${n(h)}" fill="url(#${sideId})"/></mask>`;
+    mask = ` mask="url(#${maskId})"`;
+  }
+  const rect = `<rect x="${n(x0)}" y="${n(y0)}" width="${n(w)}" height="${n(h)}" fill="url(#${fillId})"${mask}/>`;
+  return { defs, body: `<g data-card-panel="${index}">${rect}</g>` };
+}
+
 function panelSvg(panel: CardPanel, index: number): { defs: string; body: string } {
+  if (panel.fade) return fadedPanelSvg(panel, index);
   const { x, y, width, height, radius, color } = panel;
   const { spread, blur } = panel.softEdge;
   const rect = `<rect x="${n(x)}" y="${n(y)}" width="${n(width)}" height="${n(height)}" rx="${n(radius)}" fill="${color}"/>`;
