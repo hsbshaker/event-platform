@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261012000000_cohost_invitations.sql.
+ * Hand-authored to match supabase/migrations/ through 20261013000000_card_editor_title.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -796,6 +796,18 @@ export type Database = {
           p_shape: CardShape;
           p_boxes: Json;
           p_expected_revision: number;
+        };
+        Returns: number;
+      };
+      /** 20261013000000_card_editor_title.sql: the save and `events.title`, in one transaction. */
+      save_card_customization_with_title: {
+        Args: {
+          p_event_id: string;
+          p_card_design_id: string;
+          p_shape: CardShape;
+          p_boxes: Json;
+          p_expected_revision: number;
+          p_title: string;
         };
         Returns: number;
       };

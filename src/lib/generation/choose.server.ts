@@ -3,7 +3,16 @@ import "server-only";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { can } from "@/lib/auth/permissions";
+import { CARD_SHAPES } from "@/lib/card/shapes";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+
+import {
+  activeCard,
+  carriedWords,
+  storeCarriedWordsAfterSwitch,
+  type CarriedWords,
+} from "./customization.server";
 
 /**
  * Choosing a design (`spec.md §7.11`, §7.14, §7.15 step 8, §8.2; `docs/card-system.md §5`): the
@@ -18,8 +27,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * that does not exist all read as `not_found`, so this never says whether an event exists
  * (`spec.md §27`).
  *
- * A host's card customization is not carried to the chosen design yet: the card editor that
- * creates customizations does not exist (`spec.md §20.6`).
+ * The host's words travel with the choice (`spec.md §20.6`; `docs/card-system.md §7`): when the
+ * chosen design has no customization in its own shape and the card being switched from (the active
+ * design in its active shape) has one, its title, invitation line and added text — with their
+ * fonts — are laid out fresh in the chosen design's layout and saved as its customization
+ * (`carriedWords`). They are laid out before the switch, so a failure leaves the active design as it
+ * was, and stored after it; every earlier customization is kept for switching back.
  */
 export type ChooseCardDesignResult =
   { ok: true } | { ok: false; reason: "published" | "not_found" };
@@ -40,13 +53,50 @@ export async function chooseCardDesign(
   if (!can(access.role, "choose_design", access.context)) return { ok: false, reason: "published" };
 
   // Authorized above for this event only; the function is service-role only.
-  const { data, error } = await createAdminClient().rpc("choose_card_design", {
+  const admin = createAdminClient();
+  const carried = await wordsToCarry(admin, eventId, designId, access.user.id);
+  const { data, error } = await admin.rpc("choose_card_design", {
     p_event_id: eventId,
     p_user_id: access.user.id,
     p_design_id: designId,
   });
   if (error) throw error;
-  if (data === "chosen") return { ok: true };
+  if (data === "chosen") {
+    // The design is chosen whatever happens to the carry, so the outcome says so.
+    if (carried) await storeCarriedWordsAfterSwitch(createClient, carried, "choose design");
+    return { ok: true };
+  }
   if (data === "published" || data === "not_found") return { ok: false, reason: data };
   throw new Error("choose_card_design returned no outcome");
+}
+
+/**
+ * The words to carry to `designId` in its own shape, from the active card; null for none. Read
+ * before `choose_card_design` takes the event's lock, so a collaborator's choice landing in between
+ * carries the words of the card active a moment earlier — a narrow race whose worst case is words
+ * from the previous card, never a lost or crossed customization (the store expects revision 0).
+ */
+async function wordsToCarry(
+  admin: ReturnType<typeof createAdminClient>,
+  eventId: string,
+  designId: string,
+  userId: string,
+): Promise<CarriedWords | null> {
+  const from = await activeCard(admin, eventId);
+  if (!from || from.designId === designId) return null;
+  const { data: design, error } = await admin
+    .from("card_designs")
+    .select("shape")
+    .eq("id", designId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!design || !CARD_SHAPES.includes(design.shape)) return null;
+  return carriedWords(admin, {
+    eventId,
+    userId,
+    from,
+    to: { designId, shape: design.shape },
+    now: new Date(),
+  });
 }

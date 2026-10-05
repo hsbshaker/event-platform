@@ -2,26 +2,31 @@ import "server-only";
 
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
-import { isCanonicalHex } from "@/lib/card/color";
-import { validateCardData, type CardPanel } from "@/lib/card/card-data";
-import type { PanelFade } from "@/lib/card/layouts";
-import {
-  effectiveCardTitle,
-  guestCardContent,
-  parsePromptFacts,
-  type PromptFactSlot,
-  type RevealCardContent,
-} from "@/lib/card/facts";
-import { CARD_LAYOUT_IDS, type CardLayoutId } from "@/lib/card/layouts";
-import { revealContentFor } from "@/lib/card/reveal-content.server";
+import { InvalidCardDataError, validateCardData, type CardPanel } from "@/lib/card/card-data";
+import { type PromptFactSlot } from "@/lib/card/facts";
 import { CARD_SHAPES, proportionOf, type CardProportion, type CardShape } from "@/lib/card/shapes";
 import type { TextBox } from "@/lib/card/text-box";
-import { TYPOGRAPHY_KEYS, type TypographyPairingId } from "@/lib/card/typography";
+import { parseStoredBoxes } from "@/lib/card/text-box-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Json } from "@/lib/supabase/database.types";
 
-import { TEXT_ZONE } from "./artwork.server";
-import { CARD_ART_BUCKET, REVEAL_EVENT_COLUMNS, type RevealEventRow } from "./run.server";
+import {
+  artworkFor,
+  CARD_ART_COLUMNS,
+  CARD_DESIGN_COLUMNS,
+  CARD_EVENT_COLUMNS,
+  designOf,
+  zoneInk,
+  type ArtRow,
+  type CardEventRow,
+  type DesignRow,
+} from "./card-record.server";
+import {
+  cardContents,
+  customizedText,
+  readCustomization,
+  type CustomizationRow,
+} from "./customization.server";
+import { CARD_ART_BUCKET } from "./run.server";
 
 /**
  * The revealed card (`spec.md §7.3`, §7.11, §7.15; `docs/screen-spec.md` `card-reveal`,
@@ -32,24 +37,42 @@ import { CARD_ART_BUCKET, REVEAL_EVENT_COLUMNS, type RevealEventRow } from "./ru
  *
  * For a signed-in owner or co-host (`view_event`; a member role is required, so never a guest). The
  * active design is drawn in its active shape (`events.active_card_shape`, else the design's own);
- * any other design in its own shape. Its artwork is the newest of the design's artworks that fits that shape (the
- * rule beside `card_art_assets` in the Phase 4 migration), served through a short-lived signed URL
- * from the private `card-art` bucket; the ink and legibility panel are the ones persisted with
- * that artwork for that shape, never re-resolved (`spec.md §32 #27`); the text is the generated
- * layer (`generatedTextLayer`) for the words `revealContentFor` gives — the design's wording with
- * the effective title, the host's stored facts, the facts the prompt states (as written) and the
- * placeholders — and `unconfirmed` names the boxes of the last two.
+ * any other design in its own shape. Its artwork is the newest of the design's artworks that fits
+ * that shape (the rule beside `card_art_assets` in the Phase 4 migration), served through a
+ * short-lived signed URL from the private `card-art` bucket; the ink and legibility panel are the
+ * ones persisted with that artwork for that shape, never re-resolved (`spec.md §32 #27`).
+ *
+ * The text (`docs/card-system.md §6.1`) is the host's customization of that design and shape when
+ * one exists (`spec.md §20.5`): its stored boxes, each drawn in its stored lines, with every linked
+ * box (the title, the facts) in lines that spell its current words (`customizedText`). Otherwise it
+ * is the generated layer (`generatedTextLayer`). Either way the words are `revealContentFor`'s — the
+ * design's wording with the effective title, the host's stored facts, the facts the prompt states
+ * (as written) and the placeholders — and `unconfirmed` names the boxes of the last two; for a
+ * guest (`audience: "guest"`, Preview) the saved words only, so a fact the host has not saved shows
+ * nothing.
+ *
+ * Stored boxes are untrusted: a customization that does not parse (`parseStoredBoxes`) is drawn as
+ * the generated layer, and `customization.unreadable` says so for the notice.
  *
  * Never returned: storage keys, the raw model output, the art brief, versions, telemetry or cost
- * (`spec.md §32 #42`). A stored record this cannot draw exactly as persisted throws rather than
- * rendering something else (`InvalidCardDataError`, `CardTextLayoutError`, or a plain error).
- *
- * Phase 5c serves the generated layer only: a host's `CardCustomization` is drawn once the card
- * editor exists (`spec.md §24`, "Effective render state").
+ * (`spec.md §32 #42`). A stored design record this cannot draw exactly as persisted throws rather
+ * than rendering something else (`InvalidCardDataError`, `CardTextLayoutError`, or a plain error).
  */
 
 /** How long the artwork's signed URL works, in seconds (as the inspiration previews'). */
 export const CARD_ART_SIGNED_URL_TTL_SECONDS = 300;
+
+/** The host's customization of the card shown (`spec.md §20.5`). */
+export interface ShownCustomization {
+  /** What the card editor's next save is based on (`saveCardCustomization`). */
+  revision: number;
+  updatedAt: string;
+  /**
+   * The stored boxes did not parse: the card shows its generated layout instead, and the editor
+   * says so (`docs/development-plan.md` 6b). A save replaces them.
+   */
+  unreadable: boolean;
+}
 
 export interface RevealedCard {
   /** The design shown (`getGenerationView` names the one a generation produced). */
@@ -81,6 +104,11 @@ export interface RevealedCard {
    * the card to show the same ones.
    */
   stated: Partial<Record<PromptFactSlot, string>>;
+  /**
+   * The host's customization of this design and shape, or null when the card shows its generated
+   * layout because the host has not edited it.
+   */
+  customization: ShownCustomization | null;
   /** When `card.artwork.src` stops working (ISO 8601); load the card again after it. */
   artworkExpiresAt: string;
 }
@@ -97,27 +125,7 @@ export interface LoadRevealedCardOptions {
   audience?: "host" | "guest";
 }
 
-interface DesignRow {
-  id: string;
-  round: number;
-  name: string;
-  description: string;
-  shape: string;
-  layout: string;
-  typography: Json;
-  wording: Json;
-}
-
-interface ArtRow {
-  id: string;
-  storage_key: string;
-  proportion: string;
-  fits_shapes: string[];
-  ink: Json;
-  created_at: string;
-}
-
-type EventRow = RevealEventRow & {
+type EventRow = CardEventRow & {
   active_card_design_id: string | null;
   active_card_shape: string | null;
   status: string;
@@ -127,78 +135,7 @@ type EventRow = RevealEventRow & {
 /** As `start_generation` and `choose_card_design` decide it. */
 const PUBLISHED_STATUSES: ReadonlySet<string> = new Set(["PUBLISHED", "PASSED", "ARCHIVED"]);
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function finite(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-/** The persisted ink and panel of the shape's text zone (`ArtworkInk`, `artwork.server.ts`). */
-function zoneInk(ink: Json, shape: CardShape): { ink: string; panels: CardPanel[] } {
-  const byShape = isObject(ink) ? ink[shape] : undefined;
-  const zone = isObject(byShape) ? byShape[TEXT_ZONE] : undefined;
-  if (!isObject(zone) || typeof zone.ink !== "string" || !isCanonicalHex(zone.ink)) {
-    throw new Error(`The artwork has no ink for the ${shape} card.`);
-  }
-  if (zone.panel === undefined) return { ink: zone.ink, panels: [] };
-  const panel = zone.panel;
-  if (
-    !isObject(panel) ||
-    !isObject(panel.softEdge) ||
-    typeof zone.panelColor !== "string" ||
-    ![panel.x, panel.y, panel.width, panel.height, panel.radius].every(finite) ||
-    ![panel.softEdge.spread, panel.softEdge.blur].every(finite)
-  ) {
-    throw new Error(`The artwork's legibility panel for the ${shape} card is malformed.`);
-  }
-  return {
-    ink: zone.ink,
-    panels: [
-      {
-        x: panel.x as number,
-        y: panel.y as number,
-        width: panel.width as number,
-        height: panel.height as number,
-        radius: panel.radius as number,
-        softEdge: { spread: panel.softEdge.spread as number, blur: panel.softEdge.blur as number },
-        color: zone.panelColor,
-        // `card_layouts_v3` panels fade into the artwork; `validateCardData` checks the fade.
-        ...(panel.fade !== undefined ? { fade: panel.fade as unknown as PanelFade } : {}),
-      },
-    ],
-  };
-}
-
-function designOf(row: DesignRow): {
-  shape: CardShape;
-  layout: CardLayoutId;
-  pairing: TypographyPairingId;
-  wording: { title: string; invitationLine: string };
-} {
-  const shape = row.shape as CardShape;
-  const layout = row.layout as CardLayoutId;
-  const pairing = isObject(row.typography) ? row.typography.primary : undefined;
-  const wording = row.wording;
-  if (
-    !CARD_SHAPES.includes(shape) ||
-    !CARD_LAYOUT_IDS.includes(layout) ||
-    typeof pairing !== "string" ||
-    !(TYPOGRAPHY_KEYS as readonly string[]).includes(pairing) ||
-    !isObject(wording) ||
-    typeof wording.title !== "string" ||
-    typeof wording.invitationLine !== "string"
-  ) {
-    throw new Error("The card design is malformed.");
-  }
-  return {
-    shape,
-    layout,
-    pairing: pairing as TypographyPairingId,
-    wording: { title: wording.title, invitationLine: wording.invitationLine },
-  };
-}
+type CustomizationLookup = (designId: string, shape: CardShape) => Promise<CustomizationRow | null>;
 
 /**
  * The event's revealed card: the design asked for, else the active one. Null when the event has no
@@ -216,9 +153,7 @@ export async function loadRevealedCard(
 
   const { data: event, error: eventError } = await admin
     .from("events")
-    .select(
-      `active_card_design_id, active_card_shape, status, published_at, ${REVEAL_EVENT_COLUMNS}`,
-    )
+    .select(`active_card_design_id, active_card_shape, status, published_at, ${CARD_EVENT_COLUMNS}`)
     .eq("id", eventId)
     .maybeSingle();
   if (eventError) throw eventError;
@@ -230,7 +165,7 @@ export async function loadRevealedCard(
 
   const { data: designData, error: designError } = await admin
     .from("card_designs")
-    .select("id, round, name, description, shape, layout, typography, wording")
+    .select(CARD_DESIGN_COLUMNS)
     .eq("id", designId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -244,37 +179,68 @@ export async function loadRevealedCard(
 
   const { data: artData, error: artError } = await admin
     .from("card_art_assets")
-    .select("id, storage_key, proportion, fits_shapes, ink, created_at")
+    .select(CARD_ART_COLUMNS)
     .eq("card_design_id", designRow.id)
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
   if (artError) throw artError;
   return buildRevealedCard({
     admin,
+    eventId,
     event: row,
     design: designRow,
     artworks: (artData ?? []) as ArtRow[],
     active,
     now,
     audience: options.audience ?? "host",
+    customizationOf: (id, shape) => readCustomization(admin, eventId, id, shape),
   });
 }
 
 /**
+ * The customized text layer of a card, or null to draw the generated one: no customization, or
+ * one whose stored boxes do not parse (logged; `unreadable` set for the notice).
+ */
+async function customizedLayer(input: {
+  eventId: string;
+  stored: CustomizationRow;
+  content: Parameters<typeof customizedText>[1];
+  unconfirmed: Parameters<typeof customizedText>[2];
+}): Promise<{ boxes: TextBox[]; unconfirmed: string[] } | null> {
+  const { eventId, stored } = input;
+  const parsed = parseStoredBoxes(stored.boxes);
+  if (!parsed.ok) {
+    console.error("[card editor] a customization could not be read; showing the generated card", {
+      eventId,
+      designId: stored.card_design_id,
+      shape: stored.shape,
+      revision: stored.revision,
+      issues: parsed.issues,
+    });
+    return null;
+  }
+  return customizedText(parsed.boxes, input.content, input.unconfirmed);
+}
+
+/**
  * One design drawn as a `RevealedCard`: in the event's active shape when it is the active design,
- * else in its own; its artwork the newest that fits that shape, signed. Shared by the single card
- * and the designs list (`loadEventDesigns`), so both draw a design identically.
+ * else in its own; its artwork the newest that fits that shape, signed; its text the host's
+ * customization for that shape, else the generated layer. Shared by the single card and the designs
+ * list (`loadEventDesigns`), so both draw a design identically.
  */
 async function buildRevealedCard({
   admin,
+  eventId,
   event: row,
   design: designRow,
   artworks,
   active,
   now,
   audience = "host",
+  customizationOf,
 }: {
   admin: ReturnType<typeof createAdminClient>;
+  eventId: string;
   event: EventRow;
   design: DesignRow;
   /** The design's artworks, newest first. */
@@ -282,6 +248,7 @@ async function buildRevealedCard({
   active: boolean;
   now: number;
   audience?: "host" | "guest";
+  customizationOf: CustomizationLookup;
 }): Promise<RevealedCard> {
   const design = designOf(designRow);
   const shape = active
@@ -290,7 +257,7 @@ async function buildRevealedCard({
   if (!CARD_SHAPES.includes(shape)) throw new Error("The event's active card shape is malformed.");
 
   // The newest artwork of the design that fits the shape.
-  const art = artworks.find((a) => a.fits_shapes.includes(shape));
+  const art = artworkFor(artworks, shape);
   if (!art) throw new Error(`The card design has no artwork for the ${shape} card.`);
   const proportion = proportionOf(shape);
   const stored = art.proportion === "portrait_5_7" ? "5:7" : "1:1";
@@ -299,36 +266,54 @@ async function buildRevealedCard({
   }
   const { ink, panels } = zoneInk(art.ink, shape);
 
-  const title = effectiveCardTitle(row.title, design.wording.title);
-  const wording = { title, invitationLine: design.wording.invitationLine };
-  const eventFacts = {
-    babyName: row.baby_name,
-    hosts: row.hosts,
-    eventDate: row.event_date,
-    startTime: row.start_time,
-    endTime: row.end_time,
-    venueName: row.venue_name,
-    address: row.address,
-    rsvpDeadline: row.rsvp_deadline,
-    timezone: row.timezone,
-  };
+  const contents = await cardContents(row, design.wording, new Date(now));
   // A guest's card carries the host's stored facts only: no placeholder, no prompt-stated value.
-  const { content, unconfirmed, stated }: RevealCardContent =
-    audience === "guest"
-      ? { content: guestCardContent({ wording, event: eventFacts }), unconfirmed: [], stated: {} }
-      : await revealContentFor({
-          wording,
-          event: eventFacts,
-          promptFacts: parsePromptFacts(row.prompt_facts),
-          now: new Date(now),
+  const { content, unconfirmed, stated } =
+    audience === "guest" ? { content: contents.saved, unconfirmed: [], stated: {} } : contents.host;
+
+  const customizationRow = await customizationOf(designRow.id, shape);
+  let layer: { boxes: TextBox[]; unconfirmed: string[] } | null = null;
+  let unreadable = false;
+  if (customizationRow) {
+    layer = await customizedLayer({ eventId, stored: customizationRow, content, unconfirmed });
+    unreadable = layer === null;
+    if (layer) {
+      try {
+        validateCardData({ shape, artworkProportion: proportion, panels, boxes: layer.boxes });
+      } catch (error) {
+        // Unreachable for boxes that parsed (the schema holds what the component draws); kept so
+        // a stored layer the component refuses is the generated card with a notice, never an error.
+        if (!(error instanceof InvalidCardDataError)) throw error;
+        console.error("[card editor] a customization cannot be drawn; showing the generated card", {
+          eventId,
+          designId: designRow.id,
+          shape,
+          error: error.message,
         });
-  const boxes = await generatedTextLayer({
-    layout: design.layout,
-    shape,
-    pairing: design.pairing,
-    content,
-    ink,
-  });
+        layer = null;
+        unreadable = true;
+      }
+    }
+  }
+  if (!layer) {
+    const boxes = await generatedTextLayer({
+      layout: design.layout,
+      shape,
+      pairing: design.pairing,
+      content,
+      ink,
+    });
+    const marked = new Set<string>(unconfirmed);
+    layer = {
+      boxes,
+      unconfirmed: boxes
+        .filter(
+          (box) =>
+            box.source.kind === "fact" && marked.has(box.source.slot) && box.lines.length > 0,
+        )
+        .map((box) => box.id),
+    };
+  }
 
   const { data: signed, error: signError } = await admin.storage
     .from(CARD_ART_BUCKET)
@@ -336,25 +321,32 @@ async function buildRevealedCard({
   if (signError) throw signError;
   if (!signed?.signedUrl) throw new Error("The card's artwork could not be signed.");
 
-  const card = { shape, artwork: { src: signed.signedUrl, proportion }, panels, boxes };
-  validateCardData({ shape, artworkProportion: proportion, panels, boxes });
+  const card = {
+    shape,
+    artwork: { src: signed.signedUrl, proportion },
+    panels,
+    boxes: layer.boxes,
+  };
+  validateCardData({ shape, artworkProportion: proportion, panels, boxes: layer.boxes });
 
-  const marked = new Set<string>(unconfirmed);
   return {
     designId: designRow.id,
     active,
     published: row.published_at !== null || PUBLISHED_STATUSES.has(row.status),
     round: designRow.round,
-    title,
+    title: contents.title,
     name: designRow.name,
     description: designRow.description,
     card,
-    unconfirmed: boxes
-      .filter(
-        (box) => box.source.kind === "fact" && marked.has(box.source.slot) && box.lines.length > 0,
-      )
-      .map((box) => box.id),
+    unconfirmed: layer.unconfirmed,
     stated,
+    customization: customizationRow
+      ? {
+          revision: customizationRow.revision,
+          updatedAt: customizationRow.updated_at,
+          unreadable,
+        }
+      : null,
     artworkExpiresAt: new Date(now + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
   };
 }
@@ -363,8 +355,9 @@ async function buildRevealedCard({
  * Every design of the event that has artwork, each as the card it would show (`spec.md §7.14`,
  * §8.2; `docs/design-system.md §10.21`), for the designs list. Round ascending, so entries keep
  * their place when a new design arrives. The active design is drawn in the event's active shape,
- * any other in its own. For a signed-in owner or co-host (`view_event`, checked once); then one read
- * each of the event, its designs and its artwork, and every artwork signed for
+ * any other in its own, each with the host's customization for that shape when there is one. For a
+ * signed-in owner or co-host (`view_event`, checked once); then one read each of the event, its
+ * designs, its artwork and its customizations, and every artwork signed for
  * `CARD_ART_SIGNED_URL_TTL_SECONDS`. Empty when the event has no design with artwork.
  */
 export async function loadEventDesigns(
@@ -377,9 +370,7 @@ export async function loadEventDesigns(
 
   const { data: event, error: eventError } = await admin
     .from("events")
-    .select(
-      `active_card_design_id, active_card_shape, status, published_at, ${REVEAL_EVENT_COLUMNS}`,
-    )
+    .select(`active_card_design_id, active_card_shape, status, published_at, ${CARD_EVENT_COLUMNS}`)
     .eq("id", eventId)
     .maybeSingle();
   if (eventError) throw eventError;
@@ -388,16 +379,22 @@ export async function loadEventDesigns(
 
   const { data: designData, error: designError } = await admin
     .from("card_designs")
-    .select("id, round, name, description, shape, layout, typography, wording")
+    .select(CARD_DESIGN_COLUMNS)
     .eq("event_id", eventId)
     .order("round", { ascending: true });
   if (designError) throw designError;
   const { data: artData, error: artError } = await admin
     .from("card_art_assets")
-    .select("id, card_design_id, storage_key, proportion, fits_shapes, ink, created_at")
+    .select(`card_design_id, ${CARD_ART_COLUMNS}`)
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
   if (artError) throw artError;
+  const { data: customizationData, error: customizationError } = await admin
+    .from("card_customizations")
+    .select("card_design_id, shape, revision, boxes, updated_by, updated_at")
+    .eq("event_id", eventId);
+  if (customizationError) throw customizationError;
+  const customizations = (customizationData ?? []) as CustomizationRow[];
 
   const artByDesign = new Map<string, ArtRow[]>();
   for (const art of (artData ?? []) as (ArtRow & { card_design_id: string })[]) {
@@ -414,11 +411,14 @@ export async function loadEventDesigns(
       try {
         return await buildRevealedCard({
           admin,
+          eventId,
           event: row,
           design,
           artworks: artByDesign.get(design.id) ?? [],
           active: design.id === row.active_card_design_id,
           now,
+          customizationOf: async (id, shape) =>
+            customizations.find((c) => c.card_design_id === id && c.shape === shape) ?? null,
         });
       } catch (error) {
         console.error("[designs] a design could not be drawn", {

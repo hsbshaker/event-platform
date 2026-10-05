@@ -17,7 +17,7 @@ import { breakWidth, FIT_SAFETY } from "./fit";
 import { layoutCard, type CardTextLayout, type LayoutCardInput } from "./layout-card";
 import type { CardShape } from "./shapes";
 import { CARD_SLOT_IDS, type CardSlotId, type FactSlotId, type WordingSlotId } from "./slots";
-import { breakLines } from "./text/line-break";
+import { breakLines, linesSpell, type BrokenLines } from "./text/line-break";
 import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
 
 export type TextBoxSource =
@@ -120,21 +120,100 @@ export interface RebrokenBox {
   overflow: boolean;
 }
 
+/** What a box's lines depend on, besides its text (`docs/card-system.md §7`). */
+export type BoxBreakStyle = Pick<TextBox, "width" | "font" | "size" | "letterSpacing" | "textCase">;
+
 /**
- * Re-break one box at its width from the font's own metrics, with the generated card's rules
- * (`docs/card-system.md §7`). Returns a new box; the input is not mutated.
+ * The line breaking for an edited box (`docs/card-system.md §7`, "Line breaking for edited boxes";
+ * `spec.md §20.4`): one deterministic function from a box's text, width, font, size, letter spacing
+ * and case to its stored `lines`, with the generated card's rules (`text/line-break.ts`, §4.3): the
+ * fewest lines; a break inside a word only just after a hyphen between letters, with a space
+ * always ranked above it at the same line count; then no stranded short word; then no one-word last
+ * line where another break exists; then even lines; a hard break wherever the host typed one.
+ * Measured from the face's own metrics (`text/metrics.ts`: the curated fonts, or the font store's)
+ * at `breakWidth(width)`, the margin `layoutCard` uses, so the server and every browser agree.
+ *
+ * A piece wider than the box sits whole on its own line and sets `overflow`; nothing is truncated.
+ * Lines are in the text's own case (the case is applied when measuring and when drawing).
+ * `metrics` throws for a face it does not have (`UnknownCardFontError`): a box is never measured
+ * with another face.
+ */
+export function breakBoxText(
+  text: string,
+  style: BoxBreakStyle,
+  metrics: FontMetricsResolver,
+): BrokenLines {
+  if (!(Number.isFinite(style.size) && style.size > 0)) {
+    throw new Error(`Invalid font size ${style.size}`);
+  }
+  if (!Number.isFinite(style.letterSpacing)) {
+    throw new Error(`Invalid letter spacing ${style.letterSpacing}`);
+  }
+  const face = metrics(style.font);
+  const measure = {
+    size: style.size,
+    letterSpacingEm: style.letterSpacing,
+    textCase: style.textCase,
+  };
+  return breakLines(text, breakWidth(style.width), (line) => face.measure(line, measure));
+}
+
+/** Whether two boxes break a text alike: the same width, font, size, letter spacing and case. */
+export function sameBreakStyle(a: BoxBreakStyle, b: BoxBreakStyle): boolean {
+  return (
+    a.width === b.width &&
+    a.size === b.size &&
+    a.letterSpacing === b.letterSpacing &&
+    a.textCase === b.textCase &&
+    a.font.family === b.font.family &&
+    a.font.weight === b.font.weight &&
+    a.font.italic === b.font.italic
+  );
+}
+
+/**
+ * Re-break one box at its width from the font's own metrics (`breakBoxText`). Returns a new box;
+ * the input is not mutated.
  */
 export function rebreakBox(
   box: TextBox,
   content: CardContent,
   metrics: FontMetricsResolver,
 ): RebrokenBox {
-  const face = metrics(box.font);
-  const style = { size: box.size, letterSpacingEm: box.letterSpacing, textCase: box.textCase };
-  const broken = breakLines(boxText(box, content), breakWidth(box.width), (line) =>
-    face.measure(line, style),
-  );
+  const broken = breakBoxText(boxText(box, content), box, metrics);
   return { box: { ...copyBox(box), lines: broken.lines }, overflow: broken.overflow };
+}
+
+/** Whether a box's text comes from the event — the title and the facts — rather than the box. */
+export function isLinkedBox(box: TextBox): boolean {
+  return (
+    box.source.kind === "fact" || (box.source.kind === "wording" && box.source.slot === "title")
+  );
+}
+
+/**
+ * The boxes with every linked box's (the title's and the facts') lines matching `content`. A box
+ * whose stored lines already spell its text (`linesSpell`) keeps them exactly, as the host saw
+ * them; any other is re-broken at its width (`breakBoxText`): its fact or the title changed since
+ * it was broken, or `content` is not what it was broken for (a placeholder in Creation Mode;
+ * nothing, for a guest, where the host has not saved the fact). The invitation line and added
+ * boxes keep their lines. Returns new boxes and the ids re-broken; `metrics` is called only for
+ * those.
+ */
+export function withLinkedLines(
+  boxes: readonly TextBox[],
+  content: CardContent,
+  metrics: FontMetricsResolver,
+): { boxes: TextBox[]; rebroken: string[] } {
+  const rebroken: string[] = [];
+  const out = boxes.map((box) => {
+    if (!isLinkedBox(box)) return copyBox(box);
+    const text = boxText(box, content);
+    if (linesSpell(box.lines, text)) return copyBox(box);
+    rebroken.push(box.id);
+    return { ...copyBox(box), lines: breakBoxText(text, box, metrics).lines };
+  });
+  return { boxes: out, rebroken };
 }
 
 /** Re-break every box showing `slot`, after that fact changed (`docs/card-system.md §7`). */

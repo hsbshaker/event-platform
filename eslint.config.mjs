@@ -52,22 +52,28 @@ const SERVICE_ROLE = {
  *   writes only through the generation functions that write nothing once the generation stopped
  *   running (`record_event_identity`, `record_generation_stage`, `persist_generated_card`,
  *   `persist_shape_switch_artwork`, `fail_generation`) and to its own key in the private
- *   `card-art` bucket.
+ *   `card-art` bucket. One more write, after `persist_shape_switch_artwork` applied the new shape
+ *   to the active design: the host's words carried to that shape (`storeCarriedWordsAsServer`), a
+ *   `card_customizations` row for the generation's own event, design and shape, inserted only
+ *   when none exists.
  * - `src/lib/generation/status.server.ts` — reads the server-only `generations` table after
  *   `requireEventAccess(eventId, "view_event")`, for that event only, returning no telemetry.
  * - `src/lib/generation/reveal.server.ts` — reads a design of the event (the active one by
- *   default), its artwork and ink after `requireEventAccess(eventId, "view_event")`, for that event
+ *   default), its artwork, ink and the host's card customization after `requireEventAccess(eventId, "view_event")`, for that event
  *   only, and signs a short-lived URL for that artwork in the private `card-art` bucket; returns no
  *   storage key, raw output, telemetry or cost, and writes nothing.
  * - `src/lib/generation/choose.server.ts` — makes a design the event's active one only through
  *   `choose_card_design`, after `requireEventAccess(eventId, "view_event")` and the pre-publish
  *   `choose_design` capability, for the session's own collaborator; the function checks membership
- *   and publish again under the event's lock, and touches only that event's active design.
+ *   and publish again under the event's lock, and touches only that event's active design. It
+ *   reads that event's card customizations, designs and artwork to carry the host's words
+ *   (`carriedWords`), and stores them through the collaborator's own session, never the service
+ *   role.
  * - `src/lib/generation/shape.server.ts` — after `requireEventAccess(eventId, "use_design_controls")`,
  *   reads that event's active design and its artworks' fitted shapes, and switches the shape only
  *   through `switch_card_shape`, for the session's own collaborator; the function checks membership
  *   and the active design again under the event's lock, and touches only that event's active
- *   shape. New artwork begins only through `startGeneration`.
+ *   shape. New artwork begins only through `startGeneration`. Carried words: as `choose.server.ts`.
  * - `src/lib/events/privacy.server.ts` — after `requireEventAccess(eventId, "manage_privacy")`,
  *   changes that event's visibility and encrypted event code only through `set_event_privacy` and
  *   `rotate_event_code`, for the session's own collaborator; the functions check membership again

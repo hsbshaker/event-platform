@@ -197,6 +197,7 @@ export default async function CreationFixturePage({
       card: await cardData("rectangle", d.name, d.top, d.bottom),
       unconfirmed: [],
       stated: {},
+      customization: null,
       artworkExpiresAt: "2099-01-01T00:00:00.000Z",
     })),
   );
