@@ -35,12 +35,17 @@ export function DesignsList({
   eventId,
   designs,
   published,
+  variant = "page",
   choose,
   onChosen,
 }: {
   eventId: string;
   designs: readonly RevealedCard[];
   published: boolean;
+  /**
+   * `panel`: inside the Design panel (a sheet, so a narrower column and a heading one level down).
+   */
+  variant?: "page" | "panel";
   choose?: (designId: string) => Promise<ChooseOutcome>;
   onChosen?: (designId: string) => void;
 }) {
@@ -64,14 +69,23 @@ export function DesignsList({
     setPendingId(null);
   }
 
+  const panel = variant === "panel";
+  const Heading = panel ? "h3" : "h2";
   return (
     <section aria-labelledby="designs-heading" className="flex w-full flex-col gap-6">
-      <h2 id="designs-heading" className="text-heading-lg text-app-text">
+      <Heading
+        id="designs-heading"
+        className={panel ? "text-heading-md text-app-text" : "text-heading-lg text-app-text"}
+      >
         Your designs
-      </h2>
+      </Heading>
       <ul
         data-designs-list=""
-        className="grid grid-cols-1 items-start gap-8 sm:grid-cols-2 lg:grid-cols-3"
+        className={
+          panel
+            ? "grid grid-cols-1 items-start gap-8 sm:max-lg:grid-cols-2"
+            : "grid grid-cols-1 items-start gap-8 sm:grid-cols-2 lg:grid-cols-3"
+        }
       >
         {designs.map((design) => {
           const proportion = design.card.artwork.proportion;

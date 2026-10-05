@@ -704,6 +704,7 @@ export function DetailsForm({
                   className="flex min-h-11 items-center gap-2 text-body-md text-app-text"
                 >
                   <input
+                    id={`visibility-${option}`}
                     type="radio"
                     name="visibility"
                     value={option}

@@ -41,6 +41,7 @@ vi.mock("@/lib/generation/run.server", async (importOriginal) => ({
 }));
 
 const { loadCardShapeOptionsAction, switchCardShape } = await import("./shape");
+const { latestShapeSwitch } = await import("@/lib/generation/shape.server");
 
 const member = (published = false) => ({
   user: { id: USER },
@@ -400,5 +401,53 @@ describe("loadCardShapeOptionsAction", () => {
       expect(await loadCardShapeOptionsAction(EVENT)).toBeNull();
     }
     expect(await loadCardShapeOptionsAction("not-a-uuid")).toBeNull();
+  });
+});
+
+describe("latestShapeSwitch", () => {
+  const NOW = Date.parse("2026-10-05T12:00:00Z");
+  const row = (over: Record<string, unknown>) => ({
+    id: GENERATION,
+    event_id: EVENT,
+    kind: "shape_switch",
+    from_design_id: DESIGN,
+    status: "running",
+    error_code: null,
+    shape: "square",
+    started_at: "2026-10-05T11:59:00Z",
+    ...over,
+  });
+  const latest = () => latestShapeSwitch(EVENT, DESIGN, { now: () => NOW });
+
+  it("names the design's switch still painting, for the event's collaborators only", async () => {
+    admin.fake.state.tables.generations = [row({})];
+    expect(await latest()).toEqual({ kind: "running", generationId: GENERATION, shape: "square" });
+    expect(access).toHaveBeenLastCalledWith(EVENT, "use_design_controls");
+    access.mockRejectedValueOnce(new ForbiddenError());
+    await expect(latest()).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("shows a recent failure again, and a worker past its lifetime as stopped", async () => {
+    admin.fake.state.tables.generations = [row({ status: "failed", error_code: "shape_refusal" })];
+    expect(await latest()).toEqual({
+      kind: "failed",
+      generationId: GENERATION,
+      shape: "square",
+      failure: generationFailure("shape_refusal"),
+    });
+    admin.fake.state.tables.generations = [row({ started_at: "2026-10-05T11:50:00Z" })];
+    expect(await latest()).toMatchObject({ kind: "failed", failure: { code: "stopped" } });
+  });
+
+  it("is null after success, for another design, another kind, or an old switch", async () => {
+    for (const over of [
+      { status: "succeeded" },
+      { from_design_id: CHOSEN },
+      { kind: "another_direction", shape: null },
+      { status: "failed", error_code: "provider_error", started_at: "2026-10-05T11:00:00Z" },
+    ]) {
+      admin.fake.state.tables.generations = [row(over)];
+      expect(await latest()).toBeNull();
+    }
   });
 });
