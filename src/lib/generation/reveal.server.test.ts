@@ -137,6 +137,7 @@ describe("loadRevealedCard", () => {
     expect(rest).toEqual({
       designId: DESIGN,
       round: 1,
+      title: "Lemons & Linen",
       name: "Lemons & Linen",
       description: "A lemon branch over soft linen.",
       artworkExpiresAt: new Date(NOW + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
@@ -215,6 +216,7 @@ describe("loadRevealedCard", () => {
       venue: "Casa Limone",
     });
     expect(revealed!.unconfirmed).toEqual([]);
+    expect(revealed!.title).toBe("Maya's Garden Shower");
   });
 
   it("draws the active shape from the newest artwork that fits it, with its persisted panel", async () => {

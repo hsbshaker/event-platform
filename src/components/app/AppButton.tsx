@@ -23,6 +23,21 @@ const SIZE_CLASSES: Record<AppButtonSize, string> = {
   lg: "px-6 py-4 text-body-lg",
 };
 
+/** The button's look, shared with the canonical link-styled-as-button (`AppButtonLink`). */
+export function appButtonClasses(
+  variant: AppButtonVariant = "primary",
+  size: AppButtonSize = "md",
+  className?: string,
+): string {
+  return cx(
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+    VARIANT_CLASSES[variant],
+    SIZE_CLASSES[size],
+    className,
+  );
+}
+
 export interface AppButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: AppButtonVariant;
   size?: AppButtonSize;
@@ -44,13 +59,7 @@ export function AppButton({
       {...props}
       disabled={disabled || pending}
       aria-busy={pending || undefined}
-      className={cx(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg font-medium transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        VARIANT_CLASSES[variant],
-        SIZE_CLASSES[size],
-        className,
-      )}
+      className={appButtonClasses(variant, size, className)}
     >
       {pending && (
         <span
