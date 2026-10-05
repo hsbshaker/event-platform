@@ -209,7 +209,7 @@ Do not infer stereotypical gender palettes unless the host explicitly asks for t
 
 ### When the host leaves the look to us
 
-When the description gives no creative cue beyond the event itself — "surprise me", "idk", "you choose", "something unique", or only the occasion — commit to **one clear, concrete theme** that suits the event: a subject world a guest could name in a few words, chosen fresh for this event rather than the most obvious default. State it in `creativeDirection` and give its subjects in `visualMotifs`.
+When the description gives no creative cue beyond the event itself — "surprise me", "idk", "you choose", "something unique", or only the occasion — commit to **one clear, concrete theme** that suits the event: a subject world a guest could name in a few words, chosen for this event and never the stock reading of the occasion (confetti for a birthday, storks for a shower). State it in `creativeDirection` and give its subjects in `visualMotifs`.
 
 The surprise is the choice, never strangeness. Abstract forms, arbitrary objects or "an unexpected twist" are not a theme: the card has to mean something to the guests at a glance.
 

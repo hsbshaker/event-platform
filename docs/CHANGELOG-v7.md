@@ -503,16 +503,21 @@ circles. Two decisions by the owner (2026-10-04):
   words tell one story. CU-10's identity did the opposite: it read "surprise me" as "abstract
   sculptural forms" and "an unexpected twist", and the card had no subject a guest could name.
 - **Decision 1: one central idea** (the idea, not the look; the rendering mix is unchanged). Every
-  card is built on one idea; where the identity carries the host's own specifics, the design fuses
-  them into one image rather than separate motifs, and a drafted title plays on it.
-  `card_design_v3`; the prompt's examples are deliberately not from the corpus.
+  card is built on one idea; where the identity carries two or more of the host's own specifics,
+  the design fuses them into one image rather than separate motifs — drawn or staged, so any
+  rendering can carry it, and never a forced pun — and a drafted title plays on the idea's
+  subject, never a place. With one specific, that specific is the idea. `card_design_v3`; the
+  prompt's examples are deliberately not from the corpus.
 - **Decision 2: "surprise me" commits to one clear theme.** With no creative cue beyond the
   occasion, the identity commits to one concrete theme that suits the event — something a guest
-  could name in a few words — chosen fresh rather than the obvious default; never abstract forms or
-  arbitrary objects. `event_identity_v6`. Whether the model varies its choice across events is
-  measured by running the case several times.
+  could name in a few words — never the stock reading of the occasion, and never abstract forms or
+  arbitrary objects. `event_identity_v6`. The identity call has no randomness input, so whether its
+  choice varies across events is measured by running the case several times.
 - **Versions:** `event_identity_v6` and `card_design_v3`; both schemas unchanged. Updated:
-  `spec.md §7.5`, §7.7 and a §31 criterion; `model-contracts.md §4` and §5.
+  `spec.md §7.5`, §7.7 and a §31 criterion; `model-contracts.md §4`, §5 and §6; the corpus,
+  `creative_understanding_v2`, records both verdicts. A draft of these prompts ran briefly on the
+  preview database before the senior review tightened them; it was stopped, and its generations
+  are not evidence.
 
 ## Still open
 

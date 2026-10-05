@@ -190,11 +190,12 @@ shows places, objects, food and materials — never people (§7.3). Designs pers
 neither field; they are immutable and never re-validated.
 
 Prompt `card_design_v3` (schema unchanged; owner decisions, 2026-10-05, after the round-two
-corpus): every card is built on **one central idea**. Where the identity carries the host's own
-specifics — a person's passions, a place, a shared story — they are fused into one image rather
-than shown as separate motifs (the corpus card the owner held up as the model: a 60th birthday for
+corpus): every card is built on **one central idea**. Where the identity carries two or more of
+the host's own specifics — a person's passions, a shared story, the character of a place — they
+are fused into one image rather than shown as separate motifs (the corpus card the owner held up as the model: a 60th birthday for
 a father who loves jazz and old maps became one saxophone drawn from an antique map, titled
-"A Well-Played Journey"), and a drafted title plays on the same idea. A theme the identity chose
+"A Well-Played Journey"), and a drafted title plays on the same idea's subject, never a place or
+other fact. With one specific, that specific is the idea. A theme the identity chose
 because the host left it to us is made concrete and recognisable, never abstract. Any rendering
 can carry the idea; the rendering mix is unchanged.
 

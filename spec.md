@@ -593,7 +593,8 @@ It holds one boundary exactly:
 
 **When the host leaves the look to us** — "surprise me", "idk", only the occasion — the identity
 commits to one clear, concrete theme that suits the event, something a guest could name in a few
-words, chosen fresh for the event. The surprise is the choice, never abstract or random imagery
+words, never the stock reading of the occasion. The surprise is the choice, never abstract or
+random imagery
 (owner decision, 2026-10-05).
 
 ### 7.6 Brand/style references
@@ -717,9 +718,10 @@ host's own names exactly); a suggested rendering drawn at random from those the 
 (§7.6a); on `Try another direction`, the host's optional feedback and a summary of every earlier
 direction for this event.
 
-**One central idea.** Every card is built on one idea. Where the identity carries the host's own
-specifics — a person's passions, a place, a shared story — the design fuses them into one image
-rather than separate motifs side by side, and a drafted title plays on that idea (owner decisions,
+**One central idea.** Every card is built on one idea. Where the identity carries two or more of
+the host's own specifics — a person's passions, a shared story, the character of a place — the
+design fuses them into one image rather than separate motifs side by side, and a drafted title
+plays on that idea's subject (never a place or other fact) (owner decisions,
 2026-10-05: a 60th birthday for a father who loves jazz and old maps became one saxophone drawn
 from an antique map, "A Well-Played Journey"). Any rendering can carry the idea.
 
