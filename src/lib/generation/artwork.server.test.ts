@@ -22,12 +22,20 @@ import { assembleArtPrompt, assembleShapeSwitchPrompt, fitsShapes } from "@/lib/
 import type { CardDesign } from "@/lib/card/design";
 import type { Rendering } from "@/lib/card/renderings";
 import { MIN_INK_CONTRAST } from "@/lib/card/ink";
+import type { CardRect } from "@/lib/card/ink";
 import { panelFor, zoneFor } from "@/lib/card/layouts";
 import { decodePng, pngChunkTypes } from "@/lib/card/png.server";
 import { contrastRatio } from "@/lib/card/color";
+import { TYPICAL } from "@/lib/card/test-content";
 import { encodePng } from "@/lib/link-preview/test-artwork";
 
-import { ARTWORK_LIMITS, resolveArtworkInk, runArtworkStage, TEXT_ZONE } from "./artwork.server";
+import {
+  ARTWORK_LIMITS,
+  generatedLineAreas,
+  resolveArtworkInk,
+  runArtworkStage,
+  TEXT_ZONE,
+} from "./artwork.server";
 import type { ArtworkStageInput } from "./artwork.server";
 import { ArtworkProviderRefusalError, GenerationStageError } from "./stage";
 
@@ -62,21 +70,24 @@ const CLEAN_SQUARE = art(rgbArt(W, W, () => [238, 228, 212]));
 /** A black-and-white checkerboard: no ink clears 4.5:1 over it, so every zone needs the panel. */
 const BUSY = art(rgbArt(W, H5x7, (x, y) => ((x + y) % 2 ? [0, 0, 0] : [255, 255, 255])));
 /**
- * Cream paper with a navy shape reaching 40 card units into the top of the rectangle's text zone
- * across 40% of its width: too small a share of the zone to reach its dark tail, but a quarter of
- * the strip it crosses (`card_compiler_v3`).
+ * Cream paper with a navy shape over `rect` (card units) of a 5:7 artwork. At `INTRUSION` size it
+ * is under 4% of the art-top rectangle's text zone — too small a share to reach the zone's dark
+ * tail — but a quarter of the area behind the title's first line (`card_compiler_v4`).
  */
-const INTRUDING = (() => {
-  const zone = zoneFor("art-top", "rectangle");
+function intruding(rect: CardRect): CardArt {
   const px = W / 1000;
-  const [top, bottom] = [zone.y * px, (zone.y + 40) * px];
-  const [left, right] = [(zone.x + zone.width * 0.3) * px, (zone.x + zone.width * 0.7) * px];
+  const [top, bottom] = [rect.y * px, (rect.y + rect.height) * px];
+  const [left, right] = [rect.x * px, (rect.x + rect.width) * px];
   return art(
     rgbArt(W, H5x7, (x, y) =>
       y >= top && y < bottom && x >= left && x < right ? [27, 42, 74] : [238, 228, 212],
     ),
   );
-})();
+}
+const INTRUSION = { width: 100, height: 120 };
+
+const overlaps = (a: CardRect, b: CardRect) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
 const NOT_PNG = art(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 const SQUARE_FOR_PORTRAIT = CLEAN_SQUARE;
@@ -138,9 +149,10 @@ const TAGGED = (() => {
 
 /* ------------------------------------------------------------------ design and helpers */
 
-const DESIGN: Pick<CardDesign, "artBrief" | "artMode" | "layout"> = {
+const DESIGN: Pick<CardDesign, "artBrief" | "artMode" | "layout" | "typography"> = {
   layout: "art-top",
   artMode: "illustration",
+  typography: { primary: "hc_playfair_dmsans", alternates: [] },
   artBrief: {
     subject: "a lemon branch heavy with fruit and blossom",
     rendering: "painterly",
@@ -153,11 +165,19 @@ const DESIGN: Pick<CardDesign, "artBrief" | "artMode" | "layout"> = {
   },
 };
 
-const INPUT: ArtworkStageInput = { design: DESIGN, shape: "rectangle" };
+/** The words on the card: an ordinary baby shower's (`TYPICAL`). */
+const CONTENT = TYPICAL;
 
-function stage(script: FakeScript, input: ArtworkStageInput = INPUT) {
+const INPUT: ArtworkStageInput = { design: DESIGN, shape: "rectangle", content: CONTENT };
+
+/** A stage over `input`, with `CONTENT` unless it names its own. */
+function stage(
+  script: FakeScript,
+  input: Omit<ArtworkStageInput, "content"> & Partial<ArtworkStageInput> = INPUT,
+) {
   const fake = fakeProvider(script);
-  const run = () => runArtworkStage({ provider: fake.provider, meter: TEST_METER }, input);
+  const run = () =>
+    runArtworkStage({ provider: fake.provider, meter: TEST_METER }, { content: CONTENT, ...input });
   return { fake, run };
 }
 
@@ -452,18 +472,50 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     expect(samePixels(result.bytes, CLEAN.bytes)).toBe(true);
   });
 
-  it("repaints artwork that reaches into part of the text zone (card_compiler_v3)", async () => {
-    const { fake, run } = stage({ art: [INTRUDING, CLEAN] });
-    const result = await run();
-    expect(fake.calls.art).toHaveLength(2);
-    expect(result.telemetry).toMatchObject({
-      imagesRequested: 2,
-      keptImage: 2,
-      artRegenerated: "panel-repaint",
-      artRepaints: 1,
-      inkPanels: [],
+  describe("artwork under the text, and only under the text (card_compiler_v4)", () => {
+    const zone = zoneFor("art-top", "rectangle");
+    const areasOf = async () =>
+      (await generatedLineAreas("art-top", ["rectangle"], "hc_playfair_dmsans", CONTENT))
+        .rectangle!;
+
+    it("repaints artwork behind the first line of the title", async () => {
+      const [titleLine] = await areasOf();
+      // Centred on the area behind the title's first line, inside the line itself.
+      const intrusion = {
+        ...INTRUSION,
+        x: titleLine.x + (titleLine.width - INTRUSION.width) / 2,
+        y: titleLine.y + (titleLine.height - INTRUSION.height) / 2,
+      };
+      expect(INTRUSION.width * INTRUSION.height).toBeLessThan(0.04 * zone.width * zone.height);
+      const { fake, run } = stage({ art: [intruding(intrusion), CLEAN] });
+      const result = await run();
+      expect(fake.calls.art).toHaveLength(2);
+      expect(result.telemetry).toMatchObject({
+        imagesRequested: 2,
+        keptImage: 2,
+        artRegenerated: "panel-repaint",
+        artRepaints: 1,
+        inkPanels: [],
+      });
+      expect(samePixels(result.bytes, CLEAN.bytes)).toBe(true);
     });
-    expect(samePixels(result.bytes, CLEAN.bytes)).toBe(true);
+
+    it("does not repaint the same intrusion in a part of the zone no line covers", async () => {
+      // The zone's top-left corner, beside the title.
+      const intrusion = { ...INTRUSION, x: zone.x + 4, y: zone.y + 4 };
+      const areas = await areasOf();
+      expect(areas.some((a) => overlaps(a, intrusion))).toBe(false);
+      expect(overlaps(zone, intrusion)).toBe(true);
+      const { fake, run } = stage({ art: [intruding(intrusion), CLEAN] });
+      const result = await run();
+      expect(fake.calls.art).toHaveLength(1);
+      expect(result.telemetry).toMatchObject({
+        imagesRequested: 1,
+        artRegenerated: null,
+        artRepaints: 0,
+        inkPanels: [],
+      });
+    });
   });
 
   it("keeps the original, with the panel, when no repaint clears", async () => {
@@ -622,19 +674,54 @@ describe("ink for every fitted shape (docs/card-system.md §4.2)", () => {
     }
   });
 
-  it("has all four portrait shapes for atmosphere art and both square shapes on 1:1", () => {
-    const portrait = resolveArtworkInk(decodePng(CLEAN.bytes), "atmosphere", [
-      "rectangle",
-      "rounded-rectangle",
-      "arch",
-      "oval",
-    ]);
+  it("has all four portrait shapes for atmosphere art and both square shapes on 1:1", async () => {
+    const portraitShapes = ["rectangle", "rounded-rectangle", "arch", "oval"] as const;
+    const portrait = resolveArtworkInk(
+      decodePng(CLEAN.bytes),
+      "atmosphere",
+      portraitShapes,
+      await generatedLineAreas("atmosphere", portraitShapes, "hc_playfair_dmsans", CONTENT),
+    );
     expect(Object.keys(portrait)).toHaveLength(4);
-    const square = resolveArtworkInk(decodePng(CLEAN_SQUARE.bytes), "atmosphere", [
-      "square",
-      "circle",
-    ]);
+    const squareShapes = ["square", "circle"] as const;
+    const square = resolveArtworkInk(
+      decodePng(CLEAN_SQUARE.bytes),
+      "atmosphere",
+      squareShapes,
+      await generatedLineAreas("atmosphere", squareShapes, "hc_playfair_dmsans", CONTENT),
+    );
     expect(Object.keys(square)).toEqual(["square", "circle"]);
+  });
+
+  it("lays the text out for every fitted shape, behind which the ink is judged", async () => {
+    const shapes = ["rectangle", "rounded-rectangle", "arch", "oval"] as const;
+    const areas = await generatedLineAreas("atmosphere", shapes, "hc_playfair_dmsans", CONTENT);
+    for (const shape of shapes) {
+      const zone = zoneFor("atmosphere", shape);
+      const rects = areas[shape];
+      // Title (2 lines here or 1), invitation line, hosts, date, time, venue: one area a line.
+      expect(rects?.length).toBeGreaterThanOrEqual(6);
+      for (const r of rects!) expect(overlaps(zone, r)).toBe(true);
+    }
+  });
+
+  it("falls back to the whole zone for a shape whose text does not lay out", async () => {
+    // Characters the curated faces cannot draw: the layout is refused, never thrown from here.
+    const areas = await generatedLineAreas("art-top", ["rectangle"], "hc_playfair_dmsans", {
+      ...CONTENT,
+      title: "\u{1F388}\u{1F388}",
+    });
+    expect(areas).toEqual({ rectangle: null });
+    const ink = resolveArtworkInk(decodePng(CLEAN.bytes), "art-top", ["rectangle"], areas);
+    expect(ink.rectangle?.[TEXT_ZONE]?.panel).toBeUndefined();
+  });
+
+  it("refuses to judge a fitted shape it was given no line areas for", () => {
+    expect(() =>
+      resolveArtworkInk(decodePng(CLEAN.bytes), "art-top", ["rectangle", "arch"], {
+        rectangle: null,
+      }),
+    ).toThrow(/no line areas for arch/);
   });
 });
 

@@ -11,12 +11,11 @@ import { GENERATION_STALE_SECONDS } from "@/lib/ai/generations.server";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import type { CardPanel } from "@/lib/card/card-data";
-import { cardContent } from "@/lib/card/facts";
+import { cardContentWithPlaceholders } from "@/lib/card/facts";
 import type { CardLayoutId } from "@/lib/card/layouts";
 import { proportionOf, type CardShape } from "@/lib/card/shapes";
 import type { TypographyPairingId } from "@/lib/card/typography";
 import { generationEnv } from "@/lib/env";
-import { provisionalContent } from "@/lib/events/provisional";
 import { CARD_ART_BUCKET, runGeneration } from "@/lib/generation/run.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -313,19 +312,21 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
           const zone = (asset.ink as unknown as Record<string, Record<string, ZoneInk>>)[shape]
             .text;
           const confirmed = CONFIRMED[result.id] ?? {};
-          const placeholders = provisionalContent({}, new Date());
-          const content = cardContent({
-            title: wording.title,
-            invitationLine: wording.invitationLine,
-            babyName: null,
-            hosts: null,
-            eventDate: confirmed.event_date ?? placeholders.eventDate.value,
-            startTime: confirmed.start_time ?? placeholders.startTime.value,
-            endTime: null,
-            venueName: confirmed.venue_name ?? placeholders.venue.value,
-            address: confirmed.address ?? null,
-            rsvpDeadline: null,
-            timezone: null,
+          // The same producer the artwork stage judged the ink behind (`run.server.ts`).
+          const content = cardContentWithPlaceholders({
+            wording,
+            event: {
+              babyName: null,
+              hosts: null,
+              eventDate: confirmed.event_date ?? null,
+              startTime: confirmed.start_time ?? null,
+              endTime: null,
+              venueName: confirmed.venue_name ?? null,
+              address: confirmed.address ?? null,
+              rsvpDeadline: null,
+              timezone: null,
+            },
+            now: new Date(),
           });
           const boxes = await generatedTextLayer({
             layout,

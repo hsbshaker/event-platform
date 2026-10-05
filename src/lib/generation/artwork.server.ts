@@ -8,13 +8,11 @@ import {
 } from "@/lib/ai/errors";
 import type { CardArt, GenerateCardArtInput } from "@/lib/ai/provider";
 import { assembleArtPrompt, assembleShapeSwitchPrompt, fitsShapes } from "@/lib/card/art-prompt";
+import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
 import type { CardDesign } from "@/lib/card/design";
-import {
-  paletteFromPixels,
-  resolveInk,
-  sampleZoneBands,
-  sampleZoneLuminance,
-} from "@/lib/card/ink";
+import { paletteFromPixels, resolveInk, sampleZoneLuminance } from "@/lib/card/ink";
+import type { CardRect } from "@/lib/card/ink";
+import { pairingFaces } from "@/lib/card/layout-card";
 import { panelFor, zoneFor } from "@/lib/card/layouts";
 import type { CardLayoutId, CardPanelShape } from "@/lib/card/layouts";
 import {
@@ -29,6 +27,10 @@ import { PEOPLE_FREE_RENDERINGS } from "@/lib/card/renderings";
 import type { Rendering } from "@/lib/card/renderings";
 import { CARD_CANVAS, insideOutline, SHAPE_PROPORTION } from "@/lib/card/shapes";
 import type { CardProportion, CardShape } from "@/lib/card/shapes";
+import { textLineAreas } from "@/lib/card/text-areas";
+import type { CardContent } from "@/lib/card/text-box";
+import { curatedMetricsResolver } from "@/lib/card/text/curated-fonts";
+import type { TypographyPairingId } from "@/lib/card/typography";
 
 import { ArtworkProviderRefusalError, attachFailureDetails, GenerationStageError } from "./stage";
 import type { StageContext } from "./stage";
@@ -67,12 +69,15 @@ import type { StageContext } from "./stage";
  * A meter refusal before a valid artwork exists passes through unchanged; during repaints it stops
  * them and the valid artwork is kept.
  *
- * **Ink**: for every shape the artwork fits (`fitsShapes`), each text zone (`zoneFor`) is sampled
- * within the outline, whole and in line-height strips, and resolved (`resolveInk`), so artwork
- * reaching into part of a zone needs the panel and earns a repaint; a zone that needs the panel
- * records the layout's panel for the shape (`panelFor`) and its colour. **Storage**: the kept PNG
- * loses its colour and text chunks without re-encoding (`stripColorAndTextChunks`), so it is
- * untagged sRGB (`docs/technology-decisions.md §8.2`).
+ * **Ink** (`card_compiler_v4`): for every shape the artwork fits (`fitsShapes`), the generated text
+ * layer the card will show right after generation (`input.content`, in the design's primary
+ * pairing) is laid out once (`textLineAreas`), and each text zone (`zoneFor`) is sampled within
+ * the outline — whole, and behind each line of that text with a small margin — and resolved
+ * (`resolveInk`), so artwork under the letters needs the panel and earns a repaint while artwork in
+ * the zone's empty parts does not; a zone that needs the panel records the layout's panel for the
+ * shape (`panelFor`) and its colour. **Storage**: the kept PNG loses its colour and text chunks
+ * without re-encoding (`stripColorAndTextChunks`), so it is untagged sRGB
+ * (`docs/technology-decisions.md §8.2`).
  *
  * Nothing is persisted here.
  */
@@ -152,9 +157,14 @@ export interface ArtworkValidationFailure {
 }
 
 export interface ArtworkStageInput {
-  design: Pick<CardDesign, "artBrief" | "artMode" | "layout">;
+  design: Pick<CardDesign, "artBrief" | "artMode" | "layout" | "typography">;
   /** The shape to paint for: the design's own shape, or a shape switch's target. */
   shape: CardShape;
+  /**
+   * The words the generated card shows right after generation (`cardContentWithPlaceholders`):
+   * the ink is judged behind each of their lines, laid out for every fitted shape.
+   */
+  content: CardContent;
   /** A shape switch only: the design's own earlier artwork (never a host upload). */
   reference?: CardArt;
   /**
@@ -276,24 +286,79 @@ export async function validateArtwork(
 }
 
 /**
+ * The areas behind the generated text's lines, by fitted shape (`generatedLineAreas`); `null` for
+ * a shape whose text did not lay out, judged on its whole zone alone.
+ */
+export type LineAreas = Partial<Record<CardShape, readonly CardRect[] | null>>;
+
+/** Any valid ink: `layoutCard`'s geometry does not depend on it. */
+const GEOMETRY_INK = "#000000";
+
+/**
+ * Behind each line of the generated card's text, by fitted shape (`card_compiler_v4`): the
+ * generated text layer for `content` in the design's primary pairing (`generatedTextLayer`, the
+ * card's own layout; the ink does not change geometry, so any valid ink lays it out), and the
+ * line areas `textLineAreas` derives from it. The geometry does not depend on the artwork, so a
+ * stage computes it once for every image it judges.
+ *
+ * A shape whose text does not lay out — `overflow`, or characters the faces lack — gets `null`,
+ * and its ink is judged on the whole zone alone (the `card_compiler_v2` measure). This does not
+ * throw: the design stage's fit check (`cardTextFitsEveryDesign`) already guarantees that valid
+ * content fits, and a text layer that cannot be rendered is refused where the card is drawn
+ * (`CardTextLayoutError`); the artwork stage is not where a generation fails for it.
+ */
+export async function generatedLineAreas(
+  layout: CardLayoutId,
+  shapes: readonly CardShape[],
+  pairing: TypographyPairingId,
+  content: CardContent,
+): Promise<LineAreas> {
+  const faces = pairingFaces(pairing);
+  const metrics = await curatedMetricsResolver([faces.display, faces.body]);
+  const areas: LineAreas = {};
+  for (const shape of shapes) {
+    try {
+      const boxes = await generatedTextLayer({
+        layout,
+        shape,
+        pairing,
+        content,
+        ink: GEOMETRY_INK,
+      });
+      areas[shape] = textLineAreas(boxes, metrics, zoneFor(layout, shape));
+    } catch (error) {
+      if (!(error instanceof CardTextLayoutError)) throw error;
+      areas[shape] = null;
+    }
+  }
+  return areas;
+}
+
+/**
  * Ink and panels for every shape an artwork fits (`docs/card-system.md §4.2`): the artwork's
- * palette once, then each shape's text zone sampled inside its outline, whole and strip by strip,
- * and resolved.
+ * palette once, then each shape's text zone sampled inside its outline, whole and behind each line
+ * of the text (`lineAreas`), and resolved. Every fitted shape needs an entry in `lineAreas` (`null`
+ * for the whole zone alone): a missing one is a caller's bug, never a silent zone-only measure.
  */
 export function resolveArtworkInk(
   decoded: DecodedPng,
   layout: CardLayoutId,
   shapes: readonly CardShape[],
+  lineAreas: LineAreas,
 ): ArtworkInk {
   const { rgba, width, height } = decoded;
   const palette = paletteFromPixels(rgba, width, height);
   const ink: ArtworkInk = {};
   for (const shape of shapes) {
+    const rects = lineAreas[shape];
+    if (rects === undefined) throw new Error(`resolveArtworkInk: no line areas for ${shape}`);
     const zone = zoneFor(layout, shape);
     const inside = (x: number, y: number) => insideOutline(shape, x, y);
     const luminances = sampleZoneLuminance(rgba, width, height, zone, inside);
-    const bands = sampleZoneBands(rgba, width, height, zone, inside);
-    const resolved = resolveInk({ luminances, bands, palette });
+    const areas = (rects ?? []).map((rect) =>
+      sampleZoneLuminance(rgba, width, height, rect, inside),
+    );
+    const resolved = resolveInk({ luminances, areas, palette });
     ink[shape] = {
       [TEXT_ZONE]: resolved.panel
         ? { ink: resolved.ink, panel: panelFor(layout, shape), panelColor: resolved.panel.color }
@@ -317,14 +382,17 @@ export async function runArtworkStage(
   ctx: StageContext,
   input: ArtworkStageInput,
 ): Promise<ArtworkStageResult> {
-  const { shape, reference } = input;
-  const { artBrief, artMode, layout } = input.design;
+  const { shape, reference, content } = input;
+  const { artBrief, artMode, layout, typography } = input.design;
   const promptInput = { artBrief, artMode, layout, shape };
   // Assembled before any call: a shape the layout does not support throws here, unspent.
   const artPrompt = reference
     ? assembleShapeSwitchPrompt(promptInput, shape)
     : assembleArtPrompt(promptInput);
   const fits = [...fitsShapes(artMode, layout, shape)];
+  // Where the text will sit on each fitted shape: laid out before any call, so a failure here
+  // (a font that does not load) costs no image.
+  const lineAreas = await generatedLineAreas(layout, fits, typography.primary, content);
   const request: GenerateCardArtInput = {
     artBrief,
     artMode,
@@ -423,7 +491,7 @@ export async function runArtworkStage(
 
   // Repaints while the painted-for shape would need a panel, within the budget.
   let kept = first;
-  let keptInk = resolveArtworkInk(first.decoded, layout, fits);
+  let keptInk = resolveArtworkInk(first.decoded, layout, fits, lineAreas);
   let repaintsStoppedBy: ArtworkTelemetry["repaintsStoppedBy"] = null;
   while (needsPanel(keptInk, shape) && images < maxImages) {
     let painted: Painted;
@@ -446,7 +514,7 @@ export async function runArtworkStage(
       });
       continue;
     }
-    const ink = resolveArtworkInk(painted.decoded, layout, fits);
+    const ink = resolveArtworkInk(painted.decoded, layout, fits, lineAreas);
     if (!needsPanel(ink, shape)) {
       kept = painted;
       keptInk = ink;
