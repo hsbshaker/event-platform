@@ -27,10 +27,48 @@ describe("breakLines", () => {
   });
 
   it("never leaves a one-word last line where another break exists", () => {
-    // Balance alone would choose "aa bb" / "cccccccc" (slack 60 and 30); the rule wins.
-    expect(breakLines("aa bb cccccccc", 110, mono).lines).toEqual(["aa", "bb cccccccc"]);
+    // Balance alone would choose "aaaa bbbb" / "cccccccccc" (slack 60 and 50); the rule wins.
+    expect(breakLines("aaaa bbbb cccccccccc", 150, mono).lines).toEqual([
+      "aaaa",
+      "bbbb cccccccccc",
+    ]);
     // ... but never at the cost of an extra line.
-    expect(breakLines("aa bb cccccccc", 90, mono).lines).toEqual(["aa bb", "cccccccc"]);
+    expect(breakLines("aaaa bbbb cccccccccc", 140, mono).lines).toEqual([
+      "aaaa bbbb",
+      "cccccccccc",
+    ]);
+  });
+
+  it("never strands a short word on a line where another break exists, before any other rule", () => {
+    // The one-word-last-line rule alone gives "A" / "Wild Beginning"; a stranded "A" ranks worse.
+    expect(breakLines("A Wild Beginning", 140, mono).lines).toEqual(["A Wild", "Beginning"]);
+    expect(breakLines("A Well-Played Journey", 170, mono).lines).toEqual([
+      "A Well-Played",
+      "Journey",
+    ]);
+    // When every choice strands one, the one-word-last-line rule decides.
+    expect(breakLines("Tea for two", 70, mono).lines).toEqual(["Tea", "for two"]);
+    expect(breakLines("Tea at the Ritz", 110, mono).lines).toEqual(["Tea at", "the Ritz"]);
+  });
+
+  it("counts a short word's characters without combining marks, and four letters is not short", () => {
+    // "Zoë" with a combining diaeresis is three characters: short, so it is not left alone.
+    expect(breakLines("Zoe\u0308 Wild Beginning", 170, mono).lines).toEqual([
+      "Zoe\u0308 Wild",
+      "Beginning",
+    ]);
+    // "Ella" is four: the one-word-last-line rule decides.
+    expect(breakLines("Ella Wild Beginning", 170, mono).lines).toEqual(["Ella", "Wild Beginning"]);
+  });
+
+  it("strands a short word rather than break inside a word or add a line", () => {
+    // A hyphen break ranks before rule 4.
+    expect(breakLines("A Montgomery-Whitworth", 200, mono).lines).toEqual([
+      "A",
+      "Montgomery-Whitworth",
+    ]);
+    // Fewest lines ranks first.
+    expect(breakLines("A Wild Beginning", 160, mono).lines).toEqual(["A Wild Beginning"]);
   });
 
   it("accepts a one-word last line when it is the only break", () => {

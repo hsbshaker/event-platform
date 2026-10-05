@@ -12,8 +12,11 @@
  * 1. never break inside a word except after such a hyphen;
  * 2. use the fewest lines that fit `maxWidth`;
  * 3. at that line count, use as few hyphen breaks as possible (a space is always preferred);
- * 4. then never leave a one-word last line (a line with no space in it) where another break exists;
- * 5. then balance the lines: minimise the sum of squared slack, so lines come out even
+ * 4. then strand as few short words as possible: a line that is one word of `SHORT_WORD_MAX`
+ *    characters or fewer ("A", "The", "Our"), as in "A / Wild Beginning", wherever it falls
+ *    (`card_compiler_v3`, owner decision 2026-10-05);
+ * 5. then never leave a one-word last line (a line with no space in it) where another break exists;
+ * 6. then balance the lines: minimise the sum of squared slack, so lines come out even
  *    (the `text-wrap: balance` shape) rather than greedy-full-then-short.
  *
  * A single unbreakable piece (a word, or the part of a hyphenated word between break points)
@@ -62,6 +65,19 @@ export function wordPieces(word: string): string[] {
   return word.split(HYPHEN_BETWEEN_LETTERS);
 }
 
+/**
+ * The longest word, in characters (combining marks not counted), that rule 4 treats as short when
+ * it stands alone on a line.
+ */
+export const SHORT_WORD_MAX = 3;
+
+const COMBINING_MARK = /\p{M}/gu;
+
+/** Whether `line` (one word: no space in it) is a short word under rule 4. */
+function isShortWord(line: string): boolean {
+  return Array.from(line.replace(COMBINING_MARK, "")).length <= SHORT_WORD_MAX;
+}
+
 /** One unbreakable run of a paragraph, and whether a space precedes it. */
 interface Piece {
   text: string;
@@ -83,12 +99,15 @@ interface Cost {
   lines: number;
   /** Line breaks taken after a hyphen rather than at a space. */
   hyphens: number;
+  /** Lines that are one short word (rule 4). */
+  stranded: number;
   slack: number;
 }
 
 function better(a: Cost, b: Cost): boolean {
   if (a.lines !== b.lines) return a.lines < b.lines;
   if (a.hyphens !== b.hyphens) return a.hyphens < b.hyphens;
+  if (a.stranded !== b.stranded) return a.stranded < b.stranded;
   return a.slack < b.slack;
 }
 
@@ -125,11 +144,18 @@ function breakParagraph(
   };
   // A line starting at piece i (i > 0) means a break before it: after a hyphen, or at a space.
   const hyphenBreak = (i: number): number => (i > 0 && !pieces[i].spaceBefore ? 1 : 0);
+  // A line of pieces[i..j) is one word when no space falls inside it.
+  const oneWordLine = (i: number, j: number): boolean => {
+    for (let k = i + 1; k < j; k += 1) if (pieces[k].spaceBefore) return false;
+    return true;
+  };
+  const strandedOf = (i: number, j: number): number =>
+    oneWordLine(i, j) && isShortWord(textOf(i, j)) ? 1 : 0;
 
   // best[j]: the best way to set pieces[0..j) as complete lines; from[j]: start of its last line.
   const best: (Cost | null)[] = new Array(n + 1).fill(null);
   const from = new Int32Array(n + 1);
-  best[0] = { lines: 0, hyphens: 0, slack: 0 };
+  best[0] = { lines: 0, hyphens: 0, stranded: 0, slack: 0 };
   for (let j = 1; j <= n; j += 1) {
     for (let i = j - 1; i >= 0; i -= 1) {
       if (!allowed(i, j)) break; // wider prefixes only get wider
@@ -138,6 +164,7 @@ function breakParagraph(
       const cost = {
         lines: prev.lines + 1,
         hyphens: prev.hyphens + hyphenBreak(i),
+        stranded: prev.stranded + strandedOf(i, j),
         slack: prev.slack + slackOf(i, j),
       };
       if (!best[j] || better(cost, best[j]!)) {
@@ -148,11 +175,6 @@ function breakParagraph(
   }
 
   // Choose the last line separately so the one-word-last-line rule ranks above balance.
-  // A last line is one word when no space falls inside it.
-  const oneWord = (i: number): boolean => {
-    for (let k = i + 1; k < n; k += 1) if (pieces[k].spaceBefore) return false;
-    return true;
-  };
   let chosen = -1;
   let chosenCost: (Cost & { orphan: number }) | null = null;
   for (let i = n - 1; i >= 0; i -= 1) {
@@ -163,7 +185,8 @@ function breakParagraph(
     const cost = {
       lines,
       hyphens: prev.hyphens + hyphenBreak(i),
-      orphan: lines > 1 && oneWord(i) ? 1 : 0,
+      stranded: prev.stranded + strandedOf(i, n),
+      orphan: lines > 1 && oneWordLine(i, n) ? 1 : 0,
       slack: prev.slack + slackOf(i, n),
     };
     const wins =
@@ -172,8 +195,10 @@ function breakParagraph(
       (cost.lines === chosenCost.lines &&
         (cost.hyphens < chosenCost.hyphens ||
           (cost.hyphens === chosenCost.hyphens &&
-            (cost.orphan < chosenCost.orphan ||
-              (cost.orphan === chosenCost.orphan && cost.slack <= chosenCost.slack)))));
+            (cost.stranded < chosenCost.stranded ||
+              (cost.stranded === chosenCost.stranded &&
+                (cost.orphan < chosenCost.orphan ||
+                  (cost.orphan === chosenCost.orphan && cost.slack <= chosenCost.slack)))))));
     if (wins) {
       chosen = i;
       chosenCost = cost;

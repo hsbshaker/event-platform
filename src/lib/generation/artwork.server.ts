@@ -9,7 +9,12 @@ import {
 import type { CardArt, GenerateCardArtInput } from "@/lib/ai/provider";
 import { assembleArtPrompt, assembleShapeSwitchPrompt, fitsShapes } from "@/lib/card/art-prompt";
 import type { CardDesign } from "@/lib/card/design";
-import { paletteFromPixels, resolveInk, sampleZoneLuminance } from "@/lib/card/ink";
+import {
+  paletteFromPixels,
+  resolveInk,
+  sampleZoneBands,
+  sampleZoneLuminance,
+} from "@/lib/card/ink";
 import { panelFor, zoneFor } from "@/lib/card/layouts";
 import type { CardLayoutId, CardPanelShape } from "@/lib/card/layouts";
 import {
@@ -63,10 +68,11 @@ import type { StageContext } from "./stage";
  * them and the valid artwork is kept.
  *
  * **Ink**: for every shape the artwork fits (`fitsShapes`), each text zone (`zoneFor`) is sampled
- * within the outline and resolved (`resolveInk`); a zone that needs the panel records the layout's
- * panel for the shape (`panelFor`) and its colour. **Storage**: the kept PNG loses its colour and
- * text chunks without re-encoding (`stripColorAndTextChunks`), so it is untagged sRGB
- * (`docs/technology-decisions.md §8.2`).
+ * within the outline, whole and in line-height strips, and resolved (`resolveInk`), so artwork
+ * reaching into part of a zone needs the panel and earns a repaint; a zone that needs the panel
+ * records the layout's panel for the shape (`panelFor`) and its colour. **Storage**: the kept PNG
+ * loses its colour and text chunks without re-encoding (`stripColorAndTextChunks`), so it is
+ * untagged sRGB (`docs/technology-decisions.md §8.2`).
  *
  * Nothing is persisted here.
  */
@@ -271,7 +277,8 @@ export async function validateArtwork(
 
 /**
  * Ink and panels for every shape an artwork fits (`docs/card-system.md §4.2`): the artwork's
- * palette once, then each shape's text zone sampled inside its outline and resolved.
+ * palette once, then each shape's text zone sampled inside its outline, whole and strip by strip,
+ * and resolved.
  */
 export function resolveArtworkInk(
   decoded: DecodedPng,
@@ -283,10 +290,10 @@ export function resolveArtworkInk(
   const ink: ArtworkInk = {};
   for (const shape of shapes) {
     const zone = zoneFor(layout, shape);
-    const luminances = sampleZoneLuminance(rgba, width, height, zone, (x, y) =>
-      insideOutline(shape, x, y),
-    );
-    const resolved = resolveInk({ luminances, palette });
+    const inside = (x: number, y: number) => insideOutline(shape, x, y);
+    const luminances = sampleZoneLuminance(rgba, width, height, zone, inside);
+    const bands = sampleZoneBands(rgba, width, height, zone, inside);
+    const resolved = resolveInk({ luminances, bands, palette });
     ink[shape] = {
       [TEXT_ZONE]: resolved.panel
         ? { ink: resolved.ink, panel: panelFor(layout, shape), panelColor: resolved.panel.color }

@@ -22,7 +22,7 @@ import { assembleArtPrompt, assembleShapeSwitchPrompt, fitsShapes } from "@/lib/
 import type { CardDesign } from "@/lib/card/design";
 import type { Rendering } from "@/lib/card/renderings";
 import { MIN_INK_CONTRAST } from "@/lib/card/ink";
-import { panelFor } from "@/lib/card/layouts";
+import { panelFor, zoneFor } from "@/lib/card/layouts";
 import { decodePng, pngChunkTypes } from "@/lib/card/png.server";
 import { contrastRatio } from "@/lib/card/color";
 import { encodePng } from "@/lib/link-preview/test-artwork";
@@ -61,6 +61,22 @@ const CLEAN = art(rgbArt(W, H5x7, () => [238, 228, 212]));
 const CLEAN_SQUARE = art(rgbArt(W, W, () => [238, 228, 212]));
 /** A black-and-white checkerboard: no ink clears 4.5:1 over it, so every zone needs the panel. */
 const BUSY = art(rgbArt(W, H5x7, (x, y) => ((x + y) % 2 ? [0, 0, 0] : [255, 255, 255])));
+/**
+ * Cream paper with a navy shape reaching 40 card units into the top of the rectangle's text zone
+ * across 40% of its width: too small a share of the zone to reach its dark tail, but a quarter of
+ * the strip it crosses (`card_compiler_v3`).
+ */
+const INTRUDING = (() => {
+  const zone = zoneFor("art-top", "rectangle");
+  const px = W / 1000;
+  const [top, bottom] = [zone.y * px, (zone.y + 40) * px];
+  const [left, right] = [(zone.x + zone.width * 0.3) * px, (zone.x + zone.width * 0.7) * px];
+  return art(
+    rgbArt(W, H5x7, (x, y) =>
+      y >= top && y < bottom && x >= left && x < right ? [27, 42, 74] : [238, 228, 212],
+    ),
+  );
+})();
 
 const NOT_PNG = art(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 const SQUARE_FOR_PORTRAIT = CLEAN_SQUARE;
@@ -426,6 +442,20 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     expect(fake.calls.art).toHaveLength(2);
     // Every repaint is the same request: same brief, same shape.
     expect(fake.calls.art[1]).toEqual(fake.calls.art[0]);
+    expect(result.telemetry).toMatchObject({
+      imagesRequested: 2,
+      keptImage: 2,
+      artRegenerated: "panel-repaint",
+      artRepaints: 1,
+      inkPanels: [],
+    });
+    expect(samePixels(result.bytes, CLEAN.bytes)).toBe(true);
+  });
+
+  it("repaints artwork that reaches into part of the text zone (card_compiler_v3)", async () => {
+    const { fake, run } = stage({ art: [INTRUDING, CLEAN] });
+    const result = await run();
+    expect(fake.calls.art).toHaveLength(2);
     expect(result.telemetry).toMatchObject({
       imagesRequested: 2,
       keptImage: 2,
