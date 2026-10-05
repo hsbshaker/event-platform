@@ -451,6 +451,13 @@ Expired/invalid:
 - calm error;
 - return/contact inviter.
 
+Already a member (the owner, or an existing co-host): says so and opens the event; the link is not
+used up.
+
+Delivery: the owner creates an invite link in `Co-hosts` and shares it themselves — the platform
+sends nothing. A link works once, expires after 7 days, and can be revoked; the owner can remove a
+co-host.
+
 ---
 
 # Guest surfaces
