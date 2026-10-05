@@ -482,7 +482,9 @@ A provider refusal of an artwork's **first** image is that artwork's failure: it
 is the re-prompted design's artwork (`spec.md §7.6`), which continues the same budget of two extra
 images — so its own failed validation or refusal is a visible failure, and it has at most one
 repaint left. A refusal of the regeneration of an already-failed first image is the second failure
-and is visible.
+and is visible. Either way the failure's code is `provider_refusal`, and the host's Try again takes
+the same step back: the retry, reusing the identity, starts from the `provider-refusal` re-prompt
+with the copyright note shown, and a refusal of that is again a visible failure (`spec.md §7.6`).
 
 There is no library, template or stock fallback for any call. A visible failure always offers a
 retry and never presents itself as a finished design.

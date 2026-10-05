@@ -29,6 +29,7 @@ import { runArtworkStage } from "./artwork.server";
 import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.server";
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
+import { PROVIDER_REFUSAL_NOTICE } from "./failure-copy";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
 import { drawThemeSeed } from "./theme-seeds";
 import {
@@ -521,6 +522,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let inspirationSkipped = 0;
   let droppedFacts = 0;
   let statedEventType: string | null = null;
+  // Try again after the image provider refused the homage takes the same step back (spec.md §7.6).
+  let stepBack = false;
 
   if (!latest) {
     const loaded = await loadInspiration(admin, eventId);
@@ -567,6 +570,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     identityRevision = latest.revision;
     const earlier = await earlierFacts(admin, eventId, latest.generation_id);
     statedEventType = factString(earlier.facts, "eventType");
+    stepBack = await refusedBefore(admin, eventId, generationId);
     await recordStage("identity", {
       identity: identityArtifacts(identity),
       ...earlier,
@@ -637,21 +641,30 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let art: ArtworkStageResult;
   let providerRefusal = false;
   try {
-    chosen = current = await design();
-
-    // ---------------------------------------------------------------- 4. artwork
-    try {
-      art = await artwork(chosen);
-    } catch (error) {
-      // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
-      // §9); a refusal after a failed first image is the second failure, and visible.
-      if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) {
-        throw error;
-      }
+    if (stepBack) {
+      // The last try ended on the image provider's refusal: this one starts from the step-back,
+      // with the copyright note, and a refusal of it is again a visible failure.
       providerRefusal = true;
-      await recordStage("design", { notice: "provider_refusal" });
+      await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE });
       chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
-      art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+      art = await artwork(chosen);
+    } else {
+      chosen = current = await design();
+
+      // -------------------------------------------------------------- 4. artwork
+      try {
+        art = await artwork(chosen);
+      } catch (error) {
+        // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
+        // §9); a refusal after a failed first image is the second failure, and visible.
+        if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) {
+          throw error;
+        }
+        providerRefusal = true;
+        await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE });
+        chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
+        art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+      }
     }
   } catch (error) {
     attachFailureDetails(error, renderingDetails());
@@ -843,6 +856,29 @@ function factString(facts: Json, field: string): string | null {
   if (!facts || typeof facts !== "object" || Array.isArray(facts)) return null;
   const value = facts[field];
   return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+/**
+ * The event's previous first-card generation failed because the image provider refused its
+ * artwork (`provider_refusal`): the host's Try again then takes the same step back (`spec.md
+ * §7.6`, §31). Only a retry reaches this — the refused generation had already recorded the
+ * identity — and only one first card runs at a time, so the previous one is the newest other.
+ */
+async function refusedBefore(
+  admin: AdminClient,
+  eventId: string,
+  generationId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("generations")
+    .select("id, status, error_code")
+    .eq("event_id", eventId)
+    .eq("kind", "initial")
+    .order("started_at", { ascending: false })
+    .limit(2);
+  if (error) throw error;
+  const previous = (data ?? []).find((row) => row.id !== generationId);
+  return previous?.status === "failed" && previous.error_code === "provider_refusal";
 }
 
 /**

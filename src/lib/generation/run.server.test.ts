@@ -677,6 +677,64 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
     expect(fake.calls.design).toHaveLength(1);
     expect(stages().map(([, a]) => a)).not.toContainEqual({ notice: "provider_refusal" });
   });
+
+  describe("Try again after a refusal takes the same step back (§31)", () => {
+    const earlier = (errorCode: string) => {
+      admin.state.tables.event_identities = [
+        { event_id: EVENT, revision: 1, identity: IDENTITY, generation_id: EARLIER_GENERATION },
+      ];
+      admin.state.tables.generations[0].started_at = "2026-10-05T12:05:00Z";
+      admin.state.tables.generations.push({
+        id: EARLIER_GENERATION,
+        event_id: EVENT,
+        kind: "initial",
+        status: "failed",
+        error_code: errorCode,
+        requested_by: USER,
+        started_at: "2026-10-05T12:00:00Z",
+        artifacts: { facts: FACTS, droppedFacts: [] },
+      });
+    };
+
+    it("starts from the step-back design, with the copyright note", async () => {
+      earlier("provider_refusal");
+      const { outcome, fake } = await run({ design: [WORLD_DESIGN], art: [CLEAN] });
+      expect(outcome.status).toBe("succeeded");
+      expect(fake.calls.design).toHaveLength(1);
+      expect(fake.calls.design[0].reprompt).toEqual({
+        kind: "provider-refusal",
+        feedback: PROVIDER_REFUSAL_FEEDBACK,
+      });
+      expect(stages().map(([stage, a]) => [stage, Object.keys(a as object)])).toEqual([
+        ["identity", ["identity", "facts", "droppedFacts"]],
+        ["design", ["notice"]],
+        ["design", ["design"]],
+      ]);
+      expect(stages()[1][1]).toEqual({ notice: "provider_refusal" });
+      expect(fake.calls.art).toHaveLength(1);
+      expect(persisted()).toMatchObject({ p_name: "Grove Morning" });
+      expect(telemetryOf()).toMatchObject({
+        reprompts: ["provider-refusal"],
+        imagesRequested: 1,
+        providerRefusal: true,
+      });
+    });
+
+    it("fails visibly again when the step-back is refused, with no further design", async () => {
+      earlier("provider_refusal");
+      const { outcome, fake } = await run({ design: [WORLD_DESIGN], art: [refusal()] });
+      expect(outcome).toEqual({ status: "failed", code: "provider_refusal" });
+      expect(fake.calls.design).toHaveLength(1);
+      expect(admin.state.uploads).toEqual([]);
+    });
+
+    it("designs afresh after any other failure", async () => {
+      earlier("artwork_invalid");
+      const { fake } = await run({ design: [DESIGN], art: [CLEAN] });
+      expect(fake.calls.design[0].reprompt).toBeUndefined();
+      expect(stages().map(([, a]) => a)).not.toContainEqual({ notice: "provider_refusal" });
+    });
+  });
 });
 
 describe("failures end the generation with fail_generation", () => {

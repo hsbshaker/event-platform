@@ -11,6 +11,7 @@ import {
   GENERATION_FAILURE_CODES,
   generationFailure,
   generationNotice,
+  PROVIDER_REFUSAL_NOTICE,
   type GenerationFailureCode,
 } from "./failure-copy";
 import { PROVIDER_REFUSAL_FEEDBACK } from "./run.server";
@@ -135,7 +136,9 @@ describe("generationNotice", () => {
     expect(COPYRIGHT_STEP_BACK_NOTICE).toBe(
       "That first take came out too close to a well-known character, so for copyright reasons we're trying a fresh take on its world.",
     );
-    expect(read("src/lib/generation/run.server.ts")).toContain('notice: "provider_refusal"');
+    // run.server.ts records this constant (its tests assert the recorded `{ notice }`).
+    expect(PROVIDER_REFUSAL_NOTICE).toBe("provider_refusal");
+    expect(read("src/lib/generation/run.server.ts")).toContain("notice: PROVIDER_REFUSAL_NOTICE");
     expect(generationNotice("provider_refusal")).toBe(COPYRIGHT_STEP_BACK_NOTICE);
     // The note is the host's; the re-prompt's words are the model's and never shown.
     expect(COPYRIGHT_STEP_BACK_NOTICE).not.toBe(PROVIDER_REFUSAL_FEEDBACK);
