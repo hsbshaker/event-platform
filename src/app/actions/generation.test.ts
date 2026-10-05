@@ -148,13 +148,15 @@ describe("startCardGeneration", () => {
 });
 
 describe("the function's duration", () => {
-  it("the page that invokes the action runs it for 300 s, above the generation's deadline", () => {
-    const page = readFileSync(
-      path.join(import.meta.dirname, "../events/[id]/create/page.tsx"),
-      "utf8",
-    );
-    const declared = /export const maxDuration = (\d+);/.exec(page);
-    expect(Number(declared?.[1])).toBe(GENERATION_MAX_DURATION_SECONDS);
-    expect(GENERATION_DEADLINE_MS).toBeLessThan(GENERATION_MAX_DURATION_SECONDS * 1000);
-  });
+  // Every page that invokes an action starting a generation: the first card (create), another
+  // direction (direction) and the Design panel's shape switch (the event page).
+  it.each(["create/page.tsx", "direction/page.tsx", "page.tsx"])(
+    "events/[id]/%s runs its actions for 300 s, above the generation's deadline",
+    (file) => {
+      const page = readFileSync(path.join(import.meta.dirname, "../events/[id]", file), "utf8");
+      const declared = /export const maxDuration = (\d+);/.exec(page);
+      expect(Number(declared?.[1])).toBe(GENERATION_MAX_DURATION_SECONDS);
+      expect(GENERATION_DEADLINE_MS).toBeLessThan(GENERATION_MAX_DURATION_SECONDS * 1000);
+    },
+  );
 });

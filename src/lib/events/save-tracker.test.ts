@@ -82,4 +82,16 @@ describe("createSaveTracker", () => {
     await tracker.settle();
     expect(flushed).toBe(0);
   });
+
+  it("counts the saves that failed or were refused since it was last asked", async () => {
+    const tracker = createSaveTracker();
+    const ok = (r: { ok: boolean }) => r.ok;
+    void tracker.track(Promise.resolve({ ok: true }), ok);
+    void tracker.track(Promise.resolve({ ok: false }), ok);
+    void tracker.track(Promise.reject(new Error("offline")), ok).catch(() => {});
+    void tracker.track(Promise.resolve({ ok: false }));
+    await tracker.settle();
+    expect(tracker.takeFailures()).toBe(2);
+    expect(tracker.takeFailures()).toBe(0);
+  });
 });

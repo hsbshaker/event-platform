@@ -645,7 +645,9 @@ props, palette and visual style — rather than its signature look, and makes ne
 from that brief. While it does, the host sees a short, plain note, for example: "That first take
 came out too close to a well-known character, so for copyright reasons we're trying a fresh take
 on its world." If that attempt is refused too, it is a visible failure whose Try again takes the
-same step back. The note never blames the host and never shows a provider error.
+same step back. The note never blames the host and never shows a provider error. A shape switch
+paints from the existing design, which is immutable, so its refusal is a visible failure at once,
+with no re-prompt; the card stays as it is.
 
 ### 7.6a Card artwork
 
@@ -1103,6 +1105,10 @@ themeSeed              // the theme seed given to a new identity (§7.5), null w
 failure                // on a failed generation: code, stage, per-image validation reasons,
                        // the suggested and chosen rendering and the theme seed — never host content
 ```
+
+A shape switch makes no identity or design call, so it records only the artwork's part — art
+regeneration, repaints, panels, line-area fallbacks, versions and latency — plus the shape asked
+for, the shape of the reference artwork and the shapes the new artwork fits.
 
 Schema validity, wording fallbacks, art regeneration and legibility panels are separate measures;
 never fold one into another.
@@ -2470,7 +2476,8 @@ The host should feel:
 - [ ] When the image provider refuses a brand or character homage, the one regeneration comes
   from a re-prompted design that evokes the character's world rather than its signature look; the
   host sees a short, plain copyright note, never a provider error; a second refusal is a visible
-  failure whose Try again takes the same step back (§7.6).
+  failure whose Try again takes the same step back (§7.6). A shape switch's refusal is a visible
+  failure with no re-prompt, and the card stays as it is.
 - [ ] Every text of the generated card clears 4.5:1 against the conservatively measured background
   of its zone, measured whole and behind each line of its text (with a small margin) so artwork
   under the text counts

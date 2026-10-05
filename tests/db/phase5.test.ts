@@ -41,9 +41,13 @@ type StartArgs = {
   eventCap?: number;
   hostCap?: number;
   staleSeconds?: number;
-  /** Another direction: the design it starts from (required there) and the host's words. */
+  /**
+   * Another direction and a shape switch: the design it starts from (required there); another
+   * direction's words; a shape switch's shape (required there).
+   */
   fromDesign?: string | null;
   feedback?: string | null;
+  shape?: string | null;
 };
 
 async function start(
@@ -60,9 +64,10 @@ async function start(
     staleSeconds = 330,
     fromDesign = null,
     feedback = null,
+    shape = null,
   } = args;
   const { rows } = await client.query(
-    `select * from public.start_generation($1, $2, $3, $4, $5::bytea, $6::bytea, $7, $8, $9, $10, $11)`,
+    `select * from public.start_generation($1, $2, $3, $4, $5::bytea, $6::bytea, $7, $8, $9, $10, $11, $12)`,
     [
       event,
       user,
@@ -75,6 +80,7 @@ async function start(
       staleSeconds,
       feedback,
       fromDesign,
+      shape,
     ],
   );
   expect(rows).toHaveLength(1);
@@ -376,8 +382,8 @@ describe("start_generation", () => {
     for (const status of ["PUBLISHED", "PASSED", "ARCHIVED"]) {
       await db.query(`update public.events set status = $2 where id = $1`, [eventA, status]);
       for (const kind of ["another_direction", "shape_switch"]) {
-        const fromDesign = kind === "another_direction" ? design : null;
-        expect(await start({ kind, fromDesign }), `${status} ${kind}`).toEqual({
+        const shape = kind === "shape_switch" ? "square" : null;
+        expect(await start({ kind, fromDesign: design, shape }), `${status} ${kind}`).toEqual({
           generation_id: null,
           outcome: "published",
         });
@@ -412,8 +418,12 @@ describe("start_generation", () => {
   });
 
   it("answers designed before in_flight, and published before designed", async () => {
-    await insertCardDesign(db, eventA);
-    const running = await start({ kind: "shape_switch" });
+    const design = await insertCardDesign(db, eventA);
+    await db.query(`update public.events set active_card_design_id = $2 where id = $1`, [
+      eventA,
+      design,
+    ]);
+    const running = await start({ kind: "shape_switch", fromDesign: design, shape: "square" });
     expect(running.outcome).toBe("started");
     expect(await start()).toEqual({ generation_id: null, outcome: "designed" });
     await finish(running.generation_id!);

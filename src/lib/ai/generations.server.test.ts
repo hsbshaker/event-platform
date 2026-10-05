@@ -110,3 +110,61 @@ describe("startGeneration", () => {
     await expect(startGeneration(INPUT)).rejects.toMatchObject({ code: "42501" });
   });
 });
+
+describe("one card at a time (spec.md §10)", () => {
+  const RUNNING = "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d";
+  const DESIGN = "d1d2d3d4-e5e6-4f7a-8b9c-0d1e2f3a4b5c";
+  const inFlight = (row: Record<string, unknown>) => {
+    admin.fake.state.startRows = [{ generation_id: RUNNING, outcome: "in_flight" }];
+    admin.fake.state.tables.generations = [
+      { id: RUNNING, event_id: TEST_CONTEXT.eventId, from_design_id: DESIGN, ...row },
+    ];
+  };
+  const SWITCH = {
+    ...INPUT,
+    kind: "shape_switch" as const,
+    fromDesignId: DESIGN,
+    shape: "oval" as const,
+  };
+  const DIRECTION = {
+    ...INPUT,
+    kind: "another_direction" as const,
+    fromDesignId: DESIGN,
+    feedback: "add a dinosaur",
+  };
+
+  it("waits on the same request in flight, comparing kind, card, words and shape", async () => {
+    inFlight({ kind: "shape_switch", shape: "oval", feedback: null });
+    expect(await startGeneration(SWITCH)).toMatchObject({
+      outcome: "in_flight",
+      generationId: RUNNING,
+    });
+    inFlight({ kind: "another_direction", shape: null, feedback: "add a dinosaur" });
+    expect(await startGeneration({ ...DIRECTION, feedback: " add a dinosaur " })).toMatchObject({
+      outcome: "in_flight",
+      generationId: RUNNING,
+    });
+  });
+
+  it("answers busy for anything else in flight", async () => {
+    for (const [request, row] of [
+      [SWITCH, { kind: "shape_switch", shape: "square", feedback: null }],
+      [SWITCH, { kind: "another_direction", shape: null, feedback: null }],
+      [DIRECTION, { kind: "another_direction", shape: null, feedback: "make it pink" }],
+      [DIRECTION, { kind: "shape_switch", shape: "oval", feedback: null }],
+      [DIRECTION, { kind: "initial", shape: null, feedback: null, from_design_id: null }],
+    ] as const) {
+      inFlight(row);
+      expect(await startGeneration(request)).toMatchObject({ outcome: "busy", generationId: null });
+    }
+  });
+
+  it("lets a first card wait on whatever is in flight, reading nothing more", async () => {
+    inFlight({ kind: "initial", shape: null, feedback: null, from_design_id: null });
+    expect(await startGeneration(INPUT)).toMatchObject({
+      outcome: "in_flight",
+      generationId: RUNNING,
+    });
+    expect(admin.fake.state.selects).toEqual([]);
+  });
+});

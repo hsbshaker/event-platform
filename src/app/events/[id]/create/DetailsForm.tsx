@@ -10,9 +10,11 @@ import {
 import { AppButton } from "@/components/app/AppButton";
 import { Field } from "@/components/app/Field";
 import { Input } from "@/components/app/Input";
+import { Textarea } from "@/components/app/Textarea";
 import { InlineStatus } from "@/components/app/InlineStatus";
 import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
 import { cardTextFieldError, type CardTextField } from "@/lib/events/card-text";
+import { DESCRIPTION_MAX_LENGTH } from "@/lib/events/page-content";
 import type { SaveTracker } from "@/lib/events/save-tracker";
 import type { PromptFacts } from "@/lib/card/facts";
 import { formPrefill, type PrefillField } from "@/lib/events/prompt-prefill";
@@ -67,8 +69,24 @@ export function DetailsForm({
   event,
   saves,
   promptFacts = event.promptFacts,
+  variant = "missing",
+  save: saveAction = updateEventDetails,
+  onSaved,
+  focusId,
 }: {
   event: EventDraftView;
+  /**
+   * `missing` (the default): the generation-time form, only what is still missing. `all`: the
+   * event-details editor in Creation Mode (`docs/screen-spec.md` `event-details-editor`), every
+   * field, with the same autosave, validation and refusals, drawn bare for the sheet it sits in.
+   */
+  variant?: "missing" | "all";
+  /** The save action; the development fixture injects a stub. */
+  save?: typeof updateEventDetails;
+  /** Called with the saved event after every successful save, so the page can refresh. */
+  onSaved?: (event: EventDraftView) => void;
+  /** An element id to focus when the form mounts (the editor opened from the description). */
+  focusId?: string;
   /** Told of every save, and able to flush waiting edits, so the reveal reads the card after them. */
   saves?: SaveTracker;
   /**
@@ -79,7 +97,10 @@ export function DetailsForm({
 }) {
   // Frozen on first render: fields the host already filled must not disappear mid-session
   // just because they were saved a moment ago.
+  const all = variant === "all";
   const [visibleMissing] = useState(() => new Set(event.missing));
+  /** Whether a field is shown: every field in `all`, else only the ones still missing. */
+  const shown = (key: (typeof event.missing)[number]) => all || visibleMissing.has(key);
 
   // What the prompt states for the fields still empty, shown pre-filled for the host to confirm.
   // Not saved until they confirm it or edit it; the date and time are only repeated as a hint.
@@ -90,6 +111,8 @@ export function DetailsForm({
     () => new Set(Object.keys(prefill.fields) as PrefillField[]),
   );
 
+  const [title, setTitle] = useState(event.title ?? "");
+  const [description, setDescription] = useState(event.description ?? "");
   const [eventDate, setEventDate] = useState(event.eventDate ?? "");
   const [startTime, setStartTime] = useState(event.startTime ?? "");
   const [endTime, setEndTime] = useState(event.endTime ?? "");
@@ -126,7 +149,7 @@ export function DetailsForm({
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   // Edits waiting on their debounce, so leaving the page (the card is revealed in place of this
   // form) saves them instead of dropping them.
-  const pendingSaves = useRef<Record<string, EventDetailsPatch>>({});
+  const pendingSaves = useRef<Record<string, { patch: EventDetailsPatch; keys: string[] }>>({});
   // Resolved once and attached to every save (not only the mount commit), so a later venue
   // change that leaves the inference confident about nothing still has a fallback available
   // (spec.md §7.4; src/lib/events/detail-patch.ts falls back to this when venue text alone
@@ -135,30 +158,52 @@ export function DetailsForm({
   /** Newest row version already reflected on screen; see applyServerEvent. */
   const appliedVersionRef = useRef<number>(event.rowVersion);
 
+  // The latest `commit`, for the flush registered once below.
+  const commitRef = useRef<typeof commit | null>(null);
+  useEffect(() => {
+    commitRef.current = commit;
+  });
+
   useEffect(() => {
     const timers = debounceTimers.current;
     const pending = pendingSaves.current;
-    // Sends every edit still waiting on its debounce now.
-    const flushWaiting = () => {
+    /** Takes every edit still waiting on its debounce, clearing its timer. */
+    const takeWaiting = () => {
       Object.values(timers).forEach(clearTimeout);
       for (const key of Object.keys(timers)) delete timers[key];
-      const patches = Object.values(pending);
+      const waiting = Object.values(pending);
       for (const key of Object.keys(pending)) delete pending[key];
-      for (const patch of patches) {
-        const save = updateEventDetails(event.id, {
+      return waiting;
+    };
+    // While the form is open (the surface around it is closing, or the card is about to be read):
+    // saved the usual way, so a refusal or failure shows beside its field.
+    const unregister = saves?.registerFlush(() => {
+      for (const { patch, keys } of takeWaiting()) void commitRef.current?.(patch, keys);
+    });
+    return () => {
+      unregister?.();
+      // Unmounting with edits still waiting: saved without the form, which is gone.
+      for (const { patch } of takeWaiting()) {
+        const save = saveAction(event.id, {
           ...patch,
           browserTimezone: browserTimezoneRef.current,
         });
-        void (saves ? saves.track(save) : save).catch(() => {});
+        void (saves ? saves.track(save, (r) => r.ok) : save)
+          .then((result) => {
+            if (result.ok) onSaved?.(result.event);
+          })
+          .catch(() => {});
       }
-    };
-    const unregister = saves?.registerFlush(flushWaiting);
-    return () => {
-      unregister?.();
-      flushWaiting();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!focusId) return;
+    // After the sheet around this form has opened (its own effect runs after this one).
+    const timer = setTimeout(() => document.getElementById(focusId)?.focus(), 0);
+    return () => clearTimeout(timer);
+  }, [focusId]);
 
   // Reaching this page means the draft was claimed into this event, so the landing composer's
   // localStorage safety-net copy of the prompt is now stale — clear it here so a host who
@@ -176,6 +221,9 @@ export function DetailsForm({
   // every save, not only this mount commit, since a later venue change re-runs inference.
   useEffect(() => {
     browserTimezoneRef.current = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // An event that already has its timezone needs no write just for opening the form; the
+    // fallback still rides along with every later save.
+    if (all && event.timezone) return;
     void commit({ browserTimezone: browserTimezoneRef.current }, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -204,10 +252,22 @@ export function DetailsForm({
       patch.browserTimezone !== undefined
         ? patch
         : { ...patch, browserTimezone: browserTimezoneRef.current };
-    const save = updateEventDetails(event.id, withTimezone);
-    const result = await (saves ? saves.track(save) : save);
+    const save = saveAction(event.id, withTimezone);
+    let result: Awaited<typeof save>;
+    try {
+      result = await (saves ? saves.track(save, (r) => r.ok) : save);
+    } catch {
+      // The request never answered (offline, a server error): a save error beside the field.
+      setFieldStatus((prev) => {
+        const next = { ...prev };
+        keys.forEach((key) => (next[key] = "error"));
+        return next;
+      });
+      return;
+    }
     if (result.ok) {
       applyServerEvent(result.event);
+      if (keys.length > 0) onSaved?.(result.event);
       setFieldErrors((prev) => {
         const next = { ...prev };
         keys.forEach((key) => delete next[key]);
@@ -235,7 +295,7 @@ export function DetailsForm({
 
   function saveDebounced(debounceKey: string, patch: EventDetailsPatch, keys: string[]) {
     if (debounceTimers.current[debounceKey]) clearTimeout(debounceTimers.current[debounceKey]);
-    pendingSaves.current[debounceKey] = patch;
+    pendingSaves.current[debounceKey] = { patch, keys };
     debounceTimers.current[debounceKey] = setTimeout(() => {
       delete pendingSaves.current[debounceKey];
       void commit(patch, keys);
@@ -353,7 +413,7 @@ export function DetailsForm({
     if (flushNow) {
       void commit(patch, keys);
     } else {
-      pendingSaves.current.venue = patch;
+      pendingSaves.current.venue = { patch, keys };
       debounceTimers.current.venue = setTimeout(() => {
         delete debounceTimers.current.venue;
         delete pendingSaves.current.venue;
@@ -368,23 +428,55 @@ export function DetailsForm({
   );
 
   const nothingLeft =
+    !all &&
     !visibleMissing.has("eventDate") &&
     !visibleMissing.has("startTime") &&
     !visibleMissing.has("venue") &&
     !visibleMissing.has("rsvpDeadline");
 
   return (
-    <section className="flex flex-col gap-6 rounded-2xl border border-app-border bg-app-surface p-5 shadow-soft sm:p-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-heading-md text-app-text">A few details</h2>
-        <p className="text-body-sm text-app-text-secondary">
-          These help guests find and RSVP to the real event. They&apos;re only needed before you
-          publish — leave anything blank for now, and it won&apos;t hold up your invitation design.
-        </p>
-      </div>
+    <section
+      className={
+        all
+          ? "flex flex-col gap-6"
+          : "flex flex-col gap-6 rounded-2xl border border-app-border bg-app-surface p-5 shadow-soft sm:p-6"
+      }
+    >
+      {!all && (
+        <div className="flex flex-col gap-1">
+          <h2 className="text-heading-md text-app-text">A few details</h2>
+          <p className="text-body-sm text-app-text-secondary">
+            These help guests find and RSVP to the real event. They&apos;re only needed before you
+            publish — leave anything blank for now, and it won&apos;t hold up your invitation
+            design.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-5">
-        {visibleMissing.has("eventDate") && (
+        {all && (
+          <Field
+            id="title"
+            label="Title"
+            hint="Leave empty to keep the card's title"
+            error={fieldErrors.title}
+          >
+            {(controlProps) => (
+              <Input
+                {...controlProps}
+                type="text"
+                value={title}
+                onChange={(event) => {
+                  setTitle(event.target.value);
+                  editCardText("title", event.target.value);
+                }}
+                onBlur={() => flushCardText("title", title)}
+              />
+            )}
+          </Field>
+        )}
+
+        {shown("eventDate") && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               id="eventDate"
@@ -405,7 +497,7 @@ export function DetailsForm({
                 />
               )}
             </Field>
-            {visibleMissing.has("startTime") && (
+            {shown("startTime") && (
               <Field
                 id="startTime"
                 label="Start time"
@@ -429,7 +521,7 @@ export function DetailsForm({
           </div>
         )}
 
-        {visibleMissing.has("startTime") && !visibleMissing.has("eventDate") && (
+        {shown("startTime") && !shown("eventDate") && (
           <Field
             id="startTime"
             label="Start time"
@@ -451,7 +543,7 @@ export function DetailsForm({
           </Field>
         )}
 
-        {(visibleMissing.has("eventDate") || visibleMissing.has("startTime")) && (
+        {(shown("eventDate") || shown("startTime")) && (
           <Field id="endTime" label="End time" hint="Optional" error={fieldErrors.endTime}>
             {(controlProps) => (
               <Input
@@ -467,7 +559,7 @@ export function DetailsForm({
           </Field>
         )}
 
-        {visibleMissing.has("venue") && (
+        {shown("venue") && (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Field id="venueName" label="Venue name" error={fieldErrors.venueName}>
@@ -570,7 +662,33 @@ export function DetailsForm({
           )}
         </div>
 
-        {visibleMissing.has("visibility") && (
+        {all && (
+          <Field
+            id="description"
+            label="Description"
+            hint="Shown on the page under the card, not on the card. Optional."
+            error={fieldErrors.description}
+          >
+            {(controlProps) => (
+              <Textarea
+                {...controlProps}
+                rows={5}
+                maxLength={DESCRIPTION_MAX_LENGTH}
+                value={description}
+                onChange={(event) => {
+                  setDescription(event.target.value);
+                  saveDebounced("description", { description: event.target.value }, [
+                    "description",
+                  ]);
+                }}
+                onBlur={() => flush("description", { description }, ["description"])}
+              />
+            )}
+          </Field>
+        )}
+
+        {/* After publish, privacy changes only with its event code (the privacy action). */}
+        {shown("visibility") && !event.published && (
           <fieldset className="flex flex-col gap-2">
             <legend className="text-label-md text-app-text">
               Who can see this invitation?
@@ -606,7 +724,7 @@ export function DetailsForm({
           </fieldset>
         )}
 
-        {visibleMissing.has("rsvpDeadline") && (
+        {shown("rsvpDeadline") && (
           <Field
             id="rsvpDeadline"
             label="RSVP deadline"

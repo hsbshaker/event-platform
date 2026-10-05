@@ -86,6 +86,13 @@ close to a well-known character, so for copyright reasons we're trying a fresh t
 — while the step-back design and artwork generate. Never a provider error, never blame on the host.
 If that is refused too, the honest failure above, whose Try again takes the same step back.
 
+**Shape switch failures** (`design-panel`): a shape switch paints from the existing design, so a
+refusal is the honest failure at once — "We couldn't make that shape" / "The new artwork for that
+shape came out too close to a well-known character, so for copyright reasons we couldn't use it.
+Your card stays as it is — you can try again." A shape the design is not made for is never offered;
+if asked for anyway: "That shape isn't available" / "This card is designed for a few shapes, and
+that isn't one of them. Your card stays as it is — choose one of the shapes shown."
+
 ## `card-reveal`
 
 **Purpose:** activation (§7.11).
@@ -195,8 +202,10 @@ Fields:
 - baby name;
 - date/time;
 - venue/address;
-- description;
-- simple info blocks.
+- description (up to 2,000 characters; empty clears it);
+- simple info blocks (a later Creation Mode slice).
+
+Every Edit/Add anchor on the event details and the description opens this one editor, focused on the field it was opened from.
 
 Autosave. Card and page update with no model call. Entry limits for card-bound fields come from the layout's slot limits (`docs/card-system.md §2.5`).
 

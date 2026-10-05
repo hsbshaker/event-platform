@@ -157,6 +157,8 @@ describe("loadRevealedCard", () => {
       title: "Lemons & Linen",
       name: "Lemons & Linen",
       description: "A lemon branch over soft linen.",
+      // The prompt-stated values the card shows, for the page beneath it.
+      stated: { babyName: "Maya Lopez", date: "December 19", venue: "Villa Rosa" },
       artworkExpiresAt: new Date(NOW + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
     });
     expect(card.shape).toBe("rectangle");
@@ -268,6 +270,39 @@ describe("loadRevealedCard", () => {
     // A card_layouts_v3 panel keeps its fade into the artwork.
     expect(revealed!.card.panels[0].fade).toEqual({ kind: "edge", from: "bottom", length: 180 });
     expect(new Set(revealed!.card.boxes.map((b) => b.color))).toEqual(new Set(["#FDF8EE"]));
+  });
+
+  it("after a shape switch draws its new artwork, and switching back draws the original (spec.md §7.14)", async () => {
+    // The design's original artwork (rectangle, rounded rectangle), then the artwork a shape switch
+    // added to the same design for the square card.
+    admin.fake.state.tables.card_art_assets = [
+      artRow({ fits_shapes: ["rectangle", "rounded-rectangle"] }),
+      artRow({
+        id: "a2",
+        proportion: "square_1_1",
+        fits_shapes: ["square"],
+        storage_key: `${EVENT}/g2/square.png`,
+        ink: { square: { text: { ink: "#1F2A44" } } },
+        created_at: "2026-10-05T11:30:00Z",
+      }),
+    ];
+    admin.fake.state.tables.events = [eventRow({ active_card_shape: "square" })];
+    const switched = await load();
+    expect(switched!.card.shape).toBe("square");
+    expect(switched!.card.artwork).toEqual({
+      src: `https://storage.test/card-art/${EVENT}/g2/square.png?token=signed`,
+      proportion: "1:1",
+    });
+    expect(new Set(switched!.card.boxes.map((b) => b.color))).toEqual(new Set(["#1F2A44"]));
+    expect(switched!.designId).toBe(DESIGN);
+
+    for (const shape of ["rectangle", "rounded-rectangle"]) {
+      admin.fake.state.tables.events = [eventRow({ active_card_shape: shape })];
+      const back = await load();
+      expect(back!.card.shape).toBe(shape);
+      expect(back!.card.artwork.src).toContain("g1/original.png");
+      expect(new Set(back!.card.boxes.map((b) => b.color))).toEqual(new Set([INK]));
+    }
   });
 
   it("draws a card_layouts_v2 panel as it was persisted, with no fade", async () => {

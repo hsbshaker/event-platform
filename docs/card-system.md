@@ -403,7 +403,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
 | `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) would need the legibility panel (§4.2): the picture has run into the text area | repainted from the same art prompt — for `illustration` and `framed` art plus one line saying what to keep clear of the words (`card_art_v4`, owner decision 2026-10-05); a wash's repaint repeats the prompt — (a switch, or a change to part of a card, keeps its reference) until an artwork needs no panel, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept with the panel; a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
-| `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back |
+| `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back. A shape switch's refusal fails visibly at once (`shape_refusal`), with no re-prompt: the design is immutable, and the card stays as it is |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it
 is never disguised as a finished design.
@@ -544,7 +544,8 @@ customization to return to, and never changes event content, guests, RSVP, regis
 messages.
 
 All designs generated for an event stay browsable before publish. After publish, generation and
-switching are disabled (`spec.md §8.2`).
+switching designs are disabled (`spec.md §8.2`); switching to a shape an existing artwork of the
+active design already fits stays available, since it only shows artwork that exists (§8.1).
 
 Renderer code is normal product code: bug, accessibility and responsive fixes may change how any
 existing card renders, without regenerating its design or artwork.

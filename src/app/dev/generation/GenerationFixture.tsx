@@ -124,6 +124,8 @@ function fixtureDraft(): EventDraftView {
     rsvpDeadlineEdited: false,
     generationRequestedAt: null,
     rowVersion: 1,
+    published: false,
+    description: null,
     promptFacts: {
       hosts: "Ana & Leo",
       honoree: "Maya Lopez",

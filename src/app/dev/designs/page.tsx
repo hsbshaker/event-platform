@@ -103,6 +103,7 @@ async function fixtureDesign(index: number, active: boolean, published: boolean)
       boxes,
     },
     unconfirmed: [],
+    stated: {},
     artworkExpiresAt: new Date(Date.now() + 300_000).toISOString(),
   };
   return design;

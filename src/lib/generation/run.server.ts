@@ -27,7 +27,7 @@ import type { ArtMode } from "@/lib/card/art-modes";
 import { ART_MODES } from "@/lib/card/art-modes";
 import type { CardDesign, Refinement } from "@/lib/card/design";
 import { cardContent, effectiveCardTitle, parsePromptFacts } from "@/lib/card/facts";
-import { CARD_LAYOUT_IDS } from "@/lib/card/layouts";
+import { CARD_LAYOUT_IDS, layoutSupportsShape } from "@/lib/card/layouts";
 import type { CardLayoutId } from "@/lib/card/layouts";
 import { revealContentFor } from "@/lib/card/reveal-content.server";
 import { RENDERINGS, suggestRendering } from "@/lib/card/renderings";
@@ -48,6 +48,7 @@ import type { DesignStageResult } from "./design.server";
 import { PROVIDER_REFUSAL_NOTICE } from "./failure-copy";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
 import { drawThemeSeed } from "./theme-seeds";
+import { readSwitchingDesign, type SwitchingDesign } from "./switching-design";
 import {
   ArtworkProviderRefusalError,
   attachFailureDetails,
@@ -61,8 +62,9 @@ import type { StageContext } from "./stage";
  * `src/app/actions/generation.ts`; `docs/technology-decisions.md §8.1`, "Generation execution";
  * `spec.md §7.3`–§7.11, §9.4, §9.5; `docs/card-system.md §3`).
  *
- * Kinds `initial` (the first card) and `another_direction` (`spec.md §7.7`, §7.15: the change the
- * host asks for, or a new idea; see "Another direction" below). Shape switches are not built yet.
+ * Kinds `initial` (the first card), `another_direction` (`spec.md §7.7`, §7.15: the change the
+ * host asks for, or a new idea; see "Another direction" below) and `shape_switch` (`spec.md §7.14`:
+ * new artwork for a shape no existing artwork fits; see "Shape switch" below).
  *
  * 1. **Load** the event and, when the event has no identity yet, its inspiration (PNG, JPEG and
  *    WEBP only: the provider takes no HEIC/HEIF, so those are skipped and counted).
@@ -110,6 +112,20 @@ import type { StageContext } from "./stage";
  * - Persist: with `refinement` and `changed_from`; the new design is not made active (the current
  *   card stays active until the host chooses, `chooseDesign`).
  * Ink, repaints, validation and the provider-refusal step-back are the first card's.
+ *
+ * **Shape switch** (`spec.md §7.14`, §10; `docs/card-system.md §2.1`, §2.4, §7;
+ * `docs/model-contracts.md §7.2`): the generation names the design (`from_design_id`, the event's
+ * active design when it started) and the shape asked for (`shape`). No identity and no design call:
+ * the design is immutable and keeps its brief. One artwork (`runArtworkStage`) from the same art
+ * brief, art mode, layout and pairing, for the new shape, with the design's own artwork as
+ * `reference` — the newest of its artworks that fits the shape the host sees it in (the active
+ * shape while the design is active, else its own), as `loadRevealedCard` draws it — and no
+ * `revision`, so the art prompt is the shape switch's (`assembleShapeSwitchPrompt`). Validation,
+ * ink for every shape the new artwork fits, and repaints that keep the reference are the first
+ * card's. A provider refusal has no design to step back to: it is a visible failure
+ * (`shape_refusal`). `persist_shape_switch_artwork` adds the artwork to the same design (never a
+ * new design, never a change to an earlier artwork) and shows the design in the new shape if it is
+ * still the active one.
  *
  * Failures end the generation with `fail_generation`, which touches only a running generation: a
  * stage's code (`GenerationStageError`), a meter refusal's reason (`ModelCallRefusedError`), or
@@ -170,6 +186,7 @@ export type RunGenerationOutcome =
 export const SUPPORTED_GENERATION_KINDS: readonly GenerationKind[] = [
   "initial",
   "another_direction",
+  "shape_switch",
 ];
 
 export class GenerationKindNotSupportedError extends Error {
@@ -242,6 +259,28 @@ export interface GenerationTelemetry {
   refinementDowngraded: boolean;
   /** The kept artwork is an edit of the changed card's artwork (`card_art_v5` revision). */
   artworkEdit: boolean;
+}
+
+/**
+ * The §9.5 record of a shape switch (`generations.telemetry`) when it succeeds: the artwork's
+ * measures only — a shape switch makes no identity or design call. Never shown to the host.
+ */
+export interface ShapeSwitchTelemetry {
+  kind: "shape_switch";
+  /** The shape painted for. */
+  shape: CardShape;
+  /** The shape whose artwork was sent as the reference. */
+  referenceShape: CardShape;
+  artRegenerated: string | null;
+  artRepaints: number;
+  inkPanels: { shape: string; zone: string }[];
+  imagesRequested: number;
+  repaintsStoppedBy: string | null;
+  lineAreasFallback: string[];
+  /** The shapes the new artwork fits. */
+  fitsShapes: CardShape[];
+  versions: { layoutSet: string; compiler: string; artPrompt: string; imageModel: string };
+  latency: { artMs: number; totalMs: number };
 }
 
 interface EventRow {
@@ -480,7 +519,7 @@ export async function runGeneration(
 
   const { data: generation, error: readError } = await admin
     .from("generations")
-    .select("id, kind, status, requested_by, feedback, from_design_id")
+    .select("id, kind, status, requested_by, feedback, from_design_id, shape")
     .eq("id", generationId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -502,6 +541,25 @@ export async function runGeneration(
     if (generation.requested_by !== userId) {
       throw new Error("The generation was started by another member.");
     }
+    const common = {
+      ...input,
+      admin,
+      provider: deps.provider ?? getAiProvider(),
+      now,
+      startedAt: input.startedAt ?? now(),
+    };
+    if (generation.kind === "shape_switch") {
+      // start_generation requires both; a row without them is not a request this can serve.
+      if (!generation.from_design_id) throw new Error("The shape switch names no design.");
+      if (!generation.shape || !CARD_SHAPES.includes(generation.shape)) {
+        throw new Error("The shape switch names no shape.");
+      }
+      return await shapeSwitchPipeline({
+        ...common,
+        designId: generation.from_design_id,
+        shape: generation.shape,
+      });
+    }
     let direction: Direction | null = null;
     if (generation.kind === "another_direction") {
       // start_generation requires the design; a row without one is not a request this can serve.
@@ -512,14 +570,10 @@ export async function runGeneration(
       };
     }
     return await pipeline({
-      ...input,
+      ...common,
       kind: generation.kind,
       direction,
-      admin,
-      provider: deps.provider ?? getAiProvider(),
-      now,
       random: deps.random ?? Math.random,
-      startedAt: input.startedAt ?? now(),
     });
   } catch (error) {
     if (error instanceof GenerationStoppedError) {
@@ -567,16 +621,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     },
   };
 
-  async function recordStage(stage: string, artifacts: Record<string, unknown>): Promise<void> {
-    const { data, error } = await admin.rpc("record_generation_stage", {
-      p_generation_id: generationId,
-      p_event_id: eventId,
-      p_stage: stage,
-      p_artifacts: artifacts as Json,
-    });
-    if (error) throw error;
-    if (data !== true) throw new GenerationStoppedError(`recording the ${stage} stage`);
-  }
+  const recordStage = (stage: string, artifacts: Record<string, unknown>) =>
+    recordGenerationStage(admin, { generationId, eventId }, stage, artifacts);
 
   // ------------------------------------------------------------------ 1. load
   const { data: event, error: eventError } = await admin
@@ -972,6 +1018,187 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
 }
 
 /**
+ * Records a stage result the wait surface may show (`record_generation_stage`), which also bumps
+ * the heartbeat. Throws `GenerationStoppedError` when the generation is no longer running.
+ */
+async function recordGenerationStage(
+  admin: AdminClient,
+  ids: { generationId: string; eventId: string },
+  stage: string,
+  artifacts: Record<string, unknown>,
+): Promise<void> {
+  const { data, error } = await admin.rpc("record_generation_stage", {
+    p_generation_id: ids.generationId,
+    p_event_id: ids.eventId,
+    p_stage: stage,
+    p_artifacts: artifacts as Json,
+  });
+  if (error) throw error;
+  if (data !== true) throw new GenerationStoppedError(`recording the ${stage} stage`);
+}
+
+interface ShapeSwitchInput extends RunGenerationInput {
+  admin: AdminClient;
+  provider: AiProvider;
+  now: () => number;
+  startedAt: number;
+  /** The design the artwork is for (`generations.from_design_id`). */
+  designId: string;
+  /** The shape asked for (`generations.shape`). */
+  shape: CardShape;
+}
+
+/**
+ * A shape switch's one artwork (see "Shape switch" in the header): the design read back, the
+ * reference loaded, the artwork painted for the new shape with its ink for every shape it fits,
+ * uploaded, and `persist_shape_switch_artwork` adding it to the same design.
+ */
+async function shapeSwitchPipeline(input: ShapeSwitchInput): Promise<RunGenerationOutcome> {
+  const { admin, provider, now, generationId, eventId, userId, startedAt, designId, shape } = input;
+  const ctx: StageContext = {
+    provider,
+    meter: {
+      eventId,
+      userId,
+      generationId,
+      round: null,
+      deadline: startedAt + GENERATION_DEADLINE_MS,
+    },
+  };
+
+  const { data: event, error: eventError } = await admin
+    .from("events")
+    .select("id, active_card_design_id, active_card_shape")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (eventError) throw eventError;
+  if (!event) throw new Error("The generation's event was not found.");
+  const design = await switchingDesign(admin, eventId, designId);
+  // The server action refuses a shape the layout does not support; this refuses it again before
+  // any image is requested (the art prompt's assembly would too).
+  if (!layoutSupportsShape(design.layout, shape)) {
+    throw new Error(`The design's layout does not support the ${shape} card.`);
+  }
+  // The shape the host sees the design in: its active shape while it is the active design (the
+  // rule `loadRevealedCard` draws by), else its own.
+  const referenceShape: CardShape =
+    event.active_card_design_id === design.id
+      ? ((event.active_card_shape as CardShape | null) ?? design.shape)
+      : design.shape;
+  const reference = await loadArtwork(admin, eventId, design.id, referenceShape);
+  await recordGenerationStage(admin, { generationId, eventId }, "artwork", {});
+
+  // The ink is judged behind the words the card shows, from the event as it is now.
+  const content = await revealContent(
+    await revealEvent(admin, eventId),
+    design.wording,
+    new Date(now()),
+  );
+  const begun = now();
+  let art: ArtworkStageResult;
+  try {
+    art = await runArtworkStage(ctx, {
+      design: {
+        artBrief: design.artBrief,
+        artMode: design.artMode,
+        layout: design.layout,
+        typography: design.typography,
+      },
+      shape,
+      content,
+      reference,
+    });
+  } catch (error) {
+    // The design is immutable: there is no re-prompted design to step back to.
+    if (error instanceof ArtworkProviderRefusalError) {
+      throw new GenerationStageError(
+        "artwork",
+        "shape_refusal",
+        "The image provider refused the shape switch's artwork.",
+        { cause: error, details: failureDetailsOf(error) },
+      );
+    }
+    throw error;
+  }
+  const artMs = now() - begun;
+
+  const telemetry: ShapeSwitchTelemetry = {
+    kind: "shape_switch",
+    shape,
+    referenceShape,
+    artRegenerated: art.telemetry.artRegenerated,
+    artRepaints: art.telemetry.artRepaints,
+    inkPanels: art.telemetry.inkPanels.map((p) => ({ shape: p.shape, zone: p.zone })),
+    imagesRequested: art.telemetry.imagesRequested,
+    repaintsStoppedBy: art.telemetry.repaintsStoppedBy,
+    lineAreasFallback: art.telemetry.lineAreasFallback,
+    fitsShapes: [...art.fitsShapes],
+    versions: {
+      layoutSet: CARD_LAYOUT_SET_VERSION,
+      compiler: CARD_COMPILER_VERSION,
+      artPrompt: CARD_ART_PROMPT_VERSION,
+      imageModel: MODELS.image,
+    },
+    latency: { artMs, totalMs: now() - startedAt },
+  };
+
+  const storageKey = `${eventId}/${generationId}/${randomUUID()}.png`;
+  const { error: uploadError } = await admin.storage
+    .from(CARD_ART_BUCKET)
+    .upload(storageKey, art.bytes, { contentType: art.mimeType, upsert: false });
+  if (uploadError) throw uploadError;
+
+  const persisted = await admin.rpc("persist_shape_switch_artwork", {
+    p_generation_id: generationId,
+    p_event_id: eventId,
+    p_storage_key: storageKey,
+    p_mime_type: art.mimeType,
+    p_size_bytes: art.bytes.byteLength,
+    p_width: art.width,
+    p_height: art.height,
+    p_proportion: art.proportion === "5:7" ? "portrait_5_7" : "square_1_1",
+    p_fits_shapes: [...art.fitsShapes],
+    p_ink: art.ink as unknown as Json,
+    p_image_model: MODELS.image,
+    p_art_prompt_version: CARD_ART_PROMPT_VERSION,
+    p_telemetry: telemetry as unknown as Json,
+  });
+  const row = persisted.error ? undefined : persisted.data?.[0];
+  if (!row) {
+    await removeUpload(admin, storageKey, databaseAnswered(persisted.error), {
+      generationId,
+      eventId,
+    });
+    if (persisted.error) throw persisted.error;
+    throw new GenerationStoppedError("persisting the artwork");
+  }
+  return { status: "succeeded", cardDesignId: row.card_design_id, round: row.round };
+}
+
+/**
+ * The design of a shape switch, from the event's own rows (`readSwitchingDesign`); one that lacks
+ * what the art prompt needs is not painted from: the generation fails rather than painting a
+ * different card. The shape control never offers such a switch (`shape.server.ts`).
+ */
+async function switchingDesign(
+  admin: AdminClient,
+  eventId: string,
+  designId: string,
+): Promise<SwitchingDesign> {
+  const { data: row, error } = await admin
+    .from("card_designs")
+    .select("id, shape, layout, art_mode, typography, wording, art_brief")
+    .eq("id", designId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!row) throw new Error("The shape switch's design was not found.");
+  const design = readSwitchingDesign(row);
+  if (!design) throw new Error("The shape switch's design cannot be read for its artwork.");
+  return design;
+}
+
+/**
  * Whether the database itself answered the persist, so its transaction is known to have ended
  * without committing: no error (it wrote nothing because the generation stopped running), or an
  * error carrying a Postgres SQLSTATE or a PostgREST code (the statement failed and rolled back).
@@ -1284,7 +1511,7 @@ async function loadArtwork(
     .order("created_at", { ascending: false });
   if (error) throw error;
   const asset = (data ?? []).find((a) => a.fits_shapes.includes(shape));
-  if (!asset) throw new Error(`The changed design has no artwork for the ${shape} card.`);
+  if (!asset) throw new Error(`The design has no artwork for the ${shape} card.`);
   const { data: blob, error: downloadError } = await admin.storage
     .from(CARD_ART_BUCKET)
     .download(asset.storage_key);
