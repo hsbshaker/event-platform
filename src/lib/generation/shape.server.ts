@@ -8,7 +8,9 @@ import type { CardLayoutId } from "@/lib/card/layouts";
 import { CARD_SHAPES } from "@/lib/card/shapes";
 import type { CardShape } from "@/lib/card/shapes";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
+import { carriedWords, storeCarriedWords } from "./customization.server";
 import { generationFailure, type GenerationFailure } from "./failure-copy";
 import { readSwitchingDesign } from "./switching-design";
 
@@ -33,8 +35,11 @@ import { readSwitchingDesign } from "./switching-design";
  * made again from a fresh read, a bounded number of times.
  *
  * Changes the shape only: never the design, its artwork, event details, guests, RSVP, registry,
- * privacy or messages (`spec.md §20.6`). A host's card customization is not carried yet: the card
- * editor that creates customizations does not exist (`spec.md §20.6`).
+ * privacy or messages (`spec.md §20.6`). The host's words travel with it (`spec.md §20.6`;
+ * `docs/card-system.md §7`): when the new shape has no customization and the shape being switched
+ * from has one, its title, invitation line and added text are laid out fresh for the new shape and
+ * saved as its customization (`carriedWords`) — on an instant switch here, laid out before the
+ * switch and stored after it; on new artwork when it is persisted (`run.server.ts`).
  */
 
 export type SwitchCardShapeOutcome =
@@ -142,6 +147,15 @@ export async function switchActiveCardShape(input: {
     if (!design) return result("no_design");
     if (!layoutSupportsShape(design.layout, shape)) return result("unsupported_shape");
 
+    // The host's words for the new shape, laid out before the switch (null when there is nothing
+    // to carry, or no artwork fits the shape yet: then they are carried when it arrives).
+    const carried = await carriedWords(admin, {
+      eventId,
+      userId,
+      from: { designId: design.id, shape: design.activeShape ?? design.shape },
+      to: { designId: design.id, shape },
+      now: new Date(),
+    });
     const { data: switched, error } = await admin.rpc("switch_card_shape", {
       p_event_id: eventId,
       p_user_id: userId,
@@ -149,7 +163,10 @@ export async function switchActiveCardShape(input: {
       p_shape: shape,
     });
     if (error) throw error;
-    if (switched === "switched") return result("switched");
+    if (switched === "switched") {
+      if (carried) await storeCarriedWords(await createClient(), carried);
+      return result("switched");
+    }
     if (switched === "no_design") return result("no_design");
     if (switched === "not_active") continue;
     if (switched !== "needs_artwork") {

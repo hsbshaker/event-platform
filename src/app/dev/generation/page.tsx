@@ -86,6 +86,7 @@ async function fixtureCard(shape: CardShape): Promise<RevealedCard> {
       )
       .map((box) => box.id),
     stated: {},
+    customization: null,
     artworkExpiresAt: new Date(Date.now() + 300_000).toISOString(),
   };
 }

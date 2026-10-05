@@ -17,6 +17,7 @@ import type { EventIdentity } from "@/lib/ai/event-identity";
 import type { ExtractedFacts } from "@/lib/ai/fact-extraction";
 import type { CardArt } from "@/lib/ai/provider";
 import { fitsShapes } from "@/lib/card/art-prompt";
+import { generatedTextLayer } from "@/lib/card/card-text.server";
 import type { CardDesign } from "@/lib/card/design";
 import { encodePng, flatArtwork } from "@/lib/link-preview/test-artwork";
 
@@ -1623,7 +1624,13 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
       // The event again, just before the artwork: the words its ink is judged behind.
       "select:events",
       "storage:upload",
+      // The card the host sees just before the new shape applies: the source of carried words.
+      "select:events",
+      "select:card_designs",
       "rpc:persist_shape_switch_artwork",
+      // The new shape's customization (none), then the shown shape's (none): nothing to carry.
+      "select:card_customizations",
+      "select:card_customizations",
     ]);
     expect(stages()).toEqual([["artwork", {}]]);
     // Never the identity, the prompt or the inspiration.
@@ -1633,6 +1640,67 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
     expect(admin.state.selects.find((s) => s.table === "events")!.columns).not.toMatch(/prompt/);
     expect(admin.rpc("persist_generated_card")).toEqual([]);
     expect(failures()).toEqual([]);
+  });
+
+  it("carries the host's words to the new shape once its artwork applies (spec.md §20.6)", async () => {
+    // The host's customization of the rectangle they see: the generated layout, and a box added.
+    const generated = await generatedTextLayer({
+      layout: "art-top",
+      shape: "rectangle",
+      pairing: "oldstyle_garamond_worksans",
+      content: { title: DESIGN.wording.title, invitationLine: DESIGN.wording.invitationLine },
+      ink: "#222222",
+    });
+    const added = {
+      ...generated.find((b) => b.id === "invitationLine")!,
+      id: "added-1",
+      source: { kind: "custom" as const },
+      text: "Bring a book",
+      lines: ["Bring a book"],
+    };
+    admin.state.tables.card_customizations = [
+      {
+        event_id: EVENT,
+        card_design_id: FROM,
+        shape: "rectangle",
+        revision: 2,
+        boxes: JSON.parse(JSON.stringify([...generated, added])),
+        updated_by: USER,
+        updated_at: "2026-10-05T11:30:00Z",
+      },
+    ];
+    // The persist adds the square artwork, with its ink, and applies the shape.
+    admin.state.rpcAnswers.persist_shape_switch_artwork = (args: Record<string, unknown>) => {
+      admin.state.tables.card_art_assets.push({
+        card_design_id: FROM,
+        event_id: EVENT,
+        storage_key: args.p_storage_key,
+        proportion: "square_1_1",
+        fits_shapes: args.p_fits_shapes,
+        ink: args.p_ink,
+        created_at: "2026-10-05T12:30:00Z",
+      });
+      return [{ card_design_id: FROM, round: 1, art_asset_id: "art-new", activated: true }];
+    };
+    const { outcome } = await run(SWITCH);
+    expect(outcome).toEqual({ status: "succeeded", cardDesignId: FROM, round: 1 });
+    const carried = admin.state.tables.card_customizations.find((c) => c.shape === "square");
+    expect(carried).toMatchObject({ event_id: EVENT, card_design_id: FROM, updated_by: USER });
+    const boxes = carried!.boxes as { id: string; text?: string; lines: string[] }[];
+    expect(boxes.find((b) => b.id === "added-1")).toMatchObject({ text: "Bring a book" });
+    expect(boxes.find((b) => b.id === "title")!.lines.join(" ")).toBe(DESIGN.wording.title);
+    // The rectangle's customization is kept, so switching back restores it.
+    expect(admin.state.tables.card_customizations).toHaveLength(2);
+  });
+
+  it("carries nothing when the design is no longer active, and never fails the switch for it", async () => {
+    admin.state.rpcAnswers.persist_shape_switch_artwork = [
+      { card_design_id: FROM, round: 1, art_asset_id: "art-new", activated: false },
+    ];
+    admin.state.errors["select:card_customizations"] = { message: "must not be read" };
+    const { outcome } = await run(SWITCH);
+    expect(outcome).toEqual({ status: "succeeded", cardDesignId: FROM, round: 1 });
+    expect(admin.state.log).not.toContain("select:card_customizations");
   });
 
   it("meters its calls against this generation", async () => {

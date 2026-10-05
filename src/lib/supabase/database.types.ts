@@ -799,6 +799,18 @@ export type Database = {
         };
         Returns: number;
       };
+      /** 20261013000000_card_editor_title.sql: the save and `events.title`, in one transaction. */
+      save_card_customization_with_title: {
+        Args: {
+          p_event_id: string;
+          p_card_design_id: string;
+          p_shape: CardShape;
+          p_boxes: Json;
+          p_expected_revision: number;
+          p_title: string;
+        };
+        Returns: number;
+      };
     };
     Enums: {
       event_status: EventStatus;

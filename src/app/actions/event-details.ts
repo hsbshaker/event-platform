@@ -14,6 +14,7 @@ import { cardTextFieldErrors, type VenueContext } from "@/lib/events/card-text";
 import { cardTextFitErrors } from "@/lib/events/card-text-fit.server";
 import { computeEventPatch } from "@/lib/events/detail-patch";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/events/page-content";
+import { rebreakEventCustomizations } from "@/lib/generation/customization.server";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
   missingRequiredDetails,
@@ -333,6 +334,40 @@ export async function updateEventDetails(
       });
       return { ok: false, error: "Could not save that. Try again." };
     default:
+      if (changesCardWords(input)) await rebreakCustomizations(supabase, eventId);
       return { ok: true, event: toView(result.row, new Date()) };
+  }
+}
+
+/**
+ * Whether a patch can change words a card shows: everything but the page's description and the
+ * browser's timezone hint (which only fills an empty timezone, itself on the card through the
+ * RSVP-by). Errs towards re-checking: a re-break that finds nothing stale writes nothing.
+ */
+function changesCardWords(input: z.output<typeof patchSchema>): boolean {
+  return Object.keys(input).some((key) => key !== "description");
+}
+
+/**
+ * A fact or title edit re-breaks that fact's (or the title's) boxes in every customization of the
+ * event, in this request (`docs/card-system.md §7`: "so a card restored later never shows stale
+ * lines"; `spec.md §20.2`). The details are saved already, so a failure here does not undo them: it
+ * is logged, and every reader re-breaks a stale linked box as it draws it until a later save stores
+ * it (`customizedText`), so no card shows stale words meanwhile.
+ */
+async function rebreakCustomizations(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+): Promise<void> {
+  try {
+    const { failed } = await rebreakEventCustomizations(supabase, eventId);
+    if (failed > 0) {
+      console.error("updateEventDetails: some card customizations were not re-broken", {
+        eventId,
+        failed,
+      });
+    }
+  } catch (error) {
+    console.error("updateEventDetails: re-breaking card customizations failed", { eventId, error });
   }
 }

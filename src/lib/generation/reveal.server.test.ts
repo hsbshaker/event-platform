@@ -7,6 +7,7 @@ import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { InvalidCardDataError } from "@/lib/card/card-data";
 import { panelFor } from "@/lib/card/layouts";
+import type { TextBox } from "@/lib/card/text-box";
 
 /**
  * The revealed card (`spec.md §7.3`, §7.11, §32 #27, #42; `docs/screen-spec.md` `card-reveal`):
@@ -159,6 +160,8 @@ describe("loadRevealedCard", () => {
       description: "A lemon branch over soft linen.",
       // The prompt-stated values the card shows, for the page beneath it.
       stated: { babyName: "Maya Lopez", date: "December 19", venue: "Villa Rosa" },
+      // The host has not edited this card: its generated layout.
+      customization: null,
       artworkExpiresAt: new Date(NOW + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
     });
     expect(card.shape).toBe("rectangle");
@@ -501,13 +504,14 @@ describe("loadEventDesigns", () => {
     expect(shapes).toEqual(["rectangle", "oval", "arch"]);
   });
 
-  it("reads the event, designs and artwork once each and signs each artwork", async () => {
+  it("reads the event, designs, artwork and customizations once each and signs each artwork", async () => {
     threeDesigns();
     await list();
     expect(admin.fake.state.log.filter((l) => l.startsWith("select:"))).toEqual([
       "select:events",
       "select:card_designs",
       "select:card_art_assets",
+      "select:card_customizations",
     ]);
     expect(admin.fake.state.signs).toHaveLength(3);
     expect(
@@ -529,5 +533,140 @@ describe("loadEventDesigns", () => {
     threeDesigns();
     const json = JSON.stringify(await list());
     expect(json).not.toMatch(/storage_key|storageKey|raw model output|art_brief|versions/);
+  });
+
+  it("draws each design with the host's customization for the shape it is shown in", async () => {
+    threeDesigns();
+    admin.fake.state.tables.card_customizations = [
+      { ...(await customizationOf(DESIGN)), card_design_id: DESIGN },
+    ];
+    const cards = await list();
+    const first = cards.find((c) => c.designId === DESIGN)!;
+    expect(first.customization).toMatchObject({ revision: 4, unreadable: false });
+    expect(first.card.boxes.find((b) => b.id === "added-1")).toBeDefined();
+    expect(cards.filter((c) => c.designId !== DESIGN).every((c) => c.customization === null)).toBe(
+      true,
+    );
+  });
+});
+
+/**
+ * A stored customization of the design in the rectangle (`spec.md §20.5`): the seed of its saved
+ * words (the event's title and stored facts — none here), the title moved and an added box.
+ */
+async function customizationOf(designId: string, shape = "rectangle") {
+  const generated = await generatedTextLayer({
+    layout: "art-top",
+    shape: "rectangle",
+    pairing: "oldstyle_garamond_worksans",
+    content: { title: WORDING.title, invitationLine: WORDING.invitationLine },
+    ink: INK,
+  });
+  const boxes: TextBox[] = [
+    ...generated.map((b) => (b.id === "title" ? { ...b, y: 120, rotation: -6 } : b)),
+    {
+      ...generated.find((b) => b.id === "invitationLine")!,
+      id: "added-1",
+      source: { kind: "custom" },
+      text: "Bring a book",
+      lines: ["Bring a book"],
+      y: 1300,
+      z: 20,
+    },
+  ];
+  return {
+    event_id: EVENT,
+    card_design_id: designId,
+    shape,
+    revision: 4,
+    boxes: JSON.parse(JSON.stringify(boxes)) as unknown,
+    updated_by: "u",
+    updated_at: "2026-10-05T11:30:00Z",
+  };
+}
+
+describe("the host's customization (spec.md §20.5, §31 Card rendering and envelope)", () => {
+  it("draws the stored boxes, each in its stored lines, in place of the generated layer", async () => {
+    const stored = await customizationOf(DESIGN);
+    admin.fake.state.tables.card_customizations = [stored];
+    const revealed = (await load())!;
+    expect(revealed.customization).toEqual({
+      revision: 4,
+      updatedAt: "2026-10-05T11:30:00Z",
+      unreadable: false,
+    });
+    const boxes = new Map(revealed.card.boxes.map((b) => [b.id, b]));
+    const storedBoxes = stored.boxes as TextBox[];
+    expect(boxes.get("title")).toEqual(storedBoxes.find((b) => b.id === "title"));
+    expect(boxes.get("added-1")).toEqual(storedBoxes.find((b) => b.id === "added-1"));
+    expect(boxes.get("invitationLine")).toEqual(storedBoxes.find((b) => b.id === "invitationLine"));
+  });
+
+  it("shows Creation Mode's unconfirmed facts in their boxes, marked, and nothing of them to guests", async () => {
+    admin.fake.state.tables.card_customizations = [await customizationOf(DESIGN)];
+    const host = (await load())!;
+    const venue = host.card.boxes.find((b) => b.id === "venue")!;
+    // The prompt-stated venue, broken at the box's own width; stored with no lines.
+    expect(venue.lines).toEqual(["Villa Rosa"]);
+    expect(host.unconfirmed).toEqual(["babyName", "date", "time", "venue"]);
+
+    const guest = (await loadRevealedCard(EVENT, { now: () => NOW, audience: "guest" }))!;
+    for (const id of ["babyName", "date", "time", "venue", "hosts", "rsvpBy"]) {
+      expect(guest.card.boxes.find((b) => b.id === id)!.lines, id).toEqual([]);
+    }
+    expect(guest.unconfirmed).toEqual([]);
+    // The host's own words are the guests' too.
+    expect(guest.card.boxes.find((b) => b.id === "added-1")!.lines).toEqual(["Bring a book"]);
+  });
+
+  it("shows a saved fact in the lines stored for it, and re-breaks one stored for older words", async () => {
+    admin.fake.state.tables.events = [
+      eventRow({ venue_name: "The Willow House", prompt_facts: null }),
+    ];
+    const stored = await customizationOf(DESIGN);
+    const boxes = (stored.boxes as TextBox[]).map((b) =>
+      b.id === "venue" ? { ...b, lines: ["The Old Barn"] } : b,
+    );
+    admin.fake.state.tables.card_customizations = [{ ...stored, boxes }];
+    for (const audience of ["host", "guest"] as const) {
+      const revealed = (await loadRevealedCard(EVENT, { now: () => NOW, audience }))!;
+      expect(revealed.card.boxes.find((b) => b.id === "venue")!.lines, audience).toEqual([
+        "The Willow House",
+      ]);
+    }
+  });
+
+  it("shows the event's title in the title box, whatever the box was broken for", async () => {
+    admin.fake.state.tables.events = [eventRow({ title: "Juniper's Garden Party" })];
+    admin.fake.state.tables.card_customizations = [await customizationOf(DESIGN)];
+    const revealed = (await load())!;
+    expect(revealed.title).toBe("Juniper's Garden Party");
+    expect(revealed.card.boxes.find((b) => b.id === "title")!.lines.join(" ")).toBe(
+      "Juniper's Garden Party",
+    );
+  });
+
+  it("draws the generated layer, with the notice, for stored boxes that do not parse", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const boxes of [
+      [{ id: "x", source: { kind: "image" } }],
+      [{ ...((await customizationOf(DESIGN)).boxes as TextBox[])[0], color: "red" }],
+      { not: "an array" },
+    ]) {
+      admin.fake.state.tables.card_customizations = [{ ...(await customizationOf(DESIGN)), boxes }];
+      const revealed = (await load())!;
+      expect(revealed.customization).toMatchObject({ revision: 4, unreadable: true });
+      expect(revealed.card.boxes.map((b) => b.id)).not.toContain("added-1");
+      expect(revealed.card.boxes.find((b) => b.id === "title")!.rotation).toBe(0);
+    }
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("uses only the customization of the shape shown", async () => {
+    admin.fake.state.tables.card_customizations = [await customizationOf(DESIGN, "oval")];
+    const revealed = (await load())!;
+    expect(revealed.customization).toBeNull();
+    expect(revealed.card.boxes.map((b) => b.id)).not.toContain("added-1");
   });
 });

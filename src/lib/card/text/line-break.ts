@@ -259,3 +259,46 @@ export function breakLines(
   }
   return out;
 }
+
+/** A line that ends just after a hyphen between letters: `breakLines` may join the next to it. */
+const ENDS_AFTER_LETTER_HYPHEN = /[\p{L}\p{M}][-‐]$/u;
+const STARTS_WITH_LETTER = /^\p{L}/u;
+
+/**
+ * Whether `lines` are a breaking of `text` under this module's rules of normalisation: the same
+ * paragraphs (hard breaks), the same words in order with whitespace collapsed, every line trimmed,
+ * and each line joined to the next by one space or, after a hyphen between letters, by nothing.
+ * Says nothing about where the breaks fall — only that the stored lines spell exactly the text, so
+ * a reader can tell lines broken from another text (a fact or title changed since) from current
+ * ones. Pure.
+ */
+export function linesSpell(lines: readonly string[], text: string): boolean {
+  const paragraphs = text.split(HARD_BREAK).map((p) => p.split(SPACES).filter(Boolean).join(" "));
+  while (paragraphs.length > 0 && paragraphs[0] === "") paragraphs.shift();
+  while (paragraphs.length > 0 && paragraphs[paragraphs.length - 1] === "") paragraphs.pop();
+
+  let k = 0;
+  for (const paragraph of paragraphs) {
+    if (paragraph === "") {
+      if (lines[k] !== "") return false;
+      k += 1;
+      continue;
+    }
+    let rest = paragraph;
+    while (rest !== "") {
+      const line = lines[k];
+      if (line === undefined || line === "" || !rest.startsWith(line)) return false;
+      if (line !== line.trim()) return false;
+      k += 1;
+      rest = rest.slice(line.length);
+      if (rest === "") break;
+      if (rest.startsWith(" ")) {
+        rest = rest.slice(1);
+      } else if (!(ENDS_AFTER_LETTER_HYPHEN.test(line) && STARTS_WITH_LETTER.test(rest))) {
+        // A line may end inside a word only just after a hyphen between letters.
+        return false;
+      }
+    }
+  }
+  return k === lines.length;
+}

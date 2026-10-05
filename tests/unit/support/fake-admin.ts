@@ -42,6 +42,7 @@ export interface FakeAdminState {
 
 function selectQuery(state: FakeAdminState, table: string, columns: string) {
   const filters: [string, unknown][] = [];
+  const within: [string, readonly unknown[]][] = [];
   let ordering: { column: string; ascending: boolean } | null = null;
   let limit: number | null = null;
   const result = () => {
@@ -49,8 +50,10 @@ function selectQuery(state: FakeAdminState, table: string, columns: string) {
     state.selects.push({ table, columns, filters: [...filters] });
     const error = state.errors[`select:${table}`];
     if (error) return { data: null, error };
-    let rows = (state.tables[table] ?? []).filter((row) =>
-      filters.every(([column, value]) => row[column] === value),
+    let rows = (state.tables[table] ?? []).filter(
+      (row) =>
+        filters.every(([column, value]) => row[column] === value) &&
+        within.every(([column, values]) => values.includes(row[column])),
     );
     if (ordering) {
       const { column, ascending } = ordering;
@@ -66,6 +69,10 @@ function selectQuery(state: FakeAdminState, table: string, columns: string) {
   const query = {
     eq(column: string, value: unknown) {
       filters.push([column, value]);
+      return query;
+    },
+    in(column: string, values: readonly unknown[]) {
+      within.push([column, values]);
       return query;
     },
     order(column: string, options: { ascending?: boolean } = {}) {
@@ -143,6 +150,32 @@ export function fakeAdmin() {
         },
         select(columns: string) {
           return selectQuery(state, table, columns);
+        },
+        /**
+         * `upsert(row, { onConflict, ignoreDuplicates: true }).select(...)`: inserts `row` into
+         * `state.tables` unless a row matches it on every `onConflict` column; returns the rows
+         * inserted.
+         */
+        upsert(
+          row: Record<string, unknown>,
+          options: { onConflict: string; ignoreDuplicates?: boolean },
+        ) {
+          return {
+            async select() {
+              state.log.push(`upsert:${table}`);
+              const error = state.errors[`upsert:${table}`];
+              if (error) return { data: null, error };
+              const keys = options.onConflict.split(",");
+              const rows = (state.tables[table] ??= []);
+              if (rows.some((r) => keys.every((k) => r[k] === row[k]))) {
+                return { data: [], error: null };
+              }
+              const stored = { ...row, revision: 1 };
+              rows.push(stored);
+              state.inserts.push({ table, row: stored });
+              return { data: [stored], error: null };
+            },
+          };
         },
       };
     },

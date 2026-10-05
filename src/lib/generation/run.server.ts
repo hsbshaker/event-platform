@@ -42,6 +42,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { GenerationKind, Json } from "@/lib/supabase/database.types";
 
 import { runArtworkStage } from "./artwork.server";
+import {
+  activeCard,
+  carriedWords,
+  storeCarriedWordsAsServer,
+  type CardRef,
+} from "./customization.server";
 import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.server";
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
@@ -1148,6 +1154,8 @@ async function shapeSwitchPipeline(input: ShapeSwitchInput): Promise<RunGenerati
     .upload(storageKey, art.bytes, { contentType: art.mimeType, upsert: false });
   if (uploadError) throw uploadError;
 
+  // The card the host sees now: the source of the words carried to the new shape if it activates.
+  const shownBefore = await activeCard(admin, eventId);
   const persisted = await admin.rpc("persist_shape_switch_artwork", {
     p_generation_id: generationId,
     p_event_id: eventId,
@@ -1172,7 +1180,47 @@ async function shapeSwitchPipeline(input: ShapeSwitchInput): Promise<RunGenerati
     if (persisted.error) throw persisted.error;
     throw new GenerationStoppedError("persisting the artwork");
   }
+  if (row.activated && shownBefore?.designId === design.id) {
+    await carryWordsToNewShape(admin, {
+      eventId,
+      userId,
+      from: shownBefore,
+      designId: design.id,
+      shape,
+    });
+  }
   return { status: "succeeded", cardDesignId: row.card_design_id, round: row.round };
+}
+
+/**
+ * The host's words carried to the shape a switch's new artwork has just applied (`spec.md §20.6`;
+ * `docs/card-system.md §7`, the shape-switch row: "then as the row above"): from the shape the host
+ * saw until now, when it had a customization and the new shape has none. The artwork is persisted
+ * and the shape applied already, so a failure here is logged and leaves the new shape on its own
+ * generated layout; the source customization is kept, so switching back restores the words.
+ */
+async function carryWordsToNewShape(
+  admin: AdminClient,
+  input: { eventId: string; userId: string; from: CardRef; designId: string; shape: CardShape },
+): Promise<void> {
+  const { eventId, userId, from, designId, shape } = input;
+  try {
+    const carried = await carriedWords(admin, {
+      eventId,
+      userId,
+      from,
+      to: { designId, shape },
+      now: new Date(),
+    });
+    if (carried) await storeCarriedWordsAsServer(admin, carried);
+  } catch (error) {
+    console.error("[shape switch] the host's words could not be carried to the new shape", {
+      eventId,
+      designId,
+      shape,
+      error: error instanceof Error ? error.message : typeof error,
+    });
+  }
 }
 
 /**
