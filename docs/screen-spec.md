@@ -207,6 +207,10 @@ Fields:
 - date/time;
 - venue/address;
 - description (up to 2,000 characters; empty clears it);
+- who can see it: Public / Private (§14), before and after publish. Private shows the event code
+  (`XXXX-XXXX`) with `Copy` and `New code`, and says that guests on the shared link enter it while
+  personal invitation links skip it; after publish, that a new code replaces the old one at once.
+  Choosing Private always stores a code; going Public keeps it for a later switch back;
 - simple info blocks (a later Creation Mode slice).
 
 Every Edit/Add anchor on the event details and the description opens this one editor, focused on the field it was opened from.

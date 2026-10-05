@@ -1690,7 +1690,8 @@ Implemented as `src/components/app/SetupChecklist.tsx`, from `publishReadiness`
 (`src/lib/events/publish-readiness.ts`, exactly `spec.md §23.1`). Each blocker row opens the
 details editor on its field. Each §23.1 requirement is its own row; the RSVP deadline's usually
 clears when the date is saved (its default is stored with the date); the time zone, inferred from
-the venue (`spec.md §7.4`), opens the venue field. The private event code is listed without an action until it can be set.
+the venue (`spec.md §7.4`), opens the venue field. The private event code's row (only for an event made private before codes existed) opens the
+editor on `Make a code`.
 The recommended group appears once its surfaces (guests, registry, co-hosts) exist.
 
 ## 10.14 `InvitationCard`

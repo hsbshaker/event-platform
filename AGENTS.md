@@ -86,7 +86,10 @@ Heed deprecation notices in those docs over training-data habits.
   sign-in starts at the provider, so it is throttled by Supabase's own limits rather than here.
 - **Pre-auth cleanup job**: implemented in Phase 2 at `/api/cron/purge-pre-auth` and scheduled
   daily by `vercel.json`. It needs `CRON_SECRET` set on the deployment, and is 404 without it. A claim re-parents an asset from its draft to the event
-  (exactly one owner). The privacy action must write the encrypted access code before, or in
-  the same service-role transaction as, switching a published event to private.
+  (exactly one owner).
+- **Privacy**: closed in Creation Mode slice 3 — every visibility change goes through the privacy
+  action (`src/app/actions/privacy.ts`, `set_event_privacy` / `rotate_event_code`), which writes
+  the encrypted event code in the same service-role transaction as switching to private;
+  `events.visibility` is server-managed (`protect_event_server_columns`).
 - **Event creation**: closed in Phase 2 — the end-user `insert` on `events` is revoked and
   creation happens inside `claim_pre_auth_draft`.
