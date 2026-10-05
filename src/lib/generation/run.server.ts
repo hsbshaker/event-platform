@@ -224,7 +224,8 @@ export interface GenerationTelemetry {
   /** The rendering drawn for this generation's design (`suggestRendering`). */
   suggestedRendering: string;
   /** The accepted design's rendering is the suggested one. */
-  followedSuggestion: boolean;
+  /** Whether a new idea followed the suggested rendering; null for a requested change, which keeps the card's own. */
+  followedSuggestion: boolean | null;
   /**
    * The theme seed given to a new identity (`drawThemeSeed`); null when the identity was reused or
    * revised (another direction never draws one).
@@ -630,9 +631,17 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     if (!latest) throw new Error("Another direction needs the event's identity.");
     // The event type in the host's own words, kept on the event with the first identity.
     statedEventType = factString(event.prompt_facts, "eventType");
-    stepBack = await refusedBefore(admin, eventId, generationId, "another_direction");
+    // A Try again of the same request (same card, same words) after a failure: it takes the same
+    // step back after a provider refusal (spec.md §7.6) and reuses the identity that request
+    // already revised, rather than interpreting the words a second time. Any other request is new.
+    const retryOf = await sameRequestFailedBefore(admin, eventId, generationId, direction);
+    stepBack = retryOf?.error_code === "provider_refusal";
     const facts = event.prompt_facts ?? null;
-    if (direction.feedback) {
+    if (direction.feedback && retryOf && latest.generation_id === retryOf.id) {
+      identity = parseIdentity(latest.identity);
+      identityRevision = latest.revision;
+      await recordStage("identity", { identity: identityArtifacts(identity), facts });
+    } else if (direction.feedback) {
       // The feedback revises the identity the changed card was made from (spec.md §7.15 step 4).
       const previous = await identityAt(admin, eventId, from.identityRevision);
       const begun = now();
@@ -821,7 +830,10 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     ...(current
       ? {
           rendering: current.design.artBrief.rendering,
-          followedSuggestion: current.design.artBrief.rendering === suggestedRendering,
+          followedSuggestion:
+            current.design.refinement === "none"
+              ? current.design.artBrief.rendering === suggestedRendering
+              : null,
           ...(direction ? { refinement: current.design.refinement, refinementDowngraded } : {}),
         }
       : {}),
@@ -891,7 +903,10 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     lineAreasFallback: art.telemetry.lineAreasFallback,
     providerRefusal,
     suggestedRendering,
-    followedSuggestion: chosen.design.artBrief.rendering === suggestedRendering,
+    followedSuggestion:
+      chosen.design.refinement === "none"
+        ? chosen.design.artBrief.rendering === suggestedRendering
+        : null,
     themeSeed,
     kind: input.kind,
     refinement: chosen.design.refinement,
@@ -1062,6 +1077,33 @@ function factString(facts: Json, field: string): string | null {
  * recorded the identity. Only one generation runs at a time, so the previous one of the kind is
  * the newest other.
  */
+/**
+ * The event's previous another-direction generation when it failed and asked the same thing as
+ * this one — the same card to change and the same words — else null: this one is the host's Try
+ * again of it (§31: "a second refusal is a visible failure whose Try again takes the same step
+ * back"). A different card or different words is a new request, never treated as a retry.
+ */
+async function sameRequestFailedBefore(
+  admin: AdminClient,
+  eventId: string,
+  generationId: string,
+  direction: { fromDesignId: string; feedback: string | null | undefined },
+): Promise<{ id: string; error_code: string | null } | null> {
+  const { data, error } = await admin
+    .from("generations")
+    .select("id, status, error_code, from_design_id, feedback")
+    .eq("event_id", eventId)
+    .eq("kind", "another_direction")
+    .order("started_at", { ascending: false })
+    .limit(2);
+  if (error) throw error;
+  const previous = (data ?? []).find((row) => row.id !== generationId);
+  if (!previous || previous.status !== "failed") return null;
+  const sameCard = previous.from_design_id === direction.fromDesignId;
+  const sameWords = (previous.feedback?.trim() || null) === (direction.feedback?.trim() || null);
+  return sameCard && sameWords ? { id: previous.id, error_code: previous.error_code } : null;
+}
+
 async function refusedBefore(
   admin: AdminClient,
   eventId: string,
@@ -1167,7 +1209,9 @@ async function earlierDesigns(admin: AdminClient, eventId: string): Promise<Earl
     .eq("event_id", eventId)
     .order("round", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((row) => {
+  // A design from before rendering families (`card_design_schema_v2`) has no rendering to summarise:
+  // it is left out of the earlier directions rather than refusing the host's request.
+  const readable = (data ?? []).flatMap((row): EarlierDesign[] => {
     const typography = isRecord(row.typography) ? row.typography : {};
     const wording = isRecord(row.wording) ? row.wording : {};
     const brief = isRecord(row.art_brief) ? row.art_brief : {};
@@ -1184,10 +1228,10 @@ async function earlierDesigns(admin: AdminClient, eventId: string): Promise<Earl
       typeof brief.aesthetic !== "string" ||
       !(RENDERINGS as readonly unknown[]).includes(brief.rendering)
     ) {
-      throw new Error("An earlier card design cannot be read for another direction.");
+      return [];
     }
     const artBrief = brief as unknown as CardDesign["artBrief"];
-    return {
+    const design: EarlierDesign = {
       id: row.id,
       name: row.name,
       identityRevision: row.identity_revision,
@@ -1209,7 +1253,9 @@ async function earlierDesigns(admin: AdminClient, eventId: string): Promise<Earl
         aesthetic: artBrief.aesthetic,
       },
     };
+    return [design];
   });
+  return readable;
 }
 
 /**

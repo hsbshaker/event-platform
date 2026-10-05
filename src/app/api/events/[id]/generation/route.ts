@@ -42,15 +42,19 @@ function notFound(): NextResponse {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const { id } = await ctx.params;
   if (!z.uuid().safeParse(id).success) return notFound();
+  // `?generation=<id>`: that generation of this event (what a surface is waiting for), else the
+  // latest. An id that is not one reads as not found, like everything else here.
+  const asked = request.nextUrl.searchParams.get("generation");
+  if (asked !== null && !z.uuid().safeParse(asked).success) return notFound();
 
   let view: GenerationView | null;
   try {
-    view = await getGenerationView(id);
+    view = await getGenerationView(id, asked ? { generationId: asked } : {});
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) return notFound();
     throw error;

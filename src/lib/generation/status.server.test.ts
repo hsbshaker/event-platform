@@ -92,6 +92,21 @@ describe("getGenerationView", () => {
     expect(JSON.stringify(result)).not.toContain("totalMs");
   });
 
+  it("reads the generation asked for by id, of this event only, even when it is not the latest", async () => {
+    admin.fake.state.tables.generations = [
+      generation({ id: "older", started_at: secondsAgo(900), status: "succeeded" }),
+      generation(),
+      generation({ id: "elsewhere", event_id: "another", started_at: secondsAgo(1) }),
+    ];
+    const asked = await getGenerationView(EVENT, { now: () => NOW, generationId: "older" });
+    expect(asked?.id).toBe("older");
+    expect(asked?.status).toBe("succeeded");
+    // Another event's generation is never read through this event.
+    expect(
+      await getGenerationView(EVENT, { now: () => NOW, generationId: "elsewhere" }),
+    ).toBeNull();
+  });
+
   it("returns null when the event has no generation", async () => {
     admin.fake.state.tables.generations = [];
     expect(await view()).toBeNull();

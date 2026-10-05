@@ -23,7 +23,11 @@ import type { RevealedCard } from "@/lib/generation/reveal.server";
  * same component with fixture data.
  */
 
-const PREVIEW_WIDTH = { "5:7": "9.5rem", "1:1": "11rem" } as const;
+/** The card being changed, small: fractions of the app's narrow width token, as the other card sizes. */
+const PREVIEW_WIDTH = {
+  "5:7": "min(100%, calc(var(--width-narrow) * 0.27))",
+  "1:1": "min(100%, calc(var(--width-narrow) * 0.31))",
+} as const;
 
 export function DirectionBox({
   card,

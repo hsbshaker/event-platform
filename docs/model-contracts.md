@@ -439,11 +439,17 @@ A change to part of a card (`refinement: "part"`, §5.1) calls `generateCardArt`
 endpoint with the changed card's artwork as `reference` and `revision: true`: the assembled art
 prompt is prefixed with "Revise the reference image to match this description, keeping its
 composition, subject placement, rendering, lighting and palette wherever the description does not
-change them:" and a line break (`REVISION_PREFIX`, `card_art_v5`). Its repaints stay edits of the same reference. A change to the whole
-look and a new idea are painted fresh, with no reference. In the Phase 5 refine experiment (eight
-requests on four cards, CHANGELOG) edits kept "my card with that change" in six of eight, passed
-every first validation, and failed only the whole-look requests, which is why those repaint. It is a generation for limits and metering, and it
-adds an artwork to the design rather than replacing one.
+change them:" and a line break (`REVISION_PREFIX`, `card_art_v5`). Its repaints stay edits of the
+same reference. The edit needs the picture it changes to still fit: a `part` design that changed
+the shape, layout or art mode, or one re-prompted after a provider refusal (editing the refused
+picture would keep the character), is painted fresh instead, recorded as `refinementDowngraded`
+in telemetry with `artworkEdit` false. A change to the whole look and a new idea are painted fresh,
+with no reference. In the Phase 5 refine experiment (eight requests on four cards, CHANGELOG)
+edits kept "my card with that change" in six of eight, passed every first validation, and failed
+only the whole-look requests, which is why those repaint.
+
+A shape switch is a generation for limits and metering, and it adds an artwork to the design
+rather than replacing one.
 
 ## 7.3 Validation
 

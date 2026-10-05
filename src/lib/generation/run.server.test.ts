@@ -1403,6 +1403,7 @@ describe("another direction (spec.md §7.7, §7.15)", () => {
 
   describe("Try again after a refusal takes the same step back", () => {
     beforeEach(() => {
+      // The same request as this one: the same card to change and the same words.
       admin.state.tables.generations.push({
         id: EARLIER_GENERATION,
         event_id: EVENT,
@@ -1411,7 +1412,34 @@ describe("another direction (spec.md §7.7, §7.15)", () => {
         error_code: "provider_refusal",
         requested_by: USER,
         started_at: "2026-10-05T12:00:00Z",
+        from_design_id: FROM,
+        feedback: FEEDBACK,
       });
+    });
+
+    it("never for a different card or different words: that is a new request", async () => {
+      admin.state.tables.generations.at(-1)!.feedback = "make it a starry night";
+      const words = await run({ identity: [REVISED_IDENTITY], design: [PART], art: [CLEAN] });
+      expect(words.fake.calls.design[0].reprompt).toBeUndefined();
+      expect(stages().map(([, a]) => a)).not.toContainEqual({
+        notice: "provider_refusal",
+        design: null,
+      });
+    });
+
+    it("a Try again of the same words reuses the identity that request already revised", async () => {
+      Object.assign(admin.state.tables.generations.at(-1)!, { error_code: "deadline" });
+      admin.state.tables.event_identities.push({
+        event_id: EVENT,
+        revision: 3,
+        identity: REVISED_IDENTITY,
+        generation_id: EARLIER_GENERATION,
+      });
+      const { fake } = await run({ design: [PART], art: [CLEAN] });
+      expect(fake.calls.identity).toEqual([]);
+      expect(fake.calls.design[0].eventIdentity).toEqual(REVISED_IDENTITY);
+      expect(fake.calls.design[0].reprompt).toBeUndefined();
+      expect(admin.rpc("record_event_identity")).toEqual([]);
     });
 
     it("starts from the step-back design, painted fresh", async () => {
@@ -1426,6 +1454,23 @@ describe("another direction (spec.md §7.7, §7.15)", () => {
       const { fake } = await run({ identity: [REVISED_IDENTITY], design: [PART], art: [CLEAN] });
       expect(fake.calls.design[0].reprompt).toBeUndefined();
     });
+  });
+
+  it("leaves a design from before rendering families out of the earlier directions", async () => {
+    admin.state.tables.card_designs.push({
+      ...designRow("c1c2c3c4-d5d6-4e7f-8a9b-0c1d2e3f4a5b", 0, DESIGN, 1),
+      art_brief: { subject: "an older card", medium: "watercolour" },
+    });
+    const { outcome, fake } = await run({
+      identity: [REVISED_IDENTITY],
+      design: [PART],
+      art: [CLEAN],
+    });
+    expect(outcome.status).toBe("succeeded");
+    expect(fake.calls.design[0].previousDirections?.map((d) => d.subject)).not.toContain(
+      "an older card",
+    );
+    expect(fake.calls.design[0].previousDirections).toHaveLength(2);
   });
 
   it("fails internally when the design to change is not the event's", async () => {

@@ -59,7 +59,8 @@ export function useGenerationPoll({
       if (document.hidden) return;
       busy = true;
       try {
-        const res = await fetch(`/api/events/${eventId}/generation`, {
+        const query = expectedId ? `?generation=${encodeURIComponent(expectedId)}` : "";
+        const res = await fetch(`/api/events/${eventId}/generation${query}`, {
           cache: "no-store",
           headers: { Accept: "application/json" },
         });

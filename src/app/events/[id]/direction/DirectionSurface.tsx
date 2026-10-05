@@ -54,7 +54,19 @@ type Phase =
       preloaded: RevealedCard;
     };
 
-const keyScope = (eventId: string, from: string) => `direction-key:${eventId}:${from}`;
+/** A short, stable digest of the words, so a stored key is reused only for the same request. */
+function wordsDigest(words: string | null): string {
+  let hash = 5381;
+  for (const ch of words ?? "") hash = ((hash * 33) ^ ch.codePointAt(0)!) >>> 0;
+  return hash.toString(36);
+}
+
+/**
+ * A reload during the call reuses the key only for the same request — the same card and the same
+ * words — so new words always start a new generation rather than finding the old one.
+ */
+const keyScope = (eventId: string, from: string, words: string | null) =>
+  `direction-key:${eventId}:${from}:${wordsDigest(words)}`;
 
 function BackToCard({ eventId }: { eventId: string }) {
   return (
@@ -132,7 +144,7 @@ export function DirectionSurface({
   const begin = useCallback(
     async (words: string | null, fresh: boolean) => {
       feedback.current = words;
-      const scope = keyScope(eventId, from);
+      const scope = keyScope(eventId, from, words);
       const key = idempotencyKey(scope, fresh);
       try {
         const result = await startAnotherDirection({

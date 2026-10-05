@@ -34,10 +34,11 @@ function generation(overrides: Partial<GenerationView> = {}): GenerationView {
   };
 }
 
-async function get(id: string = EVENT) {
-  const response = await GET(new NextRequest(`https://app.test/api/events/${id}/generation`), {
-    params: Promise.resolve({ id }),
-  });
+async function get(id: string = EVENT, query = "") {
+  const response = await GET(
+    new NextRequest(`https://app.test/api/events/${id}/generation${query}`),
+    { params: Promise.resolve({ id }) },
+  );
   return { response, body: await response.json() };
 }
 
@@ -49,10 +50,24 @@ describe("GET /api/events/[id]/generation", () => {
   it("returns the latest generation's view, uncached", async () => {
     view.mockResolvedValue(generation());
     const { response, body } = await get();
-    expect(view).toHaveBeenCalledWith(EVENT);
+    expect(view).toHaveBeenCalledWith(EVENT, {});
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body).toEqual({ generation: { ...generation(), failure: null, notice: null } });
+  });
+
+  it("reads the generation a surface is waiting for, by id, else the latest", async () => {
+    view.mockResolvedValue(generation());
+    const asked = "c5d7b1a4-3f2e-4c8d-9b7a-1e2f3a4b5c6d";
+    await get(EVENT, `?generation=${asked}`);
+    expect(view).toHaveBeenLastCalledWith(EVENT, { generationId: asked });
+    await get(EVENT);
+    expect(view).toHaveBeenLastCalledWith(EVENT, {});
+    // A malformed id reads as not found, before any read.
+    view.mockClear();
+    const { response } = await get(EVENT, "?generation=nope");
+    expect(response.status).toBe(404);
+    expect(view).not.toHaveBeenCalled();
   });
 
   it("returns null before the first generation", async () => {
