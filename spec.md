@@ -1040,6 +1040,10 @@ standardWording[]      // slots that fell back to standard wording
 inkPanels[]            // zones that needed a legibility panel
 versions               // prompt, schema, layout set, compiler, image model
 latency                // identity, design, art, total
+suggestedRendering     // the rendering drawn for variety (§7.6a rule 7)
+followedSuggestion     // whether the design used it
+failure                // on a failed generation: code, stage, per-image validation reasons,
+                       // and the suggested and chosen rendering — never host content
 ```
 
 Schema validity, wording fallbacks, art regeneration and legibility panels are separate measures;
@@ -2569,7 +2573,8 @@ The host should feel:
     bounded wording, art brief, presentation); and artwork. Nothing else.
 13. No model emits HTML, CSS, JavaScript, SVG, text colours, sizes, positions or line breaks.
 14. The model owns interpretation, the creative direction, the layout and art-mode choice, the
-    pairing choice, the wording and the art brief. Code owns facts, text placement, fit, ink,
+    pairing choice, the wording and the art brief (code may suggest a rendering at random for
+    variety, §7.6a rule 7; the design decides). Code owns facts, text placement, fit, ink,
     contrast, panels, the envelope, the page, RSVP/registry semantics and business logic.
 15. Facts come only from host-supplied or host-confirmed event data. Never invent them, never let
     wording state them, never infer them.

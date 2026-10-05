@@ -207,8 +207,9 @@ artwork is made (`artBrief.rendering`) and, separately, an aesthetic mood in a w
 the brief's medium (`src/lib/card/renderings.ts`, `card_art_v3`). Watercolour is one direction
 among nine, never a reflex, and cards vary actively: the orchestration draws a suggested rendering
 at random from those the event's earlier directions have not used (`suggestRendering`), and the
-design follows it unless the identity strongly points to a treatment (an explicit style word from
-the host, or an aesthetic the suggestion would contradict).
+design follows it unless the identity carries an explicit style signal from the host pointing to
+another treatment — never the design's own aesthetic. A `design-led` card takes the `framed` or
+`atmosphere` art mode (or `minimal` when asked for a bare card), never `illustration`.
 
 | Rendering | What the artwork is |
 | --- | --- |

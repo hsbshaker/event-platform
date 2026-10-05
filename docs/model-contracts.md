@@ -226,11 +226,12 @@ the user's description strongly points toward a particular treatment"). Every ge
 `suggestedRendering` uniformly at random from the families this event's earlier directions have not
 used — all nine for an initial generation, and all nine again once every one has been used
 (`suggestRendering`) — and sends it with every call of its design stage, a provider-refusal
-re-prompt included. The design uses it unless the identity strongly points toward a treatment: an
-explicit style word from the host (photo or realistic, editorial, 3D, CGI, cartoon, vector, flat,
-watercolour, painted, hand-drawn, sketch, engraved, collage, pattern), or an aesthetic the
-suggestion would plainly contradict. `generations.telemetry` records `suggestedRendering` and
-`followedSuggestion`.
+re-prompt included. The design uses it unless the identity carries an explicit style signal from
+the host in `textureDirection` or `creativeDirection` (photo or realistic, editorial, 3D, CGI,
+cartoon, vector, flat, watercolour, painted, hand-drawn, sketch, engraved, collage, pattern); its
+own `aesthetic` is never a reason to set the suggestion aside. `generations.telemetry` records
+`suggestedRendering` and `followedSuggestion`, and a failed generation's telemetry records the
+suggestion and, once a design exists, its rendering.
 It never carries guest data, RSVP or registry contents, private codes, or the raw host prompt.
 
 ## 5.3 Validation

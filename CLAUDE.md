@@ -132,7 +132,8 @@ host prompt + inspiration
 → CardDesign (shape of six, layout from catalog, art mode, pairing + alternates, wording, art brief)
 → strict schema + catalog validation · wording fact check · direction distinctness   (one re-prompt each)
 → art prompt assembled by code (brief + layout and shape rules + global rules) → image model → artwork
-→ artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety   (one regeneration)
+→ artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety,
+   no person in photographic, editorial, 3D or collage artwork   (one regeneration)
 → ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
    (while the artwork's shape would need a panel: repaint from the same art prompt — two extra images per artwork at most)
 → persisted, immutable CardDesign + artwork + ink + versions

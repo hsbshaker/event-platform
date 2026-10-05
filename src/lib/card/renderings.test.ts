@@ -49,7 +49,7 @@ describe("rendering families", () => {
       "Cinematic editorial realism: photorealistic and highly art-directed, like a luxury advertising campaign or a styled magazine shoot — considered set design, controlled light and rich materials. Not an illustration. No people, faces, hands or bodies.",
     );
     expect(RENDERING_ART_PROMPT["design-led"]).toBe(
-      "Design-led artwork: a repeating pattern, border, geometry or colour blocking is the whole picture, with no central scene; no letters, initials or monograms.",
+      "Design-led artwork: a repeating pattern, border, geometry or colour blocking carries the picture rather than a depicted scene; no letters, initials or monograms.",
     );
   });
 

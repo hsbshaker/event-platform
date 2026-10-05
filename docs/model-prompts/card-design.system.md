@@ -116,11 +116,16 @@ must stand on its own.
   illustrated beach elements, watercolour coastline artwork, fine-line coastal engraving,
   photographic collage, or a nautical design-led pattern.
 - `suggestedRendering`, when present, is the rendering to use, chosen so cards vary across events.
-  Use it unless the identity strongly points toward a particular treatment. A strong pointer is
-  either an explicit style word from the host — photo or realistic, editorial, 3D, CGI, cartoon,
-  vector, flat, watercolour, painted, hand-drawn, sketch, engraved, collage, pattern — or an
-  aesthetic the suggestion would plainly contradict. Then choose the rendering the identity points
-  to.
+  It comes first: use it unless the identity itself strongly points toward a different treatment —
+  that is, its `textureDirection` or `creativeDirection` carries an explicit style signal from the
+  host, such as photo or realistic, editorial, 3D, CGI, cartoon, vector, flat, watercolour,
+  painted, hand-drawn, sketch, engraved, collage or pattern. Then choose the rendering that signal
+  names. Your own `aesthetic` is never a reason to set the suggestion aside: choose the aesthetic
+  to suit the event and the rendering together. Words like elegant, romantic, floral, garden or
+  beach are not a style signal.
+- A `design-led` card's pattern, border or colour blocking is the picture: give it the `framed` or
+  `atmosphere` art mode (or `minimal` when the identity asks for a bare card), never
+  `illustration`, which needs a central subject.
 - `photographic`, `editorial`, `rendered-3d` and `collage` artwork shows places, objects, food and
   materials — never people, faces, hands or bodies.
 - `aesthetic`: the card's aesthetic mood in one or two words (3–40 characters), separate from the
@@ -177,6 +182,6 @@ in an English beech wood.
 - the wording states no fact and no brand or character name, and a supplied title is verbatim;
 - the brief honours every negative constraint and names no brand, character, logo or wordmark;
 - the medium belongs to the chosen rendering, the rendering follows `suggestedRendering` unless
-  the identity strongly points elsewhere, and photographic, editorial, 3D or collage artwork shows
-  no people;
+  the identity's own style signal points elsewhere, a `design-led` card is not in the
+  `illustration` art mode, and photographic, editorial, 3D or collage artwork shows no people;
 - nothing in the output asks for text in the artwork.

@@ -51,7 +51,7 @@ const DESCRIPTION: Readonly<Record<Rendering, string>> = {
   editorial:
     "Cinematic / editorial realism: photorealistic but highly art-directed — luxury advertising, fashion and hospitality editorials, magazine photography, sophisticated styled shoots.",
   "rendered-3d":
-    "3D / CGI rendered: dimensional rendered imagery with intentional materials, lighting, depth and shadows — from sophisticated product-render aesthetics to playful dimensional characters, depending on the event.",
+    "3D / CGI rendered: dimensional rendered imagery with intentional materials, lighting, depth and shadows — from sophisticated product-render aesthetics to playful dimensional animal or object characters, depending on the event.",
   vector:
     "Modern vector / graphic: crisp, polished graphic illustration using controlled shapes, geometry, clean edges and sophisticated composition. No painterly texture.",
   "flat-illustration":
@@ -84,7 +84,7 @@ const ART_PROMPT: Readonly<Record<Rendering, string>> = {
   collage:
     "Collage and mixed media: layered cutouts, illustration, paper textures, torn edges and overlapping elements, composed like an editorial mixed-media piece.",
   "design-led":
-    "Design-led artwork: a repeating pattern, border, geometry or colour blocking is the whole picture, with no central scene; no letters, initials or monograms.",
+    "Design-led artwork: a repeating pattern, border, geometry or colour blocking carries the picture rather than a depicted scene; no letters, initials or monograms.",
 };
 
 /** The rendering catalog the card-design call is given (`src/lib/ai/requests.ts`). */

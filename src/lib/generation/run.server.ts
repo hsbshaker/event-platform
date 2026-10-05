@@ -28,7 +28,12 @@ import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.ser
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
-import { ArtworkProviderRefusalError, failureDetailsOf, GenerationStageError } from "./stage";
+import {
+  ArtworkProviderRefusalError,
+  attachFailureDetails,
+  failureDetailsOf,
+  GenerationStageError,
+} from "./stage";
 import type { StageContext } from "./stage";
 
 /**
@@ -256,9 +261,23 @@ export function failureTelemetry(error: unknown, code: string): Json {
   }
   // Details a stage recorded: its own, or attached to a refusal it passed through.
   const details = failureDetailsOf(error) as
-    { imagesRequested?: number; validationFailures?: ArtworkValidationFailure[] } | undefined;
+    | {
+        imagesRequested?: number;
+        validationFailures?: ArtworkValidationFailure[];
+        suggestedRendering?: unknown;
+        rendering?: unknown;
+        followedSuggestion?: unknown;
+      }
+    | undefined;
   if (typeof details?.imagesRequested === "number") {
     failure.imagesRequested = details.imagesRequested;
+  }
+  if (typeof details?.suggestedRendering === "string") {
+    failure.suggestedRendering = details.suggestedRendering;
+  }
+  if (typeof details?.rendering === "string") failure.rendering = details.rendering;
+  if (typeof details?.followedSuggestion === "boolean") {
+    failure.followedSuggestion = details.followedSuggestion;
   }
   if (Array.isArray(details?.validationFailures) && details.validationFailures.length > 0) {
     failure.validationFailures = details.validationFailures.map((f) => ({
@@ -518,21 +537,42 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     }
   };
 
-  let chosen = await design();
+  // A failure from here on still records the rendering drawn and, once a design exists, the one it
+  // chose — so renderings that fail more often never drop out of the measured mix.
+  let current: DesignStageResult | null = null;
+  const renderingDetails = () => ({
+    suggestedRendering,
+    ...(current
+      ? {
+          rendering: current.design.artBrief.rendering,
+          followedSuggestion: current.design.artBrief.rendering === suggestedRendering,
+        }
+      : {}),
+  });
 
-  // ------------------------------------------------------------------ 4. artwork
+  let chosen: DesignStageResult;
   let art: ArtworkStageResult;
   let providerRefusal = false;
   try {
-    art = await artwork(chosen);
+    chosen = current = await design();
+
+    // ---------------------------------------------------------------- 4. artwork
+    try {
+      art = await artwork(chosen);
+    } catch (error) {
+      // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
+      // §9); a refusal after a failed first image is the second failure, and visible.
+      if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) {
+        throw error;
+      }
+      providerRefusal = true;
+      await recordStage("design", { notice: "provider_refusal" });
+      chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
+      art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+    }
   } catch (error) {
-    // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
-    // §9); a refusal after a failed first image is the second failure, and visible.
-    if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) throw error;
-    providerRefusal = true;
-    await recordStage("design", { notice: "provider_refusal" });
-    chosen = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
-    art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+    attachFailureDetails(error, renderingDetails());
+    throw error;
   }
 
   // ------------------------------------------------------------------ 5. persist

@@ -85,16 +85,25 @@ const FAILURE_DETAILS = Symbol("generation.failureDetails");
  */
 export function attachFailureDetails(error: unknown, details: Record<string, unknown>): void {
   if (error && typeof error === "object") {
-    Object.defineProperty(error, FAILURE_DETAILS, { value: details, configurable: true });
+    const merged = { ...attachedDetails(error), ...details };
+    Object.defineProperty(error, FAILURE_DETAILS, { value: merged, configurable: true });
   }
 }
 
-/** The details a stage recorded on an error: its own, or attached to a passed-through one. */
+function attachedDetails(error: object): Record<string, unknown> | undefined {
+  const attached = (error as { [FAILURE_DETAILS]?: unknown })[FAILURE_DETAILS];
+  return attached && typeof attached === "object"
+    ? (attached as Record<string, unknown>)
+    : undefined;
+}
+
+/**
+ * The details recorded on an error: those attached as it passed through the orchestration and
+ * the stages, with a stage error's own details taking precedence.
+ */
 export function failureDetailsOf(error: unknown): Record<string, unknown> | undefined {
-  if (error instanceof GenerationStageError && error.details) return error.details;
-  if (error && typeof error === "object") {
-    const attached = (error as { [FAILURE_DETAILS]?: unknown })[FAILURE_DETAILS];
-    if (attached && typeof attached === "object") return attached as Record<string, unknown>;
-  }
-  return undefined;
+  if (!error || typeof error !== "object") return undefined;
+  const attached = attachedDetails(error);
+  const own = error instanceof GenerationStageError ? error.details : undefined;
+  return attached || own ? { ...attached, ...own } : undefined;
 }

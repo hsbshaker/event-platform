@@ -635,10 +635,15 @@ describe("failures end the generation with fail_generation", () => {
 
   it("records why: the stage and each image's validation failure", async () => {
     await run({ ...HAPPY, art: [NOT_PNG, NOT_PNG] });
+    // The rendering drawn and the one the design chose are kept, so renderings that fail more
+    // often stay in the measured mix (the test draw suggests photographic; the design is painterly).
     expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
       failure: {
         code: "artwork_invalid",
         stage: "artwork",
+        suggestedRendering: "photographic",
+        rendering: "painterly",
+        followedSuggestion: false,
         imagesRequested: 2,
         validationFailures: [
           { image: 1, reasons: ["type"] },
@@ -682,8 +687,9 @@ describe("failures end the generation with fail_generation", () => {
 
   it("records the stage of other failures, and a meter refusal's reason", async () => {
     await run({ ...HAPPY, design: [invalid(), invalid()] });
+    // No design was accepted: only the suggestion is known.
     expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
-      failure: { code: "invalid_output", stage: "design" },
+      failure: { code: "invalid_output", stage: "design", suggestedRendering: "photographic" },
     });
     expect(failureTelemetry(new SpendCeilingError(), "ceiling")).toEqual({
       failure: { code: "ceiling", refusal: "ceiling" },

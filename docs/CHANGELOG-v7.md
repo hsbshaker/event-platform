@@ -433,9 +433,13 @@ circles. Two decisions by the owner (2026-10-04):
   printed card, not a photograph.
 - **Active variation.** Each generation draws a suggested rendering uniformly at random from the
   families this event's earlier directions have not used (all nine for a first card), and the
-  design follows it unless the host's words strongly point to a treatment: an explicit style word,
-  or an aesthetic the suggestion would plainly contradict. `generations.telemetry` records the
-  suggestion and whether it was followed, so the mix and the follow rate are measurable.
+  design follows it unless the host's words strongly point to a treatment: an explicit style word
+  the identity carries (the design's own aesthetic is never a reason to set the suggestion aside,
+  and "elegant", "garden" or "beach" is not a style word). A design-led card takes the framed or
+  atmosphere art mode, never one that needs a central subject; 3D characters are animals or
+  objects, never people. `generations.telemetry` records the suggestion and whether it was
+  followed — and, on a failure, the suggestion and any design's rendering — so the mix and the
+  follow rate are measurable.
 - **Design-led cards and lettering.** The owner listed monograms and typography under the
   pattern/design-led direction. The hard rule stands: artwork contains no letters, initials or
   monograms (`spec.md §7.6a` rule 2, §32 #16). In a design-led card the pattern carries the
