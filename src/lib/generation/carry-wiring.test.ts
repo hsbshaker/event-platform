@@ -174,6 +174,18 @@ describe("chooseCardDesign carries the host's words", () => {
     expect(carriedSave()).toEqual([]);
   });
 
+  it("still reports the choice when storing the carried words fails after it committed", async () => {
+    db.fake.state.tables.card_customizations = [customizationOf(A, "rectangle", edited)];
+    db.fake.state.errors.save_card_customization = { message: "connection reset" };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await chooseCardDesign(EVENT, B)).toEqual({ ok: true });
+    expect(logged).toHaveBeenCalledWith(
+      "[choose design] the host's words could not be carried",
+      expect.objectContaining({ eventId: EVENT, designId: B, error: "connection reset" }),
+    );
+    logged.mockRestore();
+  });
+
   it("does not switch when the words cannot be laid out: nothing changes", async () => {
     db.fake.state.tables.card_customizations = [customizationOf(A, "rectangle", edited)];
     db.fake.state.errors["select:card_art_assets"] = { message: "unavailable" };
@@ -198,6 +210,23 @@ describe("switchActiveCardShape carries the host's words", () => {
     expect(storedBoxes(save).find((b) => b.id === "added-1")).toMatchObject({
       text: "Bring a book",
     });
+  });
+
+  it("still reports the switch when storing the carried words fails after it committed", async () => {
+    db.fake.state.tables.card_customizations = [customizationOf(A, "rectangle", edited)];
+    db.fake.state.errors.save_card_customization = { message: "connection reset" };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = await switchActiveCardShape({
+      eventId: EVENT,
+      shape: "oval",
+      idempotencyKey: key,
+    });
+    expect(result.outcome).toBe("switched");
+    expect(logged).toHaveBeenCalledWith(
+      "[shape switch] the host's words could not be carried",
+      expect.objectContaining({ eventId: EVENT, designId: A, shape: "oval" }),
+    );
+    logged.mockRestore();
   });
 
   it("carries nothing yet to a shape that needs new artwork: it is carried when the artwork arrives", async () => {

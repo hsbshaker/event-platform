@@ -171,6 +171,17 @@ describe("parseEditorBoxes", () => {
     expect(parsed.ok && parsed.boxes[0].text).toBe("Dinner\nDancing\nLate");
   });
 
+  it("turns a pasted tab into a space rather than refusing the text", () => {
+    const parsed = parseEditorBoxes([custom({ text: "Dinner\tDancing" })]);
+    expect(parsed.ok && parsed.boxes[0].text).toBe("Dinner Dancing");
+  });
+
+  it("stores a lower-case hex colour in canonical form", () => {
+    const parsed = parseEditorBoxes([custom({ color: "#aa3300" })]);
+    expect(parsed.ok && parsed.boxes[0].color).toBe("#AA3300");
+    expect(parseEditorBoxes([custom({ color: "#aa33" })]).ok).toBe(false);
+  });
+
   it("holds every number to the editor's range, with a field error for each", () => {
     const L = CARD_EDITOR_LIMITS;
     const cases: [Partial<TextBox>, string][] = [

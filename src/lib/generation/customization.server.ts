@@ -448,6 +448,35 @@ export async function storeCarriedWords(client: DbClient, carried: CarriedWords)
 }
 
 /**
+ * `storeCarriedWords` once the switch it follows has committed (choosing a design, an instant shape
+ * switch): a refusal other than a stale revision is logged, never thrown, so the switch still
+ * reports what happened. The new card then shows its generated layout; the source customization is
+ * kept, so switching back restores the words — as for new artwork (`run.server.ts`).
+ */
+export async function storeCarriedWordsAfterSwitch(
+  client: () => Promise<DbClient>,
+  carried: CarriedWords,
+  context: string,
+): Promise<void> {
+  try {
+    await storeCarriedWords(await client(), carried);
+  } catch (error) {
+    console.error(`[${context}] the host's words could not be carried`, {
+      eventId: carried.eventId,
+      designId: carried.to.designId,
+      shape: carried.to.shape,
+      // A database refusal is a plain object with a message, not an Error.
+      error:
+        error instanceof Error
+          ? error.message
+          : typeof (error as { message?: unknown })?.message === "string"
+            ? (error as { message: string }).message
+            : typeof error,
+    });
+  }
+}
+
+/**
  * `storeCarriedWords` for a shape switch's new artwork, which is persisted after the request that
  * began it, with no session (`run.server.ts`): with the service role, for the generation's own
  * event, design and shape and its requesting collaborator as `updated_by`. Inserts at revision 1,

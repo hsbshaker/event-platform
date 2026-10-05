@@ -209,10 +209,13 @@ const L = CARD_EDITOR_LIMITS;
 const between = (min: number, max: number) =>
   finiteNumber.refine((v) => v >= min && v <= max, `must be between ${min} and ${max}`);
 
-/** The host's text: CRLF and CR become the line feed the card's line breaking reads. */
+/**
+ * The host's text: CRLF and CR become the line feed the card's line breaking reads, and a tab (in
+ * pasted text) the space line breaking already treats it as.
+ */
 const editorText = z
   .string()
-  .transform((t) => t.replace(/\r\n?/g, "\n"))
+  .transform((t) => t.replace(/\r\n?/g, "\n").replace(/\t/g, " "))
   .refine((t) => !TEXT_CONTROL.test(t), "contains a character the card can't show");
 
 const editorBoxSchema = z.object({
@@ -230,7 +233,11 @@ const editorBoxSchema = z.object({
   rotation: between(L.rotation.min, L.rotation.max),
   font: fontSchema,
   size: between(L.size.min, L.size.max),
-  color: z.string().refine(isCanonicalHex, "must be #RRGGBB"),
+  /** Stored canonical (`#RRGGBB`), so a picker's lower-case hex is upper-cased, not refused. */
+  color: z
+    .string()
+    .transform((c) => c.toUpperCase())
+    .refine(isCanonicalHex, "must be #RRGGBB"),
   align: z.enum(["left", "center", "right"]),
   letterSpacing: between(L.letterSpacing.min, L.letterSpacing.max),
   lineHeight: between(L.lineHeight.min, L.lineHeight.max),

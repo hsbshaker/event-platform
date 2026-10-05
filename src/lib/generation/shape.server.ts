@@ -10,7 +10,7 @@ import type { CardShape } from "@/lib/card/shapes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-import { carriedWords, storeCarriedWords } from "./customization.server";
+import { carriedWords, storeCarriedWordsAfterSwitch } from "./customization.server";
 import { generationFailure, type GenerationFailure } from "./failure-copy";
 import { readSwitchingDesign } from "./switching-design";
 
@@ -164,7 +164,8 @@ export async function switchActiveCardShape(input: {
     });
     if (error) throw error;
     if (switched === "switched") {
-      if (carried) await storeCarriedWords(await createClient(), carried);
+      // The shape is switched whatever happens to the carry, so the outcome says so.
+      if (carried) await storeCarriedWordsAfterSwitch(createClient, carried, "shape switch");
       return result("switched");
     }
     if (switched === "no_design") return result("no_design");

@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   activeCard,
   carriedWords,
-  storeCarriedWords,
+  storeCarriedWordsAfterSwitch,
   type CarriedWords,
 } from "./customization.server";
 
@@ -62,14 +62,20 @@ export async function chooseCardDesign(
   });
   if (error) throw error;
   if (data === "chosen") {
-    if (carried) await storeCarriedWords(await createClient(), carried);
+    // The design is chosen whatever happens to the carry, so the outcome says so.
+    if (carried) await storeCarriedWordsAfterSwitch(createClient, carried, "choose design");
     return { ok: true };
   }
   if (data === "published" || data === "not_found") return { ok: false, reason: data };
   throw new Error("choose_card_design returned no outcome");
 }
 
-/** The words to carry to `designId` in its own shape, from the active card; null for none. */
+/**
+ * The words to carry to `designId` in its own shape, from the active card; null for none. Read
+ * before `choose_card_design` takes the event's lock, so a collaborator's choice landing in between
+ * carries the words of the card active a moment earlier — a narrow race whose worst case is words
+ * from the previous card, never a lost or crossed customization (the store expects revision 0).
+ */
 async function wordsToCarry(
   admin: ReturnType<typeof createAdminClient>,
   eventId: string,
