@@ -124,11 +124,15 @@ must stand on its own.
   modes, the specific wash, scenery, border or texture). A close homage to a brand's character or
   look is allowed, described in plain visual words; never a brand or character name, never a logo,
   crest, monogram or wordmark, never a copied campaign image.
-- Things that naturally carry writing — maps, books, labels, packaging, signs, shopfronts,
-  newspapers, sheet music, clock faces, numbered sails — come back from the image model lettered,
-  and lettered artwork fails the card. Choose another subject, or describe it as blank in the
-  subject itself: "an antique map of imagined coastlines with no place names or lettering",
-  "unlabelled glass jars". The more photographic the rendering, the more this matters.
+- Things that naturally carry writing — maps, charts, atlases, books, records, labels, packaging,
+  signs, shopfronts, newspapers, sheet music, clock faces, numbered sails — come back from the
+  image model lettered however firmly the brief says not to, and lettered artwork fails the card.
+  Choose another subject, or describe only the look and never name the lettered object: "flowing
+  coastline contours and fine topographic lines", not "an antique map" or "a chart"; "a plain
+  paper disc", not "a record label". The more photographic the rendering, the more this matters.
+- A close homage to a brand's character or look describes its clothing and objects as plain and
+  unbranded — no emblem, badge, patch, embroidered motif or monogram on a chest, cuff or collar —
+  because image models add a brand's mark to its signature look.
 - `rendering`: one family from the runtime `renderings` catalog. Do not default to watercolour,
   painterly or hand-drawn imagery. Treat rendering as an intentional design decision based on the
   event, the desired atmosphere, the audience and the aesthetic. Choose ONE rendering, and

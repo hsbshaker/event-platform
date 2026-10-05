@@ -1056,6 +1056,7 @@ artRegenerated         // boolean, with the reason: the failed validation, or pa
 artRepaints            // 0–2: repaints made because the artwork would need a panel (§7.8)
 standardWording[]      // slots that fell back to standard wording
 inkPanels[]            // zones that needed a legibility panel
+lineAreasFallback[]    // shapes whose ink was judged on the whole zone alone (text did not lay out)
 versions               // prompt, schema, layout set, compiler, image model
 latency                // identity, design, art, total
 suggestedRendering     // the rendering drawn for variety (§7.6a rule 7)

@@ -10,8 +10,9 @@
  *
  * The seeds are everyday worlds, not designs: a word or two the model turns into a theme, never a
  * template, artwork or layout (`spec.md §32 #21`). The list stays broad and event-neutral, and
- * leaves out anything that naturally carries writing (a map, a book, a label, a sign), a brand, a
- * person, or a culture's or religion's own symbols. Changing the list changes the identity call's
+ * leaves out anything that naturally carries writing (a map, a book, a label, a sign, and boats,
+ * balloons or fairground rides, which image models letter), a brand, a person, or a culture's or
+ * religion's own symbols. Changing the list changes the identity call's
  * input, so it is an `EVENT_IDENTITY_PROMPT_VERSION` bump.
  */
 
@@ -19,7 +20,7 @@ export const THEME_SEEDS = [
   "an orchard in blossom",
   "a beehive",
   "an observatory",
-  "a harbour at dawn",
+  "a rose arbour",
   "kites on a windy hill",
   "a greenhouse",
   "a wildflower meadow",
@@ -27,11 +28,11 @@ export const THEME_SEEDS = [
   "a pottery studio",
   "an alpine lake",
   "tide pools",
-  "paper lanterns",
+  "a lily pond",
   "a vineyard",
   "warm loaves of bread",
-  "hot-air balloons",
-  "a carousel",
+  "seed heads and meadow grasses",
+  "a moonlit garden",
   "a picnic blanket",
   "a desert in bloom",
   "the northern lights",
@@ -42,8 +43,8 @@ export const THEME_SEEDS = [
   "seashells",
   "a coral reef",
   "a mountain cabin",
-  "sailboats",
-  "paper boats",
+  "autumn leaves",
+  "dragonflies",
   "origami birds",
   "mosaic tiles",
   "a herb garden",
@@ -71,7 +72,7 @@ export const THEME_SEEDS = [
   "sand dunes",
   "a canyon at golden hour",
   "a waterfall",
-  "a river boat",
+  "fresh snowfall",
   "bicycles",
   "roller skates",
   "pastel macarons",
@@ -105,14 +106,14 @@ export const THEME_SEEDS = [
   "goldfish",
   "ducklings",
   "lambs in spring",
-  "a snow globe",
+  "morning dew on clover",
   "fireflies",
   "a treehouse",
   "an ice rink",
   "a garden gate",
   "a bird's nest",
   "dandelion seeds",
-  "a rowing boat on a still lake",
+  "a still lake at dawn",
 ] as const;
 
 export type ThemeSeed = (typeof THEME_SEEDS)[number];

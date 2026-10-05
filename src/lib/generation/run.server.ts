@@ -169,6 +169,8 @@ export interface GenerationTelemetry {
   droppedFacts: number;
   imagesRequested: number;
   repaintsStoppedBy: string | null;
+  /** Fitted shapes whose ink was judged on the whole zone alone (`card_compiler_v4` fallback). */
+  lineAreasFallback: string[];
   providerRefusal: boolean;
   /** The rendering drawn for this generation's design (`suggestRendering`). */
   suggestedRendering: string;
@@ -645,6 +647,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     droppedFacts,
     imagesRequested: art.telemetry.imagesRequested,
     repaintsStoppedBy: art.telemetry.repaintsStoppedBy,
+    lineAreasFallback: art.telemetry.lineAreasFallback,
     providerRefusal,
     suggestedRendering,
     followedSuggestion: chosen.design.artBrief.rendering === suggestedRendering,

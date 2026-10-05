@@ -10,7 +10,7 @@ describe("theme seeds (event_identity_v6, owner decision 2026-10-05)", () => {
 
   it("leave out things that naturally carry writing", () => {
     const lettered =
-      /\b(map|book|label|sign|shop|store|newspaper|letter|poster|menu|music|clock|train|regatta|jar)s?\b/i;
+      /\b(map|chart|atlas|book|label|sign|shop|store|newspaper|letter|poster|menu|music|clock|train|regatta|jar|lantern|boat|sail|balloon|carousel|globe|harbour|harbor|record)s?\b/i;
     expect(THEME_SEEDS.filter((seed) => lettered.test(seed))).toEqual([]);
   });
 

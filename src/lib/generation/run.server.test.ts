@@ -389,6 +389,7 @@ describe("the happy path", () => {
       droppedFacts: 1,
       imagesRequested: 1,
       repaintsStoppedBy: null,
+      lineAreasFallback: [],
       providerRefusal: false,
       suggestedRendering: "photographic",
       followedSuggestion: false,

@@ -716,6 +716,17 @@ describe("ink for every fitted shape (docs/card-system.md §4.2)", () => {
     expect(ink.rectangle?.[TEXT_ZONE]?.panel).toBeUndefined();
   });
 
+  it("records each fitted shape judged on the whole zone alone", async () => {
+    const { run } = stage(
+      { art: [CLEAN] },
+      { ...INPUT, content: { ...CONTENT, title: "\u{1F388}" } },
+    );
+    const result = await run();
+    expect(result.telemetry.lineAreasFallback).toEqual(result.fitsShapes);
+    const { run: typical } = stage({ art: [CLEAN] });
+    expect((await typical()).telemetry.lineAreasFallback).toEqual([]);
+  });
+
   it("refuses to judge a fitted shape it was given no line areas for", () => {
     expect(() =>
       resolveArtworkInk(decodePng(CLEAN.bytes), "art-top", ["rectangle", "arch"], {

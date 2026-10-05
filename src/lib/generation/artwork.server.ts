@@ -194,6 +194,11 @@ export interface ArtworkTelemetry {
   inkPanels: { shape: CardShape; zone: string }[];
   /** Repaints stopped early because the meter refused a call (the reason), else null. */
   repaintsStoppedBy: ModelCallRefusedError["reason"] | null;
+  /**
+   * Fitted shapes whose text could not be laid out, so their ink was judged on the whole zone
+   * alone (`generatedLineAreas`). Unreachable for valid designs, which is why it is recorded.
+   */
+  lineAreasFallback: CardShape[];
 }
 
 export interface ArtworkStageResult {
@@ -547,6 +552,7 @@ export async function runArtworkStage(
       validationFailures,
       inkPanels,
       repaintsStoppedBy,
+      lineAreasFallback: fits.filter((shape) => lineAreas[shape] === null),
     },
   };
 }

@@ -548,6 +548,16 @@ circles. Two decisions by the owner (2026-10-04):
   labels, signs and the like come back lettered and fail the card; the design describes them as
   blank ("an antique map of imagined coastlines with no place names or lettering") or picks
   another subject.
+- **Round three again, then two refinements.** With all three fixes, fifteen of seventeen cards
+  were made, one ended with the panel (CU-06, roses under a detail line), and "surprise me" gave
+  four different themes (a woodland border, a fox, a butterfly garden, an origami crane). CU-13
+  and O-02 failed on lettering twice each: briefs that named "an antique map", "a chart" or "a
+  record label" — however firmly they said "no lettering" — and a 3D Ralph Lauren-style bear in a
+  sweater, to which the image model adds the brand's mark. The design prompt now describes only
+  the look of a lettered object ("flowing coastline contours", never "a map"), and a brand homage's
+  clothing as plain and unbranded. Seven seeds image models letter (lanterns, boats, balloons, a
+  carousel, a snow globe) were swapped for others. Telemetry records `lineAreasFallback`, the
+  shapes judged on the whole zone alone.
 - **Versions:** `card_compiler_v4`; `event_identity_v6` and `card_design_v3` gain the seed and the
   lettered-subject rule before they merge. Round three's cards are not evidence for the final
   prompts; round three is run again. Updated: `spec.md §7.5`, §7.9, §9.5, §11.6 and two §31
