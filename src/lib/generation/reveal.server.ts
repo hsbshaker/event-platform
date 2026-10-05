@@ -224,11 +224,6 @@ export async function loadRevealedCard(
     throw new Error("The event's active card design was not found.");
   }
   const designRow = designData as DesignRow;
-  const design = designOf(designRow);
-  const shape = active
-    ? ((row.active_card_shape as CardShape | null) ?? design.shape)
-    : design.shape;
-  if (!CARD_SHAPES.includes(shape)) throw new Error("The event's active card shape is malformed.");
 
   const { data: artData, error: artError } = await admin
     .from("card_art_assets")
@@ -237,8 +232,45 @@ export async function loadRevealedCard(
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
   if (artError) throw artError;
+  return buildRevealedCard({
+    admin,
+    event: row,
+    design: designRow,
+    artworks: (artData ?? []) as ArtRow[],
+    active,
+    now,
+  });
+}
+
+/**
+ * One design drawn as a `RevealedCard`: in the event's active shape when it is the active design,
+ * else in its own; its artwork the newest that fits that shape, signed. Shared by the single card
+ * and the designs list (`loadEventDesigns`), so both draw a design identically.
+ */
+async function buildRevealedCard({
+  admin,
+  event: row,
+  design: designRow,
+  artworks,
+  active,
+  now,
+}: {
+  admin: ReturnType<typeof createAdminClient>;
+  event: EventRow;
+  design: DesignRow;
+  /** The design's artworks, newest first. */
+  artworks: ArtRow[];
+  active: boolean;
+  now: number;
+}): Promise<RevealedCard> {
+  const design = designOf(designRow);
+  const shape = active
+    ? ((row.active_card_shape as CardShape | null) ?? design.shape)
+    : design.shape;
+  if (!CARD_SHAPES.includes(shape)) throw new Error("The event's active card shape is malformed.");
+
   // The newest artwork of the design that fits the shape.
-  const art = ((artData ?? []) as ArtRow[]).find((a) => a.fits_shapes.includes(shape));
+  const art = artworks.find((a) => a.fits_shapes.includes(shape));
   if (!art) throw new Error(`The card design has no artwork for the ${shape} card.`);
   const proportion = proportionOf(shape);
   const stored = art.proportion === "portrait_5_7" ? "5:7" : "1:1";
@@ -301,4 +333,65 @@ export async function loadRevealedCard(
       .map((box) => box.id),
     artworkExpiresAt: new Date(now + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
   };
+}
+
+/**
+ * Every design of the event that has artwork, each as the card it would show (`spec.md §7.14`,
+ * §8.2; `docs/design-system.md §10.21`), for the designs list. Round ascending, so entries keep
+ * their place when a new design arrives. The active design is drawn in the event's active shape,
+ * any other in its own. For a signed-in owner or co-host (`view_event`, checked once); then one read
+ * each of the event, its designs and its artwork, and every artwork signed for
+ * `CARD_ART_SIGNED_URL_TTL_SECONDS`. Empty when the event has no design with artwork.
+ */
+export async function loadEventDesigns(
+  eventId: string,
+  options: { now?: () => number } = {},
+): Promise<RevealedCard[]> {
+  await requireEventAccess(eventId, "view_event");
+  const now = options.now?.() ?? Date.now();
+  const admin = createAdminClient();
+
+  const { data: event, error: eventError } = await admin
+    .from("events")
+    .select(
+      `active_card_design_id, active_card_shape, status, published_at, ${REVEAL_EVENT_COLUMNS}`,
+    )
+    .eq("id", eventId)
+    .maybeSingle();
+  if (eventError) throw eventError;
+  const row = event as EventRow | null;
+  if (!row) return [];
+
+  const { data: designData, error: designError } = await admin
+    .from("card_designs")
+    .select("id, round, name, description, shape, layout, typography, wording")
+    .eq("event_id", eventId)
+    .order("round", { ascending: true });
+  if (designError) throw designError;
+  const { data: artData, error: artError } = await admin
+    .from("card_art_assets")
+    .select("id, card_design_id, storage_key, proportion, fits_shapes, ink, created_at")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+  if (artError) throw artError;
+
+  const artByDesign = new Map<string, ArtRow[]>();
+  for (const art of (artData ?? []) as (ArtRow & { card_design_id: string })[]) {
+    const list = artByDesign.get(art.card_design_id) ?? [];
+    list.push(art);
+    artByDesign.set(art.card_design_id, list);
+  }
+  const designs = ((designData ?? []) as DesignRow[]).filter((d) => artByDesign.has(d.id));
+  return Promise.all(
+    designs.map((design) =>
+      buildRevealedCard({
+        admin,
+        event: row,
+        design,
+        artworks: artByDesign.get(design.id) ?? [],
+        active: design.id === row.active_card_design_id,
+        now,
+      }),
+    ),
+  );
 }

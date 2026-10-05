@@ -5,7 +5,12 @@ import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
-import { loadRevealedCard, type RevealedCard } from "@/lib/generation/reveal.server";
+import {
+  loadEventDesigns,
+  loadRevealedCard,
+  type RevealedCard,
+} from "@/lib/generation/reveal.server";
+import { DesignsList } from "./DesignsList";
 import { EventUnavailable } from "./EventUnavailable";
 
 /**
@@ -13,7 +18,8 @@ import { EventUnavailable } from "./EventUnavailable";
  * invitation the reveal showed, with no envelope, for the event's owner and co-hosts. This is the
  * minimal entry: the card at a comfortable size with its "needs confirming" markers. The page's
  * sections, the `Edit` / `Set up` / `Add` anchors and readiness arrive with Creation Mode proper;
- * there is no dashboard here.
+ * there is no dashboard here. Below the card, when the event has more than one design, the designs
+ * list (`DesignsList`): every card, the active one marked, choosing before publish.
  *
  * Anyone else, and an id that is not an event's, sees the same plain "isn't available" state as
  * the create page, so it never says whether an event exists (`spec.md §27`). An event with no card
@@ -39,6 +45,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     throw error;
   }
   if (!revealed) redirect(`/events/${id}/create`);
+  // Every design of the event, browsable before publish (`spec.md §31` — Card experience).
+  const designs = await loadEventDesigns(id);
 
   const { card } = revealed;
   const proportion = card.artwork.proportion;
@@ -68,6 +76,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         >
           Try another direction ✦
         </AppButtonLink>
+      )}
+      {designs.length > 1 && (
+        <div className="mt-6 w-full">
+          <DesignsList eventId={id} designs={designs} published={revealed.published} />
+        </div>
       )}
     </main>
   );

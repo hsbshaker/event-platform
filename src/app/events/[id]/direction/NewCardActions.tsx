@@ -19,7 +19,7 @@ import { InlineStatus } from "@/components/app/InlineStatus";
 
 export type ChooseOutcome = { ok: true } | { ok: false; reason: "published" | "not_found" };
 
-const CHOOSE_ERROR: Record<"published" | "not_found" | "failed", string> = {
+export const CHOOSE_ERROR: Record<"published" | "not_found" | "failed", string> = {
   published:
     "Your invitation is published, so its card stays as it is. You can't switch designs now.",
   not_found: "We couldn't find that card. Go back and try again.",
