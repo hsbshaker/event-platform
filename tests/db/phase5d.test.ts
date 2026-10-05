@@ -467,6 +467,11 @@ describe("choose_card_design", () => {
         Object.hasOwn(after, k),
       ),
     );
+    // The chosen design records when it was chosen; nothing else about it changes.
+    const chosen = await db.query(`select selected_at from public.card_designs where id = $1`, [
+      second,
+    ]);
+    expect(chosen.rows[0].selected_at).not.toBeNull();
     // A co-host may choose too; choosing back restores the first in its own shape.
     expect(await choose(first, { user: cohost })).toBe("chosen");
     expect(await activeDesign()).toEqual({

@@ -715,7 +715,7 @@ The question schema and its surface are designed in the generation phase
 
 ### 7.7 Card design
 
-Once Event Identity is valid, the strong model designs one card (`card_design_schema_v2`,
+Once Event Identity is valid, the strong model designs one card (`card_design_schema_v3`,
 `docs/model-contracts.md §5`):
 
 ```ts
@@ -2040,7 +2040,9 @@ CardDesign {
   artAssetIds[],                 // the original; plus one per shape switch no existing artwork fits
   standardWordingSlots[],
   versions /* designPrompt, designSchema, layoutSet, compiler, artPrompt, imageModel */,
-  selectedAt?,
+  refinement /* none | part | whole — a new idea, or the change asked for (§7.7) */,
+  changedFrom?,                  // the design a requested change was made from
+  selectedAt?,                   // when the host last chose it
   createdAt
 }
 

@@ -2,13 +2,15 @@
 ## Event Identity, Card Design and Card Art
 
 **Status:** Revision 3 — invitation-card baseline
-**Prompt versions:** `event_identity_v6`, `card_design_v3` (`card_design_v1` written in Phase 3
-validation; v2 adds rendering families in Phase 5; v3 one central idea), `card_art_v4` (deterministic assembly;
-`card_art_v1` written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`,
-`card_art_v3` in Phase 5 with rendering families, `card_art_v4` adds the repaint's composition
-line), `card_art_inspection_v2`
-**Schema versions:** `event_identity_schema_v5`, `card_design_schema_v2` (`card_design_schema_v1`
-written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`),
+**Prompt versions:** `event_identity_v6`, `card_design_v4` (`card_design_v1` written in Phase 3
+validation; v2 adds rendering families in Phase 5; v3 one central idea; v4 the change asked for, or
+a new idea), `card_art_v5` (deterministic assembly; `card_art_v1` written in Phase 3 validation,
+`card_art_v2` in Phase 4 with `card_layouts_v2`, `card_art_v3` in Phase 5 with rendering families,
+`card_art_v4` adds the repaint's composition line, `card_art_v5` the revision framing of an edit),
+`card_art_inspection_v2`
+**Schema versions:** `event_identity_schema_v5`, `card_design_schema_v3` (`card_design_schema_v1`
+written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`; v3 adds
+`refinement`),
 `card_art_inspection_schema_v2`
 **Models:** GPT 6.1 Sol (Event Identity, Card Design); GPT Image 2.5 Sunburst (Card Art) —
 `technology-decisions.md §8.1`
@@ -55,9 +57,9 @@ Prompts, schemas and the layout set are versioned production assets (`src/lib/ai
 ```ts
 EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v6"
 EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
-CARD_DESIGN_PROMPT_VERSION    = "card_design_v3"
-CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v2"
-CARD_ART_PROMPT_VERSION       = "card_art_v4"
+CARD_DESIGN_PROMPT_VERSION    = "card_design_v4"
+CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v3"
+CARD_ART_PROMPT_VERSION       = "card_art_v5"
 CARD_LAYOUT_SET_VERSION       = "card_layouts_v3"
 CARD_COMPILER_VERSION         = "card_compiler_v4"
 ```
@@ -123,6 +125,10 @@ event — a subject world a guest could name in a few words — never abstract f
 random by code from a broad list of everyday worlds (`src/lib/generation/theme-seeds.ts`), used
 only when the host leaves the look to us and ignored otherwise (prompt v6); on `Try another
 direction` with feedback, the previous identity and the feedback, to update or merge the identity.
+That revision starts from the identity the changed card was made from (so going back to an earlier
+card and asking for a change revises that card's brief, not a later one's), with no fact
+extraction, no inspiration and **no theme seed**: a revision is steered by the host's words, so it
+never draws one (Phase 5d decision). An empty box reuses the latest identity.
 Do not re-send raw inspiration once its summary exists.
 
 **No operational fields.** The identity carries no names, dates, times or venues.
@@ -152,7 +158,7 @@ this call.
 
 ---
 
-# 5. Card Design (`card_design_v3`)
+# 5. Card Design (`card_design_v4`)
 
 ## 5.1 Contract
 
@@ -372,7 +378,7 @@ it — it measures the creative stack, not the compiler.
 
 ---
 
-# 7. Card art (`card_art_v4`)
+# 7. Card art (`card_art_v5`)
 
 ## 7.1 Art prompt assembly
 
@@ -433,7 +439,7 @@ A change to part of a card (`refinement: "part"`, §5.1) calls `generateCardArt`
 endpoint with the changed card's artwork as `reference` and `revision: true`: the assembled art
 prompt is prefixed with "Revise the reference image to match this description, keeping its
 composition, subject placement, rendering, lighting and palette wherever the description does not
-change them" (`card_art_v5`). Its repaints stay edits of the same reference. A change to the whole
+change them:" and a line break (`REVISION_PREFIX`, `card_art_v5`). Its repaints stay edits of the same reference. A change to the whole
 look and a new idea are painted fresh, with no reference. In the Phase 5 refine experiment (eight
 requests on four cards, CHANGELOG) edits kept "my card with that change" in six of eight, passed
 every first validation, and failed only the whole-look requests, which is why those repaint. It is a generation for limits and metering, and it

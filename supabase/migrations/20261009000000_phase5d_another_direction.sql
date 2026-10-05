@@ -467,6 +467,10 @@ begin
     set active_card_design_id = p_design_id,
         active_card_shape = v_shape
     where e.id = p_event_id;
+    -- When the host last chose it: the one column of a design that may change.
+    update public.card_designs d
+    set selected_at = now()
+    where d.id = p_design_id and d.event_id = p_event_id;
   end if;
   return 'chosen';
 end;

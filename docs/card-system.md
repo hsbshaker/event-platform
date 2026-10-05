@@ -416,7 +416,7 @@ No step here calls a model or regenerates artwork.
 
 ## 4.1 Validation
 
-- `CardDesign` against its strict schema (`card_design_schema_v2`): enum IDs (shape, layout, art
+- `CardDesign` against its strict schema (`card_design_schema_v3`): enum IDs (shape, layout, art
   mode, rendering, pairings), string length bounds (the aesthetic included), no extra fields. Designs persisted under an
   earlier schema are never re-validated (§5).
 - Layout ↔ art-mode compatibility; the layout supports the chosen shape; alternates distinct from
@@ -524,7 +524,9 @@ Persist per event:
 
 - `EventIdentity`, with its prompt and schema versions;
 - every `CardDesign`: the raw model response, the validated design (including its shape), its
-  presentation name and description, and the version set (§8);
+  presentation name and description, the version set (§8), what it is (`refinement`: a new idea,
+  or a change to part of a card or to its whole look) and, for a change, the design it was made
+  from (`changedFrom`);
 - every artwork asset in Supabase Storage, with its proportion, the shapes it fits, image model,
   art-prompt version, and resolved ink and panels per fitted shape. A design has its original
   artwork plus one more for each shape the host switched to that no existing artwork fits (§7);
