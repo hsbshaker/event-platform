@@ -158,6 +158,14 @@ describe("auth callback", () => {
     );
   });
 
+  it("returns to a co-host invite after sign-in, with no draft in flight (spec.md §6.2)", async () => {
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
+    const path = `/invite/${"a".repeat(43)}`;
+    expect(location(await callback(`?code=abc&next=${encodeURIComponent(path)}`))).toBe(
+      `${ORIGIN}${path}`,
+    );
+  });
+
   it("honours a same-origin next parameter", async () => {
     expect(location(await callback("?code=abc&next=/events/event-1/create?welcome=1"))).toBe(
       `${ORIGIN}/events/event-1/create?welcome=1`,

@@ -35,33 +35,6 @@ export interface SignInFormProps {
 }
 
 export function SignInForm({ providers, errorCode }: SignInFormProps) {
-  const [pendingProvider, setPendingProvider] = useState<OAuthProvider | null>(null);
-  const [oauthError, setOauthError] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-
-  async function handleOAuth(provider: OAuthProvider) {
-    setOauthError(null);
-    setPendingProvider(provider);
-    const result = await signInWithOAuth(provider);
-    if (!result.ok) {
-      setOauthError(result.error);
-      setPendingProvider(null);
-    }
-    // On success `signInWithOAuth` redirects and this component unmounts.
-  }
-
-  async function handleEmailSubmit() {
-    setEmailError(null);
-    const result = await signInWithEmail(email);
-    if (result.ok) {
-      setSentTo(result.email);
-    } else {
-      setEmailError(result.error);
-    }
-  }
-
   return (
     <div className="mx-auto flex w-full max-w-(--width-narrow) flex-1 flex-col justify-center gap-8 px-4 py-16">
       <header className="flex flex-col gap-2 text-center">
@@ -73,68 +46,116 @@ export function SignInForm({ providers, errorCode }: SignInFormProps) {
 
       {errorCode && <InlineStatus variant="danger">{ERROR_MESSAGE[errorCode]}</InlineStatus>}
 
-      {sentTo ? (
-        <InlineStatus variant="success" live>
-          {/* The draft lives in this browser's cookie, so a link opened elsewhere signs the
-              person in but cannot restore what they wrote (spec.md §7.2). Say so before it
-              happens rather than showing them an empty composer afterwards. */}
-          Check your email — we sent a sign-in link to {sentTo}. Open it in this browser so we can
-          keep the event you just described.
-        </InlineStatus>
-      ) : (
-        <div className="flex flex-col gap-6 rounded-2xl border border-app-border bg-app-surface p-6 shadow-soft">
-          {providers.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {providers.map((provider) => (
-                <AppButton
-                  key={provider}
-                  type="button"
-                  variant="secondary"
-                  size="lg"
-                  pending={pendingProvider === provider}
-                  disabled={pendingProvider !== null && pendingProvider !== provider}
-                  onClick={() => void handleOAuth(provider)}
-                >
-                  {PROVIDER_LABEL[provider]}
-                </AppButton>
-              ))}
-              {oauthError && <InlineStatus variant="danger">{oauthError}</InlineStatus>}
-            </div>
-          )}
-
-          {providers.length > 0 && (
-            <div className="flex items-center gap-3" role="separator" aria-label="or">
-              <span className="h-px flex-1 bg-app-border" aria-hidden="true" />
-              <span className="text-label-sm text-app-text-tertiary">OR</span>
-              <span className="h-px flex-1 bg-app-border" aria-hidden="true" />
-            </div>
-          )}
-
-          <form action={handleEmailSubmit} className="flex flex-col gap-4">
-            <Field id="email" label="Email address" error={emailError ?? undefined} required>
-              {(controlProps) => (
-                <Input
-                  {...controlProps}
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
-                />
-              )}
-            </Field>
-            <EmailSubmitButton />
-          </form>
-        </div>
-      )}
+      <SignInOptions
+        providers={providers}
+        // The draft lives in this browser's cookie, so a link opened elsewhere signs the person
+        // in but cannot restore what they wrote (spec.md §7.2). Say so before it happens rather
+        // than showing them an empty composer afterwards.
+        sentNote="Open it in this browser so we can keep the event you just described."
+      />
 
       <p className="text-center text-body-sm">
         <Link href="/" className="text-app-text-secondary underline-offset-2 hover:underline">
           ← Back to your idea
         </Link>
       </p>
+    </div>
+  );
+}
+
+/**
+ * The sign-in methods themselves — the configured OAuth providers and the one-time email link —
+ * shared by the auth/save screen and the co-host invite page (`docs/screen-spec.md`
+ * `cohost-invite-accept`: "authenticate; preserve invitation token"). `next` is the page to return
+ * to after signing in; the sign-in actions accept only an invite page's path.
+ */
+export function SignInOptions({
+  providers,
+  next,
+  sentNote,
+}: {
+  providers: OAuthProvider[];
+  next?: string;
+  /** Said after the email link is sent, after "Check your email…". */
+  sentNote: string;
+}) {
+  const [pendingProvider, setPendingProvider] = useState<OAuthProvider | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+
+  async function handleOAuth(provider: OAuthProvider) {
+    setOauthError(null);
+    setPendingProvider(provider);
+    const result = await signInWithOAuth(provider, next);
+    if (!result.ok) {
+      setOauthError(result.error);
+      setPendingProvider(null);
+    }
+    // On success `signInWithOAuth` redirects and this component unmounts.
+  }
+
+  async function handleEmailSubmit() {
+    setEmailError(null);
+    const result = await signInWithEmail(email, next);
+    if (result.ok) {
+      setSentTo(result.email);
+    } else {
+      setEmailError(result.error);
+    }
+  }
+
+  return sentTo ? (
+    <InlineStatus variant="success" live>
+      Check your email — we sent a sign-in link to {sentTo}. {sentNote}
+    </InlineStatus>
+  ) : (
+    <div className="flex flex-col gap-6 rounded-2xl border border-app-border bg-app-surface p-6 shadow-soft">
+      {providers.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {providers.map((provider) => (
+            <AppButton
+              key={provider}
+              type="button"
+              variant="secondary"
+              size="lg"
+              pending={pendingProvider === provider}
+              disabled={pendingProvider !== null && pendingProvider !== provider}
+              onClick={() => void handleOAuth(provider)}
+            >
+              {PROVIDER_LABEL[provider]}
+            </AppButton>
+          ))}
+          {oauthError && <InlineStatus variant="danger">{oauthError}</InlineStatus>}
+        </div>
+      )}
+
+      {providers.length > 0 && (
+        <div className="flex items-center gap-3" role="separator" aria-label="or">
+          <span className="h-px flex-1 bg-app-border" aria-hidden="true" />
+          <span className="text-label-sm text-app-text-tertiary">OR</span>
+          <span className="h-px flex-1 bg-app-border" aria-hidden="true" />
+        </div>
+      )}
+
+      <form action={handleEmailSubmit} className="flex flex-col gap-4">
+        <Field id="email" label="Email address" error={emailError ?? undefined} required>
+          {(controlProps) => (
+            <Input
+              {...controlProps}
+              type="email"
+              name="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+            />
+          )}
+        </Field>
+        <EmailSubmitButton />
+      </form>
     </div>
   );
 }

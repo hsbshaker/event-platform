@@ -33,7 +33,10 @@ import { CreationFixture } from "./CreationFixture";
  *   private before codes existed); add `&code=1` for one with its code stored;
  * - `&wait=square`: a switch to a square already painting when the page loads; `&wait=failed`: one
  *   that stopped.
- * The shape, design and privacy actions are stubs; the generation poll is answered by the test.
+ * - `&role=cohost`: signed in as a co-host (no Co-hosts sheet, toolbar item or checklist row);
+ *   the owner otherwise. `&cohosts=0..2` co-hosts and `&pending=0..3` open invite links at first.
+ * The shape, design, privacy and co-host actions are stubs; the generation poll is answered by the
+ * test.
  */
 
 const NOW = new Date("2026-10-05T12:00:00Z");
@@ -229,6 +232,9 @@ export default async function CreationFixturePage({
       designs={designs}
       previewHref={`/dev/preview?data=${encodeURIComponent(data)}`}
       storedCode={storedCode}
+      role={one("role") === "cohost" ? "cohost" : "owner"}
+      cohosts={Math.min(2, Math.max(0, Number(one("cohosts") ?? 0) || 0))}
+      pendingInvites={Math.min(3, Math.max(0, Number(one("pending") ?? 0) || 0))}
     />
   );
 }

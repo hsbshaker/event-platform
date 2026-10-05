@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { enforceSignupThrottle } from "@/lib/auth/rate-limit";
 import { RateLimitedError } from "@/lib/auth/errors";
+import { requesterIp } from "@/lib/auth/requester";
+import { isInvitePath } from "@/lib/cohosts/token";
 import { bindDraftToEmail } from "@/lib/drafts/store";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,6 +16,11 @@ import { createClient } from "@/lib/supabase/server";
  *
  * The draft cookie is untouched here: it is what carries the prompt and inspiration through
  * the redirect, and the callback claims it once the session exists.
+ *
+ * `next` is where the person returns after signing in, carried as the auth callback's `next`
+ * (which validates it again). Only a co-host invite page's path is accepted (`spec.md §6.2`: "A
+ * co-host invitation preserves its token through authentication"); anything else is dropped, so
+ * the default destinations stand.
  */
 
 export type OAuthProvider = "google" | "apple";
@@ -40,15 +47,14 @@ async function callbackUrl(next?: string): Promise<string> {
   return url.toString();
 }
 
-async function requesterIp(): Promise<string | null> {
-  const h = await headers();
-  const forwarded = h.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]!.trim();
-  return h.get("x-real-ip");
+/** `next` when it is a destination sign-in may return to; otherwise none. */
+function allowedNext(next: unknown): string | undefined {
+  return isInvitePath(next) ? next : undefined;
 }
 
 export async function signInWithOAuth(
   provider: OAuthProvider,
+  next?: string,
 ): Promise<{ ok: false; error: string } | never> {
   if (!(await enabledOAuthProviders()).includes(provider)) {
     return { ok: false, error: "That sign-in option is not available yet." };
@@ -56,7 +62,7 @@ export async function signInWithOAuth(
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: await callbackUrl() },
+    options: { redirectTo: await callbackUrl(allowedNext(next)) },
   });
   if (error || !data.url) return { ok: false, error: "Could not start sign-in. Try again." };
   redirect(data.url);
@@ -65,7 +71,7 @@ export async function signInWithOAuth(
 export type EmailSignInResult = { ok: true; email: string } | { ok: false; error: string };
 
 /** Sends a one-time sign-in link. Lightweight by design: no password, no profile setup. */
-export async function signInWithEmail(email: string): Promise<EmailSignInResult> {
+export async function signInWithEmail(email: string, next?: string): Promise<EmailSignInResult> {
   const address = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
     return { ok: false, error: "Enter a valid email address." };
@@ -88,7 +94,7 @@ export async function signInWithEmail(email: string): Promise<EmailSignInResult>
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: address,
-    options: { emailRedirectTo: await callbackUrl() },
+    options: { emailRedirectTo: await callbackUrl(allowedNext(next)) },
   });
   if (error) return { ok: false, error: "Could not send the link. Check the address and retry." };
   return { ok: true, email: address };

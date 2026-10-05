@@ -6,6 +6,7 @@ import { loadEventDraft, type EventDraftView } from "@/app/actions/event-details
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
+import { cohostSummary } from "@/lib/cohosts/invitations.server";
 import { latestShapeSwitch } from "@/lib/generation/shape.server";
 import { eventPageContent } from "@/lib/events/page-content";
 import {
@@ -24,7 +25,8 @@ import { SteadyCard } from "./SteadyCard";
  * (`EventPage`), with the `Edit` / `Add` anchors that open the event-details editor
  * (`CreationCanvas`). There is no dashboard here. The owner toolbar's `Design` panel holds the shape
  * control, `Try another direction` and the designs list; the readiness control and its checklist
- * float over the page; `Preview` opens the guest experience (`/events/[id]/preview`).
+ * float over the page; `Preview` opens the guest experience (`/events/[id]/preview`). The owner
+ * alone also gets the Co-hosts sheet (`manage_cohosts`, `spec.md §25`).
  *
  * Anyone else, and an id that is not an event's, sees the same plain "isn't available" state as
  * the create page, so it never says whether an event exists (`spec.md §27`). An event with no card
@@ -68,6 +70,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const shapes = await loadCardShapeOptionsAction(id);
   // The design's shape switch still painting or recently failed: its status shows again.
   const shapeWait = await latestShapeSwitch(id, revealed.designId);
+  // Co-host management is the owner's alone; a co-host learns only that they may not.
+  const cohosts = await cohostSummary(id);
 
   const { card } = revealed;
   const proportion = card.artwork.proportion;
@@ -95,6 +99,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         event={draft}
         content={content}
         shapeWait={shapeWait}
+        cohosts={cohosts}
         design={{
           designId: revealed.designId,
           published: revealed.published,

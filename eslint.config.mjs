@@ -73,6 +73,15 @@ const SERVICE_ROLE = {
  *   `rotate_event_code`, for the session's own collaborator; the functions check membership again
  *   under the event's lock and touch only that event's visibility and code. The code is read back
  *   through the member's own session, not the service role.
+ * - `src/lib/cohosts/invitations.server.ts` — co-host invitations. The owner's side runs only after
+ *   `requireEventAccess(eventId, "manage_cohosts")` (owner only), for that event, through
+ *   `create_cohost_invitation`, `revoke_cohost_invitation`, `remove_cohost` and
+ *   `pending_cohost_invitations`, each of which checks the owner again (under the event's lock for
+ *   writes). The link's side is authorized by the link itself: a token hashed before any query,
+ *   looked up only through `cohost_invitation_preview` (an event's title and inviter's name for a
+ *   usable link, or membership said only to a member) and `accept_cohost_invitation` (for the
+ *   signed-in session's own user), rate-limited per IP and account. The roster and profiles are
+ *   read through the owner's own session, not the service role.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
@@ -87,6 +96,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/generation/choose.server.ts",
   "src/lib/generation/shape.server.ts",
   "src/lib/events/privacy.server.ts",
+  "src/lib/cohosts/invitations.server.ts",
 ];
 
 /**
