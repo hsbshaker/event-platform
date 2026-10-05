@@ -16,6 +16,8 @@
  * Invalid input throws: a fact the card cannot state correctly is a failure, never a guess.
  */
 
+import { provisionalContent } from "@/lib/events/provisional";
+
 import type { CardContent } from "./text-box";
 
 const WEEKDAYS = [
@@ -184,4 +186,48 @@ export function cardContent(input: CardContentInput): CardContent {
     rsvpBy:
       rsvpDeadline === null || timezone === null ? null : formatCardRsvpBy(rsvpDeadline, timezone),
   };
+}
+
+export interface CardContentWithPlaceholdersInput {
+  /** The design's wording, with the host's own title already applied (`runDesignStage`). */
+  wording: { title: string; invitationLine: string };
+  /** The event's stored fields; its title and invitation line are the wording's. */
+  event: Omit<CardContentInput, "title" | "invitationLine">;
+  /** The moment the provisional date is counted from (`provisionalContent`). */
+  now: Date;
+}
+
+/**
+ * The words the generated card shows right after generation, in Creation Mode: the design's
+ * wording, the event's stored facts, and for each missing required fact its bounded placeholder —
+ * the date twelve weeks out on a Saturday, 1:00 pm, `Venue to be announced` (`spec.md §7.3`,
+ * `provisionalContent`). Hosts and the baby name are shown only when stored; the RSVP-by only from
+ * a stored deadline and timezone. Formatted by `cardContent`, so it is exactly what the card sets.
+ *
+ * The one producer of this content, for the artwork stage's ink (which measures behind these
+ * lines) and the live corpus (which draws them), so the two cannot drift.
+ */
+export function cardContentWithPlaceholders({
+  wording,
+  event,
+  now,
+}: CardContentWithPlaceholdersInput): CardContent {
+  const placeholders = provisionalContent(
+    {
+      eventDate: event.eventDate,
+      startTime: event.startTime,
+      venue: cardVenue(event.venueName, event.address),
+    },
+    now,
+  );
+  return cardContent({
+    ...event,
+    title: wording.title,
+    invitationLine: wording.invitationLine,
+    eventDate: placeholders.eventDate.value,
+    startTime: placeholders.startTime.value,
+    // The stored venue name, else the address's first line, else the placeholder.
+    venueName: placeholders.venue.value,
+    address: null,
+  });
 }

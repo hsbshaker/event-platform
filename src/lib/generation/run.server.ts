@@ -17,8 +17,9 @@ import {
   EVENT_IDENTITY_PROMPT_VERSION,
   EVENT_IDENTITY_SCHEMA_VERSION,
 } from "@/lib/ai/versions";
-import { cardContent } from "@/lib/card/facts";
+import { cardContent, cardContentWithPlaceholders } from "@/lib/card/facts";
 import { suggestRendering } from "@/lib/card/renderings";
+import type { CardContent } from "@/lib/card/text-box";
 import { INSPIRATION_BUCKET, sniffImageType } from "@/lib/drafts/inspiration";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
@@ -189,6 +190,9 @@ interface EventRow {
   event_date: string | null;
   start_time: string | null;
   end_time: string | null;
+  /** Read for the card's RSVP-by only (`revealContent`). */
+  rsvp_deadline?: string | null;
+  timezone?: string | null;
 }
 
 /**
@@ -233,6 +237,33 @@ export function hostEventFacts(
   put("venue", content.venue);
   put("address", event.address);
   return facts;
+}
+
+/**
+ * The words the generated card shows right after generation: the design's wording (the host's
+ * title already applied), the event's stored facts, and the Creation Mode placeholders for missing
+ * ones (`cardContentWithPlaceholders`). The artwork stage judges the ink behind their lines.
+ */
+export function revealContent(
+  event: EventRow,
+  wording: { title: string; invitationLine: string },
+  now: Date,
+): CardContent {
+  return cardContentWithPlaceholders({
+    wording,
+    event: {
+      babyName: event.baby_name,
+      hosts: event.hosts,
+      eventDate: event.event_date,
+      startTime: event.start_time,
+      endTime: event.end_time,
+      venueName: event.venue_name,
+      address: event.address,
+      rsvpDeadline: event.rsvp_deadline ?? null,
+      timezone: event.timezone ?? null,
+    },
+    now,
+  });
 }
 
 /** The longest check output a failure record keeps per image. */
@@ -432,7 +463,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   const { data: event, error: eventError } = await admin
     .from("events")
     .select(
-      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time",
+      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time, rsvp_deadline, timezone",
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -540,6 +571,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
       return await runArtworkStage(ctx, {
         design: chosen.design,
         shape: chosen.design.shape,
+        // The ink is judged behind the words the card shows once it is revealed.
+        content: revealContent(event, chosen.design.wording, new Date(now())),
         ...(afterRefusal ? { afterRefusal } : {}),
       });
     } finally {

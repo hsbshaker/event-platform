@@ -30,6 +30,7 @@ import {
   failureTelemetry,
   hostEventFacts,
   PROVIDER_REFUSAL_FEEDBACK,
+  revealContent,
   runGeneration,
 } from "./run.server";
 import type { GenerationTelemetry, RunGenerationOutcome } from "./run.server";
@@ -341,7 +342,7 @@ describe("the happy path", () => {
         designPrompt: "card_design_v3",
         designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v2",
-        compiler: "card_compiler_v3",
+        compiler: "card_compiler_v4",
         artPrompt: "card_art_v3",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
@@ -376,7 +377,7 @@ describe("the happy path", () => {
         designPrompt: "card_design_v3",
         designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v2",
-        compiler: "card_compiler_v3",
+        compiler: "card_compiler_v4",
         artPrompt: "card_art_v3",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
@@ -431,6 +432,30 @@ describe("the happy path", () => {
       venue: "12 Via Roma",
       address: "12 Via Roma, Rome",
     });
+  });
+
+  it("judges the ink behind the words the revealed card shows: wording, facts, placeholders", () => {
+    const wording = { title: "Little Lemon", invitationLine: "Come celebrate with us" };
+    const now = new Date(STARTED_AT);
+    expect(revealContent(EVENT_ROW, wording, now)).toEqual({
+      title: "Little Lemon",
+      invitationLine: "Come celebrate with us",
+      babyName: null,
+      hosts: "Ana & Leo",
+      date: "Saturday, December 19",
+      time: "1:00 pm",
+      venue: "Villa Rosa",
+      rsvpBy: null,
+    });
+    const bare = { ...EVENT_ROW, hosts: null, venue_name: null, address: null, event_date: null };
+    const content = revealContent(
+      { ...bare, rsvp_deadline: "2026-12-05T12:00:00Z", timezone: "Europe/Rome" },
+      wording,
+      now,
+    );
+    expect(content).toMatchObject({ hosts: null, venue: "Venue to be announced" });
+    expect(content.date).toMatch(/^Saturday, /);
+    expect(content.rsvpBy).toBe("RSVP by December 5");
   });
 });
 
