@@ -9,6 +9,8 @@ import { CARD_SHAPES } from "@/lib/card/shapes";
 import type { CardShape } from "@/lib/card/shapes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { readSwitchingDesign } from "./switching-design";
+
 /**
  * The card's shape control, server side (`spec.md §7.14`, §8.1, §8.2, §10, §20.5;
  * `docs/card-system.md §2.1`, §2.3, §2.4, §5 and the step table of §7).
@@ -53,7 +55,10 @@ export type SwitchCardShapeOutcome =
   | "disabled"
   /** The event has no card yet. */
   | "no_design"
-  /** The design's layout does not support the shape; the shape control never offers it. */
+  /**
+   * The design's layout does not support the shape, or the shape needs new artwork and the design
+   * predates what its painting needs; the shape control never offers either.
+   */
   | "unsupported_shape";
 
 export interface SwitchCardShapeResult {
@@ -74,6 +79,11 @@ interface ActiveDesign {
   shape: CardShape;
   layout: CardLayoutId;
   activeShape: CardShape | null;
+  /**
+   * Whether new artwork can be painted from the design's brief (`readSwitchingDesign`): false for a
+   * design from before rendering families, which keeps only the shapes its artwork already fits.
+   */
+  paintable: boolean;
 }
 
 /** The event's active design and the layout its shape options come from; null with none. */
@@ -87,7 +97,7 @@ async function activeDesign(admin: AdminClient, eventId: string): Promise<Active
   if (!event?.active_card_design_id) return null;
   const { data: design, error } = await admin
     .from("card_designs")
-    .select("id, shape, layout")
+    .select("id, shape, layout, art_mode, typography, wording, art_brief")
     .eq("id", event.active_card_design_id)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -100,6 +110,7 @@ async function activeDesign(admin: AdminClient, eventId: string): Promise<Active
     shape: design.shape,
     layout: design.layout,
     activeShape: event.active_card_shape,
+    paintable: readSwitchingDesign(design) !== null,
   };
 }
 
@@ -144,8 +155,10 @@ export async function switchActiveCardShape(input: {
       throw new Error(`switch_card_shape answered ${String(switched)}`);
     }
 
-    // New artwork: before publish only. start_generation decides again under the event's lock.
+    // New artwork: before publish only, and only from a brief it can be painted from (the shape
+    // control never offers it otherwise). start_generation decides again under the event's lock.
     if (access.context.published) return result("published");
+    if (!design.paintable) return result("unsupported_shape");
     let started: Awaited<ReturnType<typeof startGeneration>>;
     try {
       started = await startGeneration({
@@ -186,7 +199,10 @@ export interface CardShapeOption {
   shape: CardShape;
   /** An existing artwork of the design fits it: switching is instant, with no model call. */
   instant: boolean;
-  /** Offered now: instant, or new artwork before publish (`spec.md §8.1`, §8.2). */
+  /**
+   * Offered now: instant, or new artwork before publish (`spec.md §8.1`, §8.2) from a brief it can
+   * be painted from.
+   */
   available: boolean;
 }
 
@@ -224,7 +240,8 @@ export async function loadCardShapeOptions(eventId: string): Promise<CardShapeOp
     options: CARD_SHAPES.filter((shape) => layoutSupportsShape(design.layout, shape)).map(
       (shape) => {
         const instant = fitted.has(shape);
-        return { shape, instant, available: instant || !access.context.published };
+        const paintable = design.paintable && !access.context.published;
+        return { shape, instant, available: instant || paintable };
       },
     ),
   };

@@ -48,6 +48,7 @@ import type { DesignStageResult } from "./design.server";
 import { PROVIDER_REFUSAL_NOTICE } from "./failure-copy";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
 import { drawThemeSeed } from "./theme-seeds";
+import { readSwitchingDesign, type SwitchingDesign } from "./switching-design";
 import {
   ArtworkProviderRefusalError,
   attachFailureDetails,
@@ -1174,25 +1175,10 @@ async function shapeSwitchPipeline(input: ShapeSwitchInput): Promise<RunGenerati
   return { status: "succeeded", cardDesignId: row.card_design_id, round: row.round };
 }
 
-/** The design a shape switch paints for, read back as the artwork stage needs it. */
-interface SwitchingDesign {
-  id: string;
-  shape: CardShape;
-  layout: CardLayoutId;
-  artMode: ArtMode;
-  typography: CardDesign["typography"];
-  wording: { title: string; invitationLine: string };
-  artBrief: CardDesign["artBrief"];
-}
-
-const isString = (value: unknown): value is string => typeof value === "string";
-
 /**
- * The design of a shape switch, from the event's own rows. The row is the server's own validated
- * output, read structurally rather than re-validated against today's schema (`docs/card-system.md
- * §4.1`: a persisted design is never re-validated); one that lacks what the art prompt needs (a
- * brief from before rendering families, a catalog id since retired) is not painted from: the
- * generation fails rather than painting a different card.
+ * The design of a shape switch, from the event's own rows (`readSwitchingDesign`); one that lacks
+ * what the art prompt needs is not painted from: the generation fails rather than painting a
+ * different card. The shape control never offers such a switch (`shape.server.ts`).
  */
 async function switchingDesign(
   admin: AdminClient,
@@ -1207,40 +1193,9 @@ async function switchingDesign(
     .maybeSingle();
   if (error) throw error;
   if (!row) throw new Error("The shape switch's design was not found.");
-  const typography = isRecord(row.typography) ? row.typography : {};
-  const wording = isRecord(row.wording) ? row.wording : {};
-  const brief = isRecord(row.art_brief) ? row.art_brief : {};
-  const palette = isRecord(brief.palette) ? brief.palette : {};
-  const pairing = (value: unknown) =>
-    isString(value) && (TYPOGRAPHY_KEYS as readonly string[]).includes(value);
-  if (
-    !CARD_SHAPES.includes(row.shape) ||
-    !CARD_LAYOUT_IDS.includes(row.layout) ||
-    !ART_MODES.includes(row.art_mode) ||
-    !pairing(typography.primary) ||
-    !Array.isArray(typography.alternates) ||
-    !typography.alternates.every(pairing) ||
-    !isString(wording.title) ||
-    !isString(wording.invitationLine) ||
-    !(RENDERINGS as readonly unknown[]).includes(brief.rendering) ||
-    ![brief.subject, brief.aesthetic, brief.medium, brief.mood, brief.texture].every(isString) ||
-    !isString(palette.description) ||
-    !Array.isArray(palette.colors) ||
-    !palette.colors.every(isString) ||
-    !Array.isArray(brief.avoid) ||
-    !brief.avoid.every(isString)
-  ) {
-    throw new Error("The shape switch's design cannot be read for its artwork.");
-  }
-  return {
-    id: row.id,
-    shape: row.shape,
-    layout: row.layout,
-    artMode: row.art_mode,
-    typography: typography as unknown as CardDesign["typography"],
-    wording: { title: wording.title, invitationLine: wording.invitationLine },
-    artBrief: brief as unknown as CardDesign["artBrief"],
-  };
+  const design = readSwitchingDesign(row);
+  if (!design) throw new Error("The shape switch's design cannot be read for its artwork.");
+  return design;
 }
 
 /**

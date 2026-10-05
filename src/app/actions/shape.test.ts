@@ -49,6 +49,23 @@ const member = (published = false) => ({
   context: { paymentSatisfied: false, published },
 });
 
+/** What a design's row carries for its artwork to be painted again (`readSwitchingDesign`). */
+const PAINTABLE = {
+  art_mode: "illustration",
+  typography: { primary: "oldstyle_garamond_worksans", alternates: [] },
+  wording: { title: "Lemons & Linen", invitationLine: "Please join us" },
+  art_brief: {
+    subject: "a lemon branch",
+    rendering: "painterly",
+    aesthetic: "romantic",
+    medium: "gouache",
+    mood: "calm",
+    palette: { description: "lemon and ivory", colors: ["#F2D35B"] },
+    texture: "laid paper",
+    avoid: [],
+  },
+};
+
 /** The active design: an art-top illustration, rectangle, whose artwork fits both half-card shapes. */
 function card({
   active = DESIGN as string | null,
@@ -58,8 +75,8 @@ function card({
   admin.fake.state.tables = {
     events: [{ id: EVENT, active_card_design_id: active, active_card_shape: activeShape }],
     card_designs: [
-      { id: DESIGN, event_id: EVENT, shape: "rectangle", layout },
-      { id: CHOSEN, event_id: EVENT, shape: "square", layout: "framed" },
+      { id: DESIGN, event_id: EVENT, shape: "rectangle", layout, ...PAINTABLE },
+      { id: CHOSEN, event_id: EVENT, shape: "square", layout: "framed", ...PAINTABLE },
     ],
     card_art_assets: [
       { card_design_id: DESIGN, event_id: EVENT, fits_shapes: ["rectangle", "rounded-rectangle"] },
@@ -187,6 +204,28 @@ describe("switchCardShape", () => {
     inFlight({ kind: "another_direction", shape: null, feedback: "add a dinosaur" });
     expect(await switchCardShape(INPUT)).toEqual({ outcome: "busy", generationId: null });
     expect(scheduled).toEqual([]);
+  });
+
+  it("never paints a new shape for a design from before rendering families", async () => {
+    admin.fake.state.rpcAnswers.switch_card_shape = "needs_artwork";
+    admin.fake.state.tables.card_designs[0].art_brief = { subject: "an older card" };
+    expect(await switchCardShape(INPUT)).toEqual({
+      outcome: "unsupported_shape",
+      generationId: null,
+    });
+    expect(admin.fake.rpc("start_generation")).toEqual([]);
+    // Only the shapes its artwork already fits are offered.
+    const options = await loadCardShapeOptionsAction(EVENT);
+    expect(options?.options.filter((o) => o.available).map((o) => o.shape)).toEqual([
+      "rectangle",
+      "rounded-rectangle",
+      "arch",
+      "oval",
+    ]);
+    expect(options?.options.find((o) => o.shape === "square")).toMatchObject({
+      instant: false,
+      available: false,
+    });
   });
 
   it("offers only the shapes the design's layout supports, refusing any other before writing", async () => {
