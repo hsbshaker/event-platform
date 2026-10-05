@@ -113,7 +113,7 @@ const IDENTITY: EventIdentity = {
   inspirationSummary: "No visual inspiration supplied.",
 };
 
-describe("Event Identity validator (event_identity_schema_v4)", () => {
+describe("Event Identity validator (event_identity_schema_v5)", () => {
   it("matches docs/model-schemas/event-identity.schema.json", () => {
     expect(diff(identityJson, eventIdentitySchema)).toEqual([]);
   });

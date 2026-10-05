@@ -256,7 +256,7 @@ describe("the happy path", () => {
         p_identity: IDENTITY,
         p_raw: JSON.stringify(IDENTITY),
         p_prompt_version: "event_identity_v5",
-        p_schema_version: "event_identity_schema_v4",
+        p_schema_version: "event_identity_schema_v5",
       },
     ]);
     const [identityStage] = stages();
@@ -370,7 +370,7 @@ describe("the happy path", () => {
       inkPanels: [],
       versions: {
         identityPrompt: "event_identity_v5",
-        identitySchema: "event_identity_schema_v4",
+        identitySchema: "event_identity_schema_v5",
         designPrompt: "card_design_v2",
         designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v2",

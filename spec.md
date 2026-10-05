@@ -548,7 +548,7 @@ Lifecycle calculations always use the stored IANA timezone.
 
 ### 7.5 Event Identity
 
-A strong multimodal model derives and persists the creative brief (`event_identity_schema_v4`,
+A strong multimodal model derives and persists the creative brief (`event_identity_schema_v5`,
 `docs/model-contracts.md §4`):
 
 ```ts
@@ -628,7 +628,7 @@ same step back. The note never blames the host and never shows a provider error.
 
 **Every card has original generated artwork**, and the creative direction decides how much it
 carries: a full illustration, a frame or border, an atmospheric wash, or — for a restrained,
-typography-led card — as little as a refined border or paper texture (`docs/card-system.md §2.4`).
+typography-led card — as little as a refined border, pattern or surface texture (`docs/card-system.md §2.4`).
 
 Binding rules:
 
@@ -1111,8 +1111,8 @@ outlines, is a layout-set version bump.
 
 ### 11.4 Art modes
 
-`illustration` · `framed` · `atmosphere` · `minimal`. Every card has artwork; `minimal` is a border
-or paper texture with typography leading. Mode/layout compatibility is validated.
+`illustration` · `framed` · `atmosphere` · `minimal`. Every card has artwork; `minimal` is a border,
+pattern or surface texture with typography leading. Mode/layout compatibility is validated.
 
 ### 11.5 Text slots, facts and wording
 

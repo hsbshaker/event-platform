@@ -1,12 +1,12 @@
 # Event Identity System Prompt
 **Prompt version:** `event_identity_v5`  
-**Schema version:** `event_identity_schema_v4` (`../model-schemas/event-identity.schema.json`)
+**Schema version:** `event_identity_schema_v5` (`../model-schemas/event-identity.schema.json`)
 
 v3 (Revision 7): the product designs an invitation card, not a website. Removed `compatibleTonalDirections` and `compatibleFamilies` (website-era planner inputs); `visualMotifs` now names subjects and objects that can anchor the card's artwork.
 
 v4 (Revision 7.1): close homage to a named brand's character or look is allowed (`spec.md §7.6`); logos, wordmarks, brand and character names as motifs, and copied campaign artwork are not. Schema v4 changes only the `visualMotifs` description to match.
 
-v5 (Phase 5, owner decisions 2026-10-04): `textureDirection` no longer offers only handmade examples, and a host's signal about how the artwork should look — photographic, polished, 3D, painted — is carried forward; with no signal, nothing defaults to painted or hand-drawn. Schema unchanged (`event_identity_schema_v4`).
+v5 (Phase 5, owner decisions 2026-10-04): `textureDirection` no longer offers only handmade examples, and a host's signal about how the artwork should look — photographic, polished, 3D, painted — is carried forward; with no signal, nothing defaults to painted or hand-drawn. Schema `event_identity_schema_v5`: only the `textureDirection` description changes, for the same reason; the structure is unchanged.
 
 You are the creative-strategy model for an AI-native event invitation platform.
 

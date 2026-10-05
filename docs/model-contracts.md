@@ -6,7 +6,7 @@
 validation; v2 adds rendering families in Phase 5), `card_art_v3` (deterministic assembly;
 `card_art_v1` written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`,
 `card_art_v3` in Phase 5 with rendering families), `card_art_inspection_v2`
-**Schema versions:** `event_identity_schema_v4`, `card_design_schema_v2` (`card_design_schema_v1`
+**Schema versions:** `event_identity_schema_v5`, `card_design_schema_v2` (`card_design_schema_v1`
 written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`),
 `card_art_inspection_schema_v2`
 **Models:** GPT 6.1 Sol (Event Identity, Card Design); GPT Image 2.5 Sunburst (Card Art) —
@@ -53,7 +53,7 @@ Prompts, schemas and the layout set are versioned production assets (`src/lib/ai
 
 ```ts
 EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5"
-EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v4"
+EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
 CARD_DESIGN_PROMPT_VERSION    = "card_design_v2"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v2"
 CARD_ART_PROMPT_VERSION       = "card_art_v3"
@@ -467,9 +467,9 @@ retry and never presents itself as a finished design.
 
 # 10. Files
 
-Prompts: `model-prompts/event-identity.system.md` (v4). `model-prompts/card-design.system.md` is
+Prompts: `model-prompts/event-identity.system.md` (v5). `model-prompts/card-design.system.md` is
 written in Phase 3 validation.
-Schemas: `model-schemas/event-identity.schema.json` (v4). `model-schemas/card-design.schema.json`
+Schemas: `model-schemas/event-identity.schema.json` (v5). `model-schemas/card-design.schema.json`
 is generated from the card catalogs in Phase 3 validation.
 Evaluation corpus: `model-evals/creative-understanding.json`.
 Catalogs: `src/lib/card/typography.ts`; the layout set and art modes are added with the card

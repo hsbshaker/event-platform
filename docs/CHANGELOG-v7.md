@@ -445,12 +445,15 @@ circles. Two decisions by the owner (2026-10-04):
   artwork inspection gains `hasPerson` (and a narrower `isMockup`, so a photograph filling the
   canvas is not a mockup); a person in such artwork fails it like text does, with the one
   regeneration. The finding's detail is never stored in failure telemetry.
-- **Versions:** `card_design_v2` and `card_design_schema_v2`, `event_identity_v5` (schema
-  unchanged), `card_art_v3`, `card_art_inspection_v2` and `card_art_inspection_schema_v2`.
+- **Versions:** `card_design_v2` and `card_design_schema_v2`, `event_identity_v5` and
+  `event_identity_schema_v5` (only the `textureDirection` description changes: it led with
+  "soft gouache", and schema descriptions reach the model), `card_art_v3`,
+  `card_art_inspection_v2` and `card_art_inspection_schema_v2`.
   Designs persisted under v1 have no rendering or aesthetic; they are immutable and never
   re-validated. Updated: `spec.md §7.6`, §7.6a, §7.7, §7.8, §24 and a §31 criterion;
   `card-system.md §2.4`, §3 and §4.1; `model-contracts.md §4`, §5, §7 and §9; the card-design and
-  event-identity prompts and the card-design schema.
+  event-identity prompts and both schemas; `technology-decisions.md §8.1` (the inspection's people
+  check).
 
 ## Still open
 

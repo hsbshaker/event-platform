@@ -1,5 +1,5 @@
 /**
- * `EventIdentity` (`event_identity_schema_v4`, `docs/model-contracts.md §4.1`) as the application
+ * `EventIdentity` (`event_identity_schema_v5`, `docs/model-contracts.md §4.1`) as the application
  * validates it. The provider's structured-output mode is never trusted to have enforced the schema
  * (`docs/model-contracts.md §3`, `spec.md §32 #19`): every response is parsed here.
  *

@@ -308,7 +308,7 @@ describe("Event Identity", () => {
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "event_identity",
       prompt_version: "event_identity_v5",
-      schema_version: "event_identity_schema_v4",
+      schema_version: "event_identity_schema_v5",
       cost_estimate_usd: costOf({ model: "gpt-6.1-sol", inputTokens: 2500, outputTokens: 300 }),
       success: true,
     });
