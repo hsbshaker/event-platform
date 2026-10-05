@@ -7,11 +7,13 @@ import {
   type EventDetailsPatch,
   type EventDraftView,
 } from "@/app/actions/event-details";
+import { AppButton } from "@/components/app/AppButton";
 import { Field } from "@/components/app/Field";
 import { Input } from "@/components/app/Input";
 import { InlineStatus } from "@/components/app/InlineStatus";
 import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
 import { cardTextFieldError, type CardTextField } from "@/lib/events/card-text";
+import { promptPrefill, type PrefillField } from "@/lib/events/prompt-prefill";
 
 /**
  * The missing-details autosave form (spec.md §7.3, docs/design-system.md §3.7/§11,
@@ -64,13 +66,27 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
   // just because they were saved a moment ago.
   const [visibleMissing] = useState(() => new Set(event.missing));
 
+  // What the prompt states for the fields still empty, shown pre-filled for the host to confirm.
+  // Not saved until they confirm it or edit it; the date and time are only repeated as a hint.
+  const [prefill] = useState(() => {
+    const offered = promptPrefill(event.promptFacts, event);
+    if (!visibleMissing.has("venue")) {
+      delete offered.fields.venueName;
+      delete offered.fields.address;
+    }
+    return offered;
+  });
+  const [unconfirmed, setUnconfirmed] = useState<ReadonlySet<PrefillField>>(
+    () => new Set(Object.keys(prefill.fields) as PrefillField[]),
+  );
+
   const [eventDate, setEventDate] = useState(event.eventDate ?? "");
   const [startTime, setStartTime] = useState(event.startTime ?? "");
   const [endTime, setEndTime] = useState(event.endTime ?? "");
-  const [venueName, setVenueName] = useState(event.venueName ?? "");
-  const [address, setAddress] = useState(event.address ?? "");
-  const [hosts, setHosts] = useState(event.hosts ?? "");
-  const [babyName, setBabyName] = useState(event.babyName ?? "");
+  const [venueName, setVenueName] = useState(event.venueName ?? prefill.fields.venueName ?? "");
+  const [address, setAddress] = useState(event.address ?? prefill.fields.address ?? "");
+  const [hosts, setHosts] = useState(event.hosts ?? prefill.fields.hosts ?? "");
+  const [babyName, setBabyName] = useState(event.babyName ?? prefill.fields.babyName ?? "");
   const [visibility, setVisibility] = useState<"public" | "private" | null>(event.visibility);
   const [rsvpDeadlineIso, setRsvpDeadlineIso] = useState(event.rsvpDeadline);
   const [rsvpDeadlineEdited, setRsvpDeadlineEdited] = useState(event.rsvpDeadlineEdited);
@@ -79,6 +95,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [fieldStatus, setFieldStatus] = useState<Record<string, SaveState>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Edits waiting on their debounce, so leaving the page (the card is revealed in place of this
+  // form) saves them instead of dropping them.
+  const pendingSaves = useRef<Record<string, EventDetailsPatch>>({});
   // Resolved once and attached to every save (not only the mount commit), so a later venue
   // change that leaves the inference confident about nothing still has a fallback available
   // (spec.md §7.4; src/lib/events/detail-patch.ts falls back to this when venue text alone
@@ -89,9 +108,19 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
 
   useEffect(() => {
     const timers = debounceTimers.current;
+    const pending = pendingSaves.current;
     return () => {
       Object.values(timers).forEach(clearTimeout);
+      const patches = Object.values(pending);
+      for (const key of Object.keys(pending)) delete pending[key];
+      for (const patch of patches) {
+        void updateEventDetails(event.id, {
+          ...patch,
+          browserTimezone: browserTimezoneRef.current,
+        });
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reaching this page means the draft was claimed into this event, so the landing composer's
@@ -168,7 +197,9 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
 
   function saveDebounced(debounceKey: string, patch: EventDetailsPatch, keys: string[]) {
     if (debounceTimers.current[debounceKey]) clearTimeout(debounceTimers.current[debounceKey]);
+    pendingSaves.current[debounceKey] = patch;
     debounceTimers.current[debounceKey] = setTimeout(() => {
+      delete pendingSaves.current[debounceKey];
       void commit(patch, keys);
     }, AUTOSAVE_DEBOUNCE_MS);
   }
@@ -178,6 +209,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
       clearTimeout(debounceTimers.current[debounceKey]);
       delete debounceTimers.current[debounceKey];
     }
+    delete pendingSaves.current[debounceKey];
     void commit(patch, keys);
   }
 
@@ -194,6 +226,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
         clearTimeout(debounceTimers.current[field]);
         delete debounceTimers.current[field];
       }
+      delete pendingSaves.current[field];
       setFieldErrors((prev) => ({ ...prev, [field]: error }));
       setFieldStatus((prev) => ({ ...prev, [field]: "refused" }));
       return;
@@ -211,6 +244,28 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
     flush(field, { [field]: value }, [field]);
   }
 
+  /** The host edited the field, or confirmed it: its value is theirs now, saved the usual way. */
+  function stopOffering(field: PrefillField) {
+    setUnconfirmed((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
+  }
+
+  /** `Confirm` on a value from the description: saved now, with the same checks as typing it. */
+  function confirmSuggestion(field: PrefillField) {
+    stopOffering(field);
+    if (field === "hosts" || field === "babyName") {
+      const value = field === "hosts" ? hosts : babyName;
+      if (cardTextFieldError(field, value)) editCardText(field, value);
+      else flushCardText(field, value);
+    } else {
+      venuePair(field, field === "venueName" ? venueName : address, true);
+    }
+  }
+
   /**
    * The venue name and address, which depend on each other: the card shows the address's first
    * line only when there is no venue name (the same rule the server action applies). Editing
@@ -219,8 +274,10 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
    * request, so the server sees the same effective pair.
    */
   function venuePair(field: "venueName" | "address", value: string, flushNow: boolean) {
-    const venue = field === "venueName" ? value : venueName;
-    const addr = field === "address" ? value : address;
+    // A value still waiting for the host's confirmation is not saved, so it is not the other
+    // field's partner here.
+    const venue = field === "venueName" ? value : unconfirmed.has("venueName") ? "" : venueName;
+    const addr = field === "address" ? value : unconfirmed.has("address") ? "" : address;
     const venueError = cardTextFieldError("venueName", venue, { address: addr });
     const addressError = cardTextFieldError("address", addr, { venueName: venue });
     const other = field === "venueName" ? "address" : "venueName";
@@ -231,6 +288,7 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
       clearTimeout(debounceTimers.current.venue);
       delete debounceTimers.current.venue;
     }
+    delete pendingSaves.current.venue;
     if (own) {
       // When both refuse, the changed field's message is the one to show.
       setFieldErrors((prev) => {
@@ -257,8 +315,10 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
     if (flushNow) {
       void commit(patch, keys);
     } else {
+      pendingSaves.current.venue = patch;
       debounceTimers.current.venue = setTimeout(() => {
         delete debounceTimers.current.venue;
+        delete pendingSaves.current.venue;
         void commit(patch, keys);
       }, AUTOSAVE_DEBOUNCE_MS);
     }
@@ -288,7 +348,13 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
       <div className="flex flex-col gap-5">
         {visibleMissing.has("eventDate") && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="eventDate" label="Event date" error={fieldErrors.eventDate} required>
+            <Field
+              id="eventDate"
+              label="Event date"
+              hint={eventDate === "" ? statedHint(prefill.hints.date) : undefined}
+              error={fieldErrors.eventDate}
+              required
+            >
               {(controlProps) => (
                 <Input
                   {...controlProps}
@@ -302,7 +368,13 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
               )}
             </Field>
             {visibleMissing.has("startTime") && (
-              <Field id="startTime" label="Start time" error={fieldErrors.startTime} required>
+              <Field
+                id="startTime"
+                label="Start time"
+                hint={startTime === "" ? statedHint(prefill.hints.time) : undefined}
+                error={fieldErrors.startTime}
+                required
+              >
                 {(controlProps) => (
                   <Input
                     {...controlProps}
@@ -320,7 +392,13 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
         )}
 
         {visibleMissing.has("startTime") && !visibleMissing.has("eventDate") && (
-          <Field id="startTime" label="Start time" error={fieldErrors.startTime} required>
+          <Field
+            id="startTime"
+            label="Start time"
+            hint={startTime === "" ? statedHint(prefill.hints.time) : undefined}
+            error={fieldErrors.startTime}
+            required
+          >
             {(controlProps) => (
               <Input
                 {...controlProps}
@@ -353,71 +431,106 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
 
         {visibleMissing.has("venue") && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="venueName" label="Venue name" error={fieldErrors.venueName}>
-              {(controlProps) => (
-                <Input
-                  {...controlProps}
-                  type="text"
-                  value={venueName}
-                  onChange={(event) => {
-                    setVenueName(event.target.value);
-                    venuePair("venueName", event.target.value, false);
-                  }}
-                  onBlur={() => venuePair("venueName", venueName, true)}
+            <div className="flex flex-col gap-2">
+              <Field id="venueName" label="Venue name" error={fieldErrors.venueName}>
+                {(controlProps) => (
+                  <Input
+                    {...controlProps}
+                    type="text"
+                    value={venueName}
+                    onChange={(event) => {
+                      stopOffering("venueName");
+                      setVenueName(event.target.value);
+                      venuePair("venueName", event.target.value, false);
+                    }}
+                    onBlur={() => {
+                      if (!unconfirmed.has("venueName")) venuePair("venueName", venueName, true);
+                    }}
+                  />
+                )}
+              </Field>
+              {unconfirmed.has("venueName") && (
+                <FromDescription
+                  label="Venue name"
+                  onConfirm={() => confirmSuggestion("venueName")}
                 />
               )}
-            </Field>
-            <Field id="address" label="Address" error={fieldErrors.address}>
-              {(controlProps) => (
-                <Input
-                  {...controlProps}
-                  type="text"
-                  value={address}
-                  onChange={(event) => {
-                    setAddress(event.target.value);
-                    venuePair("address", event.target.value, false);
-                  }}
-                  onBlur={() => venuePair("address", address, true)}
-                />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Field id="address" label="Address" error={fieldErrors.address}>
+                {(controlProps) => (
+                  <Input
+                    {...controlProps}
+                    type="text"
+                    value={address}
+                    onChange={(event) => {
+                      stopOffering("address");
+                      setAddress(event.target.value);
+                      venuePair("address", event.target.value, false);
+                    }}
+                    onBlur={() => {
+                      if (!unconfirmed.has("address")) venuePair("address", address, true);
+                    }}
+                  />
+                )}
+              </Field>
+              {unconfirmed.has("address") && (
+                <FromDescription label="Address" onConfirm={() => confirmSuggestion("address")} />
               )}
-            </Field>
+            </div>
           </div>
         )}
 
-        <Field id="hosts" label="Hosts" hint="Optional" error={fieldErrors.hosts}>
-          {(controlProps) => (
-            <Input
-              {...controlProps}
-              type="text"
-              value={hosts}
-              onChange={(event) => {
-                setHosts(event.target.value);
-                editCardText("hosts", event.target.value);
-              }}
-              onBlur={() => flushCardText("hosts", hosts)}
-            />
+        <div className="flex flex-col gap-2">
+          <Field id="hosts" label="Hosts" hint="Optional" error={fieldErrors.hosts}>
+            {(controlProps) => (
+              <Input
+                {...controlProps}
+                type="text"
+                value={hosts}
+                onChange={(event) => {
+                  stopOffering("hosts");
+                  setHosts(event.target.value);
+                  editCardText("hosts", event.target.value);
+                }}
+                onBlur={() => {
+                  if (!unconfirmed.has("hosts")) flushCardText("hosts", hosts);
+                }}
+              />
+            )}
+          </Field>
+          {unconfirmed.has("hosts") && (
+            <FromDescription label="Hosts" onConfirm={() => confirmSuggestion("hosts")} />
           )}
-        </Field>
+        </div>
 
-        <Field
-          id="babyName"
-          label="Baby's name"
-          hint="Optional, if you're sharing it"
-          error={fieldErrors.babyName}
-        >
-          {(controlProps) => (
-            <Input
-              {...controlProps}
-              type="text"
-              value={babyName}
-              onChange={(event) => {
-                setBabyName(event.target.value);
-                editCardText("babyName", event.target.value);
-              }}
-              onBlur={() => flushCardText("babyName", babyName)}
-            />
+        <div className="flex flex-col gap-2">
+          <Field
+            id="babyName"
+            label="Baby's name"
+            hint="Optional, if you're sharing it"
+            error={fieldErrors.babyName}
+          >
+            {(controlProps) => (
+              <Input
+                {...controlProps}
+                type="text"
+                value={babyName}
+                onChange={(event) => {
+                  stopOffering("babyName");
+                  setBabyName(event.target.value);
+                  editCardText("babyName", event.target.value);
+                }}
+                onBlur={() => {
+                  if (!unconfirmed.has("babyName")) flushCardText("babyName", babyName);
+                }}
+              />
+            )}
+          </Field>
+          {unconfirmed.has("babyName") && (
+            <FromDescription label="Baby's name" onConfirm={() => confirmSuggestion("babyName")} />
           )}
-        </Field>
+        </div>
 
         {visibleMissing.has("visibility") && (
           <fieldset className="flex flex-col gap-2">
@@ -492,6 +605,23 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
 
       <SaveSummary status={fieldStatus} />
     </section>
+  );
+}
+
+/** What the prompt said for a date or time, as written; the picker stays empty (never parsed). */
+function statedHint(stated: string | null): string | undefined {
+  return stated ? `You wrote \u201c${stated}\u201d` : undefined;
+}
+
+/** A value taken from the prompt, offered for the host to confirm; it is not saved until they do. */
+function FromDescription({ label, onConfirm }: { label: string; onConfirm: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3" data-from-description="">
+      <span className="text-body-sm text-app-text-secondary">From your description</span>
+      <AppButton variant="secondary" size="sm" onClick={onConfirm} aria-label={`Confirm ${label}`}>
+        Confirm
+      </AppButton>
+    </div>
   );
 }
 

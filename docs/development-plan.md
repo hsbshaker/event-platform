@@ -56,9 +56,8 @@ Phase 2 shipped before the pivot. These are known gaps, owned by the phase named
   collect. Under Revision 7 the card drafts a title when the host has not supplied one, so the
   details flow should offer the title as optional and readiness should use the effective title
   (`spec.md §20.2`, `§23.1`). Owner: Phase 6.
-- **Generation surface.** `src/app/events/[id]/create/GenerationProgress.tsx` truthfully says no
-  design has been generated, because none can be yet. It becomes the real generation surface in
-  Phase 5.
+- **Generation surface.** Done in Phase 5c: `src/app/events/[id]/create/GenerationSurface.tsx`
+  starts the first card, polls the real stage results and ends in the card's reveal.
 - **Fact extraction.** Done in Phase 5: the prompt's facts are extracted and kept on the event
   (`events.prompt_facts`). The details form does not yet offer them for the host to confirm.
   Owner: Phase 5c (`spec.md §7.3`).

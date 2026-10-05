@@ -47,6 +47,8 @@ export interface RevealedCard {
   /** The active design (its id is the reveal's own; `getGenerationView` names it too). */
   designId: string;
   round: number;
+  /** The card's effective title (`effectiveCardTitle`): the envelope's front, as guests' envelope shows it. */
+  title: string;
   /** The design's creative name and one-line description. */
   name: string;
   description: string;
@@ -217,9 +219,10 @@ export async function loadRevealedCard(
   }
   const { ink, panels } = zoneInk(art.ink, shape);
 
+  const title = effectiveCardTitle(row.title, design.wording.title);
   const { content, unconfirmed } = await revealContentFor({
     wording: {
-      title: effectiveCardTitle(row.title, design.wording.title),
+      title,
       invitationLine: design.wording.invitationLine,
     },
     event: {
@@ -257,6 +260,7 @@ export async function loadRevealedCard(
   return {
     designId: designRow.id,
     round: designRow.round,
+    title,
     name: designRow.name,
     description: designRow.description,
     card,
