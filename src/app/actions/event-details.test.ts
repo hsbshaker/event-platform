@@ -54,6 +54,7 @@ function row() {
     rsvp_deadline_edited: false,
     generation_requested_at: null,
     row_version: 1,
+    published_at: null,
   };
 }
 
@@ -78,7 +79,7 @@ const CAPS_TITLE = "WELCOME WILHELMINA MONTGOMERY-WHITWORTH!";
 const WIDE_LINE = "WWWWWWWWWWWW WWWWWWWWWWWW WWWWWWWWWWWW WWWWWWWWWWWW WWWWWWWW";
 
 beforeEach(() => {
-  requireEventAccess.mockReset().mockResolvedValue({});
+  requireEventAccess.mockReset().mockResolvedValue({ context: { published: false } });
   fitCalls.mockReset();
   update.mockReset();
   fitFails = false;
@@ -147,5 +148,24 @@ describe("updateEventDetails: the card fit check", () => {
       error: "Could not save that. Try again.",
     });
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateEventDetails: privacy after publish", () => {
+  it("refuses a visibility change once the invitation is published, before anything is written", async () => {
+    requireEventAccess.mockResolvedValue({ context: { published: true } });
+    for (const visibility of ["private", "public"] as const) {
+      const result = await updateEventDetails(EVENT, { visibility });
+      expect(result).toMatchObject({ ok: false, fieldErrors: { visibility: expect.any(String) } });
+    }
+    expect(update).not.toHaveBeenCalled();
+    // Other details still save after publish (spec.md §8.1).
+    await updateEventDetails(EVENT, { hosts: "Hosted by Maya & Tom" });
+    expect(update).toHaveBeenCalled();
+  });
+
+  it("lets the visibility change before publish", async () => {
+    await updateEventDetails(EVENT, { visibility: "private" });
+    expect(update).toHaveBeenCalled();
   });
 });

@@ -687,7 +687,8 @@ export function DetailsForm({
           </Field>
         )}
 
-        {shown("visibility") && (
+        {/* After publish, privacy changes only with its event code (the privacy action). */}
+        {shown("visibility") && !event.published && (
           <fieldset className="flex flex-col gap-2">
             <legend className="text-label-md text-app-text">
               Who can see this invitation?

@@ -62,6 +62,7 @@ function draft(data: string, withDescription: boolean): EventDraftView {
     rsvpDeadlineEdited: false,
     generationRequestedAt: null,
     rowVersion: 1,
+    published: false,
     description: withDescription ? "Lunch in the garden. Please park on the lane." : null,
     promptFacts:
       data === "prompt"
