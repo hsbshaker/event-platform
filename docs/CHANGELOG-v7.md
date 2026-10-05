@@ -714,6 +714,23 @@ owner can overturn any of them.
   link and shares it themselves; it works once, expires after 7 days and can be revoked. The
   owner's `Co-hosts` control sits in the owner toolbar until an event menu exists.
 
+### Phase 6b part 1 — the card editor's server side (build decisions, 2026-10-05; for the owner to confirm)
+
+- **Editor limits** (`CARD_EDITOR_LIMITS`, `src/lib/card/text-box-schema.ts`): up to 40 boxes on a
+  card; an added text box holds up to 200 characters (the title and invitation line keep their slot
+  limits); size 8–400, width 20–2000 and position −1000 to 2400 card units; rotation ±360°;
+  letter spacing −0.5 to 2 em; line height 0.5–4.
+- **A hyphen break is used only when it saves a line;** at the same line count a space always wins
+  (the rule `layoutCard` already follows, so edited and generated boxes break alike).
+- **Any curated face is accepted in a box,** not only the design's pairing, because words carried
+  from another design bring that design's fonts. Google Fonts families arrive with the font store
+  (6b part 3).
+- **Deleting the title or a fact box hides it on that card only.** A new design or shape lays them
+  out again; a deleted invitation line stays deleted. Duplicated title or fact boxes are allowed,
+  and a carry takes the first title box.
+- **The title travels to a new design only once the host has set it.** Until then the new card
+  shows its own drafted title, in the host's carried font (`card-system.md §7`).
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

@@ -617,7 +617,7 @@ edits the card's **text layer**; the artwork, outline and envelope are never edi
 | First edit of a card | none | creates a `CardCustomization` for this design and shape (unless a switch that carried words already did, §7 below), seeded from the generated layout, with a box for every fact slot the layout defines (an empty fact box renders nothing until its fact exists) |
 | Edit, move, resize, rotate, restyle, duplicate, reorder or delete a text box; add one | none | the customization; the edited box's lines re-broken and stored |
 | Choose a font (any Google Fonts family) | none | the box's font; the family added to the font store on first use; lines re-broken |
-| Edit the title box | none | `Event.title`, used everywhere; lines re-broken |
+| Edit the title box | none | `Event.title`, used everywhere; the title's boxes re-broken in every customization of the event |
 | Edit a fact (in its box or the details editor) | none | event data; that fact's boxes re-broken in every customization of the event; page updates |
 | `Reset card` | none | a new revision of this design and shape's customization with the seed re-applied — never a delete, so stale saves are still refused; `Event.title` and event details are not reverted |
 | Switch to a shape an existing artwork fits | none | `activeCardShape`; that shape's customization if one exists, otherwise its generated layout carrying the host's words, added text and fonts |
@@ -641,7 +641,10 @@ fit the zone at minimum size, the overflowing added boxes are stacked below the 
 content either way, for the host to arrange. A customization holds the whole text layer, including
 the generated wording it was seeded with, so once the host has edited a card its title and
 invitation line travel with it to the next design — deliberately: the host has made that card
-theirs.
+theirs. The title box is linked to the effective title (`spec.md §20.2`), so the title travels only
+once the host has set `Event.title`; while it is unset, the new card's title box shows the new
+design's own drafted title, in the host's carried font, because a switch never changes event
+content (`spec.md §20.6`).
 
 **What the host's edits are not checked for** (owner decision, `spec.md §20.1`): contrast, a box
 crossing the outline (clipped as guests will see it), overlap with the artwork's subject. The
@@ -651,11 +654,20 @@ editor shows the card exactly as guests will see it.
 from the font's own metrics (the font store's extracted metrics, so the server and every browser
 agree), with the same rules as §4.3: even lines, no stranded short word and then no one-word last
 line where another break exists,
-never inside a word except just after a hyphen between letters (a space preferred), a hard break
-where the host typed one. The result is stored as the box's
+never inside a word except just after a hyphen between letters (a space preferred: a hyphen break
+is used only when it saves a line), a hard break where the host typed one. The result is stored as the box's
 `lines` and rendered exactly; a later change to the text, width, font, size, spacing or case
 re-breaks it. A fact edit — in the editor or outside it — re-breaks that fact's boxes in every
 customization of the event on save, so a card restored later never shows stale lines.
+
+**Title and fact boxes store lines from saved words only.** A fact with no saved value stores no
+lines, and a placeholder or a prompt-stated value (shown in Creation Mode, marked to confirm) is
+broken at its box's width when the card is drawn and never stored: the placeholder date moves with
+the day, and neither ever reaches guests. Every reader re-breaks a title or fact box whose stored
+lines no longer spell its current words, so a fact or title change shows correctly even when the
+re-break at save failed. Stored boxes are untrusted (the save function is reachable over RPC):
+every read parses them through the `TextBox` schema, and a customization that does not parse is
+drawn as the generated layout, with a notice to collaborators.
 
 The editing surface is the card component (§6.1) with selection, handles and guides drawn above
 it in app chrome; nothing of the editor's chrome is part of the card. Gestures, toolbar and
