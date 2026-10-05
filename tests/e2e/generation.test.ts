@@ -213,21 +213,17 @@ describe.each([
         // Try another direction arrives with its own flow.
         expect(await page.getByText("Try another direction").count()).toBe(0);
 
-        // Needs-confirmation markers: named for the detail, on the prompt-stated values.
+        // Needs-confirmation outlines: purely visual, inside the card, merged around adjacent
+        // details; the legend under the card carries the meaning.
         const markers = page.locator("[data-confirm-marker]");
-        expect(await markers.count()).toBe(4);
-        const labels = await markers.evaluateAll((els) =>
-          els.map((el) => el.getAttribute("aria-label")),
+        const markerCount = await markers.count();
+        expect(markerCount).toBeGreaterThanOrEqual(1);
+        expect(markerCount).toBeLessThan(4);
+        expect(await page.locator("[data-confirm-marker][aria-label]").count()).toBe(0);
+        expect(await page.locator("[aria-hidden='true'] [data-confirm-marker]").count()).toBe(
+          markerCount,
         );
-        expect(labels).toEqual(
-          expect.arrayContaining([
-            "Baby's name needs confirming",
-            "Date needs confirming",
-            "Time needs confirming",
-            "Venue needs confirming",
-          ]),
-        );
-        // Each marker lies over its box and inside the card.
+        expect(await page.getByText("Confirm", { exact: true }).count()).toBe(0);
         const cardBox = await page.locator("[data-invitation-card]").boundingBox();
         for (const handle of await markers.elementHandles()) {
           const box = await handle.boundingBox();
@@ -238,6 +234,13 @@ describe.each([
         }
         // The marker layer sits outside the card's own element: card text is untouched.
         expect(await page.locator("[data-invitation-card] [data-confirm-marker]").count()).toBe(0);
+        const legend = page.getByRole("note");
+        expect(await legend.count()).toBe(1);
+        expect(await legend.innerText()).toBe(
+          "Dashed details aren't confirmed yet: baby's name, date, time, venue.",
+        );
+        const legendBox = await legend.boundingBox();
+        expect(legendBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
         expect(await hasHorizontalScroll(page)).toBe(false);
         await shot(page, viewport, `reveal-open-${shape}`);
       } finally {

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { loadRevealedCard, type RevealedCard } from "@/lib/generation/reveal.server";
@@ -52,11 +53,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       >
         <CardWithMarkers card={card} unconfirmed={revealed.unconfirmed} />
       </div>
-      {revealed.unconfirmed.length > 0 && (
-        <p className="max-w-prose text-center text-body-sm text-app-text-secondary">
-          The dashed outlines mark details that still need your confirmation.
-        </p>
-      )}
+      <ConfirmLegend
+        boxes={card.boxes}
+        unconfirmed={revealed.unconfirmed}
+        className="max-w-prose"
+      />
     </main>
   );
 }

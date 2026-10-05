@@ -13,6 +13,7 @@ import { Input } from "@/components/app/Input";
 import { InlineStatus } from "@/components/app/InlineStatus";
 import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
 import { cardTextFieldError, type CardTextField } from "@/lib/events/card-text";
+import type { SaveTracker } from "@/lib/events/save-tracker";
 import { promptPrefill, type PrefillField } from "@/lib/events/prompt-prefill";
 
 /**
@@ -61,7 +62,14 @@ function localInputValueToIso(value: string, timeZone: string): string | null {
   return new Date(asUtcGuess.getTime() - offsetMs).toISOString();
 }
 
-export function DetailsForm({ event }: { event: EventDraftView }) {
+export function DetailsForm({
+  event,
+  saves,
+}: {
+  event: EventDraftView;
+  /** Told of every save, and able to flush waiting edits, so the reveal reads the card after them. */
+  saves?: SaveTracker;
+}) {
   // Frozen on first render: fields the host already filled must not disappear mid-session
   // just because they were saved a moment ago.
   const [visibleMissing] = useState(() => new Set(event.missing));
@@ -109,16 +117,24 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
   useEffect(() => {
     const timers = debounceTimers.current;
     const pending = pendingSaves.current;
-    return () => {
+    // Sends every edit still waiting on its debounce now.
+    const flushWaiting = () => {
       Object.values(timers).forEach(clearTimeout);
+      for (const key of Object.keys(timers)) delete timers[key];
       const patches = Object.values(pending);
       for (const key of Object.keys(pending)) delete pending[key];
       for (const patch of patches) {
-        void updateEventDetails(event.id, {
+        const save = updateEventDetails(event.id, {
           ...patch,
           browserTimezone: browserTimezoneRef.current,
         });
+        void (saves ? saves.track(save) : save).catch(() => {});
       }
+    };
+    const unregister = saves?.registerFlush(flushWaiting);
+    return () => {
+      unregister?.();
+      flushWaiting();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -167,7 +183,8 @@ export function DetailsForm({ event }: { event: EventDraftView }) {
       patch.browserTimezone !== undefined
         ? patch
         : { ...patch, browserTimezone: browserTimezoneRef.current };
-    const result = await updateEventDetails(event.id, withTimezone);
+    const save = updateEventDetails(event.id, withTimezone);
+    const result = await (saves ? saves.track(save) : save);
     if (result.ok) {
       applyServerEvent(result.event);
       setFieldErrors((prev) => {

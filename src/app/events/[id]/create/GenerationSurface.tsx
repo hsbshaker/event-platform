@@ -18,6 +18,7 @@ import {
 } from "@/lib/generation/wait-view";
 
 import { DetailsForm } from "./DetailsForm";
+import { createSaveTracker } from "@/lib/events/save-tracker";
 import { GenerationPanel, RevealLayout, WaitLayout } from "./GenerationPanel";
 import { RevealStage } from "./RevealStage";
 
@@ -108,11 +109,14 @@ export function GenerationSurface({
 }) {
   const [phase, setPhase] = useState<Phase>(() => initialPhase(initial, head));
   const began = useRef(false);
+  // The details form's saves: the card is read only after the host's last edit has landed.
+  const [saves] = useState(() => createSaveTracker());
 
   const openReveal = useCallback(async () => {
     setPhase({ kind: "opening" });
     let card: RevealedCard | null = null;
     try {
+      await saves.settle();
       card = await loadRevealedCardAction(eventId);
     } catch {
       card = null;
@@ -126,7 +130,7 @@ export function GenerationSurface({
       head: { title: card.title, proportion: card.card.artwork.proportion },
       preloaded: card,
     });
-  }, [eventId]);
+  }, [eventId, saves]);
 
   const apply = useCallback(
     (next: AfterStart) => {
@@ -259,6 +263,7 @@ export function GenerationSurface({
           proportion={phase.head.proportion}
           loadCard={() => loadRevealedCardAction(eventId)}
           preloaded={phase.preloaded}
+          beforeLoad={() => saves.settle()}
         />
       </RevealLayout>
     );
@@ -280,7 +285,7 @@ export function GenerationSurface({
           onRetry={retry}
         />
       }
-      form={<DetailsForm event={draft} />}
+      form={<DetailsForm event={draft} saves={saves} />}
     />
   );
 }

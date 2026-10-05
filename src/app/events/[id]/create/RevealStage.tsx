@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { AppButtonLink } from "@/components/app/AppButtonLink";
+import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { Envelope } from "@/components/app/Envelope";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import type { CardProportion } from "@/lib/card/shapes";
@@ -40,6 +41,7 @@ export function RevealStage({
   proportion,
   loadCard,
   preloaded = null,
+  beforeLoad,
 }: {
   eventId: string;
   /** The card's effective title: the envelope's front. */
@@ -49,11 +51,14 @@ export function RevealStage({
   loadCard: () => Promise<RevealedCard | null>;
   /** A card read just before, used on the tap while its artwork URL is still fresh. */
   preloaded?: RevealedCard | null;
+  /** Resolves once the details form's last edit has been saved, before the card is read. */
+  beforeLoad?: () => Promise<void>;
 }) {
   const [card, setCard] = useState<RevealedCard | null>(null);
   const [settled, setSettled] = useState(false);
 
   async function onOpen() {
+    await beforeLoad?.();
     const next = preloaded && isFresh(preloaded, Date.now()) ? preloaded : await loadCard();
     if (!next) throw new Error("The card could not be loaded.");
     setCard(next);
@@ -85,6 +90,7 @@ export function RevealStage({
         </div>
       </div>
 
+      {card && settled && <ConfirmLegend boxes={card.card.boxes} unconfirmed={card.unconfirmed} />}
       {card && settled && (
         <div className="flex flex-col items-center gap-6 text-center" data-reveal-actions="">
           <div className="flex flex-col gap-1">
