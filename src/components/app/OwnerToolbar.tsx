@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Ref } from "react";
 
+import { AppButtonLink } from "./AppButtonLink";
 import { appButtonClasses } from "./AppButton";
 
 /**
@@ -36,13 +36,9 @@ export function OwnerToolbar({
       >
         Design
       </button>
-      <Link
-        href={previewHref}
-        data-toolbar="preview"
-        className={appButtonClasses("secondary", "sm")}
-      >
+      <AppButtonLink href={previewHref} data-toolbar="preview" variant="secondary" size="sm">
         Preview
-      </Link>
+      </AppButtonLink>
     </div>
   );
 }

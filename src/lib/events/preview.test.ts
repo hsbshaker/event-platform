@@ -11,6 +11,8 @@ describe("hasDetailsHiddenFromGuests", () => {
 
   it("is false when only details guests never see are missing, or none is", () => {
     expect(hasDetailsHiddenFromGuests([])).toBe(false);
-    expect(hasDetailsHiddenFromGuests(["timezone", "visibility", "title"])).toBe(false);
+    expect(hasDetailsHiddenFromGuests(["visibility", "title"])).toBe(false);
+    // A missing timezone hides the RSVP-by line from guests.
+    expect(hasDetailsHiddenFromGuests(["timezone"])).toBe(true);
   });
 });

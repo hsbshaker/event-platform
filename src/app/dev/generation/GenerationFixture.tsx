@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { EventDraftView } from "@/app/actions/event-details";
 import { DetailsForm } from "@/app/events/[id]/create/DetailsForm";
+import type { PrivacyActions } from "@/app/events/[id]/create/PrivacyControl";
 import {
   GenerationPanel,
   RevealLayout,
@@ -202,6 +203,24 @@ function NewCardFixture({
   );
 }
 
+/** Stub privacy actions, so the fixture never reaches the real server actions. */
+const FIXTURE_PRIVACY: PrivacyActions = {
+  async setPrivacy(input) {
+    const visibility = input.visibility === "private" ? "private" : "public";
+    return {
+      ok: true as const,
+      event: { ...fixtureDraft(), visibility, accessCodeSet: visibility === "private" },
+      code: visibility === "private" ? "K7MP-4QRT" : null,
+    };
+  },
+  async newCode() {
+    return { ok: true as const, code: "W9XH-3NVC" };
+  },
+  async reveal() {
+    return { ok: true as const, code: "K7MP-4QRT" };
+  },
+};
+
 export function GenerationFixture({
   state,
   code,
@@ -242,7 +261,7 @@ export function GenerationFixture({
   return (
     <WaitLayout
       panel={<GenerationPanel state={panelState(state, code)} onRetry={() => {}} />}
-      form={<DetailsForm event={fixtureDraft()} />}
+      form={<DetailsForm event={fixtureDraft()} privacy={FIXTURE_PRIVACY} />}
     />
   );
 }

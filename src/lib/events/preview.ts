@@ -14,6 +14,8 @@ const SHOWN_TO_GUESTS: readonly RequiredDetailKey[] = [
   "startTime",
   "venue",
   "rsvpDeadline",
+  // Without a timezone the RSVP-by line cannot be written, so guests do not see it.
+  "timezone",
 ];
 
 /** Whether Preview says some details are not shown, from the event's missing required details. */
