@@ -1638,8 +1638,8 @@ Contains only high-level controls:
 
 It is not a page-builder toolbar.
 
-Implemented as `src/components/app/OwnerToolbar.tsx`: for now it holds `Design` only, end-aligned
-above the card; `Preview` joins it with the preview surface.
+Implemented as `src/components/app/OwnerToolbar.tsx`: `Design` and `Preview`, end-aligned above
+the card.
 
 ## 10.11 `ContextEditAction`
 

@@ -25,7 +25,7 @@ import { SteadyCard } from "./SteadyCard";
  * (`EventPage`), with the `Edit` / `Add` anchors that open the event-details editor
  * (`CreationCanvas`). There is no dashboard here. The owner toolbar's `Design` panel holds the shape
  * control, `Try another direction` and the designs list; the readiness control and its checklist
- * float over the page. Preview comes in a later slice.
+ * float over the page; `Preview` opens the guest experience (`/events/[id]/preview`).
  *
  * Anyone else, and an id that is not an event's, sees the same plain "isn't available" state as
  * the create page, so it never says whether an event exists (`spec.md §27`). An event with no card

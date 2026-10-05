@@ -382,7 +382,12 @@ On larger screens:
 
 Primary app action:
 
-- Publish for $49 when appropriate.
+- Publish for $49 when appropriate (with the publish gate, Phase 9; until then Preview has no
+  publish control).
+
+The card and page show only what guests will see: saved, confirmed facts — never a placeholder or
+an unconfirmed prompt-stated value (§7.3). When a required fact is missing, one plain line says so:
+"Details you haven't confirmed aren't shown to guests."
 
 ## `publish-gate`
 
