@@ -22,6 +22,7 @@ import {
   assembleShapeSwitchPrompt,
 } from "@/lib/card/art-prompt";
 import { CARD_LAYOUTS, CARD_LAYOUT_IDS } from "@/lib/card/layouts";
+import { RENDERING_DESCRIPTION } from "@/lib/card/renderings";
 import { CARD_SHAPES, SHAPE_GEOMETRY, proportionOf } from "@/lib/card/shapes";
 import { WORDING_LIMITS } from "@/lib/card/slots";
 import { TYPOGRAPHY, TYPOGRAPHY_KEYS } from "@/lib/card/typography";
@@ -121,7 +122,7 @@ function withRepair(text: string, repairFeedback: string | undefined): string {
     : text;
 }
 
-/** Event Identity (`event_identity_v4`, GPT 6.1 Sol, `medium` effort): the only reader of the raw prompt. */
+/** Event Identity (`event_identity_v5`, GPT 6.1 Sol, `medium` effort): the only reader of the raw prompt. */
 export function eventIdentityRequest(
   instructions: string,
   input: GenerateEventIdentityInput,
@@ -175,8 +176,9 @@ export function factExtractionRequest(
 /**
  * The catalogs the card-design prompt refers to (`docs/model-prompts/card-design.system.md`),
  * from the production catalogs, in the shape Phase 3 validated: shapes with their proportion and
- * outline, layouts with their purpose, shapes and art modes, the art modes, the pairings narrowed
- * to the identity's compatible categories, and the wording limits.
+ * outline, layouts with their purpose, shapes and art modes, the art modes, the rendering families
+ * (`card_design_v2`), the pairings narrowed to the identity's compatible categories, and the
+ * wording limits.
  */
 export function cardDesignRuntimeCatalog(identity: EventIdentity) {
   const allowed = new Set<string>(identity.compatibleTypographyCategories);
@@ -195,6 +197,7 @@ export function cardDesignRuntimeCatalog(identity: EventIdentity) {
       ]),
     ),
     artModes: ART_MODE_DESCRIPTION,
+    renderings: RENDERING_DESCRIPTION,
     typographyPairings: Object.fromEntries(
       TYPOGRAPHY_KEYS.filter((id) => allowed.has(TYPOGRAPHY[id].category)).map((id) => {
         const p = TYPOGRAPHY[id];
@@ -205,7 +208,7 @@ export function cardDesignRuntimeCatalog(identity: EventIdentity) {
   };
 }
 
-/** Card Design (`card_design_v1`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. */
+/** Card Design (`card_design_v2`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. */
 export function cardDesignRequest(
   instructions: string,
   input: GenerateCardDesignInput,
@@ -214,6 +217,7 @@ export function cardDesignRequest(
     eventIdentity: input.eventIdentity,
     eventFacts: input.eventFacts,
     runtimeCatalog: cardDesignRuntimeCatalog(input.eventIdentity),
+    ...(input.suggestedRendering ? { suggestedRendering: input.suggestedRendering } : {}),
     ...(input.previousDirections?.length ? { previousDirections: input.previousDirections } : {}),
     ...(input.feedback ? { feedback: input.feedback } : {}),
     ...(input.reprompt ? { reprompt: input.reprompt } : {}),
@@ -259,7 +263,7 @@ export interface ArtRequest {
 }
 
 /**
- * `card_art_v2` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
+ * `card_art_v3` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
  * full bleed, Sunburst `high` (`docs/technology-decisions.md §8.1`). The prompt is assembled by
  * code (`src/lib/card/art-prompt.ts`); with a reference it is the shape-switch prompt.
  */

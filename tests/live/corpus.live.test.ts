@@ -120,6 +120,13 @@ interface CaseResult {
     shape: CardShape;
     layout: CardLayoutId;
     artMode: string;
+    /** The art brief's rendering family (`card_design_schema_v2`), null on an older design. */
+    rendering: string | null;
+    /** The art brief's aesthetic mood (`card_design_schema_v2`), null on an older design. */
+    aesthetic: string | null;
+    /** The rendering the orchestration suggested, and whether the design followed it. */
+    suggestedRendering: string | null;
+    followedSuggestion: boolean | null;
     primary: TypographyPairingId;
     title: string;
     invitationLine: string;
@@ -129,6 +136,24 @@ interface CaseResult {
   panel?: boolean;
   png?: string;
   renderError?: string;
+}
+
+/** A string field of a persisted art brief, read without re-validating it. */
+function briefField(artBrief: unknown, field: "rendering" | "aesthetic"): string | null {
+  const value = (artBrief as Record<string, unknown> | null)?.[field];
+  return typeof value === "string" ? value : null;
+}
+
+/** The suggested rendering and whether it was followed, from `generations.telemetry`. */
+function suggestionOf(telemetry: unknown): {
+  suggestedRendering: string | null;
+  followedSuggestion: boolean | null;
+} {
+  const t = (telemetry ?? {}) as { suggestedRendering?: unknown; followedSuggestion?: unknown };
+  return {
+    suggestedRendering: typeof t.suggestedRendering === "string" ? t.suggestedRendering : null,
+    followedSuggestion: typeof t.followedSuggestion === "boolean" ? t.followedSuggestion : null,
+  };
 }
 
 async function generate(admin: Admin, userId: string, c: CorpusCase): Promise<CaseResult> {
@@ -348,6 +373,9 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
             shape,
             layout,
             artMode: design.art_mode,
+            rendering: briefField(design.art_brief, "rendering"),
+            aesthetic: briefField(design.art_brief, "aesthetic"),
+            ...suggestionOf(result.telemetry),
             primary: typography.primary,
             title: wording.title,
             invitationLine: wording.invitationLine,

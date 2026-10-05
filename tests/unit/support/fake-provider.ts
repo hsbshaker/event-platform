@@ -47,6 +47,7 @@ export const CLEAN_INSPECTION: ArtworkInspection = {
   textDescription: "",
   hasLogoOrBrandMark: false,
   isMockup: false,
+  hasPerson: false,
   description: "A soft painted artwork.",
 };
 

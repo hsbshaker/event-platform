@@ -47,6 +47,8 @@ const DESIGN: CardDesign = {
   wording: { title: "Lemons & Linen", invitationLine: "Please join us for a garden celebration" },
   artBrief: {
     subject: "a lemon branch heavy with fruit and blossom",
+    rendering: "painterly",
+    aesthetic: "romantic",
     medium: "soft gouache illustration",
     mood: "sunlit and calm",
     palette: { description: "lemon, olive and ivory", colors: ["#F2D35B", "#7A8450", "#FBF7EE"] },
@@ -74,6 +76,8 @@ const EARLIER: PreviousDirection = {
   artMode: "illustration",
   primary: "oldstyle_garamond_worksans",
   subject: "a lemon branch",
+  rendering: "painterly",
+  aesthetic: "romantic",
 };
 
 const DIFFERENT: CardDesign = {
@@ -94,6 +98,22 @@ function stage(script: FakeScript["design"], input: Partial<DesignStageInput> = 
 }
 
 describe("the card design stage", () => {
+  it("sends the suggested rendering with every call and records whether it was followed", async () => {
+    const vector: CardDesign = { ...DESIGN, artBrief: { ...DESIGN.artBrief, rendering: "vector" } };
+    const { fake, run } = stage([invalid("layout: bad"), vector], { suggestedRendering: "vector" });
+    const result = await run();
+    expect(fake.calls.design.map((c) => c.suggestedRendering)).toEqual(["vector", "vector"]);
+    expect(result.telemetry).toMatchObject({
+      suggestedRendering: "vector",
+      followedSuggestion: true,
+    });
+    const ignored = await stage([DESIGN], { suggestedRendering: "collage" }).run();
+    expect(ignored.telemetry).toMatchObject({
+      suggestedRendering: "collage",
+      followedSuggestion: false,
+    });
+  });
+
   it("accepts a valid first design and returns what the wait surface may show", async () => {
     const { fake, run } = stage([DESIGN]);
     const result = await run();
@@ -109,6 +129,8 @@ describe("the card design stage", () => {
       repeatAccepted: false,
       acceptedEarlierDesign: false,
       hostTitleApplied: false,
+      suggestedRendering: null,
+      followedSuggestion: null,
     });
     expect(result.artifacts).toEqual({
       name: "Lemons & Linen",

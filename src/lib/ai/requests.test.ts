@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import cardDesignJson from "../../../docs/model-schemas/card-design.schema.json";
 
 import { CARD_LAYOUT_IDS } from "@/lib/card/layouts";
+import { RENDERING_ART_PROMPT, RENDERING_DESCRIPTION, RENDERINGS } from "@/lib/card/renderings";
 import { CARD_SHAPES } from "@/lib/card/shapes";
 import { TYPOGRAPHY } from "@/lib/card/typography";
 
@@ -43,6 +44,13 @@ describe("strict structured-output schemas", () => {
       .format.schema as { properties: Record<string, { enum?: string[] }> };
     expect(sent.properties.layout.enum).toEqual(cardDesignJson.properties.layout.enum);
     expect(sent.properties.shape.enum).toEqual(cardDesignJson.properties.shape.enum);
+    const brief = sent.properties.artBrief as unknown as {
+      required: string[];
+      properties: Record<string, { enum?: string[] }>;
+    };
+    // card_design_schema_v2: the rendering is required, from the rendering catalog.
+    expect(brief.properties.rendering.enum).toEqual([...RENDERINGS]);
+    expect(brief.required).toContain("rendering");
     expect(JSON.stringify(sent)).toContain("^#[0-9A-Fa-f]{6}$");
     expect(JSON.stringify(sent)).not.toMatch(/maxLength|minLength|uniqueItems|\$schema/);
   });
@@ -67,6 +75,8 @@ describe("the card-design runtime catalog", () => {
       "atmosphere",
       "minimal",
     ]);
+    expect(catalog.renderings).toEqual(RENDERING_DESCRIPTION);
+    expect(Object.keys(catalog.renderings)).toEqual([...RENDERINGS]);
     expect(catalog.wordingLimits).toEqual({
       title: { min: 2, max: 40 },
       invitationLine: { min: 8, max: 72 },
@@ -86,6 +96,43 @@ describe("the card-design runtime catalog", () => {
     );
   });
 
+  it("carries the rendering catalog, the suggested rendering and an earlier direction's rendering", () => {
+    const data = JSON.parse(
+      cardDesignRequest("system", {
+        eventIdentity: IDENTITY,
+        eventFacts: {},
+        suggestedRendering: "vector",
+        previousDirections: [
+          {
+            name: "Citrus Grove",
+            layout: "framed",
+            artMode: "framed",
+            primary: "soft_fraunces_manrope",
+            subject: "a lemon wreath",
+            rendering: "painterly",
+            aesthetic: "romantic",
+          },
+        ],
+      }).input[0].content as string,
+    );
+    expect(data.runtimeCatalog.renderings).toEqual(RENDERING_DESCRIPTION);
+    expect(data.runtimeCatalog.renderings.photographic).toBe(
+      "Photographic / realistic: highly realistic imagery that could plausibly be photography — natural materials, realistic environments, believable lighting and real-world textures. Never people.",
+    );
+    expect(data.previousDirections[0]).toMatchObject({
+      rendering: "painterly",
+      aesthetic: "romantic",
+    });
+    expect(data.suggestedRendering).toBe("vector");
+    expect(Object.keys(data)).toEqual([
+      "eventIdentity",
+      "eventFacts",
+      "runtimeCatalog",
+      "suggestedRendering",
+      "previousDirections",
+    ]);
+  });
+
   it("omits the optional inputs when they are absent", () => {
     const data = JSON.parse(
       cardDesignRequest("system", {
@@ -101,6 +148,8 @@ describe("the card-design runtime catalog", () => {
 describe("artwork requests", () => {
   const brief = {
     subject: "a lemon branch",
+    rendering: "painterly" as const,
+    aesthetic: "romantic",
     medium: "gouache",
     mood: "calm",
     palette: { description: "lemon", colors: ["#F2D35B", "#7A8450", "#FBF7EE"] },
@@ -140,5 +189,17 @@ describe("artwork requests", () => {
     expect(request.reference).toBe(reference);
     expect(request.prompt).toContain("Keep the same subject");
     expect(request.prompt).toContain("the same lemon branch");
+  });
+
+  it.each(RENDERINGS)("carries the %s rendering line into the image prompt", (rendering) => {
+    const request = cardArtRequest({
+      artBrief: { ...brief, rendering },
+      artMode: "illustration",
+      layout: "art-top",
+      shape: "rectangle",
+    });
+    expect(request.prompt).toContain(
+      `\nRendering: ${RENDERING_ART_PROMPT[rendering]} Aesthetic: romantic.\nMedium: `,
+    );
   });
 });

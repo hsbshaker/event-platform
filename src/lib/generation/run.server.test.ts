@@ -93,6 +93,8 @@ const DESIGN: CardDesign = {
   wording: { title: "Lemons & Linen", invitationLine: "Please join us for a garden celebration" },
   artBrief: {
     subject: "a lemon branch heavy with fruit and blossom",
+    rendering: "painterly",
+    aesthetic: "romantic",
     medium: "soft gouache illustration",
     mood: "sunlit and calm",
     palette: { description: "lemon, olive and ivory", colors: ["#F2D35B", "#7A8450", "#FBF7EE"] },
@@ -178,7 +180,11 @@ afterEach(() => {
 
 const HAPPY: FakeScript = { identity: [IDENTITY], facts: [FACTS], design: [DESIGN], art: [CLEAN] };
 
-async function run(script: FakeScript = HAPPY): Promise<{
+/** `() => 0` draws the first rendering, `photographic` (`suggestRendering`). */
+async function run(
+  script: FakeScript = HAPPY,
+  random: () => number = () => 0,
+): Promise<{
   outcome: RunGenerationOutcome;
   fake: ReturnType<typeof fakeProvider>;
 }> {
@@ -189,6 +195,7 @@ async function run(script: FakeScript = HAPPY): Promise<{
       provider: fake.provider,
       admin: admin.client as never,
       now: () => STARTED_AT,
+      random,
     },
   );
   return { outcome, fake };
@@ -248,8 +255,8 @@ describe("the happy path", () => {
         p_event_id: EVENT,
         p_identity: IDENTITY,
         p_raw: JSON.stringify(IDENTITY),
-        p_prompt_version: "event_identity_v4",
-        p_schema_version: "event_identity_schema_v4",
+        p_prompt_version: "event_identity_v5",
+        p_schema_version: "event_identity_schema_v5",
       },
     ]);
     const [identityStage] = stages();
@@ -277,6 +284,7 @@ describe("the happy path", () => {
         venue: "Villa Rosa",
         address: "12 Via Roma, Rome",
       },
+      suggestedRendering: "photographic",
     });
     // The image model sees the brief and the layout, never the prompt.
     expect(fake.calls.art[0]).toEqual({
@@ -328,11 +336,11 @@ describe("the happy path", () => {
       p_art_brief: DESIGN.artBrief,
       p_raw: DESIGN,
       p_versions: {
-        designPrompt: "card_design_v1",
-        designSchema: "card_design_schema_v1",
+        designPrompt: "card_design_v2",
+        designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v2",
         compiler: "card_compiler_v2",
-        artPrompt: "card_art_v2",
+        artPrompt: "card_art_v3",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       p_standard_wording_slots: [],
@@ -344,7 +352,7 @@ describe("the happy path", () => {
       p_proportion: "portrait_5_7",
       p_fits_shapes: [...fitsShapes("illustration", "art-top", "rectangle")],
       p_image_model: "gpt-image-2.5-sunburst-2026-09-08",
-      p_art_prompt_version: "card_art_v2",
+      p_art_prompt_version: "card_art_v3",
     });
     expect(Object.keys(args.p_ink as object).sort()).toEqual(
       [...fitsShapes("illustration", "art-top", "rectangle")].sort(),
@@ -361,13 +369,13 @@ describe("the happy path", () => {
       standardWording: [],
       inkPanels: [],
       versions: {
-        identityPrompt: "event_identity_v4",
-        identitySchema: "event_identity_schema_v4",
-        designPrompt: "card_design_v1",
-        designSchema: "card_design_schema_v1",
+        identityPrompt: "event_identity_v5",
+        identitySchema: "event_identity_schema_v5",
+        designPrompt: "card_design_v2",
+        designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v2",
         compiler: "card_compiler_v2",
-        artPrompt: "card_art_v2",
+        artPrompt: "card_art_v3",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       latency: { identityMs: 0, designMs: 0, artMs: 0, totalMs: 0 },
@@ -379,6 +387,18 @@ describe("the happy path", () => {
       imagesRequested: 1,
       repaintsStoppedBy: null,
       providerRefusal: false,
+      suggestedRendering: "photographic",
+      followedSuggestion: false,
+    });
+  });
+
+  it("suggests a rendering drawn from the injected random source, and records whether it was followed", async () => {
+    // Nine families: a draw in [5/9, 6/9) is the sixth, `painterly` — the design's own rendering.
+    const { fake } = await run(HAPPY, () => 5.5 / 9);
+    expect(fake.calls.design[0].suggestedRendering).toBe("painterly");
+    expect(telemetryOf()).toMatchObject({
+      suggestedRendering: "painterly",
+      followedSuggestion: true,
     });
   });
 
@@ -532,7 +552,12 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
       kind: "provider-refusal",
       feedback: PROVIDER_REFUSAL_FEEDBACK,
     });
-    expect(PROVIDER_REFUSAL_FEEDBACK).toMatch(/setting, props, palette and illustration style/);
+    expect(PROVIDER_REFUSAL_FEEDBACK).toMatch(/setting, props, palette and visual style/);
+    // The re-prompted design keeps the generation's one suggestion.
+    expect(fake.calls.design.map((c) => c.suggestedRendering)).toEqual([
+      "photographic",
+      "photographic",
+    ]);
     expect(stages().map(([stage, artifacts]) => [stage, Object.keys(artifacts as object)])).toEqual(
       [
         ["identity", ["identity", "facts", "droppedFacts"]],
@@ -610,10 +635,15 @@ describe("failures end the generation with fail_generation", () => {
 
   it("records why: the stage and each image's validation failure", async () => {
     await run({ ...HAPPY, art: [NOT_PNG, NOT_PNG] });
+    // The rendering drawn and the one the design chose are kept, so renderings that fail more
+    // often stay in the measured mix (the test draw suggests photographic; the design is painterly).
     expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
       failure: {
         code: "artwork_invalid",
         stage: "artwork",
+        suggestedRendering: "photographic",
+        rendering: "painterly",
+        followedSuggestion: false,
         imagesRequested: 2,
         validationFailures: [
           { image: 1, reasons: ["type"] },
@@ -657,8 +687,9 @@ describe("failures end the generation with fail_generation", () => {
 
   it("records the stage of other failures, and a meter refusal's reason", async () => {
     await run({ ...HAPPY, design: [invalid(), invalid()] });
+    // No design was accepted: only the suggestion is known.
     expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
-      failure: { code: "invalid_output", stage: "design" },
+      failure: { code: "invalid_output", stage: "design", suggestedRendering: "photographic" },
     });
     expect(failureTelemetry(new SpendCeilingError(), "ceiling")).toEqual({
       failure: { code: "ceiling", refusal: "ceiling" },
@@ -677,6 +708,18 @@ describe("failures end the generation with fail_generation", () => {
       failure: { validationFailures: { detail: string }[] };
     };
     expect(recorded.failure.validationFailures[0].detail).toBeUndefined();
+    for (const reason of ["logo", "mockup", "person"] as const) {
+      const inspected = new GenerationStageError("artwork", "artwork_invalid", "failed", {
+        details: { validationFailures: [{ image: 1, reasons: [reason], detail: long }] },
+      });
+      const dropped = failureTelemetry(inspected, "artwork_invalid") as {
+        failure: { validationFailures: { reasons: string[]; detail?: string }[] };
+      };
+      expect(dropped.failure.validationFailures[0], reason).toEqual({
+        image: 1,
+        reasons: [reason],
+      });
+    }
     const moderated = new GenerationStageError("artwork", "artwork_invalid", "failed", {
       details: { validationFailures: [{ image: 1, reasons: ["moderation"], detail: long }] },
     });

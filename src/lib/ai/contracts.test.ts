@@ -113,7 +113,7 @@ const IDENTITY: EventIdentity = {
   inspirationSummary: "No visual inspiration supplied.",
 };
 
-describe("Event Identity validator (event_identity_schema_v4)", () => {
+describe("Event Identity validator (event_identity_schema_v5)", () => {
   it("matches docs/model-schemas/event-identity.schema.json", () => {
     expect(diff(identityJson, eventIdentitySchema)).toEqual([]);
   });
@@ -169,18 +169,54 @@ describe("fact extraction (fact_extraction_schema_v1)", () => {
   });
 });
 
-describe("artwork inspection (card_art_inspection_v1)", () => {
+describe("artwork inspection (card_art_inspection_v2)", () => {
   const source = readFileSync(path.join(ROOT, "scripts/phase-3/run.mjs"), "utf8");
+  const PHASE_3_MOCKUP =
+    "- isMockup: true if the image is a photograph or mockup of a card, paper or envelope (an object on a surface, with hands, shadows or a frame around it) rather than flat artwork filling the canvas.";
+  const V2_MOCKUP =
+    "- isMockup: true only if the image shows a card, invitation, sheet of paper or envelope as an object — on a surface, held in hands, with its own shadow or a frame around it — rather than artwork filling the canvas. A photograph of a scene, interior, landscape, objects, food or materials that fills the canvas is NOT a mockup.";
+  const V2_PERSON =
+    "- hasPerson: true if any person, human face, hands or human body appears, realistic or stylised. Animals and toy animals do not count.";
 
-  it("is the Phase 3 prompt, word for word", () => {
-    const prompt = source.match(/const ART_CHECK_PROMPT = `([\s\S]*?)`;/)![1];
-    expect(ARTWORK_INSPECTION_PROMPT).toBe(prompt);
+  it("is the Phase 3 prompt with the mockup line narrowed and the person line added, nothing else", () => {
+    const phase3 = source.match(/const ART_CHECK_PROMPT = `([\s\S]*?)`;/)![1];
+    expect(phase3).toContain(PHASE_3_MOCKUP);
+    expect(ARTWORK_INSPECTION_PROMPT).toBe(
+      phase3.replace(PHASE_3_MOCKUP, `${V2_MOCKUP}\n${V2_PERSON}`),
+    );
   });
 
-  it("is the Phase 3 schema, and validates with it", () => {
+  it("is the Phase 3 schema plus hasPerson, and validates with it", () => {
     const block = source.match(/const ART_CHECK_SCHEMA = (\{[\s\S]*?\n\});/)![1];
-    expect(ARTWORK_INSPECTION_JSON_SCHEMA).toEqual(new Function(`return (${block});`)());
+    const phase3 = new Function(`return (${block});`)();
+    expect(ARTWORK_INSPECTION_JSON_SCHEMA).toEqual({
+      ...phase3,
+      required: [
+        "hasText",
+        "textDescription",
+        "hasLogoOrBrandMark",
+        "isMockup",
+        "hasPerson",
+        "description",
+      ],
+      properties: { ...phase3.properties, hasPerson: { type: "boolean" } },
+    });
     expect(diff(ARTWORK_INSPECTION_JSON_SCHEMA, artworkInspectionSchema)).toEqual([]);
+  });
+
+  it("parses hasPerson, and requires it", () => {
+    const found = {
+      hasText: false,
+      textDescription: "",
+      hasLogoOrBrandMark: false,
+      isMockup: false,
+      hasPerson: true,
+      description: "Two hands holding a teacup.",
+    };
+    expect(artworkInspectionSchema.parse(found).hasPerson).toBe(true);
+    const without: Partial<typeof found> = { ...found };
+    delete without.hasPerson;
+    expect(artworkInspectionSchema.safeParse(without).success).toBe(false);
   });
 });
 

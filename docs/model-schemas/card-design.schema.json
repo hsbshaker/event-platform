@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/card-design.schema.json",
   "title": "CardDesign",
-  "description": "card_design_schema_v1 (model-contracts.md §5). Enums are generated from the card catalogs: card_layouts_v2 (src/lib/card/layouts.ts) and src/lib/card/typography.ts.",
+  "description": "card_design_schema_v2 (model-contracts.md §5). Enums are generated from the card catalogs: card_layouts_v2 (src/lib/card/layouts.ts), src/lib/card/typography.ts and src/lib/card/renderings.ts. v2 adds the required artBrief.rendering and artBrief.aesthetic.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -139,6 +139,8 @@
       "additionalProperties": false,
       "required": [
         "subject",
+        "rendering",
+        "aesthetic",
         "medium",
         "mood",
         "palette",
@@ -150,6 +152,25 @@
           "type": "string",
           "minLength": 8,
           "maxLength": 300
+        },
+        "rendering": {
+          "type": "string",
+          "enum": [
+            "photographic",
+            "editorial",
+            "rendered-3d",
+            "vector",
+            "flat-illustration",
+            "painterly",
+            "line-art",
+            "collage",
+            "design-led"
+          ]
+        },
+        "aesthetic": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40
         },
         "medium": {
           "type": "string",

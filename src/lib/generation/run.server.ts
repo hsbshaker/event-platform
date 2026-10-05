@@ -18,6 +18,7 @@ import {
   EVENT_IDENTITY_SCHEMA_VERSION,
 } from "@/lib/ai/versions";
 import { cardContent } from "@/lib/card/facts";
+import { suggestRendering } from "@/lib/card/renderings";
 import { INSPIRATION_BUCKET, sniffImageType } from "@/lib/drafts/inspiration";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
@@ -27,7 +28,12 @@ import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.ser
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
-import { ArtworkProviderRefusalError, failureDetailsOf, GenerationStageError } from "./stage";
+import {
+  ArtworkProviderRefusalError,
+  attachFailureDetails,
+  failureDetailsOf,
+  GenerationStageError,
+} from "./stage";
 import type { StageContext } from "./stage";
 
 /**
@@ -85,7 +91,7 @@ export const MODEL_INSPIRATION_TYPES: readonly string[] = ["image/png", "image/j
 export const PROVIDER_REFUSAL_FEEDBACK =
   "The image provider refused this design's artwork: it came out too close to a well-known " +
   "protected character. Keep the event's creative direction, but write a new art brief that " +
-  "evokes the character's world — its setting, props, palette and illustration style — rather " +
+  "evokes the character's world — its setting, props, palette and visual style — rather " +
   "than the character's signature look. Do not depict that character or a close likeness of it, " +
   "and never name a brand or a character.";
 
@@ -104,6 +110,8 @@ export interface RunGenerationDeps {
   provider?: AiProvider;
   admin?: AdminClient;
   now?: () => number;
+  /** The source of the suggested rendering's draw (`suggestRendering`), in [0, 1). */
+  random?: () => number;
 }
 
 export type RunGenerationOutcome =
@@ -160,6 +168,10 @@ export interface GenerationTelemetry {
   imagesRequested: number;
   repaintsStoppedBy: string | null;
   providerRefusal: boolean;
+  /** The rendering drawn for this generation's design (`suggestRendering`). */
+  suggestedRendering: string;
+  /** The accepted design's rendering is the suggested one. */
+  followedSuggestion: boolean;
 }
 
 interface EventRow {
@@ -227,7 +239,7 @@ const FAILURE_DETAIL_MAX = 200;
  * Inspection reasons: their detail is the inspector's description of text it saw in the image,
  * which can echo the art brief (model free text from the identity) — so only the reason is kept.
  */
-const INSPECTION_REASONS: ReadonlySet<string> = new Set(["text", "logo", "mockup"]);
+const INSPECTION_REASONS: ReadonlySet<string> = new Set(["text", "logo", "mockup", "person"]);
 
 /**
  * What a failed generation records beside its code (`generations.telemetry.failure`, spec.md
@@ -249,9 +261,23 @@ export function failureTelemetry(error: unknown, code: string): Json {
   }
   // Details a stage recorded: its own, or attached to a refusal it passed through.
   const details = failureDetailsOf(error) as
-    { imagesRequested?: number; validationFailures?: ArtworkValidationFailure[] } | undefined;
+    | {
+        imagesRequested?: number;
+        validationFailures?: ArtworkValidationFailure[];
+        suggestedRendering?: unknown;
+        rendering?: unknown;
+        followedSuggestion?: unknown;
+      }
+    | undefined;
   if (typeof details?.imagesRequested === "number") {
     failure.imagesRequested = details.imagesRequested;
+  }
+  if (typeof details?.suggestedRendering === "string") {
+    failure.suggestedRendering = details.suggestedRendering;
+  }
+  if (typeof details?.rendering === "string") failure.rendering = details.rendering;
+  if (typeof details?.followedSuggestion === "boolean") {
+    failure.followedSuggestion = details.followedSuggestion;
   }
   if (Array.isArray(details?.validationFailures) && details.validationFailures.length > 0) {
     failure.validationFailures = details.validationFailures.map((f) => ({
@@ -348,6 +374,7 @@ export async function runGeneration(
       admin,
       provider: deps.provider ?? getAiProvider(),
       now,
+      random: deps.random ?? Math.random,
       startedAt: input.startedAt ?? now(),
     });
   } catch (error) {
@@ -368,11 +395,12 @@ interface PipelineInput extends RunGenerationInput {
   admin: AdminClient;
   provider: AiProvider;
   now: () => number;
+  random: () => number;
   startedAt: number;
 }
 
 async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
-  const { admin, provider, now, generationId, eventId, userId, startedAt } = input;
+  const { admin, provider, now, random, generationId, eventId, userId, startedAt } = input;
   const ctx: StageContext = {
     provider,
     meter: {
@@ -474,6 +502,10 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   // ------------------------------------------------------------------ 3. design
   const eventFacts = hostEventFacts(event, statedEventType);
   const designs: DesignStageResult[] = [];
+  // Active variation (owner decision): a rendering drawn at random from those this event's earlier
+  // directions have not used — none for an initial generation — that the design follows unless
+  // the identity strongly points elsewhere. A provider-refusal re-prompt keeps the same suggestion.
+  const suggestedRendering = suggestRendering(random, []);
   let designMs = 0;
   let artMs = 0;
   const design = async (providerRefusal?: { feedback: string }) => {
@@ -481,6 +513,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     const result = await runDesignStage(ctx, {
       identity,
       eventFacts,
+      suggestedRendering,
       ...(providerRefusal ? { providerRefusal } : {}),
     });
     designMs += now() - begun;
@@ -504,21 +537,42 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     }
   };
 
-  let chosen = await design();
+  // A failure from here on still records the rendering drawn and, once a design exists, the one it
+  // chose — so renderings that fail more often never drop out of the measured mix.
+  let current: DesignStageResult | null = null;
+  const renderingDetails = () => ({
+    suggestedRendering,
+    ...(current
+      ? {
+          rendering: current.design.artBrief.rendering,
+          followedSuggestion: current.design.artBrief.rendering === suggestedRendering,
+        }
+      : {}),
+  });
 
-  // ------------------------------------------------------------------ 4. artwork
+  let chosen: DesignStageResult;
   let art: ArtworkStageResult;
   let providerRefusal = false;
   try {
-    art = await artwork(chosen);
+    chosen = current = await design();
+
+    // ---------------------------------------------------------------- 4. artwork
+    try {
+      art = await artwork(chosen);
+    } catch (error) {
+      // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
+      // §9); a refusal after a failed first image is the second failure, and visible.
+      if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) {
+        throw error;
+      }
+      providerRefusal = true;
+      await recordStage("design", { notice: "provider_refusal" });
+      chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
+      art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+    }
   } catch (error) {
-    // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
-    // §9); a refusal after a failed first image is the second failure, and visible.
-    if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) throw error;
-    providerRefusal = true;
-    await recordStage("design", { notice: "provider_refusal" });
-    chosen = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
-    art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+    attachFailureDetails(error, renderingDetails());
+    throw error;
   }
 
   // ------------------------------------------------------------------ 5. persist
@@ -548,6 +602,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     imagesRequested: art.telemetry.imagesRequested,
     repaintsStoppedBy: art.telemetry.repaintsStoppedBy,
     providerRefusal,
+    suggestedRendering,
+    followedSuggestion: chosen.design.artBrief.rendering === suggestedRendering,
   };
 
   const storageKey = `${eventId}/${generationId}/${randomUUID()}.png`;

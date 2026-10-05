@@ -20,6 +20,8 @@ import {
   stripColorAndTextChunks,
 } from "@/lib/card/png.server";
 import type { DecodedPng } from "@/lib/card/png.server";
+import { PEOPLE_FREE_RENDERINGS } from "@/lib/card/renderings";
+import type { Rendering } from "@/lib/card/renderings";
 import { CARD_CANVAS, insideOutline, SHAPE_PROPORTION } from "@/lib/card/shapes";
 import type { CardProportion, CardShape } from "@/lib/card/shapes";
 
@@ -38,8 +40,9 @@ import type { StageContext } from "./stage";
  * **Validation** (`validateArtwork`), cheapest first: an allowed type (PNG); a header that reads;
  * the shape's proportion within `ARTWORK_LIMITS.proportionTolerance`; the short side at least
  * `minShortSide` and no side over `maxSide`; a full decode; opaque; `omni-moderation` not flagged;
- * the inspection finding no text, logo or brand mark, and no mockup. An image the provider returned
- * without a usable PNG fails it too.
+ * the inspection finding no text, logo or brand mark, and no mockup — and, for a photographic,
+ * editorial, 3D or collage rendering (`PEOPLE_FREE_RENDERINGS`), no person. An image the provider
+ * returned without a usable PNG fails it too.
  *
  * **Budget** (owner decisions 2026-10-04, `spec.md §7.8`): at most `1 + ARTWORK_LIMITS.extraImages`
  * image requests per artwork. A first image that fails validation earns one regeneration; a second
@@ -127,6 +130,8 @@ export type ArtworkFailureReason =
   | "text"
   | "logo"
   | "mockup"
+  /** The inspection found a person in artwork whose rendering allows none (`PEOPLE_FREE_RENDERINGS`). */
+  | "person"
   /** Moderation or inspection could not be completed, so the artwork is not validated. */
   | "check_failed"
   /** A repaint's image request failed or was refused (repaints only). */
@@ -199,13 +204,15 @@ function fail(reason: ArtworkFailureReason, detail?: string): ArtworkCheck {
 
 /**
  * Validate one artwork for `shape` (`docs/card-system.md §4.1`, `docs/model-contracts.md §7.3`).
- * The model checks run only on an artwork that passed every deterministic one. A meter refusal or
- * a telemetry failure of a check is thrown; any other failed check fails the artwork.
+ * The model checks run only on an artwork that passed every deterministic one. A person fails the
+ * artwork only when its `rendering` is one that may show none (`PEOPLE_FREE_RENDERINGS`). A meter
+ * refusal or a telemetry failure of a check is thrown; any other failed check fails the artwork.
  */
 export async function validateArtwork(
   ctx: StageContext,
   art: CardArt,
   shape: CardShape,
+  rendering: Rendering,
 ): Promise<ArtworkCheck> {
   if (!ARTWORK_LIMITS.mimeTypes.includes(art.mimeType) || !isPng(art.bytes)) return fail("type");
   let header;
@@ -247,6 +254,7 @@ export async function validateArtwork(
     if (inspection.hasText) reasons.push("text");
     if (inspection.hasLogoOrBrandMark) reasons.push("logo");
     if (inspection.isMockup) reasons.push("mockup");
+    if (inspection.hasPerson && PEOPLE_FREE_RENDERINGS.includes(rendering)) reasons.push("person");
     if (reasons.length) {
       return {
         ok: false,
@@ -342,7 +350,7 @@ export async function runArtworkStage(
       if (error instanceof ProviderCallError) return { kind: "error", image, error };
       throw error;
     }
-    const check = await validateArtwork(ctx, art, shape);
+    const check = await validateArtwork(ctx, art, shape, artBrief.rendering);
     if (!check.ok) {
       return {
         kind: "invalid",

@@ -220,7 +220,7 @@ needed.
 | --- | --- |
 | API model IDs | `gpt-6.1-sol` (Event Identity, Card Design, artwork inspection); `gpt-6-luna` (fact extraction); `gpt-image-2.5-sunburst-2026-09-08` (artwork, pinned snapshot); `omni-moderation-latest` (image safety) |
 | Raster | 1440 × 2016 (5:7) and 1440 × 1440 (1:1), PNG, opaque full bleed. No transparent-background workflow: the outline is a code mask and the art is painted to every edge |
-| Text and safety detection | The provider's own output moderation, then `omni-moderation-latest`, then a structured GPT 6.1 Sol inspection for text, logos or brand marks, and mockups (≈ 4 s, ≈ $0.005 per artwork) |
+| Text and safety detection | The provider's own output moderation, then `omni-moderation-latest`, then a structured GPT 6.1 Sol inspection for text, logos or brand marks, mockups, and people (rejected in photographic, editorial, 3D and collage artwork) (≈ 4 s, ≈ $0.005 per artwork) |
 | Latency (p50) | Event Identity 11 s, Card Design 11 s, artwork 31 s at `high`, inspection 4 s; ≈ 57 s prompt to card (`low` text effort and Sunburst `medium` would give ≈ 38 s; not adopted) |
 | Cost per card | ≈ $0.08 at `high` (artwork $0.06); ≈ $0.03 at `medium` (artwork $0.017) |
 | Flare | Not faster than Sunburst `medium` in the probe, and less faithful to the composition rules; not adopted |

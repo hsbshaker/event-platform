@@ -548,7 +548,7 @@ Lifecycle calculations always use the stored IANA timezone.
 
 ### 7.5 Event Identity
 
-A strong multimodal model derives and persists the creative brief (`event_identity_schema_v4`,
+A strong multimodal model derives and persists the creative brief (`event_identity_schema_v5`,
 `docs/model-contracts.md §4`):
 
 ```ts
@@ -618,7 +618,7 @@ close to a well-known protected character even when nothing is named (Phase 3: a
 storybook bear was refused in 2 of 2 attempts; `docs/model-evals/phase-3-validation.md`). Owner
 decision: the first design keeps the close homage. When the provider refuses it, the one
 regeneration (§7.8) re-prompts the card design to evoke the character's **world** — its setting,
-props, palette and illustration style — rather than its signature look, and paints new artwork
+props, palette and visual style — rather than its signature look, and makes new artwork
 from that brief. While it does, the host sees a short, plain note, for example: "That first take
 came out too close to a well-known character, so for copyright reasons we're trying a fresh take
 on its world." If that attempt is refused too, it is a visible failure whose Try again takes the
@@ -628,7 +628,7 @@ same step back. The note never blames the host and never shows a provider error.
 
 **Every card has original generated artwork**, and the creative direction decides how much it
 carries: a full illustration, a frame or border, an atmospheric wash, or — for a restrained,
-typography-led card — as little as a refined border or paper texture (`docs/card-system.md §2.4`).
+typography-led card — as little as a refined border, pattern or surface texture (`docs/card-system.md §2.4`).
 
 Binding rules:
 
@@ -646,6 +646,20 @@ Binding rules:
 5. **Readability always wins.** Code guarantees text contrast over the artwork (§7.9); the artwork
    is never the reason a guest cannot read the card.
 6. **No host photography, stock or retrieved imagery.** The artwork is generated for this event.
+7. **One of nine rendering families, and an aesthetic mood.** The art brief names how the
+   artwork is made — `photographic`, `editorial`, `rendered-3d`, `vector`, `flat-illustration`,
+   `painterly`, `line-art`, `collage` or `design-led` — and, separately, an `aesthetic` mood in a
+   word or two (modern, romantic, luxury, preppy, whimsical …). Watercolour is one direction, never
+   a reflex: elegant, romantic, floral, garden or beach language is not a request for it. Cards vary
+   actively across events: the orchestration suggests a rendering drawn at random from those the
+   event's earlier directions have not used, and the design follows it unless the host's words
+   strongly point to a treatment (owner decisions, 2026-10-04). Code turns the family into the art
+   prompt's rendering instruction (`docs/card-system.md §2.4`). A `design-led` card's pattern
+   never contains letters, initials or monograms (rule 2); its typography is the card's own text.
+8. **No people in photographic, editorial, 3D or collage artwork.** Such artwork shows places,
+   objects, food and materials — never a person, face, hands or body. The artwork inspection checks
+   it and a failure is regenerated like any invalid artwork (§7.8). A generated photograph is still
+   generated artwork, not retrieved imagery (rule 6).
 
 The image model is **GPT Image 2.5 Sunburst** (owner decision, `docs/technology-decisions.md §8.1`);
 Phase 3 validates it through the API before the product is built around it.
@@ -676,7 +690,7 @@ The question schema and its surface are designed in the generation phase
 
 ### 7.7 Card design
 
-Once Event Identity is valid, the strong model designs one card (`card_design_schema_v1`,
+Once Event Identity is valid, the strong model designs one card (`card_design_schema_v2`,
 `docs/model-contracts.md §5`):
 
 ```ts
@@ -687,13 +701,16 @@ CardDesign {
   artMode         // illustration | framed | atmosphere | minimal
   typography { primary, alternates[0..2] }  // curated pairing IDs
   wording { title, invitationLine }         // bounded free text; no invented facts
-  artBrief { subject, medium, mood, palette, texture, avoid[] }
+  artBrief { subject, rendering, aesthetic, medium, mood, palette, texture, avoid[] }
+  // rendering: photographic | editorial | rendered-3d | vector | flat-illustration | painterly
+  //            | line-art | collage | design-led; aesthetic: a mood in one or two words (§7.6a)
 }
 ```
 
 Inputs: the persisted `EventIdentity`; the event facts present so far (so wording can use the
-host's own names exactly); on `Try another direction`, the host's optional feedback and a summary
-of every earlier direction for this event.
+host's own names exactly); a suggested rendering drawn at random from those the event has not used
+(§7.6a); on `Try another direction`, the host's optional feedback and a summary of every earlier
+direction for this event.
 
 **One design per round.** `Try another direction` produces a design that is genuinely different
 from every earlier one for this event — a different idea, not a palette or font swap. Code answers
@@ -720,7 +737,8 @@ The image model returns the artwork.
 
 Validation (deterministic, plus the text and safety checks chosen in Phase 3 validation): file type, the requested proportion
 within tolerance,
-minimum resolution, decodable, **no embedded text**, and content safety. A failure earns one
+minimum resolution, decodable, **no embedded text**, content safety, and — for photographic,
+editorial, 3D or collage artwork — **no person** (§7.6a). A failure earns one
 regeneration; a second failure is shown honestly to the host with a retry action. A provider
 refusal is a failure; when it refuses a brand or character homage, the regeneration comes from a
 re-prompted design that evokes the character's world (§7.6). There is no template or stock
@@ -1022,6 +1040,10 @@ standardWording[]      // slots that fell back to standard wording
 inkPanels[]            // zones that needed a legibility panel
 versions               // prompt, schema, layout set, compiler, image model
 latency                // identity, design, art, total
+suggestedRendering     // the rendering drawn for variety (§7.6a rule 7)
+followedSuggestion     // whether the design used it
+failure                // on a failed generation: code, stage, per-image validation reasons,
+                       // and the suggested and chosen rendering — never host content
 ```
 
 Schema validity, wording fallbacks, art regeneration and legibility panels are separate measures;
@@ -1093,8 +1115,8 @@ outlines, is a layout-set version bump.
 
 ### 11.4 Art modes
 
-`illustration` · `framed` · `atmosphere` · `minimal`. Every card has artwork; `minimal` is a border
-or paper texture with typography leading. Mode/layout compatibility is validated.
+`illustration` · `framed` · `atmosphere` · `minimal`. Every card has artwork; `minimal` is a border,
+pattern or surface texture with typography leading. Mode/layout compatibility is validated.
 
 ### 11.5 Text slots, facts and wording
 
@@ -1951,7 +1973,7 @@ CardDesign {
   shape, layout, artMode,
   typography /* { primary, alternates[] } */,
   wording /* { title, invitationLine } — after the fact check */,
-  artBrief,
+  artBrief /* { subject, rendering, aesthetic, medium, mood, palette, texture, avoid[] }; rendering and aesthetic from card_design_schema_v2 */,
   raw,                           // the model response as returned
   artAssetIds[],                 // the original; plus one per shape switch no existing artwork fits
   standardWordingSlots[],
@@ -2356,6 +2378,10 @@ The host should feel:
 - [ ] A host-supplied title is used verbatim.
 - [ ] The art prompt is assembled by code from the art brief, the layout's and shape's composition
   rules and the global rules; it never contains the raw prompt.
+- [ ] The art brief names one of nine rendering families and an aesthetic mood; with no strong
+  cue from the host the design follows a randomly suggested rendering, so cards vary across
+  events; photographic, editorial, 3D and collage artwork shows no people, and the inspection
+  rejects artwork that does (one regeneration) (§7.6a, §7.8).
 - [ ] Every design has one of the six shapes and a layout that supports it; text zones lie inside
   the shape's text-safe area; the outline is code-defined and never part of the artwork.
 - [ ] Artwork is at the shape's proportion (5:7 or 1:1), decodable, at minimum resolution, contains
@@ -2547,7 +2573,8 @@ The host should feel:
     bounded wording, art brief, presentation); and artwork. Nothing else.
 13. No model emits HTML, CSS, JavaScript, SVG, text colours, sizes, positions or line breaks.
 14. The model owns interpretation, the creative direction, the layout and art-mode choice, the
-    pairing choice, the wording and the art brief. Code owns facts, text placement, fit, ink,
+    pairing choice, the wording and the art brief (code may suggest a rendering at random for
+    variety, §7.6a rule 7; the design decides). Code owns facts, text placement, fit, ink,
     contrast, panels, the envelope, the page, RSVP/registry semantics and business logic.
 15. Facts come only from host-supplied or host-confirmed event data. Never invent them, never let
     wording state them, never infer them.

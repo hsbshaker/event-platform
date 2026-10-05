@@ -2,11 +2,13 @@
 ## Event Identity, Card Design and Card Art
 
 **Status:** Revision 3 — invitation-card baseline
-**Prompt versions:** `event_identity_v4`, `card_design_v1` (written in Phase 3 validation),
-`card_art_v2` (deterministic assembly; `card_art_v1` written in Phase 3 validation, `card_art_v2`
-in Phase 4 with `card_layouts_v2`)
-**Schema versions:** `event_identity_schema_v4`, `card_design_schema_v1` (written in Phase 3
-validation)
+**Prompt versions:** `event_identity_v5`, `card_design_v2` (`card_design_v1` written in Phase 3
+validation; v2 adds rendering families in Phase 5), `card_art_v3` (deterministic assembly;
+`card_art_v1` written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`,
+`card_art_v3` in Phase 5 with rendering families), `card_art_inspection_v2`
+**Schema versions:** `event_identity_schema_v5`, `card_design_schema_v2` (`card_design_schema_v1`
+written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`),
+`card_art_inspection_schema_v2`
 **Models:** GPT 6.1 Sol (Event Identity, Card Design); GPT Image 2.5 Sunburst (Card Art) —
 `technology-decisions.md §8.1`
 **PRD:** `../spec.md` Revision 7
@@ -50,18 +52,18 @@ the assembled art prompt. The card compiler is application code and calls no mod
 Prompts, schemas and the layout set are versioned production assets (`src/lib/ai/versions.ts`):
 
 ```ts
-EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v4"
-EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v4"
-CARD_DESIGN_PROMPT_VERSION    = "card_design_v1"
-CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v1"
-CARD_ART_PROMPT_VERSION       = "card_art_v2"
+EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5"
+EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
+CARD_DESIGN_PROMPT_VERSION    = "card_design_v2"
+CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v2"
+CARD_ART_PROMPT_VERSION       = "card_art_v3"
 CARD_LAYOUT_SET_VERSION       = "card_layouts_v2"
 CARD_COMPILER_VERSION         = "card_compiler_v2"
 ```
 
 Record every version with generation telemetry, plus the image model per artwork. Do not edit a
 production prompt, schema or layout set while keeping its version. The card-design schema's enums
-(layouts, art modes, pairings) are generated from the same catalogs the validator uses
+(layouts, art modes, renderings, pairings) are generated from the same catalogs the validator uses
 (`src/lib/card/`); never hand-edit them apart.
 
 ---
@@ -75,7 +77,7 @@ improvement on top.
 
 ---
 
-# 4. Event Identity (`event_identity_v4`)
+# 4. Event Identity (`event_identity_v5`)
 
 **This call is the product's creative interpreter, not a preprocessing step.** Its question is
 *what does this host mean, and what creative world should this event belong to?*, and the bar on
@@ -108,7 +110,9 @@ EventIdentity {
 ```
 
 v3 removes v2's `compatibleTonalDirections` and `compatibleFamilies`, which existed only to feed
-the retired three-concept planner.
+the retired three-concept planner. Prompt v5 (schema unchanged) carries a host's signal about how
+the artwork should look — photographic, polished, 3D, painted — into `textureDirection` and
+`creativeDirection`, and defaults to nothing painted or hand-drawn when there is none.
 
 **Inputs:** the raw prompt and inspiration images as untrusted data (§8); on `Try another
 direction` with feedback, the previous identity and the feedback, to update or merge the identity.
@@ -137,7 +141,7 @@ decision); an unconfirmed value is never published and never given to the card d
 
 ---
 
-# 5. Card Design (`card_design_v1`)
+# 5. Card Design (`card_design_v2`)
 
 ## 5.1 Contract
 
@@ -161,7 +165,10 @@ CardDesign {
   }
   artBrief: {
     subject: string              // what is depicted, e.g. "heirloom teddy bear in a tartan bow"
-    medium: string               // e.g. "soft gouache illustration"
+    rendering: "photographic" | "editorial" | "rendered-3d" | "vector" | "flat-illustration"
+             | "painterly" | "line-art" | "collage" | "design-led"   // how the artwork is made
+    aesthetic: string            // 3–40 chars, one or two words, e.g. "luxury", "preppy", "whimsical"
+    medium: string               // the making within the rendering, e.g. "soft-lit 3D render of a felt teddy bear"
     mood: string
     palette: { description: string; colors: string[] }   // 3–5 hex, guides the artwork only
     texture: string
@@ -170,11 +177,19 @@ CardDesign {
 }
 ```
 
+`card_design_schema_v2` adds the required `artBrief.rendering`, one of nine families
+(`src/lib/card/renderings.ts`), and `artBrief.aesthetic`, a free-text aesthetic mood separate from
+the rendering and from `mood` (owner decisions, 2026-10-04). Watercolour is one family among nine,
+never a reflex; the design follows the call's `suggestedRendering` (§5.2) unless the identity
+strongly points to a treatment; `photographic`, `editorial`, `rendered-3d` and `collage` artwork
+shows places, objects, food and materials — never people (§7.3). Designs persisted under v1 have
+neither field; they are immutable and never re-validated.
+
 String bounds (Phase 3, `model-schemas/card-design.schema.json`): `title` 2–40 characters,
-`invitationLine` 8–72, `artBrief.subject` 8–300, other brief fields 3–200, `avoid` 0–8 items. They
-are generated into the schema from the layout catalog, so a valid design always fits
-(`card-system.md §4.3`). Strict structured output does not enforce `maxLength`, so the prompt
-states the limits and validation checks them.
+`invitationLine` 8–72, `artBrief.subject` 8–300, `artBrief.aesthetic` 3–40, other brief fields
+3–200, `avoid` 0–8 items. They are generated into the schema from the layout catalog, so a valid
+design always fits (`card-system.md §4.3`). Strict structured output does not enforce
+`maxLength`, so the prompt states the limits and validation checks them.
 
 The palette in the art brief steers the artwork. It never becomes a text, ink or page colour; ink
 is resolved from the finished artwork by code (`card-system.md §4.2`).
@@ -186,8 +201,9 @@ GenerateCardDesignInput {
   eventIdentity: EventIdentity                 // persisted, validated
   eventFacts: Record<string, string>           // facts present so far, host-supplied or confirmed
   previousDirections?: {                        // every earlier design for this event
-    name, layout, artMode, primary, subject
+    name, layout, artMode, primary, subject, rendering, aesthetic
   }[]
+  suggestedRendering?: Rendering                // drawn at random, see below
   feedback?: string                            // optional "Try another direction" feedback
   reprompt?: { kind: "schema" | "wording" | "repeat-direction" | "provider-refusal"; feedback: string }
 }
@@ -201,7 +217,21 @@ otherwise standard wording uses the default type. Extracted card facts — names
 reach the design only once the host has confirmed them.
 
 The prompt carries the layout catalog (each layout's purpose and compatible art modes), the art
-modes, the pairing catalog narrowed to the identity's compatible categories, and the global rules.
+modes, the rendering families, the pairing catalog narrowed to the identity's compatible
+categories, and the global rules. An earlier direction's `rendering` and `aesthetic` let another
+direction switch them; the exact-repeat rule (§5.3) stays layout, art mode and primary pairing.
+
+**Active variation** (owner decision: "actively vary the visual language across generations unless
+the user's description strongly points toward a particular treatment"). Every generation draws a
+`suggestedRendering` uniformly at random from the families this event's earlier directions have not
+used — all nine for an initial generation, and all nine again once every one has been used
+(`suggestRendering`) — and sends it with every call of its design stage, a provider-refusal
+re-prompt included. The design uses it unless the identity carries an explicit style signal from
+the host in `textureDirection` or `creativeDirection` (photo or realistic, editorial, 3D, CGI,
+cartoon, vector, flat, watercolour, painted, hand-drawn, sketch, engraved, collage, pattern); its
+own `aesthetic` is never a reason to set the suggestion aside. `generations.telemetry` records
+`suggestedRendering` and `followedSuggestion`, and a failed generation's telemetry records the
+suggestion and, once a design exists, its rendering.
 It never carries guest data, RSVP or registry contents, private codes, or the raw host prompt.
 
 ## 5.3 Validation
@@ -292,13 +322,17 @@ it — it measures the creative stack, not the compiler.
 
 ---
 
-# 7. Card art (`card_art_v2`)
+# 7. Card art (`card_art_v3`)
 
 ## 7.1 Art prompt assembly
 
 The art prompt is assembled **by application code**, never written verbatim by a model:
 
 - the art brief's subject, medium, mood, palette description and colours, texture;
+- the rendering family's instruction and the brief's aesthetic, as one `Rendering: … Aesthetic: …`
+  line just before the medium (`src/lib/card/renderings.ts`, `card-system.md §2.4`); for
+  `photographic`, `editorial`, `rendered-3d` and `collage` it says no people, faces, hands or
+  bodies;
 - the layout's composition and presence rules for the shape (where the subject may sit, which
   regions stay quiet; on a square, oval or arch card a picture above or below the words takes 40%,
   `card-system.md §2.3`);
@@ -318,7 +352,10 @@ The validated `artMode` is passed with every request, because it selects both th
 instruction and the crop rule; it is never inferred from the brief's free text
 (`src/lib/card/art-modes.ts`).
 
-It contains no raw host prompt, no event facts and no inspiration image.
+It contains no raw host prompt, no event facts and no inspiration image. `card_art_v3` also drops
+the wording that pushed every card toward paint: no "painted" in the art modes, the corner rule
+says "carry the background", and the mockup rule forbids a photograph *of a printed card*, not a
+photograph — the artwork may itself be one when the rendering says so.
 
 ## 7.2 Input and output
 
@@ -348,6 +385,17 @@ resolution. Required,
 mechanism chosen in Phase 3 validation (`technology-decisions.md §8.1`): no embedded text;
 content safety. A failure earns one regeneration; a second failure is a visible failure with
 retry. No template or stock fallback.
+
+The inspection (`card_art_inspection_v2`, `src/lib/ai/artwork-inspection.ts`) reports `hasText`,
+`hasLogoOrBrandMark`, `isMockup` and `hasPerson`. `isMockup` is true only when the image shows a
+card, invitation, sheet of paper or envelope as an object — on a surface, held in hands, with its
+own shadow or a frame — rather than artwork filling the canvas; a photograph of a scene, interior,
+landscape, objects, food or materials that fills the canvas is not a mockup. `hasPerson` is true
+for any person, human face, hands or body, realistic or stylised (animals and toy animals do not
+count); it fails the artwork only when the brief's rendering is `photographic`, `editorial`,
+`rendered-3d` or `collage`.
+Every finding fails the artwork the same way: one regeneration, and a repaint that has one is
+dropped.
 
 An artwork that passes but would need the layout's legibility panel on the shape it was painted
 for — decided by ink resolution in code, never by a model — is repainted from the same art prompt
@@ -398,7 +446,7 @@ bounds and fact check. Model prose is never authorization.
 | Event Identity | ordinary transient retry | one repair retry, then visible failure | — |
 | Fact extraction | ordinary transient retry | one retry, then no prefill (host enters details) | — |
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
-| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output; an artwork that would need the legibility panel on its shape: repaint until one needs none, two extra images per artwork in all, then the first valid one with the panel |
+| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork that would need the legibility panel on its shape: repaint until one needs none, two extra images per artwork in all, then the first valid one with the panel |
 
 Card Design re-prompts are one of each kind per design. When a re-prompt's own call fails — its
 output invalid after the schema re-prompt is spent, or the provider call fails — the earlier valid
@@ -420,9 +468,9 @@ retry and never presents itself as a finished design.
 
 # 10. Files
 
-Prompts: `model-prompts/event-identity.system.md` (v4). `model-prompts/card-design.system.md` is
+Prompts: `model-prompts/event-identity.system.md` (v5). `model-prompts/card-design.system.md` is
 written in Phase 3 validation.
-Schemas: `model-schemas/event-identity.schema.json` (v4). `model-schemas/card-design.schema.json`
+Schemas: `model-schemas/event-identity.schema.json` (v5). `model-schemas/card-design.schema.json`
 is generated from the card catalogs in Phase 3 validation.
 Evaluation corpus: `model-evals/creative-understanding.json`.
 Catalogs: `src/lib/card/typography.ts`; the layout set and art modes are added with the card

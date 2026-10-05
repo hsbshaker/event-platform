@@ -2,9 +2,11 @@
  * `CardDesign` (`docs/model-contracts.md §5.1`) and its deterministic validation
  * (`docs/card-system.md §4.1`, `docs/model-contracts.md §5.3`).
  *
- * The zod schema mirrors `docs/model-schemas/card-design.schema.json` (`card_design_schema_v1`);
+ * The zod schema mirrors `docs/model-schemas/card-design.schema.json` (`card_design_schema_v2`);
  * `design.test.ts` asserts the two cannot drift. Enums are generated from the catalogs. The JSON
- * key for the font pairing choice is `typography`, as in the committed schema.
+ * key for the font pairing choice is `typography`, as in the committed schema. v2 adds the art
+ * brief's required `rendering` family (`renderings.ts`) and `aesthetic` mood. Designs persisted under v1 have none; they
+ * are immutable and never re-validated against this schema.
  *
  * Validation runs in order: (1) strict schema, (2) compatibility. The wording fact check
  * (`wording.ts`) and direction distinctness are separate steps with their own re-prompts.
@@ -14,6 +16,7 @@ import { z } from "zod";
 
 import { ART_MODES } from "./art-modes";
 import { artModeCompatible, CARD_LAYOUT_IDS, layoutSupportsShape } from "./layouts";
+import { RENDERINGS } from "./renderings";
 import { CARD_SHAPES } from "./shapes";
 import { WORDING_LIMITS } from "./slots";
 import { TYPOGRAPHY, TYPOGRAPHY_KEYS } from "./typography";
@@ -46,6 +49,8 @@ export const cardDesignSchema = z.strictObject({
   }),
   artBrief: z.strictObject({
     subject: text(8, 300),
+    rendering: z.enum(RENDERINGS),
+    aesthetic: text(3, 40),
     medium: text(4, 160),
     mood: text(3, 160),
     palette: z.strictObject({
