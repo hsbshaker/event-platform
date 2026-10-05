@@ -102,10 +102,9 @@ function oneRow(data: unknown, fn: string): CodeRow {
  * Sets the event's visibility. Private: the stored code, or a new one stored in the same
  * transaction, returned formatted. Public: the stored code is kept, and none is returned.
  */
-export async function setPrivacy(
-  eventId: string,
-  visibility: Visibility,
-): Promise<SetPrivacyResult> {
+export async function setPrivacy(event: string, visibility: Visibility): Promise<SetPrivacyResult> {
+  // One spelling of the id everywhere (the code's binding, the limits): Postgres's lowercase.
+  const eventId = event.toLowerCase();
   const access = await privacyAccess(eventId);
   if (!access) return { ok: false, reason: "not_found" };
 
@@ -136,7 +135,9 @@ export async function setPrivacy(
 }
 
 /** A new code for a private event; the old one stops working at once. */
-export async function rotateCode(eventId: string): Promise<RotateCodeResult> {
+export async function rotateCode(event: string): Promise<RotateCodeResult> {
+  // One spelling of the id everywhere (the code's binding, the rate limit): Postgres's lowercase.
+  const eventId = event.toLowerCase();
   const access = await privacyAccess(eventId);
   if (!access) return { ok: false, reason: "not_found" };
   // Counted only for a member, so nobody else can spend an event's allowance.
@@ -165,7 +166,8 @@ export async function rotateCode(eventId: string): Promise<RotateCodeResult> {
  * share UI may decrypt/reveal the code"); null when the event is not private or has no code.
  * Read through the member's own session (RLS), so no service role is needed.
  */
-export async function revealCode(eventId: string): Promise<RevealCodeResult> {
+export async function revealCode(event: string): Promise<RevealCodeResult> {
+  const eventId = event.toLowerCase();
   const access = await privacyAccess(eventId);
   if (!access) return { ok: false, reason: "not_found" };
   const supabase = await createClient();

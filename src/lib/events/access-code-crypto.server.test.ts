@@ -53,6 +53,12 @@ describe("generateEventCode", () => {
 });
 
 describe("encryptEventCode / decryptEventCode", () => {
+  it("binds the event by its canonical id, whatever the caller's spelling", () => {
+    const code = "K7MP4QRT";
+    expect(decryptEventCode(encryptEventCode(code, EVENT.toUpperCase()), EVENT)).toBe(code);
+    expect(decryptEventCode(encryptEventCode(code, EVENT), EVENT.toUpperCase())).toBe(code);
+  });
+
   it("round-trips a code", () => {
     const code = generateEventCode();
     expect(decryptEventCode(encryptEventCode(code, EVENT), EVENT)).toBe(code);

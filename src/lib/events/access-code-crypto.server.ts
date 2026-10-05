@@ -51,8 +51,16 @@ function accessCodeKey(): Buffer {
   return Buffer.from(hkdfSync("sha256", master, HKDF_SALT, HKDF_INFO, 32));
 }
 
+/**
+ * The data bound to a code: the version and the event, by its id in canonical (lowercase) form —
+ * Postgres accepts any case of a UUID but returns lowercase, so binding the caller's spelling
+ * would make a code unreadable later.
+ */
 function additionalData(version: number, eventId: string): Buffer {
-  return Buffer.concat([Buffer.from([version]), Buffer.from(`event:${eventId}`, "utf8")]);
+  return Buffer.concat([
+    Buffer.from([version]),
+    Buffer.from(`event:${eventId.toLowerCase()}`, "utf8"),
+  ]);
 }
 
 /** A new code in canonical form (eight characters of the unambiguous alphabet). */
