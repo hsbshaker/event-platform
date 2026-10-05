@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
@@ -58,6 +59,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         unconfirmed={revealed.unconfirmed}
         className="max-w-prose"
       />
+      {/* Before publish only (`spec.md §8.2`): after it the start answers that the card stays. */}
+      <AppButtonLink
+        href={`/events/${id}/direction?from=${revealed.designId}`}
+        variant="secondary"
+        size="md"
+      >
+        Try another direction ✦
+      </AppButtonLink>
     </main>
   );
 }

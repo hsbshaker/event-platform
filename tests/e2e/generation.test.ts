@@ -210,8 +210,11 @@ describe.each([
         const link = page.getByRole("link", { name: /Make it yours/ });
         expect(await link.getAttribute("href")).toMatch(/^\/events\/.+/);
         expect(await link.getAttribute("href")).not.toMatch(/create/);
-        // Try another direction arrives with its own flow.
-        expect(await page.getByText("Try another direction").count()).toBe(0);
+        // Try another direction sits beside it, for the card on screen.
+        const another = page.getByRole("link", { name: /Try another direction/ });
+        expect(await another.getAttribute("href")).toBe(
+          "/events/00000000-0000-4000-8000-000000000000/direction?from=fixture-design",
+        );
 
         // Needs-confirmation outlines: purely visual, inside the card, merged around adjacent
         // details; the legend under the card carries the meaning.

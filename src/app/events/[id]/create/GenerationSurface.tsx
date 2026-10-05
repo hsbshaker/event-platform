@@ -9,10 +9,10 @@ import type { PromptFacts } from "@/lib/card/facts";
 import type { CardProportion } from "@/lib/card/shapes";
 import { generationFailure, type GenerationFailure } from "@/lib/generation/failure-copy";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
+import { forgetIdempotencyKey, idempotencyKey } from "@/lib/generation/idempotency-key";
+import { useGenerationPoll } from "@/lib/generation/use-generation-poll";
 import {
   afterStart,
-  nextPollDelay,
-  readGenerationBody,
   type AfterStart,
   type InitialWait,
   type WaitGeneration,
@@ -21,7 +21,7 @@ import {
 import { DetailsForm } from "./DetailsForm";
 import { createSaveTracker } from "@/lib/events/save-tracker";
 import { GenerationPanel, RevealLayout, WaitLayout } from "./GenerationPanel";
-import { RevealStage } from "./RevealStage";
+import { FirstCardActions, RevealStage } from "./RevealStage";
 
 /**
  * The wait surface (`docs/screen-spec.md` `generation`; `spec.md §7.3`, §7.10; design-system §4.3)
@@ -57,39 +57,7 @@ const COULD_NOT_OPEN: GenerationFailure = {
   retry: true,
 };
 
-/** The poll route answered that this visitor cannot see the event (signed out, or no longer a member). */
-const LOST_ACCESS: GenerationFailure = {
-  code: "internal",
-  title: "We can't show this event right now",
-  body: "You may have been signed out. Refresh the page, or sign in again.",
-  retry: false,
-};
-
-const KEY_PREFIX = "generation-key:";
-
-/** The idempotency key of this user action: a stored one on a reload, else a fresh UUID. */
-function idempotencyKey(eventId: string, fresh: boolean): string {
-  const storageKey = `${KEY_PREFIX}${eventId}`;
-  try {
-    if (!fresh) {
-      const stored = window.sessionStorage.getItem(storageKey);
-      if (stored) return stored;
-    }
-    const key = crypto.randomUUID();
-    window.sessionStorage.setItem(storageKey, key);
-    return key;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
-
-function forgetKey(eventId: string): void {
-  try {
-    window.sessionStorage.removeItem(`${KEY_PREFIX}${eventId}`);
-  } catch {
-    // Best effort only.
-  }
-}
+const keyScope = (eventId: string) => `generation-key:${eventId}`;
 
 function initialPhase(initial: InitialWait, head: RevealHead | null): Phase {
   switch (initial.kind) {
@@ -158,10 +126,10 @@ export function GenerationSurface({
 
   const begin = useCallback(
     async (fresh: boolean) => {
-      const key = idempotencyKey(eventId, fresh);
+      const key = idempotencyKey(keyScope(eventId), fresh);
       try {
         const result = await startCardGeneration({ eventId, idempotencyKey: key });
-        forgetKey(eventId);
+        forgetIdempotencyKey(keyScope(eventId));
         apply(afterStart(result.outcome));
       } catch {
         // The start may or may not have gone through; Try again uses a new key and finds it.
@@ -187,87 +155,31 @@ export function GenerationSurface({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [initial, head, begin, openReveal]);
 
-  // Poll while running.
-  const running = phase.kind === "running";
-  useEffect(() => {
-    if (!running) return;
-    let cancelled = false;
-    let busy = false;
-    let failures = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const schedule = () => {
-      if (cancelled) return;
-      timer = setTimeout(() => void tick(), nextPollDelay(failures));
-    };
-
-    async function tick() {
-      if (cancelled || busy) return;
-      // Paused while hidden; the visibility handler resumes with an immediate poll.
-      if (document.hidden) return;
-      busy = true;
-      try {
-        const res = await fetch(`/api/events/${eventId}/generation`, {
-          cache: "no-store",
-          headers: { Accept: "application/json" },
-        });
-        if (res.status === 401 || res.status === 403 || res.status === 404) {
-          // Not a passing fault: polling again would only repeat it (spec.md §32 #46).
-          if (!cancelled) {
-            setPhase({ kind: "failed", failure: LOST_ACCESS, retrying: false, mode: "generate" });
-          }
-          return;
-        }
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        const body = readGenerationBody(await res.json());
-        if (!body) throw new Error("unreadable response");
-        if (cancelled) return;
-        failures = 0;
-        const generation = body.generation;
+  // Poll while running (the shared hook: ~2 s, paused while hidden, backing off, stopping on a
+  // lost-access answer).
+  useGenerationPoll({
+    eventId,
+    enabled: phase.kind === "running",
+    handlers: {
+      onGeneration: (generation) => {
         if (generation?.facts) setFacts((known) => known ?? generation.facts);
-        if (generation?.status === "succeeded") {
-          void openReveal();
-          return;
-        }
-        if (generation?.status === "failed") {
-          setPhase({
-            kind: "failed",
-            failure: generation.failure ?? generationFailure(null),
-            retrying: false,
-            mode: "generate",
-          });
-          return;
-        }
         setPhase((current) =>
           current.kind === "running"
             ? { kind: "running", generation: generation ?? current.generation, offline: false }
             : current,
         );
-      } catch {
-        if (cancelled) return;
-        failures += 1;
+      },
+      onOffline: (offline) => {
+        if (!offline) return;
         setPhase((current) =>
           current.kind === "running" ? { ...current, offline: true } : current,
         );
-      } finally {
-        busy = false;
-      }
-      schedule();
-    }
-
-    const onVisible = () => {
-      if (document.hidden || busy) return;
-      clearTimeout(timer);
-      void tick();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    void tick();
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [running, eventId, openReveal]);
+      },
+      onSucceeded: () => void openReveal(),
+      onFailed: (failure) =>
+        setPhase({ kind: "failed", failure, retrying: false, mode: "generate" }),
+    },
+  });
 
   function retry() {
     if (phase.kind !== "failed") return;
@@ -281,10 +193,10 @@ export function GenerationSurface({
     return (
       <RevealLayout>
         <RevealStage
-          eventId={eventId}
           title={phase.head.title}
           proportion={phase.head.proportion}
           loadCard={() => loadRevealedCardAction(eventId)}
+          actions={(card) => <FirstCardActions eventId={eventId} designId={card.designId} />}
           preloaded={phase.preloaded}
           beforeLoad={() => saves.settle()}
         />
