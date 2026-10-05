@@ -610,6 +610,22 @@ circles. Two decisions by the owner (2026-10-04):
 - **Updated:** `spec.md §7.7`, §7.8, §11.3 and a §31 criterion; `card-system.md §2.2`, §2.3, §3,
   §8; `model-contracts.md §2`, §5, §7; `CLAUDE.md` pipeline sketch.
 
+### Phase 5c — the RSVP-by line on the first card (owner decision, 2026-10-05)
+
+- **Decision.** Before the host saves a deadline, the card shows the default RSVP-by of the date it
+  shows — two weeks before the placeholder date, or before the host's saved date — marked to
+  confirm like the date, so the card's words do not move when the real date arrives and the ink is
+  judged behind the line the host will see. When the date shown is the prompt's own words
+  ("December 19"), which code does not read as a date, there is no RSVP-by line until the host
+  saves a date, so the two never disagree. A saved deadline is shown as saved, confirmed.
+- **Also built (5c server side).** The facts the prompt states are kept on the event
+  (`events.prompt_facts`, written once with the first identity, by the server only) and shown as
+  written when they pass the details form's own checks; `start_generation` answers `designed`
+  once the first card exists, so opening the generation page again never makes a second first card.
+- **Updated:** `spec.md §7.3`, §7.5, §24 and the architecture sketch; `card-system.md §2.5`, §3,
+  §4.2; `model-contracts.md §4.3`; `technology-decisions.md` (the generation lock);
+  `development-plan.md` Phase 5.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

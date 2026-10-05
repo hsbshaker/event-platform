@@ -297,6 +297,84 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
     });
   });
 
+  it("shows the default RSVP-by of the date the card shows, unconfirmed (owner, 2026-10-05)", () => {
+    const zoned = { ...nothing, timezone: "America/Chicago" };
+    // The placeholder date (Saturday, January 2) less fourteen days.
+    expect(
+      revealCardContent({ wording, event: zoned, promptFacts: null, fits: fitsAll, now }),
+    ).toEqual({
+      content: {
+        title: "A Little Wild One",
+        invitationLine: "Please join us for a baby shower",
+        babyName: null,
+        hosts: null,
+        date: "Saturday, January 2",
+        time: "1:00 pm",
+        venue: "Venue to be announced",
+        rsvpBy: "RSVP by December 19",
+      },
+      unconfirmed: ["date", "time", "venue", "rsvpBy"],
+    });
+    // A saved date with no saved deadline: its default, still unconfirmed.
+    const dated = revealCardContent({
+      wording,
+      event: { ...zoned, eventDate: "2026-06-06", startTime: "13:00" },
+      promptFacts: null,
+      fits: fitsAll,
+      now: new Date("2026-04-01T12:00:00Z"),
+    });
+    expect(dated.content.rsvpBy).toBe("RSVP by May 23");
+    expect(dated.unconfirmed).toEqual(["venue", "rsvpBy"]);
+    // A saved deadline is the host's: shown as stored, confirmed.
+    const saved = revealCardContent({
+      wording,
+      event: { ...zoned, rsvpDeadline: "2026-12-10T12:00:00Z" },
+      promptFacts: null,
+      fits: fitsAll,
+      now,
+    });
+    expect(saved.content.rsvpBy).toBe("RSVP by December 10");
+    expect(saved.unconfirmed).toEqual(["date", "time", "venue"]);
+  });
+
+  it("shows no RSVP-by beside a date the prompt states, or without a timezone", () => {
+    const zoned = { ...nothing, timezone: "America/Chicago" };
+    const stated19 = revealCardContent({
+      wording,
+      event: zoned,
+      promptFacts: stated,
+      fits: fitsAll,
+      now,
+    });
+    expect(stated19.content.date).toBe("December 19");
+    expect(stated19.content.rsvpBy).toBeNull();
+    expect(stated19.unconfirmed).not.toContain("rsvpBy");
+    // A stated date the fit check refuses leaves the placeholder, and its RSVP-by.
+    const refused = revealCardContent({
+      wording,
+      event: zoned,
+      promptFacts: stated,
+      fits: (slot) => slot !== "date",
+      now,
+    });
+    expect(refused.content.date).toBe("Saturday, January 2");
+    expect(refused.content.rsvpBy).toBe("RSVP by December 19");
+    // A stated time alone does not hide it.
+    expect(
+      revealCardContent({
+        wording,
+        event: zoned,
+        promptFacts: { ...none, time: "2pm" },
+        fits: fitsAll,
+        now,
+      }).content.rsvpBy,
+    ).toBe("RSVP by December 19");
+    expect(
+      revealCardContent({ wording, event: nothing, promptFacts: null, fits: fitsAll, now }).content
+        .rsvpBy,
+    ).toBeNull();
+  });
+
   it("never lets a prompt fact replace a stored fact, the title, or the RSVP-by", () => {
     const facts = { ...stated, title: "Maya's Garden Party", eventType: "baby shower" };
     const result = revealCardContent({

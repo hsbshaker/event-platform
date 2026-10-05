@@ -430,7 +430,8 @@ For each text zone, computed once per artwork, layout and shape — for every sh
    primary pairing for the words the card shows right after generation (the design's wording, the
    host's stored facts — re-read just before the artwork is painted, since the host may enter
    details while waiting — then any fact the prompt states, as written, then placeholders for a
-   missing date, time or venue; one producer, `revealCardContent`); each line's area — its
+   missing date, time or venue, and the default RSVP-by of the date shown unless the prompt states
+   that date (`spec.md §7.3`); one producer, `revealCardContent`); each line's area — its
    measured width placed by its alignment, its line height, padded by a quarter of the line height
    on every side and clamped to the zone (`textLineAreas`) — takes the same range; and the ink is
    judged against the widest of the zone's and the areas' ranges, so the whole zone stays the

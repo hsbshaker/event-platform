@@ -342,8 +342,13 @@ export interface RevealCardContent {
  *    fit checks (`promptFactCandidates`, `fits`) — unconfirmed;
  * 3. else, for the date, time and venue, the bounded placeholder — the date twelve weeks out on a
  *    Saturday, 1:00 pm, `Venue to be announced` (`provisionalContent`) — unconfirmed. The hosts and
- *    the baby name are absent rather than invented; the RSVP-by shows only from a stored deadline
- *    and timezone.
+ *    the baby name are absent rather than invented.
+ *
+ * The RSVP-by is the stored deadline; else, with a timezone, the default deadline of the date the
+ * card shows (`computeRsvpDeadline`), unconfirmed — so the card's words do not move when the real
+ * date arrives. When the date the card shows is the prompt's own words, which code does not read as
+ * a date, the RSVP-by is absent until the host saves one, so the two never disagree (owner
+ * decision, 2026-10-05).
  *
  * The one producer of this content: the artwork stage judges the ink behind these lines
  * (`run.server.ts`), the reveal and Creation Mode draw them (`loadRevealedCard`), and the live
@@ -362,9 +367,15 @@ export function revealCardContent({
       eventDate: event.eventDate,
       startTime: event.startTime,
       venue: cardVenue(event.venueName, event.address),
+      timezone: event.timezone,
+      rsvpDeadline: event.rsvpDeadline,
     },
     now,
   );
+  const timezone = trimmed(event.timezone);
+  const storedDeadline = trimmed(event.rsvpDeadline) !== null && timezone !== null;
+  const defaultDeadline =
+    storedDeadline || timezone === null ? null : (placeholders.rsvpDeadline?.value ?? null);
   const content = cardContent({
     ...event,
     title: wording.title,
@@ -381,11 +392,18 @@ export function revealCardContent({
   if (placeholders.venue.provisional) unconfirmed.add("venue");
 
   const candidates = promptFactCandidates({ event, promptFacts, slots });
+  let statedDate = false;
   for (const slot of PROMPT_FACT_SLOTS) {
     const value = candidates[slot];
     if (value === undefined || !fits(slot, value)) continue;
     content[slot] = value;
     unconfirmed.add(slot);
+    if (slot === "date") statedDate = true;
+  }
+
+  if (defaultDeadline !== null && timezone !== null && !statedDate) {
+    content.rsvpBy = formatCardRsvpBy(defaultDeadline, timezone);
+    unconfirmed.add("rsvpBy");
   }
   return { content, unconfirmed: CARD_SLOT_IDS.filter((slot) => unconfirmed.has(slot)) };
 }

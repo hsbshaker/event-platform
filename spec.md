@@ -527,6 +527,11 @@ form applies to the host's own entry (`docs/card-system.md §2.5`); otherwise th
 stands. An unconfirmed value is never published, never shown to guests, and never given to the
 card design as a fact.
 
+Until the host saves an RSVP deadline, the card shows the default deadline (below) of the date it
+shows — the placeholder date or the host's saved date — marked as needing confirmation like a
+placeholder. When the date shown is one the prompt states, as written, the card shows no RSVP-by
+until the host saves a date, so the two never disagree (owner decision, 2026-10-05).
+
 The card's **title** is wording (§7.7): if the host supplied a title it is used exactly; otherwise
 the design drafts one. The event title is therefore never a blocker to seeing a card.
 
