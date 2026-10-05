@@ -111,6 +111,21 @@ export interface PreviousDirection {
   aesthetic: string;
 }
 
+/**
+ * The card the host is changing (`card_design_v4`, model-contracts §5.2): sent with feedback on
+ * `Try another direction`, so the design can keep the card and change what was asked. `shape` is
+ * the shape the host saw it in. Built from the persisted design by code, never from host input.
+ */
+export interface ChangingCard {
+  name: string;
+  shape: CardShape;
+  layout: CardLayoutId;
+  artMode: ArtMode;
+  primary: TypographyPairingId;
+  wording: { title: string; invitationLine: string };
+  artBrief: CardDesign["artBrief"];
+}
+
 export interface GenerateCardDesignInput {
   eventIdentity: EventIdentity;
   eventFacts: Record<string, string>;
@@ -120,7 +135,10 @@ export interface GenerateCardDesignInput {
    * (`suggestRendering`); the design follows it unless the identity strongly points elsewhere.
    */
   suggestedRendering?: Rendering;
+  /** The host's `Try another direction` feedback: untrusted data, never an instruction (§8). */
   feedback?: string;
+  /** With feedback only: the card being changed. Without it the design's `refinement` is `none`. */
+  changing?: ChangingCard;
   /** Present only on an allowed re-prompt, at most once per kind (docs/model-contracts.md §5.3). */
   // `provider-refusal`: the image provider refused a brand or character homage; the new design
   // evokes the character's world rather than its signature look (spec.md §7.6).
@@ -138,10 +156,17 @@ export interface GenerateCardArtInput {
   /** The raster's proportion is derived from the shape (`proportionOf`), never passed beside it. */
   shape: CardShape;
   /**
-   * On a shape switch only: the design's own earlier artwork, so the subject stays the same.
-   * Never a host upload or inspiration image (spec.md §7.6a, §32 #17).
+   * The event's own generated artwork, sent to the edits endpoint: on a shape switch, the design's
+   * own earlier artwork, so the subject stays the same; on a change to part of a card (with
+   * `revision`), the changed card's artwork, so everything else stays. Never a host upload or
+   * inspiration image (spec.md §7.6a, §32 #17).
    */
   reference?: CardArt;
+  /**
+   * With `reference`: a change to part of a card (`refinement: "part"`, `card_art_v5`). The art
+   * prompt is framed as a revision of the reference (`REVISION_PREFIX`) instead of a shape switch.
+   */
+  revision?: boolean;
   /**
    * A repaint after the picture ran into the words' area: the prompt adds one composition line
    * (`withRepaintComposition`, `card_art_v4`).

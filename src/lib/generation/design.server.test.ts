@@ -55,6 +55,7 @@ const DESIGN: CardDesign = {
     texture: "cream laid paper",
     avoid: ["kitsch"],
   },
+  refinement: "none",
 };
 
 const FACTS = { eventType: "baby shower", venue: "Villa Rosa", hosts: "Ana & Leo" };
@@ -342,6 +343,75 @@ describe("direction distinctness: one repeat-direction re-prompt, then accept", 
     expect(fake.calls.design).toHaveLength(2);
     expect(result.design).toEqual(DESIGN);
     expect(result.telemetry.repeatAccepted).toBe(true);
+  });
+});
+
+describe("the change the host asks for (card_design_v4, docs/model-contracts.md §5.1–§5.3)", () => {
+  const CHANGING = {
+    name: DESIGN.presentation.name,
+    shape: DESIGN.shape,
+    layout: DESIGN.layout,
+    artMode: DESIGN.artMode,
+    primary: DESIGN.typography.primary,
+    wording: DESIGN.wording,
+    artBrief: DESIGN.artBrief,
+  };
+  const PART: CardDesign = {
+    ...DESIGN,
+    refinement: "part",
+    artBrief: { ...DESIGN.artBrief, subject: "a lemon branch with a small green toy dinosaur" },
+  };
+
+  it("sends the feedback and the card being changed with every call", async () => {
+    const { fake, run } = stage([invalid("bad"), PART], {
+      previousDirections: [EARLIER],
+      feedback: "add a little dinosaur",
+      changing: CHANGING,
+    });
+    await run();
+    for (const call of fake.calls.design) {
+      expect(call.feedback).toBe("add a little dinosaur");
+      expect(call.changing).toEqual(CHANGING);
+    }
+  });
+
+  it("exempts a change to part or the whole of the card from distinctness: keeping it is the point", async () => {
+    for (const refinement of ["part", "whole"] as const) {
+      const { fake, run } = stage([{ ...PART, refinement }], {
+        previousDirections: [EARLIER],
+        feedback: "add a little dinosaur",
+        changing: CHANGING,
+      });
+      const result = await run();
+      expect(fake.calls.design).toHaveLength(1);
+      expect(result.design.refinement).toBe(refinement);
+      expect(result.telemetry.repeatAccepted).toBe(false);
+    }
+  });
+
+  it("holds a new idea to distinctness even when the host said what they wanted", async () => {
+    const { fake, run } = stage([DESIGN, DIFFERENT], {
+      previousDirections: [EARLIER],
+      feedback: "something completely different",
+      changing: CHANGING,
+    });
+    const result = await run();
+    expect(fake.calls.design[1].reprompt?.kind).toBe("repeat-direction");
+    expect(result.design).toEqual(DIFFERENT);
+  });
+
+  it("re-prompts a refinement reported without a card being changed, as schema-invalid", async () => {
+    const { fake, run } = stage([PART, DIFFERENT], { previousDirections: [EARLIER] });
+    const result = await run();
+    expect(fake.calls.design[1].reprompt?.kind).toBe("schema");
+    expect(fake.calls.design[1].reprompt?.feedback).toMatch(/refinement must be "none"/);
+    expect(result.design.refinement).toBe("none");
+    expect(result.telemetry.schemaValidFirstCall).toBe(false);
+  });
+
+  it("fails visibly when the re-prompt reports a refinement again", async () => {
+    const { run } = stage([PART, PART]);
+    await expect(run()).rejects.toMatchObject({ stage: "design", code: "invalid_output" });
   });
 });
 

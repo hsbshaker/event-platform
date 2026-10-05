@@ -2,7 +2,7 @@ import "server-only";
 
 import { ModelCallRefusedError, ModelOutputError, ProviderCallError } from "@/lib/ai/errors";
 import type { EventIdentity } from "@/lib/ai/event-identity";
-import type { GenerateCardDesignInput, PreviousDirection } from "@/lib/ai/provider";
+import type { ChangingCard, GenerateCardDesignInput, PreviousDirection } from "@/lib/ai/provider";
 import { validateCardDesign } from "@/lib/card/design";
 import type { CardDesign } from "@/lib/card/design";
 import type { Rendering } from "@/lib/card/renderings";
@@ -24,8 +24,9 @@ import type { StageContext } from "./stage";
  * one re-prompt of its own kind (`docs/model-contracts.md §5.3`):
  *
  * 1. **Schema and catalogs** (`validateCardDesign`, with the identity's compatible typography
- *    categories). Output the provider already found schema-invalid (`ModelOutputError`) counts the
- *    same. One `schema` re-prompt with the problems; a second invalid output is a visible failure
+ *    categories, and `refinement` held to `none` when the call carried no `changing`). Output the
+ *    provider already found schema-invalid (`ModelOutputError`) counts the same. One `schema`
+ *    re-prompt with the problems; a second invalid output is a visible failure
  *    (`GenerationStageError`, stage `design`, `invalid_output`) — unless an earlier call of this
  *    stage produced a valid design, which is then accepted with its remaining issues resolved by
  *    their own fallbacks below rather than discarded.
@@ -36,9 +37,11 @@ import type { StageContext } from "./stage";
  *    `wording` re-prompt naming the failing slots; if they fail again, each failing slot takes
  *    `standardWording`, recorded in `standardWordingSlots`. Standard wording is built from the
  *    event type, and from the default type when the stated one's wording would not render.
- * 3. **Direction distinctness**: the same layout, art mode and primary pairing as an earlier
- *    direction earns one `repeat-direction` re-prompt naming the earlier directions; a second
- *    repeat is accepted and recorded (`repeatAccepted`).
+ * 3. **Direction distinctness**, for a new idea only (`refinement: "none"`): the same layout, art
+ *    mode and primary pairing as an earlier direction earns one `repeat-direction` re-prompt naming
+ *    the earlier directions; a second repeat is accepted and recorded (`repeatAccepted`). A change
+ *    the host asked for (`part`, `whole`) is exempt: keeping the card is the point
+ *    (`docs/model-contracts.md §5.3`).
  *
  * A provider failure (after the provider's own transient retry) is a visible failure
  * (`provider_error`), again unless a valid design is already in hand. Meter refusals pass through.
@@ -58,6 +61,11 @@ export interface DesignStageInput {
   /** Try another direction: every earlier direction for this event, and the host's feedback. */
   previousDirections?: PreviousDirection[];
   feedback?: string;
+  /**
+   * With feedback: the card the host is changing (`card_design_v4`). Only then may the design
+   * report a `part` or `whole` refinement.
+   */
+  changing?: ChangingCard;
   /**
    * The rendering the orchestration suggests (`suggestRendering`), sent with every call of this
    * stage; the design follows it unless the identity strongly points elsewhere.
@@ -208,6 +216,7 @@ export async function runDesignStage(
     ...(previous.length ? { previousDirections: previous } : {}),
     ...(input.suggestedRendering ? { suggestedRendering: input.suggestedRendering } : {}),
     ...(input.feedback ? { feedback: input.feedback } : {}),
+    ...(input.changing ? { changing: input.changing } : {}),
   };
 
   const attempts: DesignAttempt[] = [];
@@ -238,19 +247,23 @@ export async function runDesignStage(
     }
     const validation = validateCardDesign(output, {
       compatibleCategories: input.identity.compatibleTypographyCategories,
+      changing: input.changing !== undefined,
     });
     attempts.push({ reprompt: reprompt?.kind ?? null, raw, valid: validation.ok });
     if (!validation.ok) {
       return { ok: false, invalid: true, problems: validation.problems, error: null };
     }
     const design = validation.design;
+    // Distinctness is for a new idea: a requested change keeps the card on purpose.
     const repeats =
-      previous.find(
-        (p) =>
-          p.layout === design.layout &&
-          p.artMode === design.artMode &&
-          p.primary === design.typography.primary,
-      ) ?? null;
+      design.refinement !== "none"
+        ? null
+        : (previous.find(
+            (p) =>
+              p.layout === design.layout &&
+              p.artMode === design.artMode &&
+              p.primary === design.typography.primary,
+          ) ?? null);
     const wordingFailures = checkWording(design.wording, input.eventFacts, { hostSupplied });
     for (const slot of WORDING_SLOT_IDS) {
       if (hostSupplied.includes(slot) || wordingFailures.some((f) => f.slot === slot)) continue;

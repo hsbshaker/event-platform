@@ -55,14 +55,18 @@ function visibleArtifacts(artifacts: Json): GenerationArtifacts {
 
 export async function getGenerationView(
   eventId: string,
-  options: { now?: () => number } = {},
+  options: { now?: () => number; generationId?: string } = {},
 ): Promise<GenerationView | null> {
   await requireEventAccess(eventId, "view_event");
-  // `generations` is server-only (no end-user grant); read after the access check above.
-  const { data, error } = await createAdminClient()
+  // `generations` is server-only (no end-user grant); read after the access check above. With
+  // `generationId`, that generation of this event (the one a surface is waiting for, even if a
+  // co-host has started another since); without it, the event's latest.
+  let query = createAdminClient()
     .from("generations")
     .select("id, kind, status, stage, artifacts, error_code, card_design_id, started_at")
-    .eq("event_id", eventId)
+    .eq("event_id", eventId);
+  if (options.generationId) query = query.eq("id", options.generationId);
+  const { data, error } = await query
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();

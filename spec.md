@@ -25,7 +25,7 @@ screenshots and sends. The full record is `docs/CHANGELOG-v7.md`.
 | --- | --- | --- |
 | Creative output | A full custom event website composed by the model (`CompositionTree`) | One AI-designed invitation card: generated artwork + real text in a layout (`docs/card-system.md`) |
 | Event page | Themed per concept, composed by the model | One neutral house style for every event; the card is the only themed surface |
-| Designs per round | Three concepts, diversity-planned | One at a time; `Try another direction` generates a genuinely different one |
+| Designs per round | Three concepts, diversity-planned | One at a time; `Try another direction` makes the change the host asks for, or a genuinely different card |
 | Model calls | Event Identity → DesignIntent ×3 → Composition ×3 | Event Identity → Card Design → Card Art (image model) |
 | Model authority | Structure only, enum tokens, no free text | Card direction: layout from a catalog, art mode, font pairing, an art brief, and the card's wording (title, invitation line) |
 | Imagery | Excluded, then approved as optional Phase 4 artwork | Every card has generated artwork; it may be as minimal as a border or texture |
@@ -98,7 +98,8 @@ A host might write:
 
 The platform understands the taste and the subtext, translates the reference into original visual
 language, and designs one invitation card — artwork, wording, typography — that feels like it read
-the host's mind. If it isn't right, `Try another direction` produces a genuinely different one.
+the host's mind. If it isn't quite right, the host says what to change and gets the same card with
+that change; if it isn't right at all, `Try another direction` produces a genuinely different one.
 The chosen card becomes the event's invitation: guests receive it in an envelope, open it, and
 RSVP and browse the registry on the page beneath.
 
@@ -316,8 +317,8 @@ change how every existing card renders. "Design immutability" never blocks rende
 - Image-model artwork for every card; artwork never contains text.
 - Deterministic validation, wording fact check, ink/legibility resolution and text fit.
 - The card revealed from its envelope as soon as it is ready.
-- `Try another direction` with optional feedback, before publish, from the reveal and from Creation
-  Mode.
+- `Try another direction` with optional feedback — a change to the card, or a new idea — before
+  publish, from the reveal and from Creation Mode.
 - Every design generated for the event stays browsable before publish; the active card stays active
   until another is explicitly chosen.
 
@@ -659,10 +660,12 @@ Binding rules:
    to put it."
 2. **No text in the artwork.** No letters, numbers, logos or watermarks. Every word is real text set
    by code. Embedded text is detected and rejected (§7.8).
-3. **The image model never sees the raw prompt or the inspiration images.** It receives the art
-   brief and the layout's and shape's composition rules only — plus, when the host switches to a
-   shape no existing artwork fits, the design's own earlier artwork as a reference so the subject
-   stays the same (§7.14). The design's own generated artwork is the only image it ever receives.
+3. **The image model never sees the raw prompt, the host's feedback or the inspiration images.**
+   It receives the art brief and the layout's and shape's composition rules only — plus the event's
+   own generated artwork as a reference in two cases: on a switch to a shape no existing artwork
+   fits, the design's own earlier artwork, so the subject stays the same (§7.14); and on a change to
+   part of a card, the artwork of the card being changed, so everything else stays (§7.7). The
+   event's own generated artwork is the only image it ever receives.
 4. **Brand references follow §7.6:** close homage allowed; never a logo, wordmark, brand or
    character name, or copied campaign artwork.
 5. **Readability always wins.** Code guarantees text contrast over the artwork (§7.9); the artwork
@@ -712,7 +715,7 @@ The question schema and its surface are designed in the generation phase
 
 ### 7.7 Card design
 
-Once Event Identity is valid, the strong model designs one card (`card_design_schema_v2`,
+Once Event Identity is valid, the strong model designs one card (`card_design_schema_v3`,
 `docs/model-contracts.md §5`):
 
 ```ts
@@ -731,8 +734,8 @@ CardDesign {
 
 Inputs: the persisted `EventIdentity`; the event facts present so far (so wording can use the
 host's own names exactly); a suggested rendering drawn at random from those the event has not used
-(§7.6a); on `Try another direction`, the host's optional feedback and a summary of every earlier
-direction for this event.
+(§7.6a); on `Try another direction`, the host's optional feedback, a summary of every earlier
+direction for this event and, when the host says what to change, the card they are changing.
 
 **One central idea.** Every card is built on one idea. Where the identity carries two or more of
 the host's own specifics — a person's passions, a shared story, the character of a place — the
@@ -741,11 +744,26 @@ plays on that idea's subject (never a place or other fact) (owner decisions,
 2026-10-05: a 60th birthday for a father who loves jazz and old maps became one saxophone drawn
 from an antique map, "A Well-Played Journey"). Any rendering can carry the idea.
 
-**One design per round.** `Try another direction` produces a design that is genuinely different
-from every earlier one for this event — a different idea, not a palette or font swap. Code answers
-an exact repeat (same layout, art mode and primary pairing as an earlier direction) with one
-re-prompt; a second repeat is accepted and logged. The evaluation corpus judges whether directions
-*feel* different.
+**One design per round: the change asked for, or a new idea.** Each round of `Try another
+direction` makes one new design. When the host says what to change, the design step judges the
+request (owner decisions, 2026-10-05):
+
+- **A change to part of the card** ("add a little dinosaur", "pink flowers instead of peach") keeps
+  the card — its idea, subject, rendering, layout, shape, art mode, font pairing, title and
+  invitation line, unless the request names one of them — and changes only what was asked. Its
+  artwork is an edit of the card's current artwork, so everything the host did not ask to change
+  stays where it was (§7.6a, §7.8).
+- **A change to the whole look** — the light, the time of day, the overall colour ("make it a
+  starry night", "warmer, golden light") — keeps the same idea and repaints the artwork from the
+  revised brief: an edit keeps the original's tones and comes back too faint.
+- **Anything else** — an empty box, or a request for something new — gets a design that is
+  genuinely different from every earlier one for this event: a different idea, not a palette or
+  font swap. Code answers an exact repeat (same layout, art mode and primary pairing as an earlier
+  direction) with one re-prompt; a second repeat is accepted and logged. The evaluation corpus
+  judges whether directions *feel* different.
+
+The design records which of the three it made. Either way it is a new design: the card it changes
+stays as it was, in the designs list, and stays active until the host chooses the new one.
 
 **Wording rules.** Model-drafted wording — the title and invitation line — may use a name only
 exactly as the host supplied it, and never contains a date, time, place, dress code or other fact.
@@ -914,16 +932,20 @@ modes, ink rules, panels, outlines beyond the six shapes, or any artwork editing
 Available before publish from the reveal and from Creation Mode.
 
 Flow:
-1. optionally say what to change ("more playful", "less preppy");
+1. optionally say what to change ("add a little dinosaur", "make it a starry night", "more
+   playful", "something completely different");
 2. optionally add new private inspiration;
 3. reassure: **your event details stay exactly as they are**;
 4. update/merge Event Identity when the feedback changes the creative brief;
-5. design one new card that is different from every earlier one;
-6. generate its artwork and compile it;
+5. design one new card: the same card with the change asked for, or — when the box is empty or
+   asks for something new — one different from every earlier one (§7.7);
+6. generate its artwork — an edit of the current artwork for a change to part of the card, a fresh
+   painting otherwise — and compile it;
 7. the current active card stays active while the new one is revealed;
 8. the collaborator chooses the new one, keeps the current one, or tries again.
 
-There is no chat-level micro-edit loop.
+There is no chat: each round is one request and one new card, and every card made stays in the
+designs list (owner decision, 2026-10-05).
 
 ### 7.16 Preview
 
@@ -2018,7 +2040,9 @@ CardDesign {
   artAssetIds[],                 // the original; plus one per shape switch no existing artwork fits
   standardWordingSlots[],
   versions /* designPrompt, designSchema, layoutSet, compiler, artPrompt, imageModel */,
-  selectedAt?,
+  refinement /* none | part | whole — a new idea, or the change asked for (§7.7) */,
+  changedFrom?,                  // the design a requested change was made from
+  selectedAt?,                   // when the host last chose it
   createdAt
 }
 
@@ -2340,7 +2364,8 @@ A non-technical owner/co-host can:
 4. optionally fill in details while the card is designed, never required to see it;
 5. receive a persisted Event Identity;
 6. see a card that feels like it read their mind, revealed from its envelope;
-7. try another direction and get a genuinely different card without starting over;
+7. say what to change and get the same card with that change, or ask for a genuinely different
+   one, without starting over;
 8. make the invitation theirs by editing wording and details in place;
 9. complete required setup without a wizard;
 10. understand which items block publish and which are only recommended;
@@ -2362,7 +2387,8 @@ The creative system succeeds when:
 19. no artwork contains text, logos, wordmarks or brand names;
 20. every text of the generated card clears 4.5:1 and fits its zone at every size, and every card
     reads the same for host and guests at every size;
-21. `Try another direction` yields a different idea, not a palette or font swap;
+21. a requested change keeps the card and changes what was asked; a request for a new direction
+    yields a different idea, not a palette or font swap;
 22. historical designs never change because prompts, layouts, the compiler or the image model
     evolve;
 23. Human Test #2 passes its frozen threshold on real generated cards.
@@ -2395,7 +2421,8 @@ The host should feel:
   typography-category guidance.
 - [ ] Event Identity is the only stage that receives the raw host prompt; the card-design call reads
   the persisted identity and the image model reads only the art brief and the layout and shape
-  rules, plus the design's own earlier artwork as a reference on a shape switch (§7.5, §7.6a).
+  rules, plus the event's own artwork as a reference on a shape switch or a change to part of a
+  card (§7.5, §7.6a, §7.7).
 - [ ] Supplied event facts are extracted exactly onto the draft for confirmation, none is invented,
   and Event Identity carries no operational field (§7.5).
 - [ ] Named aesthetic references are captured as the look the host means; close homage to a brand's
@@ -2403,8 +2430,8 @@ The host should feel:
   artwork appears in the art brief, the art prompt, the artwork or model-drafted wording (§7.6).
 - [ ] Each round generates exactly one design.
 - [ ] `Try another direction` passes the host's optional feedback and a summary of every earlier
-  direction; an exact repeat (layout, art mode and primary pairing) earns one re-prompt and is
-  recorded (§7.7).
+  direction; for a new idea, an exact repeat (layout, art mode and primary pairing) earns one
+  re-prompt and is recorded (§7.7).
 - [ ] Explicit tone and colour constraints are respected by every design.
 - [ ] With no creative cue beyond the occasion ("surprise me"), the identity commits to one
   concrete theme a guest could name, built from a randomly drawn theme seed so it varies across
@@ -2519,6 +2546,12 @@ The host should feel:
 ### Try another direction
 - [ ] Available from the reveal and Creation Mode before publish.
 - [ ] Feedback and new inspiration are optional.
+- [ ] A request to change part of the card returns the same card with that change: idea, layout,
+  shape, art mode, pairing and wording kept unless the request names them, and the artwork an edit
+  of the card's current artwork (§7.7).
+- [ ] A request to change the whole light or colour keeps the idea and repaints the artwork; an
+  empty box or a request for something new yields a genuinely different idea (§7.7).
+- [ ] The host's words never reach the image model; the design writes the change into the brief.
 - [ ] UI explicitly reassures that event details remain untouched.
 - [ ] The current design remains active while a new one is revealed.
 - [ ] The user can choose the new one, keep the current one, or try again.
@@ -2629,9 +2662,9 @@ The host should feel:
     wording state them, never infer them.
 16. Artwork contains no text. Never ask the image model to render words, and reject artwork that
     contains them.
-17. The raw host prompt never reaches the image model, and inspiration images are never sent to it;
-    the design's own earlier artwork, as a reference for a shape switch, is the only image it
-    receives.
+17. The raw host prompt and the host's feedback never reach the image model, and inspiration images
+    are never sent to it; the event's own generated artwork, as a reference on a shape switch or a
+    change to part of a card (§7.7), is the only image it receives.
 18. Brand references follow §7.6: close homage is allowed; never a logo, wordmark, brand or
     character name, or copied campaign artwork in a brief, an art prompt, the artwork or
     model-drafted wording.
@@ -2736,7 +2769,9 @@ Intentionally deferred; may become roadmap items:
 - Name lookup reveals minimal party-name existence to someone who can guess.
 - SMS can fail; STOP is not bypassed through email. A party that has opted out cannot verify by SMS
   code on the shared-link path; the host sends it its personal link instead.
-- Generated artwork can miss the brief; `Try another direction` is the remedy, not an image editor.
+- Generated artwork can miss the brief; `Try another direction` is the remedy — a requested change
+  or a new idea — never an image editor in the host's hands. A change made by editing the last
+  change can lose quality over many rounds; measure it.
 - Image-generation latency and cost vary and must be measured.
 - Native product thumbnail may be unavailable and must fall back gracefully.
 - Inspiration links may fail; uploaded screenshots are the reliable visual input.
@@ -2773,7 +2808,7 @@ Deterministic compiler: validate · wording fact check · artwork checks · ink 
 CARD REVEAL — out of its envelope
 "Your invitation looks great. Let's make it real."
     ├── Make it yours
-    └── Try another direction (optional feedback → one new, different card)
+    └── Try another direction (say what to change → the same card changed; or a new idea)
     ↓
 CREATION MODE — the invitation is the workspace
     ├── card wording (edit in place) · font (curated) · shape (six)

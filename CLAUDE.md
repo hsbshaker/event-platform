@@ -36,11 +36,11 @@ Before proposing or implementing a solution, check it against these rules:
 
 - **AI should remove decisions, not create more decisions.** The system makes the design decisions it was hired to make and never *requires* the host to choose a font, a layout or a hex value; the first card is complete. The card editor offers that control to hosts who want it (`spec.md §20`). `docs/product-doctrine.md §7`.
 - **Design quality and creative understanding are core functionality, not polish.** MVP is permission to omit features, never permission for a mediocre card. `docs/product-doctrine.md §2`.
-- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout and shape rules, plus (on a shape switch) the design's own earlier artwork as a reference — never a host upload. `docs/product-doctrine.md §4`.
+- **`EventIdentity` is this product's creative interpreter.** A raw host prompt is never forwarded into a generic website- or image-generation prompt; interpretation happens once, is persisted, and everything downstream reads it. The image model sees only the art brief and the layout and shape rules, plus the event's own generated artwork as a reference on a shape switch or a change to part of a card — never a host upload or the host's words. `docs/product-doctrine.md §4`.
 - The landing page is the prompt.
 - Prompt first → auth/save second → generation third. No model call of any kind for anonymous users.
 - Prompt and inspiration must survive auth/OAuth exactly.
-- **The product makes one invitation card at a time.** `Try another direction` makes one new, genuinely different card and changes design only, never event content/data.
+- **The product makes one invitation card at a time.** `Try another direction` makes one new card and changes design only, never event content/data: the same card with the change the host asked for, or — with nothing asked, or something new — a genuinely different card (`spec.md §7.7`).
 - The card reveal (out of the envelope) leads to `Make it yours` → Creation Mode, not a setup dashboard.
 - **Creation Mode is the invitation itself** — the card and the page beneath it — with contextual `Edit` / `Set up` / `Add` controls.
 - Setup/readiness is not a wizard. Adaptive creative clarification is the one permitted pre-design question: taste only, never logistics, at most three.
@@ -130,8 +130,10 @@ host prompt + inspiration
 → EventIdentity (the only reader of the raw prompt; optional taste clarification)
    ∥ fact extraction (cheaper model) → draft details for the host to confirm
 → CardDesign (shape of six, layout from catalog, art mode, pairing + alternates, wording, art brief)
-→ strict schema + catalog validation · wording fact check · direction distinctness   (one re-prompt each)
+   (Try another direction: the change the host asked for — to part of the card, or the whole look — or a new idea)
+→ strict schema + catalog validation · wording fact check · direction distinctness for a new idea   (one re-prompt each)
 → art prompt assembled by code (brief + layout and shape rules + global rules) → image model → artwork
+   (a change to part of a card: an edit of that card's artwork)
 → artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety,
    no person in photographic, editorial, 3D or collage artwork   (one regeneration)
 → ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
@@ -143,7 +145,7 @@ host prompt + inspiration
 
 Do not:
 - let a model choose a text colour, a size, a position or a line break, or write a fact;
-- put text, logos, wordmarks or brand names in artwork, or send the raw prompt or inspiration images to the image model (the design's own earlier artwork, as a shape-switch reference, is the only image it may receive);
+- put text, logos, wordmarks or brand names in artwork, or send the raw prompt, the host's feedback or inspiration images to the image model (the event's own generated artwork, as a reference on a shape switch or a change to part of a card, is the only image it may receive);
 - add a layout, art mode, shape or slot limit without a layout-set version bump and a fixture run;
 - let a model draw or position the card's outline, or offer the host a shape the design's layout does not support;
 - let the browser re-wrap card text, or truncate any card text silently;

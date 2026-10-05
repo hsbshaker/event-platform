@@ -184,7 +184,7 @@ size, position — do so freely, by touch or mouse. The first card is still comp
 host who never opens the editor has made no design decision, and the editor never opens by
 itself, nags or asks.
 
-## 8. One card, and another direction that is really another direction
+## 8. One card: the change asked for, or another direction that is really another direction
 
 The host sees **one card at a time**. That puts the whole creative burden on the first card being
 right — which is the point: the product promises to read the host's mind, not to hand them a
@@ -195,6 +195,13 @@ could defend from the same brief**, not the same card in a new palette or a new 
 heritage/preppy baby shower, *Heirloom Teddy*, *Equestrian Nursery* and *Heritage Storybook* are
 three directions; one illustration in navy, then in green, then in tan is one direction three
 times. Code rejects exact repeats; the evaluation corpus judges whether directions *feel* different.
+
+A host who mostly loves the card should not have to gamble it to fix one thing. When they say what
+to change — *add a little dinosaur*, *pink flowers instead of peach*, *make it a starry night* —
+the next card is **their card with that change**: same idea, same words, same layout, and for a
+change to part of the card the same picture, edited (owner decision, 2026-10-05; `spec.md §7.7`).
+A new direction is for when they want a new idea, or say nothing. Either way it is one request and
+one card, not a chat.
 
 ## 8a. The generation experience
 

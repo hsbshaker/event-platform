@@ -17,7 +17,9 @@
  * - the database: `stale` (a dead worker taken over by `start_generation`), `published`
  *   (`heartbeat_generation` after a publish);
  * - the wait surface's read (`status.server.ts`): `stopped` (a worker past its lifetime);
- * - refused starts (`start_generation` outcomes, no generation row): `event_cap`, `host_cap`.
+ * - refused starts (`start_generation` outcomes, no generation row): `event_cap`, `host_cap`, and
+ *   `no_design` (another direction asked for before the event has a card); and `busy`
+ *   (`startAnotherDirection`: another card for the event is being made, `spec.md §10`).
  */
 
 export const GENERATION_FAILURE_CODES = [
@@ -37,6 +39,8 @@ export const GENERATION_FAILURE_CODES = [
   "stopped",
   "event_cap",
   "host_cap",
+  "no_design",
+  "busy",
 ] as const;
 
 export type GenerationFailureCode = (typeof GENERATION_FAILURE_CODES)[number];
@@ -115,6 +119,16 @@ const COPY: Readonly<Record<GenerationFailureCode, Copy>> = {
   stopped: STOPPED_PARTWAY,
   event_cap: COME_BACK_TOMORROW,
   host_cap: COME_BACK_TOMORROW,
+  no_design: {
+    title: "There's no card to change yet",
+    body: "Your first card isn't ready yet. Once it is, you can change it or try a new idea.",
+    retry: false,
+  },
+  busy: {
+    title: "Another card is being made",
+    body: "We make one card at a time for an event, and one is on its way. Once it's ready, try again and we'll make yours.",
+    retry: true,
+  },
 };
 
 function isKnown(code: string): code is GenerationFailureCode {

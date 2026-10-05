@@ -109,7 +109,7 @@ Available before publish, from the reveal and from Creation Mode (§7.15).
 
 1. Optionally say what to change; optionally add private inspiration.
 2. Reassurance: **your event details stay exactly as they are.**
-3. One new card, different from every earlier one, is generated; the current active card stays active.
+3. One new card is generated; the current active card stays active. A change to part of the card ("add a little dinosaur") comes back as the same card with that change, its picture edited; a change to the whole look ("make it a starry night") keeps the idea and repaints; an empty box or a request for something new gets a card different from every earlier one (`spec.md §7.7`).
 4. The new card is revealed from its envelope. The collaborator chooses it, keeps the current one, or tries again.
 
 The loop repeats without restarting onboarding. All designs generated so far remain browsable before publish (H14). No credits or counters are shown (§10).

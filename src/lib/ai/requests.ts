@@ -6,8 +6,9 @@
  *
  * Boundaries held here (spec.md §32):
  * - #17: the image request is built only from the validated art brief, art mode, layout and shape
- *   (`assembleArtPrompt`); it has no field that could carry the host's prompt or an inspiration
- *   image, and its only image input is the design's own earlier artwork, on a shape switch.
+ *   (`assembleArtPrompt`); it has no field that could carry the host's prompt, feedback or an
+ *   inspiration image, and its only image input is the event's own generated artwork: the design's
+ *   earlier artwork on a shape switch, or the changed card's on a change to part of a card.
  * - §7.5: the host's raw prompt goes only to Event Identity and fact extraction; the card-design
  *   call reads the identity and the facts.
  * - Host content is passed as delimited JSON data, never interpolated into instructions (§8).
@@ -19,6 +20,7 @@ import {
   ART_MODE_DESCRIPTION,
   ART_RASTER_SIZE,
   assembleArtPrompt,
+  assembleRevisionPrompt,
   assembleShapeSwitchPrompt,
   withRepaintComposition,
 } from "@/lib/card/art-prompt";
@@ -210,7 +212,11 @@ export function cardDesignRuntimeCatalog(identity: EventIdentity) {
   };
 }
 
-/** Card Design (`card_design_v3`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. */
+/**
+ * Card Design (`card_design_v4`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. On
+ * `Try another direction` it carries the host's feedback and, with it, the card being changed
+ * (`changing`), both as data.
+ */
 export function cardDesignRequest(
   instructions: string,
   input: GenerateCardDesignInput,
@@ -222,6 +228,7 @@ export function cardDesignRequest(
     ...(input.suggestedRendering ? { suggestedRendering: input.suggestedRendering } : {}),
     ...(input.previousDirections?.length ? { previousDirections: input.previousDirections } : {}),
     ...(input.feedback ? { feedback: input.feedback } : {}),
+    ...(input.changing ? { changing: input.changing } : {}),
     ...(input.reprompt ? { reprompt: input.reprompt } : {}),
   };
   return structuredRequest({
@@ -251,7 +258,10 @@ export function artworkInspectionRequest(art: CardArt): StructuredRequest {
   });
 }
 
-/** An image request: generations for a new artwork, edits with the reference on a shape switch. */
+/**
+ * An image request: generations for a new artwork; edits with the reference on a shape switch or a
+ * change to part of a card.
+ */
 export interface ArtRequest {
   endpoint: "images/generations" | "images/edits";
   model: string;
@@ -260,14 +270,16 @@ export interface ArtRequest {
   quality: string;
   output_format: "png";
   background: "opaque";
-  /** The design's own earlier artwork; on `images/edits` only. */
+  /** The event's own generated artwork (`GenerateCardArtInput.reference`); on `images/edits` only. */
   reference?: CardArt;
 }
 
 /**
- * `card_art_v4` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
+ * `card_art_v5` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
  * full bleed, Sunburst `high` (`docs/technology-decisions.md §8.1`). The prompt is assembled by
- * code (`src/lib/card/art-prompt.ts`); with a reference it is the shape-switch prompt.
+ * code (`src/lib/card/art-prompt.ts`); with a reference it is the revision prompt when `revision`
+ * is set (a change to part of a card), else the shape-switch prompt. A repaint keeps the reference
+ * and the framing, and adds the composition line.
  */
 export function cardArtRequest(input: GenerateCardArtInput): ArtRequest {
   const design = {
@@ -289,10 +301,16 @@ export function cardArtRequest(input: GenerateCardArtInput): ArtRequest {
     return {
       endpoint: "images/edits",
       ...base,
-      prompt: repaint(assembleShapeSwitchPrompt(design, input.shape)),
+      prompt: repaint(
+        input.revision
+          ? assembleRevisionPrompt(design)
+          : assembleShapeSwitchPrompt(design, input.shape),
+      ),
       reference: input.reference,
     };
   }
+  // A revision without its reference would be a fresh painting under the wrong name.
+  if (input.revision) throw new Error("cardArtRequest: a revision needs its reference artwork");
   return { endpoint: "images/generations", ...base, prompt: repaint(assembleArtPrompt(design)) };
 }
 

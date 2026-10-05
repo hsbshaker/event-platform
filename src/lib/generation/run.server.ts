@@ -7,7 +7,13 @@ import { eventIdentitySchema } from "@/lib/ai/event-identity";
 import type { EventIdentity } from "@/lib/ai/event-identity";
 import { MODELS } from "@/lib/ai/models";
 import { getAiProvider } from "@/lib/ai/provider";
-import type { AiProvider, GenerateEventIdentityInput } from "@/lib/ai/provider";
+import type {
+  AiProvider,
+  CardArt,
+  ChangingCard,
+  GenerateEventIdentityInput,
+  PreviousDirection,
+} from "@/lib/ai/provider";
 import {
   CARD_ART_PROMPT_VERSION,
   CARD_COMPILER_VERSION,
@@ -17,13 +23,23 @@ import {
   EVENT_IDENTITY_PROMPT_VERSION,
   EVENT_IDENTITY_SCHEMA_VERSION,
 } from "@/lib/ai/versions";
+import type { ArtMode } from "@/lib/card/art-modes";
+import { ART_MODES } from "@/lib/card/art-modes";
+import type { CardDesign, Refinement } from "@/lib/card/design";
 import { cardContent, effectiveCardTitle, parsePromptFacts } from "@/lib/card/facts";
+import { CARD_LAYOUT_IDS } from "@/lib/card/layouts";
+import type { CardLayoutId } from "@/lib/card/layouts";
 import { revealContentFor } from "@/lib/card/reveal-content.server";
-import { suggestRendering } from "@/lib/card/renderings";
+import { RENDERINGS, suggestRendering } from "@/lib/card/renderings";
+import type { Rendering } from "@/lib/card/renderings";
+import { CARD_SHAPES } from "@/lib/card/shapes";
+import type { CardShape } from "@/lib/card/shapes";
+import { TYPOGRAPHY_KEYS } from "@/lib/card/typography";
+import type { TypographyPairingId } from "@/lib/card/typography";
 import type { CardContent } from "@/lib/card/text-box";
 import { INSPIRATION_BUCKET, sniffImageType } from "@/lib/drafts/inspiration";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Json } from "@/lib/supabase/database.types";
+import type { GenerationKind, Json } from "@/lib/supabase/database.types";
 
 import { runArtworkStage } from "./artwork.server";
 import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.server";
@@ -45,7 +61,8 @@ import type { StageContext } from "./stage";
  * `src/app/actions/generation.ts`; `docs/technology-decisions.md §8.1`, "Generation execution";
  * `spec.md §7.3`–§7.11, §9.4, §9.5; `docs/card-system.md §3`).
  *
- * Kind `initial` only; another direction and shape switches are Phase 5d.
+ * Kinds `initial` (the first card) and `another_direction` (`spec.md §7.7`, §7.15: the change the
+ * host asks for, or a new idea; see "Another direction" below). Shape switches are not built yet.
  *
  * 1. **Load** the event and, when the event has no identity yet, its inspiration (PNG, JPEG and
  *    WEBP only: the provider takes no HEIC/HEIF, so those are skipped and counted).
@@ -72,6 +89,27 @@ import type { StageContext } from "./stage";
  * call outlives the function. Every write goes through a function that writes only while the
  * generation is running: a worker taken over as stale, failed, or overtaken by a publish writes
  * nothing more.
+ *
+ * **Another direction** (`spec.md §7.7`, §7.15; `docs/model-contracts.md §5.1`, §7.2): the
+ * generation names the design the host was looking at (`from_design_id`) and, when they typed
+ * one, their feedback — host content, read here and sent only to the identity revision and the
+ * design call as data, never to the image model (`spec.md §32 #17`).
+ * - Identity: with feedback, a new revision of the identity the changed card was made from
+ *   (`redesignFeedback`, `previousIdentity`; no fact extraction, no inspiration, and no theme seed:
+ *   a revision is steered by the host's words, so it never draws one); without, the latest
+ *   identity, reused.
+ * - Design: with the feedback, every earlier design as `previousDirections`, a rendering drawn from
+ *   those the event has not used, and — with feedback — `changing`, the card being changed in the
+ *   shape the host saw it (the active design in its active shape, any other in its own). The design
+ *   reports `refinement`; distinctness applies to a new idea only.
+ * - Artwork: a change to part of the card (`part`) is an edit of the artwork the host saw (the
+ *   newest of the changed design's artworks that fits that shape), with `revision`, and its repaints
+ *   stay edits — but only when the new design kept that card's shape, layout and art mode, and was
+ *   not re-prompted after a provider refusal; otherwise it is painted fresh and the downgrade is
+ *   recorded (`refinementDowngraded`). `whole` and `none` are painted fresh.
+ * - Persist: with `refinement` and `changed_from`; the new design is not made active (the current
+ *   card stays active until the host chooses, `chooseDesign`).
+ * Ink, repaints, validation and the provider-refusal step-back are the first card's.
  *
  * Failures end the generation with `fail_generation`, which touches only a running generation: a
  * stage's code (`GenerationStageError`), a meter refusal's reason (`ModelCallRefusedError`), or
@@ -128,6 +166,12 @@ export type RunGenerationOutcome =
   /** It was no longer running (or its event was published): nothing more was written. */
   | { status: "stopped" };
 
+/** The generation kinds this orchestration runs. */
+export const SUPPORTED_GENERATION_KINDS: readonly GenerationKind[] = [
+  "initial",
+  "another_direction",
+];
+
 export class GenerationKindNotSupportedError extends Error {
   constructor(readonly kind: string) {
     super(`Generation kind ${kind} is not yet supported.`);
@@ -180,9 +224,24 @@ export interface GenerationTelemetry {
   /** The rendering drawn for this generation's design (`suggestRendering`). */
   suggestedRendering: string;
   /** The accepted design's rendering is the suggested one. */
-  followedSuggestion: boolean;
-  /** The theme seed given to a new identity (`drawThemeSeed`); null when the identity was reused. */
+  /** Whether a new idea followed the suggested rendering; null for a requested change, which keeps the card's own. */
+  followedSuggestion: boolean | null;
+  /**
+   * The theme seed given to a new identity (`drawThemeSeed`); null when the identity was reused or
+   * revised (another direction never draws one).
+   */
   themeSeed: string | null;
+  /** The generation's kind. */
+  kind: GenerationKind;
+  /** What the accepted design made (`card_design_schema_v3`); `none` for every first card. */
+  refinement: Refinement;
+  /**
+   * A change to part of a card was painted fresh instead of as an edit: the design changed the
+   * card's shape, layout or art mode, or it was re-prompted after a provider refusal.
+   */
+  refinementDowngraded: boolean;
+  /** The kept artwork is an edit of the changed card's artwork (`card_art_v5` revision). */
+  artworkEdit: boolean;
 }
 
 interface EventRow {
@@ -333,6 +392,8 @@ export function failureTelemetry(error: unknown, code: string): Json {
         rendering?: unknown;
         followedSuggestion?: unknown;
         themeSeed?: unknown;
+        refinement?: unknown;
+        refinementDowngraded?: unknown;
       }
     | undefined;
   if (typeof details?.imagesRequested === "number") {
@@ -345,6 +406,11 @@ export function failureTelemetry(error: unknown, code: string): Json {
   if (typeof details?.themeSeed === "string") failure.themeSeed = details.themeSeed;
   if (typeof details?.followedSuggestion === "boolean") {
     failure.followedSuggestion = details.followedSuggestion;
+  }
+  // What the design made (another direction), and whether its edit was painted fresh instead.
+  if (typeof details?.refinement === "string") failure.refinement = details.refinement;
+  if (typeof details?.refinementDowngraded === "boolean") {
+    failure.refinementDowngraded = details.refinementDowngraded;
   }
   if (Array.isArray(details?.validationFailures) && details.validationFailures.length > 0) {
     failure.validationFailures = details.validationFailures.map((f) => ({
@@ -414,7 +480,7 @@ export async function runGeneration(
 
   const { data: generation, error: readError } = await admin
     .from("generations")
-    .select("id, kind, status, requested_by")
+    .select("id, kind, status, requested_by, feedback, from_design_id")
     .eq("id", generationId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -427,7 +493,7 @@ export async function runGeneration(
     return { status: "failed", code: "internal" };
   }
   if (!generation || generation.status !== "running") return { status: "stopped" };
-  if (generation.kind !== "initial") {
+  if (!SUPPORTED_GENERATION_KINDS.includes(generation.kind)) {
     await fail("unsupported_kind");
     throw new GenerationKindNotSupportedError(generation.kind);
   }
@@ -436,8 +502,19 @@ export async function runGeneration(
     if (generation.requested_by !== userId) {
       throw new Error("The generation was started by another member.");
     }
+    let direction: Direction | null = null;
+    if (generation.kind === "another_direction") {
+      // start_generation requires the design; a row without one is not a request this can serve.
+      if (!generation.from_design_id) throw new Error("Another direction names no design.");
+      direction = {
+        fromDesignId: generation.from_design_id,
+        feedback: generation.feedback?.trim() ? generation.feedback.trim() : null,
+      };
+    }
     return await pipeline({
       ...input,
+      kind: generation.kind,
+      direction,
       admin,
       provider: deps.provider ?? getAiProvider(),
       now,
@@ -458,7 +535,17 @@ export async function runGeneration(
   }
 }
 
+/** What an `another_direction` generation was asked (`generations.from_design_id`, `feedback`). */
+interface Direction {
+  fromDesignId: string;
+  /** The host's words, or null for an empty box. Host content: never sent to the image model. */
+  feedback: string | null;
+}
+
 interface PipelineInput extends RunGenerationInput {
+  kind: GenerationKind;
+  /** Another direction's request; null for the first card. */
+  direction: Direction | null;
   admin: AdminClient;
   provider: AiProvider;
   now: () => number;
@@ -467,7 +554,8 @@ interface PipelineInput extends RunGenerationInput {
 }
 
 async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
-  const { admin, provider, now, random, generationId, eventId, userId, startedAt } = input;
+  const { admin, provider, now, random, generationId, eventId, userId, startedAt, direction } =
+    input;
   const ctx: StageContext = {
     provider,
     meter: {
@@ -494,7 +582,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   const { data: event, error: eventError } = await admin
     .from("events")
     .select(
-      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time",
+      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time, prompt_facts, active_card_design_id, active_card_shape",
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -510,13 +598,27 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     .maybeSingle();
   if (identityError) throw identityError;
 
+  // Another direction: every earlier design, and the one the host was looking at.
+  const earlier = direction ? await earlierDesigns(admin, eventId) : [];
+  const from = direction ? earlier.find((d) => d.id === direction.fromDesignId) : undefined;
+  if (direction && !from) throw new Error("The design to change was not found.");
+  // The shape the host saw the card in: the active design in its active shape, any other in its
+  // own (the rule `loadRevealedCard` draws by).
+  const seenShape: CardShape | null = from
+    ? from.id === event.active_card_design_id
+      ? ((event.active_card_shape as CardShape | null) ?? from.design.shape)
+      : from.design.shape
+    : null;
+
   // ------------------------------------------------------------------ 2. identity
   let identity: EventIdentity;
   let identityRevision: number;
   let identityMs: number | null = null;
   let identityValidFirstCall: boolean | null = null;
+  let identityReused = latest !== null;
   // A starting point for the theme if the host left the look to us (owner decision, 2026-10-05):
-  // drawn only for a new identity, which ignores it whenever the host gave a creative cue.
+  // drawn only for a new identity, which ignores it whenever the host gave a creative cue. Never
+  // for another direction: its revision is steered by the host's words (Phase 5d decision).
   let themeSeed: string | null = null;
   let extraction: string | null = null;
   let inspirationSkipped = 0;
@@ -525,7 +627,53 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   // Try again after the image provider refused the homage takes the same step back (spec.md §7.6).
   let stepBack = false;
 
-  if (!latest) {
+  if (direction && from) {
+    if (!latest) throw new Error("Another direction needs the event's identity.");
+    // The event type in the host's own words, kept on the event with the first identity.
+    statedEventType = factString(event.prompt_facts, "eventType");
+    // A Try again of the same request (same card, same words) after a failure: it takes the same
+    // step back after a provider refusal (spec.md §7.6) and reuses the identity that request
+    // already revised, rather than interpreting the words a second time. Any other request is new.
+    const retryOf = await sameRequestFailedBefore(admin, eventId, generationId, direction);
+    stepBack = retryOf?.error_code === "provider_refusal";
+    const facts = event.prompt_facts ?? null;
+    if (direction.feedback && retryOf && latest.generation_id === retryOf.id) {
+      identity = parseIdentity(latest.identity);
+      identityRevision = latest.revision;
+      await recordStage("identity", { identity: identityArtifacts(identity), facts });
+    } else if (direction.feedback) {
+      // The feedback revises the identity the changed card was made from (spec.md §7.15 step 4).
+      const previous = await identityAt(admin, eventId, from.identityRevision);
+      const begun = now();
+      const result = await runIdentityStage(ctx, {
+        prompt: event.prompt,
+        redesignFeedback: direction.feedback,
+        previousIdentity: previous,
+        extractFacts: false,
+      });
+      identityMs = now() - begun;
+      identity = result.identity;
+      identityValidFirstCall = result.identityValidFirstCall;
+      identityReused = false;
+      extraction = result.extraction;
+      const { data: revision, error } = await admin.rpc("record_event_identity", {
+        p_generation_id: generationId,
+        p_event_id: eventId,
+        p_identity: result.identity as unknown as Json,
+        p_raw: result.identityRaw,
+        p_prompt_version: EVENT_IDENTITY_PROMPT_VERSION,
+        p_schema_version: EVENT_IDENTITY_SCHEMA_VERSION,
+      });
+      if (error) throw error;
+      if (typeof revision !== "number") throw new GenerationStoppedError("persisting the identity");
+      identityRevision = revision;
+      await recordStage("identity", { identity: result.artifacts, facts });
+    } else {
+      identity = parseIdentity(latest.identity);
+      identityRevision = latest.revision;
+      await recordStage("identity", { identity: identityArtifacts(identity), facts });
+    }
+  } else if (!latest) {
     const loaded = await loadInspiration(admin, eventId);
     inspirationSkipped = loaded.skipped;
     themeSeed = drawThemeSeed(random);
@@ -564,16 +712,14 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     });
   } else {
     // A retry after a failure: the identity is never interpreted twice (spec.md §7.5).
-    const parsed = eventIdentitySchema.safeParse(latest.identity);
-    if (!parsed.success) throw new Error("The persisted Event Identity does not validate.");
-    identity = parsed.data;
+    identity = parseIdentity(latest.identity);
     identityRevision = latest.revision;
-    const earlier = await earlierFacts(admin, eventId, latest.generation_id);
-    statedEventType = factString(earlier.facts, "eventType");
-    stepBack = await refusedBefore(admin, eventId, generationId);
+    const earlierFactsOf = await earlierFacts(admin, eventId, latest.generation_id);
+    statedEventType = factString(earlierFactsOf.facts, "eventType");
+    stepBack = await refusedBefore(admin, eventId, generationId, "initial");
     await recordStage("identity", {
       identity: identityArtifacts(identity),
-      ...earlier,
+      ...earlierFactsOf,
     });
   }
 
@@ -583,7 +729,24 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   // Active variation (owner decision): a rendering drawn at random from those this event's earlier
   // directions have not used — none for an initial generation — that the design follows unless
   // the identity strongly points elsewhere. A provider-refusal re-prompt keeps the same suggestion.
-  const suggestedRendering = suggestRendering(random, []);
+  const previousDirections = earlier.flatMap((d) => (d.direction ? [d.direction] : []));
+  const suggestedRendering = suggestRendering(
+    random,
+    previousDirections.map((d) => d.rendering),
+  );
+  // With feedback, the card the host is changing, as they saw it (model-contracts §5.2).
+  const changing: ChangingCard | undefined =
+    from && seenShape && direction?.feedback
+      ? {
+          name: from.name,
+          shape: seenShape,
+          layout: from.design.layout,
+          artMode: from.design.artMode,
+          primary: from.design.primary,
+          wording: from.design.wording,
+          artBrief: from.design.artBrief,
+        }
+      : undefined;
   let designMs = 0;
   let artMs = 0;
   const design = async (providerRefusal?: { feedback: string }) => {
@@ -592,6 +755,9 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
       identity,
       eventFacts,
       suggestedRendering,
+      ...(previousDirections.length ? { previousDirections } : {}),
+      ...(direction?.feedback ? { feedback: direction.feedback } : {}),
+      ...(changing ? { changing } : {}),
       ...(providerRefusal ? { providerRefusal } : {}),
     });
     designMs += now() - begun;
@@ -599,10 +765,41 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     await recordStage("design", { design: result.artifacts });
     return result;
   };
+
+  // A change to part of the card edits the artwork the host saw, if the design kept that card's
+  // shape, layout and art mode (the edit is of that picture) and was not re-prompted after a
+  // provider refusal (the edit would keep what the provider refused). Otherwise it is painted fresh.
+  let refinementDowngraded = false;
+  let artworkEdit = false;
+  let seenArtwork: CardArt | null = null;
+  const editReference = async (
+    chosen: DesignStageResult,
+    afterProviderRefusal: boolean,
+  ): Promise<CardArt | null> => {
+    artworkEdit = false;
+    refinementDowngraded = false;
+    if (chosen.design.refinement !== "part" || !changing || !from) return null;
+    const d = chosen.design;
+    if (
+      afterProviderRefusal ||
+      d.shape !== changing.shape ||
+      d.layout !== changing.layout ||
+      d.artMode !== changing.artMode
+    ) {
+      refinementDowngraded = true;
+      return null;
+    }
+    seenArtwork ??= await loadArtwork(admin, eventId, from.id, changing.shape);
+    artworkEdit = true;
+    return seenArtwork;
+  };
+
   const artwork = async (
     chosen: DesignStageResult,
+    afterProviderRefusal: boolean,
     afterRefusal?: { imagesRequested: number },
   ): Promise<ArtworkStageResult> => {
+    const reference = await editReference(chosen, afterProviderRefusal);
     // The ink is judged behind the words the card shows once it is revealed, from the event as it
     // is now: the host may have confirmed details during the wait.
     const content = await revealContent(
@@ -616,6 +813,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
         design: chosen.design,
         shape: chosen.design.shape,
         content,
+        ...(reference ? { reference, revision: true } : {}),
         ...(afterRefusal ? { afterRefusal } : {}),
       });
     } finally {
@@ -632,7 +830,11 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     ...(current
       ? {
           rendering: current.design.artBrief.rendering,
-          followedSuggestion: current.design.artBrief.rendering === suggestedRendering,
+          followedSuggestion:
+            current.design.refinement === "none"
+              ? current.design.artBrief.rendering === suggestedRendering
+              : null,
+          ...(direction ? { refinement: current.design.refinement, refinementDowngraded } : {}),
         }
       : {}),
   });
@@ -648,13 +850,13 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
       providerRefusal = true;
       await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE, design: null });
       chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
-      art = await artwork(chosen);
+      art = await artwork(chosen, true);
     } else {
       chosen = current = await design();
 
       // -------------------------------------------------------------- 4. artwork
       try {
-        art = await artwork(chosen);
+        art = await artwork(chosen, false);
       } catch (error) {
         // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
         // §9); a refusal after a failed first image is the second failure, and visible.
@@ -664,7 +866,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
         providerRefusal = true;
         await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE, design: null });
         chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
-        art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+        art = await artwork(chosen, true, { imagesRequested: error.imagesRequested });
       }
     }
   } catch (error) {
@@ -692,7 +894,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     },
     latency: { identityMs, designMs, artMs, totalMs: now() - startedAt },
     identityValidFirstCall,
-    identityReused: latest !== null,
+    identityReused,
     extraction,
     inspirationSkipped,
     droppedFacts,
@@ -701,8 +903,15 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     lineAreasFallback: art.telemetry.lineAreasFallback,
     providerRefusal,
     suggestedRendering,
-    followedSuggestion: chosen.design.artBrief.rendering === suggestedRendering,
+    followedSuggestion:
+      chosen.design.refinement === "none"
+        ? chosen.design.artBrief.rendering === suggestedRendering
+        : null,
     themeSeed,
+    kind: input.kind,
+    refinement: chosen.design.refinement,
+    refinementDowngraded,
+    artworkEdit,
   };
 
   const storageKey = `${eventId}/${generationId}/${randomUUID()}.png`;
@@ -747,6 +956,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     p_image_model: MODELS.image,
     p_art_prompt_version: CARD_ART_PROMPT_VERSION,
     p_telemetry: telemetry as unknown as Json,
+    p_refinement: d.refinement,
+    ...(direction ? { p_changed_from: direction.fromDesignId } : {}),
   });
   const row = persisted.error ? undefined : persisted.data?.[0];
   if (!row) {
@@ -860,21 +1071,50 @@ function factString(facts: Json, field: string): string | null {
 }
 
 /**
- * The event's previous first-card generation failed because the image provider refused its
+ * The event's previous generation of the same kind failed because the image provider refused its
  * artwork (`provider_refusal`): the host's Try again then takes the same step back (`spec.md
- * §7.6`, §31). Only a retry reaches this — the refused generation had already recorded the
- * identity — and only one first card runs at a time, so the previous one is the newest other.
+ * §7.6`, §31). For a first card only a retry reaches this — the refused generation had already
+ * recorded the identity. Only one generation runs at a time, so the previous one of the kind is
+ * the newest other.
  */
+/**
+ * The event's previous another-direction generation when it failed and asked the same thing as
+ * this one — the same card to change and the same words — else null: this one is the host's Try
+ * again of it (§31: "a second refusal is a visible failure whose Try again takes the same step
+ * back"). A different card or different words is a new request, never treated as a retry.
+ */
+async function sameRequestFailedBefore(
+  admin: AdminClient,
+  eventId: string,
+  generationId: string,
+  direction: { fromDesignId: string; feedback: string | null | undefined },
+): Promise<{ id: string; error_code: string | null } | null> {
+  const { data, error } = await admin
+    .from("generations")
+    .select("id, status, error_code, from_design_id, feedback")
+    .eq("event_id", eventId)
+    .eq("kind", "another_direction")
+    .order("started_at", { ascending: false })
+    .limit(2);
+  if (error) throw error;
+  const previous = (data ?? []).find((row) => row.id !== generationId);
+  if (!previous || previous.status !== "failed") return null;
+  const sameCard = previous.from_design_id === direction.fromDesignId;
+  const sameWords = (previous.feedback?.trim() || null) === (direction.feedback?.trim() || null);
+  return sameCard && sameWords ? { id: previous.id, error_code: previous.error_code } : null;
+}
+
 async function refusedBefore(
   admin: AdminClient,
   eventId: string,
   generationId: string,
+  kind: GenerationKind,
 ): Promise<boolean> {
   const { data, error } = await admin
     .from("generations")
     .select("id, status, error_code")
     .eq("event_id", eventId)
-    .eq("kind", "initial")
+    .eq("kind", kind)
     .order("started_at", { ascending: false })
     .limit(2);
   if (error) throw error;
@@ -906,4 +1146,149 @@ async function earlierFacts(
     facts: artifacts.facts ?? null,
     droppedFacts: artifacts.droppedFacts ?? [],
   };
+}
+
+/** The persisted identity, validated; a stored identity that does not validate is a bug. */
+function parseIdentity(stored: Json): EventIdentity {
+  const parsed = eventIdentitySchema.safeParse(stored);
+  if (!parsed.success) throw new Error("The persisted Event Identity does not validate.");
+  return parsed.data;
+}
+
+/** The identity revision a design was made from (`card_designs.identity_revision`). */
+async function identityAt(
+  admin: AdminClient,
+  eventId: string,
+  revision: number,
+): Promise<EventIdentity> {
+  const { data, error } = await admin
+    .from("event_identities")
+    .select("revision, identity")
+    .eq("event_id", eventId)
+    .eq("revision", revision)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("The changed design's identity revision was not found.");
+  return parseIdentity(data.identity);
+}
+
+/** An earlier design of the event, as another direction reads it. */
+interface EarlierDesign {
+  id: string;
+  name: string;
+  identityRevision: number;
+  /** What `changing` carries (`ChangingCard`), less the shape the host saw it in. */
+  design: {
+    shape: CardShape;
+    layout: CardLayoutId;
+    artMode: ArtMode;
+    primary: TypographyPairingId;
+    wording: { title: string; invitationLine: string };
+    artBrief: CardDesign["artBrief"];
+  };
+  /**
+   * The design as `previousDirections` names it (model-contracts §5.2); null for a design from
+   * before rendering families (`card_design_schema_v2`), whose brief has no rendering to summarise.
+   */
+  direction: PreviousDirection | null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Every design of the event, oldest round first, read back as the design call needs it. The rows
+ * are the server's own validated output. A design from before rendering families stays readable —
+ * it can still be the card the host changes — but is left out of the earlier directions, having
+ * no rendering to summarise. One this cannot read at all (a catalog id since retired) is left out
+ * entirely: the generation then fails if it was the card to change, rather than describing it
+ * wrongly.
+ */
+async function earlierDesigns(admin: AdminClient, eventId: string): Promise<EarlierDesign[]> {
+  const { data, error } = await admin
+    .from("card_designs")
+    .select(
+      "id, round, name, shape, layout, art_mode, typography, wording, art_brief, identity_revision",
+    )
+    .eq("event_id", eventId)
+    .order("round", { ascending: true });
+  if (error) throw error;
+  const readable = (data ?? []).flatMap((row): EarlierDesign[] => {
+    const typography = isRecord(row.typography) ? row.typography : {};
+    const wording = isRecord(row.wording) ? row.wording : {};
+    const brief = isRecord(row.art_brief) ? row.art_brief : {};
+    const primary = typography.primary;
+    if (
+      !CARD_SHAPES.includes(row.shape) ||
+      !CARD_LAYOUT_IDS.includes(row.layout) ||
+      !ART_MODES.includes(row.art_mode) ||
+      typeof primary !== "string" ||
+      !(TYPOGRAPHY_KEYS as readonly string[]).includes(primary) ||
+      typeof wording.title !== "string" ||
+      typeof wording.invitationLine !== "string" ||
+      typeof brief.subject !== "string"
+    ) {
+      return [];
+    }
+    const artBrief = brief as unknown as CardDesign["artBrief"];
+    const summarisable =
+      typeof brief.aesthetic === "string" &&
+      (RENDERINGS as readonly unknown[]).includes(brief.rendering);
+    const design: EarlierDesign = {
+      id: row.id,
+      name: row.name,
+      identityRevision: row.identity_revision,
+      design: {
+        shape: row.shape,
+        layout: row.layout,
+        artMode: row.art_mode,
+        primary: primary as TypographyPairingId,
+        wording: { title: wording.title, invitationLine: wording.invitationLine },
+        artBrief,
+      },
+      direction: summarisable
+        ? {
+            name: row.name,
+            layout: row.layout,
+            artMode: row.art_mode,
+            primary: primary as TypographyPairingId,
+            subject: artBrief.subject,
+            rendering: artBrief.rendering as Rendering,
+            aesthetic: artBrief.aesthetic,
+          }
+        : null,
+    };
+    return [design];
+  });
+  return readable;
+}
+
+/**
+ * The artwork the host saw for a design in a shape: the newest of the design's artworks that fits
+ * it (the rule beside `card_art_assets`, as `loadRevealedCard` draws it), read from the private
+ * bucket. It is the event's own generated artwork — the only image the image model may receive
+ * (`spec.md §7.6a` rule 3).
+ */
+async function loadArtwork(
+  admin: AdminClient,
+  eventId: string,
+  designId: string,
+  shape: CardShape,
+): Promise<CardArt> {
+  const { data, error } = await admin
+    .from("card_art_assets")
+    .select("storage_key, mime_type, fits_shapes, created_at")
+    .eq("card_design_id", designId)
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const asset = (data ?? []).find((a) => a.fits_shapes.includes(shape));
+  if (!asset) throw new Error(`The changed design has no artwork for the ${shape} card.`);
+  const { data: blob, error: downloadError } = await admin.storage
+    .from(CARD_ART_BUCKET)
+    .download(asset.storage_key);
+  if (downloadError) throw downloadError;
+  if (!blob) throw new Error("The changed card's artwork could not be read.");
+  return { mimeType: asset.mime_type, bytes: new Uint8Array(await blob.arrayBuffer()) };
 }

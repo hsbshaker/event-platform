@@ -626,6 +626,44 @@ circles. Two decisions by the owner (2026-10-04):
   §4.2; `model-contracts.md §4.3`; `technology-decisions.md` (the generation lock);
   `development-plan.md` Phase 5.
 
+### Phase 5d — one box: the change the host asks for, or a new idea (owner decisions, 2026-10-05)
+
+- **Why.** The owner made a Toy Story baby-shower card on the preview and loved it, then looked for
+  a way to "give it more detail or ask to change things here and there". The spec only had
+  `Try another direction`, always a genuinely different card, and no chat-level micro-edit loop.
+- **Decision 1: one box does both.** `Try another direction` keeps one optional box. A request to
+  change the card ("add a little dinosaur", "make it a starry night") keeps the card and changes
+  what was asked; an empty box or a request for something new makes a genuinely different card.
+  The design step reads the request; the host never picks a mode. Still one request and one card
+  per round, every card kept in the designs list, the current card active until the host chooses.
+- **Decision 2: build it next,** ahead of Creation Mode's remaining slices.
+- **Decision 3: how the picture changes, by request** — chosen from a side-by-side experiment.
+  Eight requests on four preview cards, each design revised once by the production design call,
+  then painted two ways through the production validation, ink and card component:
+  - *edit* (the image model's edits endpoint with the current artwork as the reference): "my card
+    with that change" in 6 of 8 — the dinosaur added pixel for pixel, the same meadow recoloured
+    pink, small Amalfi tiles tucked into an unchanged lemon border; every first image passed
+    validation; but it holds the original's tones, so "starry night" came back mid-blue and needed
+    the panel and "warmer, golden light" came back unchanged;
+  - *repaint* (fresh from the revised brief): honoured the two whole-look changes, but rebuilt
+    everything else (a different box, a new arrangement), and on the map-collage card 6 of 8
+    images were rejected for lettering;
+  - about 31–33 s an image either way; $0.076 an edit, $0.063 a repaint; $2.07 in all.
+  So: a change to part of the card edits that card's artwork; a change to the whole look (light,
+  time of day, overall colour) repaints the same idea; a new idea paints fresh. The design reports
+  which it made (`refinement`: `part`, `whole`, `none`).
+- **Consequence for a guardrail.** The image model may now receive the event's own generated
+  artwork in two cases — a shape switch (as before) and a change to part of a card — and still
+  never a host upload, an inspiration image or the host's words (`spec.md §7.6a`, §32 #17).
+- **Watch:** edits of edits over many rounds may lose quality; the organisation's image limit (5 a
+  minute) produced 429s under four parallel jobs, which the single transient retry would not ride
+  out under load.
+- **Updated:** `spec.md` §0, §1, §5, §7.6a, §7.7, §7.15, §30, §31 (Event Identity and card
+  direction; Try another direction), §32 #17, §34, §35; `CLAUDE.md`;
+  `product-doctrine.md §8`; `design-system.md §4.11`; `screen-spec.md` `try-another-direction`;
+  `e2e-workflow.md` H05; `card-system.md` §1, §3, §4.1, §7; `model-contracts.md` §5.1–§5.5, §7.2;
+  `development-plan.md`.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

@@ -188,6 +188,11 @@ describe("afterStart", () => {
     }
   });
 
+  it("says another card is being made, with a retry, for a busy start", () => {
+    expect(afterStart("busy")).toEqual({ kind: "failed", failure: generationFailure("busy") });
+    expect(generationFailure("busy").retry).toBe(true);
+  });
+
   it("reads an unknown outcome as the generic failure", () => {
     expect(afterStart("whatever")).toEqual({ kind: "failed", failure: generationFailure(null) });
   });

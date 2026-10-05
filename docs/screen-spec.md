@@ -107,20 +107,23 @@ Message:
 
 ## `try-another-direction`
 
-**Purpose:** reimagine the card before publish (§7.15). Replaces the redesign prompt and redesign results.
+**Purpose:** change the card, or reimagine it, before publish (§7.7, §7.15). Replaces the redesign prompt and redesign results.
 
 **Entry:** from `card-reveal` and Creation Mode; unavailable after publish.
 
 **Input**
 
 - Heading: **What should we change?**
-- feedback is optional;
+- helper: *Say what to change, or leave it empty for a new idea.*
+- feedback is optional: a change ("add a little dinosaur", "make it a starry night") keeps the card and changes that; empty, or asking for something new, makes a genuinely different card. One box; the host never picks a mode;
 - `+ Add inspiration` is optional.
 
 **Reassurance:**
 > **Your event details stay exactly as they are.**
 
-**Primary:** `Create a new direction`
+**Primary:** `Make a new card`
+
+**Wait:** the same honest surface as `generation`: real artifacts only (the design's name, description and art direction), no percentages.
 
 **Result:** the new card is revealed from its envelope while the current active card stays active. Actions: `Choose this direction` · `Keep current` · `Try another direction ✦`.
 
@@ -128,6 +131,7 @@ Message:
 
 - no onboarding restart;
 - no credits or counters (§10);
+- one card at a time per event (§10): while another card for the event is being made, a different request is not started — the host is told *Another card is being made* and `Try again` keeps their words; only the same request (the same card and words, e.g. a retry after a lost answer) waits on the one in flight, so nobody is shown another collaborator's card as theirs;
 - event details never change.
 
 ### Designs list
