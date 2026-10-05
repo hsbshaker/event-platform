@@ -7,6 +7,7 @@ import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { cohostSummary } from "@/lib/cohosts/invitations.server";
+import { guestSummary } from "@/lib/guests/guests.server";
 import { latestShapeSwitch } from "@/lib/generation/shape.server";
 import { eventPageContent } from "@/lib/events/page-content";
 import {
@@ -72,6 +73,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const shapeWait = await latestShapeSwitch(id, revealed.designId);
   // Co-host management is the owner's alone; a co-host learns only that they may not.
   const cohosts = await cohostSummary(id);
+  // The guest workspace's way in, for the owner and co-hosts (`manage_guests`).
+  const guests = await guestSummary(id);
 
   const { card } = revealed;
   const proportion = card.artwork.proportion;
@@ -100,6 +103,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         content={content}
         shapeWait={shapeWait}
         cohosts={cohosts}
+        guests={guests}
         design={{
           designId: revealed.designId,
           published: revealed.published,

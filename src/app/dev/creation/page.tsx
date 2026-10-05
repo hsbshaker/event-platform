@@ -35,6 +35,8 @@ import { CreationFixture } from "./CreationFixture";
  *   that stopped.
  * - `&role=cohost`: signed in as a co-host (no Co-hosts sheet, toolbar item or checklist row);
  *   the owner otherwise. `&cohosts=0..2` co-hosts and `&pending=0..3` open invite links at first.
+ * - `&guests=N`: N parties on the guest list (the checklist's Guests row); the toolbar's `Guests`
+ *   and that row open the guest workspace fixture (`/dev/guests`).
  * The shape, design, privacy and co-host actions are stubs; the generation poll is answered by the
  * test.
  */
@@ -236,6 +238,7 @@ export default async function CreationFixturePage({
       role={one("role") === "cohost" ? "cohost" : "owner"}
       cohosts={Math.min(2, Math.max(0, Number(one("cohosts") ?? 0) || 0))}
       pendingInvites={Math.min(3, Math.max(0, Number(one("pending") ?? 0) || 0))}
+      guestParties={Math.max(0, Number(one("guests") ?? 0) || 0)}
     />
   );
 }

@@ -27,9 +27,9 @@ const ROW = "flex min-h-11 w-full items-center gap-3 rounded-lg border px-4 py-3
  * makes) is listed but is not a control. No percentages, no count of optional work.
  *
  * **Recommended before sharing** — the optional surfaces that exist and that this member may use,
- * each opening its surface: today the owner's Co-host row (`spec.md §6.1`, §25). Guests and
- * Registry join it when their surfaces exist. None of it ever counts toward readiness, and the group
- * is not drawn when it has no rows (a co-host sees none).
+ * each opening its surface: today Guests (the owner and co-hosts, `spec.md §7.13`) and the owner's
+ * Co-host row (`spec.md §6.1`, §25). Registry joins it when its surface exists. None of it ever
+ * counts toward readiness, and the group is not drawn when it has no rows.
  */
 export function SetupChecklist({
   blockers,

@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261013000000_card_editor_title.sql.
+ * Hand-authored to match supabase/migrations/ through 20261014000000_guest_parties.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -75,6 +75,17 @@ export type CohostInvitationPreviewStatus = "valid" | "member" | "invalid";
 export type AcceptCohostInvitationOutcome = "joined" | "already_member" | "invalid";
 export type RevokeCohostInvitationOutcome = "revoked" | "not_pending" | "not_found";
 export type RemoveCohostOutcome = "removed" | "not_found";
+
+/** Guest list enumerations and outcomes (20261014000000_guest_parties.sql). */
+export type GuestContactSource = "host_entered" | "csv_import" | "guest_confirmed";
+export type GuestInvitationStatus = "not_sent" | "sent" | "delivery_failed" | "opted_out";
+export type GuestResponseStatus = "awaiting" | "attending" | "declined";
+export type GuestPersonType = "adult" | "child" | "plus_one";
+export type SaveGuestPartyOutcome = "created" | "saved" | "over_limit" | "not_found";
+export type DeleteGuestPartyOutcome = "deleted" | "not_found";
+export type ImportGuestPartiesOutcome = "imported" | "over_limit" | "not_found";
+export type PartyLinkOutcome = "ok" | "not_published" | "not_found";
+export type RotatePartyLinkOutcome = "rotated" | "not_published" | "not_found";
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
@@ -160,6 +171,56 @@ type CohostInvitationRow = {
   expires_at: string;
   accepted_by: string | null;
   accepted_at: string | null;
+  revoked_at: string | null;
+};
+
+/**
+ * An invited party (spec.md §12.2; 20261014000000_guest_parties.sql). Collaborators read it
+ * through RLS; written only by the service-role guest functions.
+ */
+type GuestPartyRow = {
+  id: string;
+  event_id: string;
+  display_name: string;
+  primary_contact_name: string;
+  /** E.164, US and Canada only. */
+  phone: string | null;
+  email: string | null;
+  no_phone_available: boolean;
+  contact_consent_source: GuestContactSource;
+  max_adults: number;
+  max_children: number;
+  plus_one_allowed: boolean;
+  invitation_status: GuestInvitationStatus;
+  invitations_sent: number;
+  rsvp_status: GuestResponseStatus;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** A party's named guest (spec.md §12.2). Read like guest_parties. */
+type GuestPersonRow = {
+  id: string;
+  party_id: string;
+  event_id: string;
+  name: string;
+  type: GuestPersonType;
+  attendance_status: GuestResponseStatus;
+  meal_choice: string | null;
+  dietary_restrictions: string | null;
+  notes: string | null;
+  position: number;
+};
+
+/** Server-only: a party's personal link row; the token is derived from `id`, never stored. */
+type PartyInviteLinkRow = {
+  id: string;
+  event_id: string;
+  party_id: string;
+  /** Hex SHA-256 of the token. */
+  token_hash: string;
+  created_at: string;
   revoked_at: string | null;
 };
 
@@ -420,6 +481,35 @@ export type Database = {
           CohostInvitationRow,
           "id" | "created_at" | "accepted_by" | "accepted_at" | "revoked_at"
         >
+      >;
+      guest_parties: Table<
+        GuestPartyRow,
+        Insert<
+          GuestPartyRow,
+          | "id"
+          | "phone"
+          | "email"
+          | "no_phone_available"
+          | "max_children"
+          | "plus_one_allowed"
+          | "invitation_status"
+          | "invitations_sent"
+          | "rsvp_status"
+          | "submitted_at"
+          | "created_at"
+          | "updated_at"
+        >
+      >;
+      guest_people: Table<
+        GuestPersonRow,
+        Insert<
+          GuestPersonRow,
+          "id" | "attendance_status" | "meal_choice" | "dietary_restrictions" | "notes"
+        >
+      >;
+      party_invite_links: Table<
+        PartyInviteLinkRow,
+        Insert<PartyInviteLinkRow, "created_at" | "revoked_at">
       >;
       pre_auth_event_drafts: Table<
         PreAuthEventDraftRow,
@@ -762,6 +852,44 @@ export type Database = {
         Returns: { id: string; created_at: string; expires_at: string }[];
       };
       /**
+       * Adds (p_party_id null) or edits one party with its guests under the event's lock; p_party
+       * is the party as `guest_write_party` takes it (20261014000000_guest_parties.sql).
+       */
+      save_guest_party: {
+        Args: { p_event_id: string; p_user_id: string; p_party_id: string | null; p_party: Json };
+        Returns: { outcome: SaveGuestPartyOutcome; party_id: string | null }[];
+      };
+      delete_guest_party: {
+        Args: { p_event_id: string; p_user_id: string; p_party_id: string };
+        Returns: DeleteGuestPartyOutcome;
+      };
+      /** A CSV import, all or nothing, within the event's limits. */
+      import_guest_parties: {
+        Args: { p_event_id: string; p_user_id: string; p_parties: Json };
+        Returns: {
+          outcome: ImportGuestPartiesOutcome;
+          imported: number;
+          parties: number;
+          people: number;
+        }[];
+      };
+      /** The party's working link row, once the event is published. */
+      party_link: {
+        Args: { p_event_id: string; p_user_id: string; p_party_id: string };
+        Returns: { outcome: PartyLinkOutcome; link_id: string | null }[];
+      };
+      /** Revokes the party's working link and records a new one, once published. */
+      rotate_party_link: {
+        Args: {
+          p_event_id: string;
+          p_user_id: string;
+          p_party_id: string;
+          p_link_id: string;
+          p_token_hash: string;
+        };
+        Returns: RotatePartyLinkOutcome;
+      };
+      /**
        * A shape switch's new artwork, added to its design, and the switch applied while that
        * design is active, in one transaction; no row when the generation is not running or the
        * event is published (20261010000000_shape_switch.sql).
@@ -821,6 +949,10 @@ export type Database = {
       card_proportion: CardProportionCode;
       card_layout: CardLayout;
       card_art_mode: CardArtMode;
+      guest_contact_source: GuestContactSource;
+      guest_invitation_status: GuestInvitationStatus;
+      guest_response_status: GuestResponseStatus;
+      guest_person_type: GuestPersonType;
     };
     CompositeTypes: Record<string, never>;
   };

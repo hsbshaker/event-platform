@@ -52,6 +52,11 @@ import { useShapeSwitch } from "./use-shape-switch";
  * (`CohostsPanel`), reached from the setup checklist's **Recommended before sharing** Co-host row
  * before publish, and from the toolbar's `Co-hosts` before and after publish (readiness is hidden
  * once published). A co-host sees neither, and the server refuses them either way.
+ *
+ * For the owner and co-hosts (`guests.manage`, from `manage_guests`; `spec.md §7.13`, §19.2): the
+ * guest workspace, a page of its own, reached from the toolbar's `Guests` before and after publish
+ * and from the checklist's **Recommended before sharing** Guests row before publish. Guests never
+ * count toward readiness (`spec.md §23.1`, §32 #10, #45).
  */
 
 type Panel =
@@ -77,6 +82,8 @@ export function CreationCanvas({
   previewHref,
   cohosts,
   cohostActions,
+  guests,
+  guestsHref,
 }: {
   /** Everything above the page: the card with its markers and legend, and its actions. */
   card: ReactNode;
@@ -115,6 +122,13 @@ export function CreationCanvas({
   cohosts: { manage: false } | { manage: true; count: number };
   /** The Co-hosts sheet's actions; the development fixture injects stubs. */
   cohostActions?: CohostActions;
+  /**
+   * Whether the signed-in member may manage guests (the owner and co-hosts) and, if so, how many
+   * parties there are.
+   */
+  guests: { manage: false } | { manage: true; parties: number };
+  /** Where the guest workspace is: the event's own by default (the fixture's own). */
+  guestsHref?: string;
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
@@ -194,6 +208,8 @@ export function CreationCanvas({
   });
   const switching = shapeSwitch.state;
 
+  const guestsLink = guests.manage ? (guestsHref ?? `/events/${event.id}/guests`) : undefined;
+
   const readiness = publishReadiness({
     details: current,
     designTitle: design.title,
@@ -213,6 +229,7 @@ export function CreationCanvas({
           onCohosts={
             cohosts.manage ? () => showPanel({ kind: "cohosts" }, cohostsButton.current) : undefined
           }
+          guestsHref={guestsLink}
         />
         {(switching.kind === "starting" || switching.kind === "running") && (
           <InlineStatus
@@ -305,8 +322,24 @@ export function CreationCanvas({
           blockers={readiness.blockers}
           // The checklist hands over to the editor; closing the editor returns focus to the pill.
           onOpen={(focusId) => showPanel({ kind: "details", focusId }, null)}
-          recommended={
-            cohosts.manage
+          recommended={[
+            ...(guestsLink && guests.manage
+              ? [
+                  {
+                    key: "guests",
+                    label: "Guests",
+                    description:
+                      guests.parties === 0
+                        ? "Add the people you're inviting."
+                        : guests.parties === 1
+                          ? "1 party added."
+                          : `${guests.parties} parties added.`,
+                    done: guests.parties > 0,
+                    onOpen: () => router.push(guestsLink),
+                  },
+                ]
+              : []),
+            ...(cohosts.manage
               ? [
                   {
                     key: "cohost",
@@ -322,8 +355,8 @@ export function CreationCanvas({
                     onOpen: () => showPanel({ kind: "cohosts" }, null),
                   },
                 ]
-              : []
-          }
+              : []),
+          ]}
         />
       </Sheet>
       {cohosts.manage && (

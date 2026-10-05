@@ -69,6 +69,7 @@ export function CreationFixture({
   role = "owner",
   cohosts = 0,
   pendingInvites = 0,
+  guestParties = 0,
 }: {
   /** The active design's card in each shape its layout supports. */
   cards: Record<CardShape, ReactNode>;
@@ -91,6 +92,8 @@ export function CreationFixture({
   /** Co-hosts and pending invite links the event starts with. */
   cohosts?: number;
   pendingInvites?: number;
+  /** Parties on the guest list, for the checklist's Guests row. */
+  guestParties?: number;
 }) {
   const [event, setEvent] = useState(initial);
   const [cohostActions] = useState(() =>
@@ -240,6 +243,8 @@ export function CreationFixture({
           previewHref={previewHref}
           cohosts={role === "owner" ? { manage: true, count: cohosts } : { manage: false }}
           cohostActions={cohostActions}
+          guests={{ manage: true, parties: guestParties }}
+          guestsHref={`/dev/guests${published ? "?published=1" : ""}`}
           onChosen={(designId) =>
             setDesigns((all) => all.map((d) => ({ ...d, active: d.designId === designId })))
           }

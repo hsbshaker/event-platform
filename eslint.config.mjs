@@ -88,6 +88,13 @@ const SERVICE_ROLE = {
  *   usable link, or membership said only to a member) and `accept_cohost_invitation` (for the
  *   signed-in session's own user), rate-limited per IP and account. The roster and profiles are
  *   read through the owner's own session, not the service role.
+ * - `src/lib/guests/guests.server.ts` — the guest list. Every call runs only after
+ *   `requireEventAccess(eventId, "manage_guests")` (owner and co-hosts), for that event, and writes
+ *   only through `save_guest_party`, `delete_guest_party`, `import_guest_parties` and
+ *   `rotate_party_link`, each of which takes the event's lock, checks membership again and
+ *   enforces the event's limits; it reads a party's working link id only through `party_link`
+ *   (membership and publish checked). The parties and guests are read through the member's own
+ *   session, not the service role.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
@@ -103,6 +110,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/generation/shape.server.ts",
   "src/lib/events/privacy.server.ts",
   "src/lib/cohosts/invitations.server.ts",
+  "src/lib/guests/guests.server.ts",
 ];
 
 /**
