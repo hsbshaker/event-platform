@@ -31,7 +31,6 @@ type TestRow = PatchableRow & {
   end_time?: string | null;
   hosts?: string | null;
   baby_name?: string | null;
-  visibility?: "public" | "private" | null;
 };
 
 const NOW = new Date("2027-01-10T12:00:00.000Z");

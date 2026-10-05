@@ -6,6 +6,7 @@ import {
   type PublishReadinessInput,
 } from "./publish-readiness";
 import type { EventDetailFields } from "./required-details";
+import { MAKE_EVENT_CODE_ID } from "./event-code";
 
 const EMPTY: EventDetailFields = {
   title: null,
@@ -122,7 +123,8 @@ describe("publishReadiness (spec.md §23.1)", () => {
       const r = ask({ details: { visibility: "private" }, accessCodeSet: false });
       expect(keys(r)).toEqual(["accessCode"]);
       expect(r.ready).toBe(false);
-      expect(r.blockers[0].focusId).toBeNull();
+      // Opens the details editor on `Make a code`: the row never dead-ends.
+      expect(r.blockers[0].focusId).toBe(MAKE_EVENT_CODE_ID);
     });
 
     it("are ready with a code", () => {

@@ -68,6 +68,11 @@ const SERVICE_ROLE = {
  *   through `switch_card_shape`, for the session's own collaborator; the function checks membership
  *   and the active design again under the event's lock, and touches only that event's active
  *   shape. New artwork begins only through `startGeneration`.
+ * - `src/lib/events/privacy.server.ts` — after `requireEventAccess(eventId, "manage_privacy")`,
+ *   changes that event's visibility and encrypted event code only through `set_event_privacy` and
+ *   `rotate_event_code`, for the session's own collaborator; the functions check membership again
+ *   under the event's lock and touch only that event's visibility and code. The code is read back
+ *   through the member's own session, not the service role.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
@@ -81,6 +86,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/generation/reveal.server.ts",
   "src/lib/generation/choose.server.ts",
   "src/lib/generation/shape.server.ts",
+  "src/lib/events/privacy.server.ts",
 ];
 
 /**

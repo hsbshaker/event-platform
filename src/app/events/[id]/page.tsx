@@ -6,7 +6,6 @@ import { loadEventDraft, type EventDraftView } from "@/app/actions/event-details
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
-import { accessCodeIsSet } from "@/lib/events/access-code.server";
 import { latestShapeSwitch } from "@/lib/generation/shape.server";
 import { eventPageContent } from "@/lib/events/page-content";
 import {
@@ -69,7 +68,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const shapes = await loadCardShapeOptionsAction(id);
   // The design's shape switch still painting or recently failed: its status shows again.
   const shapeWait = await latestShapeSwitch(id, revealed.designId);
-  const accessCodeSet = draft.visibility === "private" ? await accessCodeIsSet(id) : false;
 
   const { card } = revealed;
   const proportion = card.artwork.proportion;
@@ -96,7 +94,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <CreationCanvas
         event={draft}
         content={content}
-        accessCodeSet={accessCodeSet}
         shapeWait={shapeWait}
         design={{
           designId: revealed.designId,

@@ -1,3 +1,4 @@
+import { MAKE_EVENT_CODE_ID } from "./event-code";
 import { missingRequiredDetails, type EventDetailFields } from "./required-details";
 
 /**
@@ -16,7 +17,9 @@ import { missingRequiredDetails, type EventDetailFields } from "./required-detai
  * - RSVP deadline — the same, a row of its own as §23.1 lists it. Saving a date usually clears it
  *   too: the default deadline is stored with the date once the event has a timezone
  *   (`computeEventPatch`, spec §7.3), and the form supplies the browser's zone as a fallback;
- * - encrypted access code when private — `accessCodeSet`;
+ * - encrypted access code when private — `accessCodeSet`. Choosing Private always stores a code
+ *   (the privacy action), so this is a blocker only for an event made private before codes
+ *   existed; its row opens the details editor on `Make a code`, so it never dead-ends;
  * - valid event owner/account — true by construction of the page that asks (an owner's or
  *   co-host's session on an event that exists).
  *
@@ -48,7 +51,7 @@ export interface PublishBlocker {
   description: string;
   /**
    * The id of the details-editor field the row opens it focused on, or null for a blocker no
-   * surface answers yet (the card; the private event code, Creation Mode slice 3).
+   * surface answers (the card, which the generation makes).
    */
   focusId: string | null;
 }
@@ -96,9 +99,8 @@ const BLOCKERS: Readonly<Record<PublishBlockerKey, Omit<PublishBlocker, "key">>>
   },
   accessCode: {
     label: "Private event code",
-    description:
-      "A private invitation needs an event code. You'll set it when you get ready to share.",
-    focusId: null,
+    description: "Make the code your shared link will ask for.",
+    focusId: MAKE_EVENT_CODE_ID,
   },
 };
 

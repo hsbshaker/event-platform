@@ -145,6 +145,7 @@ describe("events and membership", () => {
       ["published_at", "now()"],
       ["slug", "'squatted'"],
       ["access_code_encrypted", "'\\x00'"],
+      ["visibility", "'private'"],
       ["active_card_shape", "'square'"],
       ["message_sends_used", "3"],
     ]) {
@@ -199,7 +200,7 @@ describe("events and membership", () => {
   it("co-host edits content but cannot touch server-managed columns", async () => {
     const ok = await asActor(db, { kind: "user", id: cohost }, (q) =>
       q(
-        `update public.events set title = 'Welcome, little one', timezone = 'America/New_York', visibility = 'private'
+        `update public.events set title = 'Welcome, little one', timezone = 'America/New_York'
          where id = $1 returning title, timezone`,
         [eventId],
       ),
@@ -214,6 +215,10 @@ describe("events and membership", () => {
       "prompt = 'rewritten'",
       "slug = 'taken'",
       "active_card_shape = 'square'",
+      // Privacy changes only through set_event_privacy, with its code (20261011000000_event_privacy.sql).
+      "visibility = 'private'",
+      "visibility = 'public'",
+      "access_code_encrypted = '\\x01'",
     ]) {
       expect(
         await errorCode(

@@ -7,9 +7,9 @@ import { cx } from "./cx";
  * `setup-checklist`; `spec.md §19.2`, §23.1): navigation, not a wizard. It is drawn in a `Sheet`.
  *
  * **Needed to publish** — exactly the current blockers (`publishReadiness`), each a row with its
- * label, one line on what is needed and a way straight to the field. A blocker no surface answers
- * yet (the private event code, Creation Mode slice 3) is listed but is not a control. No
- * percentages, no count of optional work.
+ * label, one line on what is needed and a way straight to the field (the private event code's row
+ * opens the editor on `Make a code`). A blocker no surface answers (the card, which generation
+ * makes) is listed but is not a control. No percentages, no count of optional work.
  *
  * The **Recommended before sharing** group (Guests, Registry, Co-host) comes with those surfaces;
  * until they exist there is nothing to link to, so the group is not drawn.

@@ -125,6 +125,7 @@ function fixtureDraft(): EventDraftView {
     generationRequestedAt: null,
     rowVersion: 1,
     published: false,
+    accessCodeSet: false,
     description: null,
     promptFacts: {
       hosts: "Ana & Leo",

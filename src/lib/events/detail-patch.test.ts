@@ -169,6 +169,12 @@ describe("field copying", () => {
       "title",
     ]);
   });
+
+  it("never writes visibility: it changes only with the event code, through the privacy action", () => {
+    const undated: PatchableRow = { ...ROW, timezone: "America/New_York" };
+    const patch = computeEventPatch(undated, { visibility: "private" } as never, NOW);
+    expect(patch).toEqual({});
+  });
 });
 
 describe("description and title in a details patch (spec.md §7.3, §20.2)", () => {

@@ -23,6 +23,7 @@ import { shapeAppliedLine, shapeWaitLine } from "@/lib/generation/shape-wait";
 
 import { DesignPanel } from "./DesignPanel";
 import { DetailsForm } from "./create/DetailsForm";
+import type { PrivacyActions } from "./create/PrivacyControl";
 import type { ChooseOutcome } from "./direction/NewCardActions";
 import { useShapeSwitch } from "./use-shape-switch";
 
@@ -55,9 +56,9 @@ export function CreationCanvas({
   event,
   content,
   design,
-  accessCodeSet,
   shapeWait = null,
   save = updateEventDetails,
+  privacy,
   onSaved,
   switchShape = switchCardShape,
   onShapeApplied,
@@ -71,6 +72,8 @@ export function CreationCanvas({
   content: EventPageContent;
   /** The save action; the development fixture injects a stub. */
   save?: typeof updateEventDetails;
+  /** The privacy actions (visibility and the event code); the development fixture injects stubs. */
+  privacy?: PrivacyActions;
   /** What to do with a saved event; by default the server data is refreshed. */
   onSaved?: (event: EventDraftView) => void;
   /** The active design, for the Design panel and readiness. */
@@ -82,8 +85,6 @@ export function CreationCanvas({
     shapes: CardShapeOptions | null;
     designs: readonly RevealedCard[];
   };
-  /** An access code is stored for the event (`events.access_code_encrypted`). */
-  accessCodeSet: boolean;
   /** The design's shape switch painting or recently failed when the page loaded: shown again. */
   shapeWait?: LatestShapeSwitch | null;
   /** The shape action; the development fixture injects a stub. */
@@ -176,7 +177,8 @@ export function CreationCanvas({
     details: current,
     designTitle: design.title,
     hasCard: true,
-    accessCodeSet,
+    // From the newest event we know of, so making a code clears its blocker at once.
+    accessCodeSet: current.accessCodeSet,
   });
 
   return (
@@ -290,6 +292,7 @@ export function CreationCanvas({
           event={current}
           variant="all"
           save={save}
+          privacy={privacy}
           saves={saves}
           onSaved={saved}
           // The field the host came for, else the first field.
