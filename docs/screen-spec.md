@@ -221,10 +221,24 @@ Autosave. Card and page update with no model call. Entry limits for card-bound f
 
 **Purpose:** focused operational exception to inline editing (§7.13).
 
+Route: `/events/[id]/guests`, for the owner and co-hosts, before and after publish; `Close` returns
+to the invitation. A summary line counts parties and guests, and how many need a phone; a
+`Needs phone` filter appears when any do.
+
 Actions:
 
-- Add household;
-- Import CSV.
+- `Add party`: the party editor (shared `Sheet`): the guests in the party, each named and Adult or
+  Child, the first being the main contact (an adult); `Allow a plus-one`; a US or Canadian mobile
+  number, or `No phone available` (one is required to save); an optional email ("Only used if a
+  reminder can't reach them by text."); an optional name on the invitation (derived from the guests
+  when blank). `Save`, and `Delete` with an inline confirmation;
+- `Import CSV`: pick a file (up to 1,000,000 bytes and 2,000 rows), see a preview (parties, guests,
+  how many need a phone, and each row that was skipped or whose phone or email was not
+  recognised), then `Import` in one step. Columns are matched by name: Name (or First name and Last
+  name), Household, Phone (also Cell phone, Mobile number, Telephone), Email, Child, Plus one; rows
+  sharing a Household make one party, and the preview names any column it did not use. A row
+  without a usable phone imports as Needs phone. A file saved by Excel on Windows (not UTF-8) is
+  read as Windows-1252. `Download a sample CSV` gives the headers.
 
 Rows/cards show:
 

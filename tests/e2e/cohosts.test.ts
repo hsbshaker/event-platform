@@ -151,8 +151,12 @@ describe.each([
       await page.locator("[data-setup-pill]").click();
       const checklist = page.getByRole("dialog", { name: "Setup" });
       await checklist.waitFor({ state: "visible" });
-      expect(await checklist.locator("[data-recommended]").count()).toBe(0);
-      expect(await checklist.getByText(/Recommended/).count()).toBe(0);
+      // A co-host's recommended work is the guest list, never co-host management.
+      expect(
+        await checklist
+          .locator("[data-recommended]")
+          .evaluateAll((els) => els.map((el) => el.getAttribute("data-recommended"))),
+      ).toEqual(["guests"]);
     } finally {
       await close();
     }
@@ -381,7 +385,7 @@ describe.each([
       await page.locator("[data-setup-pill]").click();
       const checklist = page.getByRole("dialog", { name: "Setup" });
       await checklist.waitFor({ state: "visible" });
-      expect(await checklist.locator("[data-recommended]").count()).toBe(0);
+      expect(await checklist.locator("[data-recommended=cohost]").count()).toBe(0);
       expect(await page.getByRole("dialog", { name: "Co-hosts" }).count()).toBe(0);
     } finally {
       await close();

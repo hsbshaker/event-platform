@@ -9,8 +9,10 @@ import { appButtonClasses } from "./AppButton";
  * co-hosts only (the page that renders it never renders for anyone else). It holds `Design`, which
  * opens the Design panel, and `Preview`, a link to the guest-experience preview. For the owner only
  * — the page passes `onCohosts` only when the signed-in member may manage co-hosts (`spec.md §25`)
- * — it also holds `Co-hosts`, which opens the Co-hosts sheet before and after publish. It is not a
- * page-builder toolbar: no layout, style or block controls. App tokens only.
+ * — it also holds `Co-hosts`, which opens the Co-hosts sheet before and after publish. For members
+ * who may manage guests (`manage_guests`: the owner and co-hosts) it holds `Guests`, a link to the
+ * guest workspace, before and after publish (`spec.md §7.13`). It is not a page-builder toolbar: no
+ * layout, style or block controls. App tokens only.
  */
 export function OwnerToolbar({
   onDesign,
@@ -18,6 +20,7 @@ export function OwnerToolbar({
   previewHref,
   onCohosts,
   cohostsRef,
+  guestsHref,
 }: {
   onDesign: () => void;
   designRef?: Ref<HTMLButtonElement>;
@@ -26,6 +29,8 @@ export function OwnerToolbar({
   /** Opens the Co-hosts sheet; given for the owner only. */
   onCohosts?: () => void;
   cohostsRef?: Ref<HTMLButtonElement>;
+  /** The guest workspace; given to members who may manage guests. */
+  guestsHref?: string;
 }) {
   return (
     <div
@@ -46,6 +51,11 @@ export function OwnerToolbar({
       <AppButtonLink href={previewHref} data-toolbar="preview" variant="secondary" size="sm">
         Preview
       </AppButtonLink>
+      {guestsHref && (
+        <AppButtonLink href={guestsHref} data-toolbar="guests" variant="secondary" size="sm">
+          Guests
+        </AppButtonLink>
+      )}
       {onCohosts && (
         <button
           ref={cohostsRef}

@@ -679,8 +679,8 @@ describe.each([
         .locator("[data-blocker]")
         .evaluateAll((els) => els.map((el) => el.getAttribute("data-blocker")));
       expect(rows).toEqual(["eventDate", "startTime", "venue", "rsvpDeadline", "visibility"]);
-      // Recommended work lists only the surfaces that exist: for the owner, Co-host (never a
-      // blocker, never counted).
+      // Recommended work lists only the surfaces that exist: for the owner, Guests and Co-host
+      // (never a blocker, never counted).
       expect(
         await checklist.getByRole("heading", { name: "Recommended before sharing" }).count(),
       ).toBe(1);
@@ -688,7 +688,7 @@ describe.each([
         await checklist
           .locator("[data-recommended]")
           .evaluateAll((els) => els.map((el) => el.getAttribute("data-recommended"))),
-      ).toEqual(["cohost"]);
+      ).toEqual(["guests", "cohost"]);
       expect(await contrastOf(page, "[data-blocker=eventDate] span")).toBeGreaterThanOrEqual(4.5);
       await shotSheet(page, viewport, "checklist");
 

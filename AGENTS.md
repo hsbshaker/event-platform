@@ -86,6 +86,15 @@ Heed deprecation notices in those docs over training-data habits.
   through `src/lib/cohosts/invitations.server.ts` (`manage_cohosts`, owner only) and the
   service-role functions of `20261012000000_cohost_invitations.sql`. The platform sends no
   invitation: the owner copies the link.
+- **Guests** (Phase 7a): end users have no `insert`, `update` or `delete` on `guest_parties`,
+  `guest_people` or `party_invite_links`, and no grant at all on `party_invite_links`. Every write
+  goes through `src/lib/guests/guests.server.ts` (`manage_guests`, owner and co-hosts) and the
+  service-role functions of `20261014000000_guest_parties.sql`, under the event's lock, with the
+  per-event caps (1,000 parties, 2,000 guests) enforced inside it. A party's personal link token is
+  derived, never stored: base64url HMAC-SHA256 of `party-link:v1:<link id>` under an HKDF subkey of
+  `APP_ENCRYPTION_KEY`; the row keeps only its SHA-256, and the path is built once
+  (`src/lib/guests/link-path.ts`). Copy and rotate answer `not_published` before publish, in the
+  database as well as the action. A CSV import is re-parsed on the server from the text it is sent.
 - **Signup throttling**: now called from `signInWithEmail` in `src/app/actions/auth.ts`. OAuth
   sign-in starts at the provider, so it is throttled by Supabase's own limits rather than here.
 - **Pre-auth cleanup job**: implemented in Phase 2 at `/api/cron/purge-pre-auth` and scheduled

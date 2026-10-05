@@ -731,6 +731,27 @@ owner can overturn any of them.
 - **The title travels to a new design only once the host has set it.** Until then the new card
   shows its own drafted title, in the host's carried font (`card-system.md §7`).
 
+### Phase 7a — the guest list (build decisions, 2026-10-05; for the owner to confirm)
+
+- **Guests are named.** A party is a list of named guests, each an adult or a child; the first is
+  the main contact and must be an adult. `Allow a plus-one` is a separate switch; the host does not
+  name the plus-one.
+- **Phone numbers are US and Canadian only** (international texting is out of scope, `spec.md
+  §13.3`). Saving a party by hand needs a number or `No phone available`; a CSV row without a
+  usable number imports as Needs phone and is listed in the import's report. Numbers are not
+  unique across parties (families share them).
+- **The name on the invitation** is optional; when blank it is made from the guests: one name, "Ana
+  & Luis Garcia" for two sharing a last name, "The Garcia family" when every adult shares the main
+  contact's, otherwise "Ana Garcia & guests".
+- **Limits per event:** 1,000 parties and 2,000 guests; an import that would pass either is refused
+  whole. A CSV file may hold up to 1,000,000 bytes and 2,000 rows. A party's link can be rotated up
+  to 60 times an hour per event.
+- **CSV columns are matched by name** (Name or First name and Last name, Household, Phone, Email,
+  Child, Plus one); rows sharing a Household make one party; nothing is de-duplicated against
+  parties already added.
+- **Personal links** are made with every party and shown only after publish (`Copy personal link`,
+  `Rotate link` with a confirmation). The guest's side of the link is the next slice.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
