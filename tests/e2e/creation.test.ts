@@ -621,7 +621,7 @@ describe.each([
     const { page, close } = await openFixture(viewport, "data=full&published=1");
     try {
       // Readiness is for publishing: once published there is no setup control.
-      await page.locator("[data-toolbar]").waitFor();
+      await page.locator("[data-toolbar=design]").waitFor();
       expect(await page.locator("[data-setup-pill]").count()).toBe(0);
       await page.getByRole("button", { name: "Design", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Design" });
