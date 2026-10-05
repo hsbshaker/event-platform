@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { loadEventDraft } from "@/app/actions/event-details";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { loadRevealedCard } from "@/lib/generation/reveal.server";
@@ -28,6 +29,8 @@ export const maxDuration = 300;
 
 export default async function CreateEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // An id that is not a UUID is not an event's: the same plain state, never a lookup.
+  if (!z.uuid().safeParse(id).success) return <EventUnavailable />;
 
   let draft;
   try {
