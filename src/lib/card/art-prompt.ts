@@ -1,5 +1,5 @@
 /**
- * Art prompt assembly, `card_art_v3` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
+ * Art prompt assembly, `card_art_v4` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
  *
  * The art prompt is assembled by code from the validated art brief plus the layout and shape
  * rules; a model never writes it and the raw host prompt is never part of it (`spec.md §32 #17`).
@@ -11,7 +11,9 @@
  * (owner decisions, 2026-10-04) adds the brief's rendering family and aesthetic mood as a
  * `Rendering:` line (`renderings.ts`) and drops the wording that pushed every card toward paint: the art modes no
  * longer say "painted", the corner line says "carry" rather than "paint", and the mockup line no
- * longer reads as "never photographic". Changing any sentence is a `CARD_ART_PROMPT_VERSION` bump.
+ * longer reads as "never photographic". `card_art_v4` (owner decision, 2026-10-05) adds one
+ * composition line to a repaint of art that has a subject (`repaintComposition`). Changing any
+ * sentence is a `CARD_ART_PROMPT_VERSION` bump.
  */
 
 import { CARD_ART_PROMPT_VERSION } from "@/lib/ai/versions";
@@ -110,7 +112,7 @@ function subjectLead(subject: string): string {
   return clause(subject.split(",")[0]).replace(/^(a|an|the)\s+/i, "");
 }
 
-/** `card_art_v3`: the full art prompt for a validated design. */
+/** The full art prompt for a validated design (since `card_art_v3`). */
 export function assembleArtPrompt(design: ArtPromptInput): string {
   const { artBrief: b, artMode, layout, shape } = design;
   // A brief persisted before `card_design_schema_v2` has no rendering: refuse it rather than
@@ -150,17 +152,27 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
 }
 
 /**
- * The line a repaint adds (`card_art_v4`; owner decision, 2026-10-05). A repaint follows an
- * artwork whose picture ran into the area the words need (`docs/card-system.md §3`); repeating the
- * identical prompt tended to repeat the composition (round three: a giraffe's head under the title
- * in all three images), so the repaint says plainly what to keep clear.
+ * The line a repaint adds (`card_art_v4`; owner decision, 2026-10-05: "when a picture reaches into
+ * the words, its repaint adds one plain composition line"). A repaint follows an artwork that would
+ * need the legibility panel (`docs/card-system.md §3`); for art with a subject that means the
+ * picture ran into the area the words need, and repeating the identical prompt tended to repeat the
+ * composition (round three: a giraffe's head under the title in all three images). The line never
+ * refers to an earlier image: on a shape switch the only image the model sees is the reference it
+ * must keep.
  */
 export const REPAINT_COMPOSITION =
-  "The previous attempt let the picture run into the calm area kept for the words. This time keep the whole subject — including anything tall or reaching, such as a neck, a branch, a tower or a wave — entirely outside that calm area, with clear space between them: the calm area holds only background.";
+  "Keep the whole subject — including anything tall or reaching, such as a neck, a branch, a tower or a wave — entirely outside the calm area kept for the words, with clear space between them: the calm area holds only background.";
 
-/** An art prompt as a repaint sends it: the same prompt, with `REPAINT_COMPOSITION` added. */
-export function withRepaintComposition(prompt: string): string {
-  return `${prompt}\n${REPAINT_COMPOSITION}`;
+/**
+ * The art modes whose repaint adds `REPAINT_COMPOSITION`: those with a subject or a border that can
+ * reach into the words. An `atmosphere` or `minimal` wash has no subject; its panel comes from the
+ * tone under the words, so its repaint repeats the prompt unchanged.
+ */
+export const REPAINT_COMPOSITION_MODES: readonly ArtMode[] = ["illustration", "framed"];
+
+/** An art prompt as a repaint of `artMode` art sends it. */
+export function withRepaintComposition(prompt: string, artMode: ArtMode): string {
+  return REPAINT_COMPOSITION_MODES.includes(artMode) ? `${prompt}\n${REPAINT_COMPOSITION}` : prompt;
 }
 
 /**

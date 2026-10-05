@@ -761,7 +761,8 @@ fallback.
 
 **Repaints before a panel** (owner decisions, 2026-10-04). An artwork that passes validation but
 would need the layout's legibility panel on the shape it was painted for (§7.9, step 5) — the
-picture has run into the text area — is repainted from the same art prompt plus one composition
+picture has run into the text area, or a wash is too dark or busy under it — is repainted from the
+same art prompt; for art with a subject (`illustration`, `framed`) the repaint adds one composition
 line saying what to keep clear of the words (owner decision, 2026-10-05; repeating the identical
 prompt tended to repeat the composition), for a new design and for a shape switch alike (a switch's repaint carries the same reference artwork). Ink resolution
 runs again on each repaint, and the first artwork that needs no panel is kept; if none does, the
@@ -2419,8 +2420,8 @@ The host should feel:
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no
   template or stock fallback exists.
 - [ ] An artwork that passes validation but would need the legibility panel on the shape it was
-  painted for (a new design's or a shape switch's) is repainted — from the same art prompt plus
-  one line saying what to keep clear of the words — before the panel is used, decided by code from ink resolution; the first artwork that needs no panel is
+  painted for (a new design's or a shape switch's) is repainted — from the same art prompt, plus for
+  art with a subject one line saying what to keep clear of the words — before the panel is used, decided by code from ink resolution; the first artwork that needs no panel is
   kept, otherwise the first valid one with the panel; an artwork gets at most two extra images in
   all (validation regeneration and repaints together), and a repaint never causes a visible
   failure.

@@ -417,9 +417,10 @@ dropped.
 
 An artwork that passes but would need the layout's legibility panel on the shape it was painted
 for — decided by ink resolution in code, never by a model — is repainted from the same art prompt
-plus one composition line (`REPAINT_COMPOSITION`, `card_art_v4`: keep the whole subject, anything
-tall included, out of the calm area kept for the words; a shape switch's repaint keeps its
-`reference`) until an artwork needs no panel, within two extra
+plus, for `illustration` and `framed` art, one composition line (`REPAINT_COMPOSITION`,
+`card_art_v4`: keep the whole subject, anything tall included, out of the calm area kept for the
+words; it never refers to an earlier image) — an `atmosphere` or `minimal` wash, whose panel comes
+from its tone, repeats the prompt — and a shape switch's repaint keeps its `reference` until an artwork needs no panel, within two extra
 images per artwork in all, a validation regeneration included (`spec.md §7.8`). If none clears,
 the first valid artwork is kept with the panel; a repaint that fails validation is dropped. Only
 the artwork the card shows is persisted.

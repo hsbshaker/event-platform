@@ -343,10 +343,17 @@ describe("brief fields in the prompt", () => {
 });
 
 describe("the repaint composition line (card_art_v4, owner decision 2026-10-05)", () => {
-  it("adds one line to the prompt, after everything else", () => {
+  it("adds one line to a repaint of art with a subject, and nothing to a wash", () => {
     const prompt = "line one\nline two";
-    expect(withRepaintComposition(prompt)).toBe(`${prompt}\n${REPAINT_COMPOSITION}`);
+    for (const mode of ["illustration", "framed"] as const) {
+      expect(withRepaintComposition(prompt, mode)).toBe(`${prompt}\n${REPAINT_COMPOSITION}`);
+    }
+    for (const mode of ["atmosphere", "minimal"] as const) {
+      expect(withRepaintComposition(prompt, mode)).toBe(prompt);
+    }
     expect(REPAINT_COMPOSITION).toMatch(/calm area kept for the words/);
+    // It never refers to an earlier image: on a shape switch the reference is the one to keep.
+    expect(REPAINT_COMPOSITION).not.toMatch(/previous|last|earlier|reference|attempt/i);
     expect(REPAINT_COMPOSITION).not.toMatch(
       /\b(text|letters?|words?) (in|on) the (image|picture)\b/i,
     );

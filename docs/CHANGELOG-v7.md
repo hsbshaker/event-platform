@@ -602,7 +602,10 @@ circles. Two decisions by the owner (2026-10-04):
   words' area, its repaint is the same art prompt plus one line: keep the whole subject — anything
   tall such as a neck, a branch or a tower included — outside the calm area kept for the words.
   Same budget (two extra images per artwork). This revises the 2026-10-04 rule that repaints repeat
-  the identical prompt; validation regenerations still repeat it.
+  the identical prompt; validation regenerations still repeat it, and so does the repaint of an
+  `atmosphere` or `minimal` wash, which has no subject (its panel comes from the tone under the
+  words). The line never refers to an earlier image, because on a shape switch the only image the
+  model sees is the reference it must keep (senior review).
 - **Updated:** `spec.md §7.7`, §7.8, §11.3 and a §31 criterion; `card-system.md §2.2`, §2.3, §3,
   §8; `model-contracts.md §2`, §5, §7; `CLAUDE.md` pipeline sketch.
 
