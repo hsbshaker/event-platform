@@ -30,6 +30,7 @@ import {
   failureTelemetry,
   hostEventFacts,
   PROVIDER_REFUSAL_FEEDBACK,
+  REVEAL_EVENT_COLUMNS,
   revealContent,
   runGeneration,
 } from "./run.server";
@@ -221,9 +222,16 @@ describe("the happy path", () => {
       "rpc:record_event_identity",
       "rpc:record_generation_stage",
       "rpc:record_generation_stage",
+      // The event again, just before the artwork: the words its ink is judged behind.
+      "select:events",
       "storage:upload",
       "rpc:persist_generated_card",
     ]);
+    expect(admin.state.selects.filter((s) => s.table === "events")[1]).toEqual({
+      table: "events",
+      columns: REVEAL_EVENT_COLUMNS,
+      filters: [["id", EVENT]],
+    });
     expect(stages().map(([stage]) => stage)).toEqual(["identity", "design"]);
     expect(fake.calls.identity).toHaveLength(1);
     expect(fake.calls.facts).toHaveLength(1);
@@ -260,6 +268,8 @@ describe("the happy path", () => {
         p_raw: JSON.stringify(IDENTITY),
         p_prompt_version: "event_identity_v6",
         p_schema_version: "event_identity_schema_v5",
+        // Kept on the event with the identity (`events.prompt_facts`), verbatim only.
+        p_prompt_facts: { ...FACTS, location: null },
       },
     ]);
     const [identityStage] = stages();
@@ -435,10 +445,11 @@ describe("the happy path", () => {
     });
   });
 
-  it("judges the ink behind the words the revealed card shows: wording, facts, placeholders", () => {
+  it("judges the ink behind the words the revealed card shows: wording, facts, placeholders", async () => {
     const wording = { title: "Little Lemon", invitationLine: "Come celebrate with us" };
     const now = new Date(STARTED_AT);
-    expect(revealContent(EVENT_ROW, wording, now)).toEqual({
+    const row = { ...EVENT_ROW, rsvp_deadline: null, timezone: null, prompt_facts: null };
+    expect(await revealContent(row, wording, now)).toEqual({
       title: "Little Lemon",
       invitationLine: "Come celebrate with us",
       babyName: null,
@@ -448,8 +459,8 @@ describe("the happy path", () => {
       venue: "Villa Rosa",
       rsvpBy: null,
     });
-    const bare = { ...EVENT_ROW, hosts: null, venue_name: null, address: null, event_date: null };
-    const content = revealContent(
+    const bare = { ...row, hosts: null, venue_name: null, address: null, event_date: null };
+    const content = await revealContent(
       { ...bare, rsvp_deadline: "2026-12-05T12:00:00Z", timezone: "Europe/Rome" },
       wording,
       now,
@@ -457,6 +468,36 @@ describe("the happy path", () => {
     expect(content).toMatchObject({ hosts: null, venue: "Venue to be announced" });
     expect(content.date).toMatch(/^Saturday, /);
     expect(content.rsvpBy).toBe("RSVP by December 5");
+  });
+
+  it("includes the facts the prompt states where the host has entered none, and the host's title", async () => {
+    const wording = { title: "Little Lemon", invitationLine: "Come celebrate with us" };
+    const content = await revealContent(
+      {
+        ...EVENT_ROW,
+        title: " Maya's Shower ",
+        hosts: null,
+        venue_name: null,
+        address: null,
+        start_time: null,
+        rsvp_deadline: null,
+        timezone: null,
+        prompt_facts: { ...FACTS, hosts: "Ana and Leo", time: "2pm" },
+      },
+      wording,
+      new Date(STARTED_AT),
+    );
+    expect(content).toEqual({
+      title: "Maya's Shower",
+      invitationLine: "Come celebrate with us",
+      // The honoree, as written; the stored date wins over the stated one.
+      babyName: "Maya Lopez",
+      hosts: "Ana and Leo",
+      date: "Saturday, December 19",
+      time: "2pm",
+      venue: "Villa Rosa",
+      rsvpBy: null,
+    });
   });
 });
 

@@ -18,6 +18,8 @@
 
 import { provisionalContent } from "@/lib/events/provisional";
 
+import { validateCardText, validateDetailText } from "./entry";
+import { CARD_SLOT_IDS, type CardSlotId } from "./slots";
 import type { CardContent } from "./text-box";
 
 const WEEKDAYS = [
@@ -188,30 +190,173 @@ export function cardContent(input: CardContentInput): CardContent {
   };
 }
 
-export interface CardContentWithPlaceholdersInput {
-  /** The design's wording, with the host's own title already applied (`runDesignStage`). */
+/**
+ * The card's effective title (`spec.md §20.2`): the event's title when the host supplied or edited
+ * it, else the design's drafted title.
+ */
+export function effectiveCardTitle(
+  eventTitle: string | null | undefined,
+  designTitle: string,
+): string {
+  return trimmed(eventTitle) ?? designTitle;
+}
+
+/**
+ * The facts the host's prompt states (`events.prompt_facts`, `spec.md §7.3`): fact extraction's
+ * fields after the verbatim check (`keepVerbatimFacts`), every value a span of the prompt exactly as
+ * the host wrote it. Unconfirmed: the card shows them marked as needing confirmation, and they are
+ * never published, never shown to guests and never given to the card design. Only the fields the
+ * card can show are read: the title is wording (`spec.md §7.3`) and the event type is never on the
+ * card.
+ */
+export interface PromptFacts {
+  hosts: string | null;
+  honoree: string | null;
+  date: string | null;
+  time: string | null;
+  venue: string | null;
+  location: string | null;
+}
+
+const PROMPT_FACT_FIELDS = ["hosts", "honoree", "date", "time", "venue", "location"] as const;
+
+/**
+ * The stored prompt facts (`events.prompt_facts`, JSON) as `PromptFacts`: each field kept only when
+ * it is a string, anything else read as null; null when the value is not an object (not yet
+ * extracted). Never throws: the column is checked by the database, and a field this reader cannot
+ * use simply shows its placeholder.
+ */
+export function parsePromptFacts(value: unknown): PromptFacts | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const facts = {} as PromptFacts;
+  for (const field of PROMPT_FACT_FIELDS) {
+    const v = record[field];
+    facts[field] = typeof v === "string" ? v : null;
+  }
+  return facts;
+}
+
+/** The slots a prompt-stated fact may fill: never the title, never the RSVP-by. */
+export const PROMPT_FACT_SLOTS = ["babyName", "hosts", "date", "time", "venue"] as const;
+export type PromptFactSlot = (typeof PROMPT_FACT_SLOTS)[number];
+
+/** A prompt value as one line: whitespace runs, line breaks included, become one space. */
+function oneLine(value: string | null | undefined): string | null {
+  const text = (value ?? "").replace(/\s+/g, " ").trim();
+  return text === "" ? null : text;
+}
+
+/** The event's stored fields the card's facts come from (`cardContent`), without its wording. */
+export type CardFactsInput = Omit<CardContentInput, "title" | "invitationLine">;
+
+export interface PromptFactCandidatesInput {
+  event: CardFactsInput;
+  promptFacts: PromptFacts | null;
+  /** The slots the design's layout defines (`layoutCard`'s `slots`); every slot by default. */
+  slots?: readonly CardSlotId[];
+}
+
+/**
+ * The prompt-stated value for each fact slot the host has not filled, that passes the slot's entry
+ * check — the same check a host's own entry gets (`validateCardText` for the baby name, hosts and
+ * venue; `validateDetailText` within `CARD_FACT_MAX_LENGTH` for the date and time). Mapping:
+ * hosts → hosts; honoree → babyName; date → date; time → time; venue → venue, else the location's
+ * first line (`addressFirstLine`, as the card shows an address) when the prompt states no venue.
+ * Never the title (it is wording) and never the event type. A slot the layout does not define, or
+ * that has a stored value, takes nothing. Pure.
+ *
+ * The fit check (`cardTextFitsEveryDesign`) is the server's (`reveal-content.server.ts`): only a
+ * candidate it also accepts is shown (`revealCardContent`'s `fits`).
+ */
+export function promptFactCandidates({
+  event,
+  promptFacts,
+  slots = CARD_SLOT_IDS,
+}: PromptFactCandidatesInput): Partial<Record<PromptFactSlot, string>> {
+  if (!promptFacts) return {};
+  const stored: Record<PromptFactSlot, string | null> = {
+    babyName: trimmed(event.babyName),
+    hosts: trimmed(event.hosts),
+    date: trimmed(event.eventDate),
+    time: trimmed(event.startTime),
+    venue: cardVenue(event.venueName, event.address),
+  };
+  const venue = oneLine(promptFacts.venue);
+  const stated: Record<PromptFactSlot, string | null> = {
+    babyName: oneLine(promptFacts.honoree),
+    hosts: oneLine(promptFacts.hosts),
+    date: oneLine(promptFacts.date),
+    time: oneLine(promptFacts.time),
+    venue: venue ?? addressFirstLine(promptFacts.location),
+  };
+  const candidates: Partial<Record<PromptFactSlot, string>> = {};
+  for (const slot of PROMPT_FACT_SLOTS) {
+    const value = stated[slot];
+    if (value === null || stored[slot] !== null || !slots.includes(slot)) continue;
+    const check =
+      slot === "date" || slot === "time"
+        ? validateDetailText(value, CARD_FACT_MAX_LENGTH[slot])
+        : validateCardText(slot, value);
+    if (check.ok) candidates[slot] = value;
+  }
+  return candidates;
+}
+
+export interface RevealCardContentInput {
+  /** The design's wording with the effective title applied (the host's title, else the design's). */
   wording: { title: string; invitationLine: string };
   /** The event's stored fields; its title and invitation line are the wording's. */
-  event: Omit<CardContentInput, "title" | "invitationLine">;
+  event: CardFactsInput;
+  /** The facts the prompt states (`events.prompt_facts`, `parsePromptFacts`); null when none. */
+  promptFacts: PromptFacts | null;
+  /** The slots the design's layout defines; every slot by default. */
+  slots?: readonly CardSlotId[];
+  /**
+   * The server's fit check of a prompt-stated value in its slot (`cardTextFitsEveryDesign`, run
+   * ahead by `reveal-content.server.ts`, which is how server callers get this content). Only a
+   * value it accepts is shown; any other shows its placeholder, or nothing for the hosts and baby
+   * name.
+   */
+  fits: (slot: PromptFactSlot, value: string) => boolean;
   /** The moment the provisional date is counted from (`provisionalContent`). */
   now: Date;
 }
 
+export interface RevealCardContent {
+  /** The words the card shows, formatted as the card sets them. */
+  content: CardContent;
+  /**
+   * The slots whose words need the host's confirmation, in slot order: a prompt-stated value or a
+   * placeholder (`spec.md §7.3`). Never published and never shown to guests.
+   */
+  unconfirmed: CardSlotId[];
+}
+
 /**
- * The words the generated card shows right after generation, in Creation Mode: the design's
- * wording, the event's stored facts, and for each missing required fact its bounded placeholder —
- * the date twelve weeks out on a Saturday, 1:00 pm, `Venue to be announced` (`spec.md §7.3`,
- * `provisionalContent`). Hosts and the baby name are shown only when stored; the RSVP-by only from
- * a stored deadline and timezone. Formatted by `cardContent`, so it is exactly what the card sets.
+ * The words the generated card shows right after generation, in Creation Mode (`spec.md §7.3`):
+ * the design's wording, and for each fact
  *
- * The one producer of this content, for the artwork stage's ink (which measures behind these
- * lines) and the live corpus (which draws them), so the two cannot drift.
+ * 1. the event's stored value (host-entered or host-confirmed), formatted by `cardContent`;
+ * 2. else the value the prompt states, as the host wrote it, when it passes the slot's entry and
+ *    fit checks (`promptFactCandidates`, `fits`) — unconfirmed;
+ * 3. else, for the date, time and venue, the bounded placeholder — the date twelve weeks out on a
+ *    Saturday, 1:00 pm, `Venue to be announced` (`provisionalContent`) — unconfirmed. The hosts and
+ *    the baby name are absent rather than invented; the RSVP-by shows only from a stored deadline
+ *    and timezone.
+ *
+ * The one producer of this content: the artwork stage judges the ink behind these lines
+ * (`run.server.ts`), the reveal and Creation Mode draw them (`loadRevealedCard`), and the live
+ * corpus draws them too, so none of them can drift. Pure.
  */
-export function cardContentWithPlaceholders({
+export function revealCardContent({
   wording,
   event,
+  promptFacts,
+  slots = CARD_SLOT_IDS,
+  fits,
   now,
-}: CardContentWithPlaceholdersInput): CardContent {
+}: RevealCardContentInput): RevealCardContent {
   const placeholders = provisionalContent(
     {
       eventDate: event.eventDate,
@@ -220,7 +365,7 @@ export function cardContentWithPlaceholders({
     },
     now,
   );
-  return cardContent({
+  const content = cardContent({
     ...event,
     title: wording.title,
     invitationLine: wording.invitationLine,
@@ -230,4 +375,25 @@ export function cardContentWithPlaceholders({
     venueName: placeholders.venue.value,
     address: null,
   });
+  const unconfirmed = new Set<CardSlotId>();
+  if (placeholders.eventDate.provisional) unconfirmed.add("date");
+  if (placeholders.startTime.provisional) unconfirmed.add("time");
+  if (placeholders.venue.provisional) unconfirmed.add("venue");
+
+  const candidates = promptFactCandidates({ event, promptFacts, slots });
+  for (const slot of PROMPT_FACT_SLOTS) {
+    const value = candidates[slot];
+    if (value === undefined || !fits(slot, value)) continue;
+    content[slot] = value;
+    unconfirmed.add(slot);
+  }
+  return { content, unconfirmed: CARD_SLOT_IDS.filter((slot) => unconfirmed.has(slot)) };
+}
+
+/**
+ * `revealCardContent`'s words alone, for a caller that does not mark them: the artwork stage's ink
+ * (`run.server.ts`) and the live corpus.
+ */
+export function cardContentWithPlaceholders(input: RevealCardContentInput): CardContent {
+  return revealCardContent(input).content;
 }

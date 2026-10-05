@@ -11,12 +11,17 @@ import { GENERATION_STALE_SECONDS } from "@/lib/ai/generations.server";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import type { CardPanel } from "@/lib/card/card-data";
-import { cardContentWithPlaceholders } from "@/lib/card/facts";
 import type { CardLayoutId } from "@/lib/card/layouts";
 import { proportionOf, type CardShape } from "@/lib/card/shapes";
 import type { TypographyPairingId } from "@/lib/card/typography";
 import { generationEnv } from "@/lib/env";
-import { CARD_ART_BUCKET, runGeneration } from "@/lib/generation/run.server";
+import {
+  CARD_ART_BUCKET,
+  REVEAL_EVENT_COLUMNS,
+  revealContent,
+  runGeneration,
+  type RevealEventRow,
+} from "@/lib/generation/run.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { launchChromium } from "../fixtures/browser";
@@ -34,9 +39,9 @@ import { startStaticServer } from "../fixtures/static-server";
  * metered model calls (about $0.10 a card) under the project's daily ceiling. Output: one PNG and
  * one summary row per case in `CORPUS_OUT`.
  *
- * As the host first sees it: the card's facts are the event's own fields, so cases whose host
- * confirmed nothing show the Creation Mode placeholders (§7.3); CU-11's stated facts are set as
- * if the host confirmed them during the wait.
+ * As the host first sees it, from the one producer the artwork stage judged the ink behind
+ * (`revealContent`): no case's host confirms anything, so the facts a prompt states (CU-11's date,
+ * time and venue, say) show as written and the rest as the Creation Mode placeholders (§7.3).
  */
 
 const LIVE = process.env.LIVE_CORPUS === "1";
@@ -66,16 +71,6 @@ const OWNER_BRIEFS: CorpusCase[] = [
       "Baby shower that's Ralph Lauren bear themed, dark navys and browns, not overly baby but still says this is for a baby shower.",
   },
 ];
-
-/** Facts CU-11's host states, as the details form would store them once confirmed. */
-const CONFIRMED: Record<string, Record<string, string>> = {
-  "CU-11": {
-    event_date: "2026-12-19",
-    start_time: "13:00",
-    venue_name: "The Lodge at Hanson Park",
-    address: "Aldie, Virginia",
-  },
-};
 
 function corpus(): CorpusCase[] {
   const file = path.resolve("docs/model-evals/creative-understanding.json");
@@ -311,23 +306,15 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
           const wording = design.wording as { title: string; invitationLine: string };
           const zone = (asset.ink as unknown as Record<string, Record<string, ZoneInk>>)[shape]
             .text;
-          const confirmed = CONFIRMED[result.id] ?? {};
-          // The same producer the artwork stage judged the ink behind (`run.server.ts`).
-          const content = cardContentWithPlaceholders({
-            wording,
-            event: {
-              babyName: null,
-              hosts: null,
-              eventDate: confirmed.event_date ?? null,
-              startTime: confirmed.start_time ?? null,
-              endTime: null,
-              venueName: confirmed.venue_name ?? null,
-              address: confirmed.address ?? null,
-              rsvpDeadline: null,
-              timezone: null,
-            },
-            now: new Date(),
-          });
+          const { data: event, error: eventError } = await admin
+            .from("events")
+            .select(REVEAL_EVENT_COLUMNS)
+            .eq("id", result.eventId)
+            .single();
+          if (eventError) throw eventError;
+          // The same producer the artwork stage judged the ink behind (`run.server.ts`): the
+          // facts the prompt states as written, the placeholders for the rest.
+          const content = await revealContent(event as RevealEventRow, wording, new Date());
           const boxes = await generatedTextLayer({
             layout,
             shape,
