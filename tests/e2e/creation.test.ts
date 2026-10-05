@@ -39,6 +39,8 @@ afterAll(async () => {
 async function openFixture(
   viewport: { width: number; height: number },
   query: string,
+  /** Runs before the page loads (a route the page asks for at once). */
+  before?: (page: Page) => Promise<void>,
 ): Promise<{ page: Page; close: () => Promise<void> }> {
   if (!app) throw new Error("The app under test did not start; run `npm run build` first.");
   const context = await browser.newContext({
@@ -47,6 +49,7 @@ async function openFixture(
     hasTouch: viewport.width <= 700,
   });
   const page = await context.newPage();
+  await before?.(page);
   await page.goto(`${app.baseUrl}/dev/creation?${query}`, { waitUntil: "networkidle" });
   return { page, close: () => context.close() };
 }
@@ -535,6 +538,63 @@ describe.each([
     }
   });
 
+  it("after a failure, another shape asks again; Dismiss clears the failure", async () => {
+    const { page, close } = await openFixture(viewport, "data=full");
+    try {
+      const phase = await stubPoll(page);
+      phase.value = "failed";
+      await page.getByRole("button", { name: "Design", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Design" });
+      await dialog.getByRole("button", { name: "Square — new artwork" }).click();
+      await dialog.getByRole("button", { name: "Make it" }).click();
+      const failure = dialog.locator("[data-shape-failure]");
+      await failure.waitFor({ timeout: 15_000 });
+      // Choosing again: the failure gives way to the notice for the new choice.
+      await dialog.getByRole("button", { name: "Square — new artwork" }).click();
+      await dialog.locator("[data-shape-notice]").waitFor();
+      expect(await failure.count()).toBe(0);
+      await dialog.getByRole("button", { name: "Cancel" }).click();
+      // Dismiss clears a failure without trying again.
+      await dialog.getByRole("button", { name: "Square — new artwork" }).click();
+      await dialog.getByRole("button", { name: "Make it" }).click();
+      await failure.waitFor({ timeout: 15_000 });
+      await failure.getByRole("button", { name: "Dismiss" }).click();
+      expect(await failure.count()).toBe(0);
+      expect(await cardShape(page)).toBe("rectangle");
+    } finally {
+      await close();
+    }
+  });
+
+  it("a page loaded while a shape is painting shows the wait, then the new shape", async () => {
+    let phase: { value: PollPhase } = { value: "running" };
+    const { page, close } = await openFixture(viewport, "data=full&wait=square", async (p) => {
+      phase = await stubPoll(p);
+    });
+    try {
+      const status = page.locator("[data-shape-status]");
+      await status.waitFor();
+      expect(await status.textContent()).toContain("Painting your card as a square");
+      expect(await cardShape(page)).toBe("rectangle");
+      // The panel shows the same wait, and its swatches are unavailable meanwhile (still focusable).
+      await page.getByRole("button", { name: "Design", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Design" });
+      await dialog.locator("[data-shape-wait]").waitFor();
+      expect(await dialog.getByRole("button", { name: "Oval" }).getAttribute("aria-disabled")).toBe(
+        "true",
+      );
+      phase.value = "succeeded";
+      await page.waitForFunction(
+        () =>
+          document.querySelector("[data-card-shape]")?.getAttribute("data-card-shape") === "square",
+        undefined,
+        { timeout: 15_000 },
+      );
+    } finally {
+      await close();
+    }
+  });
+
   it("after publish only shapes the artwork fits are offered, and no Try another or choosing", async () => {
     const { page, close } = await openFixture(viewport, "data=full&published=1");
     try {
@@ -576,8 +636,9 @@ describe.each([
     try {
       const pill = page.locator("[data-setup-pill]");
       await pill.waitFor();
-      // Date, start time, venue, who can see it; the title is the design's and the zone is set.
-      expect((await pill.textContent())?.trim()).toBe("Finish setup · 4 left");
+      // Date, start time, venue, RSVP deadline, who can see it; the title is the design's and the
+      // zone is set.
+      expect((await pill.textContent())?.trim()).toBe("Finish setup · 5 left");
       expect(await contrastOf(page, "[data-setup-pill]")).toBeGreaterThanOrEqual(4.5);
       expect(await hasHorizontalScroll(page)).toBe(false);
       await shot(page, viewport, "pill-left");
@@ -589,7 +650,7 @@ describe.each([
       const rows = await checklist
         .locator("[data-blocker]")
         .evaluateAll((els) => els.map((el) => el.getAttribute("data-blocker")));
-      expect(rows).toEqual(["eventDate", "startTime", "venue", "visibility"]);
+      expect(rows).toEqual(["eventDate", "startTime", "venue", "rsvpDeadline", "visibility"]);
       // Recommended work has no surface yet: no group, no dead links.
       expect(await checklist.getByText(/Recommended/).count()).toBe(0);
       expect(await contrastOf(page, "[data-blocker=eventDate] span")).toBeGreaterThanOrEqual(4.5);
@@ -605,7 +666,7 @@ describe.each([
       // Saving one updates the count live.
       await editor.getByText("Public", { exact: true }).click();
       await page.waitForFunction(() =>
-        document.querySelector("[data-setup-pill]")?.textContent?.includes("3 left"),
+        document.querySelector("[data-setup-pill]")?.textContent?.includes("4 left"),
       );
 
       // Escape returns to the readiness control that started it.
@@ -624,7 +685,7 @@ describe.each([
     try {
       const pill = page.locator("[data-setup-pill]");
       await pill.waitFor();
-      expect((await pill.textContent())?.trim()).toBe("Finish setup · 4 left");
+      expect((await pill.textContent())?.trim()).toBe("Finish setup · 5 left");
       await pill.click();
       const checklist = page.getByRole("dialog", { name: "Setup" });
       await checklist.getByRole("button", { name: /Event date/ }).click();

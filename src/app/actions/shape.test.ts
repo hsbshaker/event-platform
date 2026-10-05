@@ -41,6 +41,7 @@ vi.mock("@/lib/generation/run.server", async (importOriginal) => ({
 }));
 
 const { loadCardShapeOptionsAction, switchCardShape } = await import("./shape");
+const { runningShapeSwitch } = await import("@/lib/generation/shape.server");
 
 const member = (published = false) => ({
   user: { id: USER },
@@ -400,5 +401,40 @@ describe("loadCardShapeOptionsAction", () => {
       expect(await loadCardShapeOptionsAction(EVENT)).toBeNull();
     }
     expect(await loadCardShapeOptionsAction("not-a-uuid")).toBeNull();
+  });
+});
+
+describe("runningShapeSwitch", () => {
+  const NOW = Date.parse("2026-10-05T12:00:00Z");
+  const row = (over: Record<string, unknown>) => ({
+    id: GENERATION,
+    event_id: EVENT,
+    kind: "shape_switch",
+    status: "running",
+    shape: "square",
+    started_at: "2026-10-05T11:59:00Z",
+    ...over,
+  });
+
+  it("names the shape switch still painting, for this event's collaborators only", async () => {
+    admin.fake.state.tables.generations = [row({})];
+    expect(await runningShapeSwitch(EVENT, { now: () => NOW })).toEqual({
+      generationId: GENERATION,
+      shape: "square",
+    });
+    expect(access).toHaveBeenLastCalledWith(EVENT, "use_design_controls");
+    access.mockRejectedValueOnce(new ForbiddenError());
+    await expect(runningShapeSwitch(EVENT)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("is null for nothing running, another kind, or a worker past its lifetime", async () => {
+    for (const over of [
+      { status: "succeeded" },
+      { kind: "another_direction", shape: null },
+      { started_at: "2026-10-05T11:00:00Z" },
+    ]) {
+      admin.fake.state.tables.generations = [row(over)];
+      expect(await runningShapeSwitch(EVENT, { now: () => NOW })).toBeNull();
+    }
   });
 });

@@ -13,11 +13,9 @@ import { missingRequiredDetails, type EventDetailFields } from "./required-detai
  *   missing `events.title` never blocks once a design exists;
  * - event date, start time, venue/location display value, valid stored timezone, visibility —
  *   `missingRequiredDetails`;
- * - RSVP deadline — the same, with one reading: the default deadline is stored whenever the host
- *   saves a date and the event has a timezone (`computeEventPatch`, spec §7.3), so with no date
- *   there is no deadline yet and saving the date supplies it. It is then not a row of its own: the
- *   date's row stands for both. With a date saved and no deadline (a cleared one, or no timezone
- *   yet) it is its own blocker;
+ * - RSVP deadline — the same, a row of its own as §23.1 lists it. Saving a date usually clears it
+ *   too: the default deadline is stored with the date once the event has a timezone
+ *   (`computeEventPatch`, spec §7.3), and the form supplies the browser's zone as a fallback;
  * - encrypted access code when private — `accessCodeSet`;
  * - valid event owner/account — true by construction of the page that asks (an owner's or
  *   co-host's session on an event that exists).
@@ -68,7 +66,7 @@ const BLOCKERS: Readonly<Record<PublishBlockerKey, Omit<PublishBlocker, "key">>>
   },
   eventDate: {
     label: "Event date",
-    description: "Pick the day. The RSVP deadline follows it.",
+    description: "Pick the day.",
     focusId: "eventDate",
   },
   startTime: {
@@ -88,7 +86,7 @@ const BLOCKERS: Readonly<Record<PublishBlockerKey, Omit<PublishBlocker, "key">>>
   },
   rsvpDeadline: {
     label: "RSVP deadline",
-    description: "Choose the last day people can reply.",
+    description: "Choose the last day people can reply. Saving the date sets one for you.",
     focusId: "rsvpDeadline",
   },
   visibility: {
@@ -137,9 +135,6 @@ export function publishReadiness(input: PublishReadinessInput): PublishReadiness
   for (const key of missingRequiredDetails({ ...details, title: effectiveTitle })) {
     missing.add(key);
   }
-
-  // The date's row stands for the deadline it will supply (see the module note).
-  if (missing.has("eventDate")) missing.delete("rsvpDeadline");
 
   if (details.visibility === "private" && !accessCodeSet) missing.add("accessCode");
 

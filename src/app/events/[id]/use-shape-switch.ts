@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { SwitchCardShapeInput, SwitchCardShapeResult } from "@/app/actions/shape";
 import type { CardShape } from "@/lib/card/shapes";
@@ -20,7 +20,9 @@ import { useGenerationPoll } from "@/lib/generation/use-generation-poll";
  * - An answer that applies the shape, or a generation that succeeds, calls `onApplied` (the page
  *   refreshes its server data); the card on screen is never touched before that.
  * - A refusal or a failed generation stays as `failed` with the host's copy until the host tries
- *   again or dismisses it.
+ *   again, dismisses it, or picks another shape.
+ * - While one switch is starting or painting, another is not started (`spec.md §10`); a page loaded
+ *   mid-wait starts in that wait (`running`).
  */
 
 export type ShapeSwitchState =
@@ -34,6 +36,7 @@ export function useShapeSwitch({
   designId,
   switchShape,
   onApplied,
+  running = null,
 }: {
   eventId: string;
   /** The active design: part of the key's scope, so another design never reuses a key. */
@@ -41,13 +44,24 @@ export function useShapeSwitch({
   switchShape: (input: SwitchCardShapeInput) => Promise<SwitchCardShapeResult>;
   /** The shape is on the card now (instantly, or once its artwork is ready). */
   onApplied: (shape: CardShape) => void;
+  /** A switch already painting when the page loaded. */
+  running?: { shape: CardShape; generationId: string } | null;
 }) {
-  const [state, setState] = useState<ShapeSwitchState>({ kind: "idle" });
+  const [state, setState] = useState<ShapeSwitchState>(() =>
+    running ? { kind: "running", ...running, offline: false } : { kind: "idle" },
+  );
   const busy = useRef(false);
+  const current = useRef(state);
+  useEffect(() => {
+    current.current = state;
+  });
 
   const start = useCallback(
     async (shape: CardShape, fresh = false) => {
+      // One switch at a time: never over one starting or painting.
       if (busy.current) return;
+      const now = current.current.kind;
+      if (now === "starting" || now === "running") return;
       busy.current = true;
       setState({ kind: "starting", shape });
       const scope = `shape-key:${eventId}:${designId}:${shape}`;

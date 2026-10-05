@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { AppButton } from "@/components/app/AppButton";
 import { cx } from "@/components/app/cx";
@@ -51,9 +51,12 @@ export function ShapeControl({
   onChoose,
   onRetry,
   onDismiss,
+  announcement = "",
 }: {
   options: CardShapeOptions;
   switching: ShapeSwitchState;
+  /** Said once a shape is on the card (`shapeAppliedLine`), for screen readers. */
+  announcement?: string;
   /** Applies the shape now, or begins its new artwork. */
   onChoose: (shape: CardShape) => void;
   onRetry: () => void;
@@ -61,6 +64,7 @@ export function ShapeControl({
 }) {
   // A shape that needs new artwork, waiting for the host's `Make it`.
   const [asking, setAsking] = useState<CardShape | null>(null);
+  const wait = useRef<HTMLDivElement>(null);
   const offered = options.options.filter((o) => o.available);
   const busy = switching.kind === "starting" || switching.kind === "running";
   const confirming = !busy && switching.kind !== "failed" ? asking : null;
@@ -78,9 +82,12 @@ export function ShapeControl({
               data-shape={option.shape}
               aria-label={shapeSwatchLabel(option.shape, option.instant)}
               aria-pressed={current}
-              disabled={busy}
+              // Not \`disabled\`: a swatch keeps focus while a switch runs (it does nothing then).
+              aria-disabled={busy || undefined}
               onClick={() => {
-                if (current) return;
+                if (current || busy) return;
+                // Another shape after a failure: the failure gives way to the new choice.
+                if (switching.kind === "failed") onDismiss();
                 if (option.instant) {
                   setAsking(null);
                   onChoose(option.shape);
@@ -90,7 +97,7 @@ export function ShapeControl({
               }}
               className={cx(
                 "flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-3 transition-colors",
-                "disabled:cursor-not-allowed disabled:opacity-50",
+                "aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
                 current
                   ? "border-app-action bg-app-surface-muted text-app-text"
                   : target
@@ -123,6 +130,8 @@ export function ShapeControl({
               onClick={() => {
                 setAsking(null);
                 onChoose(confirming);
+                // The button goes away with the notice: focus moves to the wait that replaces it.
+                setTimeout(() => wait.current?.focus(), 0);
               }}
             >
               Make it
@@ -135,7 +144,12 @@ export function ShapeControl({
       )}
 
       {busy && (
-        <div data-shape-wait="" className="flex flex-col gap-1">
+        <div
+          ref={wait}
+          tabIndex={-1}
+          data-shape-wait=""
+          className="flex flex-col gap-1 outline-none"
+        >
           <InlineStatus live>{shapeWaitLine(switching.shape)}</InlineStatus>
           <p className="text-body-sm text-app-text-secondary">
             {switching.kind === "running" && switching.offline
@@ -144,6 +158,10 @@ export function ShapeControl({
           </p>
         </div>
       )}
+
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
 
       {switching.kind === "failed" && (
         <div data-shape-failure="" className="flex flex-col gap-3">

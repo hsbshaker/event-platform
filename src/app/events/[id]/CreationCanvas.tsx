@@ -18,8 +18,8 @@ import type { EventPageContent } from "@/lib/events/page-content";
 import { publishReadiness } from "@/lib/events/publish-readiness";
 import { createSaveTracker } from "@/lib/events/save-tracker";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
-import type { CardShapeOptions } from "@/lib/generation/shape.server";
-import { shapeWaitLine } from "@/lib/generation/shape-wait";
+import type { CardShapeOptions, RunningShapeSwitch } from "@/lib/generation/shape.server";
+import { shapeAppliedLine, shapeWaitLine } from "@/lib/generation/shape-wait";
 
 import { DesignPanel } from "./DesignPanel";
 import { DetailsForm } from "./create/DetailsForm";
@@ -56,6 +56,7 @@ export function CreationCanvas({
   content,
   design,
   accessCodeSet,
+  shapeWait = null,
   save = updateEventDetails,
   onSaved,
   switchShape = switchCardShape,
@@ -82,6 +83,8 @@ export function CreationCanvas({
   };
   /** An access code is stored for the event (`events.access_code_encrypted`). */
   accessCodeSet: boolean;
+  /** A shape switch already painting when the page loaded: its wait carries on here. */
+  shapeWait?: RunningShapeSwitch | null;
   /** The shape action; the development fixture injects a stub. */
   switchShape?: typeof switchCardShape;
   /** What to do once a shape is on the card; by default the server data is refreshed. */
@@ -151,11 +154,18 @@ export function CreationCanvas({
     queueMicrotask(() => opener.current?.focus());
   }
 
+  // Said once a shape is on the card (screen readers); the wait's own line says it is under way.
+  const [announcement, setAnnouncement] = useState("");
   const shapeSwitch = useShapeSwitch({
     eventId: event.id,
     designId: design.designId,
     switchShape,
-    onApplied: (shape) => (onShapeApplied ? onShapeApplied(shape) : router.refresh()),
+    onApplied: (shape) => {
+      setAnnouncement(shapeAppliedLine(shape));
+      if (onShapeApplied) onShapeApplied(shape);
+      else router.refresh();
+    },
+    running: shapeWait,
   });
   const switching = shapeSwitch.state;
 
@@ -174,7 +184,11 @@ export function CreationCanvas({
           onDesign={() => showPanel({ kind: "design" }, designButton.current)}
         />
         {(switching.kind === "starting" || switching.kind === "running") && (
-          <InlineStatus live className="-mb-2">
+          <InlineStatus
+            // Live only while the Design panel is closed: the open panel says it (read once).
+            live={panel?.kind !== "design"}
+            className="-mb-2"
+          >
             <span data-shape-status="">{shapeWaitLine(switching.shape)}</span>
           </InlineStatus>
         )}
@@ -191,6 +205,9 @@ export function CreationCanvas({
             </AppButton>
           </div>
         )}
+        <p aria-live="polite" className="sr-only">
+          {announcement}
+        </p>
         {card}
         <EventPage
           content={content}
@@ -238,6 +255,7 @@ export function CreationCanvas({
           onChooseShape={(shape) => void shapeSwitch.start(shape)}
           onRetryShape={shapeSwitch.retry}
           onDismissShape={shapeSwitch.dismiss}
+          shapeAnnouncement={announcement}
           designs={design.designs}
           choose={choose}
           onChosen={onChosen}

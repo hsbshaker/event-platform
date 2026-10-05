@@ -28,7 +28,8 @@ import { CreationFixture } from "./CreationFixture";
  *   rectangle); an illustration artwork fits every 5:7 shape, so `square` needs new artwork;
  * - `&published=1`: published, so only shapes an existing artwork fits are offered and there is no
  *   `Try another direction` or choosing;
- * - `&visibility=private` with any data: a private event with no access code stored.
+ * - `&visibility=private` with any data: a private event with no access code stored;
+ * - `&wait=square`: a switch to a square already painting when the page loads.
  * The shape and design actions are stubs; the generation poll is answered by the test.
  */
 
@@ -205,6 +206,9 @@ export default async function CreationFixturePage({
       refuse={one("refuse") === "1"}
       cards={cards}
       shape={initialShape}
+      shapeWait={
+        one("wait") === "square" ? { shape: "square", generationId: "fixture-generation-1" } : null
+      }
       supported={supported}
       published={published}
       designs={designs}

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { GenerationDisabledError } from "@/lib/ai/errors";
-import { startGeneration } from "@/lib/ai/generations.server";
+import { GENERATION_STALE_SECONDS, startGeneration } from "@/lib/ai/generations.server";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { CARD_LAYOUT_IDS, layoutSupportsShape } from "@/lib/card/layouts";
 import type { CardLayoutId } from "@/lib/card/layouts";
@@ -247,4 +247,39 @@ export async function loadCardShapeOptions(eventId: string): Promise<CardShapeOp
       },
     ),
   };
+}
+
+/** A shape switch still painting new artwork for the event's card. */
+export interface RunningShapeSwitch {
+  generationId: string;
+  shape: CardShape;
+}
+
+/**
+ * The event's shape switch still running, if any (`docs/screen-spec.md` `design-panel`: the wait's
+ * quiet status by the card), so a page loaded mid-wait shows it rather than hiding it
+ * (`spec.md §32 #46`). A generation running past `GENERATION_STALE_SECONDS` is dead, not waited on.
+ * For the event's owner or a co-host (`use_design_controls`); throws otherwise, before reading.
+ */
+export async function runningShapeSwitch(
+  eventId: string,
+  options: { now?: () => number } = {},
+): Promise<RunningShapeSwitch | null> {
+  await requireEventAccess(eventId, "use_design_controls");
+  // Read after the access check above, for this event only.
+  const { data, error } = await createAdminClient()
+    .from("generations")
+    .select("id, shape, started_at")
+    .eq("event_id", eventId)
+    .eq("kind", "shape_switch")
+    .eq("status", "running")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || !data.shape || !CARD_SHAPES.includes(data.shape)) return null;
+  const startedAt = Date.parse(data.started_at);
+  const now = options.now?.() ?? Date.now();
+  if (!Number.isFinite(startedAt) || now - startedAt > GENERATION_STALE_SECONDS * 1000) return null;
+  return { generationId: data.id, shape: data.shape };
 }

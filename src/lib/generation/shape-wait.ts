@@ -34,7 +34,12 @@ export function shapeWaitLine(shape: CardShape): string {
 
 /** What the host is told before a shape that needs new artwork is made. */
 export function shapeNotice(shape: CardShape): string {
-  return `We'll paint new artwork of the same subject for ${SHAPE_PHRASE[shape]}. Your current card stays as it is until it's ready.`;
+  return `We'll paint new artwork of the same subject for ${SHAPE_PHRASE[shape]}, which takes about as long as a new design. Your current card stays as it is until it's ready.`;
+}
+
+/** Announced once the card shows the shape. */
+export function shapeAppliedLine(shape: CardShape): string {
+  return `Your card is now ${SHAPE_PHRASE[shape]}.`;
 }
 
 /** A swatch's accessible name: "Oval", or "Square — new artwork" when it must be painted. */

@@ -707,7 +707,7 @@ Switching shape keeps the host's words, added text and fonts and lays them out f
 
 Switching to a shape the current artwork fits applies instantly. Illustration and atmosphere artwork fits every supported shape of its proportion; border- and frame-led artwork fits only the shape it was made for (`card-system.md §2.4`). Any other switch — tall ↔ square, or a new outline for a bordered design — needs new artwork of the same subject (the same bear, rearranged): say so before it starts ("This makes new artwork for a square card — about as long as a new design"), keep the current card visible while it generates, and show the result in place; switching back is instant. Switches that need new artwork are not offered after publish.
 
-After publish, `Edit card`, `Reset card` and switching to shapes an existing artwork fits remain available and update the live card; `Try another direction`, switches that need new artwork and the designs list do not (§4.12, `spec.md §8.1`).
+After publish, `Edit card`, `Reset card` and switching to shapes an existing artwork fits remain available and update the live card, and the designs list is read-only; `Try another direction`, switches that need new artwork and choosing a design do not (§4.12, `spec.md §8.1`, §8.2).
 
 ---
 
@@ -1688,9 +1688,9 @@ No percent-complete gamification.
 
 Implemented as `src/components/app/SetupChecklist.tsx`, from `publishReadiness`
 (`src/lib/events/publish-readiness.ts`, exactly `spec.md §23.1`). Each blocker row opens the
-details editor on its field. While no date is saved, the date row stands for the RSVP deadline too,
-whose default is stored with the date; the time zone, inferred from the venue (`spec.md §7.4`),
-opens the venue field. The private event code is listed without an action until it can be set.
+details editor on its field. Each §23.1 requirement is its own row; the RSVP deadline's usually
+clears when the date is saved (its default is stored with the date); the time zone, inferred from
+the venue (`spec.md §7.4`), opens the venue field. The private event code is listed without an action until it can be set.
 The recommended group appears once its surfaces (guests, registry, co-hosts) exist.
 
 ## 10.14 `InvitationCard`

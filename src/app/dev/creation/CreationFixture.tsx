@@ -54,6 +54,7 @@ export function CreationFixture({
   supported,
   published,
   designs: initialDesigns,
+  shapeWait = null,
 }: {
   /** The active design's card in each shape its layout supports. */
   cards: Record<CardShape, ReactNode>;
@@ -65,6 +66,8 @@ export function CreationFixture({
   supported: readonly CardShape[];
   published: boolean;
   designs: RevealedCard[];
+  /** A shape switch already painting when the page loaded. */
+  shapeWait?: { shape: CardShape; generationId: string } | null;
 }) {
   const [event, setEvent] = useState(initial);
   const [current, setCurrent] = useState(shape);
@@ -146,6 +149,7 @@ export function CreationFixture({
           card={cards[current]}
           event={event}
           accessCodeSet={false}
+          shapeWait={shapeWait}
           design={{
             designId: "fixture-design-1",
             published,

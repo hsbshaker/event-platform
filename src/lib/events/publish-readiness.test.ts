@@ -76,9 +76,16 @@ describe("publishReadiness (spec.md §23.1)", () => {
     expect(keys(ask({ hasCard: false }))).toEqual(["card"]);
   });
 
-  it("lists a brand-new event's blockers in §23.1's order, with the date standing for the deadline", () => {
+  it("lists a brand-new event's blockers in §23.1's order", () => {
     const r = ask({ details: { ...EMPTY } });
-    expect(keys(r)).toEqual(["eventDate", "startTime", "venue", "timezone", "visibility"]);
+    expect(keys(r)).toEqual([
+      "eventDate",
+      "startTime",
+      "venue",
+      "timezone",
+      "rsvpDeadline",
+      "visibility",
+    ]);
     expect(r.ready).toBe(false);
   });
 
@@ -95,9 +102,9 @@ describe("publishReadiness (spec.md §23.1)", () => {
   });
 
   describe("the RSVP deadline", () => {
-    it("is not a row of its own while there is no date: the date's row supplies it", () => {
+    it("is a row of its own, as spec §23.1 lists it, even while there is no date", () => {
       const r = ask({ details: { eventDate: null, rsvpDeadline: null } });
-      expect(keys(r)).toEqual(["eventDate"]);
+      expect(keys(r)).toEqual(["eventDate", "rsvpDeadline"]);
       expect(r.ready).toBe(false);
     });
 
@@ -145,7 +152,14 @@ describe("publishReadiness (spec.md §23.1)", () => {
       hasCard: true,
       accessCodeSet: false,
     });
-    expect(keys(r)).toEqual(["eventDate", "startTime", "venue", "timezone", "visibility"]);
+    expect(keys(r)).toEqual([
+      "eventDate",
+      "startTime",
+      "venue",
+      "timezone",
+      "rsvpDeadline",
+      "visibility",
+    ]);
   });
 
   it("never lists guests, registry, invitations, a co-host or payment (§32 #45)", () => {

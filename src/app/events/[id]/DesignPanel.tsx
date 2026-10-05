@@ -47,6 +47,7 @@ export function DesignPanel({
   onChooseShape,
   onRetryShape,
   onDismissShape,
+  shapeAnnouncement,
   designs,
   choose,
   onChosen,
@@ -60,6 +61,8 @@ export function DesignPanel({
   onChooseShape: (shape: CardShape) => void;
   onRetryShape: () => void;
   onDismissShape: () => void;
+  /** Said once a shape is on the card, for screen readers. */
+  shapeAnnouncement?: string;
   designs: readonly RevealedCard[];
   choose?: (designId: string) => Promise<ChooseOutcome>;
   onChosen?: (designId: string) => void;
@@ -74,6 +77,7 @@ export function DesignPanel({
             onChoose={onChooseShape}
             onRetry={onRetryShape}
             onDismiss={onDismissShape}
+            announcement={shapeAnnouncement}
           />
         </Section>
       )}

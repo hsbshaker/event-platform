@@ -190,8 +190,9 @@ Group 2: **Recommended before sharing**
 
 Publish-ready state is allowed with recommended items incomplete.
 
-While no date is saved, the date row stands for the RSVP deadline too (its default is stored with
-the date); the time zone row opens the venue field (it is inferred from the venue, §7.4).
+Each §23.1 requirement is its own row. The RSVP deadline row usually clears when the date is saved
+(its default is stored with the date); the time zone row opens the venue field (it is inferred from
+the venue, §7.4).
 
 ## `event-details-editor`
 
@@ -304,7 +305,7 @@ Controls, in order (§7.14, §20):
 A shape that needs new artwork keeps waiting when the panel is closed: a quiet status by the card
 ("Painting your card as a square…") says so, and a failure shows there with `Try again`.
 
-After publish, `Edit card`, `Reset card` and shapes an existing artwork fits remain; `Try another direction`, shapes that need new artwork and the designs list do not (§8.1, §8.2).
+After publish, `Edit card`, `Reset card` and shapes an existing artwork fits remain, and the designs list is read-only; `Try another direction`, shapes that need new artwork and choosing a design do not (§8.1, §8.2).
 
 Text is edited on the card in `card-editor`, not here.
 
