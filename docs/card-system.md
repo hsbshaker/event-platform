@@ -408,13 +408,23 @@ For each text zone, computed once per artwork, layout and shape — for every sh
    low and a high percentile (the 8th and 92nd), never the mean. An ink darker than the whole range
    is judged against its dark end, one lighter than the whole range against its light end, and an
    ink inside the range fails (Phase 3 found the bug a median-based rule lets through: cream ink
-   over cream). The zone is measured **whole and strip by strip** (`card_compiler_v3`, owner
-   decision 2026-10-05): the same range is taken over half-overlapping horizontal strips about a
-   line of text tall (60 card units, one every 30), and the ink is judged against the widest of
-   the zone's and the strips' ranges. Artwork that reaches into one part of the zone — a
-   sculpture's base behind the first line of a title — is too small a share of the whole zone to
-   reach its tails, but not of the strip it crosses; it fails here, so the artwork is repainted and
-   then, if it still reaches in, given the panel (§3).
+   over cream). The zone is measured **whole and behind each line of the card's text**
+   (`card_compiler_v4`, owner decisions 2026-10-05): the generated text layer is laid out in the
+   primary pairing for the words the card shows right after generation (the design's wording, the
+   host's stored facts, placeholders for a missing date, time or venue); each line's area — its
+   measured width placed by its alignment, its line height, padded by a quarter of the line height
+   on every side and clamped to the zone (`textLineAreas`) — takes the same range; and the ink is
+   judged against the widest of the zone's and the areas' ranges, so the whole zone stays the
+   floor. Artwork that sits under the letters — a sculpture's base behind the first line of a
+   title — is too small a share of the whole zone to reach its tails, but not of the line it
+   crosses; it fails here, so the artwork is repainted and then, if it still reaches in, given the
+   panel (§3). Foliage at the edge of empty space does not. If that layout cannot be made, the
+   whole zone alone is measured. The ink is judged for that one layout of the words: a later fact
+   edit, pairing switch or customization can move lines onto artwork that was not measured, where
+   only the whole-zone floor holds, and persisted ink is never re-resolved. (`card_compiler_v3`
+   measured half-overlapping 60-unit strips across the whole zone instead; in the round-three
+   corpus that caught foliage and sky at the edges of empty space and ended five of seventeen
+   cards with the panel.)
 2. Candidate inks: colours drawn from the artwork's own palette first, then a near-black and a
    near-white tuned toward the artwork's hue.
 3. Choose the first candidate, in that order (the artwork's palette by share of the artwork, then

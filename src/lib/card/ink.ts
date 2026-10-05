@@ -12,12 +12,19 @@
  * first mock chose the tail by comparing the ink with the median, which let a cream ink pass over
  * a cream background; `inkContrast` is the nearest-tail rule that replaced it.
  *
- * The zone is also measured strip by strip (`card_compiler_v3`, owner decision 2026-10-05): the
- * same range is taken over overlapping horizontal strips of `BAND_HEIGHT` card units, about the
- * height of a line of card text, and the ink is judged against the widest of the zone's and the
- * strips' ranges. Artwork that reaches into one part of the zone — the base of a sculpture behind
- * the first line of a title — is a small share of the whole zone and hides in its tails, but not
- * in the strip it crosses, so it fails here and the artwork is repainted, then given a panel.
+ * `card_compiler_v3` (owner decision 2026-10-05) also measured the zone in half-overlapping
+ * horizontal strips about a line of text tall, judging the ink against the widest of the zone's and
+ * the strips' ranges. In a live run it caught too much: foliage or sky at the edges of empty parts
+ * of the zone failed a strip, and 5 of 17 cards took two repaints and still ended with the panel.
+ *
+ * `card_compiler_v4` (owner decision 2026-10-05) measures only where the text is: the area behind
+ * each line of the generated card's text, plus a small margin (`text-areas.ts`), each sampled like
+ * the zone. The ink is judged against the widest of the zone's range and every area's range. The
+ * whole-zone measure stays as a floor, so no ink passes that the zone as a whole would fail.
+ * Artwork that sits under the letters — the base of a sculpture behind the first line of a title —
+ * is a small share of the zone and hides in its tails, but not in that line's area, so it fails
+ * here and the artwork is repainted, then given a panel. Artwork in a part of the zone no line
+ * covers is no longer counted against the ink.
  *
  * Contrast is WCAG 2.x (`color.ts`); OKLCH is only the space the tuned neutrals and the panel are
  * built in. No step here calls a model.
@@ -34,14 +41,6 @@ export const MIN_INK_CONTRAST = 4.5;
 /** The percentiles that bound the measured background (Phase 3). */
 export const DARK_TAIL_PERCENTILE = 8;
 export const LIGHT_TAIL_PERCENTILE = 92;
-
-/**
- * The strips the zone is also measured in, in card units: `BAND_HEIGHT` tall (about a line of card
- * text), one every `BAND_STEP` from the zone's top, the last aligned to its bottom. They overlap by
- * half, so any part of the zone up to `BAND_STEP` tall lies wholly inside one strip.
- */
-export const BAND_HEIGHT = 60;
-export const BAND_STEP = 30;
 
 /** A rectangle in card units, top-left origin. */
 export interface CardRect {
@@ -70,7 +69,7 @@ export interface InkResolution {
   panel: null | { color: string };
   /**
    * The measured background: relative luminance at the dark and light percentiles, the zone's range
-   * widened by its strips'.
+   * widened by every text area's.
    */
   background: { darkTail: number; lightTail: number };
 }
@@ -140,35 +139,6 @@ export function sampleZoneLuminance(
   const sorted = Float64Array.from(out);
   sorted.sort();
   return sorted;
-}
-
-/**
- * The zone's horizontal strips (`BAND_HEIGHT` tall, every `BAND_STEP`, the last flush with the
- * zone's bottom), in card units. A zone no taller than a strip is its own single strip.
- */
-export function zoneBands(zone: CardRect): CardRect[] {
-  if (zone.height <= BAND_HEIGHT) return [{ ...zone }];
-  const bands: CardRect[] = [];
-  const last = zone.y + zone.height - BAND_HEIGHT;
-  for (let y = zone.y; y < last; y += BAND_STEP) {
-    bands.push({ x: zone.x, y, width: zone.width, height: BAND_HEIGHT });
-  }
-  bands.push({ x: zone.x, y: last, width: zone.width, height: BAND_HEIGHT });
-  return bands;
-}
-
-/**
- * Relative luminance of the zone's pixels strip by strip (`zoneBands`), each strip sorted
- * ascending, with the same pixel rule as `sampleZoneLuminance`.
- */
-export function sampleZoneBands(
-  pixels: ArrayLike<number>,
-  width: number,
-  height: number,
-  zone: CardRect,
-  inside: (x: number, y: number) => boolean,
-): Float64Array[] {
-  return zoneBands(zone).map((band) => sampleZoneLuminance(pixels, width, height, band, inside));
 }
 
 /** Nearest-rank percentile of an ascending array (the Phase 3 definition). */
@@ -389,10 +359,11 @@ export interface ResolveInkInput {
   /** The zone's background luminances (`sampleZoneLuminance`); need not be sorted. */
   luminances: ArrayLike<number>;
   /**
-   * The same zone strip by strip (`sampleZoneBands`); each need not be sorted. The ink is judged
-   * against the widest of the zone's and every strip's measured range.
+   * The background behind each line of the card's text, plus its margin (`textLineAreas`, each
+   * sampled with `sampleZoneLuminance`); each need not be sorted. The ink is judged against the
+   * widest of the zone's and every area's measured range. Without areas, the zone alone.
    */
-  bands?: readonly ArrayLike<number>[];
+  areas?: readonly ArrayLike<number>[];
   /** The artwork's palette, largest share first (`paletteFromPixels`). */
   palette: readonly PaletteColor[];
 }
@@ -400,18 +371,18 @@ export interface ResolveInkInput {
 /**
  * Choose the ink for one text zone (`card-system.md §4.2`).
  *
- * The measured background is the zone's range widened by every strip's: its darkest dark tail and
- * its lightest light tail. Candidates, in order: the artwork's palette by share, then a near-black
+ * The measured background is the zone's range widened by every text area's: the darkest dark tail
+ * and the lightest light tail among them, so areas can only make the judgement stricter. Candidates, in order: the artwork's palette by share, then a near-black
  * and a near-white tuned toward the artwork's hue. The first that reaches 4.5:1 by the
  * nearest-tail rule against that range wins. If none
  * does, an art-derived paper panel goes behind the zone and the ink is chosen against the panel
  * colour. The panel is opaque by contract: the renderer must draw it at full opacity behind the
  * text, or the ink's contrast against it is not what was measured here.
  */
-export function resolveInk({ luminances, palette, bands = [] }: ResolveInkInput): InkResolution {
+export function resolveInk({ luminances, palette, areas = [] }: ResolveInkInput): InkResolution {
   let darkTail = Infinity;
   let lightTail = -Infinity;
-  for (const sample of [luminances, ...bands]) {
+  for (const sample of [luminances, ...areas]) {
     const tails = measuredRange(sample);
     darkTail = Math.min(darkTail, tails.darkTail);
     lightTail = Math.max(lightTail, tails.lightTail);

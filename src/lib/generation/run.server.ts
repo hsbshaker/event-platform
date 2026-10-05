@@ -17,8 +17,9 @@ import {
   EVENT_IDENTITY_PROMPT_VERSION,
   EVENT_IDENTITY_SCHEMA_VERSION,
 } from "@/lib/ai/versions";
-import { cardContent } from "@/lib/card/facts";
+import { cardContent, cardContentWithPlaceholders } from "@/lib/card/facts";
 import { suggestRendering } from "@/lib/card/renderings";
+import type { CardContent } from "@/lib/card/text-box";
 import { INSPIRATION_BUCKET, sniffImageType } from "@/lib/drafts/inspiration";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
@@ -28,6 +29,7 @@ import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.ser
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
+import { drawThemeSeed } from "./theme-seeds";
 import {
   ArtworkProviderRefusalError,
   attachFailureDetails,
@@ -167,11 +169,15 @@ export interface GenerationTelemetry {
   droppedFacts: number;
   imagesRequested: number;
   repaintsStoppedBy: string | null;
+  /** Fitted shapes whose ink was judged on the whole zone alone (`card_compiler_v4` fallback). */
+  lineAreasFallback: string[];
   providerRefusal: boolean;
   /** The rendering drawn for this generation's design (`suggestRendering`). */
   suggestedRendering: string;
   /** The accepted design's rendering is the suggested one. */
   followedSuggestion: boolean;
+  /** The theme seed given to a new identity (`drawThemeSeed`); null when the identity was reused. */
+  themeSeed: string | null;
 }
 
 interface EventRow {
@@ -186,6 +192,9 @@ interface EventRow {
   event_date: string | null;
   start_time: string | null;
   end_time: string | null;
+  /** Read for the card's RSVP-by only (`revealContent`). */
+  rsvp_deadline?: string | null;
+  timezone?: string | null;
 }
 
 /**
@@ -232,6 +241,33 @@ export function hostEventFacts(
   return facts;
 }
 
+/**
+ * The words the generated card shows right after generation: the design's wording (the host's
+ * title already applied), the event's stored facts, and the Creation Mode placeholders for missing
+ * ones (`cardContentWithPlaceholders`). The artwork stage judges the ink behind their lines.
+ */
+export function revealContent(
+  event: EventRow,
+  wording: { title: string; invitationLine: string },
+  now: Date,
+): CardContent {
+  return cardContentWithPlaceholders({
+    wording,
+    event: {
+      babyName: event.baby_name,
+      hosts: event.hosts,
+      eventDate: event.event_date,
+      startTime: event.start_time,
+      endTime: event.end_time,
+      venueName: event.venue_name,
+      address: event.address,
+      rsvpDeadline: event.rsvp_deadline ?? null,
+      timezone: event.timezone ?? null,
+    },
+    now,
+  });
+}
+
 /** The longest check output a failure record keeps per image. */
 const FAILURE_DETAIL_MAX = 200;
 
@@ -267,6 +303,7 @@ export function failureTelemetry(error: unknown, code: string): Json {
         suggestedRendering?: unknown;
         rendering?: unknown;
         followedSuggestion?: unknown;
+        themeSeed?: unknown;
       }
     | undefined;
   if (typeof details?.imagesRequested === "number") {
@@ -276,6 +313,7 @@ export function failureTelemetry(error: unknown, code: string): Json {
     failure.suggestedRendering = details.suggestedRendering;
   }
   if (typeof details?.rendering === "string") failure.rendering = details.rendering;
+  if (typeof details?.themeSeed === "string") failure.themeSeed = details.themeSeed;
   if (typeof details?.followedSuggestion === "boolean") {
     failure.followedSuggestion = details.followedSuggestion;
   }
@@ -427,7 +465,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   const { data: event, error: eventError } = await admin
     .from("events")
     .select(
-      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time",
+      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time, rsvp_deadline, timezone",
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -448,6 +486,9 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let identityRevision: number;
   let identityMs: number | null = null;
   let identityValidFirstCall: boolean | null = null;
+  // A starting point for the theme if the host left the look to us (owner decision, 2026-10-05):
+  // drawn only for a new identity, which ignores it whenever the host gave a creative cue.
+  let themeSeed: string | null = null;
   let extraction: string | null = null;
   let inspirationSkipped = 0;
   let droppedFacts = 0;
@@ -456,11 +497,13 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   if (!latest) {
     const loaded = await loadInspiration(admin, eventId);
     inspirationSkipped = loaded.skipped;
+    themeSeed = drawThemeSeed(random);
     const begun = now();
     const result = await runIdentityStage(ctx, {
       prompt: event.prompt,
       ...(loaded.images.length ? { inspiration: loaded.images } : {}),
       extractFacts: true,
+      themeSeed,
     });
     identityMs = now() - begun;
     identity = result.identity;
@@ -530,6 +573,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
       return await runArtworkStage(ctx, {
         design: chosen.design,
         shape: chosen.design.shape,
+        // The ink is judged behind the words the card shows once it is revealed.
+        content: revealContent(event, chosen.design.wording, new Date(now())),
         ...(afterRefusal ? { afterRefusal } : {}),
       });
     } finally {
@@ -542,6 +587,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let current: DesignStageResult | null = null;
   const renderingDetails = () => ({
     suggestedRendering,
+    ...(themeSeed ? { themeSeed } : {}),
     ...(current
       ? {
           rendering: current.design.artBrief.rendering,
@@ -601,9 +647,11 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     droppedFacts,
     imagesRequested: art.telemetry.imagesRequested,
     repaintsStoppedBy: art.telemetry.repaintsStoppedBy,
+    lineAreasFallback: art.telemetry.lineAreasFallback,
     providerRefusal,
     suggestedRendering,
     followedSuggestion: chosen.design.artBrief.rendering === suggestedRendering,
+    themeSeed,
   };
 
   const storageKey = `${eventId}/${generationId}/${randomUUID()}.png`;

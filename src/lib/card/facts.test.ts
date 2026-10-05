@@ -4,6 +4,7 @@ import {
   CARD_FACT_MAX_LENGTH,
   addressFirstLine,
   cardContent,
+  cardContentWithPlaceholders,
   cardVenue,
   formatCardDate,
   formatCardRsvpBy,
@@ -180,5 +181,58 @@ describe("cardContent", () => {
 
   it("refuses a stored value that is not valid rather than guessing", () => {
     expect(() => cardContent({ ...full, eventDate: "June 6" })).toThrow();
+  });
+});
+
+describe("cardContentWithPlaceholders", () => {
+  const wording = {
+    title: "A Little Wild One",
+    invitationLine: "Please join us for a baby shower",
+  };
+  const nothing = {
+    babyName: null,
+    hosts: null,
+    eventDate: null,
+    startTime: null,
+    endTime: null,
+    venueName: null,
+    address: null,
+    rsvpDeadline: null,
+    timezone: null,
+  };
+  const now = new Date("2026-10-05T12:00:00Z");
+
+  it("shows the Creation Mode placeholders for a missing date, time and venue (spec.md §7.3)", () => {
+    expect(cardContentWithPlaceholders({ wording, event: nothing, now })).toEqual({
+      title: "A Little Wild One",
+      invitationLine: "Please join us for a baby shower",
+      babyName: null,
+      hosts: null,
+      // Twelve weeks out (Monday, December 28), then the Saturday after.
+      date: "Saturday, January 2",
+      time: "1:00 pm",
+      venue: "Venue to be announced",
+      rsvpBy: null,
+    });
+  });
+
+  it("shows the event's stored facts as cardContent formats them", () => {
+    const event = {
+      babyName: "Zoë",
+      hosts: "Hosted by Maya & Tom",
+      eventDate: "2026-06-06",
+      startTime: "13:00:00",
+      endTime: "16:00",
+      venueName: "The Willow House",
+      address: "12 Elm St, Austin",
+      rsvpDeadline: "2026-05-30T12:00:00Z",
+      timezone: "America/Chicago",
+    };
+    expect(cardContentWithPlaceholders({ wording, event, now })).toEqual(
+      cardContent({ ...event, ...wording }),
+    );
+    // The address's first line stands in for a missing venue name, before any placeholder.
+    const street = { ...nothing, address: "12 Elm St, Austin" };
+    expect(cardContentWithPlaceholders({ wording, event: street, now }).venue).toBe("12 Elm St");
   });
 });

@@ -122,7 +122,7 @@ function withRepair(text: string, repairFeedback: string | undefined): string {
     : text;
 }
 
-/** Event Identity (`event_identity_v5`, GPT 6.1 Sol, `medium` effort): the only reader of the raw prompt. */
+/** Event Identity (`event_identity_v6`, GPT 6.1 Sol, `medium` effort): the only reader of the raw prompt. */
 export function eventIdentityRequest(
   instructions: string,
   input: GenerateEventIdentityInput,
@@ -132,6 +132,7 @@ export function eventIdentityRequest(
     eventPrompt: input.prompt,
     redesignFeedback: input.redesignFeedback ?? null,
     ...(input.previousIdentity ? { previousIdentity: input.previousIdentity } : {}),
+    themeSeed: input.themeSeed ?? null,
     inspiration: inspiration.map((image, i) => ({ image: i + 1, mimeType: image.mimeType })),
     runtimeCatalog: { typographyCategories: TYPOGRAPHY_CATEGORIES },
   };
@@ -208,7 +209,7 @@ export function cardDesignRuntimeCatalog(identity: EventIdentity) {
   };
 }
 
-/** Card Design (`card_design_v2`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. */
+/** Card Design (`card_design_v3`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. */
 export function cardDesignRequest(
   instructions: string,
   input: GenerateCardDesignInput,

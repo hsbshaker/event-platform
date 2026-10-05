@@ -1,6 +1,6 @@
 {
   "$comment": "Creative-understanding eval corpus. Data only — the runner is built in Phase 3 validation. Contract and rubric: docs/model-contracts.md §6. Doctrine: docs/product-doctrine.md §3, §5, §6. `facts` values are the host's literal strings; the fact check is verbatim, and any normalization belongs to the application rather than the model.",
-  "version": "creative_understanding_v1",
+  "version": "creative_understanding_v2",
   "clarificationCeiling": 3,
   "classes": {
     "taste-heavy": "Vague, colloquial, taste-led. The assignment is a vibe, and keyword matching fails it.",
@@ -167,9 +167,10 @@
       "expectClarification": "no",
       "mustAvoid": [
         "asking the host to supply the taste they just delegated",
-        "defaulting to a generic house style"
+        "defaulting to a generic house style",
+        "abstract or arbitrary imagery standing in for a theme"
       ],
-      "notes": "Delegation is an answer. A confident, specific identity is required; a question here fails the case."
+      "notes": "Delegation is an answer. A confident, specific identity is required; a question here fails the case. It must commit to one concrete theme that suits the event, something a guest could name in a few words; abstract forms or an 'unexpected twist' standing in for a theme fail it (owner, 2026-10-05: 'Too random — when told surprise me, need to pick a direction')."
     },
     {
       "id": "CU-11",
@@ -225,9 +226,9 @@
       "expectClarification": "no",
       "mustAvoid": [
         "generic milestone-birthday confetti",
-        "literal saxophone or globe clip-art"
+        "a saxophone or globe dropped on the card as clip-art, unfused"
       ],
-      "notes": "Taste arrives through the guest of honour rather than a style name. Cartography line work, foxed paper, brass, a late-night blue — interests translated, not illustrated."
+      "notes": "Taste arrives through the guest of honour rather than a style name. The owner's model card (2026-10-05): one image fusing both interests, a saxophone drawn from an antique map, titled 'A Well-Played Journey', so picture and words tell one story. Cartography line work, foxed paper, brass, a late-night blue remain legitimate; two interests shown side by side as clip-art is still a failure. One fused idea is the bar."
     },
     {
       "id": "CU-14",

@@ -491,6 +491,91 @@ circles. Two decisions by the owner (2026-10-04):
   decide whether a design's recorded compiler version pins its line breaking or the canon says
   plainly that it does not (senior review, PR 27).
 
+### Phase 5 — round two verdict: one central idea (owner decisions, 2026-10-05)
+
+- **The verdict.** Round two cleared the bar again: 13 of 14 corpus cards sendable, and both of the
+  owner's briefs. CU-10 ("something unique, idk surprise me") failed for the second time: "Too
+  random — when told surprise me, need to pick a direction". CU-13 ("60th birthday for my dad, he
+  likes jazz and old maps") was the owner's favourite: "AMAZING I LOVE THIS ONE — try to follow
+  whatever you did for this for others".
+- **What CU-13 did.** One image fused both of the father's passions: a saxophone drawn from an
+  antique map, in flat editorial illustration, titled "A Well-Played Journey" — the picture and the
+  words tell one story. CU-10's identity did the opposite: it read "surprise me" as "abstract
+  sculptural forms" and "an unexpected twist", and the card had no subject a guest could name.
+- **Decision 1: one central idea** (the idea, not the look; the rendering mix is unchanged). Every
+  card is built on one idea; where the identity carries two or more of the host's own specifics,
+  the design fuses them into one image rather than separate motifs — drawn or staged, so any
+  rendering can carry it, and never a forced pun — and a drafted title plays on the idea's
+  subject, never a place. With one specific, that specific is the idea. `card_design_v3`; the
+  prompt's examples are deliberately not from the corpus.
+- **Decision 2: "surprise me" commits to one clear theme.** With no creative cue beyond the
+  occasion, the identity commits to one concrete theme that suits the event — something a guest
+  could name in a few words — never the stock reading of the occasion, and never abstract forms or
+  arbitrary objects. `event_identity_v6`. The identity call has no randomness input, so whether its
+  choice varies across events is measured by running the case several times.
+- **Versions:** `event_identity_v6` and `card_design_v3`; both schemas unchanged. Updated:
+  `spec.md §7.5`, §7.7 and a §31 criterion; `model-contracts.md §4`, §5 and §6; the corpus,
+  `creative_understanding_v2`, records both verdicts. A draft of these prompts ran briefly on the
+  preview database before the senior review tightened them; it was stopped, and its generations
+  are not evidence.
+
+### Phase 5 — round three: three fixes before the owner's next look (owner decisions, 2026-10-05)
+
+- **What round three showed** (the reviewed prompts, `card_compiler_v3`; 16 cases plus CU-10 three
+  more times). Fourteen of sixteen cards were made; CU-02 and CU-13 failed honestly with lettering
+  in both images (CU-13's photographed antique map carried place names). Told "surprise me", CU-10
+  committed to a clear theme — and chose the same one, a lemon conservatory, four times out of
+  four. And five of seventeen cards took two repaints and still ended with the legibility panel,
+  about 70 s slower each; on O-02 the panel hid most of the bear.
+- **Decision 1: check the ink behind the actual lines** (`card_compiler_v4`). The owner had chosen
+  "the area right behind each line of text"; v3 measured strips across the whole zone, where
+  foliage and sky at the edges of empty space failed it. v4 lays out the generated text for the
+  words shown right after generation and judges the ink against the widest of the whole zone's
+  range and each line's area, padded by a quarter of the line height and clamped to the zone
+  (`src/lib/card/text-areas.ts`). Calibrated on the 56 preview artworks: the shape each card was
+  painted for needed the panel 2 times under v2, 8 under v3 and 5 under v4 — CU-10's sculpture
+  under the title, a ribbon under a title, roses under a detail line, and two artworks that needed
+  it on the whole-zone measure already. The ink is judged for that one layout of the words; a
+  later edit that moves lines keeps only the whole-zone floor, and persisted ink is never
+  re-resolved. One producer, `cardContentWithPlaceholders`, gives the artwork stage and the corpus
+  the same words, so what is measured is what the card shows.
+- **Decision 2: a random theme seed for "surprise me"** (`event_identity_v6`). The identity call
+  has no source of variety, so code draws one of 97 everyday worlds per new identity
+  (`src/lib/generation/theme-seeds.ts`; none naturally carries writing) and the identity builds the
+  theme from it only when the host left the look to us, ignoring it otherwise — like the suggested
+  rendering. Telemetry records `themeSeed`.
+- **Lettered subjects are briefed blank** (`card_design_v3`, within guardrail #16). Maps, books,
+  labels, signs and the like come back lettered and fail the card; the design describes them as
+  blank ("an antique map of imagined coastlines with no place names or lettering") or picks
+  another subject.
+- **Round three again, then two refinements.** With all three fixes, fifteen of seventeen cards
+  were made, one ended with the panel (CU-06, roses under a detail line), and "surprise me" gave
+  four different themes (a woodland border, a fox, a butterfly garden, an origami crane). CU-13
+  and O-02 failed on lettering twice each: briefs that named "an antique map", "a chart" or "a
+  record label" — however firmly they said "no lettering" — and a 3D Ralph Lauren-style bear in a
+  sweater, to which the image model adds the brand's mark. The design prompt now describes only
+  the look of a lettered object ("flowing coastline contours", never "a map"), and a brand homage's
+  clothing — and any manufactured thing that carries a maker's mark, such as an instrument — as
+  plain and unbranded (CU-13's photographed saxophone came back with a maker's logo on its bell). Seven seeds image models letter (lanterns, boats, balloons, a
+  carousel, a snow globe) were swapped for others. Telemetry records `lineAreasFallback`, the
+  shapes judged on the whole zone alone.
+- **Versions:** `card_compiler_v4`; `event_identity_v6` and `card_design_v3` gain the seed and the
+  lettered-subject rule before they merge. Round three's cards are not evidence for the final
+  prompts; round three is run again. Updated: `spec.md §7.5`, §7.9, §9.5, §11.6 and two §31
+  criteria; `card-system.md §4.2`; `model-contracts.md §2` and §4.1.
+
+### Phase 5 — round three verdict (owner, 2026-10-05)
+
+- **13 of 14 corpus cards sendable, both of the owner's briefs, and both extra "surprise me"
+  runs.** CU-10 cleared the bar for the first time, after failing rounds one and two; its three
+  runs gave three different themes (origami birds, a dragonfly on a pond, a snowy wood). CU-13's
+  card is the run after the maker's-mark rule, marked as such on the sheet.
+- **CU-08 was not sendable:** "Close — but the giraffe's head is cut off. Would've been better if
+  the sky just blended to become white as opposed to doing like a hard gradient." The artwork's
+  subject reached under the title, both repaints did too, and the legibility panel — a cream
+  rounded box with a soft shadow edge — covered the giraffe's head. Taken up next: the panel as a
+  soft fade into the artwork rather than a box (a layout-set change, with fixtures).
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

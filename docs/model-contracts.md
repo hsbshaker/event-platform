@@ -2,8 +2,8 @@
 ## Event Identity, Card Design and Card Art
 
 **Status:** Revision 3 — invitation-card baseline
-**Prompt versions:** `event_identity_v5`, `card_design_v2` (`card_design_v1` written in Phase 3
-validation; v2 adds rendering families in Phase 5), `card_art_v3` (deterministic assembly;
+**Prompt versions:** `event_identity_v6`, `card_design_v3` (`card_design_v1` written in Phase 3
+validation; v2 adds rendering families in Phase 5; v3 one central idea), `card_art_v3` (deterministic assembly;
 `card_art_v1` written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`,
 `card_art_v3` in Phase 5 with rendering families), `card_art_inspection_v2`
 **Schema versions:** `event_identity_schema_v5`, `card_design_schema_v2` (`card_design_schema_v1`
@@ -52,13 +52,13 @@ the assembled art prompt. The card compiler is application code and calls no mod
 Prompts, schemas and the layout set are versioned production assets (`src/lib/ai/versions.ts`):
 
 ```ts
-EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v5"
+EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v6"
 EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
-CARD_DESIGN_PROMPT_VERSION    = "card_design_v2"
+CARD_DESIGN_PROMPT_VERSION    = "card_design_v3"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v2"
 CARD_ART_PROMPT_VERSION       = "card_art_v3"
 CARD_LAYOUT_SET_VERSION       = "card_layouts_v2"
-CARD_COMPILER_VERSION         = "card_compiler_v3"
+CARD_COMPILER_VERSION         = "card_compiler_v4"
 ```
 
 Record every version with generation telemetry, plus the image model per artwork. Do not edit a
@@ -77,7 +77,7 @@ improvement on top.
 
 ---
 
-# 4. Event Identity (`event_identity_v5`)
+# 4. Event Identity (`event_identity_v6`)
 
 **This call is the product's creative interpreter, not a preprocessing step.** Its question is
 *what does this host mean, and what creative world should this event belong to?*, and the bar on
@@ -112,9 +112,15 @@ EventIdentity {
 v3 removes v2's `compatibleTonalDirections` and `compatibleFamilies`, which existed only to feed
 the retired three-concept planner. Prompt v5 (schema unchanged) carries a host's signal about how
 the artwork should look — photographic, polished, 3D, painted — into `textureDirection` and
-`creativeDirection`, and defaults to nothing painted or hand-drawn when there is none.
+`creativeDirection`, and defaults to nothing painted or hand-drawn when there is none. Prompt v6
+(schema unchanged; owner decision, 2026-10-05): when the host leaves the look to us ("surprise
+me", "idk", only the occasion), the identity commits to one clear, concrete theme suited to the
+event — a subject world a guest could name in a few words — never abstract forms or an
+"unexpected twist" standing in for a theme.
 
-**Inputs:** the raw prompt and inspiration images as untrusted data (§8); on `Try another
+**Inputs:** the raw prompt and inspiration images as untrusted data (§8); a `themeSeed` drawn at
+random by code from a broad list of everyday worlds (`src/lib/generation/theme-seeds.ts`), used
+only when the host leaves the look to us and ignored otherwise (prompt v6); on `Try another
 direction` with feedback, the previous identity and the feedback, to update or merge the identity.
 Do not re-send raw inspiration once its summary exists.
 
@@ -141,7 +147,7 @@ decision); an unconfirmed value is never published and never given to the card d
 
 ---
 
-# 5. Card Design (`card_design_v2`)
+# 5. Card Design (`card_design_v3`)
 
 ## 5.1 Contract
 
@@ -184,6 +190,16 @@ never a reflex; the design follows the call's `suggestedRendering` (§5.2) unles
 strongly points to a treatment; `photographic`, `editorial`, `rendered-3d` and `collage` artwork
 shows places, objects, food and materials — never people (§7.3). Designs persisted under v1 have
 neither field; they are immutable and never re-validated.
+
+Prompt `card_design_v3` (schema unchanged; owner decisions, 2026-10-05, after the round-two
+corpus): every card is built on **one central idea**. Where the identity carries two or more of
+the host's own specifics — a person's passions, a shared story, the character of a place — they
+are fused into one image rather than shown as separate motifs (the corpus card the owner held up as the model: a 60th birthday for
+a father who loves jazz and old maps became one saxophone drawn from an antique map, titled
+"A Well-Played Journey"), and a drafted title plays on the same idea's subject, never a place or
+other fact. With one specific, that specific is the idea. A theme the identity chose
+because the host left it to us is made concrete and recognisable, never abstract. Any rendering
+can carry the idea; the rendering mix is unchanged.
 
 String bounds (Phase 3, `model-schemas/card-design.schema.json`): `title` 2–40 characters,
 `invitationLine` 8–72, `artBrief.subject` 8–300, `artBrief.aesthetic` 3–40, other brief fields
@@ -293,7 +309,8 @@ failure is never acceptable:
 Everything else in this document measures whether output is **legal**. This measures whether it is
 **right**, which is the capability the product exists to deliver (`product-doctrine.md §3`).
 
-**Corpus:** `docs/model-evals/creative-understanding.json` (`creative_understanding_v1`), fourteen
+**Corpus:** `docs/model-evals/creative-understanding.json` (`creative_understanding_v2`: CU-10 and
+CU-13 carry the owner's 2026-10-05 verdicts), fourteen
 cases: vague and taste-heavy prompts, prompts carrying a negative constraint, prompts already clear
 enough that the right number of questions is zero, prompts carrying facts that must survive
 verbatim, one open delegation, and one genuinely ambiguous case where a question should earn its

@@ -12,6 +12,7 @@ import {
   cardArtRequest,
   cardDesignRequest,
   cardDesignRuntimeCatalog,
+  eventIdentityRequest,
   toStrictSchema,
 } from "./requests";
 
@@ -142,6 +143,24 @@ describe("the card-design runtime catalog", () => {
       }).input[0].content as string,
     );
     expect(Object.keys(data)).toEqual(["eventIdentity", "eventFacts", "runtimeCatalog"]);
+  });
+});
+
+describe("the event-identity request (event_identity_v6)", () => {
+  const payload = (themeSeed?: string) => {
+    const request = eventIdentityRequest("instructions", {
+      prompt: "something unique, idk surprise me",
+      ...(themeSeed ? { themeSeed } : {}),
+    });
+    return request.input[0].content as string;
+  };
+
+  it("carries the drawn theme seed beside the prompt, and null when none was drawn", () => {
+    expect(JSON.parse(payload("an observatory"))).toMatchObject({
+      eventPrompt: "something unique, idk surprise me",
+      themeSeed: "an observatory",
+    });
+    expect(JSON.parse(payload())).toMatchObject({ themeSeed: null });
   });
 });
 

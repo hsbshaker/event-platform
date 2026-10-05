@@ -85,6 +85,11 @@ export interface GenerateEventIdentityInput {
   /** Try another direction: the host's feedback and the identity it revises (model-contracts §4.1). */
   redesignFeedback?: string;
   previousIdentity?: EventIdentity;
+  /**
+   * A random starting point for the theme when the host leaves the look to us (`drawThemeSeed`,
+   * `event_identity_v6`); the identity ignores it whenever the host gave a creative cue.
+   */
+  themeSeed?: string;
   /** The one repair retry after invalid output (model-contracts §9): the validation problems. */
   repairFeedback?: string;
 }

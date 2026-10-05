@@ -591,6 +591,14 @@ It holds one boundary exactly:
   Positano, outdoors, or black-tie. An aesthetic implication is an implication; a date, a place or
   a dress code is a claim about the host's event and is quoted or absent.
 
+**When the host leaves the look to us** — "surprise me", "idk", only the occasion — the identity
+commits to one clear, concrete theme that suits the event, something a guest could name in a few
+words, never the stock reading of the occasion. So that such hosts do not all get the same card,
+code draws a theme seed at random from a broad list of everyday worlds (an orchard, an
+observatory, kites …) and the identity builds the theme from it; it ignores the seed whenever the
+host gave any creative cue. The surprise is the choice, never abstract or random imagery
+(owner decision, 2026-10-05).
+
 ### 7.6 Brand/style references
 
 Named references such as Ralph Lauren are interpreted for the look the host means: heritage,
@@ -712,6 +720,13 @@ host's own names exactly); a suggested rendering drawn at random from those the 
 (§7.6a); on `Try another direction`, the host's optional feedback and a summary of every earlier
 direction for this event.
 
+**One central idea.** Every card is built on one idea. Where the identity carries two or more of
+the host's own specifics — a person's passions, a shared story, the character of a place — the
+design fuses them into one image rather than separate motifs side by side, and a drafted title
+plays on that idea's subject (never a place or other fact) (owner decisions,
+2026-10-05: a 60th birthday for a father who loves jazz and old maps became one saxophone drawn
+from an antique map, "A Well-Played Journey"). Any rendering can carry the idea.
+
 **One design per round.** `Try another direction` produces a design that is genuinely different
 from every earlier one for this event — a different idea, not a palette or font swap. Code answers
 an exact repeat (same layout, art mode and primary pairing as an earlier direction) with one
@@ -767,10 +782,10 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
 5. resolves ink per text zone, for every shape the artwork fits (`docs/card-system.md §2.4`), from
-   the artwork's own palette, measuring the background conservatively — the whole zone and each
-   line-height strip of it, so artwork reaching into part of the zone counts (owner decision,
-   2026-10-05) — so every card text clears **4.5:1**; applies the layout's legibility panel when
-   no ink can;
+   the artwork's own palette, measuring the background conservatively — the whole zone and the
+   area behind each line of the card's text, with a small margin, so artwork under the letters
+   counts (owner decisions, 2026-10-05) — so every card text clears **4.5:1**; applies the
+   layout's legibility panel when no ink can;
 6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
 Card text layout for the generated card — font size and line breaks for every slot — is one pure
@@ -1041,12 +1056,14 @@ artRegenerated         // boolean, with the reason: the failed validation, or pa
 artRepaints            // 0–2: repaints made because the artwork would need a panel (§7.8)
 standardWording[]      // slots that fell back to standard wording
 inkPanels[]            // zones that needed a legibility panel
+lineAreasFallback[]    // shapes whose ink was judged on the whole zone alone (text did not lay out)
 versions               // prompt, schema, layout set, compiler, image model
 latency                // identity, design, art, total
 suggestedRendering     // the rendering drawn for variety (§7.6a rule 7)
 followedSuggestion     // whether the design used it
+themeSeed              // the theme seed given to a new identity (§7.5), null when reused
 failure                // on a failed generation: code, stage, per-image validation reasons,
-                       // and the suggested and chosen rendering — never host content
+                       // the suggested and chosen rendering and the theme seed — never host content
 ```
 
 Schema validity, wording fallbacks, art regeneration and legibility panels are separate measures;
@@ -1130,7 +1147,7 @@ value takes no space. Placeholders appear only in Creation Mode and are never pu
 ### 11.6 Ink, legibility and fit
 
 For the card as generated: ink per text zone comes from the artwork's palette, measured
-conservatively over the whole zone and each line-height strip of it, reaching **4.5:1** for every
+conservatively over the whole zone and behind each line of the card's text, reaching **4.5:1** for every
 text; otherwise the artwork is repainted (§7.8) and then, if still needed, the layout's
 art-derived legibility panel is applied. `layoutCard` decides every size and line break
 deterministically, never stranding a short word such as "A" on a line of its own where a space
@@ -2372,6 +2389,12 @@ The host should feel:
   direction; an exact repeat (layout, art mode and primary pairing) earns one re-prompt and is
   recorded (§7.7).
 - [ ] Explicit tone and colour constraints are respected by every design.
+- [ ] With no creative cue beyond the occasion ("surprise me"), the identity commits to one
+  concrete theme a guest could name, built from a randomly drawn theme seed so it varies across
+  events, never abstract or random imagery; a seed never enters an identity the host steered;
+  every card is built on one
+  central idea, fusing the host's own specifics into one image where there are several, and a
+  drafted title plays on it — judged on the creative-understanding corpus (§7.5, §7.7).
 
 ### Card design, artwork and compiler
 - [ ] The card-design response validates against the strict schema; unknown keys, IDs outside the
@@ -2405,7 +2428,8 @@ The host should feel:
   host sees a short, plain copyright note, never a provider error; a second refusal is a visible
   failure whose Try again takes the same step back (§7.6).
 - [ ] Every text of the generated card clears 4.5:1 against the conservatively measured background
-  of its zone, measured whole and strip by strip so artwork reaching into part of the zone counts
+  of its zone, measured whole and behind each line of its text (with a small margin) so artwork
+  under the text counts
   (host-chosen colours in the card editor are not checked);
   otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
 - [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
