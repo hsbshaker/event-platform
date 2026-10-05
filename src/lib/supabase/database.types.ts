@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261009000000_phase5d_another_direction.sql.
+ * Hand-authored to match supabase/migrations/ through 20261010000000_shape_switch.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -38,8 +38,10 @@ export type GenerationStatus = "running" | "succeeded" | "failed";
 /**
  * Outcomes of public.start_generation (`designed`: an initial generation refused because the
  * event already has a card design, 20261008000000_phase5c_prompt_facts.sql; `no_design`: another
- * direction refused because the event has no card design yet,
- * 20261009000000_phase5d_another_direction.sql).
+ * direction or a shape switch refused because the event has no card design yet,
+ * 20261009000000_phase5d_another_direction.sql; `not_active` and `fitted`: a shape switch refused
+ * because its design is no longer the active one, or because an artwork of it already fits the
+ * shape, 20261010000000_shape_switch.sql).
  */
 export type StartGenerationOutcome =
   | "started"
@@ -47,6 +49,8 @@ export type StartGenerationOutcome =
   | "published"
   | "designed"
   | "no_design"
+  | "not_active"
+  | "fitted"
   | "in_flight"
   | "event_cap"
   | "host_cap";
@@ -56,6 +60,10 @@ export type CardRefinement = "none" | "part" | "whole";
 
 /** Outcomes of public.choose_card_design (20261009000000_phase5d_another_direction.sql). */
 export type ChooseCardDesignOutcome = "chosen" | "published" | "not_found";
+
+/** Outcomes of public.switch_card_shape (20261010000000_shape_switch.sql). */
+export type SwitchCardShapeOutcome =
+  "switched" | "needs_artwork" | "not_active" | "no_design" | "not_found";
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
@@ -303,8 +311,13 @@ type GenerationRow = {
    * Host content; read only by the server, never by the image model.
    */
   feedback: string | null;
-  /** Another direction: the design the host was looking at. */
+  /**
+   * Another direction: the design the host was looking at. Shape switch: the event's active
+   * design when it started, to which the new artwork is added.
+   */
   from_design_id: string | null;
+  /** Shape switch only: the shape the host asked for (20261010000000_shape_switch.sql). */
+  shape: CardShape | null;
   started_at: string;
   heartbeat_at: string;
   finished_at: string | null;
@@ -462,6 +475,7 @@ export type Database = {
           | "telemetry"
           | "feedback"
           | "from_design_id"
+          | "shape"
           | "started_at"
           | "heartbeat_at"
           | "finished_at"
@@ -548,8 +562,13 @@ export type Database = {
           p_stale_seconds: number;
           /** Another direction only: the host's words (trimmed by the function; empty is none). */
           p_feedback?: string | null;
-          /** Another direction only, and required there: the design the host was looking at. */
+          /**
+           * Required for another direction (the design the host was looking at) and for a shape
+           * switch (the event's active design); never for an initial generation.
+           */
           p_from_design_id?: string | null;
+          /** Shape switch only, and required there: the shape the host asked for. */
+          p_shape?: CardShape | null;
         };
         Returns: { generation_id: string | null; outcome: StartGenerationOutcome }[];
       };
@@ -638,6 +657,42 @@ export type Database = {
       choose_card_design: {
         Args: { p_event_id: string; p_user_id: string; p_design_id: string };
         Returns: ChooseCardDesignOutcome;
+      };
+      /**
+       * Shows the active design in a shape an artwork of it already fits; no model call
+       * (20261010000000_shape_switch.sql).
+       */
+      switch_card_shape: {
+        Args: { p_event_id: string; p_user_id: string; p_design_id: string; p_shape: CardShape };
+        Returns: SwitchCardShapeOutcome;
+      };
+      /**
+       * A shape switch's new artwork, added to its design, and the switch applied while that
+       * design is active, in one transaction; no row when the generation is not running or the
+       * event is published (20261010000000_shape_switch.sql).
+       */
+      persist_shape_switch_artwork: {
+        Args: {
+          p_generation_id: string;
+          p_event_id: string;
+          p_storage_key: string;
+          p_mime_type: string;
+          p_size_bytes: number;
+          p_width: number;
+          p_height: number;
+          p_proportion: CardProportionCode;
+          p_fits_shapes: CardShape[];
+          p_ink: Json;
+          p_image_model: string;
+          p_art_prompt_version: string;
+          p_telemetry: Json;
+        };
+        Returns: {
+          card_design_id: string;
+          round: number;
+          art_asset_id: string;
+          activated: boolean;
+        }[];
       };
       save_card_customization: {
         Args: {

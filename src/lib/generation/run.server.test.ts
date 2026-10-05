@@ -34,7 +34,7 @@ import {
   revealContent,
   runGeneration,
 } from "./run.server";
-import type { GenerationTelemetry, RunGenerationOutcome } from "./run.server";
+import type { GenerationTelemetry, RunGenerationOutcome, ShapeSwitchTelemetry } from "./run.server";
 
 /**
  * One generation end to end (`spec.md §7.3`–§7.11, §9.4, §9.5; `docs/technology-decisions.md
@@ -917,8 +917,8 @@ describe("failures end the generation with fail_generation", () => {
     expect(fake.calls.meters).toEqual([]);
   });
 
-  it("a shape switch is not yet supported: failed, then thrown", async () => {
-    admin.state.tables.generations[0].kind = "shape_switch";
+  it("a kind it does not know: failed, then thrown", async () => {
+    admin.state.tables.generations[0].kind = "repaint_everything";
     await expect(run()).rejects.toBeInstanceOf(GenerationKindNotSupportedError);
     expect(failures()).toEqual(["unsupported_kind"]);
   });
@@ -1514,6 +1514,347 @@ describe("another direction (spec.md §7.7, §7.15)", () => {
     admin.state.storage[CARD_ART_BUCKET] = {};
     const { outcome, fake } = await run({ identity: [REVISED_IDENTITY], design: [PART] });
     expect(outcome).toEqual({ status: "failed", code: "internal" });
+    expect(fake.calls.art).toEqual([]);
+  });
+});
+
+describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
+  const FROM = "a1a2a3a4-b5b6-4c7d-8e9f-0a1b2c3d4e5f";
+  const OTHER = "b1b2b3b4-c5c6-4d7e-8f9a-0b1c2d3e4f5a";
+  const RECT_ART = new Uint8Array([1, 2, 3, 4]);
+  const OVAL_ART = new Uint8Array([5, 6, 7, 8]);
+  const CLEAN_SQUARE = art(flatArtwork(1024, 1024, [238, 228, 212]));
+  const BUSY_SQUARE = art(
+    (() => {
+      const rgb = new Uint8Array(1024 * 1024 * 3);
+      for (let y = 0; y < 1024; y += 1) {
+        for (let x = 0; x < 1024; x += 1)
+          rgb.fill((x + y) % 2 ? 0 : 255, (y * 1024 + x) * 3, (y * 1024 + x) * 3 + 3);
+      }
+      return encodePng(1024, 1024, rgb);
+    })(),
+  );
+
+  const designRow = (design: CardDesign, id = FROM, round = 1): Record<string, unknown> => ({
+    id,
+    event_id: EVENT,
+    round,
+    name: design.presentation.name,
+    shape: design.shape,
+    layout: design.layout,
+    art_mode: design.artMode,
+    typography: design.typography,
+    wording: design.wording,
+    art_brief: design.artBrief,
+    identity_revision: 1,
+  });
+
+  const SWITCH: FakeScript = { art: [CLEAN_SQUARE] };
+  const persistedArt = () => admin.rpc("persist_shape_switch_artwork")[0];
+  const switchTelemetry = () => persistedArt().p_telemetry as unknown as ShapeSwitchTelemetry;
+
+  beforeEach(() => {
+    Object.assign(admin.state.tables.generations[0], {
+      kind: "shape_switch",
+      from_design_id: FROM,
+      shape: "square",
+      feedback: null,
+    });
+    Object.assign(admin.state.tables.events[0], {
+      prompt_facts: FACTS,
+      active_card_design_id: FROM,
+      active_card_shape: null,
+    });
+    admin.state.tables.event_identities = [
+      { event_id: EVENT, revision: 1, identity: IDENTITY, generation_id: EARLIER_GENERATION },
+    ];
+    admin.state.tables.card_designs = [designRow(DESIGN)];
+    admin.state.tables.card_art_assets = [
+      {
+        card_design_id: FROM,
+        event_id: EVENT,
+        storage_key: "from/rect.png",
+        mime_type: "image/png",
+        fits_shapes: [...fitsShapes("illustration", "art-top", "rectangle")],
+        created_at: "2026-10-05T10:00:00Z",
+      },
+      {
+        card_design_id: FROM,
+        event_id: EVENT,
+        storage_key: "from/oval.png",
+        mime_type: "image/png",
+        fits_shapes: [...fitsShapes("illustration", "art-top", "oval")],
+        created_at: "2026-10-05T11:00:00Z",
+      },
+    ];
+    admin.state.storage[CARD_ART_BUCKET] = {
+      "from/rect.png": RECT_ART,
+      "from/oval.png": OVAL_ART,
+    };
+    admin.state.rpcAnswers.persist_shape_switch_artwork = [
+      { card_design_id: FROM, round: 1, art_asset_id: "art-new", activated: true },
+    ];
+  });
+
+  it("paints one artwork from the same brief for the new shape, with no identity or design call", async () => {
+    const { outcome, fake } = await run(SWITCH);
+    expect(outcome).toEqual({ status: "succeeded", cardDesignId: FROM, round: 1 });
+    expect(fake.calls.identity).toEqual([]);
+    expect(fake.calls.facts).toEqual([]);
+    expect(fake.calls.design).toEqual([]);
+    // The design's own brief, art mode and layout, the new shape, the design's own artwork as the
+    // reference, and no revision: the shape switch's prompt (`assembleShapeSwitchPrompt`).
+    expect(fake.calls.art).toEqual([
+      {
+        artBrief: DESIGN.artBrief,
+        artMode: "illustration",
+        layout: "art-top",
+        shape: "square",
+        reference: { mimeType: "image/png", bytes: RECT_ART },
+      },
+    ]);
+    expect(admin.state.log).toEqual([
+      "select:generations",
+      "select:events",
+      "select:card_designs",
+      "select:card_art_assets",
+      "storage:download",
+      "rpc:record_generation_stage",
+      // The event again, just before the artwork: the words its ink is judged behind.
+      "select:events",
+      "storage:upload",
+      "rpc:persist_shape_switch_artwork",
+    ]);
+    expect(stages()).toEqual([["artwork", {}]]);
+    // Never the identity, the prompt or the inspiration.
+    const tables = admin.state.selects.map((s) => s.table);
+    expect(tables).not.toContain("event_identities");
+    expect(tables).not.toContain("inspiration_assets");
+    expect(admin.state.selects.find((s) => s.table === "events")!.columns).not.toMatch(/prompt/);
+    expect(admin.rpc("persist_generated_card")).toEqual([]);
+    expect(failures()).toEqual([]);
+  });
+
+  it("meters its calls against this generation", async () => {
+    const { fake } = await run(SWITCH);
+    // The artwork, its moderation and its inspection.
+    expect(fake.calls.meters).toHaveLength(3);
+    for (const meter of fake.calls.meters) {
+      expect(meter).toEqual({
+        eventId: EVENT,
+        userId: USER,
+        generationId: GENERATION,
+        round: null,
+        deadline: STARTED_AT + GENERATION_DEADLINE_MS,
+      });
+    }
+  });
+
+  it("adds the artwork to the same design, with its ink for every shape it fits", async () => {
+    await run(SWITCH);
+    const args = persistedArt();
+    expect(args).toMatchObject({
+      p_generation_id: GENERATION,
+      p_event_id: EVENT,
+      p_mime_type: "image/png",
+      p_width: 1024,
+      p_height: 1024,
+      p_proportion: "square_1_1",
+      p_fits_shapes: [...fitsShapes("illustration", "art-top", "square")],
+      p_art_prompt_version: "card_art_v5",
+    });
+    // Never a new design: no name, wording, brief or refinement is written.
+    for (const key of ["p_name", "p_wording", "p_art_brief", "p_refinement", "p_raw"]) {
+      expect(args).not.toHaveProperty(key);
+    }
+    expect(Object.keys(args.p_ink as object)).toEqual(["square"]);
+    expect((args.p_ink as Record<string, { text: { ink: string } }>).square.text.ink).toMatch(
+      /^#[0-9A-F]{6}$/,
+    );
+    const upload = admin.state.uploads[0];
+    expect(upload.bucket).toBe(CARD_ART_BUCKET);
+    expect(upload.key).toMatch(new RegExp(`^${EVENT}/${GENERATION}/[0-9a-f-]{36}\\.png$`));
+    expect(args.p_storage_key).toBe(upload.key);
+    expect(args.p_image_model).toBe(switchTelemetry().versions.imageModel);
+    expect(switchTelemetry()).toEqual({
+      kind: "shape_switch",
+      shape: "square",
+      referenceShape: "rectangle",
+      artRegenerated: null,
+      artRepaints: 0,
+      inkPanels: [],
+      imagesRequested: 1,
+      repaintsStoppedBy: null,
+      lineAreasFallback: [],
+      fitsShapes: ["square"],
+      versions: {
+        layoutSet: "card_layouts_v3",
+        compiler: "card_compiler_v4",
+        artPrompt: "card_art_v5",
+        imageModel: expect.any(String),
+      },
+      latency: { artMs: 0, totalMs: 0 },
+    });
+  });
+
+  it("references the artwork of the shape the host sees: the newest that fits the active shape", async () => {
+    admin.state.tables.events[0].active_card_shape = "oval";
+    await run(SWITCH);
+    expect(admin.state.downloads).toEqual([{ bucket: CARD_ART_BUCKET, key: "from/oval.png" }]);
+    expect(admin.rpc("persist_shape_switch_artwork")).toHaveLength(1);
+    expect(switchTelemetry().referenceShape).toBe("oval");
+  });
+
+  it("references the design's own shape once another design is active", async () => {
+    admin.state.tables.events[0].active_card_design_id = OTHER;
+    admin.state.tables.events[0].active_card_shape = "oval";
+    await run(SWITCH);
+    expect(admin.state.downloads).toEqual([{ bucket: CARD_ART_BUCKET, key: "from/rect.png" }]);
+  });
+
+  it("paints a border-led design for the one shape asked for", async () => {
+    admin.state.tables.card_designs = [designRow(WORLD_DESIGN)];
+    admin.state.tables.generations[0].shape = "oval";
+    await run({ art: [CLEAN] });
+    expect(persistedArt()).toMatchObject({
+      p_proportion: "portrait_5_7",
+      p_fits_shapes: ["oval"],
+    });
+  });
+
+  it("repaints while the new shape would need the panel, keeping the reference", async () => {
+    const { fake } = await run({ art: [BUSY_SQUARE, CLEAN_SQUARE] });
+    expect(fake.calls.art).toHaveLength(2);
+    expect(fake.calls.art[1]).toEqual({ ...fake.calls.art[0], repaint: true });
+    expect(fake.calls.art[1].reference).toEqual({ mimeType: "image/png", bytes: RECT_ART });
+    expect(fake.calls.art[1]).not.toHaveProperty("revision");
+    expect(switchTelemetry()).toMatchObject({
+      artRegenerated: "panel-repaint",
+      artRepaints: 1,
+      inkPanels: [],
+      imagesRequested: 2,
+    });
+  });
+
+  it("keeps the first valid artwork with its panel after two extra images", async () => {
+    const { fake } = await run({ art: [BUSY_SQUARE, BUSY_SQUARE, BUSY_SQUARE] });
+    expect(fake.calls.art).toHaveLength(3);
+    expect(switchTelemetry()).toMatchObject({
+      artRepaints: 2,
+      inkPanels: [{ shape: "square", zone: "text" }],
+      imagesRequested: 3,
+    });
+    const ink = persistedArt().p_ink as Record<string, { text: { panel?: unknown } }>;
+    expect(ink.square.text.panel).toBeDefined();
+  });
+
+  it("a provider refusal is a visible failure: no design re-prompt, nothing persisted", async () => {
+    const { outcome, fake } = await run({ art: [refusal()] });
+    expect(outcome).toEqual({ status: "failed", code: "shape_refusal" });
+    expect(fake.calls.design).toEqual([]);
+    expect(fake.calls.art).toHaveLength(1);
+    expect(failures()).toEqual(["shape_refusal"]);
+    expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
+      failure: { code: "shape_refusal", stage: "artwork", imagesRequested: 1 },
+    });
+    // No copyright step-back notice: there is no new design.
+    expect(stages()).toEqual([["artwork", {}]]);
+    expect(admin.state.uploads).toEqual([]);
+    expect(admin.rpc("persist_shape_switch_artwork")).toEqual([]);
+  });
+
+  it("a refusal after a failed first image is the same visible failure", async () => {
+    const { outcome } = await run({ art: [NOT_PNG, refusal()] });
+    expect(outcome).toEqual({ status: "failed", code: "shape_refusal" });
+    expect(admin.rpc("fail_generation")[0].p_telemetry).toMatchObject({
+      failure: {
+        imagesRequested: 2,
+        validationFailures: [{ image: 1, reasons: ["type"] }],
+      },
+    });
+  });
+
+  it("an artwork that fails validation twice is a visible failure", async () => {
+    const { outcome } = await run({ art: [NOT_PNG, NOT_PNG] });
+    expect(outcome).toEqual({ status: "failed", code: "artwork_invalid" });
+    expect(admin.state.uploads).toEqual([]);
+  });
+
+  it("a provider failure is a visible failure", async () => {
+    const { outcome } = await run({ art: [http500()] });
+    expect(outcome).toEqual({ status: "failed", code: "provider_error" });
+  });
+
+  it("refuses a shape the design's layout does not support before any image", async () => {
+    admin.state.tables.generations[0].shape = "circle";
+    const { outcome, fake } = await run(SWITCH);
+    expect(outcome).toEqual({ status: "failed", code: "internal" });
+    expect(fake.calls.meters).toEqual([]);
+    expect(admin.state.downloads).toEqual([]);
+  });
+
+  it("refuses a switch that names no design or no shape, before anything else", async () => {
+    for (const fields of [{ from_design_id: null }, { shape: null }, { shape: "hexagon" }]) {
+      admin = fakeAdmin();
+      admin.state.tables = {
+        generations: [
+          {
+            id: GENERATION,
+            event_id: EVENT,
+            kind: "shape_switch",
+            status: "running",
+            requested_by: USER,
+            from_design_id: FROM,
+            shape: "square",
+            ...fields,
+          },
+        ],
+      };
+      admin.state.rpcAnswers = { fail_generation: true };
+      const { outcome, fake } = await run(SWITCH);
+      expect(outcome, JSON.stringify(fields)).toEqual({ status: "failed", code: "internal" });
+      expect(fake.calls.meters).toEqual([]);
+      expect(admin.state.log).toEqual(["select:generations", "rpc:fail_generation"]);
+    }
+  });
+
+  it("refuses a design it cannot read for its artwork, or one of another event", async () => {
+    const briefWithoutRendering: Record<string, unknown> = { ...DESIGN.artBrief };
+    delete briefWithoutRendering.rendering;
+    for (const design of [
+      { ...designRow(DESIGN), art_brief: briefWithoutRendering },
+      { ...designRow(DESIGN), typography: { primary: "comic_sans", alternates: [] } },
+      { ...designRow(DESIGN), event_id: "another-event" },
+    ]) {
+      admin.state.tables.card_designs = [design];
+      const { outcome, fake } = await run(SWITCH);
+      expect(outcome).toEqual({ status: "failed", code: "internal" });
+      expect(fake.calls.meters).toEqual([]);
+      expect(admin.state.downloads).toEqual([]);
+    }
+  });
+
+  it("fails internally when the reference artwork cannot be read", async () => {
+    admin.state.storage[CARD_ART_BUCKET] = {};
+    const { outcome, fake } = await run(SWITCH);
+    expect(outcome).toEqual({ status: "failed", code: "internal" });
+    expect(fake.calls.art).toEqual([]);
+  });
+
+  it("removes the upload and stops when the persist writes nothing (stopped, or published)", async () => {
+    admin.state.rpcAnswers.persist_shape_switch_artwork = [];
+    const { outcome } = await run(SWITCH);
+    expect(outcome).toEqual({ status: "stopped" });
+    expect(admin.state.removes).toEqual([
+      { bucket: CARD_ART_BUCKET, keys: [admin.state.uploads[0].key] },
+    ]);
+    expect(failures()).toEqual(["published"]);
+  });
+
+  it("stops before any image when the generation is no longer running", async () => {
+    admin.state.rpcAnswers.record_generation_stage = false;
+    const { outcome, fake } = await run(SWITCH);
+    expect(outcome).toEqual({ status: "stopped" });
     expect(fake.calls.art).toEqual([]);
   });
 });

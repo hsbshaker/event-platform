@@ -10,7 +10,8 @@
  *
  * Sources of the codes:
  * - stage failures (`stage.ts` `StageFailureCode`): `invalid_output`, `provider_error`,
- *   `artwork_invalid`, `provider_refusal` (the image provider refused the step-back too);
+ *   `artwork_invalid`, `provider_refusal` (the image provider refused the step-back too),
+ *   `shape_refusal` (the image provider refused a shape switch's artwork);
  * - meter refusals (`src/lib/ai/errors.ts` `ModelCallRefusal`, recorded by `run.server.ts`):
  *   `disabled`, `ceiling`, `not_running`, `invalid_context`, `deadline`;
  * - the orchestration (`run.server.ts`): `internal`, `unsupported_kind`, `published`;
@@ -18,8 +19,10 @@
  *   (`heartbeat_generation` after a publish);
  * - the wait surface's read (`status.server.ts`): `stopped` (a worker past its lifetime);
  * - refused starts (`start_generation` outcomes, no generation row): `event_cap`, `host_cap`, and
- *   `no_design` (another direction asked for before the event has a card); and `busy`
- *   (`startAnotherDirection`: another card for the event is being made, `spec.md §10`).
+ *   `no_design` (another direction or a shape switch asked for before the event has a card);
+ *   and `busy` (`startGeneration`: another card for the event is being made, `spec.md §10`);
+ * - refused shape switches (`switchCardShape`, `src/app/actions/shape.ts`): `unsupported_shape`
+ *   (a shape the card's design is not made for; the shape control never offers one).
  */
 
 export const GENERATION_FAILURE_CODES = [
@@ -27,6 +30,7 @@ export const GENERATION_FAILURE_CODES = [
   "provider_error",
   "artwork_invalid",
   "provider_refusal",
+  "shape_refusal",
   "disabled",
   "ceiling",
   "not_running",
@@ -41,6 +45,7 @@ export const GENERATION_FAILURE_CODES = [
   "host_cap",
   "no_design",
   "busy",
+  "unsupported_shape",
 ] as const;
 
 export type GenerationFailureCode = (typeof GENERATION_FAILURE_CODES)[number];
@@ -91,6 +96,11 @@ const COPY: Readonly<Record<GenerationFailureCode, Copy>> = {
     body: "Our take kept coming out too close to a well-known character, so for copyright reasons we couldn't use it. Try again and we'll take a fresh approach to its world.",
     retry: true,
   },
+  shape_refusal: {
+    title: "We couldn't make that shape",
+    body: "The new artwork for that shape came out too close to a well-known character, so for copyright reasons we couldn't use it. Your card stays as it is — you can try again.",
+    retry: true,
+  },
   disabled: {
     title: "New designs are paused",
     body: "We've paused new card designs for a little while. Your event and details are saved — please come back soon.",
@@ -128,6 +138,11 @@ const COPY: Readonly<Record<GenerationFailureCode, Copy>> = {
     title: "Another card is being made",
     body: "We make one card at a time for an event, and one is on its way. Once it's ready, try again and we'll make yours.",
     retry: true,
+  },
+  unsupported_shape: {
+    title: "That shape isn't available",
+    body: "This card is designed for a few shapes, and that isn't one of them. Your card stays as it is — choose one of the shapes shown.",
+    retry: false,
   },
 };
 

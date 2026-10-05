@@ -4,7 +4,11 @@ import { requireEventAccess } from "@/lib/auth/event-access";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import { generationEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { GenerationKind, StartGenerationOutcome } from "@/lib/supabase/database.types";
+import type {
+  CardShape,
+  GenerationKind,
+  StartGenerationOutcome,
+} from "@/lib/supabase/database.types";
 
 import { GenerationDisabledError } from "./errors";
 
@@ -46,21 +50,27 @@ export interface StartGenerationInput {
    * function trims again and refuses more than 500 characters). Absent for an empty box.
    */
   feedback?: string;
-  /** Another direction only, and required there: the design the host was looking at. */
+  /**
+   * Required for another direction (the design the host was looking at) and for a shape switch
+   * (the event's active design, which the shape was validated against); never for a first card.
+   */
   fromDesignId?: string;
+  /** Shape switch only, and required there: the shape the host asked for. */
+  shape?: CardShape;
 }
 
 export interface StartGenerationResult {
   /**
-   * `start_generation`'s outcome, or `busy`: another direction asked for while a different
-   * generation of the event is in flight (`in_flight` is answered only for the same request).
+   * `start_generation`'s outcome, or `busy`: another direction or a shape switch asked for while a
+   * different generation of the event is in flight (`in_flight` is answered only for the same
+   * request).
    */
   outcome: StartGenerationOutcome | "busy";
   /** The signed-in owner or co-host who started it (for the meter context). */
   userId: string;
   /**
    * The new or existing generation, or the one in flight; null when refused (`published`,
-   * `designed`, `no_design`, `busy`, a cap).
+   * `designed`, `no_design`, `not_active`, `fitted`, `busy`, a cap).
    */
   generationId: string | null;
 }
@@ -88,15 +98,16 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
     p_stale_seconds: GENERATION_STALE_SECONDS,
     ...(input.feedback !== undefined ? { p_feedback: input.feedback } : {}),
     ...(input.fromDesignId !== undefined ? { p_from_design_id: input.fromDesignId } : {}),
+    ...(input.shape !== undefined ? { p_shape: input.shape } : {}),
   });
   if (error) throw error;
   const row = data?.[0];
   if (!row) throw new Error("start_generation returned no outcome");
   if (
     row.outcome === "in_flight" &&
-    input.kind === "another_direction" &&
+    input.kind !== "initial" &&
     row.generation_id &&
-    !(await isSameDirection(row.generation_id, input))
+    !(await isSameRequest(row.generation_id, input))
   ) {
     return { outcome: "busy", generationId: null, userId };
   }
@@ -104,22 +115,24 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
 }
 
 /**
- * One card is made at a time per event (`spec.md §10`). Another direction waits on the generation
- * in flight only when it is the same request — another direction from the same card with the same
- * (trimmed) words: a `Try again` after a lost answer, or a co-host asking the same. Anything else
- * is `busy`, so a host is never shown someone else's card as theirs. Read after the access check.
+ * One card is made at a time per event (`spec.md §10`). Another direction or a shape switch waits
+ * on the generation in flight only when it is the same request — another direction from the same
+ * card with the same (trimmed) words, or a switch of the same design to the same shape: a
+ * `Try again` after a lost answer, or a co-host asking the same. Anything else is `busy`, so a
+ * host is never shown someone else's card as theirs. Read after the access check.
  */
-async function isSameDirection(generationId: string, input: StartGenerationInput) {
+async function isSameRequest(generationId: string, input: StartGenerationInput) {
   const { data, error } = await createAdminClient()
     .from("generations")
-    .select("kind, from_design_id, feedback")
+    .select("kind, from_design_id, feedback, shape")
     .eq("id", generationId)
     .eq("event_id", input.eventId)
     .maybeSingle();
   if (error) throw error;
   return (
-    data?.kind === "another_direction" &&
+    data?.kind === input.kind &&
     data.from_design_id === (input.fromDesignId ?? null) &&
-    (data.feedback ?? null) === (input.feedback?.trim() || null)
+    (data.feedback ?? null) === (input.feedback?.trim() || null) &&
+    (data.shape ?? null) === (input.shape ?? null)
   );
 }

@@ -270,6 +270,39 @@ describe("loadRevealedCard", () => {
     expect(new Set(revealed!.card.boxes.map((b) => b.color))).toEqual(new Set(["#FDF8EE"]));
   });
 
+  it("after a shape switch draws its new artwork, and switching back draws the original (spec.md §7.14)", async () => {
+    // The design's original artwork (rectangle, rounded rectangle), then the artwork a shape switch
+    // added to the same design for the square card.
+    admin.fake.state.tables.card_art_assets = [
+      artRow({ fits_shapes: ["rectangle", "rounded-rectangle"] }),
+      artRow({
+        id: "a2",
+        proportion: "square_1_1",
+        fits_shapes: ["square"],
+        storage_key: `${EVENT}/g2/square.png`,
+        ink: { square: { text: { ink: "#1F2A44" } } },
+        created_at: "2026-10-05T11:30:00Z",
+      }),
+    ];
+    admin.fake.state.tables.events = [eventRow({ active_card_shape: "square" })];
+    const switched = await load();
+    expect(switched!.card.shape).toBe("square");
+    expect(switched!.card.artwork).toEqual({
+      src: `https://storage.test/card-art/${EVENT}/g2/square.png?token=signed`,
+      proportion: "1:1",
+    });
+    expect(new Set(switched!.card.boxes.map((b) => b.color))).toEqual(new Set(["#1F2A44"]));
+    expect(switched!.designId).toBe(DESIGN);
+
+    for (const shape of ["rectangle", "rounded-rectangle"]) {
+      admin.fake.state.tables.events = [eventRow({ active_card_shape: shape })];
+      const back = await load();
+      expect(back!.card.shape).toBe(shape);
+      expect(back!.card.artwork.src).toContain("g1/original.png");
+      expect(new Set(back!.card.boxes.map((b) => b.color))).toEqual(new Set([INK]));
+    }
+  });
+
   it("draws a card_layouts_v2 panel as it was persisted, with no fade", async () => {
     const v2Panel = {
       x: 30,

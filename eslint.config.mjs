@@ -51,7 +51,8 @@ const SERVICE_ROLE = {
  *   not requested by the user it is given, reads that event's own rows and inspiration, and
  *   writes only through the generation functions that write nothing once the generation stopped
  *   running (`record_event_identity`, `record_generation_stage`, `persist_generated_card`,
- *   `fail_generation`) and to its own key in the private `card-art` bucket.
+ *   `persist_shape_switch_artwork`, `fail_generation`) and to its own key in the private
+ *   `card-art` bucket.
  * - `src/lib/generation/status.server.ts` — reads the server-only `generations` table after
  *   `requireEventAccess(eventId, "view_event")`, for that event only, returning no telemetry.
  * - `src/lib/generation/reveal.server.ts` — reads a design of the event (the active one by
@@ -62,6 +63,11 @@ const SERVICE_ROLE = {
  *   `choose_card_design`, after `requireEventAccess(eventId, "view_event")` and the pre-publish
  *   `choose_design` capability, for the session's own collaborator; the function checks membership
  *   and publish again under the event's lock, and touches only that event's active design.
+ * - `src/lib/generation/shape.server.ts` — after `requireEventAccess(eventId, "use_design_controls")`,
+ *   reads that event's active design and its artworks' fitted shapes, and switches the shape only
+ *   through `switch_card_shape`, for the session's own collaborator; the function checks membership
+ *   and the active design again under the event's lock, and touches only that event's active
+ *   shape. New artwork begins only through `startGeneration`.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
@@ -74,6 +80,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/generation/status.server.ts",
   "src/lib/generation/reveal.server.ts",
   "src/lib/generation/choose.server.ts",
+  "src/lib/generation/shape.server.ts",
 ];
 
 /**

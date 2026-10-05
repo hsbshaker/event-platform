@@ -223,13 +223,13 @@ describe("start_generation: another direction", () => {
     expect(await eventCount(eventA)).toBe(1);
   });
 
-  it("requires the design for another direction, and takes neither field for another kind", async () => {
+  it("requires the design for another direction, and takes neither field for a first card", async () => {
     const from = await design();
     expect(await errorCode(start({ fromDesign: null, feedback: "pinker" }))).toBe("22023");
-    for (const kind of ["initial", "shape_switch"]) {
-      expect(await errorCode(start({ kind, feedback: "pinker" })), kind).toBe("22023");
-      expect(await errorCode(start({ kind, fromDesign: from })), kind).toBe("22023");
-    }
+    expect(await errorCode(start({ kind: "initial", feedback: "pinker" }))).toBe("22023");
+    expect(await errorCode(start({ kind: "initial", fromDesign: from }))).toBe("22023");
+    // A shape switch takes a design but never feedback (20261010000000_shape_switch.sql).
+    expect(await errorCode(start({ kind: "shape_switch", feedback: "pinker" }))).toBe("22023");
     expect(await eventCount(eventA)).toBe(0);
   });
 
@@ -295,7 +295,8 @@ describe("generations: the box is checked by the table too", () => {
       ["another_direction", "", from],
       ["another_direction", "a".repeat(501), from],
       ["initial", "pinker", null],
-      ["shape_switch", null, from],
+      ["initial", null, from],
+      ["shape_switch", "pinker", from],
     ] as const) {
       expect(
         await errorCode(

@@ -34,10 +34,13 @@ export type GenerationStage = "identity" | "design" | "artwork";
  * - `invalid_output`: the model's output stayed invalid after the stage's one retry;
  * - `provider_error`: the provider call failed (after the provider's own transient retry);
  * - `artwork_invalid`: the artwork failed validation, and so did its one regeneration;
- * - `provider_refusal`: the image provider refused the artwork (`ArtworkProviderRefusalError`).
+ * - `provider_refusal`: the image provider refused the artwork (`ArtworkProviderRefusalError`);
+ * - `shape_refusal`: the image provider refused a shape switch's artwork. A shape switch keeps its
+ *   design (designs are immutable), so there is no re-prompted design to step back to: the refusal
+ *   is a visible failure of the switch, and the current card stays as it is.
  */
 export type StageFailureCode =
-  "invalid_output" | "provider_error" | "artwork_invalid" | "provider_refusal";
+  "invalid_output" | "provider_error" | "artwork_invalid" | "provider_refusal" | "shape_refusal";
 
 export class GenerationStageError extends Error {
   /**

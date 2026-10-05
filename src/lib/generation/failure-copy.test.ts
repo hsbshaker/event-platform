@@ -33,6 +33,7 @@ const STAGE: Record<StageFailureCode, true> = {
   provider_error: true,
   artwork_invalid: true,
   provider_refusal: true,
+  shape_refusal: true,
 };
 const METER: Record<ModelCallRefusal, true> = {
   disabled: true,
@@ -52,6 +53,8 @@ const REFUSED_STARTS: Record<
 /** The direction action's answer when another card for the event is being made. */
 const DIRECTION_ACTION = ["busy"];
 const ORCHESTRATION = ["internal", "unsupported_kind", "published"];
+/** Refused shape switches (`src/app/actions/shape.ts`). */
+const SHAPE_SWITCH = ["unsupported_shape"];
 const DATABASE = ["stale", "published"];
 const STATUS_VIEW = ["stopped"];
 
@@ -60,6 +63,7 @@ const EXPECTED_RETRY: Record<GenerationFailureCode, boolean> = {
   provider_error: true,
   artwork_invalid: true,
   provider_refusal: true,
+  shape_refusal: true,
   disabled: false,
   ceiling: false,
   not_running: true,
@@ -74,6 +78,7 @@ const EXPECTED_RETRY: Record<GenerationFailureCode, boolean> = {
   host_cap: false,
   no_design: false,
   busy: true,
+  unsupported_shape: false,
 };
 
 /** Words the host must never see (`docs/design-system.md §12.3`, `spec.md §26`). */
@@ -90,6 +95,7 @@ describe("generationFailure", () => {
       ...Object.keys(REFUSED_STARTS),
       ...DIRECTION_ACTION,
       ...ORCHESTRATION,
+      ...SHAPE_SWITCH,
       ...DATABASE,
       ...STATUS_VIEW,
     ];
@@ -137,6 +143,15 @@ describe("generationFailure", () => {
     expect(failure.retry).toBe(true);
     expect(failure.body).toMatch(/copyright/);
     expect(failure.body).toMatch(/well-known character/);
+  });
+
+  it("offers a retry for a refused shape switch, whose card stays as it is", () => {
+    const failure = generationFailure("shape_refusal");
+    expect(failure.retry).toBe(true);
+    expect(failure.body).toMatch(/copyright/);
+    expect(failure.body).toMatch(/stays as it is/);
+    // No step back: the design is kept, so the copy never promises a fresh take on the design.
+    expect(failure.body).not.toMatch(/fresh/);
   });
 });
 
