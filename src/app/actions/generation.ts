@@ -14,7 +14,8 @@ import type { StartGenerationOutcome } from "@/lib/supabase/database.types";
  * `startGeneration` authorizes the signed-in owner or co-host itself (`requireEventAccess`) and
  * takes the generation lock, the daily caps and the idempotency key (`start_generation`). Only a
  * generation this request `started` is run, after the response, with `after()`: a repeat of the
- * same key (`existing`), a generation already in flight, a cap or a published event runs nothing.
+ * same key (`existing`), a generation already in flight, a cap, a published event, or an event
+ * that already has its first card (`designed`: another card is another direction) runs nothing.
  * The work runs within the invoking page's `maxDuration` (300 s, set on
  * `src/app/events/[id]/create/page.tsx`, the page that calls this action), and the generation's
  * deadline counts from this request's start.

@@ -157,6 +157,17 @@ export function validateWordingText(slot: WordingSlotId, value: string): CardTex
   return checkText(slot === "title" ? "display" : "body", WORDING_LIMITS[slot].max, value);
 }
 
+/**
+ * Check text for a detail slot the host did not type through the details form — a date or time the
+ * prompt states, shown as written in the date or time slot (`spec.md §7.3`, `facts.ts`
+ * `revealCardContent`) — exactly as an entry is checked: characters the body faces can draw, at
+ * most `limit` characters (the slot's own bound, `CARD_FACT_MAX_LENGTH`), and every word on one
+ * line of the narrowest zone.
+ */
+export function validateDetailText(value: string, limit: number): CardTextCheck {
+  return checkText("body", limit, value);
+}
+
 function checkText(role: Role, limit: number, value: string): CardTextCheck {
   const text = value.trim();
   if (text === "") return { ok: true };

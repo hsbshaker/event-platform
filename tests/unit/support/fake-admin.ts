@@ -26,7 +26,7 @@ export interface FakeAdminState {
   /** Storage objects by bucket, then key. */
   storage: Record<string, Record<string, Uint8Array>>;
   /**
-   * Errors by RPC name, `insert:<table>`, `select:<table>`, or `storage:<upload|remove|download>`.
+   * Errors by RPC name, `insert:<table>`, `select:<table>`, or `storage:<upload|remove|download|sign>`.
    */
   errors: Record<string, DbError | undefined>;
   rpcs: { name: string; args: Record<string, unknown> }[];
@@ -35,6 +35,7 @@ export interface FakeAdminState {
   uploads: { bucket: string; key: string; bytes: Uint8Array; options: unknown }[];
   removes: { bucket: string; keys: string[] }[];
   downloads: { bucket: string; key: string }[];
+  signs: { bucket: string; key: string; expiresIn: number }[];
   /** Every call above, in order: `rpc:<name>`, `insert:<table>`, `select:<table>`, `storage:<op>`. */
   log: string[];
 }
@@ -102,6 +103,7 @@ export function fakeAdmin() {
     uploads: [],
     removes: [],
     downloads: [],
+    signs: [],
     log: [],
   };
   const client = {
@@ -163,6 +165,17 @@ export function fakeAdmin() {
             if (error) return { data: null, error };
             for (const key of keys) delete objects()[key];
             return { data: keys.map((name) => ({ name })), error: null };
+          },
+          async createSignedUrl(key: string, expiresIn: number) {
+            state.log.push("storage:sign");
+            state.signs.push({ bucket, key, expiresIn });
+            const error = state.errors["storage:sign"];
+            if (error) return { data: null, error };
+            if (!objects()[key]) return { data: null, error: { message: "Object not found" } };
+            return {
+              data: { signedUrl: `https://storage.test/${bucket}/${key}?token=signed` },
+              error: null,
+            };
           },
           async download(key: string) {
             state.log.push("storage:download");

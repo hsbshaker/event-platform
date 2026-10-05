@@ -137,9 +137,13 @@ function memoized(
  *
  * `companions` replaces the worst case for the slots given (blank ones are ignored): from Phase 5,
  * a design's own invitation line in place of the worst-case sentence (`card-system.md §2.5`).
+ *
+ * The date and time slots take a value here only for a date or time the prompt states, shown as
+ * written (`reveal-content.server.ts`); the details form's dates and times are formatted by code
+ * and need no check.
  */
 export async function cardTextFitsEveryDesign(
-  slot: CardEntrySlot | WordingSlotId,
+  slot: CardEntrySlot | WordingSlotId | "date" | "time",
   value: string,
   companions: Partial<Record<CardEntrySlot | WordingSlotId, string | null>> = {},
 ): Promise<boolean> {
