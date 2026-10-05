@@ -564,6 +564,18 @@ circles. Two decisions by the owner (2026-10-04):
   prompts; round three is run again. Updated: `spec.md §7.5`, §7.9, §9.5, §11.6 and two §31
   criteria; `card-system.md §4.2`; `model-contracts.md §2` and §4.1.
 
+### Phase 5 — round three verdict (owner, 2026-10-05)
+
+- **13 of 14 corpus cards sendable, both of the owner's briefs, and both extra "surprise me"
+  runs.** CU-10 cleared the bar for the first time, after failing rounds one and two; its three
+  runs gave three different themes (origami birds, a dragonfly on a pond, a snowy wood). CU-13's
+  card is the run after the maker's-mark rule, marked as such on the sheet.
+- **CU-08 was not sendable:** "Close — but the giraffe's head is cut off. Would've been better if
+  the sky just blended to become white as opposed to doing like a hard gradient." The artwork's
+  subject reached under the title, both repaints did too, and the legibility panel — a cream
+  rounded box with a soft shadow edge — covered the giraffe's head. Taken up next: the panel as a
+  soft fade into the artwork rather than a box (a layout-set change, with fixtures).
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
