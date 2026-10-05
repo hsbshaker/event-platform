@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { connection } from "next/server";
 
 import type { EventDraftView } from "@/app/actions/event-details";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { layoutSupportsShape, zoneFor } from "@/lib/card/layouts";
-import { proportionOf, type CardShape } from "@/lib/card/shapes";
+import { CARD_SHAPES, proportionOf, type CardShape } from "@/lib/card/shapes";
+import type { RevealedCard } from "@/lib/generation/reveal.server";
 import { missingRequiredDetails } from "@/lib/events/required-details";
 import { provisionalContent } from "@/lib/events/provisional";
 import { washArtwork } from "@/lib/link-preview/test-artwork";
@@ -19,12 +21,20 @@ import { CreationFixture } from "./CreationFixture";
  * - `?data=full|empty|prompt` (default `full`): every fact saved; nothing saved; nothing saved but
  *   a prompt that states some facts;
  * - `&description=1` with `full`: a saved description;
- * - `&variant=guest`: the guest variant of the page (no anchors, no placeholders).
- * - `&lag=1`: a save reaches the page's data only after a few seconds (a slow refresh).
- * - `&refuse=1`: a title containing "Refuse" is refused, as the server's fit check would.
+ * - `&variant=guest`: the guest variant of the page (no anchors, no placeholders);
+ * - `&lag=1`: a save reaches the page's data only after a few seconds (a slow refresh);
+ * - `&refuse=1`: a title containing "Refuse" is refused, as the server's fit check would;
+ * - `&shape=rectangle|rounded-rectangle|arch|oval|square` the card's shape at first (default
+ *   rectangle); an illustration artwork fits every 5:7 shape, so `square` needs new artwork;
+ * - `&published=1`: published, so only shapes an existing artwork fits are offered and there is no
+ *   `Try another direction` or choosing;
+ * - `&visibility=private` with any data: a private event with no access code stored.
+ * The shape and design actions are stubs; the generation poll is answered by the test.
  */
 
 const NOW = new Date("2026-10-05T12:00:00Z");
+
+type Rgb = readonly [number, number, number];
 
 function draft(data: string, withDescription: boolean): EventDraftView {
   const base = {
@@ -91,51 +101,112 @@ export default async function CreationFixturePage({
   const one = (k: string) => (Array.isArray(q[k]) ? q[k][0] : q[k]);
   const data = one("data") ?? "full";
 
-  const shape: CardShape = "rectangle";
+  const published = one("published") === "1";
+  const initialShape = (CARD_SHAPES as readonly string[]).includes(one("shape") ?? "")
+    ? (one("shape") as CardShape)
+    : "rectangle";
+
   const layout = "art-top";
-  if (!layoutSupportsShape(layout, shape)) notFound();
-  const proportion = proportionOf(shape);
-  const boxes = await generatedTextLayer({
-    layout,
-    shape,
-    pairing: "oldstyle_garamond_worksans",
-    content: {
-      title: "Lemons & Linen",
-      invitationLine: "Please join us for a garden shower",
-      babyName: "Maya Lopez",
-      hosts: null,
-      date: "December 19",
-      time: "1:00 pm",
-      venue: "Villa Rosa",
-      rsvpBy: null,
+  const supported = CARD_SHAPES.filter((shape) => layoutSupportsShape(layout, shape));
+  if (!supported.includes(initialShape)) notFound();
+
+  async function cardData(shape: CardShape, title: string, top: Rgb, bottom: Rgb) {
+    const proportion = proportionOf(shape);
+    const boxes = await generatedTextLayer({
+      layout,
+      shape,
+      pairing: "oldstyle_garamond_worksans",
+      content: {
+        title,
+        invitationLine: "Please join us for a garden shower",
+        babyName: "Maya Lopez",
+        hosts: null,
+        date: "December 19",
+        time: "1:00 pm",
+        venue: "Villa Rosa",
+        rsvpBy: null,
+      },
+      ink: "#3A2A1E",
+    });
+    const png = washArtwork(proportion, zoneFor(layout, shape), top, bottom);
+    return {
+      shape,
+      artwork: { src: `data:image/png;base64,${Buffer.from(png).toString("base64")}`, proportion },
+      panels: [],
+      boxes,
+    };
+  }
+
+  // The active design's card in every shape its layout supports (the shape control switches
+  // between them, as the page's refresh does), and one other design for the designs list.
+  const cards = Object.fromEntries(
+    await Promise.all(
+      supported.map(async (shape) => {
+        const data = await cardData(shape, "Lemons & Linen", [226, 224, 170], [236, 226, 200]);
+        const proportion = data.artwork.proportion;
+        return [
+          shape,
+          <div
+            key={shape}
+            data-card-shape={shape}
+            className="w-full"
+            style={{
+              maxWidth: `min(100%, calc(var(--width-narrow) * ${proportion === "5:7" ? 0.86 : 1.05}))`,
+              aspectRatio: proportion === "5:7" ? "5 / 7" : "1 / 1",
+            }}
+          >
+            <CardWithMarkers card={data} unconfirmed={[]} />
+          </div>,
+        ];
+      }),
+    ),
+  ) as Record<CardShape, ReactNode>;
+
+  const specs: { id: string; name: string; top: Rgb; bottom: Rgb }[] = [
+    {
+      id: "fixture-design-1",
+      name: "Lemons & Linen",
+      top: [226, 224, 170],
+      bottom: [236, 226, 200],
     },
-    ink: "#3A2A1E",
-  });
-  const png = washArtwork(proportion, zoneFor(layout, shape), [226, 224, 170], [236, 226, 200]);
-  const card = {
-    shape,
-    artwork: { src: `data:image/png;base64,${Buffer.from(png).toString("base64")}`, proportion },
-    panels: [],
-    boxes,
-  };
+    {
+      id: "fixture-design-2",
+      name: "Moonlit Meadow",
+      top: [182, 198, 224],
+      bottom: [214, 222, 226],
+    },
+  ];
+  const designs: RevealedCard[] = await Promise.all(
+    specs.map(async (d, index) => ({
+      designId: d.id,
+      active: index === 0,
+      published,
+      round: index + 1,
+      title: d.name,
+      name: d.name,
+      description:
+        index === 0 ? "A lemon branch over soft linen." : "Pale wildflowers under a low blue moon.",
+      card: await cardData("rectangle", d.name, d.top, d.bottom),
+      unconfirmed: [],
+      stated: {},
+      artworkExpiresAt: "2099-01-01T00:00:00.000Z",
+    })),
+  );
+
+  const fields = draft(data, one("description") === "1");
+  if (one("visibility") === "private") fields.visibility = "private";
 
   return (
     <CreationFixture
-      initial={draft(data, one("description") === "1")}
+      initial={fields}
       variant={one("variant") === "guest" ? "guest" : "creation"}
       lag={one("lag") === "1"}
       refuse={one("refuse") === "1"}
-      card={
-        <div
-          className="w-full"
-          style={{
-            maxWidth: "min(100%, calc(var(--width-narrow) * 0.86))",
-            aspectRatio: "5 / 7",
-          }}
-        >
-          <CardWithMarkers card={card} unconfirmed={[]} />
-        </div>
-      }
+      cards={cards}
+      shape={initialShape}
+      supported={supported}
+      published={published}
+      designs={designs}
     />
   );
 }

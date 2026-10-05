@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { loadCardShapeOptionsAction } from "@/app/actions/shape";
 import { loadEventDraft, type EventDraftView } from "@/app/actions/event-details";
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
+import { accessCodeIsSet } from "@/lib/events/access-code.server";
 import { eventPageContent } from "@/lib/events/page-content";
 import {
   loadEventDesigns,
@@ -12,7 +14,6 @@ import {
   type RevealedCard,
 } from "@/lib/generation/reveal.server";
 import { CreationCanvas } from "./CreationCanvas";
-import { DesignsList } from "./DesignsList";
 import { EventUnavailable } from "./EventUnavailable";
 import { SteadyCard } from "./SteadyCard";
 
@@ -21,9 +22,9 @@ import { SteadyCard } from "./SteadyCard";
  * invitation the reveal showed, with no envelope, for the event's owner and co-hosts — the card at
  * a comfortable size with its "needs confirming" markers, then the house-style page beneath it
  * (`EventPage`), with the `Edit` / `Add` anchors that open the event-details editor
- * (`CreationCanvas`). There is no dashboard here. Toolbar, Design panel, readiness and Preview come
- * in later slices. After the page, when the event has more than one design, the designs list
- * (`DesignsList`): every card, the active one marked, choosing before publish.
+ * (`CreationCanvas`). There is no dashboard here. The owner toolbar's `Design` panel holds the shape
+ * control, `Try another direction` and the designs list; the readiness control and its checklist
+ * float over the page. Preview comes in a later slice.
  *
  * Anyone else, and an id that is not an event's, sees the same plain "isn't available" state as
  * the create page, so it never says whether an event exists (`spec.md §27`). An event with no card
@@ -64,6 +65,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!revealed || !draft) redirect(`/events/${id}/create`);
   // Every design of the event, browsable before publish (`spec.md §31` — Card experience).
   const designs = await loadEventDesigns(id);
+  const shapes = await loadCardShapeOptionsAction(id);
+  const accessCodeSet = draft.visibility === "private" ? await accessCodeIsSet(id) : false;
 
   const { card } = revealed;
   const proportion = card.artwork.proportion;
@@ -90,6 +93,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <CreationCanvas
         event={draft}
         content={content}
+        accessCodeSet={accessCodeSet}
+        design={{
+          designId: revealed.designId,
+          published: revealed.published,
+          title: revealed.title,
+          shapes,
+          designs,
+        }}
         card={
           <>
             <div
@@ -117,13 +128,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               </AppButtonLink>
             )}
           </>
-        }
-        below={
-          designs.length > 1 ? (
-            <div className="mt-6 w-full">
-              <DesignsList eventId={id} designs={designs} published={revealed.published} />
-            </div>
-          ) : null
         }
       />
     </main>

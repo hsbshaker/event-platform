@@ -2,10 +2,15 @@
 
 import { useRef, useState, type ReactNode } from "react";
 
+import type { SwitchCardShapeInput, SwitchCardShapeResult } from "@/app/actions/shape";
+
 import type { EventDetailsPatch, EventDraftView, UpdateResult } from "@/app/actions/event-details";
 import { CreationCanvas } from "@/app/events/[id]/CreationCanvas";
 import { EventPage } from "@/components/event-page/EventPage";
 import { promptFactCandidates } from "@/lib/card/facts";
+import type { CardShape } from "@/lib/card/shapes";
+import type { RevealedCard } from "@/lib/generation/reveal.server";
+import type { CardShapeOptions } from "@/lib/generation/shape.server";
 import { eventPageContent, type EventPageVariant } from "@/lib/events/page-content";
 
 /**
@@ -40,19 +45,57 @@ const COLUMN: Record<string, keyof EventDraftView> = {
 };
 
 export function CreationFixture({
-  card,
+  cards,
   initial,
   variant,
   lag = false,
   refuse = false,
+  shape,
+  supported,
+  published,
+  designs: initialDesigns,
 }: {
-  card: ReactNode;
+  /** The active design's card in each shape its layout supports. */
+  cards: Record<CardShape, ReactNode>;
   initial: EventDraftView;
   variant: EventPageVariant;
   lag?: boolean;
   refuse?: boolean;
+  shape: CardShape;
+  supported: readonly CardShape[];
+  published: boolean;
+  designs: RevealedCard[];
 }) {
   const [event, setEvent] = useState(initial);
+  const [current, setCurrent] = useState(shape);
+  // The 5:7 shapes are fitted by the artwork the design was made with; a square needs new artwork
+  // until one is painted (the stub's poll succeeds).
+  const [painted, setPainted] = useState<readonly CardShape[]>(
+    supported.filter((s) => s !== "square" && s !== "circle"),
+  );
+  const [designs, setDesigns] = useState(initialDesigns);
+
+  const shapes: CardShapeOptions = {
+    designId: "fixture-design-1",
+    current,
+    options: supported.map((s) => {
+      const instant = painted.includes(s);
+      return { shape: s, instant, available: instant || !published };
+    }),
+  };
+
+  async function switchShape(input: SwitchCardShapeInput): Promise<SwitchCardShapeResult> {
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    if (painted.includes(input.shape)) return { outcome: "switched", generationId: null };
+    if (published) return { outcome: "published", generationId: null };
+    return { outcome: "started", generationId: "fixture-generation-1" };
+  }
+
+  function applied(next: CardShape) {
+    setPainted((all) => (all.includes(next) ? all : [...all, next]));
+    setCurrent(next);
+  }
+
   const latest = useRef(initial);
 
   async function save(_eventId: string, patch: EventDetailsPatch): Promise<UpdateResult> {
@@ -100,15 +143,32 @@ export function CreationFixture({
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col items-center gap-6 px-4 py-10 lg:py-14">
       {variant === "creation" ? (
         <CreationCanvas
-          card={card}
+          card={cards[current]}
           event={event}
+          accessCodeSet={false}
+          design={{
+            designId: "fixture-design-1",
+            published,
+            title: DESIGN_TITLE,
+            shapes,
+            designs,
+          }}
+          switchShape={switchShape}
+          onShapeApplied={applied}
+          choose={async () => {
+            await new Promise((resolve) => setTimeout(resolve, 80));
+            return { ok: true };
+          }}
+          onChosen={(designId) =>
+            setDesigns((all) => all.map((d) => ({ ...d, active: d.designId === designId })))
+          }
           content={content}
           save={save}
           onSaved={(next) => (lag ? setTimeout(() => setEvent(next), LAG_MS) : setEvent(next))}
         />
       ) : (
         <>
-          {card}
+          {cards[current]}
           <EventPage content={content} />
         </>
       )}

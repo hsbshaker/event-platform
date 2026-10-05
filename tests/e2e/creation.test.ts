@@ -339,3 +339,339 @@ describe.each([
     }
   });
 });
+
+/**
+ * Slice 2: the owner toolbar's Design panel (the shape control and its wait, `Try another
+ * direction`, the designs list) and the readiness control with its setup checklist
+ * (`docs/screen-spec.md` `design-panel`, `setup-checklist`; `spec.md §31` — Creation Mode). The
+ * shape and design actions are stubs in the fixture; the generation poll is answered here, so no
+ * model is ever called.
+ */
+
+type PollPhase = "running" | "succeeded" | "failed";
+
+/** Answers the generation poll with whatever `phase.value` is when it is asked. */
+async function stubPoll(page: Page): Promise<{ value: PollPhase }> {
+  const phase: { value: PollPhase } = { value: "running" };
+  await page.route("**/api/events/*/generation*", (route) => {
+    const base = { id: "fixture-generation-1", stage: null, artifacts: {}, cardDesignId: null };
+    const generation =
+      phase.value === "succeeded"
+        ? { ...base, status: "succeeded", failure: null, notice: null, cardDesignId: "d1" }
+        : phase.value === "failed"
+          ? {
+              ...base,
+              status: "failed",
+              failure: {
+                code: "shape_refusal",
+                title: "We couldn't make that shape",
+                body: "The new artwork for that shape came out too close to a well-known character, so for copyright reasons we couldn't use it. Your card stays as it is — you can try again.",
+                retry: true,
+              },
+              notice: null,
+            }
+          : { ...base, status: "running", failure: null, notice: null };
+    return route.fulfill({ json: { generation } });
+  });
+  return phase;
+}
+
+async function shotSheet(page: Page, viewport: { width: number }, name: string) {
+  if (!SHOTS) return;
+  await page.screenshot({ path: path.join(SHOTS, `${name}-${viewport.width}.png`) });
+}
+
+const cardShape = (page: Page) =>
+  page.locator("[data-card-shape]").first().getAttribute("data-card-shape");
+
+describe.each([
+  ["mobile 390", MOBILE],
+  ["desktop 1280", DESKTOP],
+])("design panel at %s", (_label, viewport) => {
+  it("the toolbar opens the Design panel with only what exists, and Escape returns focus", async () => {
+    const { page, close } = await openFixture(viewport, "data=full");
+    try {
+      const design = page.getByRole("button", { name: "Design", exact: true });
+      await design.click();
+      const dialog = page.getByRole("dialog", { name: "Design" });
+      await dialog.waitFor({ state: "visible" });
+
+      // Shapes of the layout, the current one marked, each labelled for a screen reader.
+      const shapes = dialog.locator("[data-shape]");
+      expect(
+        await shapes.evaluateAll((els) => els.map((el) => el.getAttribute("data-shape"))),
+      ).toEqual(["rectangle", "rounded-rectangle", "arch", "oval", "square"]);
+      await expect(
+        dialog.getByRole("button", { name: "Rectangle", exact: true }).getAttribute("aria-pressed"),
+      ).resolves.toBe("true");
+      await expect(
+        dialog.getByRole("button", { name: "Oval", exact: true }).getAttribute("aria-pressed"),
+      ).resolves.toBe("false");
+      expect(await dialog.getByRole("button", { name: "Square — new artwork" }).count()).toBe(1);
+
+      // Try another direction, before publish, from the active design.
+      const another = dialog.getByRole("link", { name: "Try another direction ✦" });
+      expect(await another.getAttribute("href")).toBe(
+        "/events/fixture-event/direction?from=fixture-design-1",
+      );
+      // The designs list lives here, once.
+      expect(await dialog.getByRole("heading", { name: "Your designs" }).count()).toBe(1);
+      expect(await page.getByRole("heading", { name: "Your designs" }).count()).toBe(1);
+      expect(await dialog.getByRole("button", { name: /Choose this direction/ }).count()).toBe(1);
+      // The card editor does not exist yet: no placeholders for it.
+      expect(await dialog.getByText(/Edit card|Reset card/).count()).toBe(0);
+      expect(await hasHorizontalScroll(page)).toBe(false);
+      await shotSheet(page, viewport, "design-panel");
+
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+      expect(await page.evaluate(() => document.activeElement?.getAttribute("data-toolbar"))).toBe(
+        "design",
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("an instant shape applies at once", async () => {
+    const { page, close } = await openFixture(viewport, "data=full");
+    try {
+      expect(await cardShape(page)).toBe("rectangle");
+      await page.getByRole("button", { name: "Design", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Design" });
+      await dialog.getByRole("button", { name: "Oval", exact: true }).click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector("[data-card-shape]")?.getAttribute("data-card-shape") === "oval",
+      );
+      await expect(
+        dialog.getByRole("button", { name: "Oval", exact: true }).getAttribute("aria-pressed"),
+      ).resolves.toBe("true");
+      // No wait, no notice: it was instant.
+      expect(await dialog.locator("[data-shape-wait], [data-shape-notice]").count()).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+
+  it("a shape that needs new artwork says so, waits with the card unchanged, then applies", async () => {
+    const { page, close } = await openFixture(viewport, "data=full");
+    try {
+      const phase = await stubPoll(page);
+      await page.getByRole("button", { name: "Design", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Design" });
+      await dialog.getByRole("button", { name: "Square — new artwork" }).click();
+
+      // The notice first; nothing has started, and Cancel backs out.
+      const notice = dialog.locator("[data-shape-notice]");
+      await notice.waitFor();
+      expect(await notice.textContent()).toContain("new artwork of the same subject");
+      expect(await notice.textContent()).toContain("current card stays as it is until it's ready");
+      expect(await cardShape(page)).toBe("rectangle");
+      await notice.getByRole("button", { name: "Cancel" }).click();
+      expect(await dialog.locator("[data-shape-notice]").count()).toBe(0);
+
+      await dialog.getByRole("button", { name: "Square — new artwork" }).click();
+      await notice.getByRole("button", { name: "Make it" }).click();
+
+      // The wait: plain words, no number, in the panel and by the card; the card is unchanged.
+      const wait = dialog.locator("[data-shape-wait]");
+      await wait.waitFor();
+      expect(await wait.textContent()).toContain("Painting your card as a square…");
+      expect(await wait.textContent()).not.toMatch(/\d|%/);
+      expect(await cardShape(page)).toBe("rectangle");
+      await shotSheet(page, viewport, "shape-wait");
+
+      // Closing the panel leaves the wait running, told quietly by the card.
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+      const status = page.locator("[data-shape-status]");
+      await status.waitFor();
+      expect(await status.textContent()).toContain("Painting your card as a square…");
+      expect(await cardShape(page)).toBe("rectangle");
+      await shot(page, viewport, "shape-wait-page");
+
+      phase.value = "succeeded";
+      await page.waitForFunction(
+        () =>
+          document.querySelector("[data-card-shape]")?.getAttribute("data-card-shape") === "square",
+        undefined,
+        { timeout: 15_000 },
+      );
+      expect(await page.locator("[data-shape-status]").count()).toBe(0);
+      expect(await hasHorizontalScroll(page)).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("a failed shape says why, keeps the card, and Try again can succeed", async () => {
+    const { page, close } = await openFixture(viewport, "data=full");
+    try {
+      const phase = await stubPoll(page);
+      phase.value = "failed";
+      await page.getByRole("button", { name: "Design", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Design" });
+      await dialog.getByRole("button", { name: "Square — new artwork" }).click();
+      await dialog.getByRole("button", { name: "Make it" }).click();
+
+      const failure = dialog.locator("[data-shape-failure]");
+      await failure.waitFor({ timeout: 15_000 });
+      expect(await failure.textContent()).toContain("We couldn't make that shape");
+      expect(await failure.textContent()).toContain("Your card stays as it is");
+      expect(await cardShape(page)).toBe("rectangle");
+      await shotSheet(page, viewport, "shape-failed");
+
+      phase.value = "succeeded";
+      await failure.getByRole("button", { name: "Try again" }).click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector("[data-card-shape]")?.getAttribute("data-card-shape") === "square",
+        undefined,
+        { timeout: 15_000 },
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("after publish only shapes the artwork fits are offered, and no Try another or choosing", async () => {
+    const { page, close } = await openFixture(viewport, "data=full&published=1");
+    try {
+      await page.getByRole("button", { name: "Design", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Design" });
+      await dialog.waitFor({ state: "visible" });
+      const shapes = await dialog
+        .locator("[data-shape]")
+        .evaluateAll((els) => els.map((el) => el.getAttribute("data-shape")));
+      expect(shapes).toEqual(["rectangle", "rounded-rectangle", "arch", "oval"]);
+      expect(await dialog.getByText("New artwork").count()).toBe(0);
+      expect(await dialog.getByRole("link", { name: /Try another direction/ }).count()).toBe(0);
+      expect(await dialog.getByRole("button", { name: /Choose this direction/ }).count()).toBe(0);
+      // The list is there, read-only.
+      expect(await dialog.getByRole("heading", { name: "Your designs" }).count()).toBe(1);
+      await shotSheet(page, viewport, "design-panel-published");
+    } finally {
+      await close();
+    }
+  });
+
+  it("guests get no toolbar and no readiness control", async () => {
+    const { page, close } = await openFixture(viewport, "data=full&variant=guest");
+    try {
+      await page.locator("[data-section=details]").waitFor();
+      expect(await page.locator("[data-toolbar], [data-setup-pill]").count()).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe.each([
+  ["mobile 390", MOBILE],
+  ["desktop 1280", DESKTOP],
+])("readiness at %s", (_label, viewport) => {
+  it("counts the publish blockers, and its rows open the editor on the right field", async () => {
+    const { page, close } = await openFixture(viewport, "data=empty");
+    try {
+      const pill = page.locator("[data-setup-pill]");
+      await pill.waitFor();
+      // Date, start time, venue, who can see it; the title is the design's and the zone is set.
+      expect((await pill.textContent())?.trim()).toBe("Finish setup · 4 left");
+      expect(await contrastOf(page, "[data-setup-pill]")).toBeGreaterThanOrEqual(4.5);
+      expect(await hasHorizontalScroll(page)).toBe(false);
+      await shot(page, viewport, "pill-left");
+
+      await pill.click();
+      const checklist = page.getByRole("dialog", { name: "Setup" });
+      await checklist.waitFor({ state: "visible" });
+      expect(await checklist.getByRole("heading", { name: "Needed to publish" }).count()).toBe(1);
+      const rows = await checklist
+        .locator("[data-blocker]")
+        .evaluateAll((els) => els.map((el) => el.getAttribute("data-blocker")));
+      expect(rows).toEqual(["eventDate", "startTime", "venue", "visibility"]);
+      // Recommended work has no surface yet: no group, no dead links.
+      expect(await checklist.getByText(/Recommended/).count()).toBe(0);
+      expect(await contrastOf(page, "[data-blocker=eventDate] span")).toBeGreaterThanOrEqual(4.5);
+      await shotSheet(page, viewport, "checklist");
+
+      // A row opens the editor on its field.
+      await checklist.getByRole("button", { name: /Venue/ }).click();
+      const editor = page.getByRole("dialog", { name: "Event details" });
+      await editor.waitFor({ state: "visible" });
+      await checklist.waitFor({ state: "hidden" });
+      await page.waitForFunction(() => document.activeElement?.id === "venueName");
+
+      // Saving one updates the count live.
+      await editor.getByText("Public", { exact: true }).click();
+      await page.waitForFunction(() =>
+        document.querySelector("[data-setup-pill]")?.textContent?.includes("3 left"),
+      );
+
+      // Escape returns to the readiness control that started it.
+      await page.keyboard.press("Escape");
+      await editor.waitFor({ state: "hidden" });
+      expect(
+        await page.evaluate(() => document.activeElement?.getAttribute("data-setup-pill")),
+      ).toBe("left");
+    } finally {
+      await close();
+    }
+  });
+
+  it("the date row focuses the date field; prompt-stated facts do not count", async () => {
+    const { page, close } = await openFixture(viewport, "data=prompt");
+    try {
+      const pill = page.locator("[data-setup-pill]");
+      await pill.waitFor();
+      expect((await pill.textContent())?.trim()).toBe("Finish setup · 4 left");
+      await pill.click();
+      const checklist = page.getByRole("dialog", { name: "Setup" });
+      await checklist.getByRole("button", { name: /Event date/ }).click();
+      await page.getByRole("dialog", { name: "Event details" }).waitFor({ state: "visible" });
+      await page.waitForFunction(() => document.activeElement?.id === "eventDate");
+    } finally {
+      await close();
+    }
+  });
+
+  it("says Ready to publish when everything is saved, with recommended work unfinished", async () => {
+    const { page, close } = await openFixture(viewport, "data=full");
+    try {
+      const pill = page.locator("[data-setup-pill]");
+      await pill.waitFor();
+      expect(await pill.getAttribute("data-setup-pill")).toBe("ready");
+      expect((await pill.textContent())?.trim()).toBe("✓ Ready to publish");
+      expect(await contrastOf(page, "[data-setup-pill]")).toBeGreaterThanOrEqual(4.5);
+      await shot(page, viewport, "pill-ready");
+      await pill.click();
+      const checklist = page.getByRole("dialog", { name: "Setup" });
+      await checklist.waitFor({ state: "visible" });
+      expect(await checklist.locator("[data-setup-ready]").count()).toBe(1);
+      expect(await checklist.locator("[data-blocker]").count()).toBe(0);
+      await shotSheet(page, viewport, "checklist-ready");
+      await page.keyboard.press("Escape");
+      await checklist.waitFor({ state: "hidden" });
+    } finally {
+      await close();
+    }
+  });
+
+  it("a private event is not ready without its event code, which no surface sets yet", async () => {
+    const { page, close } = await openFixture(viewport, "data=full&visibility=private");
+    try {
+      const pill = page.locator("[data-setup-pill]");
+      await pill.waitFor();
+      expect((await pill.textContent())?.trim()).toBe("Finish setup · 1 left");
+      await pill.click();
+      const checklist = page.getByRole("dialog", { name: "Setup" });
+      const row = checklist.locator("[data-blocker=accessCode]");
+      await row.waitFor();
+      expect(await row.textContent()).toContain("Private event code");
+      // Listed, but not a control: nothing to open yet.
+      expect(await row.evaluate((el) => el.tagName)).toBe("DIV");
+    } finally {
+      await close();
+    }
+  });
+});
