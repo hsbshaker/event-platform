@@ -215,14 +215,45 @@ describe("fact extraction", () => {
 });
 
 describe("the verbatim check (spec.md §7.5: only what the prompt literally states)", () => {
-  it("keeps values found in the prompt, ignoring case and runs of whitespace", () => {
+  it("finds values ignoring case and runs of whitespace, and keeps the prompt's own words", () => {
     const { facts, dropped } = keepVerbatimFacts(PROMPT, {
       ...FACTS,
       honoree: "MAYA LOPEZ",
-      hosts: "Maya Lopez",
+      hosts: "maya lopez",
+      date: "saturday, december 19 2026",
+      partial: [{ field: "venue", text: "MY MUM'S HOUSE" }],
     });
     expect(dropped).toEqual([]);
-    expect(facts).toEqual({ ...FACTS, honoree: "MAYA LOPEZ", hosts: "Maya Lopez" });
+    // As the host wrote them (the card and the details form show them as written): never the
+    // extractor's case or spacing.
+    expect(facts).toEqual({
+      ...FACTS,
+      honoree: "Maya   Lopez",
+      hosts: "Maya   Lopez",
+      date: "Saturday, December 19 2026",
+      partial: [{ field: "venue", text: "my mum's house" }],
+    });
+  });
+
+  it("reads the span back across line breaks and accented letters", () => {
+    const prompt = "Shower for ÉLODIE Dubois\nhosted by Zoë & Ana at The  Willow\nHouse!";
+    const { facts, dropped } = keepVerbatimFacts(prompt, {
+      ...FACTS,
+      eventType: "shower",
+      honoree: "élodie dubois",
+      hosts: "zoë & ana",
+      venue: "the willow house",
+      date: null,
+      time: null,
+      partial: [],
+    });
+    expect(dropped).toEqual([]);
+    expect(facts).toMatchObject({
+      eventType: "Shower",
+      honoree: "ÉLODIE Dubois",
+      hosts: "Zoë & Ana",
+      venue: "The  Willow\nHouse",
+    });
   });
 
   it("drops and counts a value the prompt does not state, never repairing it", () => {
