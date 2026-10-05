@@ -92,7 +92,7 @@ into a single vague prompt.
 | Stage | Its question | Owns |
 | --- | --- | --- |
 | **`EventIdentity`** | *What does this host mean, and what creative world should this event belong to?* | Interpretation: tone, aesthetic character, sophistication, subjects and symbols, materials and textures, palette territory, typography character, copy voice, what to avoid, and named references captured as the look the host means (homage allowed, marks never, §11). |
-| **fact extraction** (cheaper model) | *What did the host literally state?* | Names, date, time, venue — quoted, never inferred — into the draft for confirmation. |
+| **fact extraction** (cheaper model) | *What did the host literally state?* | Names, date, time, venue — quoted, never inferred — kept on the event for the host to confirm. |
 | **`CardDesign`** | *What is one excellent card for this identity?* | Layout from the catalog, art mode, font pairing, the card's wording, and the art brief. |
 | **card artwork** (image model) | *What artwork serves this brief and this layout?* | The image, with no text, leaving the layout's quiet regions quiet. |
 | **card compiler + renderer** (code) | *Is it legible, does it fit, is it the same everywhere?* | Facts on the card, ink and contrast, legibility panels, text size and line breaks, the envelope, the page, RSVP/registry, business logic. |

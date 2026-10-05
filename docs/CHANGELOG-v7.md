@@ -537,8 +537,9 @@ circles. Two decisions by the owner (2026-10-04):
   under the title, a ribbon under a title, roses under a detail line, and two artworks that needed
   it on the whole-zone measure already. The ink is judged for that one layout of the words; a
   later edit that moves lines keeps only the whole-zone floor, and persisted ink is never
-  re-resolved. One producer, `cardContentWithPlaceholders`, gives the artwork stage and the corpus
-  the same words, so what is measured is what the card shows.
+  re-resolved. One producer, `revealCardContent` (`cardContentWithPlaceholders` is its words
+  without the marks), gives the artwork stage, the reveal and the corpus the same words, so what
+  is measured is what the card shows.
 - **Decision 2: a random theme seed for "surprise me"** (`event_identity_v6`). The identity call
   has no source of variety, so code draws one of 97 everyday worlds per new identity
   (`src/lib/generation/theme-seeds.ts`; none naturally carries writing) and the identity builds the

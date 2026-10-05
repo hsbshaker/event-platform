@@ -247,7 +247,10 @@ the handling of provider refusals of famous characters was decided with them (`s
   caps (`consume_rate_limit`, UTC-day windows, HMAC-keyed like every other limit) inside a
   subtransaction that is rolled back if either refuses — a refused start consumes nothing. It
   refuses a user who is not the event's owner or a co-host, and starts nothing once the event is
-  published (`spec.md §8.2`).
+  published (`spec.md §8.2`). An `initial` start for an event that already has a card design
+  answers `designed`, so the first card is made once however often the generation page is opened
+  (a repeat of the first card's own key still answers with its generation). Outcomes, in the order
+  they are decided: existing, published, designed, in_flight, then the caps.
 - **The meter** (`metered` in `src/lib/ai/meter.server.ts`): every provider request runs inside
   it, and the provider's request functions are not exported. Before a call it refuses — with no
   request made — when generation is off, when the generation is no longer running

@@ -504,7 +504,8 @@ automatically if abandoned, and never become public imagery.
 After auth:
 - create/attach the event draft;
 - begin Event Identity generation immediately;
-- in parallel, extract any facts the prompt states (§7.5) into the draft for the host to confirm;
+- in parallel, extract any facts the prompt states (§7.5) and keep them on the event, unconfirmed,
+  for the host to confirm;
 - offer — never demand — the genuinely missing event details while generation runs.
 
 Potential missing details: event date; start time (end optional); venue/location/address; hosts;
@@ -519,8 +520,12 @@ is called.
 
 A fact the prompt states (§7.5) is on the card from the reveal, as the host wrote it, marked as
 needing confirmation like a placeholder (owner decision, 2026-10-04); the details form shows it
-for the host to confirm or correct. An unconfirmed value is never published, never shown to
-guests, and never given to the card design as a fact.
+for the host to confirm or correct. The extracted values are kept on the event (`promptFacts`,
+§24), written once with the first identity and never by the host; confirming one saves it as the
+event's own detail. A stated value appears on the card only if it passes the checks the details
+form applies to the host's own entry (`docs/card-system.md §2.5`); otherwise the placeholder
+stands. An unconfirmed value is never published, never shown to guests, and never given to the
+card design as a fact.
 
 The card's **title** is wording (§7.7): if the host supplied a title it is used exactly; otherwise
 the design drafts one. The event title is therefore never a blocker to seeing a card.
@@ -581,8 +586,8 @@ It holds one boundary exactly:
 - **Grounded facts are preserved, never invented.** Hosts and names, event type, date, time, venue,
   address and RSVP deadline come only from the host's input or saved event data. **Facts travel on
   a separate channel:** a cheaper structured-extraction call (§9.2) reads the same raw prompt,
-  extracts only what it literally states, and writes it into the event draft as values for the host
-  to confirm. `EventIdentity` stays a creative brief and carries no operational field.
+  extracts only what it literally states, and keeps it on the event (`promptFacts`, §24) as values
+  for the host to confirm. `EventIdentity` stays a creative brief and carries no operational field.
 - **Creative interpretation is expected and generous.** Tone, sophistication, visual vocabulary,
   palette territory, materials and textures, subjects and symbols, and things to avoid are all fair
   inference. "Lemons in Italy but classy" may imply linen, ceramic detail, a refined lemon
@@ -1948,6 +1953,7 @@ Event {
   timezone,
   venueName, address,
   hosts?, babyName?,
+  promptFacts?,                     // facts the prompt states, unconfirmed; server-written once (§7.3)
 
   visibility /* public | private */,
   accessCodeEncrypted?,
@@ -2746,7 +2752,7 @@ Persist pre-auth draft → AUTH / SAVE (prompt + inspiration restored exactly)
     ↓
 Generation begins
     ├── Event Identity (+ optional taste clarification, usually none)
-    ├── fact extraction → draft details for the host to confirm
+    ├── fact extraction → stated facts kept for the host to confirm
     └── optional detail entry while waiting
     ↓
 Card design (layout, art mode, font pairing, wording, art brief)

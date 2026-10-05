@@ -139,12 +139,14 @@ identity call returns no questions.
 
 A separate cheaper-model call reads the same raw prompt and returns only facts the prompt literally
 states — event type, hosts, baby name, date, time, venue, address — each as the host's exact
-string. Missing means absent. Its output is written to the event draft as values for the host to
-confirm, never to the identity. The pipeline keeps it with the generation
+string. Missing means absent. Its output is kept on the event as values for the host to confirm
+(`events.prompt_facts`, written once in the same transaction as the first identity, by the server
+only), never in the identity; the pipeline also keeps it with the generation
 (`generations.artifacts.facts`). Those values are on the card from the reveal, marked as needing
 confirmation, and in the details form for the host to confirm or correct (`spec.md §7.3`, owner
-decision); an unconfirmed value is never published and never given to the card design as a fact. The fact check in `docs/model-evals/creative-understanding.json`
-(each case's `facts`) applies to this call.
+decision); an unconfirmed value is never published and never given to the card design as a fact.
+The fact check in `docs/model-evals/creative-understanding.json` (each case's `facts`) applies to
+this call.
 
 ---
 

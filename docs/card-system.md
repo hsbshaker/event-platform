@@ -285,7 +285,10 @@ Rules:
   per-box length limit (`spec.md §20.2`).
 - **Facts** render from event data. A fact the host has not supplied is absent from the published
   card. In Creation Mode a missing required fact shows as a placeholder marked as needing
-  confirmation; placeholders are never published (`spec.md §7.3`).
+  confirmation; placeholders are never published (`spec.md §7.3`). A fact the prompt states
+  (`Event.promptFacts`) stands in for a missing one from the reveal, as written, marked the same
+  way, once it passes the entry and fit checks below; until the host confirms it, it is never
+  published and never given to the card design.
 - **Slot limits** are part of the layout set and are enforced at entry, so real content always fits
   (§4.3 states the one exception: deliberately wide text within the limits).
   Since `card_layouts_v2`: title 40 characters, invitation line 72, baby name 40, hosts 60, venue 60.
@@ -319,6 +322,12 @@ Rules:
   RSVP-by always take one line (`layout-card.test.ts`), so the worst case is exact for them; the
   invitation line is the model's wording, measured as the worst-case 72-character sentence until a
   design exists — from Phase 5 the check measures beside the active design's own wording.
+- A prompt-stated fact takes the same checks before the card shows it (`revealCardContent`,
+  `src/lib/card/facts.ts`): the entry check for the hosts, baby name and venue (or the address's
+  first line), the same checks for the date and time as the host wrote them
+  (`validateDetailText`: drawable characters, every word on one line, and at most 23 and 19
+  characters, the formatted maxima), and the fit check above; a value that fails any of them leaves the placeholder. So anything the card shows can be
+  confirmed unchanged.
 - A slot with no value takes no space.
 
 ## 2.6 Typography
@@ -355,8 +364,8 @@ host prompt + optional inspiration
 ```
 
 In parallel with identity, a cheaper structured-extraction call pulls any facts the prompt states
-(names, date, time, venue) into the event draft as values for the host to confirm (`spec.md §7.3`,
-`§9.2`). Facts never come from `EventIdentity` and are never inferred.
+(names, date, time, venue) and keeps them on the event (`Event.promptFacts`) as values for the
+host to confirm (`spec.md §7.3`, `§9.2`). Facts never come from `EventIdentity` and are never inferred.
 
 **One design at a time.** Each round generates one card. "Try another direction" runs
 `generateCardDesign` again with the host's optional feedback and a summary of every earlier
@@ -419,7 +428,9 @@ For each text zone, computed once per artwork, layout and shape — for every sh
    over cream). The zone is measured **whole and behind each line of the card's text**
    (`card_compiler_v4`, owner decisions 2026-10-05): the generated text layer is laid out in the
    primary pairing for the words the card shows right after generation (the design's wording, the
-   host's stored facts, placeholders for a missing date, time or venue); each line's area — its
+   host's stored facts — re-read just before the artwork is painted, since the host may enter
+   details while waiting — then any fact the prompt states, as written, then placeholders for a
+   missing date, time or venue; one producer, `revealCardContent`); each line's area — its
    measured width placed by its alignment, its line height, padded by a quarter of the line height
    on every side and clamped to the zone (`textLineAreas`) — takes the same range; and the ink is
    judged against the widest of the zone's and the areas' ranges, so the whole zone stays the
