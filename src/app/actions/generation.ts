@@ -3,6 +3,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 
+import { GenerationDisabledError } from "@/lib/ai/errors";
 import { startGeneration } from "@/lib/ai/generations.server";
 import { runGeneration } from "@/lib/generation/run.server";
 import type { StartGenerationOutcome } from "@/lib/supabase/database.types";
@@ -14,7 +15,8 @@ import type { StartGenerationOutcome } from "@/lib/supabase/database.types";
  * `startGeneration` authorizes the signed-in owner or co-host itself (`requireEventAccess`) and
  * takes the generation lock, the daily caps and the idempotency key (`start_generation`). Only a
  * generation this request `started` is run, after the response, with `after()`: a repeat of the
- * same key (`existing`), a generation already in flight, a cap or a published event runs nothing.
+ * same key (`existing`), a generation already in flight, a cap, a published event, or an event
+ * that already has its first card (`designed`: another card is another direction) runs nothing.
  * The work runs within the invoking page's `maxDuration` (300 s, set on
  * `src/app/events/[id]/create/page.tsx`, the page that calls this action), and the generation's
  * deadline counts from this request's start.
@@ -32,7 +34,8 @@ const inputSchema = z.strictObject({
 export type StartCardGenerationInput = z.input<typeof inputSchema>;
 
 export interface StartCardGenerationResult {
-  outcome: StartGenerationOutcome;
+  /** `start_generation`'s outcome, or `disabled` while generation is switched off. */
+  outcome: StartGenerationOutcome | "disabled";
   generationId: string | null;
 }
 
@@ -45,7 +48,15 @@ export async function startCardGeneration(
   if (!parsed.success) throw new Error("Invalid generation request.");
   const { eventId, idempotencyKey } = parsed.data;
 
-  const started = await startGeneration({ eventId, kind: "initial", idempotencyKey });
+  let started: Awaited<ReturnType<typeof startGeneration>>;
+  try {
+    started = await startGeneration({ eventId, kind: "initial", idempotencyKey });
+  } catch (error) {
+    // The kill switch is off (`GENERATION_ENABLED`): a plain "paused" state, not a retryable error.
+    if (error instanceof GenerationDisabledError)
+      return { outcome: "disabled", generationId: null };
+    throw error;
+  }
   if (started.outcome === "started" && started.generationId) {
     const generationId = started.generationId;
     after(async () => {

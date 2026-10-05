@@ -30,6 +30,7 @@ import {
   failureTelemetry,
   hostEventFacts,
   PROVIDER_REFUSAL_FEEDBACK,
+  REVEAL_EVENT_COLUMNS,
   revealContent,
   runGeneration,
 } from "./run.server";
@@ -221,9 +222,16 @@ describe("the happy path", () => {
       "rpc:record_event_identity",
       "rpc:record_generation_stage",
       "rpc:record_generation_stage",
+      // The event again, just before the artwork: the words its ink is judged behind.
+      "select:events",
       "storage:upload",
       "rpc:persist_generated_card",
     ]);
+    expect(admin.state.selects.filter((s) => s.table === "events")[1]).toEqual({
+      table: "events",
+      columns: REVEAL_EVENT_COLUMNS,
+      filters: [["id", EVENT]],
+    });
     expect(stages().map(([stage]) => stage)).toEqual(["identity", "design"]);
     expect(fake.calls.identity).toHaveLength(1);
     expect(fake.calls.facts).toHaveLength(1);
@@ -260,6 +268,8 @@ describe("the happy path", () => {
         p_raw: JSON.stringify(IDENTITY),
         p_prompt_version: "event_identity_v6",
         p_schema_version: "event_identity_schema_v5",
+        // Kept on the event with the identity (`events.prompt_facts`), verbatim only.
+        p_prompt_facts: { ...FACTS, location: null },
       },
     ]);
     const [identityStage] = stages();
@@ -435,10 +445,11 @@ describe("the happy path", () => {
     });
   });
 
-  it("judges the ink behind the words the revealed card shows: wording, facts, placeholders", () => {
+  it("judges the ink behind the words the revealed card shows: wording, facts, placeholders", async () => {
     const wording = { title: "Little Lemon", invitationLine: "Come celebrate with us" };
     const now = new Date(STARTED_AT);
-    expect(revealContent(EVENT_ROW, wording, now)).toEqual({
+    const row = { ...EVENT_ROW, rsvp_deadline: null, timezone: null, prompt_facts: null };
+    expect(await revealContent(row, wording, now)).toEqual({
       title: "Little Lemon",
       invitationLine: "Come celebrate with us",
       babyName: null,
@@ -448,8 +459,8 @@ describe("the happy path", () => {
       venue: "Villa Rosa",
       rsvpBy: null,
     });
-    const bare = { ...EVENT_ROW, hosts: null, venue_name: null, address: null, event_date: null };
-    const content = revealContent(
+    const bare = { ...row, hosts: null, venue_name: null, address: null, event_date: null };
+    const content = await revealContent(
       { ...bare, rsvp_deadline: "2026-12-05T12:00:00Z", timezone: "Europe/Rome" },
       wording,
       now,
@@ -457,6 +468,36 @@ describe("the happy path", () => {
     expect(content).toMatchObject({ hosts: null, venue: "Venue to be announced" });
     expect(content.date).toMatch(/^Saturday, /);
     expect(content.rsvpBy).toBe("RSVP by December 5");
+  });
+
+  it("includes the facts the prompt states where the host has entered none, and the host's title", async () => {
+    const wording = { title: "Little Lemon", invitationLine: "Come celebrate with us" };
+    const content = await revealContent(
+      {
+        ...EVENT_ROW,
+        title: " Maya's Shower ",
+        hosts: null,
+        venue_name: null,
+        address: null,
+        start_time: null,
+        rsvp_deadline: null,
+        timezone: null,
+        prompt_facts: { ...FACTS, hosts: "Ana and Leo", time: "2pm" },
+      },
+      wording,
+      new Date(STARTED_AT),
+    );
+    expect(content).toEqual({
+      title: "Maya's Shower",
+      invitationLine: "Come celebrate with us",
+      // The honoree, as written; the stored date wins over the stated one.
+      babyName: "Maya Lopez",
+      hosts: "Ana and Leo",
+      date: "Saturday, December 19",
+      time: "2pm",
+      venue: "Villa Rosa",
+      rsvpBy: null,
+    });
   });
 });
 
@@ -600,11 +641,12 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
       [
         ["identity", ["identity", "facts", "droppedFacts"]],
         ["design", ["design"]],
-        ["design", ["notice"]],
+        ["design", ["notice", "design"]],
         ["design", ["design"]],
       ],
     );
-    expect(stages()[2][1]).toEqual({ notice: "provider_refusal" });
+    // The note clears the refused design, so the wait never shows it while the next is drafted.
+    expect(stages()[2][1]).toEqual({ notice: "provider_refusal", design: null });
     expect((stages()[3][1] as { design: { name: string } }).design.name).toBe("Grove Morning");
     // The second design's artwork is the refusal's regeneration, and it is what is persisted.
     expect(fake.calls.art[1]).toMatchObject({ layout: "framed", artMode: "framed" });
@@ -634,7 +676,71 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
     const { outcome, fake } = await run({ ...HAPPY, art: [NOT_PNG, refusal()] });
     expect(outcome).toEqual({ status: "failed", code: "provider_refusal" });
     expect(fake.calls.design).toHaveLength(1);
-    expect(stages().map(([, a]) => a)).not.toContainEqual({ notice: "provider_refusal" });
+    expect(stages().map(([, a]) => a)).not.toContainEqual({
+      notice: "provider_refusal",
+      design: null,
+    });
+  });
+
+  describe("Try again after a refusal takes the same step back (§31)", () => {
+    const earlier = (errorCode: string) => {
+      admin.state.tables.event_identities = [
+        { event_id: EVENT, revision: 1, identity: IDENTITY, generation_id: EARLIER_GENERATION },
+      ];
+      admin.state.tables.generations[0].started_at = "2026-10-05T12:05:00Z";
+      admin.state.tables.generations.push({
+        id: EARLIER_GENERATION,
+        event_id: EVENT,
+        kind: "initial",
+        status: "failed",
+        error_code: errorCode,
+        requested_by: USER,
+        started_at: "2026-10-05T12:00:00Z",
+        artifacts: { facts: FACTS, droppedFacts: [] },
+      });
+    };
+
+    it("starts from the step-back design, with the copyright note", async () => {
+      earlier("provider_refusal");
+      const { outcome, fake } = await run({ design: [WORLD_DESIGN], art: [CLEAN] });
+      expect(outcome.status).toBe("succeeded");
+      expect(fake.calls.design).toHaveLength(1);
+      expect(fake.calls.design[0].reprompt).toEqual({
+        kind: "provider-refusal",
+        feedback: PROVIDER_REFUSAL_FEEDBACK,
+      });
+      expect(stages().map(([stage, a]) => [stage, Object.keys(a as object)])).toEqual([
+        ["identity", ["identity", "facts", "droppedFacts"]],
+        ["design", ["notice", "design"]],
+        ["design", ["design"]],
+      ]);
+      expect(stages()[1][1]).toEqual({ notice: "provider_refusal", design: null });
+      expect(fake.calls.art).toHaveLength(1);
+      expect(persisted()).toMatchObject({ p_name: "Grove Morning" });
+      expect(telemetryOf()).toMatchObject({
+        reprompts: ["provider-refusal"],
+        imagesRequested: 1,
+        providerRefusal: true,
+      });
+    });
+
+    it("fails visibly again when the step-back is refused, with no further design", async () => {
+      earlier("provider_refusal");
+      const { outcome, fake } = await run({ design: [WORLD_DESIGN], art: [refusal()] });
+      expect(outcome).toEqual({ status: "failed", code: "provider_refusal" });
+      expect(fake.calls.design).toHaveLength(1);
+      expect(admin.state.uploads).toEqual([]);
+    });
+
+    it("designs afresh after any other failure", async () => {
+      earlier("artwork_invalid");
+      const { fake } = await run({ design: [DESIGN], art: [CLEAN] });
+      expect(fake.calls.design[0].reprompt).toBeUndefined();
+      expect(stages().map(([, a]) => a)).not.toContainEqual({
+        notice: "provider_refusal",
+        design: null,
+      });
+    });
   });
 });
 

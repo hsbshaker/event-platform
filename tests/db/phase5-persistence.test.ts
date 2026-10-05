@@ -30,10 +30,14 @@ let eventB: string;
 
 const keyHash = (subject: string) => `\\x${createHash("sha256").update(subject).digest("hex")}`;
 
-async function start(event = eventA, client: Client = db): Promise<string> {
+async function start(
+  event = eventA,
+  client: Client = db,
+  kind: "initial" | "another_direction" = "initial",
+): Promise<string> {
   const { rows } = await client.query(
-    `select * from public.start_generation($1, $2, 'initial', $3, $4::bytea, $5::bytea, 30, 60, 330)`,
-    [event, owner, randomUUID(), keyHash(`event:${event}`), keyHash(`user:${owner}`)],
+    `select * from public.start_generation($1, $2, $3, $4, $5::bytea, $6::bytea, 30, 60, 330)`,
+    [event, owner, kind, randomUUID(), keyHash(`event:${event}`), keyHash(`user:${owner}`)],
   );
   expect(rows[0].outcome).toBe("started");
   return rows[0].generation_id as string;
@@ -45,11 +49,18 @@ async function recordIdentity(
   generation: string,
   event = eventA,
   client: Client = db,
+  promptFacts?: unknown,
 ): Promise<number | null> {
-  const { rows } = await client.query(
-    `select public.record_event_identity($1, $2, $3, $4, 'event_identity_v4', 'event_identity_schema_v4') as revision`,
-    [generation, event, IDENTITY, JSON.stringify(IDENTITY)],
-  );
+  const { rows } =
+    promptFacts === undefined
+      ? await client.query(
+          `select public.record_event_identity($1, $2, $3, $4, 'event_identity_v4', 'event_identity_schema_v4') as revision`,
+          [generation, event, IDENTITY, JSON.stringify(IDENTITY)],
+        )
+      : await client.query(
+          `select public.record_event_identity($1, $2, $3, $4, 'event_identity_v4', 'event_identity_schema_v4', $5) as revision`,
+          [generation, event, IDENTITY, JSON.stringify(IDENTITY), promptFacts],
+        );
   return rows[0].revision as number | null;
 }
 
@@ -426,7 +437,8 @@ describe("persist_generated_card", () => {
   it("numbers rounds per event and makes only the first card active (spec.md §7.11)", async () => {
     const first = await generationWithIdentity();
     const one = await persist(first);
-    const second = await start();
+    // A later card is another direction: a second initial generation is refused (`designed`).
+    const second = await start(eventA, db, "another_direction");
     const two = await persist(second, { shape: "square", fitsShapes: ["square", "circle"] });
     expect([one?.round, two?.round]).toEqual([1, 2]);
     // The second card is not chosen by the host, so the first stays active.
@@ -635,5 +647,114 @@ describe("only the service role may call the new functions (spec.md §32 #42)", 
       return persisted.rows[0];
     });
     expect(result.round).toBe(1);
+  });
+});
+
+describe("events.prompt_facts (20261008000000_phase5c_prompt_facts.sql; spec.md §7.3)", () => {
+  const FACTS = {
+    eventType: "baby shower",
+    title: null,
+    hosts: null,
+    honoree: "Maya Lopez",
+    date: "December 19",
+    time: null,
+    venue: "Villa Rosa",
+    location: null,
+    partial: [{ field: "time", text: "afternoon" }],
+  };
+
+  async function promptFacts(event = eventA): Promise<unknown> {
+    const { rows } = await db.query(`select prompt_facts from public.events where id = $1`, [
+      event,
+    ]);
+    return rows[0].prompt_facts;
+  }
+
+  it("is null until a generation extracts the facts, then written with the identity", async () => {
+    expect(await promptFacts()).toBeNull();
+    const g = await start();
+    expect(await recordIdentity(g, eventA, db, FACTS)).toBe(1);
+    expect(await promptFacts()).toEqual(FACTS);
+    expect(await promptFacts(eventB)).toBeNull();
+  });
+
+  it("is written once: a later revision, with or without facts, never replaces it", async () => {
+    const g = await start();
+    expect(await recordIdentity(g, eventA, db, FACTS)).toBe(1);
+    expect(await recordIdentity(g, eventA, db, { ...FACTS, venue: "Elsewhere" })).toBe(2);
+    expect(await recordIdentity(g, eventA, db, null)).toBe(3);
+    expect(await recordIdentity(g)).toBe(4);
+    expect(await promptFacts()).toEqual(FACTS);
+  });
+
+  it("stays null when the identity's extraction gave none", async () => {
+    const g = await start();
+    expect(await recordIdentity(g, eventA, db, null)).toBe(1);
+    expect(await promptFacts()).toBeNull();
+    // A later extraction is then the first one kept.
+    expect(await recordIdentity(g, eventA, db, FACTS)).toBe(2);
+    expect(await promptFacts()).toEqual(FACTS);
+  });
+
+  it("writes nothing when the identity writes nothing (not running, or published)", async () => {
+    const g = await start();
+    await failGeneration(g, "internal");
+    expect(await recordIdentity(g, eventA, db, FACTS)).toBeNull();
+    const h = await start();
+    await db.query(`update public.events set published_at = now() where id = $1`, [eventA]);
+    expect(await recordIdentity(h, eventA, db, FACTS)).toBeNull();
+    expect(await promptFacts()).toBeNull();
+  });
+
+  it("refuses facts that are not the extraction's shape, writing nothing", async () => {
+    const g = await start();
+    for (const bad of [
+      [],
+      "December 19",
+      { ...FACTS, date: 19 },
+      { ...FACTS, venue: { name: "Villa Rosa" } },
+      { ...FACTS, guests: "Ana" },
+      { ...FACTS, partial: "afternoon" },
+      { ...FACTS, partial: [{ field: "time" }] },
+      { ...FACTS, partial: [{ field: "time", text: "afternoon", extra: "x" }] },
+    ]) {
+      expect(
+        await errorCode(recordIdentity(g, eventA, db, JSON.stringify(bad))),
+        JSON.stringify(bad),
+      ).toBe("22023");
+    }
+    expect(await count("event_identities")).toBe(0);
+    expect(await promptFacts()).toBeNull();
+    // The column holds only that shape, even for a direct write.
+    expect(
+      await errorCode(
+        db.query(`update public.events set prompt_facts = '{"date": 19}' where id = $1`, [eventA]),
+      ),
+    ).toBe("23514");
+  });
+
+  it("is server-managed: members read it and still save details, but never set it", async () => {
+    const g = await start();
+    await recordIdentity(g, eventA, db, FACTS);
+    const member: Actor = { kind: "user", id: owner };
+    for (const sql of [
+      `update public.events set prompt_facts = null where id = $1`,
+      `update public.events set prompt_facts = '{"venue":"Elsewhere"}' where id = $1`,
+    ]) {
+      expect(await errorCode(asActor(db, member, (q) => q(sql, [eventA]))), sql).toBe("42501");
+    }
+    const saved = await asActor(db, member, (q) =>
+      q(`update public.events set venue_name = 'Villa Rosa' where id = $1 returning prompt_facts`, [
+        eventA,
+      ]),
+    );
+    expect(saved.rows[0].prompt_facts).toEqual(FACTS);
+    const read = (actor: Actor) =>
+      asActor(db, actor, (q) =>
+        q(`select prompt_facts from public.events where id = $1`, [eventA]),
+      );
+    expect((await read(member)).rows).toEqual([{ prompt_facts: FACTS }]);
+    expect((await read({ kind: "user", id: stranger })).rows).toEqual([]);
+    expect(await errorCode(read({ kind: "anon" }))).toBe("42501");
   });
 });

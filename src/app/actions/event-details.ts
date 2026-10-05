@@ -9,7 +9,7 @@ import {
   type ApplyPatchResult,
   type EventPatchStore,
 } from "@/lib/events/apply-patch";
-import { cardVenue } from "@/lib/card/facts";
+import { cardVenue, parsePromptFacts, type PromptFacts } from "@/lib/card/facts";
 import { cardTextFieldErrors, type VenueContext } from "@/lib/events/card-text";
 import { cardTextFitErrors } from "@/lib/events/card-text-fit.server";
 import { computeEventPatch } from "@/lib/events/detail-patch";
@@ -65,6 +65,8 @@ export interface EventDraftView extends EventDetailFields {
    * `shouldApplyServerEvent`).
    */
   rowVersion: number;
+  /** The facts the prompt states, as written (`events.prompt_facts`); null when none were extracted. */
+  promptFacts: PromptFacts | null;
   /** §23.1 requirements not yet satisfied. Informational: nothing is blocked by them now. */
   missing: RequiredDetailKey[];
   /** Real values where present, and the placeholders the card shows in Creation Mode for the rest (§7.3). */
@@ -72,7 +74,7 @@ export interface EventDraftView extends EventDetailFields {
 }
 
 const COLUMNS =
-  "id, prompt, title, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at, row_version";
+  "id, prompt, title, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at, row_version, prompt_facts";
 
 type EventRow = {
   id: string;
@@ -92,6 +94,7 @@ type EventRow = {
   generation_requested_at: string | null;
   /** Concurrency token, never sent to the client and never written by this module. */
   row_version: number;
+  prompt_facts: unknown;
 };
 
 function toFields(row: EventRow): EventDetailFields {
@@ -125,6 +128,7 @@ function toView(row: EventRow, now: Date): EventDraftView {
     rsvpDeadlineEdited: row.rsvp_deadline_edited,
     generationRequestedAt: row.generation_requested_at,
     rowVersion: row.row_version,
+    promptFacts: parsePromptFacts(row.prompt_facts),
     missing: missingRequiredDetails(fields),
     provisional: provisionalContent(source, now),
   };

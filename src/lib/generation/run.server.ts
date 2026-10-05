@@ -17,7 +17,8 @@ import {
   EVENT_IDENTITY_PROMPT_VERSION,
   EVENT_IDENTITY_SCHEMA_VERSION,
 } from "@/lib/ai/versions";
-import { cardContent, cardContentWithPlaceholders } from "@/lib/card/facts";
+import { cardContent, effectiveCardTitle, parsePromptFacts } from "@/lib/card/facts";
+import { revealContentFor } from "@/lib/card/reveal-content.server";
 import { suggestRendering } from "@/lib/card/renderings";
 import type { CardContent } from "@/lib/card/text-box";
 import { INSPIRATION_BUCKET, sniffImageType } from "@/lib/drafts/inspiration";
@@ -28,6 +29,7 @@ import { runArtworkStage } from "./artwork.server";
 import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.server";
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
+import { PROVIDER_REFUSAL_NOTICE } from "./failure-copy";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
 import { drawThemeSeed } from "./theme-seeds";
 import {
@@ -49,14 +51,17 @@ import type { StageContext } from "./stage";
  *    WEBP only: the provider takes no HEIC/HEIF, so those are skipped and counted).
  * 2. **Identity** (`runIdentityStage`, with fact extraction), persisted as the next revision
  *    (`record_event_identity`). Interpretation happens once: a retry after a failure reuses the
- *    latest revision and makes neither call. Extracted facts are prefill for the host to confirm
- *    and are kept only in `generations.artifacts.facts`, never written to the event.
+ *    latest revision and makes neither call. Extracted facts are prefill for the host to confirm:
+ *    shown to the wait surface (`generations.artifacts.facts`) and kept on the event, with the
+ *    identity, as `events.prompt_facts` — unconfirmed, never an event detail, never given to the
+ *    design (`spec.md §7.3`).
  * 3. **Design** (`runDesignStage`) from the identity and the event's own fields — host-entered or
  *    host-confirmed values, never the unconfirmed extraction (`spec.md §32 #15`).
  * 4. **Artwork** (`runArtworkStage`) for the design's shape. A provider refusal of the first image
  *    re-prompts the design (`provider-refusal`) and paints its artwork as that refusal's
  *    regeneration, with a notice for the host (`spec.md §7.6`); any other refusal, or a second
- *    one, is a visible failure.
+ *    one, is a visible failure. Its ink is judged behind the words the revealed card shows
+ *    (`revealContent`), read from the event just before the stage.
  * 5. **Persist**: the artwork is uploaded to the private `card-art` bucket under a key unique to
  *    this generation, then `persist_generated_card` writes the design, its artwork, the first
  *    active design and the generation's success in one transaction. When it writes nothing (the
@@ -192,9 +197,6 @@ interface EventRow {
   event_date: string | null;
   start_time: string | null;
   end_time: string | null;
-  /** Read for the card's RSVP-by only (`revealContent`). */
-  rsvp_deadline?: string | null;
-  timezone?: string | null;
 }
 
 /**
@@ -241,18 +243,43 @@ export function hostEventFacts(
   return facts;
 }
 
+/** The event's fields the revealed card's words come from (`revealContent`). */
+export interface RevealEventRow {
+  title: string | null;
+  hosts: string | null;
+  baby_name: string | null;
+  venue_name: string | null;
+  address: string | null;
+  event_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  rsvp_deadline: string | null;
+  timezone: string | null;
+  /** `events.prompt_facts`: the facts the prompt states, unconfirmed. */
+  prompt_facts: Json | null;
+}
+
+/** The columns of `RevealEventRow`. */
+export const REVEAL_EVENT_COLUMNS =
+  "title, hosts, baby_name, venue_name, address, event_date, start_time, end_time, rsvp_deadline, timezone, prompt_facts";
+
 /**
- * The words the generated card shows right after generation: the design's wording (the host's
- * title already applied), the event's stored facts, and the Creation Mode placeholders for missing
- * ones (`cardContentWithPlaceholders`). The artwork stage judges the ink behind their lines.
+ * The words the generated card shows right after generation (`revealContentFor`, the one producer
+ * `cardContentWithPlaceholders` shares): the design's wording with the effective title, the event's
+ * stored facts, the facts the prompt states where the host has not entered them (as written, when
+ * the card's checks accept them), and the Creation Mode placeholders for the rest. The artwork stage
+ * judges the ink behind their lines.
  */
-export function revealContent(
-  event: EventRow,
+export async function revealContent(
+  event: RevealEventRow,
   wording: { title: string; invitationLine: string },
   now: Date,
-): CardContent {
-  return cardContentWithPlaceholders({
-    wording,
+): Promise<CardContent> {
+  const { content } = await revealContentFor({
+    wording: {
+      title: effectiveCardTitle(event.title, wording.title),
+      invitationLine: wording.invitationLine,
+    },
     event: {
       babyName: event.baby_name,
       hosts: event.hosts,
@@ -261,11 +288,13 @@ export function revealContent(
       endTime: event.end_time,
       venueName: event.venue_name,
       address: event.address,
-      rsvpDeadline: event.rsvp_deadline ?? null,
-      timezone: event.timezone ?? null,
+      rsvpDeadline: event.rsvp_deadline,
+      timezone: event.timezone,
     },
+    promptFacts: parsePromptFacts(event.prompt_facts),
     now,
   });
+  return content;
 }
 
 /** The longest check output a failure record keeps per image. */
@@ -465,7 +494,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   const { data: event, error: eventError } = await admin
     .from("events")
     .select(
-      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time, rsvp_deadline, timezone",
+      "id, prompt, type, title, hosts, baby_name, venue_name, address, event_date, start_time, end_time",
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -493,6 +522,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let inspirationSkipped = 0;
   let droppedFacts = 0;
   let statedEventType: string | null = null;
+  // Try again after the image provider refused the homage takes the same step back (spec.md §7.6).
+  let stepBack = false;
 
   if (!latest) {
     const loaded = await loadInspiration(admin, eventId);
@@ -518,6 +549,9 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
       p_raw: result.identityRaw,
       p_prompt_version: EVENT_IDENTITY_PROMPT_VERSION,
       p_schema_version: EVENT_IDENTITY_SCHEMA_VERSION,
+      // The facts the prompt states, kept on the event with the identity that read them
+      // (`events.prompt_facts`, written once): unconfirmed, never given to the design.
+      p_prompt_facts: result.facts as unknown as Json,
     });
     if (error) throw error;
     if (typeof revision !== "number") throw new GenerationStoppedError("persisting the identity");
@@ -536,6 +570,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     identityRevision = latest.revision;
     const earlier = await earlierFacts(admin, eventId, latest.generation_id);
     statedEventType = factString(earlier.facts, "eventType");
+    stepBack = await refusedBefore(admin, eventId, generationId);
     await recordStage("identity", {
       identity: identityArtifacts(identity),
       ...earlier,
@@ -568,13 +603,19 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     chosen: DesignStageResult,
     afterRefusal?: { imagesRequested: number },
   ): Promise<ArtworkStageResult> => {
+    // The ink is judged behind the words the card shows once it is revealed, from the event as it
+    // is now: the host may have confirmed details during the wait.
+    const content = await revealContent(
+      await revealEvent(admin, eventId),
+      chosen.design.wording,
+      new Date(now()),
+    );
     const begun = now();
     try {
       return await runArtworkStage(ctx, {
         design: chosen.design,
         shape: chosen.design.shape,
-        // The ink is judged behind the words the card shows once it is revealed.
-        content: revealContent(event, chosen.design.wording, new Date(now())),
+        content,
         ...(afterRefusal ? { afterRefusal } : {}),
       });
     } finally {
@@ -600,21 +641,31 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let art: ArtworkStageResult;
   let providerRefusal = false;
   try {
-    chosen = current = await design();
-
-    // ---------------------------------------------------------------- 4. artwork
-    try {
-      art = await artwork(chosen);
-    } catch (error) {
-      // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
-      // §9); a refusal after a failed first image is the second failure, and visible.
-      if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) {
-        throw error;
-      }
+    if (stepBack) {
+      // The last try ended on the image provider's refusal: this one starts from the step-back,
+      // with the copyright note, and a refusal of it is again a visible failure. (Recording the
+      // note clears any design shown, so the wait never shows a design that is not being painted.)
       providerRefusal = true;
-      await recordStage("design", { notice: "provider_refusal" });
+      await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE, design: null });
       chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
-      art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+      art = await artwork(chosen);
+    } else {
+      chosen = current = await design();
+
+      // -------------------------------------------------------------- 4. artwork
+      try {
+        art = await artwork(chosen);
+      } catch (error) {
+        // Only a refusal of the artwork's first image earns the re-prompted design (model-contracts
+        // §9); a refusal after a failed first image is the second failure, and visible.
+        if (!(error instanceof ArtworkProviderRefusalError) || error.imagesRequested !== 1) {
+          throw error;
+        }
+        providerRefusal = true;
+        await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE, design: null });
+        chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
+        art = await artwork(chosen, { imagesRequested: error.imagesRequested });
+      }
     }
   } catch (error) {
     attachFailureDetails(error, renderingDetails());
@@ -789,11 +840,46 @@ async function loadInspiration(
   return { images, skipped };
 }
 
+/** The event's card fields as they are now (`revealContent`). */
+async function revealEvent(admin: AdminClient, eventId: string): Promise<RevealEventRow> {
+  const { data, error } = await admin
+    .from("events")
+    .select(REVEAL_EVENT_COLUMNS)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("The generation's event was not found.");
+  return data as RevealEventRow;
+}
+
 /** A string field of stored extracted facts (`artifacts.facts`), else null. */
 function factString(facts: Json, field: string): string | null {
   if (!facts || typeof facts !== "object" || Array.isArray(facts)) return null;
   const value = facts[field];
   return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+/**
+ * The event's previous first-card generation failed because the image provider refused its
+ * artwork (`provider_refusal`): the host's Try again then takes the same step back (`spec.md
+ * §7.6`, §31). Only a retry reaches this — the refused generation had already recorded the
+ * identity — and only one first card runs at a time, so the previous one is the newest other.
+ */
+async function refusedBefore(
+  admin: AdminClient,
+  eventId: string,
+  generationId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("generations")
+    .select("id, status, error_code")
+    .eq("event_id", eventId)
+    .eq("kind", "initial")
+    .order("started_at", { ascending: false })
+    .limit(2);
+  if (error) throw error;
+  const previous = (data ?? []).find((row) => row.id !== generationId);
+  return previous?.status === "failed" && previous.error_code === "provider_refusal";
 }
 
 /**

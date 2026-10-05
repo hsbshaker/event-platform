@@ -54,6 +54,10 @@ const SERVICE_ROLE = {
  *   `fail_generation`) and to its own key in the private `card-art` bucket.
  * - `src/lib/generation/status.server.ts` — reads the server-only `generations` table after
  *   `requireEventAccess(eventId, "view_event")`, for that event only, returning no telemetry.
+ * - `src/lib/generation/reveal.server.ts` — reads the event's active design, its artwork and ink
+ *   after `requireEventAccess(eventId, "view_event")`, for that event only, and signs a
+ *   short-lived URL for that artwork in the private `card-art` bucket; returns no storage key, raw
+ *   output, telemetry or cost, and writes nothing.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
@@ -64,6 +68,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/ai/meter.server.ts",
   "src/lib/generation/run.server.ts",
   "src/lib/generation/status.server.ts",
+  "src/lib/generation/reveal.server.ts",
 ];
 
 /**

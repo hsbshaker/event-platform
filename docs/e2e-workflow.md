@@ -74,7 +74,7 @@ No generation of any kind happens before auth succeeds.
 
 ## H03 — Generation
 
-Runs after auth (§7.3, §7.5, §7.6b, §7.10). Event Identity starts immediately; in parallel a cheaper extraction pulls any facts the prompt states (names, date, time, venue) into the draft for the host to confirm. The card design and its artwork follow the identity.
+Runs after auth (§7.3, §7.5, §7.6b, §7.10). Event Identity starts immediately; in parallel a cheaper extraction pulls any facts the prompt states (names, date, time, venue) and keeps them on the event for the host to confirm. The card design and its artwork follow the identity.
 
 The host sees only real artifacts as they resolve: interpreted creative signals, colour direction, visual vocabulary, then the design's name, description and art direction. Never model reasoning, never invented progress or percentages.
 

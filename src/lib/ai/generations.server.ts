@@ -47,7 +47,10 @@ export interface StartGenerationResult {
   outcome: StartGenerationOutcome;
   /** The signed-in owner or co-host who started it (for the meter context). */
   userId: string;
-  /** The new or existing generation, or the one in flight; null when a cap refused. */
+  /**
+   * The new or existing generation, or the one in flight; null when refused (`published`,
+   * `designed`, a cap).
+   */
   generationId: string | null;
 }
 

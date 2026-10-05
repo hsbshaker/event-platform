@@ -108,22 +108,46 @@ export interface IdentityStageResult {
 }
 
 /**
- * Lower case with every run of whitespace a single space, trimmed: the form both the prompt and an
- * extracted value are compared in.
+ * Lower case (character by character) with every run of whitespace a single space, trimmed: the
+ * form both the prompt and an extracted value are compared in. `at[i]` is where the `i`th unit of
+ * `text` came from in `source`, so a match can be read back from the prompt as written.
  */
+function comparable(source: string): { text: string; at: number[] } {
+  let text = "";
+  const at: number[] = [];
+  let space = -1;
+  for (let i = 0; i < source.length;) {
+    const ch = String.fromCodePoint(source.codePointAt(i) ?? 0);
+    if (/\s/u.test(ch)) {
+      if (space === -1) space = i;
+    } else {
+      if (space !== -1 && text !== "") {
+        text += " ";
+        at.push(space);
+      }
+      space = -1;
+      const lower = ch.toLowerCase();
+      text += lower;
+      for (let k = 0; k < lower.length; k += 1) at.push(i);
+    }
+    i += ch.length;
+  }
+  return { text, at };
+}
+
 function normalized(text: string): string {
-  return text.normalize("NFC").toLowerCase().replace(/\s+/g, " ").trim();
+  return comparable(text.normalize("NFC")).text;
 }
 
 /** A letter, a digit or a combining mark: what a value may not be cut out of. */
 const WORD_CHARACTER = /[\p{L}\p{N}\p{M}]/u;
 
 /**
- * Whether `needle` occurs in `haystack` as a whole span: an edge of the value that is a letter or a
- * digit must not continue a word of the prompt, so "May 2" is not found in "May 20" nor "Ann" in
- * "Joanne". Both are already `normalized`.
+ * Where `needle` first occurs in `haystack` as a whole span, or -1: an edge of the value that is a
+ * letter or a digit must not continue a word of the prompt, so "May 2" is not found in "May 20" nor
+ * "Ann" in "Joanne". Both are already `normalized`.
  */
-function occursWhole(haystack: string, needle: string): boolean {
+function wholeIndex(haystack: string, needle: string): number {
   const first = String.fromCodePoint(needle.codePointAt(0) ?? 0);
   const last = Array.from(needle).at(-1) ?? "";
   for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
@@ -131,37 +155,50 @@ function occursWhole(haystack: string, needle: string): boolean {
     const after = String.fromCodePoint(haystack.codePointAt(at + needle.length) ?? 0);
     const startsClean = !WORD_CHARACTER.test(first) || !WORD_CHARACTER.test(before);
     const endsClean = !WORD_CHARACTER.test(last) || !WORD_CHARACTER.test(after);
-    if (startsClean && endsClean) return true;
+    if (startsClean && endsClean) return at;
   }
-  return false;
+  return -1;
 }
 
 /**
  * Keep only values that appear in the prompt as a whole span (`spec.md §7.5`,
- * `docs/model-contracts.md §4.3`): never a fragment of a longer word or number. An empty or
- * whitespace-only value is no value: it becomes null without counting as a drop.
+ * `docs/model-contracts.md §4.3`): never a fragment of a longer word or number. Each value kept is
+ * the prompt's own span — its case and spacing as the host wrote them, not the extractor's — since
+ * the card and the details form show it as written (`spec.md §7.3`). An empty or whitespace-only
+ * value is no value: it becomes null without counting as a drop.
  */
 export function keepVerbatimFacts(
   prompt: string,
   facts: ExtractedFacts,
 ): { facts: ExtractedFacts; dropped: DroppedFact[] } {
-  const haystack = normalized(prompt);
+  const source = prompt.normalize("NFC");
+  const { text: haystack, at } = comparable(source);
   const dropped: DroppedFact[] = [];
-  const appears = (value: string) => occursWhole(haystack, normalized(value));
+  /** The prompt's own words for `value`, or null when it does not state it. */
+  const asWritten = (value: string): string | null => {
+    const needle = normalized(value);
+    const index = wholeIndex(haystack, needle);
+    if (index === -1) return null;
+    const last = at[index + needle.length - 1];
+    const lastChar = String.fromCodePoint(source.codePointAt(last) ?? 0);
+    return source.slice(at[index], last + lastChar.length);
+  };
   const kept = { ...facts, partial: [] as ExtractedFacts["partial"] };
   for (const field of EXTRACTED_FACT_FIELDS) {
     const value = facts[field];
     if (value === null) continue;
     if (normalized(value) === "") {
       kept[field] = null;
-    } else if (!appears(value)) {
-      kept[field] = null;
-      dropped.push({ field });
+      continue;
     }
+    const written = asWritten(value);
+    kept[field] = written;
+    if (written === null) dropped.push({ field });
   }
   for (const hint of facts.partial) {
     if (normalized(hint.text) === "") continue;
-    if (appears(hint.text)) kept.partial.push(hint);
+    const written = asWritten(hint.text);
+    if (written !== null) kept.partial.push({ ...hint, text: written });
     else dropped.push({ field: "partial", hintField: hint.field });
   }
   return { facts: kept, dropped };

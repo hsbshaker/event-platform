@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261006000000_phase5_generation_persistence.sql.
+ * Hand-authored to match supabase/migrations/ through 20261008000000_phase5c_prompt_facts.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -35,9 +35,12 @@ export type ModelOperation =
 /** Generations (supabase/migrations/20261005000000_phase5_spend_controls.sql; spec.md §10). */
 export type GenerationKind = "initial" | "another_direction" | "shape_switch";
 export type GenerationStatus = "running" | "succeeded" | "failed";
-/** Outcomes of public.start_generation. */
+/**
+ * Outcomes of public.start_generation (`designed`: an initial generation refused because the
+ * event already has a card design, 20261008000000_phase5c_prompt_facts.sql).
+ */
 export type StartGenerationOutcome =
-  "started" | "existing" | "published" | "in_flight" | "event_cap" | "host_cap";
+  "started" | "existing" | "published" | "designed" | "in_flight" | "event_cap" | "host_cap";
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
@@ -77,6 +80,11 @@ type EventRow = {
   hosts: string | null;
   baby_name: string | null;
   generation_requested_at: string | null;
+  /**
+   * Server-managed (20261008000000_phase5c_prompt_facts.sql): the facts the prompt states, as fact
+   * extraction returned them (`ExtractedFacts`, verbatim); null until extracted. Unconfirmed.
+   */
+  prompt_facts: Json | null;
   visibility: EventVisibility | null;
   access_code_encrypted: string | null;
   rsvp_deadline: string | null;
@@ -324,6 +332,7 @@ export type Database = {
           | "hosts"
           | "baby_name"
           | "generation_requested_at"
+          | "prompt_facts"
           | "visibility"
           | "access_code_encrypted"
           | "rsvp_deadline"
@@ -522,6 +531,8 @@ export type Database = {
           p_raw: string;
           p_prompt_version: string;
           p_schema_version: string;
+          /** The identity's own extraction; written to events.prompt_facts once. */
+          p_prompt_facts?: Json | null;
         };
         Returns: number | null;
       };

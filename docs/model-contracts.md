@@ -139,12 +139,16 @@ identity call returns no questions.
 
 A separate cheaper-model call reads the same raw prompt and returns only facts the prompt literally
 states — event type, hosts, baby name, date, time, venue, address — each as the host's exact
-string. Missing means absent. Its output is written to the event draft as values for the host to
-confirm, never to the identity. The pipeline keeps it with the generation
+string. Missing means absent. Its output is kept on the event as values for the host to confirm
+(`events.prompt_facts`, written once, by the server only, in the same transaction as the first
+identity whose extraction returned facts), never in the identity; the pipeline also keeps it with the generation
 (`generations.artifacts.facts`). Those values are on the card from the reveal, marked as needing
 confirmation, and in the details form for the host to confirm or correct (`spec.md §7.3`, owner
-decision); an unconfirmed value is never published and never given to the card design as a fact. The fact check in `docs/model-evals/creative-understanding.json`
-(each case's `facts`) applies to this call.
+decision); an unconfirmed value is never published and never given to the card design as a fact,
+except the event type: the design reads the occasion the host named to word the invitation, and
+it is never a slot on the card.
+The fact check in `docs/model-evals/creative-understanding.json` (each case's `facts`) applies to
+this call.
 
 ---
 
@@ -480,7 +484,9 @@ A provider refusal of an artwork's **first** image is that artwork's failure: it
 is the re-prompted design's artwork (`spec.md §7.6`), which continues the same budget of two extra
 images — so its own failed validation or refusal is a visible failure, and it has at most one
 repaint left. A refusal of the regeneration of an already-failed first image is the second failure
-and is visible.
+and is visible. Either way the failure's code is `provider_refusal`, and the host's Try again takes
+the same step back: the retry, reusing the identity, starts from the `provider-refusal` re-prompt
+with the copyright note shown, and a refusal of that is again a visible failure (`spec.md §7.6`).
 
 There is no library, template or stock fallback for any call. A visible failure always offers a
 retry and never presents itself as a finished design.

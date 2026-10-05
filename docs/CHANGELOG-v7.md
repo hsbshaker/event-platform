@@ -537,8 +537,9 @@ circles. Two decisions by the owner (2026-10-04):
   under the title, a ribbon under a title, roses under a detail line, and two artworks that needed
   it on the whole-zone measure already. The ink is judged for that one layout of the words; a
   later edit that moves lines keeps only the whole-zone floor, and persisted ink is never
-  re-resolved. One producer, `cardContentWithPlaceholders`, gives the artwork stage and the corpus
-  the same words, so what is measured is what the card shows.
+  re-resolved. One producer, `revealCardContent` (`cardContentWithPlaceholders` is its words
+  without the marks), gives the artwork stage, the reveal and the corpus the same words, so what
+  is measured is what the card shows.
 - **Decision 2: a random theme seed for "surprise me"** (`event_identity_v6`). The identity call
   has no source of variety, so code draws one of 97 everyday worlds per new identity
   (`src/lib/generation/theme-seeds.ts`; none naturally carries writing) and the identity builds the
@@ -608,6 +609,22 @@ circles. Two decisions by the owner (2026-10-04):
   model sees is the reference it must keep (senior review).
 - **Updated:** `spec.md §7.7`, §7.8, §11.3 and a §31 criterion; `card-system.md §2.2`, §2.3, §3,
   §8; `model-contracts.md §2`, §5, §7; `CLAUDE.md` pipeline sketch.
+
+### Phase 5c — the RSVP-by line on the first card (owner decision, 2026-10-05)
+
+- **Decision.** Before the host saves a date, the card shows "RSVP by …" two weeks before the
+  placeholder date, marked to confirm like the date, so the card's words do not move when the real
+  date arrives and the ink is judged behind the line the host will see. Once a date is saved, its
+  default deadline (`spec.md §7.3`) is the event's own and shows unmarked. When the date shown is
+  the prompt's own words ("December 19"), which code does not read as a date, there is no RSVP-by
+  line until the host saves a date, so the two never disagree.
+- **Also built (5c server side).** The facts the prompt states are kept on the event
+  (`events.prompt_facts`, written once with the first identity, by the server only) and shown as
+  written when they pass the details form's own checks; `start_generation` answers `designed`
+  once the first card exists, so opening the generation page again never makes a second first card.
+- **Updated:** `spec.md §7.3`, §7.5, §24 and the architecture sketch; `card-system.md §2.5`, §3,
+  §4.2; `model-contracts.md §4.3`; `technology-decisions.md` (the generation lock);
+  `development-plan.md` Phase 5.
 
 ## Still open
 

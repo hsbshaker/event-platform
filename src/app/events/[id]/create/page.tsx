@@ -1,16 +1,21 @@
-import Link from "next/link";
+import { z } from "zod";
 import { loadEventDraft } from "@/app/actions/event-details";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
-import { DetailsForm } from "./DetailsForm";
-import { GenerationProgress } from "./GenerationProgress";
+import { loadRevealedCard, type RevealedCard } from "@/lib/generation/reveal.server";
+import { getGenerationView } from "@/lib/generation/status.server";
+import { initialWait, readWaitGeneration, withHostCopy } from "@/lib/generation/wait-view";
+import { EventUnavailable } from "../EventUnavailable";
+import { GenerationSurface } from "./GenerationSurface";
 
 /**
  * Generation + required details (spec.md §7.3/§7.10, docs/design-system.md §4.3,
- * docs/screen-spec.md `generation-details`, e2e H03).
+ * docs/screen-spec.md `generation`, e2e H03).
  *
- * No wizard, no stepper, no percent-complete gate: this is a flat autosaving form next to an
- * honest progress panel. A missing or inaccessible event renders a plain, non-leaking state
- * rather than distinguishing "does not exist" from "not yours" (spec.md §27).
+ * No wizard, no stepper, no percent-complete gate: a flat autosaving form next to the real
+ * artifacts of the generation (`GenerationSurface`), which ends in the card's reveal. The server
+ * reads the draft, whether the event has a card and its latest generation, so the client starts a
+ * generation only when none has begun. A missing or inaccessible event renders a plain,
+ * non-leaking state rather than distinguishing "does not exist" from "not yours" (spec.md §27).
  */
 
 /**
@@ -24,6 +29,8 @@ export const maxDuration = 300;
 
 export default async function CreateEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // An id that is not a UUID is not an event's: the same plain state, never a lookup.
+  if (!z.uuid().safeParse(id).success) return <EventUnavailable />;
 
   let draft;
   try {
@@ -36,40 +43,40 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
     }
   }
 
-  if (!draft) {
-    return (
-      <main className="mx-auto flex w-full max-w-(--width-standard) flex-1 flex-col items-center justify-center gap-3 px-4 py-16 text-center">
-        <h1 className="text-heading-lg text-app-text">This event isn&apos;t available</h1>
-        <p className="text-body-md text-app-text-secondary">
-          It may not exist, or you may not have access to it.
-        </p>
-        <Link
-          href="/"
-          className="text-body-sm text-app-text-secondary underline-offset-2 hover:underline"
-        >
-          Start a new event
-        </Link>
-      </main>
-    );
+  if (!draft) return <EventUnavailable />;
+
+  // Only the card's title and proportion go to the client: the card itself is read when the
+  // envelope is opened, so its artwork's signed URL is fresh then.
+  // A stored card the loader cannot draw is not a reason to lose the details form: the surface
+  // goes to the reveal, whose read fails into its retryable "couldn't open" state.
+  let revealed: RevealedCard | null = null;
+  let unreadable = false;
+  try {
+    revealed = await loadRevealedCard(id);
+  } catch (error) {
+    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
+      return <EventUnavailable />;
+    }
+    console.error("[reveal] the event's card could not be read", {
+      eventId: id,
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    unreadable = true;
   }
+  const view = revealed || unreadable ? null : await getGenerationView(id);
+  const initial = initialWait(
+    revealed !== null || unreadable,
+    readWaitGeneration(view ? withHostCopy(view) : null),
+  );
 
   return (
-    <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col gap-8 px-4 py-10 lg:py-14">
-      {/* Nothing is generating in Phase 2, so nothing here says anything is. The panel beside
-          this header states the same truth; a header that promised directions were on the way
-          would contradict it on the same screen and hide a wait with no end (spec.md §7.10,
-          §32 guardrail #46). */}
-      <header className="flex flex-col gap-2">
-        <h1 className="text-heading-xl text-app-text">Your event</h1>
-        <p className="text-body-md text-app-text-secondary">
-          Fill in what you can below — nothing here is required to see your invitation design, only
-          to publish later.
-        </p>
-      </header>
-      <div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:items-start">
-        <GenerationProgress generationRequestedAt={draft.generationRequestedAt} />
-        <DetailsForm event={draft} />
-      </div>
-    </main>
+    <GenerationSurface
+      eventId={id}
+      draft={draft}
+      initial={initial}
+      head={
+        revealed ? { title: revealed.title, proportion: revealed.card.artwork.proportion } : null
+      }
+    />
   );
 }

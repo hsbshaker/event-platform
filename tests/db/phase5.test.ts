@@ -375,6 +375,38 @@ describe("start_generation", () => {
     expect(await hostCount(owner)).toBe(1);
   });
 
+  it("refuses a second initial generation once the event has a design, consuming nothing (designed)", async () => {
+    const first = await start({ key: "first-card" });
+    expect(first.outcome).toBe("started");
+    await finish(first.generation_id!);
+    await insertCardDesign(db, eventA);
+    for (const user of [owner, cohost]) {
+      expect(await start({ user }), user).toEqual({ generation_id: null, outcome: "designed" });
+    }
+    expect(await eventCount(eventA)).toBe(1);
+    expect(await hostCount(owner)).toBe(1);
+    expect(await hostCount(cohost)).toBe(0);
+    // A repeat of the key that made the first card still finds it.
+    expect(await start({ key: "first-card" })).toEqual({
+      generation_id: first.generation_id,
+      outcome: "existing",
+    });
+    // Another card is another direction (or a shape switch), which still starts.
+    expect((await start({ kind: "another_direction" })).outcome).toBe("started");
+    // Another event without a design is unaffected.
+    expect((await start({ event: eventB })).outcome).toBe("started");
+  });
+
+  it("answers designed before in_flight, and published before designed", async () => {
+    await insertCardDesign(db, eventA);
+    const running = await start({ kind: "shape_switch" });
+    expect(running.outcome).toBe("started");
+    expect(await start()).toEqual({ generation_id: null, outcome: "designed" });
+    await finish(running.generation_id!);
+    await db.query(`update public.events set status = 'PUBLISHED' where id = $1`, [eventA]);
+    expect(await start()).toEqual({ generation_id: null, outcome: "published" });
+  });
+
   it("only an event's owner or co-host can start a generation", async () => {
     expect(await errorCode(start({ user: stranger }))).toBe("42501");
     expect(await errorCode(start({ event: randomUUID() }))).toBe("P0002");
