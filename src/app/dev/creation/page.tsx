@@ -195,6 +195,7 @@ export default async function CreationFixturePage({
 
   const fields = draft(data, one("description") === "1");
   if (one("visibility") === "private") fields.visibility = "private";
+  fields.published = published;
 
   return (
     <CreationFixture
