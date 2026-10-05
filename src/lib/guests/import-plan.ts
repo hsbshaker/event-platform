@@ -54,6 +54,8 @@ export type ImportPlan =
       /** Parties that will need a phone. */
       needPhone: number;
       issues: ImportIssue[];
+      /** Header names we did not read, so a phone column under another name is not silently lost. */
+      ignoredColumns: string[];
     }
   | { ok: false; error: string };
 
@@ -74,8 +76,15 @@ const ALIASES: Record<string, Column> = {
   mobile: "phone",
   cell: "phone",
   "phone number": "phone",
+  "cell phone": "phone",
+  "cell number": "phone",
+  "mobile phone": "phone",
+  "mobile number": "phone",
+  telephone: "phone",
   email: "email",
   "e-mail": "email",
+  "email address": "email",
+  "e-mail address": "email",
   child: "child",
   kid: "child",
   "is child": "child",
@@ -107,9 +116,28 @@ function quote(value: string): string {
 
 const COUNT = new Intl.NumberFormat("en-US");
 
+/**
+ * A CSV file's text: UTF-8 when the bytes are valid UTF-8, else Windows-1252 (what Excel on Windows
+ * saves as "CSV"), so "García" is not stored as "Garc�a". The browser's preview and the server's
+ * import both decode with this, so they read the same text.
+ */
+export function decodeCsv(bytes: ArrayBuffer | Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
 export function planImport(text: string): ImportPlan {
   if (new TextEncoder().encode(text).length > CSV_MAX_BYTES) {
     return { ok: false, error: "This file is larger than 1 MB. Split it into smaller files." };
+  }
+  if (text.includes("\uFFFD")) {
+    return {
+      ok: false,
+      error: "Some characters in this file couldn't be read. Save it as CSV UTF-8 and try again.",
+    };
   }
   let records: string[][];
   try {
@@ -132,9 +160,11 @@ export function planImport(text: string): ImportPlan {
   const header = records[headerIndex];
 
   const at: Partial<Record<Column, number>> = {};
+  const ignoredColumns: string[] = [];
   header.forEach((cell, index) => {
     const column = ALIASES[headerKey(cell)];
     if (column && at[column] === undefined) at[column] = index;
+    else if (cell.trim() !== "") ignoredColumns.push(cell.trim());
   });
   if (at.name === undefined && at.first === undefined) {
     const read = header.map((cell) => cell.trim()).filter(Boolean);
@@ -284,5 +314,6 @@ export function planImport(text: string): ImportPlan {
     people: parties.reduce((sum, party) => sum + party.people.length, 0),
     needPhone: parties.filter((party) => party.phone === null).length,
     issues,
+    ignoredColumns,
   };
 }

@@ -8,7 +8,7 @@ import { Field } from "@/components/app/Field";
 import { InlineStatus } from "@/components/app/InlineStatus";
 import { Input } from "@/components/app/Input";
 import type { GuestList } from "@/lib/guests/guests.server";
-import { SAMPLE_CSV, planImport, type ImportPlan } from "@/lib/guests/import-plan";
+import { SAMPLE_CSV, decodeCsv, planImport, type ImportPlan } from "@/lib/guests/import-plan";
 import { CSV_MAX_BYTES, MAX_PARTIES_PER_EVENT, MAX_PEOPLE_PER_EVENT } from "@/lib/guests/limits";
 
 /**
@@ -81,7 +81,7 @@ export function ImportPanel({
       return;
     }
     try {
-      setPlan(planImport(await next.text()));
+      setPlan(planImport(decodeCsv(await next.arrayBuffer())));
     } catch {
       setPlan({ ok: false, error: "We couldn't read this file. Check that it's a CSV." });
     }
@@ -169,6 +169,11 @@ export function ImportPanel({
           <p className="text-body-md text-app-text" data-import-summary="" aria-live="polite">
             {previewLine(ready)}
           </p>
+          {ready.ignoredColumns.length > 0 && (
+            <p className="text-body-sm text-app-text" data-import-ignored="">
+              {`Columns we didn't use: ${ready.ignoredColumns.join(", ")}.`}
+            </p>
+          )}
           {ready.issues.length > 0 && (
             <div className="flex flex-col gap-1">
               <p className="text-body-sm text-app-text-secondary">

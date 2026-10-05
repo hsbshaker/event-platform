@@ -235,8 +235,10 @@ Actions:
 - `Import CSV`: pick a file (up to 1,000,000 bytes and 2,000 rows), see a preview (parties, guests,
   how many need a phone, and each row that was skipped or whose phone or email was not
   recognised), then `Import` in one step. Columns are matched by name: Name (or First name and Last
-  name), Household, Phone, Email, Child, Plus one; rows sharing a Household make one party. A row
-  without a usable phone imports as Needs phone. `Download a sample CSV` gives the headers.
+  name), Household, Phone (also Cell phone, Mobile number, Telephone), Email, Child, Plus one; rows
+  sharing a Household make one party, and the preview names any column it did not use. A row
+  without a usable phone imports as Needs phone. A file saved by Excel on Windows (not UTF-8) is
+  read as Windows-1252. `Download a sample CSV` gives the headers.
 
 Rows/cards show:
 

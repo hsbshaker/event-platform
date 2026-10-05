@@ -16,7 +16,7 @@ import { createHash, createHmac, hkdfSync } from "node:crypto";
  * row ties the token to its event and party; rotating revokes the row and makes another, so the
  * old token stops resolving.
  *
- * The key is passed in, so this module stays pure and testable; `personal-link.server.ts` reads it
+ * The key is passed in, so this module stays pure and testable; `guests.server.ts` reads it
  * from the environment. Tokens are never logged.
  */
 

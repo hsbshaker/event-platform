@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CSV_MAX_ROWS } from "./limits";
-import { SAMPLE_CSV, planImport, type ImportPlan } from "./import-plan";
+import { SAMPLE_CSV, decodeCsv, planImport, type ImportPlan } from "./import-plan";
 
 /**
  * The guest import's grouping (`spec.md §12.1`, §12.2; `spec.md §31` — RSVP: "CSV with missing
@@ -176,5 +176,44 @@ describe("planImport", () => {
         rows: [2, 3],
       },
     ]);
+  });
+});
+
+describe("planImport — columns and encodings", () => {
+  it("names the columns it did not read, so a phone column under another name is not lost", () => {
+    const plan = ok(planImport("Name,Phone #,Notes\r\nAna Garcia,512-555-0123,Vegetarian\r\n"));
+    expect(plan.ignoredColumns).toEqual(["Phone #", "Notes"]);
+    expect(plan.needPhone).toBe(1);
+  });
+
+  it("reads the phone and email headers spreadsheets commonly use", () => {
+    const plan = ok(
+      planImport("Name,Cell Phone,Email Address\r\nAna Garcia,512-555-0123,ana@example.com\r\n"),
+    );
+    expect(plan.ignoredColumns).toEqual([]);
+    expect(plan.parties[0]).toMatchObject({ phone: "+15125550123", email: "ana@example.com" });
+  });
+
+  it("refuses text with characters that could not be read rather than storing them", () => {
+    expect(planImport("Name\r\nGarc�a\r\n")).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("Save it as CSV UTF-8"),
+    });
+  });
+});
+
+describe("decodeCsv", () => {
+  it("reads UTF-8", () => {
+    expect(decodeCsv(new TextEncoder().encode("Name\nGarcía\n"))).toBe("Name\nGarcía\n");
+  });
+
+  it("reads a Windows-1252 file, as Excel on Windows saves CSV", () => {
+    // "García" in Windows-1252: í is 0xED, which is not valid UTF-8 on its own.
+    const bytes = new Uint8Array([
+      0x4e, 0x61, 0x6d, 0x65, 0x0a, 0x47, 0x61, 0x72, 0x63, 0xed, 0x61,
+    ]);
+    const text = decodeCsv(bytes);
+    expect(text).toBe("Name\nGarcía");
+    expect(ok(planImport(text)).parties[0].people[0].name).toBe("García");
   });
 });

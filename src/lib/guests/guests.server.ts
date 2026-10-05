@@ -120,16 +120,21 @@ async function guestAccess(eventId: string): Promise<EventAccess | null> {
 /** PostgREST answers at most this many rows a request (Supabase's default `max_rows`). */
 const PAGE = 1000;
 
-/** Every row of a query, page by page; `page` must order rows totally. */
-async function allRows<T>(
+/**
+ * Every row of a query, page by page; `page` must order rows totally. It advances by the rows each
+ * page returned and stops only at an empty page, so a server capping responses below `PAGE` (a
+ * project's `max_rows`) costs a request, never rows.
+ */
+export async function allRows<T>(
   page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
 ): Promise<T[]> {
   const rows: T[] = [];
-  for (let from = 0; ; from += PAGE) {
+  for (let from = 0; ;) {
     const { data, error } = await page(from, from + PAGE - 1);
     if (error) throw error;
-    rows.push(...(data ?? []));
-    if (!data || data.length < PAGE) return rows;
+    if (!data || data.length === 0) return rows;
+    rows.push(...data);
+    from += data.length;
   }
 }
 

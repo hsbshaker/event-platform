@@ -12,7 +12,7 @@ import {
   saveParty as savePartyServer,
   type GuestList,
 } from "@/lib/guests/guests.server";
-import type { ImportIssue } from "@/lib/guests/import-plan";
+import { decodeCsv, type ImportIssue } from "@/lib/guests/import-plan";
 import { CSV_MAX_BYTES, MAX_PARTIES_PER_EVENT, MAX_PEOPLE_PER_EVENT } from "@/lib/guests/limits";
 import type { PartyFieldErrors } from "@/lib/guests/party";
 
@@ -116,7 +116,17 @@ export async function loadGuests(eventId: string): Promise<GuestListActionResult
 /** Adds a party (`partyId` null) or saves one, replacing its guests. */
 export async function saveParty(input: SavePartyInput): Promise<SavePartyActionResult> {
   const parsed = partySchema.safeParse(input);
-  if (!parsed.success) return notFound();
+  if (!parsed.success) {
+    // A bad event id is not found; a malformed party (the form never sends one) is a refusal, so
+    // "not available" keeps meaning access.
+    const eventId = (input as { eventId?: unknown } | null)?.eventId;
+    if (!eventSchema.safeParse(eventId).success) return notFound();
+    return {
+      ok: false,
+      reason: "failed",
+      error: "Couldn't save. Check the details and try again.",
+    };
+  }
   const { eventId, partyId, draft } = parsed.data;
   try {
     const result = await savePartyServer(eventId, partyId, draft);
@@ -177,7 +187,7 @@ export async function importGuests(form: FormData): Promise<ImportActionResult> 
     };
   }
   try {
-    const result = await importCsv(eventId, await file.text());
+    const result = await importCsv(eventId, decodeCsv(await file.arrayBuffer()));
     if (result.ok) return result;
     switch (result.reason) {
       case "invalid_file":
