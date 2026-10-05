@@ -382,16 +382,29 @@ export async function loadEventDesigns(
     artByDesign.set(art.card_design_id, list);
   }
   const designs = ((designData ?? []) as DesignRow[]).filter((d) => artByDesign.has(d.id));
-  return Promise.all(
-    designs.map((design) =>
-      buildRevealedCard({
-        admin,
-        event: row,
-        design,
-        artworks: artByDesign.get(design.id) ?? [],
-        active: design.id === row.active_card_design_id,
-        now,
-      }),
-    ),
+  // A design the card component cannot draw (a malformed historical record) is left out of the
+  // list and logged, so one old card never takes the event page down; the active card itself is
+  // still read strictly by `loadRevealedCard`.
+  const cards = await Promise.all(
+    designs.map(async (design) => {
+      try {
+        return await buildRevealedCard({
+          admin,
+          event: row,
+          design,
+          artworks: artByDesign.get(design.id) ?? [],
+          active: design.id === row.active_card_design_id,
+          now,
+        });
+      } catch (error) {
+        console.error("[designs] a design could not be drawn", {
+          eventId,
+          designId: design.id,
+          error: error instanceof Error ? error.name : typeof error,
+        });
+        return null;
+      }
+    }),
   );
+  return cards.filter((card): card is RevealedCard => card !== null);
 }

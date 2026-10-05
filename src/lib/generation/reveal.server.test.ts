@@ -442,6 +442,21 @@ describe("loadEventDesigns", () => {
     expect(designs[0].card.artwork.src).toContain("token=signed");
   });
 
+  it("leaves out a design it cannot draw, logging it, rather than failing the page", async () => {
+    threeDesigns();
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    admin.fake.state.tables.card_art_assets[2] = {
+      ...admin.fake.state.tables.card_art_assets[2],
+      ink: "not an ink record",
+    };
+    const designs = await list();
+    expect(designs.map((d) => d.name)).toEqual(["First", "Second"]);
+    expect(errors).toHaveBeenCalledWith(
+      "[designs] a design could not be drawn",
+      expect.objectContaining({ designId: THIRD }),
+    );
+  });
+
   it("draws the active design in the event's active shape and the others in their own", async () => {
     threeDesigns();
     admin.fake.state.tables.events = [
