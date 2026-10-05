@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { flatArtwork } from "@/lib/link-preview/test-artwork";
 
 import { InvalidCardDataError } from "./card-data";
+import { panelFor } from "./layouts";
 import { outlinePath } from "./outline";
 import { artworkMime, cardPreviewSvg, type CardPreviewData } from "./preview-svg.server";
 import type { TextBox } from "./text-box";
@@ -188,7 +189,69 @@ describe("cardPreviewSvg", () => {
     expect(order).toEqual(["mid", "low", "top"]);
   });
 
-  it("draws panels opaque in their colour, with the soft edge under them, below the text", () => {
+  it("draws a faded panel as InvitationCard does: the same stops, opaque over its rectangle", () => {
+    const doc = svg({
+      shape: "rectangle",
+      panels: [{ ...panelFor("art-bottom", "rectangle"), color: "#F6F1EA" }],
+    });
+    expect(doc).toContain(
+      '<linearGradient id="card-panel-fade-0" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="810">' +
+        '<stop offset="0%" stop-color="#F6F1EA"/><stop offset="77.778%" stop-color="#F6F1EA"/>' +
+        '<stop offset="80.556%" stop-color="#F6F1EA" stop-opacity="0.9619"/>' +
+        '<stop offset="83.333%" stop-color="#F6F1EA" stop-opacity="0.8536"/>' +
+        '<stop offset="86.111%" stop-color="#F6F1EA" stop-opacity="0.6913"/>' +
+        '<stop offset="88.889%" stop-color="#F6F1EA" stop-opacity="0.5"/>' +
+        '<stop offset="91.667%" stop-color="#F6F1EA" stop-opacity="0.3087"/>' +
+        '<stop offset="94.444%" stop-color="#F6F1EA" stop-opacity="0.1464"/>' +
+        '<stop offset="97.222%" stop-color="#F6F1EA" stop-opacity="0.0381"/>' +
+        '<stop offset="100%" stop-color="#F6F1EA" stop-opacity="0"/></linearGradient>',
+    );
+    expect(doc).toContain(
+      '<g data-card-panel="0"><rect x="0" y="0" width="1000" height="810" fill="url(#card-panel-fade-0)"/></g>',
+    );
+    expect(doc).not.toMatch(/<mask|feGaussianBlur/);
+    expect(doc.indexOf("<image")).toBeLessThan(doc.indexOf("data-card-panel"));
+    expect(doc.indexOf("data-card-panel")).toBeLessThan(doc.indexOf("data-card-text"));
+  });
+
+  it("feathers a wash panel on every side: the horizontal fade as a mask over the vertical", () => {
+    const doc = svg({
+      shape: "rectangle",
+      panels: [
+        {
+          x: 150,
+          y: 370,
+          width: 700,
+          height: 660,
+          radius: 0,
+          softEdge: { spread: 0, blur: 0 },
+          fade: { kind: "wash", feather: 140 },
+          color: "#F6F1EA",
+        },
+      ],
+    });
+    expect(doc).toContain(
+      '<linearGradient id="card-panel-fade-0" gradientUnits="userSpaceOnUse" x1="0" y1="230" x2="0" y2="1170">' +
+        '<stop offset="0%" stop-color="#F6F1EA" stop-opacity="0"/>',
+    );
+    expect(doc).toContain(
+      '<linearGradient id="card-panel-side-0" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="990" y2="0">' +
+        '<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>',
+    );
+    expect(doc).toContain(
+      '<stop offset="14.286%" stop-color="#FFFFFF"/><stop offset="85.714%" stop-color="#FFFFFF"/>',
+    );
+    expect(doc).toContain(
+      '<mask id="card-panel-mask-0" maskUnits="userSpaceOnUse" x="10" y="230" width="980" height="940">' +
+        '<rect x="10" y="230" width="980" height="940" fill="url(#card-panel-side-0)"/></mask>',
+    );
+    expect(doc).toContain(
+      '<g data-card-panel="0"><rect x="10" y="230" width="980" height="940" fill="url(#card-panel-fade-0)" mask="url(#card-panel-mask-0)"/></g>',
+    );
+  });
+
+  it("draws a card_layouts_v2 panel exactly as before: opaque, with the soft edge under it", () => {
+    // Backward compatibility: panels persisted with card_layouts_v2 artwork carry no fade.
     const doc = svg({
       panels: [
         {
@@ -219,6 +282,40 @@ describe("cardPreviewSvg", () => {
       ["fractional z", { boxes: [box({ z: 0.5 })] }],
       ["line break", { boxes: [box({ lines: ["two\nlines"] })] }],
       ["duplicate ids", { boxes: [box(), box()] }],
+      [
+        "invalid fade",
+        {
+          panels: [
+            {
+              x: 0,
+              y: 0,
+              width: 10,
+              height: 10,
+              radius: 0,
+              softEdge: { spread: 0, blur: 0 },
+              fade: { kind: "edge", from: "top", length: -1 },
+              color: "#FFFFFF",
+            },
+          ],
+        },
+      ],
+      [
+        "fade with a soft edge",
+        {
+          panels: [
+            {
+              x: 0,
+              y: 0,
+              width: 10,
+              height: 10,
+              radius: 0,
+              softEdge: { spread: 20, blur: 40 },
+              fade: { kind: "wash", feather: 140 },
+              color: "#FFFFFF",
+            },
+          ],
+        },
+      ],
       [
         "artwork bytes",
         { artwork: { bytes: new TextEncoder().encode("<svg/>"), proportion: "5:7" } },

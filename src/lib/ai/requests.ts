@@ -20,6 +20,7 @@ import {
   ART_RASTER_SIZE,
   assembleArtPrompt,
   assembleShapeSwitchPrompt,
+  withRepaintComposition,
 } from "@/lib/card/art-prompt";
 import { CARD_LAYOUTS, CARD_LAYOUT_IDS } from "@/lib/card/layouts";
 import { RENDERING_DESCRIPTION } from "@/lib/card/renderings";
@@ -264,7 +265,7 @@ export interface ArtRequest {
 }
 
 /**
- * `card_art_v3` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
+ * `card_art_v4` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
  * full bleed, Sunburst `high` (`docs/technology-decisions.md §8.1`). The prompt is assembled by
  * code (`src/lib/card/art-prompt.ts`); with a reference it is the shape-switch prompt.
  */
@@ -282,15 +283,17 @@ export function cardArtRequest(input: GenerateCardArtInput): ArtRequest {
     output_format: "png" as const,
     background: "opaque" as const,
   };
+  const repaint = (prompt: string) =>
+    input.repaint ? withRepaintComposition(prompt, input.artMode) : prompt;
   if (input.reference) {
     return {
       endpoint: "images/edits",
       ...base,
-      prompt: assembleShapeSwitchPrompt(design, input.shape),
+      prompt: repaint(assembleShapeSwitchPrompt(design, input.shape)),
       reference: input.reference,
     };
   }
-  return { endpoint: "images/generations", ...base, prompt: assembleArtPrompt(design) };
+  return { endpoint: "images/generations", ...base, prompt: repaint(assembleArtPrompt(design)) };
 }
 
 /** `omni-moderation-latest` on the artwork alone. */

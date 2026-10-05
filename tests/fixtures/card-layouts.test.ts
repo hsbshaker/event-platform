@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { InvitationCard, type CardPanel } from "@/components/card/InvitationCard";
+import { panelFeather } from "@/lib/card/card-data";
 import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
 import {
   CARD_LAYOUT_IDS,
@@ -49,7 +50,9 @@ import { REPO_ROOT, startStaticServer, type StaticServer } from "./static-server
  * Asserted in the browser: every font the cards use is loaded; each stored line renders as exactly
  * one line (one line element per stored line, one line fragment each), no wider than its box; each
  * line's rect lies within its zone and its corners inside the shape's text-safe area; panels sit
- * where the layout puts them, opaque and under the text; the outline masks the card (pixels just
+ * where the layout puts them (the opaque paper and its fade), under the text, with every line on
+ * the opaque paper — and, read from the pixels, the paper is the panel colour over its rectangle,
+ * half-way at the middle of its fade and gone past it; the outline masks the card (pixels just
  * inside and outside each corner); line breaks and relative positions are identical at both widths;
  * and rendered line widths agree with the server's measurement within `FIT_SAFETY`. A line's rect
  * is its text's advance horizontally and its line box vertically — the extent `layoutCard` fits;
@@ -139,6 +142,19 @@ const fontReports: Record<Width, { face: string; count: number; loaded: boolean 
   1280: [],
 };
 const maskSamples: { width: Width; shape: CardShape; x: number; y: number; ok: boolean }[] = [];
+
+type PanelProbeKind = "opaque" | "fade-middle" | "past-fade";
+interface PanelSample {
+  width: Width;
+  id: string;
+  kind: PanelProbeKind;
+  x: number;
+  y: number;
+  want: number[];
+  got: number[];
+  ok: boolean;
+}
+const panelSamples: PanelSample[] = [];
 
 async function layOut(
   combo: Combo,
@@ -349,6 +365,97 @@ async function probeMask(page: Page, width: Width, render: Render): Promise<void
   }
 }
 
+const rgbOf = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+/** Card units a probe keeps from the opaque rectangle's edge, the outline and the canvas edge. */
+const PROBE_INSET = 8;
+/** Card units a probe keeps from the text zone, so no glyph ink reaches it. */
+const PROBE_ZONE_MARGIN = 16;
+/** Per channel, of 255: the gradient's slope across one pixel at 390px plus rounding. */
+const FADE_TOLERANCE = 3;
+
+/**
+ * Where to read the panel from the pixels, in card units, away from the text: points just inside
+ * the opaque rectangle (the panel colour, alpha 1), the middle of each side's fade (alpha 0.5 —
+ * the other axis is opaque there), and just past each fade (the artwork, alpha 0).
+ */
+function panelProbePoints(render: Render): { kind: PanelProbeKind; x: number; y: number }[] {
+  const p = panelFor(render.layout, render.shape);
+  const f = panelFeather(p);
+  const zone = zoneFor(render.layout, render.shape);
+  const { width: w, height: h } = canvasOf(render.shape);
+  const [x0, y0, x1, y1] = [p.x, p.y, p.x + p.width, p.y + p.height];
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  const i = PROBE_INSET;
+  const points: { kind: PanelProbeKind; x: number; y: number }[] = [
+    ...(
+      [
+        [x0 + i, y0 + i],
+        [x1 - i, y0 + i],
+        [x0 + i, y1 - i],
+        [x1 - i, y1 - i],
+        [cx, y0 + i],
+        [cx, y1 - i],
+        [x0 + i, cy],
+        [x1 - i, cy],
+      ] as const
+    ).map(([x, y]) => ({ kind: "opaque" as const, x, y })),
+  ];
+  const sides = [
+    [f.top, cx, y0, 0, -1],
+    [f.bottom, cx, y1, 0, 1],
+    [f.left, x0, cy, -1, 0],
+    [f.right, x1, cy, 1, 0],
+  ] as const;
+  for (const [len, sx, sy, dx, dy] of sides) {
+    if (len <= 0) continue;
+    points.push({ kind: "fade-middle", x: sx + (dx * len) / 2, y: sy + (dy * len) / 2 });
+    points.push({ kind: "past-fade", x: sx + dx * (len + i), y: sy + dy * (len + i) });
+  }
+  const m = PROBE_ZONE_MARGIN;
+  return points.filter(
+    ({ x, y }) =>
+      x >= i &&
+      y >= i &&
+      x <= w - i &&
+      y <= h - i &&
+      !(
+        x > zone.x - m &&
+        x < zone.x + zone.width + m &&
+        y > zone.y - m &&
+        y < zone.y + zone.height + m
+      ) &&
+      [
+        [0, 0],
+        [i, 0],
+        [-i, 0],
+        [0, i],
+        [0, -i],
+      ].every(([ox, oy]) => insideDrawnOutline(render.shape, x + ox, y + oy)),
+  );
+}
+
+/** Reads a panel render's paper from a screenshot at the probe points. */
+async function probePanel(page: Page, width: Width, render: Render): Promise<void> {
+  const card = page.locator(`[data-fixture="${render.id}"] [data-card-face]`);
+  const png = decodePng(await card.screenshot({ animations: "disabled" }));
+  const scale = png.width / 1000;
+  const paper = rgbOf(PANEL_COLOR);
+  const art = rgbOf(ART_COLOR);
+  for (const { kind, x, y } of panelProbePoints(render)) {
+    const alpha = kind === "opaque" ? 1 : kind === "fade-middle" ? 0.5 : 0;
+    const want = paper.map((v, k) => Math.round(v * alpha + art[k] * (1 - alpha)));
+    const px = Math.min(png.width - 1, Math.floor(x * scale));
+    const py = Math.min(png.height - 1, Math.floor(y * scale));
+    const at = (py * png.width + px) * 4;
+    const got = [png.rgba[at], png.rgba[at + 1], png.rgba[at + 2]];
+    const tolerance = kind === "fade-middle" ? FADE_TOLERANCE : 2;
+    const ok = got.every((v, k) => Math.abs(v - want[k]) <= tolerance);
+    panelSamples.push({ width, id: render.id, kind, x, y, want, got, ok });
+  }
+}
+
 async function renderAll(): Promise<void> {
   for (const combo of COMBOS) {
     server.put(artPath(combo), artworkSvg(combo), "image/svg+xml");
@@ -375,6 +482,7 @@ async function renderAll(): Promise<void> {
       for (const m of await measurePage(page)) measures[width].set(m.id, m);
       const list = renders.filter((r) => r.layout === combo.layout && r.shape === combo.shape);
       await probeMask(page, width, list[0]);
+      for (const r of list.filter((x) => x.panel)) await probePanel(page, width, r);
       const status = await fontStatus(page, facesOf(list));
       fontReports[width].push(...status);
     }
@@ -442,15 +550,38 @@ function checkRender(render: Render, width: Width): string[] {
   }
   if (render.panel) {
     const want = panelFor(render.layout, render.shape);
+    const f = panelFeather(want);
     const p = m.panels[0];
     if (m.panels.length !== 1 || !p) failures.push(`${m.panels.length} panels rendered`);
     else {
+      // The element covers the opaque paper and its fade.
       const got = [p.left, p.top, p.right, p.bottom].map((v) => v * unit);
-      const exp = [want.x, want.y, want.x + want.width, want.y + want.height];
+      const exp = [
+        want.x - f.left,
+        want.y - f.top,
+        want.x + want.width + f.right,
+        want.y + want.height + f.bottom,
+      ];
       if (got.some((v, i) => Math.abs(v - exp[i]) > eps)) {
         failures.push(`panel at ${got.map((v) => v.toFixed(1)).join(",")}`);
       }
       if (p.opacity !== "1") failures.push(`panel opacity ${p.opacity}`);
+    }
+    // Every line sits on the opaque paper: the ink was resolved against the panel colour alone.
+    for (const box of m.boxes) {
+      box.lines.forEach((line, i) => {
+        const [x0, x1, y0, y1] = [line.left, line.right, line.top, line.bottom].map(
+          (v) => v * unit,
+        );
+        if (
+          x0 < want.x - eps ||
+          x1 > want.x + want.width + eps ||
+          y0 < want.y - eps ||
+          y1 > want.y + want.height + eps
+        ) {
+          failures.push(`box ${box.id} line ${i} "${line.text}": off the opaque paper`);
+        }
+      });
     }
     if (!m.textOnTop.every(Boolean)) failures.push("a panel covers text");
   } else if (m.panels.length !== 0) {
@@ -616,6 +747,7 @@ function writeReport(sheets: string[]): void {
         layoutSet: CARD_LAYOUT_SET_VERSION,
         fonts: fontReports,
         mask: maskSamples,
+        panelSamples,
         contactSheets: sheets.map((f) => path.relative(REPO_ROOT, f)),
         summary,
         renders: rows,
@@ -663,6 +795,22 @@ describe("layout fixtures: every layout × supported shape × pairing in Chromiu
     expect(fontReports[width].length).toBeGreaterThan(0);
     expect(fontReports[width].filter((f) => !f.loaded)).toEqual([]);
   });
+
+  it.each(WIDTHS)(
+    "draws every panel opaque over its rectangle and eased into the artwork at %ipx",
+    (width) => {
+      const panelRenders = renders.filter((r) => r.panel);
+      expect(panelRenders).toHaveLength(COMBOS.length);
+      const samples = panelSamples.filter((s) => s.width === width);
+      for (const r of panelRenders) {
+        const mine = samples.filter((s) => s.id === r.id);
+        // Every panel is read on its opaque paper and in the middle of its fade.
+        expect(mine.filter((s) => s.kind === "opaque").length, r.id).toBeGreaterThan(0);
+        expect(mine.filter((s) => s.kind === "fade-middle").length, r.id).toBeGreaterThan(0);
+      }
+      expect(samples.filter((s) => !s.ok)).toEqual([]);
+    },
+  );
 
   it.each(WIDTHS)("masks every shape with its outline at %ipx", (width) => {
     const samples = maskSamples.filter((s) => s.width === width);

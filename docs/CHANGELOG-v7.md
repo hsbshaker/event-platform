@@ -576,6 +576,39 @@ circles. Two decisions by the owner (2026-10-04):
   rounded box with a soft shadow edge — covered the giraffe's head. Taken up next: the panel as a
   soft fade into the artwork rather than a box (a layout-set change, with fixtures).
 
+### Phase 5c — order of the remaining work (owner decision, 2026-10-05)
+
+- **Creation Mode now.** `Make it yours` leads from the reveal into Creation Mode, which needs
+  Phase 6. Offered an interim page, holding the button, or building Creation Mode now, the owner
+  chose to build it now: Phase 6 follows the reveal directly, before another direction and
+  shape switches (5d) and taste clarification (5e). The reveal ships with it.
+
+### Phase 5 — the panel fades into the picture; a repaint says what to keep clear (owner decisions, 2026-10-05)
+
+- **Why.** CU-08's giraffe was "close — but the giraffe's head is cut off. Would've been better if
+  the sky just blended to become white as opposed to doing like a hard gradient." The legibility
+  panel was a cream rounded box with a soft shadow edge over the picture; and the giraffe's head
+  sat under the title in the first image and both repaints, which repeated the identical prompt.
+- **Decision 1: the panel fades into the artwork** (`card_layouts_v3`). Opaque paper over the
+  whole text zone, then an eased fade in one colour. Words at one end of the card (`art-top`,
+  `art-bottom`): the full width from that edge, fading over 180 card units toward the picture, so
+  the sky reads as turning to paper. Words in the middle (`framed`, `corners`, `atmosphere`): the
+  padded zone with a feather the owner chose from 140, 100 and 70 rendered on round-three cards —
+  70, because a wider feather read as fog over the dark knit frame of O-02 while 70 kept it crisp
+  and still read as soft light on the lemon frames. The fixtures check, for every layout × shape,
+  that every line sits on opaque paper and that the component and the link preview draw the same
+  fade. Artwork persisted with `card_layouts_v2` keeps its box panel.
+- **Decision 2: a repaint says what to keep clear** (`card_art_v4`). When a picture runs into the
+  words' area, its repaint is the same art prompt plus one line: keep the whole subject — anything
+  tall such as a neck, a branch or a tower included — outside the calm area kept for the words.
+  Same budget (two extra images per artwork). This revises the 2026-10-04 rule that repaints repeat
+  the identical prompt; validation regenerations still repeat it, and so does the repaint of an
+  `atmosphere` or `minimal` wash, which has no subject (its panel comes from the tone under the
+  words). The line never refers to an earlier image, because on a shape switch the only image the
+  model sees is the reference it must keep (senior review).
+- **Updated:** `spec.md §7.7`, §7.8, §11.3 and a §31 criterion; `card-system.md §2.2`, §2.3, §3,
+  §8; `model-contracts.md §2`, §5, §7; `CLAUDE.md` pipeline sketch.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

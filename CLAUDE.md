@@ -135,7 +135,7 @@ host prompt + inspiration
 → artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety,
    no person in photographic, editorial, 3D or collage artwork   (one regeneration)
 → ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
-   (while the artwork's shape would need a panel: repaint from the same art prompt — two extra images per artwork at most)
+   (while the artwork's shape would need a panel: repaint from the same art prompt, plus what to keep clear for art with a subject — two extra images per artwork at most)
 → persisted, immutable CardDesign + artwork + ink + versions
 → layoutCard (sizes, line breaks) → one card component → envelope → house-style page
 → card editor (optional): host edits the text layer → CardCustomization (stored boxes and line breaks) → same card component

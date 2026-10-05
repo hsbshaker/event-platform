@@ -55,7 +55,8 @@ import type { StageContext } from "./stage";
  * image requests per artwork. A first image that fails validation earns one regeneration; a second
  * failure is a visible failure (`artwork_invalid`). Once a valid artwork exists, if the shape it
  * was painted for would need the legibility panel, it is repainted from the same prompt (and the
- * same reference) one image at a time, while the budget lasts: the first repaint that is valid and
+ * same reference), plus one composition line for art with a subject (`withRepaintComposition`,
+ * `card_art_v4`), one image at a time, while the budget lasts: the first repaint that is valid and
  * needs no panel is kept; if none is, the first valid artwork is kept with the panel. A repaint
  * that fails validation — or whose call fails — is dropped and still spends its image; a repaint
  * never causes a visible failure.
@@ -104,7 +105,7 @@ export const ARTWORK_LIMITS = {
 } as const;
 
 /**
- * The key of a layout's text zone in the ink map. `card_layouts_v2` has one text zone per layout
+ * The key of a layout's text zone in the ink map. The layout set has one text zone per layout
  * and shape (`zoneFor`); the map is keyed by zone so a layout set with more zones keeps its shape.
  */
 export const TEXT_ZONE = "text";
@@ -210,7 +211,10 @@ export interface ArtworkStageResult {
   proportion: CardProportion;
   fitsShapes: CardShape[];
   ink: ArtworkInk;
-  /** The art prompt the image model was given (for telemetry; not persisted on the asset). */
+  /**
+   * The art prompt of the first image (for telemetry; not persisted on the asset). A repaint of art
+   * with a subject sends it with `REPAINT_COMPOSITION` added.
+   */
   artPrompt: string;
   telemetry: ArtworkTelemetry;
 }
@@ -413,11 +417,14 @@ export async function runArtworkStage(
   let images = prior;
   const validationFailures: ArtworkValidationFailure[] = [];
 
-  async function paint(): Promise<Painted> {
+  // A repaint follows a picture that ran into the words' area: its prompt says what to keep clear.
+  async function paint(repaint = false): Promise<Painted> {
     const image = images + 1;
     let art: CardArt;
     try {
-      art = (await ctx.provider.generateCardArt(ctx.meter, request)).output;
+      art = (
+        await ctx.provider.generateCardArt(ctx.meter, repaint ? { ...request, repaint } : request)
+      ).output;
       images = image;
     } catch (error) {
       // A meter refusal made no request, so it spends no image.
@@ -501,7 +508,7 @@ export async function runArtworkStage(
   while (needsPanel(keptInk, shape) && images < maxImages) {
     let painted: Painted;
     try {
-      painted = await paint();
+      painted = await paint(true);
     } catch (error) {
       if (!(error instanceof ModelCallRefusedError)) throw error;
       repaintsStoppedBy = error.reason;

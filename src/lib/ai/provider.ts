@@ -142,6 +142,11 @@ export interface GenerateCardArtInput {
    * Never a host upload or inspiration image (spec.md §7.6a, §32 #17).
    */
   reference?: CardArt;
+  /**
+   * A repaint after the picture ran into the words' area: the prompt adds one composition line
+   * (`withRepaintComposition`, `card_art_v4`).
+   */
+  repaint?: boolean;
 }
 
 export interface AiProvider {

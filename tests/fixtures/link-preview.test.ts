@@ -8,8 +8,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { InvitationCard, type CardPanel } from "@/components/card/InvitationCard";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
+import { panelFeather } from "@/lib/card/card-data";
 import { panelFor, zoneFor, type CardLayoutId } from "@/lib/card/layouts";
-import { canvasOf, proportionOf, type CardShape } from "@/lib/card/shapes";
+import { canvasOf, insideOutline, proportionOf, type CardShape } from "@/lib/card/shapes";
 import { TYPICAL, WORST } from "@/lib/card/test-content";
 import type { CardContent, TextBox } from "@/lib/card/text-box";
 import { CURATED_FONT_DIR } from "@/lib/card/text/test-fonts";
@@ -73,6 +74,14 @@ import { REPO_ROOT, startStaticServer, type StaticServer } from "./static-server
  *    line (5 card units at 0.4 px per unit), the card moved 2px down, and a vertical model 2px off
  *    on both sides.
  *
+ * 3. **The preview draws each panel as the live card does.** For every case with a panel — faded
+ *    (`card_layouts_v3`: an edge fade and a wash) and the `card_layouts_v2` rounded rectangle with
+ *    its soft edge, which artwork persisted before v3 still carries — the two renderers' textless
+ *    rasters are compared pixel by pixel over the panel and its fade, inside the outline: the
+ *    largest channel difference stays within `PANEL_TOLERANCE` (resampling of the artwork under the
+ *    fade, and gradient rounding). A negative control is caught: the live card drawn with a fade
+ *    60 units shorter.
+ *
  * Contact sheet for review (gitignored): `test-results/link-preview/`.
  */
 
@@ -94,6 +103,15 @@ const EDGE_TOLERANCE_PX = 1.25;
  */
 const LARGE_SCALE = 4;
 const VERTICAL_MODEL_TOLERANCE_UNITS = 0.6;
+/**
+ * Per channel, of 255: the most a pixel of a panel or its fade may differ between the preview and
+ * the live card. Measured at most 3 over the cases below (Skia and resvg dither and round a
+ * gradient differently, and resample the artwork under the fade differently); the negative
+ * control, a fade 60 units shorter, moves pixels by far more (`panels.json`).
+ */
+const PANEL_TOLERANCE = 4;
+/** Card units a compared pixel keeps from the outline, where the two antialias differently. */
+const PANEL_OUTLINE_MARGIN = 6;
 /** Total ink of a line, as a ratio between the renderers. */
 const INK_RATIO_TOLERANCE = 0.2;
 /** A pixel is inked at this change in luminance (of 255) for the edge measure. */
@@ -111,7 +129,8 @@ interface Case {
   layout: CardLayoutId;
   shape: CardShape;
   pairing: TypographyPairingId;
-  panel: boolean;
+  /** A panel from `panelFor`, or the `card_layouts_v2` panel that persisted artwork still carries. */
+  panel: boolean | "v2";
   /** The card's words: typical unless given. */
   content?: CardContent;
   /** Customize the generated boxes, as a host would in the editor. */
@@ -156,6 +175,22 @@ const CASES: Case[] = [
     shape: "oval",
     pairing: "hc_bodoni_inter",
     panel: true,
+  },
+  {
+    // A card_layouts_v3 edge fade: paper from the top edge, fading toward the picture.
+    id: "art-bottom-rectangle-panel",
+    layout: "art-bottom",
+    shape: "rectangle",
+    pairing: "oldstyle_garamond_worksans",
+    panel: true,
+  },
+  {
+    // Backward compatibility: a panel persisted with card_layouts_v2 artwork (no fade).
+    id: "art-top-rectangle-v2-panel",
+    layout: "art-top",
+    shape: "rectangle",
+    pairing: "hc_playfair_dmsans",
+    panel: "v2",
   },
   {
     id: "art-bottom-rounded",
@@ -207,6 +242,87 @@ const CASES: Case[] = [
 let server: StaticServer;
 let browser: Browser;
 let page: Page;
+
+/** The panels a case is drawn with. */
+function panelsOf(c: Case): CardPanel[] {
+  if (!c.panel) return [];
+  if (c.panel === "v2") {
+    // What `panelFor` returned under card_layouts_v2: the zone ± 40 × 30, radius 28, soft edge.
+    const z = zoneFor(c.layout, c.shape);
+    const v2 = {
+      x: z.x - 40,
+      y: z.y - 30,
+      width: z.width + 80,
+      height: z.height + 60,
+      radius: 28,
+      softEdge: { spread: 20, blur: 40 },
+    };
+    return [{ ...v2, color: PANEL_COLOR }];
+  }
+  return [{ ...panelFor(c.layout, c.shape), color: PANEL_COLOR }];
+}
+
+/** The live card drawn with a fade 60 units shorter: the panel comparison must catch it. */
+let fadeControl: { c: Case; chromiumBlank: DecodedPng } | null = null;
+
+interface PanelComparison {
+  id: string;
+  pixels: number;
+  maxDiff: number;
+  meanDiff: number;
+}
+
+/**
+ * The two textless rasters compared over a panel's drawn extent (its rectangle and fade, or its
+ * soft edge), at pixels inside the outline by `PANEL_OUTLINE_MARGIN`.
+ */
+function panelDiff(
+  id: string,
+  shape: CardShape,
+  panel: CardPanel,
+  a: DecodedPng,
+  b: DecodedPng,
+): PanelComparison {
+  const scale = cardPreviewBox(shape).scale;
+  const f = panelFeather(panel);
+  const soft = panel.fade ? 0 : panel.softEdge.spread + panel.softEdge.blur;
+  const x0 = panel.x - f.left - soft;
+  const y0 = panel.y - f.top - soft;
+  const x1 = panel.x + panel.width + f.right + soft;
+  const y1 = panel.y + panel.height + f.bottom + soft;
+  const m = PANEL_OUTLINE_MARGIN;
+  let pixels = 0;
+  let maxDiff = 0;
+  let sum = 0;
+  const width = Math.min(a.width, b.width);
+  const height = Math.min(a.height, b.height);
+  for (let py = 0; py < height; py += 1) {
+    for (let px = 0; px < width; px += 1) {
+      const x = (px + 0.5) / scale;
+      const y = (py + 0.5) / scale;
+      if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+      if (
+        ![
+          [0, 0],
+          [m, 0],
+          [-m, 0],
+          [0, m],
+          [0, -m],
+        ].every(([dx, dy]) => insideOutline(shape, x + dx, y + dy))
+      ) {
+        continue;
+      }
+      const ia = (py * a.width + px) * 4;
+      const ib = (py * b.width + px) * 4;
+      let d = 0;
+      for (let k = 0; k < 3; k += 1) d = Math.max(d, Math.abs(a.rgba[ia + k] - b.rgba[ib + k]));
+      pixels += 1;
+      sum += d;
+      maxDiff = Math.max(maxDiff, d);
+    }
+  }
+  return { id, pixels, maxDiff, meanDiff: pixels > 0 ? sum / pixels : Number.NaN };
+}
 
 interface Rendered {
   boxes: TextBox[];
@@ -552,7 +668,7 @@ beforeAll(async () => {
       ink: INK,
     });
     const boxes = c.edit ? c.edit(generated) : generated;
-    const panels = c.panel ? [{ ...panelFor(c.layout, c.shape), color: PANEL_COLOR }] : [];
+    const panels = panelsOf(c);
     const artwork = washArtwork(proportionOf(c.shape), zoneFor(c.layout, c.shape));
     const base = { boxes, panels, artwork };
     const withText = await renderPreview(c, base, true);
@@ -572,6 +688,16 @@ beforeAll(async () => {
       model: await largeBaselines(c, boxes),
     });
   }
+  const edge = CASES.find((c) => c.id === "art-bottom-rectangle-panel")!;
+  const r = rendered.get(edge.id)!;
+  const shorter = r.panels.map((p) =>
+    p.fade?.kind === "edge" ? { ...p, fade: { ...p.fade, length: p.fade.length - 60 } } : p,
+  );
+  const control = { ...edge, id: `${edge.id}-control` };
+  fadeControl = {
+    c: edge,
+    chromiumBlank: decodePng((await renderChromium(control, { ...r, panels: shorter }, false)).png),
+  };
 }, 600_000);
 
 afterAll(async () => {
@@ -628,6 +754,67 @@ describe("link-preview images", () => {
     }
     expect(dark).toBeGreaterThan(500);
     console.info(`envelope preview rendered in ${ms.toFixed(0)} ms`);
+  });
+});
+
+describe("the preview draws each panel as the live card does", () => {
+  const PANEL_CASES = CASES.filter((c) => c.panel);
+  const results: PanelComparison[] = [];
+
+  it("covers an edge fade, a wash and a card_layouts_v2 panel", () => {
+    const kinds = PANEL_CASES.flatMap((c) =>
+      rendered.get(c.id)!.panels.map((p) => p.fade?.kind ?? "v2"),
+    );
+    expect(new Set(kinds)).toEqual(new Set(["edge", "wash", "v2"]));
+  });
+
+  it.each(PANEL_CASES.map((c) => [c.id, c] as const))(
+    "%s: every pixel of the panel and its fade within tolerance",
+    (_, c) => {
+      const r = rendered.get(c.id)!;
+      for (const panel of r.panels) {
+        const result = panelDiff(
+          c.id,
+          c.shape,
+          panel,
+          cropCard(r.previewBlank, c.shape),
+          r.chromiumBlank,
+        );
+        results.push(result);
+        expect(result.pixels).toBeGreaterThan(1000);
+        expect(result.maxDiff, `${c.id}: mean ${result.meanDiff.toFixed(3)}`).toBeLessThanOrEqual(
+          PANEL_TOLERANCE,
+        );
+      }
+    },
+  );
+
+  it("catches a fade 60 units shorter (negative control)", () => {
+    const { c, chromiumBlank } = fadeControl!;
+    const r = rendered.get(c.id)!;
+    const result = panelDiff(
+      "control",
+      c.shape,
+      r.panels[0],
+      cropCard(r.previewBlank, c.shape),
+      chromiumBlank,
+    );
+    results.push(result);
+    expect(result.maxDiff).toBeGreaterThan(PANEL_TOLERANCE);
+  });
+
+  afterAll(() => {
+    writeFileSync(
+      path.join(OUT_DIR, "panels.json"),
+      JSON.stringify({ tolerance: PANEL_TOLERANCE, results }, null, 2),
+    );
+    console.info(
+      results
+        .map(
+          (x) => `${x.id}: ${x.pixels} px, max |Δ| ${x.maxDiff}, mean |Δ| ${x.meanDiff.toFixed(3)}`,
+        )
+        .join("\n"),
+    );
   });
 });
 

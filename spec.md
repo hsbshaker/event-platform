@@ -705,7 +705,7 @@ Once Event Identity is valid, the strong model designs one card (`card_design_sc
 CardDesign {
   presentation { name, description }        // host-facing; e.g. "Heirloom Teddy"
   shape           // rectangle | rounded-rectangle | arch | oval (5:7) · square | circle (1:1)
-  layout          // ID from the layout catalog (card_layouts_v2); must support the shape
+  layout          // ID from the layout catalog (card_layouts_v3); must support the shape
   artMode         // illustration | framed | atmosphere | minimal
   typography { primary, alternates[0..2] }  // curated pairing IDs
   wording { title, invitationLine }         // bounded free text; no invented facts
@@ -761,8 +761,10 @@ fallback.
 
 **Repaints before a panel** (owner decisions, 2026-10-04). An artwork that passes validation but
 would need the layout's legibility panel on the shape it was painted for (§7.9, step 5) — the
-picture has run into the text area — is repainted from the same art prompt, for a new design and
-for a shape switch alike (a switch's repaint carries the same reference artwork). Ink resolution
+picture has run into the text area, or a wash is too dark or busy under it — is repainted from the
+same art prompt; for art with a subject (`illustration`, `framed`) the repaint adds one composition
+line saying what to keep clear of the words (owner decision, 2026-10-05; repeating the identical
+prompt tended to repeat the composition), for a new design and for a shape switch alike (a switch's repaint carries the same reference artwork). Ink resolution
 runs again on each repaint, and the first artwork that needs no panel is kept; if none does, the
 first valid artwork is kept with the panel. Code decides this from ink resolution; no model judges
 legibility. An artwork gets at most **two extra images** in all: its one validation regeneration,
@@ -1125,7 +1127,7 @@ optional art-derived legibility panel; live text.
 
 ### 11.3 Layout catalog
 
-A small versioned catalog of text layouts (`card_layouts_v2`, `docs/card-system.md §2.3`: the set
+A small versioned catalog of text layouts (`card_layouts_v3`, `docs/card-system.md §2.3`: the set
 validated in Phase 3, refitted in Phase 4 so every detail fits every card). Each layout declares the shapes it
 supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
 slot, the composition rule given to the art brief, and its legibility-panel shape. Slot character
@@ -2418,8 +2420,8 @@ The host should feel:
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no
   template or stock fallback exists.
 - [ ] An artwork that passes validation but would need the legibility panel on the shape it was
-  painted for (a new design's or a shape switch's) is repainted from the same art prompt before
-  the panel is used, decided by code from ink resolution; the first artwork that needs no panel is
+  painted for (a new design's or a shape switch's) is repainted — from the same art prompt, plus for
+  art with a subject one line saying what to keep clear of the words — before the panel is used, decided by code from ink resolution; the first artwork that needs no panel is
   kept, otherwise the first valid one with the panel; an artwork gets at most two extra images in
   all (validation regeneration and repaints together), and a repaint never causes a visible
   failure.

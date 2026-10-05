@@ -7,6 +7,8 @@ import {
   CARD_ART_PROMPT_VERSION,
   cropShapeFor,
   fitsShapes,
+  REPAINT_COMPOSITION,
+  withRepaintComposition,
 } from "./art-prompt";
 import { ART_MODE_FIT, ART_MODES } from "./art-modes";
 import type { CardDesign } from "./design";
@@ -41,9 +43,9 @@ const ALWAYS = [
 const CORNER_LINE =
   "The trimming is done later by the printer: carry the background all the way into every corner and edge of the canvas. Do not draw the outline itself, a vignette, a border line or blank corners.";
 
-describe("card_art_v3", () => {
+describe("card_art_v4", () => {
   it("is versioned", () => {
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v3");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v4");
     expect(ART_RASTER_SIZE).toEqual({ "5:7": "1440x2016", "1:1": "1440x1440" });
   });
 
@@ -337,5 +339,23 @@ describe("brief fields in the prompt", () => {
     expect(prompt).toContain("Texture: Matte paper grain. Mood: Quietly celebratory.");
     expect(prompt).toContain("Palette: Navy and brown (#172638, #735039, #E7DDCA).");
     expect(prompt).toContain("the same heirloom teddy bear — rearranged");
+  });
+});
+
+describe("the repaint composition line (card_art_v4, owner decision 2026-10-05)", () => {
+  it("adds one line to a repaint of art with a subject, and nothing to a wash", () => {
+    const prompt = "line one\nline two";
+    for (const mode of ["illustration", "framed"] as const) {
+      expect(withRepaintComposition(prompt, mode)).toBe(`${prompt}\n${REPAINT_COMPOSITION}`);
+    }
+    for (const mode of ["atmosphere", "minimal"] as const) {
+      expect(withRepaintComposition(prompt, mode)).toBe(prompt);
+    }
+    expect(REPAINT_COMPOSITION).toMatch(/calm area kept for the words/);
+    // It never refers to an earlier image: on a shape switch the reference is the one to keep.
+    expect(REPAINT_COMPOSITION).not.toMatch(/previous|last|earlier|reference|attempt/i);
+    expect(REPAINT_COMPOSITION).not.toMatch(
+      /\b(text|letters?|words?) (in|on) the (image|picture)\b/i,
+    );
   });
 });

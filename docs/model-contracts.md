@@ -3,9 +3,10 @@
 
 **Status:** Revision 3 — invitation-card baseline
 **Prompt versions:** `event_identity_v6`, `card_design_v3` (`card_design_v1` written in Phase 3
-validation; v2 adds rendering families in Phase 5; v3 one central idea), `card_art_v3` (deterministic assembly;
+validation; v2 adds rendering families in Phase 5; v3 one central idea), `card_art_v4` (deterministic assembly;
 `card_art_v1` written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`,
-`card_art_v3` in Phase 5 with rendering families), `card_art_inspection_v2`
+`card_art_v3` in Phase 5 with rendering families, `card_art_v4` adds the repaint's composition
+line), `card_art_inspection_v2`
 **Schema versions:** `event_identity_schema_v5`, `card_design_schema_v2` (`card_design_schema_v1`
 written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`),
 `card_art_inspection_schema_v2`
@@ -56,8 +57,8 @@ EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v6"
 EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
 CARD_DESIGN_PROMPT_VERSION    = "card_design_v3"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v2"
-CARD_ART_PROMPT_VERSION       = "card_art_v3"
-CARD_LAYOUT_SET_VERSION       = "card_layouts_v2"
+CARD_ART_PROMPT_VERSION       = "card_art_v4"
+CARD_LAYOUT_SET_VERSION       = "card_layouts_v3"
 CARD_COMPILER_VERSION         = "card_compiler_v4"
 ```
 
@@ -159,7 +160,7 @@ CardDesign {
   }
   shape: "rectangle" | "rounded-rectangle" | "arch" | "oval"   // portrait 5:7
        | "square" | "circle"                                  // square 1:1 (card-system.md §2.1)
-  layout: CardLayoutId           // card_layouts_v2 catalog (card-system.md §2.3); must support shape
+  layout: CardLayoutId           // card_layouts_v3 catalog (card-system.md §2.3); must support shape
   artMode: "illustration" | "framed" | "atmosphere" | "minimal"
   typography: {
     primary: TypographyPairingId                 // src/lib/card/typography.ts
@@ -339,7 +340,7 @@ it — it measures the creative stack, not the compiler.
 
 ---
 
-# 7. Card art (`card_art_v3`)
+# 7. Card art (`card_art_v4`)
 
 ## 7.1 Art prompt assembly
 
@@ -416,7 +417,10 @@ dropped.
 
 An artwork that passes but would need the layout's legibility panel on the shape it was painted
 for — decided by ink resolution in code, never by a model — is repainted from the same art prompt
-(a shape switch's repaint keeps its `reference`) until an artwork needs no panel, within two extra
+plus, for `illustration` and `framed` art, one composition line (`REPAINT_COMPOSITION`,
+`card_art_v4`: keep the whole subject, anything tall included, out of the calm area kept for the
+words; it never refers to an earlier image) — an `atmosphere` or `minimal` wash, whose panel comes
+from its tone, repeats the prompt — and a shape switch's repaint keeps its `reference` until an artwork needs no panel, within two extra
 images per artwork in all, a validation regeneration included (`spec.md §7.8`). If none clears,
 the first valid artwork is kept with the panel; a repaint that fails validation is dropped. Only
 the artwork the card shows is persisted.

@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { panelFor, type PanelFade } from "@/lib/card/layouts";
 import { outlineMaskImage } from "@/lib/card/outline";
 import type { TextBox } from "@/lib/card/text-box";
 
@@ -117,7 +118,59 @@ describe("InvitationCard", () => {
     expect(html).not.toMatch(/aria-hidden="true"[^>]*data-card-box/);
   });
 
-  it("draws panels opaque, under the text", () => {
+  it("draws a faded panel: opaque paper over its rectangle, eased out toward the picture", () => {
+    // art-bottom on a rectangle (card_layouts_v3): paper from the top edge to 630, fading over 180.
+    const html = render({
+      shape: "rectangle",
+      panels: [{ ...panelFor("art-bottom", "rectangle"), color: "#F6F1EA" }],
+    });
+    // The element covers the paper and its fade: 0–810.
+    expect(html).toContain("left:0cqw;top:0cqw;width:100cqw;height:81cqw;");
+    // Opaque from the top to 630/810 = 77.77778%, then the eased stops to nothing at 100%.
+    expect(html).toContain(
+      "background:linear-gradient(to bottom, #F6F1EA 0%, #F6F1EA 77.77778%, " +
+        "rgb(246 241 234 / 0.9619) 80.55556%, rgb(246 241 234 / 0.8536) 83.33333%, " +
+        "rgb(246 241 234 / 0.6913) 86.11111%, rgb(246 241 234 / 0.5) 88.88889%, " +
+        "rgb(246 241 234 / 0.3087) 91.66667%, rgb(246 241 234 / 0.1464) 94.44444%, " +
+        "rgb(246 241 234 / 0.0381) 97.22222%, rgb(246 241 234 / 0) 100%);opacity:1",
+    );
+    // An edge fade fades one way only: no sideways mask, no rounded corner, no box-shadow.
+    const panel = html.slice(html.indexOf("data-card-panel"), html.indexOf("data-card-text"));
+    expect(panel).not.toMatch(/mask|border-radius|box-shadow/);
+    expect(html.indexOf("data-card-panel")).toBeLessThan(html.indexOf("data-card-text"));
+  });
+
+  it("feathers a wash panel on every side: vertical fade as the fill, horizontal as the mask", () => {
+    const html = render({
+      shape: "rectangle",
+      panels: [
+        {
+          x: 150,
+          y: 370,
+          width: 700,
+          height: 660,
+          radius: 0,
+          softEdge: { spread: 0, blur: 0 },
+          fade: { kind: "wash", feather: 140 },
+          color: "#F6F1EA",
+        },
+      ],
+    });
+    // 150 − 140 = 10 across, 370 − 140 = 230 down; 700 + 280 = 980 wide, 660 + 280 = 940 high.
+    expect(html).toContain("left:1cqw;top:23cqw;width:98cqw;height:94cqw;");
+    expect(html).toContain(
+      "background:linear-gradient(to bottom, rgb(246 241 234 / 0) 0%, rgb(246 241 234 / 0.0381) 1.8617%,",
+    );
+    expect(html).toContain("#F6F1EA 14.89362%, #F6F1EA 85.10638%,");
+    expect(html).toContain(
+      "mask-image:linear-gradient(to right, rgb(0 0 0 / 0) 0%, rgb(0 0 0 / 0.0381) 1.78571%,",
+    );
+    expect(html).toContain("#000000 14.28571%, #000000 85.71429%,");
+    expect(html).toContain("-webkit-mask-image:linear-gradient(to right,");
+  });
+
+  it("draws a card_layouts_v2 panel exactly as before: opaque rounded rectangle, soft edge", () => {
+    // Backward compatibility: panels persisted with card_layouts_v2 artwork carry no fade.
     const html = render({
       panels: [
         {
@@ -166,6 +219,48 @@ describe("InvitationCard", () => {
               radius: 0,
               softEdge: { spread: 0, blur: 0 },
               color: "white",
+            },
+          ],
+        },
+      ],
+      ...(
+        [
+          ["unknown fade", { kind: "fog", feather: 10 }, 0],
+          ["fade from the side", { kind: "edge", from: "left", length: 180 }, 0],
+          ["zero fade length", { kind: "edge", from: "top", length: 0 }, 0],
+          ["infinite feather", { kind: "wash", feather: Number.POSITIVE_INFINITY }, 0],
+          ["fade with a radius", { kind: "wash", feather: 140 }, 28],
+        ] as const
+      ).map(([label, fade, radius]): [string, Partial<InvitationCardProps>] => [
+        label,
+        {
+          panels: [
+            {
+              x: 0,
+              y: 0,
+              width: 10,
+              height: 10,
+              radius,
+              softEdge: { spread: 0, blur: 0 },
+              fade: fade as unknown as PanelFade,
+              color: "#FFFFFF",
+            },
+          ],
+        },
+      ]),
+      [
+        "fade with a soft edge",
+        {
+          panels: [
+            {
+              x: 0,
+              y: 0,
+              width: 10,
+              height: 10,
+              radius: 0,
+              softEdge: { spread: 20, blur: 40 },
+              fade: { kind: "edge", from: "top", length: 180 },
+              color: "#FFFFFF",
             },
           ],
         },

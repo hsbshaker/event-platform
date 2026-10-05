@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import cardDesignJson from "../../../docs/model-schemas/card-design.schema.json";
 
+import { REPAINT_COMPOSITION } from "@/lib/card/art-prompt";
 import { CARD_LAYOUT_IDS } from "@/lib/card/layouts";
 import { RENDERING_ART_PROMPT, RENDERING_DESCRIPTION, RENDERINGS } from "@/lib/card/renderings";
 import { CARD_SHAPES } from "@/lib/card/shapes";
@@ -193,6 +194,22 @@ describe("artwork requests", () => {
     expect(request.size).toBe(size);
     expect(request.endpoint).toBe("images/generations");
     expect(request.reference).toBeUndefined();
+  });
+
+  it("adds the repaint composition line only to a repaint of art with a subject", () => {
+    const input = {
+      artBrief: brief,
+      artMode: "illustration",
+      layout: "art-top",
+      shape: "rectangle",
+    } as const;
+    const plain = cardArtRequest(input);
+    const repaint = cardArtRequest({ ...input, repaint: true });
+    expect(repaint.prompt).toBe(`${plain.prompt}\n${REPAINT_COMPOSITION}`);
+    expect(plain.prompt).not.toContain(REPAINT_COMPOSITION);
+    // A wash has no subject: its repaint repeats the prompt unchanged.
+    const wash = { ...input, artMode: "atmosphere", layout: "atmosphere" } as const;
+    expect(cardArtRequest({ ...wash, repaint: true }).prompt).toBe(cardArtRequest(wash).prompt);
   });
 
   it("uses edits, the switch prompt and the reference only on a shape switch", () => {

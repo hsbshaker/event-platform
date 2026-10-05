@@ -13,9 +13,9 @@ import {
 } from "./layouts";
 import { CARD_SHAPES, canvasOf, insideOutline, insideTextSafe, SHAPE_GEOMETRY } from "./shapes";
 
-describe("layout set card_layouts_v2", () => {
+describe("layout set card_layouts_v3", () => {
   it("is versioned", () => {
-    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v2");
+    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v3");
   });
 
   it("has exactly the five layouts", () => {
@@ -189,33 +189,80 @@ describe("layout set card_layouts_v2", () => {
     expect(() => panelFor("corners", "oval")).toThrow(/does not support/);
   });
 
-  it("gives every layout the Phase 3 legibility panel: the zone padded 40 × 30, radius 28", () => {
+  it("fades the panel by layout: from the words' end of the card, or a wash around them", () => {
+    const fromTop = { kind: "edge", from: "top", length: 180 };
+    const fromBottom = { kind: "edge", from: "bottom", length: 180 };
+    const wash = { kind: "wash", feather: 70 };
+    const want = {
+      "art-top": fromBottom,
+      "art-bottom": fromTop,
+      framed: wash,
+      corners: wash,
+      atmosphere: wash,
+    } as const;
     for (const layout of CARD_LAYOUT_IDS) {
-      expect(CARD_LAYOUTS[layout].panel).toEqual({
+      expect(CARD_LAYOUTS[layout].panel, layout).toEqual({
         padX: 40,
         padY: 30,
-        radius: 28,
-        softEdge: { spread: 20, blur: 40 },
+        fade: want[layout],
       });
     }
+    // Words above the picture: paper from the top edge, full width, to the zone's bottom + 30.
+    expect(panelFor("art-bottom", "rectangle")).toEqual({
+      x: 0,
+      y: 0,
+      width: 1000,
+      height: 630,
+      radius: 0,
+      softEdge: { spread: 0, blur: 0 },
+      fade: fromTop,
+    });
+    // Words below the picture: from the zone's top - 30 down to the bottom edge.
     expect(panelFor("art-top", "rectangle")).toEqual({
-      x: 80,
+      x: 0,
       y: 770,
-      width: 840,
-      height: 510,
-      radius: 28,
-      softEdge: { spread: 20, blur: 40 },
+      width: 1000,
+      height: 630,
+      radius: 0,
+      softEdge: { spread: 0, blur: 0 },
+      fade: fromBottom,
+    });
+    // Words in the middle: the zone padded 40 × 30.
+    const zone = zoneFor("framed", "rectangle");
+    expect(panelFor("framed", "rectangle")).toEqual({
+      x: zone.x - 40,
+      y: zone.y - 30,
+      width: zone.width + 80,
+      height: zone.height + 60,
+      radius: 0,
+      softEdge: { spread: 0, blur: 0 },
+      fade: wash,
     });
   });
 
-  it("backs every point of the zone with panel, inside the outline, for every layout x shape", () => {
-    /** Inside the panel's rounded rectangle. */
-    const inPanel = (p: ReturnType<typeof panelFor>, x: number, y: number): boolean => {
-      if (x < p.x || x > p.x + p.width || y < p.y || y > p.y + p.height) return false;
-      const cx = Math.min(Math.max(x, p.x + p.radius), p.x + p.width - p.radius);
-      const cy = Math.min(Math.max(y, p.y + p.radius), p.y + p.height - p.radius);
-      return Math.hypot(x - cx, y - cy) <= p.radius;
-    };
+  it("puts an edge fade's opaque paper at the words' end of the card, the fade toward the picture", () => {
+    for (const layout of ["art-top", "art-bottom"] as const) {
+      for (const shape of CARD_LAYOUTS[layout].shapes) {
+        const panel = panelFor(layout, shape);
+        const { width: w, height: h } = canvasOf(shape);
+        const { clear } = layoutArtFor(layout, shape);
+        const label = `${layout}/${shape}`;
+        expect([panel.x, panel.width], label).toEqual([0, w]);
+        if (layout === "art-bottom") {
+          expect(panel.y, label).toBe(0);
+          // The opaque paper ends where the clear region does, or inside it.
+          expect(clear?.edge, label).toBe("top");
+          expect(panel.height, label).toBeLessThanOrEqual((h * clear!.percent) / 100);
+        } else {
+          expect(panel.y + panel.height, label).toBe(h);
+          expect(clear?.edge, label).toBe("bottom");
+          expect(h - panel.y, label).toBeLessThanOrEqual((h * clear!.percent) / 100);
+        }
+      }
+    }
+  });
+
+  it("covers the whole text zone with opaque paper, inside the outline, for every layout x shape", () => {
     /** Inside the drawn outline: `insideOutline` with the rounded rectangle's corners cut. */
     const inOutline = (shape: (typeof CARD_SHAPES)[number], x: number, y: number): boolean => {
       if (!insideOutline(shape, x, y)) return false;
@@ -232,19 +279,28 @@ describe("layout set card_layouts_v2", () => {
         const panel = panelFor(layout, shape);
         const { width: w, height: h } = canvasOf(shape);
         const label = `${layout}/${shape}`;
-        // Within the canvas, and padded beyond the zone on every side.
+        // The opaque rectangle is within the canvas and square-cornered: the fade lies outside it.
+        expect(panel.radius, label).toBe(0);
+        expect(panel.softEdge, label).toEqual({ spread: 0, blur: 0 });
         expect(panel.x, label).toBeGreaterThanOrEqual(0);
         expect(panel.y, label).toBeGreaterThanOrEqual(0);
         expect(panel.x + panel.width, label).toBeLessThanOrEqual(w);
         expect(panel.y + panel.height, label).toBeLessThanOrEqual(h);
-        expect(zone.x - panel.x, label).toBe(40);
-        expect(zone.y - panel.y, label).toBe(30);
-        expect(panel.x + panel.width - (zone.x + zone.width), label).toBe(40);
-        expect(panel.y + panel.height - (zone.y + zone.height), label).toBe(30);
+        // Padded beyond the zone on every side (an edge panel spans the card across).
+        expect(zone.x - panel.x, label).toBeGreaterThanOrEqual(40);
+        expect(zone.y - panel.y, label).toBeGreaterThanOrEqual(30);
+        expect(panel.x + panel.width - (zone.x + zone.width), label).toBeGreaterThanOrEqual(40);
+        expect(panel.y + panel.height - (zone.y + zone.height), label).toBeGreaterThanOrEqual(30);
+        // Every point of the zone is on opaque paper and inside the outline.
         const missed: string[] = [];
         for (let y = zone.y; y <= zone.y + zone.height; y += 5) {
           for (let x = zone.x; x <= zone.x + zone.width; x += 5) {
-            if (!(inPanel(panel, x, y) && inOutline(shape, x, y))) missed.push(`${x},${y}`);
+            const opaque =
+              x >= panel.x &&
+              x <= panel.x + panel.width &&
+              y >= panel.y &&
+              y <= panel.y + panel.height;
+            if (!(opaque && inOutline(shape, x, y))) missed.push(`${x},${y}`);
           }
         }
         expect(missed, label).toEqual([]);
