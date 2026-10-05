@@ -119,7 +119,17 @@ export function CohostsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actions, eventId]);
 
-  async function run(key: string, action: () => Promise<CohostRosterResult>) {
+  /** Moves focus once the next render has drawn `id` (the element that replaced the focused one). */
+  function focusSoon(id: string) {
+    setTimeout(() => document.getElementById(id)?.focus(), 0);
+  }
+
+  async function run(
+    key: string,
+    action: () => Promise<CohostRosterResult>,
+    /** Where focus goes once the row that held it is gone. */
+    focusAfter: string,
+  ) {
     if (pending) return;
     setPending(key);
     setError(null);
@@ -128,6 +138,7 @@ export function CohostsPanel({
       if (result.ok) {
         apply(result.roster);
         setConfirming(null);
+        focusSoon(focusAfter);
       } else {
         setError(result.error);
         // Already used or revoked: show the list as it is now.
@@ -153,6 +164,8 @@ export function CohostsPanel({
           link: `${window.location.origin}${result.path}`,
           expiresAt: result.invitation.expiresAt,
         });
+        // To the new link, so it is read out (and selected for copying).
+        focusSoon(LINK_ID);
       } else {
         setError(result.error);
       }
@@ -193,7 +206,11 @@ export function CohostsPanel({
   return (
     <div className="flex flex-col gap-8" data-cohosts-panel="">
       <section aria-labelledby="people-heading" className="flex flex-col gap-3">
-        <h3 id="people-heading" className="text-heading-md text-app-text">
+        <h3
+          id="people-heading"
+          tabIndex={-1}
+          className="text-heading-md text-app-text outline-none"
+        >
           People
         </h3>
         <ul className="flex flex-col gap-2">
@@ -216,10 +233,15 @@ export function CohostsPanel({
                 </span>
                 {member.role === "cohost" && confirming !== member.userId && (
                   <AppButton
+                    id={`remove-${member.userId}`}
                     variant="secondary"
                     size="sm"
                     disabled={pending !== null}
-                    onClick={() => setConfirming(member.userId)}
+                    onClick={() => {
+                      setConfirming(member.userId);
+                      // The button gives way to the confirmation: focus its first choice.
+                      focusSoon(`confirm-remove-${member.userId}`);
+                    }}
                     aria-label={`Remove ${displayName(member)}`}
                   >
                     Remove
@@ -233,13 +255,16 @@ export function CohostsPanel({
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <AppButton
+                      id={`confirm-remove-${member.userId}`}
                       variant="destructive"
                       size="sm"
                       pending={pending === `remove:${member.userId}`}
                       disabled={pending !== null}
                       onClick={() =>
-                        void run(`remove:${member.userId}`, () =>
-                          actions.remove({ eventId, userId: member.userId }),
+                        void run(
+                          `remove:${member.userId}`,
+                          () => actions.remove({ eventId, userId: member.userId }),
+                          "people-heading",
                         )
                       }
                     >
@@ -249,7 +274,10 @@ export function CohostsPanel({
                       variant="ghost"
                       size="sm"
                       disabled={pending !== null}
-                      onClick={() => setConfirming(null)}
+                      onClick={() => {
+                        setConfirming(null);
+                        focusSoon(`remove-${member.userId}`);
+                      }}
                     >
                       Cancel
                     </AppButton>
@@ -268,7 +296,7 @@ export function CohostsPanel({
       </section>
 
       <section aria-labelledby="links-heading" className="flex flex-col gap-3">
-        <h3 id="links-heading" className="text-heading-md text-app-text">
+        <h3 id="links-heading" tabIndex={-1} className="text-heading-md text-app-text outline-none">
           Invite links
         </h3>
         <p className="text-body-sm text-app-text-secondary">
@@ -334,8 +362,10 @@ export function CohostsPanel({
                   pending={pending === `revoke:${invite.id}`}
                   disabled={pending !== null}
                   onClick={() =>
-                    void run(`revoke:${invite.id}`, () =>
-                      actions.revoke({ eventId, invitationId: invite.id }),
+                    void run(
+                      `revoke:${invite.id}`,
+                      () => actions.revoke({ eventId, invitationId: invite.id }),
+                      "links-heading",
                     )
                   }
                   aria-label={`Revoke the invite link made ${day(invite.createdAt)}`}

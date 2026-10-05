@@ -298,23 +298,32 @@ describe.each([
         () => document.querySelectorAll("[data-pending-invite]").length === 1,
       );
       expect(await pendingRows.first().textContent()).toContain("Made Oct 5");
+      // Its row is gone: focus lands on the section's heading, not the page.
+      await page.waitForFunction(() => document.activeElement?.id === "links-heading");
 
       // Remove asks once more, inline, then removes; Cancel keeps them.
       await sheet.getByRole("button", { name: "Remove Leo Park" }).click();
       const confirm = sheet.locator("[data-confirm-remove]");
       await confirm.waitFor();
       expect(await confirm.textContent()).toContain("Remove Leo Park? They'll lose access");
+      // Focus moves to the confirmation's first choice.
+      await page.waitForFunction(() => document.activeElement?.id?.startsWith("confirm-remove-"));
       expect(
         await lowestContrast(page, `[data-confirm-remove] :is(p, button)`),
       ).toBeGreaterThanOrEqual(4.5);
       await confirm.getByRole("button", { name: "Cancel" }).click();
       expect(await sheet.locator("[data-member=cohost]").count()).toBe(2);
+      // Back to the Remove it came from.
+      await page.waitForFunction(
+        () => document.activeElement?.getAttribute("aria-label") === "Remove Leo Park",
+      );
       await sheet.getByRole("button", { name: "Remove Leo Park" }).click();
       await sheet.getByRole("button", { name: "Remove co-host" }).click();
       await page.waitForFunction(
         () => document.querySelectorAll("[data-member=cohost]").length === 1,
       );
       expect(await sheet.locator("[data-member]").allTextContents()).not.toContain("Leo Park");
+      await page.waitForFunction(() => document.activeElement?.id === "people-heading");
 
       // Escape returns focus to the toolbar's Co-hosts.
       await page.keyboard.press("Escape");

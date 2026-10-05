@@ -80,22 +80,25 @@ export async function GET(request: NextRequest) {
     if (byEmail.outcome !== "not_found") claim = { ...byEmail, hadToken: claim.hadToken };
   }
 
+  // A draft in flight wins over `next` (an invite link): its outcome must reach the person — the
+  // event just made from their prompt, or why their prompt could not be restored (spec.md §7.2) —
+  // and the invite link stays valid for them to open again.
   if (claim.eventId) {
-    return NextResponse.redirect(next ?? new URL(`/events/${claim.eventId}/create`, origin));
+    return NextResponse.redirect(new URL(`/events/${claim.eventId}/create`, origin));
   }
 
   switch (claim.outcome) {
     case "claimed_by_other": {
       // Someone else already turned that draft into their event. Say so plainly rather than
       // silently dropping the person into an empty composer.
-      const target = next ?? new URL("/", origin);
+      const target = new URL("/", origin);
       target.searchParams.set("restore", "taken");
       return NextResponse.redirect(target);
     }
     case "expired": {
       // The server copy is gone. The composer restores from its own local copy and tells the
       // user what happened: a restore failure must never silently discard their input.
-      const target = next ?? new URL("/", origin);
+      const target = new URL("/", origin);
       target.searchParams.set("restore", "expired");
       return NextResponse.redirect(target);
     }
@@ -105,7 +108,7 @@ export async function GET(request: NextRequest) {
         // like an expired one rather than dropping them into an empty composer with no
         // explanation: §7.2 calls losing the prompt a critical product failure, and the
         // composer's local mirror still holds their text.
-        const target = next ?? new URL("/", origin);
+        const target = new URL("/", origin);
         target.searchParams.set("restore", "expired");
         return NextResponse.redirect(target);
       }

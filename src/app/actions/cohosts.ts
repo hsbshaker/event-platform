@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { isWellFormedInviteToken } from "@/lib/cohosts/token";
 import {
+  CohostOutcomeError,
   acceptInvitation,
   createInvitation,
   loadRoster,
@@ -69,6 +70,8 @@ function logged(error: unknown) {
   return {
     name: typeof e?.name === "string" ? e.name : typeof error,
     code: typeof e?.code === "string" ? e.code : undefined,
+    // Only this code's own errors carry their message: it names a function, never a token.
+    ...(error instanceof CohostOutcomeError ? { message: error.message } : {}),
   };
 }
 

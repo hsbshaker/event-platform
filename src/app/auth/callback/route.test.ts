@@ -117,25 +117,27 @@ describe("auth callback", () => {
   });
 
   it("refuses an off-site next parameter", async () => {
-    expect(location(await callback("?code=abc&next=https://evil.test/steal"))).toBe(
-      `${ORIGIN}/events/event-1/create`,
-    );
-    expect(location(await callback("?code=abc&next=//evil.test"))).toBe(
-      `${ORIGIN}/events/event-1/create`,
-    );
+    // No draft in flight, so `next` is what decides; refused, it falls back to the composer.
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
+    expect(location(await callback("?code=abc&next=https://evil.test/steal"))).toBe(`${ORIGIN}/`);
+    expect(location(await callback("?code=abc&next=//evil.test"))).toBe(`${ORIGIN}/`);
   });
 
   it("refuses a backslash-smuggled off-site next parameter", async () => {
+    // No draft in flight, so `next` is what decides; refused, it falls back to the composer.
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
     // URL parsing treats `\\` as `/` for http(s), so these all resolve to https://evil.test/
     // even though each starts with a single `/`. A prefix check would let them through.
     for (const next of ["/\\evil.test", "/\\/evil.test", "/\\\\evil.test"]) {
       expect(location(await callback(`?code=abc&next=${encodeURIComponent(next)}`)), next).toBe(
-        `${ORIGIN}/events/event-1/create`,
+        `${ORIGIN}/`,
       );
     }
   });
 
   it("refuses a scheme-relative next parameter that survives an origin check", async () => {
+    // No draft in flight, so `next` is what decides; refused, it falls back to the composer.
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
     // Each of these parses to pathname "//evil.test" while keeping OUR origin, so an origin
     // comparison alone passes them; resolving the returned path a second time then reads it
     // as scheme-relative and lands on another host. The first form embeds our own hostname,
@@ -147,12 +149,13 @@ describe("auth callback", () => {
       "//evil.test",
     ]) {
       expect(location(await callback(`?code=abc&next=${encodeURIComponent(next)}`)), next).toBe(
-        `${ORIGIN}/events/event-1/create`,
+        `${ORIGIN}/`,
       );
     }
   });
 
   it("keeps a percent-encoded backslash as an ordinary same-origin path", async () => {
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
     expect(location(await callback("?code=abc&next=%2F%255Cevil.test"))).toBe(
       `${ORIGIN}/%5Cevil.test`,
     );
@@ -166,9 +169,23 @@ describe("auth callback", () => {
     );
   });
 
-  it("honours a same-origin next parameter", async () => {
+  it("honours a same-origin next parameter when no draft is in flight", async () => {
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
     expect(location(await callback("?code=abc&next=/events/event-1/create?welcome=1"))).toBe(
       `${ORIGIN}/events/event-1/create?welcome=1`,
     );
+  });
+
+  it("lets a draft in flight win over an invite next, so its outcome is never lost (spec.md §7.2)", async () => {
+    const next = encodeURIComponent(`/invite/${"a".repeat(43)}`);
+    // The draft became their event: they see it; the invite link stays valid to open again.
+    expect(location(await callback(`?code=abc&next=${next}`))).toBe(
+      `${ORIGIN}/events/event-1/create`,
+    );
+    // Their prompt could not be restored: the composer says why.
+    claimDraftForUser.mockResolvedValue({ outcome: "expired", eventId: null, hadToken: true });
+    expect(location(await callback(`?code=abc&next=${next}`))).toBe(`${ORIGIN}/?restore=expired`);
+    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: true });
+    expect(location(await callback(`?code=abc&next=${next}`))).toBe(`${ORIGIN}/?restore=expired`);
   });
 });

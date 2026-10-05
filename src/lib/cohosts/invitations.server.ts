@@ -13,6 +13,17 @@ import { createClient } from "@/lib/supabase/server";
 import { generateInviteToken, hashInviteToken, invitePath } from "./token";
 
 /**
+ * A co-host function answered something this code does not know. Its message names the function
+ * and never a token or hash, so callers may log it.
+ */
+export class CohostOutcomeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CohostOutcomeError";
+  }
+}
+
+/**
  * Co-host invitations (`spec.md §6.1` "invite/remove co-hosts", §6.2, §25 "Manage co-host access":
  * owner only, §27 "Co-host access is explicit and invitation-based"; `docs/screen-spec.md`
  * `cohost-invite-accept`).
@@ -212,10 +223,10 @@ export async function createInvitation(eventId: string): Promise<CreateInvitatio
   });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : undefined;
-  if (!row) throw new Error("create_cohost_invitation returned no outcome");
+  if (!row) throw new CohostOutcomeError("create_cohost_invitation returned no outcome");
   if (row.outcome === "not_found") return { ok: false, reason: "not_found" };
   if (row.outcome !== "created" || !row.invitation_id || !row.created_at || !row.expires_at) {
-    throw new Error("create_cohost_invitation returned an unknown outcome");
+    throw new CohostOutcomeError("create_cohost_invitation returned an unknown outcome");
   }
   return {
     ok: true,
@@ -243,7 +254,8 @@ export async function revokeInvitation(
   });
   if (error) throw error;
   if (data === "not_found" || data === "not_pending") return { ok: false, reason: data };
-  if (data !== "revoked") throw new Error("revoke_cohost_invitation returned an unknown outcome");
+  if (data !== "revoked")
+    throw new CohostOutcomeError("revoke_cohost_invitation returned an unknown outcome");
   return { ok: true, roster: await roster(access) };
 }
 
@@ -258,7 +270,7 @@ export async function removeCohost(eventId: string, cohostId: string): Promise<M
   });
   if (error) throw error;
   if (data === "not_found") return { ok: false, reason: "not_found" };
-  if (data !== "removed") throw new Error("remove_cohost returned an unknown outcome");
+  if (data !== "removed") throw new CohostOutcomeError("remove_cohost returned an unknown outcome");
   return { ok: true, roster: await roster(access) };
 }
 
@@ -267,10 +279,10 @@ export async function removeCohost(eventId: string, cohostId: string): Promise<M
  * Both are counted, so neither a crowd of accounts nor one account behind many addresses gets more.
  */
 async function withinLookupLimits(userId: string | null): Promise<boolean> {
+  // In turn, so a refusal by one limit spends nothing from the other.
   const ip = await requesterIp();
-  const byIp = ip ? await consumeRateLimit(INVITE_LOOKUP_PER_IP, ip) : true;
-  const byUser = userId ? await consumeRateLimit(INVITE_LOOKUP_PER_USER, `user:${userId}`) : true;
-  return byIp && byUser;
+  if (ip && !(await consumeRateLimit(INVITE_LOOKUP_PER_IP, ip))) return false;
+  return userId ? consumeRateLimit(INVITE_LOOKUP_PER_USER, `user:${userId}`) : true;
 }
 
 /**
