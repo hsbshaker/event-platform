@@ -255,7 +255,7 @@ describe("the happy path", () => {
         p_event_id: EVENT,
         p_identity: IDENTITY,
         p_raw: JSON.stringify(IDENTITY),
-        p_prompt_version: "event_identity_v5",
+        p_prompt_version: "event_identity_v6",
         p_schema_version: "event_identity_schema_v5",
       },
     ]);
@@ -336,7 +336,7 @@ describe("the happy path", () => {
       p_art_brief: DESIGN.artBrief,
       p_raw: DESIGN,
       p_versions: {
-        designPrompt: "card_design_v2",
+        designPrompt: "card_design_v3",
         designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v2",
         compiler: "card_compiler_v3",
@@ -369,9 +369,9 @@ describe("the happy path", () => {
       standardWording: [],
       inkPanels: [],
       versions: {
-        identityPrompt: "event_identity_v5",
+        identityPrompt: "event_identity_v6",
         identitySchema: "event_identity_schema_v5",
-        designPrompt: "card_design_v2",
+        designPrompt: "card_design_v3",
         designSchema: "card_design_schema_v2",
         layoutSet: "card_layouts_v2",
         compiler: "card_compiler_v3",

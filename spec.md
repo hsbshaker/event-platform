@@ -591,6 +591,11 @@ It holds one boundary exactly:
   Positano, outdoors, or black-tie. An aesthetic implication is an implication; a date, a place or
   a dress code is a claim about the host's event and is quoted or absent.
 
+**When the host leaves the look to us** — "surprise me", "idk", only the occasion — the identity
+commits to one clear, concrete theme that suits the event, something a guest could name in a few
+words, chosen fresh for the event. The surprise is the choice, never abstract or random imagery
+(owner decision, 2026-10-05).
+
 ### 7.6 Brand/style references
 
 Named references such as Ralph Lauren are interpreted for the look the host means: heritage,
@@ -711,6 +716,12 @@ Inputs: the persisted `EventIdentity`; the event facts present so far (so wordin
 host's own names exactly); a suggested rendering drawn at random from those the event has not used
 (§7.6a); on `Try another direction`, the host's optional feedback and a summary of every earlier
 direction for this event.
+
+**One central idea.** Every card is built on one idea. Where the identity carries the host's own
+specifics — a person's passions, a place, a shared story — the design fuses them into one image
+rather than separate motifs side by side, and a drafted title plays on that idea (owner decisions,
+2026-10-05: a 60th birthday for a father who loves jazz and old maps became one saxophone drawn
+from an antique map, "A Well-Played Journey"). Any rendering can carry the idea.
 
 **One design per round.** `Try another direction` produces a design that is genuinely different
 from every earlier one for this event — a different idea, not a palette or font swap. Code answers
@@ -2372,6 +2383,10 @@ The host should feel:
   direction; an exact repeat (layout, art mode and primary pairing) earns one re-prompt and is
   recorded (§7.7).
 - [ ] Explicit tone and colour constraints are respected by every design.
+- [ ] With no creative cue beyond the occasion ("surprise me"), the identity commits to one
+  concrete theme a guest could name, never abstract or random imagery; every card is built on one
+  central idea, fusing the host's own specifics into one image where there are several, and a
+  drafted title plays on it — judged on the creative-understanding corpus (§7.5, §7.7).
 
 ### Card design, artwork and compiler
 - [ ] The card-design response validates against the strict schema; unknown keys, IDs outside the

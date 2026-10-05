@@ -491,6 +491,29 @@ circles. Two decisions by the owner (2026-10-04):
   decide whether a design's recorded compiler version pins its line breaking or the canon says
   plainly that it does not (senior review, PR 27).
 
+### Phase 5 — round two verdict: one central idea (owner decisions, 2026-10-05)
+
+- **The verdict.** Round two cleared the bar again: 13 of 14 corpus cards sendable, and both of the
+  owner's briefs. CU-10 ("something unique, idk surprise me") failed for the second time: "Too
+  random — when told surprise me, need to pick a direction". CU-13 ("60th birthday for my dad, he
+  likes jazz and old maps") was the owner's favourite: "AMAZING I LOVE THIS ONE — try to follow
+  whatever you did for this for others".
+- **What CU-13 did.** One image fused both of the father's passions: a saxophone drawn from an
+  antique map, in flat editorial illustration, titled "A Well-Played Journey" — the picture and the
+  words tell one story. CU-10's identity did the opposite: it read "surprise me" as "abstract
+  sculptural forms" and "an unexpected twist", and the card had no subject a guest could name.
+- **Decision 1: one central idea** (the idea, not the look; the rendering mix is unchanged). Every
+  card is built on one idea; where the identity carries the host's own specifics, the design fuses
+  them into one image rather than separate motifs, and a drafted title plays on it.
+  `card_design_v3`; the prompt's examples are deliberately not from the corpus.
+- **Decision 2: "surprise me" commits to one clear theme.** With no creative cue beyond the
+  occasion, the identity commits to one concrete theme that suits the event — something a guest
+  could name in a few words — chosen fresh rather than the obvious default; never abstract forms or
+  arbitrary objects. `event_identity_v6`. Whether the model varies its choice across events is
+  measured by running the case several times.
+- **Versions:** `event_identity_v6` and `card_design_v3`; both schemas unchanged. Updated:
+  `spec.md §7.5`, §7.7 and a §31 criterion; `model-contracts.md §4` and §5.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

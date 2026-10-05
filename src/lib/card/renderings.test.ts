@@ -94,10 +94,10 @@ describe("suggestRendering", () => {
 
 describe("versions (rendering families)", () => {
   it("are bumped for the new prompts and schemas", () => {
-    expect(EVENT_IDENTITY_PROMPT_VERSION).toBe("event_identity_v5");
+    expect(EVENT_IDENTITY_PROMPT_VERSION).toBe("event_identity_v6");
     // The identity schema is unchanged.
     expect(EVENT_IDENTITY_SCHEMA_VERSION).toBe("event_identity_schema_v5");
-    expect(CARD_DESIGN_PROMPT_VERSION).toBe("card_design_v2");
+    expect(CARD_DESIGN_PROMPT_VERSION).toBe("card_design_v3");
     expect(CARD_DESIGN_SCHEMA_VERSION).toBe("card_design_schema_v2");
     expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v3");
     expect(CARD_ART_INSPECTION_PROMPT_VERSION).toBe("card_art_inspection_v2");
