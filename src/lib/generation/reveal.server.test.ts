@@ -28,7 +28,8 @@ vi.mock("@/lib/auth/event-access", () => ({
   requireEventAccess: (...args: unknown[]) => access(...args),
 }));
 
-const { CARD_ART_SIGNED_URL_TTL_SECONDS, loadRevealedCard } = await import("./reveal.server");
+const { CARD_ART_SIGNED_URL_TTL_SECONDS, loadEventDesigns, loadRevealedCard } =
+  await import("./reveal.server");
 
 const WORDING = { title: "Lemons & Linen", invitationLine: "Please join us for a garden shower" };
 const INK = "#2B2118";
@@ -393,5 +394,90 @@ describe("loadRevealedCard", () => {
   it("fails rather than returning a card whose artwork cannot be signed", async () => {
     admin.fake.state.errors["storage:sign"] = { message: "storage unavailable" };
     await expect(load()).rejects.toMatchObject({ message: "storage unavailable" });
+  });
+});
+
+describe("loadEventDesigns", () => {
+  const SECOND = "e1e2e3e4-f5f6-4a7b-8c9d-0e1f2a3b4c5d";
+  const THIRD = "f1f2f3f4-a5a6-4b7c-8d9e-0f1a2b3c4d5e";
+  const NO_ART = "a9a8a7a6-b5b4-4c3d-8e2f-1a0b9c8d7e6f";
+  const list = () => loadEventDesigns(EVENT, { now: () => NOW });
+
+  function threeDesigns() {
+    admin.fake.state.tables.events = [eventRow({ active_card_design_id: SECOND })];
+    // Stored out of order: the list is by round.
+    admin.fake.state.tables.card_designs = [
+      designRow({ id: THIRD, round: 3, name: "Third", shape: "arch" }),
+      designRow({ id: DESIGN, round: 1, name: "First" }),
+      designRow({ id: SECOND, round: 2, name: "Second" }),
+      designRow({ id: NO_ART, round: 4, name: "Pending" }),
+    ];
+    admin.fake.state.tables.card_art_assets = [
+      artRow({ id: "a1", card_design_id: DESIGN, storage_key: `${EVENT}/g1/original.png` }),
+      artRow({ id: "a2", card_design_id: SECOND, storage_key: `${EVENT}/g1/original.png` }),
+      artRow({ id: "a3", card_design_id: THIRD, storage_key: `${EVENT}/g1/original.png` }),
+    ];
+  }
+
+  it("requires the viewer's access to the event, once, before reading anything", async () => {
+    access.mockRejectedValueOnce(new ForbiddenError());
+    await expect(list()).rejects.toBeInstanceOf(ForbiddenError);
+    expect(admin.fake.state.log).toEqual([]);
+    threeDesigns();
+    await list();
+    expect(access).toHaveBeenCalledTimes(2);
+    expect(access).toHaveBeenLastCalledWith(EVENT, "view_event");
+  });
+
+  it("lists the designs that have artwork in round order, marking only the active one", async () => {
+    threeDesigns();
+    const designs = await list();
+    expect(designs.map((d) => [d.name, d.round, d.active])).toEqual([
+      ["First", 1, false],
+      ["Second", 2, true],
+      ["Third", 3, false],
+    ]);
+    expect(designs.map((d) => d.designId)).toEqual([DESIGN, SECOND, THIRD]);
+    expect(designs[2].card.shape).toBe("arch");
+    expect(designs[0].card.artwork.src).toContain("token=signed");
+  });
+
+  it("draws the active design in the event's active shape and the others in their own", async () => {
+    threeDesigns();
+    admin.fake.state.tables.events = [
+      eventRow({ active_card_design_id: SECOND, active_card_shape: "oval" }),
+    ];
+    const shapes = (await list()).map((d) => d.card.shape);
+    expect(shapes).toEqual(["rectangle", "oval", "arch"]);
+  });
+
+  it("reads the event, designs and artwork once each and signs each artwork", async () => {
+    threeDesigns();
+    await list();
+    expect(admin.fake.state.log.filter((l) => l.startsWith("select:"))).toEqual([
+      "select:events",
+      "select:card_designs",
+      "select:card_art_assets",
+    ]);
+    expect(admin.fake.state.signs).toHaveLength(3);
+    expect(
+      admin.fake.state.signs.every((s) => s.expiresIn === CARD_ART_SIGNED_URL_TTL_SECONDS),
+    ).toBe(true);
+  });
+
+  it("says each design is published when the event is, and is empty with no designs", async () => {
+    threeDesigns();
+    admin.fake.state.tables.events = [
+      eventRow({ active_card_design_id: SECOND, status: "PUBLISHED" }),
+    ];
+    expect((await list()).every((d) => d.published)).toBe(true);
+    admin.fake.state.tables.card_designs = [];
+    expect(await list()).toEqual([]);
+  });
+
+  it("never returns a storage key, raw output or the art brief", async () => {
+    threeDesigns();
+    const json = JSON.stringify(await list());
+    expect(json).not.toMatch(/storage_key|storageKey|raw model output|art_brief|versions/);
   });
 });
