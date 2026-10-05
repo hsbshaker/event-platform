@@ -1133,8 +1133,8 @@ For the card as generated: ink per text zone comes from the artwork's palette, m
 conservatively over the whole zone and each line-height strip of it, reaching **4.5:1** for every
 text; otherwise the artwork is repainted (§7.8) and then, if still needed, the layout's
 art-derived legibility panel is applied. `layoutCard` decides every size and line break
-deterministically, never stranding a short word such as "A" on a line of its own where another
-break exists (owner decision, 2026-10-05); slot limits
+deterministically, never stranding a short word such as "A" on a line of its own where a space
+break at the same line count avoids it (owner decision, 2026-10-05); slot limits
 make fit always possible. A test renders every layout × pairing with worst-case content in a real
 browser; production never needs a browser to verify a card.
 
@@ -2410,7 +2410,7 @@ The host should feel:
   otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
 - [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
   its zone; no word is broken except just after a hyphen it already contains; no short word such
-  as "A" stands alone on a line where another break exists; text is never
+  as "A" stands alone on a line where a space break at the same line count avoids it; text is never
   silently truncated; slot limits are enforced at entry,
   and characters the card's fonts cannot draw are refused at entry with a plain message.
 - [ ] No legibility, fit, compatibility or wording-fallback step calls a model.

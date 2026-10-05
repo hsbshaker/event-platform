@@ -485,6 +485,11 @@ circles. Two decisions by the owner (2026-10-04):
   a card is drawn, so every card drawn from now on uses the new rule, and a card editor box's
   stored lines change only when the box is next re-broken. Updated: `spec.md §7.9`, §11.6 and two
   §31 criteria; `card-system.md §4.2`, §4.3 and §7.
+- **Open before launch.** The generated text layer is laid out when a card is drawn, and only
+  the layout set pins how a card renders (`card-system.md §8`), so a later change to line breaking
+  would alter cards already generated — published ones too, once there are any. Before launch,
+  decide whether a design's recorded compiler version pins its line breaking or the canon says
+  plainly that it does not (senior review, PR 27).
 
 ## Still open
 

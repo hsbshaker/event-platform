@@ -401,6 +401,55 @@ describe("resolveInk", () => {
     expect(panels).toBeGreaterThan(0);
   });
 
+  it("judges an ink against every strip's tails, never more leniently than the zone (property)", () => {
+    const r = rng(1009);
+    const pick = () => {
+      const c = () => Math.floor(r() * 256);
+      return `#${[c(), c(), c()].map((v) => v.toString(16).padStart(2, "0").toUpperCase()).join("")}`;
+    };
+    const tailsOf = (sample: number[]) => {
+      const sorted = [...sample].sort((a, b) => a - b);
+      return {
+        dark: percentile(sorted, DARK_TAIL_PERCENTILE),
+        light: percentile(sorted, LIGHT_TAIL_PERCENTILE),
+      };
+    };
+    for (let run = 0; run < 300; run += 1) {
+      const base = r();
+      const strips = Array.from({ length: 2 + Math.floor(r() * 6) }, () => {
+        // Most strips are the zone's quiet paper; some carry an intrusion of another luminance.
+        const intrusion = r() < 0.4 ? r() : base;
+        return zone(
+          [
+            [base, 0.75],
+            [intrusion, 0.25],
+          ],
+          120,
+        ).map((l) => Math.min(1, Math.max(0, l + (r() - 0.5) * 0.04)));
+      });
+      const luminances = strips.flat();
+      const palette = Array.from({ length: 1 + Math.floor(r() * 5) }, (_, i) => ({
+        color: pick(),
+        share: 1 / (i + 2),
+      }));
+      const alone = resolveInk({ luminances, palette });
+      const result = resolveInk({ luminances, bands: strips, palette });
+      expect(result.background.darkTail).toBeLessThanOrEqual(alone.background.darkTail);
+      expect(result.background.lightTail).toBeGreaterThanOrEqual(alone.background.lightTail);
+      if (result.panel === null) {
+        const inkL = lum(result.ink);
+        for (const strip of strips) {
+          const { dark, light } = tailsOf(strip);
+          expect(inkContrast(inkL, dark, light)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
+        }
+      } else {
+        expect(contrastRatio(result.ink, result.panel.color)).toBeGreaterThanOrEqual(
+          MIN_INK_CONTRAST,
+        );
+      }
+    }
+  });
+
   it("is deterministic and refuses an empty or invalid measurement", () => {
     const input = {
       luminances: zone([
