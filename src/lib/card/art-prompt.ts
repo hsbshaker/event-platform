@@ -12,8 +12,10 @@
  * `Rendering:` line (`renderings.ts`) and drops the wording that pushed every card toward paint: the art modes no
  * longer say "painted", the corner line says "carry" rather than "paint", and the mockup line no
  * longer reads as "never photographic". `card_art_v4` (owner decision, 2026-10-05) adds one
- * composition line to a repaint of art that has a subject (`repaintComposition`). Changing any
- * sentence is a `CARD_ART_PROMPT_VERSION` bump.
+ * composition line to a repaint of art that has a subject (`repaintComposition`). `card_art_v5`
+ * (Phase 5d, owner decisions 2026-10-05) adds the revision prompt: a change to part of a card is an
+ * edit of that card's artwork, framed as a revision of the reference (`assembleRevisionPrompt`).
+ * Changing any sentence is a `CARD_ART_PROMPT_VERSION` bump.
  */
 
 import { CARD_ART_PROMPT_VERSION } from "@/lib/ai/versions";
@@ -187,4 +189,23 @@ export function assembleShapeSwitchPrompt(design: ArtPromptInput, targetShape: C
   }
   const switched = { ...design, shape: targetShape };
   return `${assembleArtPrompt(switched)}\nKeep the same subject, character, rendering, medium and palette as the reference artwork — the same ${subjectLead(design.artBrief.subject)} — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the clear area completely clear.`;
+}
+
+/**
+ * The framing of a revision (`card_art_v5`, `docs/model-contracts.md §7.2`; the sentence the Phase 5
+ * refine experiment validated): a change to part of a card is sent to the edits endpoint with the
+ * changed card's artwork as the reference, and the assembled art prompt after this line.
+ */
+export const REVISION_PREFIX =
+  "Revise the reference image to match this description, keeping its composition, subject placement, rendering, lighting and palette wherever the description does not change them:";
+
+/**
+ * The prompt for a change to part of a card (`refinement: "part"`): the revised design's full art
+ * prompt, framed as a revision of the reference — the event's own artwork of the card being changed,
+ * the only image the image model receives (`spec.md §7.6a` rule 3). Unlike a shape switch it says
+ * nothing about keeping the subject: the description says what stays and what changes. A repaint
+ * adds the composition line after it (`withRepaintComposition`).
+ */
+export function assembleRevisionPrompt(design: ArtPromptInput): string {
+  return `${REVISION_PREFIX}\n${assembleArtPrompt(design)}`;
 }

@@ -15,8 +15,8 @@ const MATRIX: Record<Capability, [owner: boolean, cohost: boolean, guest: boolea
   use_design_controls: [true, true, false],
   add_redesign_inspiration: [true, true, false],
   enter_redesign_feedback: [true, true, false],
-  generate_redesign_concepts: [true, true, false],
-  browse_select_concepts: [true, true, false],
+  try_another_direction: [true, true, false],
+  choose_design: [true, true, false],
   preview: [true, true, true],
   publish: [true, true, false], // "after payment is satisfied"
   manage_billing: [true, false, false],
@@ -50,10 +50,10 @@ describe("permission matrix (spec.md §25)", () => {
     expect(can("cohost", "publish", { paymentSatisfied: true })).toBe(true);
   });
 
-  it("disables redesign and concept switching after publish (spec.md §8.2)", () => {
+  it("disables trying another direction and choosing a design after publish (spec.md §8.2)", () => {
     for (const role of ["owner", "cohost"] as const) {
-      expect(can(role, "generate_redesign_concepts", { published: true })).toBe(false);
-      expect(can(role, "browse_select_concepts", { published: true })).toBe(false);
+      expect(can(role, "try_another_direction", { published: true })).toBe(false);
+      expect(can(role, "choose_design", { published: true })).toBe(false);
       expect(can(role, "use_design_controls", { published: true })).toBe(true);
       expect(can(role, "edit_event_content", { published: true })).toBe(true);
     }

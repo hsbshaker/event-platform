@@ -95,10 +95,7 @@ describe("startGeneration", () => {
   it("acts as the signed-in collaborator, never an id the caller passes", async () => {
     admin.fake.state.startRows = [{ generation_id: TEST_CONTEXT.generationId, outcome: "started" }];
     await startGeneration({ ...INPUT, userId: "someone-else" } as typeof INPUT);
-    expect(access.requireEventAccess).toHaveBeenCalledWith(
-      INPUT.eventId,
-      "generate_redesign_concepts",
-    );
+    expect(access.requireEventAccess).toHaveBeenCalledWith(INPUT.eventId, "try_another_direction");
     expect(admin.fake.rpc("start_generation")[0]).toMatchObject({ p_user_id: TEST_CONTEXT.userId });
   });
 

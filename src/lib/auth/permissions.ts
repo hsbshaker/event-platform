@@ -22,8 +22,8 @@ export const CAPABILITIES = [
   "use_design_controls",
   "add_redesign_inspiration",
   "enter_redesign_feedback",
-  "generate_redesign_concepts",
-  "browse_select_concepts",
+  "try_another_direction",
+  "choose_design",
   "preview",
   "publish",
   "manage_billing",
@@ -37,7 +37,10 @@ export type Capability = (typeof CAPABILITIES)[number];
 export interface PermissionContext {
   /** `Event.paidAt` is set (spec.md §28); required for `publish`. */
   paymentSatisfied?: boolean;
-  /** Event is PUBLISHED: AI redesign and concept switching are disabled (spec.md §8.2, §25). */
+  /**
+   * Event is PUBLISHED: trying another direction and choosing a design are disabled (spec.md §8.2,
+   * §25).
+   */
   published?: boolean;
 }
 
@@ -48,8 +51,8 @@ const OWNER_ONLY: ReadonlySet<Capability> = new Set([
 ]);
 
 const PRE_PUBLISH_ONLY: ReadonlySet<Capability> = new Set([
-  "generate_redesign_concepts",
-  "browse_select_concepts",
+  "try_another_direction",
+  "choose_design",
 ]);
 
 const GUEST_ALLOWED: ReadonlySet<Capability> = new Set(["view_event", "preview"]);

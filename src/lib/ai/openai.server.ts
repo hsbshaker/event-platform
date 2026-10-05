@@ -252,7 +252,7 @@ async function imageCall(request: ArtRequest): Promise<MeteredCallResult<CardArt
   };
   let init: { body: string | FormData; json: boolean };
   if (request.endpoint === "images/edits") {
-    if (!request.reference) throw new Error("a shape-switch request needs its reference artwork");
+    if (!request.reference) throw new Error("an edit request needs its reference artwork");
     const form = new FormData();
     for (const [k, v] of Object.entries(params)) form.append(k, v);
     form.append(

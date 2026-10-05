@@ -41,6 +41,13 @@ export interface StartGenerationInput {
   kind: GenerationKind;
   /** Chosen per user action by the client, so a retry or double tap finds the same generation. */
   idempotencyKey: string;
+  /**
+   * Another direction only: the host's words, already trimmed and bounded by the caller (the
+   * function trims again and refuses more than 500 characters). Absent for an empty box.
+   */
+  feedback?: string;
+  /** Another direction only, and required there: the design the host was looking at. */
+  fromDesignId?: string;
 }
 
 export interface StartGenerationResult {
@@ -49,7 +56,7 @@ export interface StartGenerationResult {
   userId: string;
   /**
    * The new or existing generation, or the one in flight; null when refused (`published`,
-   * `designed`, a cap).
+   * `designed`, `no_design`, a cap).
    */
   generationId: string | null;
 }
@@ -61,7 +68,7 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
   // Refused before anything is consumed: with the kill switch off no generation starts.
   if (!config.enabled) throw new GenerationDisabledError();
   // The session's own collaborator on this event, before the published check in SQL as well.
-  const { user } = await requireEventAccess(input.eventId, "generate_redesign_concepts");
+  const { user } = await requireEventAccess(input.eventId, "try_another_direction");
   const userId = user.id;
   const { data, error } = await createAdminClient().rpc("start_generation", {
     p_event_id: input.eventId,
@@ -75,6 +82,8 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
     p_event_cap: config.eventDailyCap,
     p_host_cap: config.hostDailyCap,
     p_stale_seconds: GENERATION_STALE_SECONDS,
+    ...(input.feedback !== undefined ? { p_feedback: input.feedback } : {}),
+    ...(input.fromDesignId !== undefined ? { p_from_design_id: input.fromDesignId } : {}),
   });
   if (error) throw error;
   const row = data?.[0];

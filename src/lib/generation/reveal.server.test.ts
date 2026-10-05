@@ -136,6 +136,7 @@ describe("loadRevealedCard", () => {
     const { card, unconfirmed, ...rest } = revealed!;
     expect(rest).toEqual({
       designId: DESIGN,
+      active: true,
       round: 1,
       title: "Lemons & Linen",
       name: "Lemons & Linen",
@@ -309,6 +310,69 @@ describe("loadRevealedCard", () => {
     admin.fake.state.tables.card_art_assets = [artRow()];
     admin.fake.state.tables.card_designs = [designRow({ layout: "spiral" })];
     await expect(load()).rejects.toThrow(/design is malformed/);
+  });
+
+  describe("a design asked for by id (spec.md §7.15: revealed before it is chosen)", () => {
+    const NEW = "e1e2e3e4-f5f6-4a7b-8c9d-0e1f2a3b4c5d";
+    beforeEach(() => {
+      // The active design is shown as an oval; the new one is a square card of its own.
+      admin.fake.state.tables.events = [eventRow({ active_card_shape: "oval" })];
+      admin.fake.state.tables.card_designs = [
+        designRow(),
+        designRow({ id: NEW, round: 2, name: "Starry Grove", shape: "square" }),
+      ];
+      admin.fake.state.tables.card_art_assets = [
+        artRow(),
+        artRow({
+          id: "a2",
+          card_design_id: NEW,
+          proportion: "square_1_1",
+          fits_shapes: ["square", "circle"],
+          storage_key: `${EVENT}/g2/square.png`,
+          ink: { square: { text: { ink: INK } }, circle: { text: { ink: INK } } },
+        }),
+      ];
+    });
+
+    it("draws a design that is not active in its own shape, and says it is not active", async () => {
+      const revealed = await loadRevealedCard(EVENT, { now: () => NOW, designId: NEW });
+      expect(revealed).toMatchObject({
+        designId: NEW,
+        active: false,
+        round: 2,
+        name: "Starry Grove",
+      });
+      expect(revealed!.card.shape).toBe("square");
+      expect(revealed!.card.artwork.src).toContain("g2/square.png");
+    });
+
+    it("draws the active design in its active shape whether asked for by id or not", async () => {
+      for (const options of [{}, { designId: DESIGN }]) {
+        const revealed = await loadRevealedCard(EVENT, { now: () => NOW, ...options });
+        expect(revealed).toMatchObject({ designId: DESIGN, active: true });
+        expect(revealed!.card.shape).toBe("oval");
+      }
+    });
+
+    it("reads a design of another event, or an unknown one, as absent", async () => {
+      admin.fake.state.tables.card_designs[1].event_id = "another-event";
+      expect(await loadRevealedCard(EVENT, { now: () => NOW, designId: NEW })).toBeNull();
+      expect(
+        await loadRevealedCard(EVENT, {
+          now: () => NOW,
+          designId: "00000000-0000-4000-8000-000000000000",
+        }),
+      ).toBeNull();
+      expect(admin.fake.state.signs).toEqual([]);
+    });
+
+    it("checks the viewer's access first", async () => {
+      access.mockRejectedValueOnce(new ForbiddenError());
+      await expect(
+        loadRevealedCard(EVENT, { now: () => NOW, designId: NEW }),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+      expect(admin.fake.state.log).toEqual([]);
+    });
   });
 
   it("fails rather than returning a card whose artwork cannot be signed", async () => {

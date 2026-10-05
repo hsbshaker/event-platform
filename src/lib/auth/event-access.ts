@@ -37,7 +37,7 @@ export async function getEventRole(
 
 /**
  * Permission context from the persisted event (spec.md §25, §28): payment is
- * satisfied when `paid_at` is set; AI redesign and concept switching end once
+ * satisfied when `paid_at` is set; trying another direction and choosing a design end once
  * `published_at` is set (robust to PASSED/ARCHIVED). Read through RLS so it is
  * only available to members.
  */

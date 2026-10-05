@@ -54,10 +54,14 @@ const SERVICE_ROLE = {
  *   `fail_generation`) and to its own key in the private `card-art` bucket.
  * - `src/lib/generation/status.server.ts` — reads the server-only `generations` table after
  *   `requireEventAccess(eventId, "view_event")`, for that event only, returning no telemetry.
- * - `src/lib/generation/reveal.server.ts` — reads the event's active design, its artwork and ink
- *   after `requireEventAccess(eventId, "view_event")`, for that event only, and signs a
- *   short-lived URL for that artwork in the private `card-art` bucket; returns no storage key, raw
- *   output, telemetry or cost, and writes nothing.
+ * - `src/lib/generation/reveal.server.ts` — reads a design of the event (the active one by
+ *   default), its artwork and ink after `requireEventAccess(eventId, "view_event")`, for that event
+ *   only, and signs a short-lived URL for that artwork in the private `card-art` bucket; returns no
+ *   storage key, raw output, telemetry or cost, and writes nothing.
+ * - `src/lib/generation/choose.server.ts` — makes a design the event's active one only through
+ *   `choose_card_design`, after `requireEventAccess(eventId, "view_event")` and the pre-publish
+ *   `choose_design` capability, for the session's own collaborator; the function checks membership
+ *   and publish again under the event's lock, and touches only that event's active design.
  */
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
@@ -69,6 +73,7 @@ const SERVICE_ROLE_CALLERS = [
   "src/lib/generation/run.server.ts",
   "src/lib/generation/status.server.ts",
   "src/lib/generation/reveal.server.ts",
+  "src/lib/generation/choose.server.ts",
 ];
 
 /**

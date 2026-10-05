@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261008000000_phase5c_prompt_facts.sql.
+ * Hand-authored to match supabase/migrations/ through 20261009000000_phase5d_another_direction.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -37,10 +37,25 @@ export type GenerationKind = "initial" | "another_direction" | "shape_switch";
 export type GenerationStatus = "running" | "succeeded" | "failed";
 /**
  * Outcomes of public.start_generation (`designed`: an initial generation refused because the
- * event already has a card design, 20261008000000_phase5c_prompt_facts.sql).
+ * event already has a card design, 20261008000000_phase5c_prompt_facts.sql; `no_design`: another
+ * direction refused because the event has no card design yet,
+ * 20261009000000_phase5d_another_direction.sql).
  */
 export type StartGenerationOutcome =
-  "started" | "existing" | "published" | "designed" | "in_flight" | "event_cap" | "host_cap";
+  | "started"
+  | "existing"
+  | "published"
+  | "designed"
+  | "no_design"
+  | "in_flight"
+  | "event_cap"
+  | "host_cap";
+
+/** What a card design made (`card_designs.refinement`, `card_design_schema_v3`). */
+export type CardRefinement = "none" | "part" | "whole";
+
+/** Outcomes of public.choose_card_design (20261009000000_phase5d_another_direction.sql). */
+export type ChooseCardDesignOutcome = "chosen" | "published" | "not_found";
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
@@ -176,6 +191,10 @@ type CardDesignRow = {
   versions: Json;
   /** The Event Identity revision the design was made from. */
   identity_revision: number;
+  /** What the design made: a change to part of a card, to its whole look, or a new idea. */
+  refinement: CardRefinement;
+  /** On another direction: the design the host was looking at when they asked. */
+  changed_from: string | null;
   selected_at: string | null;
   created_at: string;
 };
@@ -279,6 +298,13 @@ type GenerationRow = {
   artifacts: Json;
   /** The §9.5 record, written when the generation succeeds. Never shown to the host. */
   telemetry: Json | null;
+  /**
+   * Another direction: what the host typed, trimmed (1–500 characters), or null for an empty box.
+   * Host content; read only by the server, never by the image model.
+   */
+  feedback: string | null;
+  /** Another direction: the design the host was looking at. */
+  from_design_id: string | null;
   started_at: string;
   heartbeat_at: string;
   finished_at: string | null;
@@ -376,7 +402,15 @@ export type Database = {
       >;
       card_designs: Table<
         CardDesignRow,
-        Insert<CardDesignRow, "id" | "standard_wording_slots" | "selected_at" | "created_at">
+        Insert<
+          CardDesignRow,
+          | "id"
+          | "standard_wording_slots"
+          | "selected_at"
+          | "created_at"
+          | "refinement"
+          | "changed_from"
+        >
       >;
       card_art_assets: Table<CardArtAssetRow, Insert<CardArtAssetRow, "id" | "created_at">>;
       card_customizations: Table<
@@ -426,6 +460,8 @@ export type Database = {
           | "error_code"
           | "artifacts"
           | "telemetry"
+          | "feedback"
+          | "from_design_id"
           | "started_at"
           | "heartbeat_at"
           | "finished_at"
@@ -510,6 +546,10 @@ export type Database = {
           p_event_cap: number;
           p_host_cap: number;
           p_stale_seconds: number;
+          /** Another direction only: the host's words (trimmed by the function; empty is none). */
+          p_feedback?: string | null;
+          /** Another direction only, and required there: the design the host was looking at. */
+          p_from_design_id?: string | null;
         };
         Returns: { generation_id: string | null; outcome: StartGenerationOutcome }[];
       };
@@ -553,8 +593,9 @@ export type Database = {
         Returns: boolean;
       };
       /**
-       * The design, its artwork, the first active design and the generation's success, in one
-       * transaction; no row when the generation is not running or the event is published.
+       * The design, its artwork, the first active design (an initial generation's only) and the
+       * generation's success, in one transaction; no row when the generation is not running or the
+       * event is published.
        */
       persist_generated_card: {
         Args: {
@@ -583,8 +624,20 @@ export type Database = {
           p_image_model: string;
           p_art_prompt_version: string;
           p_telemetry: Json;
+          /** Default `none`; `part` and `whole` only for another direction with feedback. */
+          p_refinement?: CardRefinement;
+          /** The generation's from_design_id (null for other kinds). */
+          p_changed_from?: string | null;
         };
         Returns: { card_design_id: string; round: number }[];
+      };
+      /**
+       * The host chooses a design: active, in its own shape, before publish only
+       * (20261009000000_phase5d_another_direction.sql).
+       */
+      choose_card_design: {
+        Args: { p_event_id: string; p_user_id: string; p_design_id: string };
+        Returns: ChooseCardDesignOutcome;
       };
       save_card_customization: {
         Args: {

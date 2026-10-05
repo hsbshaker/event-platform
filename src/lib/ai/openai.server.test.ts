@@ -70,6 +70,7 @@ const DESIGN: CardDesign = {
     texture: "cream laid paper",
     avoid: ["kitsch"],
   },
+  refinement: "none",
 };
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 1, 2, 3]);
@@ -458,7 +459,7 @@ describe("Card Design", () => {
     const body = sentJson();
     expect(body.model).toBe("gpt-6.1-sol");
     expect(body.text.format.name).toBe("CardDesign");
-    expect(body.instructions).toContain("**Prompt version:** `card_design_v3`");
+    expect(body.instructions).toContain("**Prompt version:** `card_design_v4`");
     expect(JSON.stringify(body)).not.toContain(CANARY);
     const data = JSON.parse(body.input[0].content);
     expect(Object.keys(data)).toEqual([
@@ -474,8 +475,8 @@ describe("Card Design", () => {
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "card_design",
       round: 2,
-      prompt_version: "card_design_v3",
-      schema_version: "card_design_schema_v2",
+      prompt_version: "card_design_v4",
+      schema_version: "card_design_schema_v3",
       layout_set_version: "card_layouts_v3",
     });
   });
@@ -519,7 +520,7 @@ describe("card artwork", () => {
       model: "gpt-image-2.5-sunburst-2026-09-08",
       image_units: 1,
       output_tokens: 2000,
-      prompt_version: "card_art_v4",
+      prompt_version: "card_art_v5",
       schema_version: null,
       layout_set_version: "card_layouts_v3",
       cost_estimate_usd: 0.062, // 400 × $5 + 2000 × $30, per 1M

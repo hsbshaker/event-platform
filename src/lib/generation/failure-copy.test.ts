@@ -41,9 +41,13 @@ const METER: Record<ModelCallRefusal, true> = {
   invalid_context: true,
   deadline: true,
 };
-const REFUSED_STARTS: Record<Extract<StartGenerationOutcome, "event_cap" | "host_cap">, true> = {
+const REFUSED_STARTS: Record<
+  Extract<StartGenerationOutcome, "event_cap" | "host_cap" | "no_design">,
+  true
+> = {
   event_cap: true,
   host_cap: true,
+  no_design: true,
 };
 const ORCHESTRATION = ["internal", "unsupported_kind", "published"];
 const DATABASE = ["stale", "published"];
@@ -66,6 +70,7 @@ const EXPECTED_RETRY: Record<GenerationFailureCode, boolean> = {
   stopped: true,
   event_cap: false,
   host_cap: false,
+  no_design: false,
 };
 
 /** Words the host must never see (`docs/design-system.md §12.3`, `spec.md §26`). */

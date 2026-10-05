@@ -34,10 +34,19 @@ async function start(
   event = eventA,
   client: Client = db,
   kind: "initial" | "another_direction" = "initial",
+  fromDesign: string | null = null,
 ): Promise<string> {
   const { rows } = await client.query(
-    `select * from public.start_generation($1, $2, $3, $4, $5::bytea, $6::bytea, 30, 60, 330)`,
-    [event, owner, kind, randomUUID(), keyHash(`event:${event}`), keyHash(`user:${owner}`)],
+    `select * from public.start_generation($1, $2, $3, $4, $5::bytea, $6::bytea, 30, 60, 330, null, $7)`,
+    [
+      event,
+      owner,
+      kind,
+      randomUUID(),
+      keyHash(`event:${event}`),
+      keyHash(`user:${owner}`),
+      fromDesign,
+    ],
   );
   expect(rows[0].outcome).toBe("started");
   return rows[0].generation_id as string;
@@ -107,6 +116,8 @@ type PersistArgs = {
   ink?: unknown;
   storageKey?: string;
   proportion?: string;
+  refinement?: string;
+  changedFrom?: string | null;
 };
 
 async function persist(
@@ -122,6 +133,8 @@ async function persist(
     ink = Object.fromEntries(fitsShapes.map((s) => [s, { text: { ink: "#2b2118" } }])),
     storageKey = `${event}/${generation}/${randomUUID()}.png`,
     proportion = fitsShapes.includes("square") ? "square_1_1" : "portrait_5_7",
+    refinement = "none",
+    changedFrom = null,
   } = args;
   const { rows } = await client.query(
     `select * from public.persist_generated_card(
@@ -131,7 +144,7 @@ async function persist(
        '{"presentation":{"name":"Lemons & Linen"}}',
        '{"designPrompt":"card_design_v1","designSchema":"card_design_schema_v1","layoutSet":"card_layouts_v2","compiler":"card_compiler_v2","artPrompt":"card_art_v2","imageModel":"gpt-image-2.5-sunburst-2026-09-08"}',
        array['invitationLine'], $5, 'image/png', 4200000, 1440, 2016, $9, $6, $7,
-       'gpt-image-2.5-sunburst-2026-09-08', 'card_art_v2', $8)`,
+       'gpt-image-2.5-sunburst-2026-09-08', 'card_art_v2', $8, $10, $11)`,
     [
       generation,
       event,
@@ -142,6 +155,8 @@ async function persist(
       ink,
       TELEMETRY,
       proportion,
+      refinement,
+      changedFrom,
     ],
   );
   return rows[0];
@@ -438,8 +453,12 @@ describe("persist_generated_card", () => {
     const first = await generationWithIdentity();
     const one = await persist(first);
     // A later card is another direction: a second initial generation is refused (`designed`).
-    const second = await start(eventA, db, "another_direction");
-    const two = await persist(second, { shape: "square", fitsShapes: ["square", "circle"] });
+    const second = await start(eventA, db, "another_direction", one!.card_design_id);
+    const two = await persist(second, {
+      shape: "square",
+      fitsShapes: ["square", "circle"],
+      changedFrom: one!.card_design_id,
+    });
     expect([one?.round, two?.round]).toEqual([1, 2]);
     // The second card is not chosen by the host, so the first stays active.
     expect(await activeDesign()).toEqual({

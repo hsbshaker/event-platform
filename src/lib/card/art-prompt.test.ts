@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   ART_RASTER_SIZE,
   assembleArtPrompt,
+  assembleRevisionPrompt,
   assembleShapeSwitchPrompt,
   CARD_ART_PROMPT_VERSION,
   cropShapeFor,
   fitsShapes,
   REPAINT_COMPOSITION,
+  REVISION_PREFIX,
   withRepaintComposition,
 } from "./art-prompt";
 import { ART_MODE_FIT, ART_MODES } from "./art-modes";
@@ -43,9 +45,23 @@ const ALWAYS = [
 const CORNER_LINE =
   "The trimming is done later by the printer: carry the background all the way into every corner and edge of the canvas. Do not draw the outline itself, a vignette, a border line or blank corners.";
 
-describe("card_art_v4", () => {
+describe("the revision prompt (card_art_v5, model-contracts §7.2)", () => {
+  it("prefixes the full art prompt with the exact revision sentence", () => {
+    const input = design("rectangle", "art-top", "illustration");
+    expect(REVISION_PREFIX).toBe(
+      "Revise the reference image to match this description, keeping its composition, subject placement, rendering, lighting and palette wherever the description does not change them:",
+    );
+    expect(assembleRevisionPrompt(input)).toBe(`${REVISION_PREFIX}\n${assembleArtPrompt(input)}`);
+  });
+
+  it("refuses a shape the layout does not support, as the art prompt does", () => {
+    expect(() => assembleRevisionPrompt(design("circle", "art-top", "illustration"))).toThrow();
+  });
+});
+
+describe("card_art_v5", () => {
   it("is versioned", () => {
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v4");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v5");
     expect(ART_RASTER_SIZE).toEqual({ "5:7": "1440x2016", "1:1": "1440x1440" });
   });
 
