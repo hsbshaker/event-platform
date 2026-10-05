@@ -21,7 +21,7 @@ Application behavior that remains:
 - light-only app chrome MVP.
 
 What changes:
-- one design at a time, with `Try another direction`, replaces three concepts and the concept comparison;
+- one design at a time, with `Try another direction` (the change the host asks for, or a new idea), replaces three concepts and the concept comparison;
 - the reveal is the card coming out of an envelope, not a full-site reveal;
 - the card is the only themed, generated surface; the page beneath it is house style for every event and takes nothing from the card;
 - hosts edit the card's text layer in a free **card editor** (Revision 7.2, `spec.md §20`): every piece of text is a text box they can edit, move, resize, rotate, restyle (any Google Fonts family, any colour) and add to, by touch or mouse (§4.10a); they switch the card's shape among six (rectangle, rounded rectangle, arch, oval, square, circle) from the Design panel; the artwork, outline and envelope are never editable;
@@ -84,7 +84,7 @@ OPTIONAL DETAILS OFFERED WHILE GENERATION RUNS
 CARD REVEAL FROM THE ENVELOPE
 "Your invitation looks great. Let's make it real."
     ├── Make it yours
-    └── Try another direction → one new card; the current one stays active until chosen
+    └── Try another direction → one new card (the change asked for, or a new idea); the current one stays active until chosen
     ↓
 CREATION MODE
 The invitation (card + page) is the workspace.
@@ -898,9 +898,11 @@ Available before publish from the reveal and from Creation Mode (via Design).
 ```text
 Try another direction
        ↓
-Optional feedback ("more playful", "less preppy") and optional new inspiration
+Optional: what to change ("add a little dinosaur", "make it a starry night", "something new")
+and optional new inspiration
        ↓
-One new card, genuinely different from every earlier one
+One new card: the same card with that change, or — left empty or asking for something new —
+one genuinely different from every earlier one (spec.md §7.7)
        ↓
 Choose it, keep the current one, or try again
 ```
@@ -908,14 +910,18 @@ Choose it, keep the current one, or try again
 Preferred framing:
 
 > **What should we change?**
+> Say what to change, or leave it empty for a new idea.
 
-Feedback and inspiration are optional; the host may leave both blank and ask for another exploration.
+Feedback and inspiration are optional; the host may leave both blank and ask for another
+exploration. One box serves both: the host never chooses between "refine" and "new" (owner
+decision, 2026-10-05); the design step reads the request. The wait for a changed card is the same
+honest surface as the first (§4.3), and the new card is revealed from its envelope the same way.
 
 Explicit reassurance, shown in the flow:
 
 > **Your event details stay exactly as they are.**
 
-Design regeneration must not imply that guests, dates, RSVP data, registry data, or event wording will be lost. There is no chat-level micro-edit loop and no persistent assistant. No user-facing credits or counters.
+Design regeneration must not imply that guests, dates, RSVP data, registry data, or event wording will be lost. There is no chat and no persistent assistant: each round is one request and one new card, and every card made stays in the designs list. No user-facing credits or counters.
 
 ---
 

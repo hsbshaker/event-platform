@@ -185,6 +185,7 @@ CardDesign {
     texture: string
     avoid: string[]              // 0–8; carries the identity's negative constraints forward
   }
+  refinement: "none" | "part" | "whole"   // card_design_schema_v3: what this design is, see below
 }
 ```
 
@@ -206,6 +207,23 @@ other fact. With one specific, that specific is the idea. A theme the identity c
 because the host left it to us is made concrete and recognisable, never abstract. Any rendering
 can carry the idea; the rendering mix is unchanged.
 
+Prompt `card_design_v4`, schema `card_design_schema_v3` (Phase 5d; owner decisions, 2026-10-05,
+`spec.md §7.7`): on `Try another direction` with feedback, the call also receives `changing`, the
+card the host is changing, and reports in `refinement` what it made:
+
+- `part` — a change to part of the card: the same idea, subject, rendering, layout, shape, art
+  mode, pairing, title and invitation line unless the feedback names one, and an art brief
+  rewritten as the full description of the card with the change applied. Its artwork is an edit
+  of the changed card's artwork (§7.2).
+- `whole` — a change to the whole look (light, time of day, overall colour): the same idea with
+  the brief revised; its artwork is painted fresh.
+- `none` — a new idea: the feedback asks for something new. Always `none` without `changing` (the
+  first card, and an empty box), which validation enforces.
+
+Distinctness (§5.3) applies to `none` only. The feedback is never copied into the brief verbatim:
+the design describes the change as an illustrator would, and only the brief reaches the image
+model. Designs persisted under schema v2 have no `refinement`; they read as `none`.
+
 String bounds (Phase 3, `model-schemas/card-design.schema.json`): `title` 2–40 characters,
 `invitationLine` 8–72, `artBrief.subject` 8–300, `artBrief.aesthetic` 3–40, other brief fields
 3–200, `avoid` 0–8 items. They are generated into the schema from the layout catalog, so a valid
@@ -226,6 +244,9 @@ GenerateCardDesignInput {
   }[]
   suggestedRendering?: Rendering                // drawn at random, see below
   feedback?: string                            // optional "Try another direction" feedback
+  changing?: {                                  // with feedback: the card the host is changing
+    name, shape, layout, artMode, primary, wording: { title, invitationLine }, artBrief
+  }
   reprompt?: { kind: "schema" | "wording" | "repeat-direction" | "provider-refusal"; feedback: string }
 }
 ```
@@ -267,8 +288,11 @@ In order, deterministic (`card-system.md §4.1`):
 3. **Wording fact check** (§5.4), on model-drafted wording only, together with the checks a host's
    own text gets (`card-system.md §2.5`): drawable characters and a fit in every design. Failure →
    one re-prompt naming the slot; second failure → standard wording for that slot, logged.
-4. **Direction distinctness**: same layout, art mode and primary pairing as an earlier direction →
-   one re-prompt naming the earlier directions; second repeat → accepted and logged.
+4. **Direction distinctness**, for a new idea (`refinement: "none"`): same layout, art mode and
+   primary pairing as an earlier direction → one re-prompt naming the earlier directions; second
+   repeat → accepted and logged. A requested change (`part`, `whole`) is exempt.
+5. **Refinement consistency**: `refinement` is `none` whenever the call had no `changing`; a
+   refinement that drops `changing`'s idea is not detectable by code and is judged by CD-08.
 
 ## 5.4 Wording rules
 
@@ -302,6 +326,10 @@ failure is never acceptable:
   constraints (qualitative, §6).
 - **CD-05 direction diversity**: successive directions for one event are different ideas, not
   palette or font swaps (mixed: distinctness check deterministic, *feeling* different qualitative).
+- **CD-08 refinement fidelity**: a requested change keeps the card and changes what was asked — a
+  change to part of the card reads as "my card with that change", a change to the whole look as
+  the same idea in the new light or colour, and a request for something new as a new idea; the
+  `refinement` it reports matches (qualitative; Phase 5d sheet, then the corpus).
 - **CD-06 wording quality**: the title and invitation line have the right voice and would not need
   rescuing (qualitative).
 - **CD-07 adversarial feedback**: feedback asking for HTML, CSS, a specific hex for the text, a
@@ -382,8 +410,10 @@ photograph — the artwork may itself be one when the rendering says so.
 ## 7.2 Input and output
 
 ```ts
-GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape; reference? }
-// proportion derived from shape; reference = the design's own earlier artwork, on a shape switch only
+GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape; reference?; revision? }
+// proportion derived from shape; reference = the event's own generated artwork: the design's own
+// earlier artwork on a shape switch, or the changed card's artwork on a change to part of a card
+// (revision: true frames the prompt as a revision of the reference)
 → { mimeType, bytes }    // plus provider usage and model id for metering
 ```
 
@@ -396,8 +426,17 @@ A host's switch to a shape no existing artwork fits (`card-system.md §7`) calls
 again with the same art brief and the new shape; the raster's proportion is derived from the shape
 (`src/lib/card/shapes.ts`) and is never passed separately. It passes the current artwork as
 `reference` so the subject stays the same (the same character, rearranged for the new outline).
-The reference is always the design's own generated artwork — never a host upload, an inspiration
-image or anything retrieved. It is a generation for limits and metering, and it
+The reference is always the event's own generated artwork — never a host upload, an inspiration
+image or anything retrieved.
+
+A change to part of a card (`refinement: "part"`, §5.1) calls `generateCardArt` on the edits
+endpoint with the changed card's artwork as `reference` and `revision: true`: the assembled art
+prompt is prefixed with "Revise the reference image to match this description, keeping its
+composition, subject placement, rendering, lighting and palette wherever the description does not
+change them" (`card_art_v5`). Its repaints stay edits of the same reference. A change to the whole
+look and a new idea are painted fresh, with no reference. In the Phase 5 refine experiment (eight
+requests on four cards, CHANGELOG) edits kept "my card with that change" in six of eight, passed
+every first validation, and failed only the whole-look requests, which is why those repaint. It is a generation for limits and metering, and it
 adds an artwork to the design rather than replacing one.
 
 ## 7.3 Validation

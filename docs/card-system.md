@@ -50,13 +50,16 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
    guests see the same card.
 8. **The raw host prompt never reaches the image model.** The image model receives an art brief
    derived from the persisted `EventIdentity` plus layout and shape rules (§3). Inspiration uploads are
-   inputs to `EventIdentity` only and are never sent to the image model; the only image it ever
-   receives is the design's own earlier artwork, as a reference for a shape switch (§7).
+   inputs to `EventIdentity` only and are never sent to the image model, nor are the host's words;
+   the only images it ever receives are the event's own generated artwork, as a reference: the
+   design's own earlier artwork on a shape switch (§7), and the artwork of the card being changed
+   on a change to part of it (§3).
    Brand references follow `spec.md §7.6`: close homage allowed, never a logo, wordmark, brand or
    character name, or copied campaign artwork.
 9. **Generated design data is immutable.** A `CardDesign` and its artwork never change once
    generated. Host edits live on the event and in a `CardCustomization` per design and shape (§5);
-   "Try another direction" creates a new design; artwork
+   "Try another direction" creates a new design — a requested change too, leaving the card it
+   changes untouched; artwork
    generated when the host switches to a shape the existing artwork does not fit is an additional
    asset, never a change to the first (§5, §7).
 10. **No templates of art, no stock, no uploads on the card.** Artwork is generated for this event's
@@ -353,10 +356,12 @@ host prompt + optional inspiration
   → generateEventIdentity            GPT 6.1 Sol; the only stage that reads the raw prompt
   → (optional) creative clarification, at most three taste questions, usually none
   → generateCardDesign               GPT 6.1 Sol; shape, layout, art mode, typography, wording, art brief
-                                     (with a randomly suggested rendering it follows unless the identity points elsewhere)
+                                     (with a randomly suggested rendering it follows unless the identity points elsewhere;
+                                     on Try another direction, the change asked for or a new idea, and which it made)
   → validate CardDesign              deterministic (§4.1)
   → assemble the art prompt          deterministic: brief (with its rendering line, §2.4) + layout and shape composition rules + global rules
   → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
+                                     (a change to part of a card: an edit of that card's artwork, framed as a revision)
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
   → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
   → (while its shape needs a panel) repaint: same art prompt (+ what to keep clear, for art with a subject); validate; resolve again — two extra images at most
@@ -369,8 +374,23 @@ In parallel with identity, a cheaper structured-extraction call pulls any facts 
 host to confirm (`spec.md §7.3`, `§9.2`). Facts never come from `EventIdentity` and are never inferred.
 
 **One design at a time.** Each round generates one card. "Try another direction" runs
-`generateCardDesign` again with the host's optional feedback and a summary of every earlier
-direction for this event, and must produce a different direction (§4.1).
+`generateCardDesign` again with the host's optional feedback, a summary of every earlier direction
+for this event and, when the host says what to change, the card being changed (`spec.md §7.7`,
+owner decisions 2026-10-05). The design says which it made:
+
+- **a change to part of the card** keeps the card — idea, subject, rendering, layout, shape, art
+  mode, pairing, title and invitation line, unless the request names one — and rewrites the brief
+  with the change. Its artwork is an **edit** of the changed card's artwork: the image model's
+  edits endpoint with that artwork as the reference, the assembled art prompt framed as a revision
+  ("keep its composition, subject placement, rendering, lighting and palette wherever this
+  description does not change them"). Repaints stay edits of the same reference.
+- **a change to the whole look** (light, time of day, overall colour) keeps the idea and paints the
+  revised brief fresh: an edit holds the original's tones, so a night sky came back mid-blue and
+  needed the panel, and "warmer light" came back unchanged (Phase 5 refine experiment, CHANGELOG).
+- **a new idea** — the box empty, or asking for something new — must be a different direction
+  (§4.1).
+
+The host's words never reach the image model: the design writes the change into the brief.
 
 **Re-prompts and failure.** Each trigger earns at most one re-prompt (or, for artwork, one
 regeneration); if the second attempt fails too:
@@ -382,7 +402,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
-| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) would need the legibility panel (§4.2): the picture has run into the text area | repainted from the same art prompt — for `illustration` and `framed` art plus one line saying what to keep clear of the words (`card_art_v4`, owner decision 2026-10-05); a wash's repaint repeats the prompt — (a switch keeps its reference) until an artwork needs no panel, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept with the panel; a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
+| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) would need the legibility panel (§4.2): the picture has run into the text area | repainted from the same art prompt — for `illustration` and `framed` art plus one line saying what to keep clear of the words (`card_art_v4`, owner decision 2026-10-05); a wash's repaint repeats the prompt — (a switch, or a change to part of a card, keeps its reference) until an artwork needs no panel, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept with the panel; a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it
@@ -409,8 +429,9 @@ No step here calls a model or regenerates artwork.
   `invitationLine`: "Please join us for a baby shower"; from the default type when a stated type's
   wording would not itself clear those checks), logged, and visible to the host as ordinary
   editable text. A host-supplied title is never checked or replaced.
-- Direction distinctness: a design that repeats an earlier direction's layout, art mode and primary
-  pairing together earns its one re-prompt naming the earlier directions.
+- Direction distinctness, for a new idea: a design that repeats an earlier direction's layout, art
+  mode and primary pairing together earns its one re-prompt naming the earlier directions. A change
+  the host asked for is exempt: keeping the card is the point.
 - Artwork: file type, the requested proportion (5:7 or 1:1) within tolerance, minimum resolution,
   decodable. Detecting embedded text (which covers logos and wordmarks) and unsafe content is
   required; the mechanism is chosen in Phase 3 validation. For a `photographic`, `editorial`,
@@ -598,7 +619,7 @@ edits the card's **text layer**; the artwork, outline and envelope are never edi
 | `Reset card` | none | a new revision of this design and shape's customization with the seed re-applied — never a delete, so stale saves are still refused; `Event.title` and event details are not reverted |
 | Switch to a shape an existing artwork fits | none | `activeCardShape`; that shape's customization if one exists, otherwise its generated layout carrying the host's words, added text and fonts |
 | Switch to a shape no existing artwork fits (the other proportion, or another outline for `framed`/`minimal` art) | card art | new artwork for that shape from the same brief, with the current artwork as a reference so the subject stays the same, attached to the same design; validated and ink-resolved as in §3–§4; counts as a generation (`spec.md §10`); before publish only. The current card stays as it is until the new artwork is ready; then as the row above. Switching back is instant |
-| Try another direction (optional feedback) | card design + art | a new `CardDesign`; current card stays active until the host chooses |
+| Try another direction (optional feedback) | card design + art | a new `CardDesign` — the card changed as asked (its artwork an edit of the changed card's for a change to part of it) or a new idea (§3); counts as a generation; current card stays active until the host chooses |
 | Choose another design | none | `activeCardDesignId`; that design's customization if one exists, otherwise its generated layout carrying the host's words, added text and fonts |
 
 **Carrying words to a fresh layout** (a new design or shape with no customization of its own):
