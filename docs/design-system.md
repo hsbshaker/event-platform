@@ -1638,6 +1638,9 @@ Contains only high-level controls:
 
 It is not a page-builder toolbar.
 
+Implemented as `src/components/app/OwnerToolbar.tsx`: for now it holds `Design` only, end-aligned
+above the card; `Preview` joins it with the preview surface.
+
 ## 10.11 `ContextEditAction`
 
 Standardized collaborator-only affordance:
@@ -1668,6 +1671,9 @@ Requirements:
 - safe-area aware;
 - opens `SetupChecklist`.
 
+Implemented as `src/components/app/SetupProgressPill.tsx`: `Finish setup · N left` while
+publish blockers remain, else `Ready to publish`.
+
 ## 10.13 `SetupChecklist`
 
 Contains only the meaningful top-level setup tasks.
@@ -1679,6 +1685,13 @@ Each item has:
 - direct navigation.
 
 No percent-complete gamification.
+
+Implemented as `src/components/app/SetupChecklist.tsx`, from `publishReadiness`
+(`src/lib/events/publish-readiness.ts`, exactly `spec.md §23.1`). Each blocker row opens the
+details editor on its field. While no date is saved, the date row stands for the RSVP deadline too,
+whose default is stored with the date; the time zone, inferred from the venue (`spec.md §7.4`),
+opens the venue field. The private event code is listed without an action until it can be set.
+The recommended group appears once its surfaces (guests, registry, co-hosts) exist.
 
 ## 10.14 `InvitationCard`
 

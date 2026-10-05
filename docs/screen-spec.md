@@ -190,6 +190,9 @@ Group 2: **Recommended before sharing**
 
 Publish-ready state is allowed with recommended items incomplete.
 
+While no date is saved, the date row stands for the RSVP deadline too (its default is stored with
+the date); the time zone row opens the venue field (it is inferred from the venue, §7.4).
+
 ## `event-details-editor`
 
 **Mobile:** sheet/full-screen editor.  
@@ -297,6 +300,9 @@ Controls, in order (§7.14, §20):
 - `Reset card` — back to the design's generated layout, fonts, colours and invitation line for the current shape (the title and event details are not reverted), after a confirmation (see `card-editor`);
 - `Try another direction ✦` before publish;
 - designs list before publish (read-only afterwards).
+
+A shape that needs new artwork keeps waiting when the panel is closed: a quiet status by the card
+("Painting your card as a square…") says so, and a failure shows there with `Try again`.
 
 After publish, `Edit card`, `Reset card` and shapes an existing artwork fits remain; `Try another direction`, shapes that need new artwork and the designs list do not (§8.1, §8.2).
 
