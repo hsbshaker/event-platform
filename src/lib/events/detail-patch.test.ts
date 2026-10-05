@@ -170,3 +170,22 @@ describe("field copying", () => {
     ]);
   });
 });
+
+describe("description and title in a details patch (spec.md §7.3, §20.2)", () => {
+  it("writes the description, and an empty one clears it", () => {
+    expect(computeEventPatch(DATED, { description: "Lunch in the garden." }, NOW).description).toBe(
+      "Lunch in the garden.",
+    );
+    expect(computeEventPatch(DATED, { description: "" }, NOW).description).toBeNull();
+  });
+
+  it("an empty title clears it, so the card's own title applies again", () => {
+    expect(computeEventPatch(DATED, { title: "" }, NOW).title).toBeNull();
+  });
+
+  it("leaves both alone when the patch does not carry them", () => {
+    const patch = computeEventPatch(DATED, { hosts: "Ana" }, NOW);
+    expect("description" in patch).toBe(false);
+    expect("title" in patch).toBe(false);
+  });
+});

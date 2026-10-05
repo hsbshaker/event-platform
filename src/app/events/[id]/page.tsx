@@ -1,25 +1,29 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { loadEventDraft, type EventDraftView } from "@/app/actions/event-details";
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
+import { eventPageContent } from "@/lib/events/page-content";
 import {
   loadEventDesigns,
   loadRevealedCard,
   type RevealedCard,
 } from "@/lib/generation/reveal.server";
+import { CreationCanvas } from "./CreationCanvas";
 import { DesignsList } from "./DesignsList";
 import { EventUnavailable } from "./EventUnavailable";
 
 /**
- * The entry to Creation Mode (`docs/screen-spec.md` `creation-mode`; `spec.md §7.11`): the same
- * invitation the reveal showed, with no envelope, for the event's owner and co-hosts. This is the
- * minimal entry: the card at a comfortable size with its "needs confirming" markers. The page's
- * sections, the `Edit` / `Set up` / `Add` anchors and readiness arrive with Creation Mode proper;
- * there is no dashboard here. Below the card, when the event has more than one design, the designs
- * list (`DesignsList`): every card, the active one marked, choosing before publish.
+ * Creation Mode (`docs/screen-spec.md` `creation-mode`; `spec.md §7.11`, §7.12): the same
+ * invitation the reveal showed, with no envelope, for the event's owner and co-hosts — the card at
+ * a comfortable size with its "needs confirming" markers, then the house-style page beneath it
+ * (`EventPage`), with the `Edit` / `Add` anchors that open the event-details editor
+ * (`CreationCanvas`). There is no dashboard here. Toolbar, Design panel, readiness and Preview come
+ * in later slices. After the page, when the event has more than one design, the designs list
+ * (`DesignsList`): every card, the active one marked, choosing before publish.
  *
  * Anyone else, and an id that is not an event's, sees the same plain "isn't available" state as
  * the create page, so it never says whether an event exists (`spec.md §27`). An event with no card
@@ -36,52 +40,81 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!z.uuid().safeParse(id).success) return <EventUnavailable />;
 
   let revealed: RevealedCard | null;
+  let draft: EventDraftView | null;
   try {
     revealed = await loadRevealedCard(id);
+    draft = revealed ? await loadEventDraft(id) : null;
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return <EventUnavailable />;
     }
     throw error;
   }
-  if (!revealed) redirect(`/events/${id}/create`);
+  if (!revealed || !draft) redirect(`/events/${id}/create`);
   // Every design of the event, browsable before publish (`spec.md §31` — Card experience).
   const designs = await loadEventDesigns(id);
 
   const { card } = revealed;
   const proportion = card.artwork.proportion;
+  const content = eventPageContent(
+    {
+      title: revealed.title,
+      hosts: draft.hosts,
+      babyName: draft.babyName,
+      eventDate: draft.eventDate,
+      startTime: draft.startTime,
+      endTime: draft.endTime,
+      venueName: draft.venueName,
+      address: draft.address,
+      rsvpDeadline: draft.rsvpDeadline,
+      timezone: draft.timezone,
+      description: draft.description,
+      promptFacts: draft.promptFacts,
+    },
+    "creation",
+    new Date(),
+  );
   return (
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col items-center gap-6 px-4 py-10 lg:py-14">
-      <h1 className="sr-only">{revealed.title}</h1>
-      <div
-        className="w-full"
-        style={{
-          maxWidth: CARD_WIDTH[proportion],
-          aspectRatio: proportion === "5:7" ? "5 / 7" : "1 / 1",
-        }}
-      >
-        <CardWithMarkers card={card} unconfirmed={revealed.unconfirmed} />
-      </div>
-      <ConfirmLegend
-        boxes={card.boxes}
-        unconfirmed={revealed.unconfirmed}
-        className="max-w-prose"
+      <CreationCanvas
+        event={draft}
+        content={content}
+        card={
+          <>
+            <div
+              className="w-full"
+              style={{
+                maxWidth: CARD_WIDTH[proportion],
+                aspectRatio: proportion === "5:7" ? "5 / 7" : "1 / 1",
+              }}
+            >
+              <CardWithMarkers card={card} unconfirmed={revealed.unconfirmed} />
+            </div>
+            <ConfirmLegend
+              boxes={card.boxes}
+              unconfirmed={revealed.unconfirmed}
+              className="max-w-prose"
+            />
+            {/* Before publish only (`spec.md §8.2`). */}
+            {!revealed.published && (
+              <AppButtonLink
+                href={`/events/${id}/direction?from=${revealed.designId}`}
+                variant="secondary"
+                size="md"
+              >
+                Try another direction ✦
+              </AppButtonLink>
+            )}
+          </>
+        }
+        below={
+          designs.length > 1 ? (
+            <div className="mt-6 w-full">
+              <DesignsList eventId={id} designs={designs} published={revealed.published} />
+            </div>
+          ) : null
+        }
       />
-      {/* Before publish only (`spec.md §8.2`). */}
-      {!revealed.published && (
-        <AppButtonLink
-          href={`/events/${id}/direction?from=${revealed.designId}`}
-          variant="secondary"
-          size="md"
-        >
-          Try another direction ✦
-        </AppButtonLink>
-      )}
-      {designs.length > 1 && (
-        <div className="mt-6 w-full">
-          <DesignsList eventId={id} designs={designs} published={revealed.published} />
-        </div>
-      )}
     </main>
   );
 }

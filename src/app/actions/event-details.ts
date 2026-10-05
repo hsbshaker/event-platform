@@ -13,6 +13,7 @@ import { cardVenue, parsePromptFacts, type PromptFacts } from "@/lib/card/facts"
 import { cardTextFieldErrors, type VenueContext } from "@/lib/events/card-text";
 import { cardTextFitErrors } from "@/lib/events/card-text-fit.server";
 import { computeEventPatch } from "@/lib/events/detail-patch";
+import { DESCRIPTION_MAX_LENGTH } from "@/lib/events/page-content";
 import { provisionalContent, type ProvisionalContent } from "@/lib/events/provisional";
 import {
   missingRequiredDetails,
@@ -34,6 +35,8 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 
 const patchSchema = z.object({
   title: z.string().trim().max(200).nullable().optional(),
+  /** Page content only (the text under the card); never on the card, so no card fit check. */
+  description: z.string().trim().max(DESCRIPTION_MAX_LENGTH).nullable().optional(),
   eventDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -65,6 +68,8 @@ export interface EventDraftView extends EventDetailFields {
    * `shouldApplyServerEvent`).
    */
   rowVersion: number;
+  /** The page's description (`events.description`); never on the card. */
+  description: string | null;
   /** The facts the prompt states, as written (`events.prompt_facts`); null when none were extracted. */
   promptFacts: PromptFacts | null;
   /** §23.1 requirements not yet satisfied. Informational: nothing is blocked by them now. */
@@ -74,12 +79,13 @@ export interface EventDraftView extends EventDetailFields {
 }
 
 const COLUMNS =
-  "id, prompt, title, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at, row_version, prompt_facts";
+  "id, prompt, title, description, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at, row_version, prompt_facts";
 
 type EventRow = {
   id: string;
   prompt: string;
   title: string | null;
+  description: string | null;
   event_date: string | null;
   start_time: string | null;
   end_time: string | null;
@@ -128,6 +134,7 @@ function toView(row: EventRow, now: Date): EventDraftView {
     rsvpDeadlineEdited: row.rsvp_deadline_edited,
     generationRequestedAt: row.generation_requested_at,
     rowVersion: row.row_version,
+    description: row.description,
     promptFacts: parsePromptFacts(row.prompt_facts),
     missing: missingRequiredDetails(fields),
     provisional: provisionalContent(source, now),

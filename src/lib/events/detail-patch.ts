@@ -21,6 +21,7 @@ export interface PatchableRow {
 
 export interface PatchableInput {
   title?: string | null;
+  description?: string | null;
   eventDate?: string | null;
   startTime?: string | null;
   endTime?: string | null;
@@ -35,6 +36,7 @@ export interface PatchableInput {
 
 export type EventUpdate = Partial<{
   title: string | null;
+  description: string | null;
   event_date: string | null;
   start_time: string | null;
   end_time: string | null;
@@ -50,6 +52,7 @@ export type EventUpdate = Partial<{
 
 const FIELDS: ReadonlyArray<[keyof PatchableInput, keyof EventUpdate]> = [
   ["title", "title"],
+  ["description", "description"],
   ["eventDate", "event_date"],
   ["startTime", "start_time"],
   ["endTime", "end_time"],
