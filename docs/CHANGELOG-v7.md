@@ -519,6 +519,40 @@ circles. Two decisions by the owner (2026-10-04):
   preview database before the senior review tightened them; it was stopped, and its generations
   are not evidence.
 
+### Phase 5 — round three: three fixes before the owner's next look (owner decisions, 2026-10-05)
+
+- **What round three showed** (the reviewed prompts, `card_compiler_v3`; 16 cases plus CU-10 three
+  more times). Fourteen of sixteen cards were made; CU-02 and CU-13 failed honestly with lettering
+  in both images (CU-13's photographed antique map carried place names). Told "surprise me", CU-10
+  committed to a clear theme — and chose the same one, a lemon conservatory, four times out of
+  four. And five of seventeen cards took two repaints and still ended with the legibility panel,
+  about 70 s slower each; on O-02 the panel hid most of the bear.
+- **Decision 1: check the ink behind the actual lines** (`card_compiler_v4`). The owner had chosen
+  "the area right behind each line of text"; v3 measured strips across the whole zone, where
+  foliage and sky at the edges of empty space failed it. v4 lays out the generated text for the
+  words shown right after generation and judges the ink against the widest of the whole zone's
+  range and each line's area, padded by a quarter of the line height and clamped to the zone
+  (`src/lib/card/text-areas.ts`). Calibrated on the 56 preview artworks: the shape each card was
+  painted for needed the panel 2 times under v2, 8 under v3 and 5 under v4 — CU-10's sculpture
+  under the title, a ribbon under a title, roses under a detail line, and two artworks that needed
+  it on the whole-zone measure already. The ink is judged for that one layout of the words; a
+  later edit that moves lines keeps only the whole-zone floor, and persisted ink is never
+  re-resolved. One producer, `cardContentWithPlaceholders`, gives the artwork stage and the corpus
+  the same words, so what is measured is what the card shows.
+- **Decision 2: a random theme seed for "surprise me"** (`event_identity_v6`). The identity call
+  has no source of variety, so code draws one of 97 everyday worlds per new identity
+  (`src/lib/generation/theme-seeds.ts`; none naturally carries writing) and the identity builds the
+  theme from it only when the host left the look to us, ignoring it otherwise — like the suggested
+  rendering. Telemetry records `themeSeed`.
+- **Lettered subjects are briefed blank** (`card_design_v3`, within guardrail #16). Maps, books,
+  labels, signs and the like come back lettered and fail the card; the design describes them as
+  blank ("an antique map of imagined coastlines with no place names or lettering") or picks
+  another subject.
+- **Versions:** `card_compiler_v4`; `event_identity_v6` and `card_design_v3` gain the seed and the
+  lettered-subject rule before they merge. Round three's cards are not evidence for the final
+  prompts; round three is run again. Updated: `spec.md §7.5`, §7.9, §9.5, §11.6 and two §31
+  criteria; `card-system.md §4.2`; `model-contracts.md §2` and §4.1.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

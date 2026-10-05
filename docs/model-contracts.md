@@ -58,7 +58,7 @@ CARD_DESIGN_PROMPT_VERSION    = "card_design_v3"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v2"
 CARD_ART_PROMPT_VERSION       = "card_art_v3"
 CARD_LAYOUT_SET_VERSION       = "card_layouts_v2"
-CARD_COMPILER_VERSION         = "card_compiler_v3"
+CARD_COMPILER_VERSION         = "card_compiler_v4"
 ```
 
 Record every version with generation telemetry, plus the image model per artwork. Do not edit a

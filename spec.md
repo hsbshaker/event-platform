@@ -782,10 +782,10 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
 5. resolves ink per text zone, for every shape the artwork fits (`docs/card-system.md §2.4`), from
-   the artwork's own palette, measuring the background conservatively — the whole zone and each
-   line-height strip of it, so artwork reaching into part of the zone counts (owner decision,
-   2026-10-05) — so every card text clears **4.5:1**; applies the layout's legibility panel when
-   no ink can;
+   the artwork's own palette, measuring the background conservatively — the whole zone and the
+   area behind each line of the card's text, with a small margin, so artwork under the letters
+   counts (owner decisions, 2026-10-05) — so every card text clears **4.5:1**; applies the
+   layout's legibility panel when no ink can;
 6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
 
 Card text layout for the generated card — font size and line breaks for every slot — is one pure
@@ -1146,7 +1146,7 @@ value takes no space. Placeholders appear only in Creation Mode and are never pu
 ### 11.6 Ink, legibility and fit
 
 For the card as generated: ink per text zone comes from the artwork's palette, measured
-conservatively over the whole zone and each line-height strip of it, reaching **4.5:1** for every
+conservatively over the whole zone and behind each line of the card's text, reaching **4.5:1** for every
 text; otherwise the artwork is repainted (§7.8) and then, if still needed, the layout's
 art-derived legibility panel is applied. `layoutCard` decides every size and line break
 deterministically, never stranding a short word such as "A" on a line of its own where a space
@@ -2427,7 +2427,8 @@ The host should feel:
   host sees a short, plain copyright note, never a provider error; a second refusal is a visible
   failure whose Try again takes the same step back (§7.6).
 - [ ] Every text of the generated card clears 4.5:1 against the conservatively measured background
-  of its zone, measured whole and strip by strip so artwork reaching into part of the zone counts
+  of its zone, measured whole and behind each line of its text (with a small margin) so artwork
+  under the text counts
   (host-chosen colours in the card editor are not checked);
   otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
 - [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
