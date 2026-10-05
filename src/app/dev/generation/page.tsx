@@ -66,6 +66,7 @@ async function fixtureCard(shape: CardShape): Promise<RevealedCard> {
   return {
     designId: "fixture-design",
     active: true,
+    published: false,
     round: 1,
     title: "Lemons & Linen",
     name: "Lemons & Linen",

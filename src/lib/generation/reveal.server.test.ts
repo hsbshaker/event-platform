@@ -59,6 +59,8 @@ function eventRow(overrides: Record<string, unknown> = {}) {
     },
     active_card_design_id: DESIGN,
     active_card_shape: null,
+    status: "DRAFT",
+    published_at: null,
     ...overrides,
   };
 }
@@ -130,6 +132,18 @@ describe("loadRevealedCard", () => {
     expect(admin.fake.state.signs).toEqual([]);
   });
 
+  it("says whether the event is published, as start_generation decides it", async () => {
+    for (const [overrides, published] of [
+      [{}, false],
+      [{ status: "PUBLISHED" }, true],
+      [{ status: "PASSED" }, true],
+      [{ status: "DRAFT", published_at: "2026-10-05T00:00:00Z" }, true],
+    ] as const) {
+      admin.fake.state.tables.events = [eventRow(overrides)];
+      expect((await load())?.published).toBe(published);
+    }
+  });
+
   it("returns the active design ready to render, with the unconfirmed boxes named", async () => {
     const revealed = await load();
     expect(revealed).not.toBeNull();
@@ -137,6 +151,7 @@ describe("loadRevealedCard", () => {
     expect(rest).toEqual({
       designId: DESIGN,
       active: true,
+      published: false,
       round: 1,
       title: "Lemons & Linen",
       name: "Lemons & Linen",

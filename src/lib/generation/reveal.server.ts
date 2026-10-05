@@ -50,6 +50,11 @@ export interface RevealedCard {
   designId: string;
   /** Whether it is the event's active design; a new direction is not until the host chooses it. */
   active: boolean;
+  /**
+   * Whether the event is published: then no new design and no switching (`spec.md §8.2`), so the
+   * pages offer neither `Try another direction` nor choosing.
+   */
+  published: boolean;
   round: number;
   /** The card's effective title (`effectiveCardTitle`): the envelope's front, as guests' envelope shows it. */
   title: string;
@@ -98,7 +103,12 @@ interface ArtRow {
 type EventRow = RevealEventRow & {
   active_card_design_id: string | null;
   active_card_shape: string | null;
+  status: string;
+  published_at: string | null;
 };
+
+/** As `start_generation` and `choose_card_design` decide it. */
+const PUBLISHED_STATUSES: ReadonlySet<string> = new Set(["PUBLISHED", "PASSED", "ARCHIVED"]);
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -189,7 +199,9 @@ export async function loadRevealedCard(
 
   const { data: event, error: eventError } = await admin
     .from("events")
-    .select(`active_card_design_id, active_card_shape, ${REVEAL_EVENT_COLUMNS}`)
+    .select(
+      `active_card_design_id, active_card_shape, status, published_at, ${REVEAL_EVENT_COLUMNS}`,
+    )
     .eq("id", eventId)
     .maybeSingle();
   if (eventError) throw eventError;
@@ -276,6 +288,7 @@ export async function loadRevealedCard(
   return {
     designId: designRow.id,
     active,
+    published: row.published_at !== null || PUBLISHED_STATUSES.has(row.status),
     round: designRow.round,
     title,
     name: designRow.name,

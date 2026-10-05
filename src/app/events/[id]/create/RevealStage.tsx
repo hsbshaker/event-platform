@@ -17,7 +17,7 @@ import type { RevealedCard } from "@/lib/generation/reveal.server";
  * has settled: its name and one-line description, the invitation's message, and `Make it yours →`
  * into Creation Mode (the same invitation, not a dashboard).
  *
- * `Try another direction` is not here yet: it arrives with its flow (Phase 5d).
+ * `Try another direction ✦` beside it opens the box for this card (Phase 5d).
  */
 
 /** A card read this recently is shown as it is; an older one is read again on the tap. */

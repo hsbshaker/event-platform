@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
@@ -43,6 +44,8 @@ export default async function DirectionPage({
     throw error;
   }
   if (!current || !from) return <EventUnavailable />;
+  // After publish there is no new design (`spec.md §8.2`): back to the invitation.
+  if (current.published) redirect(`/events/${id}`);
 
   // Remounted for each card the host tries to change: a new `from` is a new box.
   return <DirectionSurface key={from} eventId={id} from={from} current={current.card} />;

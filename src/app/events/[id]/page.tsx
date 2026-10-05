@@ -59,14 +59,16 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         unconfirmed={revealed.unconfirmed}
         className="max-w-prose"
       />
-      {/* Before publish only (`spec.md §8.2`): after it the start answers that the card stays. */}
-      <AppButtonLink
-        href={`/events/${id}/direction?from=${revealed.designId}`}
-        variant="secondary"
-        size="md"
-      >
-        Try another direction ✦
-      </AppButtonLink>
+      {/* Before publish only (`spec.md §8.2`). */}
+      {!revealed.published && (
+        <AppButtonLink
+          href={`/events/${id}/direction?from=${revealed.designId}`}
+          variant="secondary"
+          size="md"
+        >
+          Try another direction ✦
+        </AppButtonLink>
+      )}
     </main>
   );
 }
