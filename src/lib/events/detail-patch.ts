@@ -7,6 +7,9 @@ import { resolveEventTimezone, validateTimezone } from "./timezone";
  * Two rules carry real behaviour and are easy to get subtly wrong, so they live here where
  * they can be tested without a database or a session: which timezone a patch settles on, and
  * whether the RSVP deadline is recomputed or left alone. Everything else is a field copy.
+ *
+ * Visibility is not among the fields: it changes only through the privacy action, which stores
+ * the event code with it (`src/lib/events/privacy.server.ts`).
  */
 
 export interface PatchableRow {
@@ -29,7 +32,6 @@ export interface PatchableInput {
   address?: string | null;
   hosts?: string | null;
   babyName?: string | null;
-  visibility?: "public" | "private" | null;
   rsvpDeadline?: string | null;
   browserTimezone?: string | null;
 }
@@ -45,7 +47,6 @@ export type EventUpdate = Partial<{
   address: string | null;
   hosts: string | null;
   baby_name: string | null;
-  visibility: "public" | "private" | null;
   rsvp_deadline: string | null;
   rsvp_deadline_edited: boolean;
 }>;
@@ -60,7 +61,6 @@ const FIELDS: ReadonlyArray<[keyof PatchableInput, keyof EventUpdate]> = [
   ["address", "address"],
   ["hosts", "hosts"],
   ["babyName", "baby_name"],
-  ["visibility", "visibility"],
 ];
 
 export function computeEventPatch(

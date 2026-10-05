@@ -48,7 +48,6 @@ const patchSchema = z.object({
   address: z.string().trim().max(500).nullable().optional(),
   hosts: z.string().trim().max(300).nullable().optional(),
   babyName: z.string().trim().max(120).nullable().optional(),
-  visibility: z.enum(["public", "private"]).nullable().optional(),
   /** An explicit deadline from the host; sets the edited flag and is never recomputed after. */
   rsvpDeadline: z.string().datetime({ offset: true }).nullable().optional(),
   /** Sent once by the client so §7.4's fallback has something to fall back to. */
@@ -72,24 +71,28 @@ export interface EventDraftView extends EventDetailFields {
   description: string | null;
   /** The facts the prompt states, as written (`events.prompt_facts`); null when none were extracted. */
   promptFacts: PromptFacts | null;
-  /**
-   * Whether the event has been published (`published_at`, robust to PASSED and ARCHIVED). After
-   * publish, privacy is not a routine detail: switching to private needs its event code written in
-   * the same transaction (the privacy action), so this form does not offer it.
-   */
+  /** Whether the event has been published (`published_at`, robust to PASSED and ARCHIVED). */
   published: boolean;
+  /**
+   * An event code is stored (`events.access_code_encrypted` is not null; `spec.md §23.1`
+   * "encrypted access code when private"). A boolean only: the code itself is revealed to the
+   * owner and co-hosts by `revealEventCode` (`src/app/actions/privacy.ts`), never in this view.
+   */
+  accessCodeSet: boolean;
   /** §23.1 requirements not yet satisfied. Informational: nothing is blocked by them now. */
   missing: RequiredDetailKey[];
   /** Real values where present, and the placeholders the card shows in Creation Mode for the rest (§7.3). */
   provisional: ProvisionalContent;
 }
 
-/** Privacy is not a routine detail once the invitation is published (see `updateEventDetails`). */
-const PUBLISHED_VISIBILITY_MESSAGE =
-  "Your invitation is published, so its privacy can't be changed here.";
+/**
+ * Visibility is never a routine detail: it changes only through the privacy action, which stores
+ * the event code with it (`src/app/actions/privacy.ts`; AGENTS.md "the privacy action").
+ */
+const VISIBILITY_ELSEWHERE_MESSAGE = "Privacy is changed with its own control.";
 
 const COLUMNS =
-  "id, prompt, title, description, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at, row_version, prompt_facts, published_at";
+  "id, prompt, title, description, event_date, start_time, end_time, timezone, venue_name, address, hosts, baby_name, visibility, rsvp_deadline, rsvp_deadline_edited, generation_requested_at, row_version, prompt_facts, published_at, access_code_encrypted";
 
 type EventRow = {
   id: string;
@@ -112,6 +115,8 @@ type EventRow = {
   row_version: number;
   prompt_facts: unknown;
   published_at: string | null;
+  /** Read for `accessCodeSet` only; never leaves this module. */
+  access_code_encrypted: string | null;
 };
 
 function toFields(row: EventRow): EventDetailFields {
@@ -148,6 +153,7 @@ function toView(row: EventRow, now: Date): EventDraftView {
     description: row.description,
     promptFacts: parsePromptFacts(row.prompt_facts),
     published: row.published_at !== null,
+    accessCodeSet: row.access_code_encrypted !== null,
     missing: missingRequiredDetails(fields),
     provisional: provisionalContent(source, now),
   };
@@ -178,6 +184,14 @@ export async function updateEventDetails(
   eventId: string,
   patch: EventDetailsPatch,
 ): Promise<UpdateResult> {
+  // Refused rather than dropped, so a caller that still sends it learns it was not saved.
+  if (typeof patch === "object" && patch !== null && "visibility" in patch) {
+    return {
+      ok: false,
+      error: "Check the highlighted fields.",
+      fieldErrors: { visibility: VISIBILITY_ELSEWHERE_MESSAGE },
+    };
+  }
   const parsed = patchSchema.safeParse(patch);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -203,23 +217,13 @@ export async function updateEventDetails(
     return { ok: false, error: "Check the highlighted fields.", fieldErrors: cardErrors };
   }
 
-  let published: boolean;
   try {
-    published = (await requireEventAccess(eventId, "edit_event_content")).context.published;
+    await requireEventAccess(eventId, "edit_event_content");
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return { ok: false, error: "You cannot edit this event." };
     }
     throw error;
-  }
-  // After publish, privacy is changed only with its event code, in one transaction (AGENTS.md,
-  // "the privacy action"), never as a routine detail.
-  if (input.visibility !== undefined && published) {
-    return {
-      ok: false,
-      error: "Check the highlighted fields.",
-      fieldErrors: { visibility: PUBLISHED_VISIBILITY_MESSAGE },
-    };
   }
 
   const supabase = await createClient();

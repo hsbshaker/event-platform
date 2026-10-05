@@ -55,6 +55,7 @@ function row() {
     generation_requested_at: null,
     row_version: 1,
     published_at: null,
+    access_code_encrypted: null,
   };
 }
 
@@ -151,21 +152,37 @@ describe("updateEventDetails: the card fit check", () => {
   });
 });
 
-describe("updateEventDetails: privacy after publish", () => {
-  it("refuses a visibility change once the invitation is published, before anything is written", async () => {
+describe("updateEventDetails: privacy is not a routine detail", () => {
+  // Visibility changes only through the privacy action, which stores the event code with it
+  // (src/app/actions/privacy.ts; AGENTS.md "the privacy action"), before and after publish.
+  it.each([false, true])(
+    "refuses a visibility change (published: %s) before anything is read or written",
+    async (published) => {
+      requireEventAccess.mockResolvedValue({ context: { published } });
+      for (const visibility of ["private", "public", null]) {
+        const result = await updateEventDetails(EVENT, { visibility } as never);
+        expect(result).toEqual({
+          ok: false,
+          error: "Check the highlighted fields.",
+          fieldErrors: { visibility: expect.any(String) },
+        });
+      }
+      // Refused with other fields too: nothing in the request is saved.
+      expect(
+        await updateEventDetails(EVENT, {
+          hosts: "Hosted by Maya & Tom",
+          visibility: "private",
+        } as never),
+      ).toMatchObject({ ok: false, fieldErrors: { visibility: expect.any(String) } });
+      expect(requireEventAccess).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+    },
+  );
+
+  it("still saves other details after publish (spec.md §8.1)", async () => {
     requireEventAccess.mockResolvedValue({ context: { published: true } });
-    for (const visibility of ["private", "public"] as const) {
-      const result = await updateEventDetails(EVENT, { visibility });
-      expect(result).toMatchObject({ ok: false, fieldErrors: { visibility: expect.any(String) } });
-    }
-    expect(update).not.toHaveBeenCalled();
-    // Other details still save after publish (spec.md §8.1).
     await updateEventDetails(EVENT, { hosts: "Hosted by Maya & Tom" });
     expect(update).toHaveBeenCalled();
-  });
-
-  it("lets the visibility change before publish", async () => {
-    await updateEventDetails(EVENT, { visibility: "private" });
-    expect(update).toHaveBeenCalled();
+    expect(update.mock.calls[0][0]).not.toHaveProperty("visibility");
   });
 });

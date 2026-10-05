@@ -191,6 +191,27 @@ export function cardContent(input: CardContentInput): CardContent {
 }
 
 /**
+ * The words a guest sees on the generated card (`spec.md §7.3`: placeholders and unconfirmed
+ * prompt-stated values are never published and never shown to guests; `docs/card-system.md §2.5`):
+ * the design's wording and the host's stored facts only, through `cardContent`. A fact the host has
+ * not saved is absent — never a placeholder and never a value from the prompt (the input has no
+ * prompt facts, so none can reach it). Preview and the guest page take the card's words from here.
+ * Pure.
+ */
+export function guestCardContent(input: {
+  /** The design's wording with the effective title applied. */
+  wording: { title: string; invitationLine: string };
+  /** The event's stored fields. */
+  event: Omit<CardContentInput, "title" | "invitationLine">;
+}): CardContent {
+  return cardContent({
+    ...input.event,
+    title: input.wording.title,
+    invitationLine: input.wording.invitationLine,
+  });
+}
+
+/**
  * The card's effective title (`spec.md §20.2`): the event's title when the host supplied or edited
  * it, else the design's drafted title.
  */

@@ -29,10 +29,11 @@ import { CreationFixture } from "./CreationFixture";
  *   rectangle); an illustration artwork fits every 5:7 shape, so `square` needs new artwork;
  * - `&published=1`: published, so only shapes an existing artwork fits are offered and there is no
  *   `Try another direction` or choosing;
- * - `&visibility=private` with any data: a private event with no access code stored;
+ * - `&visibility=private` with any data: a private event with no access code stored (one made
+ *   private before codes existed); add `&code=1` for one with its code stored;
  * - `&wait=square`: a switch to a square already painting when the page loads; `&wait=failed`: one
  *   that stopped.
- * The shape and design actions are stubs; the generation poll is answered by the test.
+ * The shape, design and privacy actions are stubs; the generation poll is answered by the test.
  */
 
 const NOW = new Date("2026-10-05T12:00:00Z");
@@ -76,6 +77,7 @@ function draft(data: string, withDescription: boolean): EventDraftView {
     generationRequestedAt: null,
     rowVersion: 1,
     published: false,
+    accessCodeSet: false,
     description: withDescription ? "Lunch in the garden. Please park on the lane." : null,
     promptFacts:
       data === "prompt"
@@ -198,6 +200,8 @@ export default async function CreationFixturePage({
 
   const fields = draft(data, one("description") === "1");
   if (one("visibility") === "private") fields.visibility = "private";
+  const storedCode = fields.visibility === "private" && one("code") === "1";
+  fields.accessCodeSet = storedCode;
   fields.published = published;
 
   return (
@@ -223,6 +227,8 @@ export default async function CreationFixturePage({
       supported={supported}
       published={published}
       designs={designs}
+      previewHref={`/dev/preview?data=${encodeURIComponent(data)}`}
+      storedCode={storedCode}
     />
   );
 }

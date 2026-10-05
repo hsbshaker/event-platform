@@ -18,8 +18,9 @@ const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   /**
    * Base64 secret of at least 32 bytes. It is the HMAC key for draft tokens and
-   * rate-limit keys (domain-separated by prefix); per-purpose subkeys are derived
-   * from it (HKDF) when access-code encryption lands. Never used raw as a cipher key.
+   * rate-limit keys (domain-separated by prefix); the private event code's cipher key is a
+   * subkey derived from it with HKDF (`src/lib/events/access-code-crypto.server.ts`). Never used
+   * raw as a cipher key.
    */
   APP_ENCRYPTION_KEY: z
     .string()

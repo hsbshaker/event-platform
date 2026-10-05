@@ -8,6 +8,7 @@ import {
   hasHorizontalScroll,
   launchBrowser,
   startApp,
+  undersizedTapTargets,
   type AppServer,
 } from "./harness";
 
@@ -48,6 +49,8 @@ async function openFixture(
     isMobile: viewport.width <= 700,
     hasTouch: viewport.width <= 700,
   });
+  // For the event code's Copy.
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: app.baseUrl });
   const page = await context.newPage();
   await before?.(page);
   await page.goto(`${app.baseUrl}/dev/creation?${query}`, { waitUntil: "networkidle" });
@@ -621,7 +624,7 @@ describe.each([
     const { page, close } = await openFixture(viewport, "data=full&published=1");
     try {
       // Readiness is for publishing: once published there is no setup control.
-      await page.locator("[data-toolbar]").waitFor();
+      await page.locator("[data-toolbar=design]").waitFor();
       expect(await page.locator("[data-setup-pill]").count()).toBe(0);
       await page.getByRole("button", { name: "Design", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Design" });
@@ -743,7 +746,7 @@ describe.each([
     }
   });
 
-  it("a private event is not ready without its event code, which no surface sets yet", async () => {
+  it("a private event with no code is not ready, and its row opens Make a code", async () => {
     const { page, close } = await openFixture(viewport, "data=full&visibility=private");
     try {
       const pill = page.locator("[data-setup-pill]");
@@ -754,8 +757,121 @@ describe.each([
       const row = checklist.locator("[data-blocker=accessCode]");
       await row.waitFor();
       expect(await row.textContent()).toContain("Private event code");
-      // Listed, but not a control: nothing to open yet.
-      expect(await row.evaluate((el) => el.tagName)).toBe("DIV");
+      // A control, never a dead end: it opens the editor on Make a code.
+      expect(await row.evaluate((el) => el.tagName)).toBe("BUTTON");
+      await row.click();
+      const editor = page.getByRole("dialog", { name: "Event details" });
+      await editor.waitFor({ state: "visible" });
+      await page.waitForFunction(() => document.activeElement?.id === "event-code-make");
+      await shotSheet(page, viewport, "privacy-make-code");
+      await page.keyboard.press("Enter");
+      const code = editor.locator("[data-event-code]");
+      await code.waitFor();
+      expect(await code.textContent()).toBe("K7MP-4QRT");
+      await page.waitForFunction(
+        () =>
+          document.querySelector("[data-setup-pill]")?.getAttribute("data-setup-pill") === "ready",
+      );
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe.each([
+  ["mobile 390", MOBILE],
+  ["desktop 1280", DESKTOP],
+])("privacy at %s", (_label, viewport) => {
+  async function openEditor(page: Page) {
+    await page.getByRole("button", { name: "Edit event details" }).click();
+    const editor = page.getByRole("dialog", { name: "Event details" });
+    await editor.waitFor({ state: "visible" });
+    return editor;
+  }
+
+  it("choosing Private shows the event code, with Copy and New code; Public hides it", async () => {
+    const { page, close } = await openFixture(viewport, "data=full");
+    try {
+      const pill = page.locator("[data-setup-pill]");
+      await pill.waitFor();
+      expect(await pill.getAttribute("data-setup-pill")).toBe("ready");
+      const editor = await openEditor(page);
+      expect(await editor.locator("[data-event-code-panel]").count()).toBe(0);
+
+      await editor.getByText("Private", { exact: true }).click();
+      const code = editor.locator("[data-event-code]");
+      await code.waitFor();
+      expect(await code.textContent()).toBe("K7MP-4QRT");
+      // What it is for, in plain words (spec.md §14.2).
+      const panel = editor.locator("[data-event-code-panel]");
+      expect(await panel.textContent()).toContain(
+        "Guests who open your shared link enter this code",
+      );
+      expect(await panel.textContent()).toContain("Personal invitation links skip it");
+      // Going private stores the code with it, so the invitation stays ready to publish.
+      expect(await pill.getAttribute("data-setup-pill")).toBe("ready");
+      expect(await contrastOf(page, "[data-event-code]")).toBeGreaterThanOrEqual(4.5);
+      expect(await hasHorizontalScroll(page)).toBe(false);
+      expect(
+        await undersizedTapTargets(page, "[data-event-code-panel] button, [data-privacy] label"),
+      ).toEqual([]);
+      await shotSheet(page, viewport, "privacy-code");
+
+      // Copy puts the code on the clipboard.
+      await panel.getByRole("button", { name: "Copy" }).click();
+      await editor.getByText("Code copied").waitFor();
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("K7MP-4QRT");
+
+      // New code replaces it.
+      await panel.getByRole("button", { name: "New code" }).click();
+      await editor.getByText("New code made. The old one no longer works.").waitFor();
+      expect(await code.textContent()).toBe("W9XH-3NVC");
+
+      // Public hides the code and keeps it: back to private shows the same one.
+      await editor.getByText("Public", { exact: true }).click();
+      await panel.waitFor({ state: "detached" });
+      expect(await editor.locator("#visibility-public").isChecked()).toBe(true);
+      await editor.getByText("Private", { exact: true }).click();
+      await code.waitFor();
+      expect(await code.textContent()).toBe("W9XH-3NVC");
+      expect(await pill.getAttribute("data-setup-pill")).toBe("ready");
+    } finally {
+      await close();
+    }
+  });
+
+  it("shows a stored code when the editor opens", async () => {
+    const { page, close } = await openFixture(viewport, "data=full&visibility=private&code=1");
+    try {
+      const editor = await openEditor(page);
+      const code = editor.locator("[data-event-code]");
+      await code.waitFor();
+      expect(await code.textContent()).toBe("K7MP-4QRT");
+      expect(await editor.locator("#visibility-private").isChecked()).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("stays editable after publish (spec.md §8.1)", async () => {
+    const { page, close } = await openFixture(viewport, "data=full&published=1");
+    try {
+      const editor = await openEditor(page);
+      expect(await editor.locator("#visibility-private").isEnabled()).toBe(true);
+      await editor.getByText("Private", { exact: true }).click();
+      const code = editor.locator("[data-event-code]");
+      await code.waitFor();
+      expect(await code.textContent()).toBe("K7MP-4QRT");
+      // After publish a new code means telling guests again; the panel says so.
+      const panel = editor.locator("[data-event-code-panel]");
+      expect(await panel.textContent()).toContain("share it again with anyone who has the old one");
+      await panel.getByRole("button", { name: "New code" }).click();
+      await editor.getByText("New code made. The old one no longer works.").waitFor();
+      expect(await code.textContent()).toBe("W9XH-3NVC");
+      await shotSheet(page, viewport, "privacy-published");
+      await editor.getByText("Public", { exact: true }).click();
+      await panel.waitFor({ state: "detached" });
+      expect(await editor.locator("#visibility-public").isChecked()).toBe(true);
     } finally {
       await close();
     }

@@ -18,6 +18,7 @@ import { DESCRIPTION_MAX_LENGTH } from "@/lib/events/page-content";
 import type { SaveTracker } from "@/lib/events/save-tracker";
 import type { PromptFacts } from "@/lib/card/facts";
 import { formPrefill, type PrefillField } from "@/lib/events/prompt-prefill";
+import { PrivacyControl, type PrivacyActions } from "./PrivacyControl";
 
 /**
  * The missing-details autosave form (spec.md §7.3, docs/design-system.md §3.7/§11,
@@ -30,6 +31,9 @@ import { formPrefill, type PrefillField } from "@/lib/events/prompt-prefill";
  * autosaves, so the form never yanks away the field the host is mid-edit on.
  *
  * Nothing here is a publish gate (§32 #45): every field may stay empty indefinitely.
+ *
+ * Who can see the invitation is not a routine detail: `PrivacyControl` saves it through the
+ * privacy action, which stores the private event code with it, before and after publish.
  */
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
@@ -71,6 +75,7 @@ export function DetailsForm({
   promptFacts = event.promptFacts,
   variant = "missing",
   save: saveAction = updateEventDetails,
+  privacy,
   onSaved,
   focusId,
 }: {
@@ -83,6 +88,8 @@ export function DetailsForm({
   variant?: "missing" | "all";
   /** The save action; the development fixture injects a stub. */
   save?: typeof updateEventDetails;
+  /** The privacy actions; the development fixture injects stubs. */
+  privacy?: PrivacyActions;
   /** Called with the saved event after every successful save, so the page can refresh. */
   onSaved?: (event: EventDraftView) => void;
   /** An element id to focus when the form mounts (the editor opened from the description). */
@@ -120,7 +127,6 @@ export function DetailsForm({
   const [address, setAddress] = useState(event.address ?? prefill.fields.address ?? "");
   const [hosts, setHosts] = useState(event.hosts ?? prefill.fields.hosts ?? "");
   const [babyName, setBabyName] = useState(event.babyName ?? prefill.fields.babyName ?? "");
-  const [visibility, setVisibility] = useState<"public" | "private" | null>(event.visibility);
   const [rsvpDeadlineIso, setRsvpDeadlineIso] = useState(event.rsvpDeadline);
   const [rsvpDeadlineEdited, setRsvpDeadlineEdited] = useState(event.rsvpDeadlineEdited);
   const [timezone, setTimezone] = useState(event.timezone ?? "UTC");
@@ -687,42 +693,16 @@ export function DetailsForm({
           </Field>
         )}
 
-        {/* After publish, privacy changes only with its event code (the privacy action). */}
-        {shown("visibility") && !event.published && (
-          <fieldset className="flex flex-col gap-2">
-            <legend className="text-label-md text-app-text">
-              Who can see this invitation?
-              <span aria-hidden="true" className="text-app-danger">
-                {" "}
-                *
-              </span>
-            </legend>
-            <div className="flex flex-wrap gap-4">
-              {(["public", "private"] as const).map((option) => (
-                <label
-                  key={option}
-                  className="flex min-h-11 items-center gap-2 text-body-md text-app-text"
-                >
-                  <input
-                    id={`visibility-${option}`}
-                    type="radio"
-                    name="visibility"
-                    value={option}
-                    checked={visibility === option}
-                    onChange={() => {
-                      setVisibility(option);
-                      saveImmediate({ visibility: option }, ["visibility"]);
-                    }}
-                    className="h-4 w-4 accent-app-action"
-                  />
-                  {option === "public" ? "Public" : "Private"}
-                </label>
-              ))}
-            </div>
-            {fieldErrors.visibility && (
-              <InlineStatus variant="danger">{fieldErrors.visibility}</InlineStatus>
-            )}
-          </fieldset>
+        {shown("visibility") && (
+          <PrivacyControl
+            event={event}
+            actions={privacy}
+            saves={saves}
+            onSaved={(next) => {
+              applyServerEvent(next);
+              onSaved?.(next);
+            }}
+          />
         )}
 
         {shown("rsvpDeadline") && (

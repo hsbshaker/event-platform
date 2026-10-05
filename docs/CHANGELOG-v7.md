@@ -692,6 +692,25 @@ here so the owner can overturn any of them.
   panel on the right from desktop width, the event visible and dimmed beside it
   (`design-system.md §10.6`, §10.7).
 
+### Phase 6 — Creation Mode slices 1–3 (build decisions, 2026-10-05; for the owner to confirm)
+
+Made while building, overnight, each the reading most consistent with the spec; listed so the
+owner can overturn any of them.
+
+- **The event code:** 8 characters from an alphabet without 0/O/1/I/L, shown as `XXXX-XXXX`
+  (about 40 bits); typing ignores case, spaces and dashes. `New code` is limited to 20 an hour per
+  event. After publish it replaces the old code at once, with a warning line and no confirmation
+  dialog.
+- **Going Public keeps the stored code,** so switching back to Private reuses it rather than
+  changing what guests were told.
+- **Privacy is one action,** before and after publish; `events.visibility` is server-managed.
+- **Preview shows only saved facts.** A placeholder or an unconfirmed prompt-stated value never
+  appears; when a required fact is missing, one line says that unconfirmed details aren't shown to
+  guests. Its Desktop view keeps the card at the envelope's size; only the page widens.
+- **`Try another direction ✦` appears twice** in Creation Mode, under the card and in the Design
+  panel, so it is easy to find (the owner could not find a way to change the card at first).
+- **A recent shape-switch failure** (within 30 minutes) shows again on a page loaded after it.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

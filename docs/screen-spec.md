@@ -207,6 +207,10 @@ Fields:
 - date/time;
 - venue/address;
 - description (up to 2,000 characters; empty clears it);
+- who can see it: Public / Private (§14), before and after publish. Private shows the event code
+  (`XXXX-XXXX`) with `Copy` and `New code`, and says that guests on the shared link enter it while
+  personal invitation links skip it; after publish, that a new code replaces the old one at once.
+  Choosing Private always stores a code; going Public keeps it for a later switch back;
 - simple info blocks (a later Creation Mode slice).
 
 Every Edit/Add anchor on the event details and the description opens this one editor, focused on the field it was opened from.
@@ -382,7 +386,12 @@ On larger screens:
 
 Primary app action:
 
-- Publish for $49 when appropriate.
+- Publish for $49 when appropriate (with the publish gate, Phase 9; until then Preview has no
+  publish control).
+
+The card and page show only what guests will see: saved, confirmed facts — never a placeholder or
+an unconfirmed prompt-stated value (§7.3). When a required fact is missing, one plain line says so:
+"Details you haven't confirmed aren't shown to guests."
 
 ## `publish-gate`
 

@@ -108,15 +108,15 @@ describe("event creation is server-side only", () => {
       q(
         `update public.events
          set hosts = 'Haseeb & Shezia', baby_name = 'Shaker', event_date = '2027-03-06',
-             start_time = '13:00', venue_name = 'The Lodge', visibility = 'public'
-         where id = $1 returning hosts, baby_name, visibility`,
+             start_time = '13:00', venue_name = 'The Lodge'
+         where id = $1 returning hosts, baby_name, venue_name`,
         [eventId],
       ),
     );
     expect(updated.rows[0]).toEqual({
       hosts: "Haseeb & Shezia",
       baby_name: "Shaker",
-      visibility: "public",
+      venue_name: "The Lodge",
     });
   });
 

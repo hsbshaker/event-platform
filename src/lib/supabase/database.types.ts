@@ -65,6 +65,10 @@ export type ChooseCardDesignOutcome = "chosen" | "published" | "not_found";
 export type SwitchCardShapeOutcome =
   "switched" | "needs_artwork" | "not_active" | "no_design" | "not_found";
 
+/** Outcomes of public.set_event_privacy and public.rotate_event_code (20261011000000_event_privacy.sql). */
+export type SetEventPrivacyOutcome = "saved" | "not_found";
+export type RotateEventCodeOutcome = "rotated" | "not_private" | "not_found";
+
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
 /** Database spelling of a proportion; `src/lib/card/shapes.ts` `CardProportion` is "5:7" | "1:1". */
@@ -665,6 +669,25 @@ export type Database = {
       switch_card_shape: {
         Args: { p_event_id: string; p_user_id: string; p_design_id: string; p_shape: CardShape };
         Returns: SwitchCardShapeOutcome;
+      };
+      /**
+       * Sets the event's visibility and, going private with no code stored, stores the offered
+       * encrypted code in the same transaction (20261011000000_event_privacy.sql).
+       */
+      set_event_privacy: {
+        Args: {
+          p_event_id: string;
+          p_user_id: string;
+          p_visibility: EventVisibility;
+          /** bytea, sent as `\x` and hex. */
+          p_code_encrypted: string | null;
+        };
+        Returns: { outcome: SetEventPrivacyOutcome; code_encrypted: string | null }[];
+      };
+      /** Replaces a private event's encrypted code (20261011000000_event_privacy.sql). */
+      rotate_event_code: {
+        Args: { p_event_id: string; p_user_id: string; p_code_encrypted: string };
+        Returns: { outcome: RotateEventCodeOutcome; code_encrypted: string | null }[];
       };
       /**
        * A shape switch's new artwork, added to its design, and the switch applied while that

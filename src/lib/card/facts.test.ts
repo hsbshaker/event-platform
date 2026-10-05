@@ -10,6 +10,7 @@ import {
   formatCardDate,
   formatCardRsvpBy,
   formatCardTime,
+  guestCardContent,
   parsePromptFacts,
   promptFactCandidates,
   revealCardContent,
@@ -610,5 +611,58 @@ describe("effectiveCardTitle (spec.md §20.2)", () => {
     expect(effectiveCardTitle("  Maya's Shower ", "Lemons & Linen")).toBe("Maya's Shower");
     expect(effectiveCardTitle(" ", "Lemons & Linen")).toBe("Lemons & Linen");
     expect(effectiveCardTitle(null, "Lemons & Linen")).toBe("Lemons & Linen");
+  });
+});
+
+describe("guestCardContent", () => {
+  const wording = { title: "Lemons & Linen", invitationLine: "Please join us for a garden shower" };
+  const nothing = {
+    babyName: null,
+    hosts: null,
+    eventDate: null,
+    startTime: null,
+    endTime: null,
+    venueName: null,
+    address: null,
+    rsvpDeadline: null,
+    timezone: "America/Chicago",
+  };
+
+  it("shows only the host's stored facts: a missing fact is absent, never a placeholder", () => {
+    expect(guestCardContent({ wording, event: nothing })).toEqual({
+      title: "Lemons & Linen",
+      invitationLine: "Please join us for a garden shower",
+      babyName: null,
+      hosts: null,
+      date: null,
+      time: null,
+      venue: null,
+      rsvpBy: null,
+    });
+  });
+
+  it("shows a saved fact and leaves the others empty, where the reveal would fill a placeholder", () => {
+    const event = { ...nothing, eventDate: "2026-12-19", venueName: "Villa Rosa" };
+    const guest = guestCardContent({ wording, event });
+    expect(guest.date).toBe("Saturday, December 19");
+    expect(guest.venue).toBe("Villa Rosa");
+    expect(guest.time).toBeNull();
+    expect(guest.rsvpBy).toBeNull();
+    const reveal = cardContentWithPlaceholders({
+      wording,
+      event,
+      promptFacts: null,
+      fits: () => true,
+      now: new Date("2026-10-05T12:00:00Z"),
+    });
+    expect(reveal.time).not.toBeNull();
+  });
+
+  it("carries nothing but the wording when no fact is saved: no prompt value can reach it", () => {
+    const content = guestCardContent({ wording, event: nothing });
+    expect(Object.values(content).filter((v) => v !== null)).toEqual([
+      wording.title,
+      wording.invitationLine,
+    ]);
   });
 });
