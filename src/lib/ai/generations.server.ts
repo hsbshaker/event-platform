@@ -51,12 +51,16 @@ export interface StartGenerationInput {
 }
 
 export interface StartGenerationResult {
-  outcome: StartGenerationOutcome;
+  /**
+   * `start_generation`'s outcome, or `busy`: another direction asked for while a different
+   * generation of the event is in flight (`in_flight` is answered only for the same request).
+   */
+  outcome: StartGenerationOutcome | "busy";
   /** The signed-in owner or co-host who started it (for the meter context). */
   userId: string;
   /**
    * The new or existing generation, or the one in flight; null when refused (`published`,
-   * `designed`, `no_design`, a cap).
+   * `designed`, `no_design`, `busy`, a cap).
    */
   generationId: string | null;
 }
@@ -88,5 +92,34 @@ export async function startGeneration(input: StartGenerationInput): Promise<Star
   if (error) throw error;
   const row = data?.[0];
   if (!row) throw new Error("start_generation returned no outcome");
+  if (
+    row.outcome === "in_flight" &&
+    input.kind === "another_direction" &&
+    row.generation_id &&
+    !(await isSameDirection(row.generation_id, input))
+  ) {
+    return { outcome: "busy", generationId: null, userId };
+  }
   return { outcome: row.outcome, generationId: row.generation_id, userId };
+}
+
+/**
+ * One card is made at a time per event (`spec.md §10`). Another direction waits on the generation
+ * in flight only when it is the same request — another direction from the same card with the same
+ * (trimmed) words: a `Try again` after a lost answer, or a co-host asking the same. Anything else
+ * is `busy`, so a host is never shown someone else's card as theirs. Read after the access check.
+ */
+async function isSameDirection(generationId: string, input: StartGenerationInput) {
+  const { data, error } = await createAdminClient()
+    .from("generations")
+    .select("kind, from_design_id, feedback")
+    .eq("id", generationId)
+    .eq("event_id", input.eventId)
+    .maybeSingle();
+  if (error) throw error;
+  return (
+    data?.kind === "another_direction" &&
+    data.from_design_id === (input.fromDesignId ?? null) &&
+    (data.feedback ?? null) === (input.feedback?.trim() || null)
+  );
 }

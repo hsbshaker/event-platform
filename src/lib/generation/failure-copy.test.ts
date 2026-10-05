@@ -49,6 +49,8 @@ const REFUSED_STARTS: Record<
   host_cap: true,
   no_design: true,
 };
+/** The direction action's answer when another card for the event is being made. */
+const DIRECTION_ACTION = ["busy"];
 const ORCHESTRATION = ["internal", "unsupported_kind", "published"];
 const DATABASE = ["stale", "published"];
 const STATUS_VIEW = ["stopped"];
@@ -71,6 +73,7 @@ const EXPECTED_RETRY: Record<GenerationFailureCode, boolean> = {
   event_cap: false,
   host_cap: false,
   no_design: false,
+  busy: true,
 };
 
 /** Words the host must never see (`docs/design-system.md §12.3`, `spec.md §26`). */
@@ -85,6 +88,7 @@ describe("generationFailure", () => {
       ...Object.keys(STAGE),
       ...Object.keys(METER),
       ...Object.keys(REFUSED_STARTS),
+      ...DIRECTION_ACTION,
       ...ORCHESTRATION,
       ...DATABASE,
       ...STATUS_VIEW,

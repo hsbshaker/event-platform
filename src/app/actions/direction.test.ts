@@ -150,6 +150,9 @@ describe("startAnotherDirection", () => {
   });
 
   it("schedules nothing for any outcome but started, no_design included", async () => {
+    admin.fake.state.tables.generations = [
+      { id: GENERATION, event_id: EVENT, kind: "another_direction", from_design_id: DESIGN },
+    ];
     for (const [generationId, outcome] of [
       [GENERATION, "existing"],
       [GENERATION, "in_flight"],
@@ -161,6 +164,47 @@ describe("startAnotherDirection", () => {
       admin.fake.state.startRows = [{ generation_id: generationId, outcome }];
       expect(await startAnotherDirection(INPUT)).toEqual({ outcome, generationId });
     }
+    expect(scheduled).toEqual([]);
+  });
+
+  it("waits on a card in flight only when it is the same request, else answers busy (spec.md §10)", async () => {
+    admin.fake.state.startRows = [{ generation_id: GENERATION, outcome: "in_flight" }];
+    const inFlight = (row: Record<string, unknown>) => {
+      admin.fake.state.tables.generations = [
+        {
+          id: GENERATION,
+          event_id: EVENT,
+          kind: "another_direction",
+          from_design_id: DESIGN,
+          feedback: "add a little dinosaur",
+          ...row,
+        },
+      ];
+    };
+    const ask = (feedback?: string) => startAnotherDirection({ ...INPUT, feedback });
+    const waits = { outcome: "in_flight", generationId: GENERATION };
+    const busy = { outcome: "busy", generationId: null };
+
+    // The same card and the same (trimmed) words: a Try again after a lost answer finds it.
+    inFlight({});
+    expect(await ask(" add a little dinosaur ")).toEqual(waits);
+    // Different words, no words, another card, or another kind of generation: not this request.
+    expect(await ask("make it a starry night")).toEqual(busy);
+    expect(await ask()).toEqual(busy);
+    inFlight({ feedback: null });
+    expect(await ask()).toEqual(waits);
+    inFlight({ from_design_id: "e1e2e3e4-f5f6-4a7b-8c9d-0e1f2a3b4c5d" });
+    expect(await ask("add a little dinosaur")).toEqual(busy);
+    inFlight({ kind: "initial", from_design_id: null, feedback: null });
+    expect(await ask()).toEqual(busy);
+    // Read after the access check, for this event only.
+    expect(admin.fake.state.selects.at(-1)).toMatchObject({
+      table: "generations",
+      filters: [
+        ["id", GENERATION],
+        ["event_id", EVENT],
+      ],
+    });
     expect(scheduled).toEqual([]);
   });
 

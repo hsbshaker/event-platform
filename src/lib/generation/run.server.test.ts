@@ -1473,6 +1473,23 @@ describe("another direction (spec.md §7.7, §7.15)", () => {
     expect(fake.calls.design[0].previousDirections).toHaveLength(2);
   });
 
+  it("changes a card from before rendering families, leaving it out of the earlier directions", async () => {
+    const legacyBrief = { subject: "an older lemon card", medium: "watercolour" };
+    admin.state.tables.card_designs[1].art_brief = legacyBrief;
+    const { outcome, fake } = await run({
+      identity: [REVISED_IDENTITY],
+      design: [PART],
+      art: [CLEAN],
+    });
+    expect(outcome).toEqual({ status: "succeeded", cardDesignId: DESIGN_ID, round: 3 });
+    const call = fake.calls.design[0];
+    // The card as the host saw it, brief and all; only its summary is missing.
+    expect(call.changing).toMatchObject({ name: "Lemons & Linen", artBrief: legacyBrief });
+    expect(call.previousDirections?.map((d) => d.name)).toEqual(["Grove Morning"]);
+    // Its artwork is still the one edited.
+    expect(fake.calls.art[0]).toMatchObject({ reference: { bytes: RECT_ART } });
+  });
+
   it("fails internally when the design to change is not the event's", async () => {
     admin.state.tables.generations[0].from_design_id = "c0c0c0c0-0000-4000-8000-000000000000";
     const { outcome, fake } = await run({ identity: [REVISED_IDENTITY], design: [PART] });

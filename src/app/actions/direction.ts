@@ -3,13 +3,12 @@
 import { z } from "zod";
 
 import { GenerationDisabledError } from "@/lib/ai/errors";
-import { startGeneration } from "@/lib/ai/generations.server";
+import { startGeneration, type StartGenerationResult } from "@/lib/ai/generations.server";
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { can } from "@/lib/auth/permissions";
 import { chooseCardDesign, type ChooseCardDesignResult } from "@/lib/generation/choose.server";
 import { directionFeedback } from "@/lib/generation/direction-feedback";
 import { scheduleGeneration } from "@/lib/generation/schedule.server";
-import type { StartGenerationOutcome } from "@/lib/supabase/database.types";
 
 /**
  * `Try another direction` and choosing a design (`spec.md §7.7`, §7.11, §7.15, §8.2, §10;
@@ -36,10 +35,12 @@ export type StartAnotherDirectionInput = z.input<typeof startSchema>;
 export interface StartAnotherDirectionResult {
   /**
    * `start_generation`'s outcome (`no_design`: the event has no card yet), `published` when the
-   * event is published, or `disabled` while generation is switched off.
+   * event is published, `disabled` while generation is switched off, or `busy` when another card
+   * for the event is being made and it is not this request (`in_flight` is answered only for the
+   * same request).
    */
-  outcome: StartGenerationOutcome | "disabled";
-  /** The new or existing generation, or the one in flight; null when refused. */
+  outcome: StartGenerationResult["outcome"] | "disabled";
+  /** The new or existing generation, or the same request in flight; null when refused. */
   generationId: string | null;
 }
 
@@ -51,6 +52,9 @@ export interface StartAnotherDirectionResult {
  * started it. The feedback is trimmed; an empty box is a new idea; more than
  * `DIRECTION_FEEDBACK_MAX` characters (`direction-feedback.ts`) is refused as invalid input. Event
  * details never change.
+ *
+ * One card is made at a time per event (`spec.md §10`): a request that is not the one in flight is
+ * answered `busy` by `startGeneration`, so a host is never shown someone else's card as theirs.
  *
  * Throws for invalid input and for a caller who is not the event's owner or a co-host (as
  * `startCardGeneration` does); a design that is not the event's is refused by the database.

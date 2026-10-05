@@ -729,7 +729,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   // Active variation (owner decision): a rendering drawn at random from those this event's earlier
   // directions have not used — none for an initial generation — that the design follows unless
   // the identity strongly points elsewhere. A provider-refusal re-prompt keeps the same suggestion.
-  const previousDirections = earlier.map((d) => d.direction);
+  const previousDirections = earlier.flatMap((d) => (d.direction ? [d.direction] : []));
   const suggestedRendering = suggestRendering(
     random,
     previousDirections.map((d) => d.rendering),
@@ -1186,8 +1186,11 @@ interface EarlierDesign {
     wording: { title: string; invitationLine: string };
     artBrief: CardDesign["artBrief"];
   };
-  /** The design as `previousDirections` names it (model-contracts §5.2). */
-  direction: PreviousDirection;
+  /**
+   * The design as `previousDirections` names it (model-contracts §5.2); null for a design from
+   * before rendering families (`card_design_schema_v2`), whose brief has no rendering to summarise.
+   */
+  direction: PreviousDirection | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1196,9 +1199,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Every design of the event, oldest round first, read back as the design call needs it. The rows
- * are the server's own validated output; one this cannot read (a brief from before rendering
- * families, a catalog id since retired) is not designed against: the generation fails rather than
- * describing an earlier card wrongly.
+ * are the server's own validated output. A design from before rendering families stays readable —
+ * it can still be the card the host changes — but is left out of the earlier directions, having
+ * no rendering to summarise. One this cannot read at all (a catalog id since retired) is left out
+ * entirely: the generation then fails if it was the card to change, rather than describing it
+ * wrongly.
  */
 async function earlierDesigns(admin: AdminClient, eventId: string): Promise<EarlierDesign[]> {
   const { data, error } = await admin
@@ -1209,8 +1214,6 @@ async function earlierDesigns(admin: AdminClient, eventId: string): Promise<Earl
     .eq("event_id", eventId)
     .order("round", { ascending: true });
   if (error) throw error;
-  // A design from before rendering families (`card_design_schema_v2`) has no rendering to summarise:
-  // it is left out of the earlier directions rather than refusing the host's request.
   const readable = (data ?? []).flatMap((row): EarlierDesign[] => {
     const typography = isRecord(row.typography) ? row.typography : {};
     const wording = isRecord(row.wording) ? row.wording : {};
@@ -1224,13 +1227,14 @@ async function earlierDesigns(admin: AdminClient, eventId: string): Promise<Earl
       !(TYPOGRAPHY_KEYS as readonly string[]).includes(primary) ||
       typeof wording.title !== "string" ||
       typeof wording.invitationLine !== "string" ||
-      typeof brief.subject !== "string" ||
-      typeof brief.aesthetic !== "string" ||
-      !(RENDERINGS as readonly unknown[]).includes(brief.rendering)
+      typeof brief.subject !== "string"
     ) {
       return [];
     }
     const artBrief = brief as unknown as CardDesign["artBrief"];
+    const summarisable =
+      typeof brief.aesthetic === "string" &&
+      (RENDERINGS as readonly unknown[]).includes(brief.rendering);
     const design: EarlierDesign = {
       id: row.id,
       name: row.name,
@@ -1243,15 +1247,17 @@ async function earlierDesigns(admin: AdminClient, eventId: string): Promise<Earl
         wording: { title: wording.title, invitationLine: wording.invitationLine },
         artBrief,
       },
-      direction: {
-        name: row.name,
-        layout: row.layout,
-        artMode: row.art_mode,
-        primary: primary as TypographyPairingId,
-        subject: artBrief.subject,
-        rendering: artBrief.rendering as Rendering,
-        aesthetic: artBrief.aesthetic,
-      },
+      direction: summarisable
+        ? {
+            name: row.name,
+            layout: row.layout,
+            artMode: row.art_mode,
+            primary: primary as TypographyPairingId,
+            subject: artBrief.subject,
+            rendering: artBrief.rendering as Rendering,
+            aesthetic: artBrief.aesthetic,
+          }
+        : null,
     };
     return [design];
   });

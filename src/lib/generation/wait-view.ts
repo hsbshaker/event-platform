@@ -200,7 +200,10 @@ export function initialWait(hasCard: boolean, generation: WaitGeneration | null)
   return { kind: "reveal" };
 }
 
-/** `start_generation`'s outcomes, and `disabled` when generation is switched off. */
+/**
+ * `start_generation`'s outcomes, `disabled` when generation is switched off, and `busy` when
+ * another card for the event is being made (`startAnotherDirection`).
+ */
 export type StartOutcome =
   | "started"
   | "existing"
@@ -210,7 +213,8 @@ export type StartOutcome =
   | "no_design"
   | "event_cap"
   | "host_cap"
-  | "disabled";
+  | "disabled"
+  | "busy";
 
 export type AfterStart =
   { kind: "poll" } | { kind: "reveal" } | { kind: "failed"; failure: GenerationFailure };
@@ -229,6 +233,7 @@ export function afterStart(outcome: StartOutcome | string): AfterStart {
     case "published":
     case "no_design":
     case "disabled":
+    case "busy":
       return { kind: "failed", failure: generationFailure(outcome) };
     default:
       return { kind: "failed", failure: generationFailure(null) };

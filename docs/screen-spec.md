@@ -131,6 +131,7 @@ Message:
 
 - no onboarding restart;
 - no credits or counters (§10);
+- one card at a time per event (§10): while another card for the event is being made, a different request is not started — the host is told *Another card is being made* and `Try again` keeps their words; only the same request (the same card and words, e.g. a retry after a lost answer) waits on the one in flight, so nobody is shown another collaborator's card as theirs;
 - event details never change.
 
 ### Designs list

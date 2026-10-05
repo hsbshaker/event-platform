@@ -3,9 +3,8 @@
 import { z } from "zod";
 
 import { GenerationDisabledError } from "@/lib/ai/errors";
-import { startGeneration } from "@/lib/ai/generations.server";
+import { startGeneration, type StartGenerationResult } from "@/lib/ai/generations.server";
 import { scheduleGeneration } from "@/lib/generation/schedule.server";
-import type { StartGenerationOutcome } from "@/lib/supabase/database.types";
 
 /**
  * Starts the event's first card (`spec.md §7.3`, §7.10; `docs/technology-decisions.md §8.1`,
@@ -33,8 +32,11 @@ const inputSchema = z.strictObject({
 export type StartCardGenerationInput = z.input<typeof inputSchema>;
 
 export interface StartCardGenerationResult {
-  /** `start_generation`'s outcome, or `disabled` while generation is switched off. */
-  outcome: StartGenerationOutcome | "disabled";
+  /**
+   * `start_generation`'s outcome (never `busy`, which only another direction is answered), or
+   * `disabled` while generation is switched off.
+   */
+  outcome: StartGenerationResult["outcome"] | "disabled";
   generationId: string | null;
 }
 
