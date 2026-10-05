@@ -18,7 +18,7 @@ import type { EventPageContent } from "@/lib/events/page-content";
 import { publishReadiness } from "@/lib/events/publish-readiness";
 import { createSaveTracker } from "@/lib/events/save-tracker";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
-import type { CardShapeOptions, RunningShapeSwitch } from "@/lib/generation/shape.server";
+import type { CardShapeOptions, LatestShapeSwitch } from "@/lib/generation/shape.server";
 import { shapeAppliedLine, shapeWaitLine } from "@/lib/generation/shape-wait";
 
 import { DesignPanel } from "./DesignPanel";
@@ -83,8 +83,8 @@ export function CreationCanvas({
   };
   /** An access code is stored for the event (`events.access_code_encrypted`). */
   accessCodeSet: boolean;
-  /** A shape switch already painting when the page loaded: its wait carries on here. */
-  shapeWait?: RunningShapeSwitch | null;
+  /** The design's shape switch painting or recently failed when the page loaded: shown again. */
+  shapeWait?: LatestShapeSwitch | null;
   /** The shape action; the development fixture injects a stub. */
   switchShape?: typeof switchCardShape;
   /** What to do once a shape is on the card; by default the server data is refreshed. */
@@ -165,7 +165,7 @@ export function CreationCanvas({
       if (onShapeApplied) onShapeApplied(shape);
       else router.refresh();
     },
-    running: shapeWait,
+    initial: shapeWait,
   });
   const switching = shapeSwitch.state;
 
@@ -235,11 +235,14 @@ export function CreationCanvas({
           }}
         />
       </div>
-      <SetupProgressPill
-        left={readiness.blockers.length}
-        pillRef={pill}
-        onOpen={() => showPanel({ kind: "checklist" }, pill.current)}
-      />
+      {/* Readiness is for publishing: once published there is nothing left to set up for it. */}
+      {!design.published && (
+        <SetupProgressPill
+          left={readiness.blockers.length}
+          pillRef={pill}
+          onOpen={() => showPanel({ kind: "checklist" }, pill.current)}
+        />
+      )}
       <Sheet
         open={panel?.kind === "design"}
         onClose={() => void closePanel("design")}
@@ -262,7 +265,7 @@ export function CreationCanvas({
         />
       </Sheet>
       <Sheet
-        open={panel?.kind === "checklist"}
+        open={!design.published && panel?.kind === "checklist"}
         onClose={() => void closePanel("checklist")}
         title="Setup"
         description="Only what's needed to publish is listed here."

@@ -10,7 +10,7 @@ import { EventPage } from "@/components/event-page/EventPage";
 import { promptFactCandidates } from "@/lib/card/facts";
 import type { CardShape } from "@/lib/card/shapes";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
-import type { CardShapeOptions } from "@/lib/generation/shape.server";
+import type { CardShapeOptions, LatestShapeSwitch } from "@/lib/generation/shape.server";
 import { eventPageContent, type EventPageVariant } from "@/lib/events/page-content";
 
 /**
@@ -66,8 +66,8 @@ export function CreationFixture({
   supported: readonly CardShape[];
   published: boolean;
   designs: RevealedCard[];
-  /** A shape switch already painting when the page loaded. */
-  shapeWait?: { shape: CardShape; generationId: string } | null;
+  /** The design's shape switch painting or recently failed when the page loaded. */
+  shapeWait?: LatestShapeSwitch | null;
 }) {
   const [event, setEvent] = useState(initial);
   const [current, setCurrent] = useState(shape);

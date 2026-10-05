@@ -9,6 +9,7 @@ import { CARD_SHAPES } from "@/lib/card/shapes";
 import type { CardShape } from "@/lib/card/shapes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { generationFailure, type GenerationFailure } from "./failure-copy";
 import { readSwitchingDesign } from "./switching-design";
 
 /**
@@ -249,30 +250,40 @@ export async function loadCardShapeOptions(eventId: string): Promise<CardShapeOp
   };
 }
 
-/** A shape switch still painting new artwork for the event's card. */
-export interface RunningShapeSwitch {
-  generationId: string;
-  shape: CardShape;
-}
+/** How long a finished shape switch's failure is shown again on a page loaded after it. */
+export const SHAPE_SWITCH_RECENT_SECONDS = 30 * 60;
 
 /**
- * The event's shape switch still running, if any (`docs/screen-spec.md` `design-panel`: the wait's
- * quiet status by the card), so a page loaded mid-wait shows it rather than hiding it
- * (`spec.md §32 #46`). A generation running past `GENERATION_STALE_SECONDS` is dead, not waited on.
- * For the event's owner or a co-host (`use_design_controls`); throws otherwise, before reading.
+ * The active design's latest shape switch, as a page loaded after it should show it: still
+ * painting, or failed (a refusal, an error, or a worker that stopped) with its copy and a retry.
  */
-export async function runningShapeSwitch(
+export type LatestShapeSwitch =
+  | { kind: "running"; generationId: string; shape: CardShape }
+  | { kind: "failed"; generationId: string; shape: CardShape; failure: GenerationFailure };
+
+/**
+ * The design's latest shape switch, if it is still painting or failed recently
+ * (`docs/screen-spec.md` `design-panel`: the wait's quiet status by the card, and its failure with
+ * `Try again`), so a page loaded mid-wait or after a failure shows it rather than hiding it
+ * (`spec.md §32 #46`). A generation running past `GENERATION_STALE_SECONDS` is dead: it reads as
+ * stopped, as the wait surface reads it (`status.server.ts`). Only switches of `designId` (the
+ * active design) started within `SHAPE_SWITCH_RECENT_SECONDS` count; one that succeeded is on the
+ * card already. For the event's owner or a co-host (`use_design_controls`); throws otherwise,
+ * before reading.
+ */
+export async function latestShapeSwitch(
   eventId: string,
+  designId: string,
   options: { now?: () => number } = {},
-): Promise<RunningShapeSwitch | null> {
+): Promise<LatestShapeSwitch | null> {
   await requireEventAccess(eventId, "use_design_controls");
   // Read after the access check above, for this event only.
   const { data, error } = await createAdminClient()
     .from("generations")
-    .select("id, shape, started_at")
+    .select("id, shape, status, error_code, started_at")
     .eq("event_id", eventId)
     .eq("kind", "shape_switch")
-    .eq("status", "running")
+    .eq("from_design_id", designId)
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -280,6 +291,16 @@ export async function runningShapeSwitch(
   if (!data || !data.shape || !CARD_SHAPES.includes(data.shape)) return null;
   const startedAt = Date.parse(data.started_at);
   const now = options.now?.() ?? Date.now();
-  if (!Number.isFinite(startedAt) || now - startedAt > GENERATION_STALE_SECONDS * 1000) return null;
-  return { generationId: data.id, shape: data.shape };
+  if (!Number.isFinite(startedAt) || now - startedAt > SHAPE_SWITCH_RECENT_SECONDS * 1000) {
+    return null;
+  }
+  const base = { generationId: data.id, shape: data.shape };
+  if (data.status === "running") {
+    if (now - startedAt <= GENERATION_STALE_SECONDS * 1000) return { kind: "running", ...base };
+    return { kind: "failed", ...base, failure: generationFailure("stopped") };
+  }
+  if (data.status === "failed") {
+    return { kind: "failed", ...base, failure: generationFailure(data.error_code) };
+  }
+  return null;
 }

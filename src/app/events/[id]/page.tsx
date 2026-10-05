@@ -7,7 +7,7 @@ import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { accessCodeIsSet } from "@/lib/events/access-code.server";
-import { runningShapeSwitch } from "@/lib/generation/shape.server";
+import { latestShapeSwitch } from "@/lib/generation/shape.server";
 import { eventPageContent } from "@/lib/events/page-content";
 import {
   loadEventDesigns,
@@ -67,8 +67,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   // Every design of the event, browsable before publish (`spec.md §31` — Card experience).
   const designs = await loadEventDesigns(id);
   const shapes = await loadCardShapeOptionsAction(id);
-  // A shape switch still painting (the page loaded mid-wait): its quiet status shows again.
-  const shapeWait = await runningShapeSwitch(id);
+  // The design's shape switch still painting or recently failed: its status shows again.
+  const shapeWait = await latestShapeSwitch(id, revealed.designId);
   const accessCodeSet = draft.visibility === "private" ? await accessCodeIsSet(id) : false;
 
   const { card } = revealed;

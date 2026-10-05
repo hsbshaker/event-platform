@@ -11,6 +11,7 @@ import type { RevealedCard } from "@/lib/generation/reveal.server";
 import { missingRequiredDetails } from "@/lib/events/required-details";
 import { provisionalContent } from "@/lib/events/provisional";
 import { washArtwork } from "@/lib/link-preview/test-artwork";
+import { generationFailure } from "@/lib/generation/failure-copy";
 import { CreationFixture } from "./CreationFixture";
 
 /**
@@ -29,7 +30,8 @@ import { CreationFixture } from "./CreationFixture";
  * - `&published=1`: published, so only shapes an existing artwork fits are offered and there is no
  *   `Try another direction` or choosing;
  * - `&visibility=private` with any data: a private event with no access code stored;
- * - `&wait=square`: a switch to a square already painting when the page loads.
+ * - `&wait=square`: a switch to a square already painting when the page loads; `&wait=failed`: one
+ *   that stopped.
  * The shape and design actions are stubs; the generation poll is answered by the test.
  */
 
@@ -207,7 +209,16 @@ export default async function CreationFixturePage({
       cards={cards}
       shape={initialShape}
       shapeWait={
-        one("wait") === "square" ? { shape: "square", generationId: "fixture-generation-1" } : null
+        one("wait") === "square"
+          ? { kind: "running", shape: "square", generationId: "fixture-generation-1" }
+          : one("wait") === "failed"
+            ? {
+                kind: "failed",
+                shape: "square",
+                generationId: "fixture-generation-1",
+                failure: generationFailure("stopped"),
+              }
+            : null
       }
       supported={supported}
       published={published}

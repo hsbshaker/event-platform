@@ -595,9 +595,34 @@ describe.each([
     }
   });
 
+  it("a page loaded after a shape switch stopped shows the failure, and Try again", async () => {
+    let phase: { value: PollPhase } = { value: "running" };
+    const { page, close } = await openFixture(viewport, "data=full&wait=failed", async (p) => {
+      phase = await stubPoll(p);
+    });
+    try {
+      const status = page.locator("[data-shape-status]");
+      await status.waitFor();
+      expect(await status.textContent()).toContain("Your card stopped partway");
+      phase.value = "succeeded";
+      await status.getByRole("button", { name: "Try again" }).click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector("[data-card-shape]")?.getAttribute("data-card-shape") === "square",
+        undefined,
+        { timeout: 15_000 },
+      );
+    } finally {
+      await close();
+    }
+  });
+
   it("after publish only shapes the artwork fits are offered, and no Try another or choosing", async () => {
     const { page, close } = await openFixture(viewport, "data=full&published=1");
     try {
+      // Readiness is for publishing: once published there is no setup control.
+      await page.locator("[data-toolbar]").waitFor();
+      expect(await page.locator("[data-setup-pill]").count()).toBe(0);
       await page.getByRole("button", { name: "Design", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Design" });
       await dialog.waitFor({ state: "visible" });
