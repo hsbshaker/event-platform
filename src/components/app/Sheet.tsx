@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { IconButton } from "./IconButton";
 
 /**
@@ -12,7 +12,9 @@ import { IconButton } from "./IconButton";
  * Built on the native `<dialog>` in modal mode, so the browser gives it the focus trap, `Escape`,
  * an inert page behind it and the return of focus to whatever opened it. The body is rendered only
  * while open: closing unmounts it, which is how an autosaving form flushes its waiting edits.
- * Not nested (§10.6). App tokens only; nothing from the card.
+ * Every way of closing (`Escape`, the close button, the backdrop) asks `onClose`, and the sheet
+ * closes only when `open` turns false, so the owner may keep it open (a save that failed). Not
+ * nested (§10.6). App tokens only; nothing from the card.
  */
 export function Sheet({
   open,
@@ -22,27 +24,44 @@ export function Sheet({
   children,
 }: {
   open: boolean;
-  /** Called for every way of closing: the close button, `Escape`, a tap on the backdrop. */
+  /**
+   * Asked for every way of closing: the close button, `Escape`, a tap on the backdrop. The sheet
+   * closes when `open` turns false.
+   */
   onClose: () => void;
   title: string;
   description?: string;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const wantOpen = useRef(open);
 
+  // Every render: a sheet the browser closed by itself (a repeated `Escape`) while its owner kept
+  // it open is shown again.
   useEffect(() => {
+    wantOpen.current = open;
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+  });
 
   return (
     <dialog
       ref={ref}
-      aria-labelledby="sheet-title"
-      aria-describedby={description ? "sheet-description" : undefined}
-      onClose={onClose}
+      aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
+      onCancel={(event) => {
+        // `Escape` asks; the owner decides.
+        event.preventDefault();
+        onClose();
+      }}
+      onClose={() => {
+        // Closed by the browser while still wanted open: ask, as for any other way of closing.
+        if (wantOpen.current) onClose();
+      }}
       onClick={(event) => {
         // A tap on the backdrop lands on the dialog element itself, not on its content.
         if (event.target === ref.current) onClose();
@@ -52,13 +71,13 @@ export function Sheet({
         "backdrop:bg-app-overlay lg:left-auto lg:w-[30rem] lg:border-l lg:border-app-border lg:shadow-overlay"
       }
     >
-      <header className="flex items-start gap-3 border-b border-app-border px-4 py-3 sm:px-6">
+      <header className="flex items-start gap-3 border-b border-app-border px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:px-6">
         <div className="flex min-w-0 flex-1 flex-col gap-1 py-2">
-          <h2 id="sheet-title" className="text-heading-md text-app-text">
+          <h2 id={titleId} className="text-heading-md text-app-text">
             {title}
           </h2>
           {description && (
-            <p id="sheet-description" className="text-body-sm text-app-text-secondary">
+            <p id={descriptionId} className="text-body-sm text-app-text-secondary">
               {description}
             </p>
           )}
@@ -78,7 +97,7 @@ export function Sheet({
           </svg>
         </IconButton>
       </header>
-      <div className="flex-1 overflow-y-auto px-4 pt-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
         {open ? children : null}
       </div>
     </dialog>

@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from "react";
 import type { EventDetailsPatch, EventDraftView, UpdateResult } from "@/app/actions/event-details";
 import { CreationCanvas } from "@/app/events/[id]/CreationCanvas";
 import { EventPage } from "@/components/event-page/EventPage";
+import { promptFactCandidates } from "@/lib/card/facts";
 import { eventPageContent, type EventPageVariant } from "@/lib/events/page-content";
 
 /**
@@ -12,7 +13,14 @@ import { eventPageContent, type EventPageVariant } from "@/lib/events/page-conte
  * editor, with a stubbed save that applies the patch to local state (what the page's refresh does
  * after the real action). The `guest` variant draws the same `EventPage` with no collaborator slot
  * and no placeholders, as the guest page will.
+ *
+ * Test switches: `lag` applies a save to the page's data only after `LAG_MS`, as a slow refresh
+ * would; `refuse` makes the save refuse any title containing "Refuse", as the server's fit check
+ * refuses a title the card cannot show.
  */
+
+const LAG_MS = 3000;
+export const REFUSED_TITLE_MESSAGE = "This title is too long for the card.";
 
 const NOW = new Date("2026-10-05T12:00:00Z");
 const DESIGN_TITLE = "Lemons & Linen";
@@ -35,16 +43,27 @@ export function CreationFixture({
   card,
   initial,
   variant,
+  lag = false,
+  refuse = false,
 }: {
   card: ReactNode;
   initial: EventDraftView;
   variant: EventPageVariant;
+  lag?: boolean;
+  refuse?: boolean;
 }) {
   const [event, setEvent] = useState(initial);
   const latest = useRef(initial);
 
   async function save(_eventId: string, patch: EventDetailsPatch): Promise<UpdateResult> {
     await new Promise((resolve) => setTimeout(resolve, 60));
+    if (refuse && typeof patch.title === "string" && patch.title.includes("Refuse")) {
+      return {
+        ok: false,
+        error: "Check the highlighted fields.",
+        fieldErrors: { title: REFUSED_TITLE_MESSAGE },
+      };
+    }
     const next = { ...latest.current, rowVersion: latest.current.rowVersion + 1 } as Record<
       string,
       unknown
@@ -70,7 +89,8 @@ export function CreationFixture({
       rsvpDeadline: event.rsvpDeadline,
       timezone: event.timezone,
       description: event.description,
-      promptFacts: event.promptFacts,
+      // The fixture has no server fit check: the stated values that pass the entry check.
+      stated: promptFactCandidates({ event, promptFacts: event.promptFacts }),
     },
     variant,
     NOW,
@@ -84,7 +104,7 @@ export function CreationFixture({
           event={event}
           content={content}
           save={save}
-          onSaved={(next) => setEvent(next)}
+          onSaved={(next) => (lag ? setTimeout(() => setEvent(next), LAG_MS) : setEvent(next))}
         />
       ) : (
         <>

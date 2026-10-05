@@ -300,4 +300,42 @@ describe.each([
       await close();
     }
   });
+  it("reopening the editor before the page catches up shows the newest saved values", async () => {
+    const { page, close } = await openFixture(viewport, "data=empty&lag=1");
+    try {
+      await page.getByRole("button", { name: "Add a description" }).click();
+      const dialog = page.getByRole("dialog", { name: "Event details" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByLabel(labelOf("Description")).fill("Lunch in the garden.");
+      await dialog.getByRole("button", { name: "Close event details" }).click();
+      await dialog.waitFor({ state: "hidden" });
+      // At once, while the page still shows the old data.
+      await page.getByRole("button", { name: "Add a description" }).click();
+      await dialog.waitFor({ state: "visible" });
+      expect(await dialog.getByLabel(labelOf("Description")).inputValue()).toBe(
+        "Lunch in the garden.",
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("a change refused as the editor closes keeps it open with the message", async () => {
+    const { page, close } = await openFixture(viewport, "data=full&refuse=1");
+    try {
+      await page.getByRole("button", { name: "Edit event details" }).click();
+      const dialog = page.getByRole("dialog", { name: "Event details" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByLabel(labelOf("Title")).fill("Refuse this title");
+      // Closed inside the autosave's debounce: the edit is sent, refused, and shown.
+      await page.keyboard.press("Escape");
+      await dialog.getByText("This title is too long for the card.").waitFor();
+      expect(await dialog.isVisible()).toBe(true);
+      // Closing again leaves.
+      await dialog.getByRole("button", { name: "Close event details" }).click();
+      await dialog.waitFor({ state: "hidden" });
+    } finally {
+      await close();
+    }
+  });
 });

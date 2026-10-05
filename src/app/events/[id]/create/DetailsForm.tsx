@@ -149,7 +149,7 @@ export function DetailsForm({
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   // Edits waiting on their debounce, so leaving the page (the card is revealed in place of this
   // form) saves them instead of dropping them.
-  const pendingSaves = useRef<Record<string, EventDetailsPatch>>({});
+  const pendingSaves = useRef<Record<string, { patch: EventDetailsPatch; keys: string[] }>>({});
   // Resolved once and attached to every save (not only the mount commit), so a later venue
   // change that leaves the inference confident about nothing still has a fallback available
   // (spec.md §7.4; src/lib/events/detail-patch.ts falls back to this when venue text alone
@@ -158,31 +158,42 @@ export function DetailsForm({
   /** Newest row version already reflected on screen; see applyServerEvent. */
   const appliedVersionRef = useRef<number>(event.rowVersion);
 
+  // The latest `commit`, for the flush registered once below.
+  const commitRef = useRef<typeof commit | null>(null);
+  useEffect(() => {
+    commitRef.current = commit;
+  });
+
   useEffect(() => {
     const timers = debounceTimers.current;
     const pending = pendingSaves.current;
-    // Sends every edit still waiting on its debounce now.
-    const flushWaiting = () => {
+    /** Takes every edit still waiting on its debounce, clearing its timer. */
+    const takeWaiting = () => {
       Object.values(timers).forEach(clearTimeout);
       for (const key of Object.keys(timers)) delete timers[key];
-      const patches = Object.values(pending);
+      const waiting = Object.values(pending);
       for (const key of Object.keys(pending)) delete pending[key];
-      for (const patch of patches) {
+      return waiting;
+    };
+    // While the form is open (the surface around it is closing, or the card is about to be read):
+    // saved the usual way, so a refusal or failure shows beside its field.
+    const unregister = saves?.registerFlush(() => {
+      for (const { patch, keys } of takeWaiting()) void commitRef.current?.(patch, keys);
+    });
+    return () => {
+      unregister?.();
+      // Unmounting with edits still waiting: saved without the form, which is gone.
+      for (const { patch } of takeWaiting()) {
         const save = saveAction(event.id, {
           ...patch,
           browserTimezone: browserTimezoneRef.current,
         });
-        void (saves ? saves.track(save) : save)
+        void (saves ? saves.track(save, (r) => r.ok) : save)
           .then((result) => {
             if (result.ok) onSaved?.(result.event);
           })
           .catch(() => {});
       }
-    };
-    const unregister = saves?.registerFlush(flushWaiting);
-    return () => {
-      unregister?.();
-      flushWaiting();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -210,6 +221,9 @@ export function DetailsForm({
   // every save, not only this mount commit, since a later venue change re-runs inference.
   useEffect(() => {
     browserTimezoneRef.current = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // An event that already has its timezone needs no write just for opening the form; the
+    // fallback still rides along with every later save.
+    if (all && event.timezone) return;
     void commit({ browserTimezone: browserTimezoneRef.current }, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -239,7 +253,18 @@ export function DetailsForm({
         ? patch
         : { ...patch, browserTimezone: browserTimezoneRef.current };
     const save = saveAction(event.id, withTimezone);
-    const result = await (saves ? saves.track(save) : save);
+    let result: Awaited<typeof save>;
+    try {
+      result = await (saves ? saves.track(save, (r) => r.ok) : save);
+    } catch {
+      // The request never answered (offline, a server error): a save error beside the field.
+      setFieldStatus((prev) => {
+        const next = { ...prev };
+        keys.forEach((key) => (next[key] = "error"));
+        return next;
+      });
+      return;
+    }
     if (result.ok) {
       applyServerEvent(result.event);
       if (keys.length > 0) onSaved?.(result.event);
@@ -270,7 +295,7 @@ export function DetailsForm({
 
   function saveDebounced(debounceKey: string, patch: EventDetailsPatch, keys: string[]) {
     if (debounceTimers.current[debounceKey]) clearTimeout(debounceTimers.current[debounceKey]);
-    pendingSaves.current[debounceKey] = patch;
+    pendingSaves.current[debounceKey] = { patch, keys };
     debounceTimers.current[debounceKey] = setTimeout(() => {
       delete pendingSaves.current[debounceKey];
       void commit(patch, keys);
@@ -388,7 +413,7 @@ export function DetailsForm({
     if (flushNow) {
       void commit(patch, keys);
     } else {
-      pendingSaves.current.venue = patch;
+      pendingSaves.current.venue = { patch, keys };
       debounceTimers.current.venue = setTimeout(() => {
         delete debounceTimers.current.venue;
         delete pendingSaves.current.venue;

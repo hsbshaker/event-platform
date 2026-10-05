@@ -1595,9 +1595,11 @@ Includes:
 Do not nest multiple sheets unless unavoidable.
 
 `Sheet` and `SidePanel` (§10.7) are one responsive component, `src/components/app/Sheet.tsx`: full
-screen on phones, a right-edge panel from `lg`. It is a native modal `<dialog>`, so focus stays in
-it, Escape closes it and focus returns to the control that opened it; its body exists only while it
-is open, so closing it ends any edit in progress (autosave flushes).
+screen on phones, a right-edge panel from `lg`. It is built on the native modal `<dialog>` element
+for its focus handling — focus stays in it, Escape asks it to close, focus returns to the control
+that opened it — and is not the blocking `Dialog` pattern of §10.8: it is where routine edits
+happen. Its body exists only while it is open; closing waits for the last edits to save and stays
+open, with the message beside the field, if one failed.
 
 ## 10.7 `SidePanel`
 

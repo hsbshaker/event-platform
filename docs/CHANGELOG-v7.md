@@ -688,6 +688,9 @@ here so the owner can overturn any of them.
   meanwhile.
 - **Updated:** `spec.md` §7.6, §9.5, §31 (Card design, artwork and compiler); `card-system.md` §3,
   §5; `screen-spec.md` `generation`, `try-another-direction`; `development-plan.md`.
+- **Creation Mode's sheet and side panel are one component** (`Sheet`): full screen on a phone, a
+  panel on the right from desktop width, the event visible and dimmed beside it
+  (`design-system.md §10.6`, §10.7).
 
 ## Still open
 

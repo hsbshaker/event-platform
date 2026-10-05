@@ -253,6 +253,7 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
           rsvpBy: null,
         },
         unconfirmed: ["date", "time", "venue"],
+        stated: {},
       });
     }
   });
@@ -265,7 +266,11 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
       fits: fitsAll,
       now,
     });
-    expect(result).toEqual({ content: cardContent({ ...stored, ...wording }), unconfirmed: [] });
+    expect(result).toEqual({
+      content: cardContent({ ...stored, ...wording }),
+      unconfirmed: [],
+      stated: {},
+    });
     // The address's first line stands in for a missing venue name, before any placeholder.
     const street = { ...nothing, address: "12 Elm St, Austin" };
     const { content, unconfirmed } = revealCardContent({
@@ -294,6 +299,13 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
         rsvpBy: null,
       },
       unconfirmed: ["babyName", "hosts", "date", "time", "venue"],
+      stated: {
+        babyName: "Maya Lopez",
+        hosts: "Ana and Leo",
+        date: "December 19",
+        time: "2pm",
+        venue: "Villa Rosa",
+      },
     });
   });
 
@@ -314,6 +326,7 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
         rsvpBy: "RSVP by December 19",
       },
       unconfirmed: ["date", "time", "venue", "rsvpBy"],
+      stated: {},
     });
     // A saved date with no stored deadline yet: its default is the event's own, not a stand-in.
     const dated = revealCardContent({
@@ -384,7 +397,11 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
       fits: fitsAll,
       now,
     });
-    expect(result).toEqual({ content: cardContent({ ...stored, ...wording }), unconfirmed: [] });
+    expect(result).toEqual({
+      content: cardContent({ ...stored, ...wording }),
+      unconfirmed: [],
+      stated: {},
+    });
     // One stored fact, the rest stated: only the stated ones are unconfirmed.
     const partly = revealCardContent({
       wording,

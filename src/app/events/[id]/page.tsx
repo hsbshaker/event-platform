@@ -4,7 +4,6 @@ import { z } from "zod";
 import { loadEventDraft, type EventDraftView } from "@/app/actions/event-details";
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
-import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { eventPageContent } from "@/lib/events/page-content";
 import {
@@ -15,6 +14,7 @@ import {
 import { CreationCanvas } from "./CreationCanvas";
 import { DesignsList } from "./DesignsList";
 import { EventUnavailable } from "./EventUnavailable";
+import { SteadyCard } from "./SteadyCard";
 
 /**
  * Creation Mode (`docs/screen-spec.md` `creation-mode`; `spec.md §7.11`, §7.12): the same
@@ -47,10 +47,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) return <EventUnavailable />;
 
+  // One moment for the card and the page beneath it, so their placeholders agree.
+  const moment = new Date();
+  const now = moment.getTime();
   let revealed: RevealedCard | null;
   let draft: EventDraftView | null;
   try {
-    revealed = await loadRevealedCard(id);
+    revealed = await loadRevealedCard(id, { now: () => now });
     draft = revealed ? await loadEventDraft(id) : null;
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
@@ -77,10 +80,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       rsvpDeadline: draft.rsvpDeadline,
       timezone: draft.timezone,
       description: draft.description,
-      promptFacts: draft.promptFacts,
+      stated: revealed.stated,
     },
     "creation",
-    new Date(),
+    moment,
   );
   return (
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col items-center gap-6 px-4 py-10 lg:py-14">
@@ -96,7 +99,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 aspectRatio: proportion === "5:7" ? "5 / 7" : "1 / 1",
               }}
             >
-              <CardWithMarkers card={card} unconfirmed={revealed.unconfirmed} />
+              <SteadyCard card={card} unconfirmed={revealed.unconfirmed} />
             </div>
             <ConfirmLegend
               boxes={card.boxes}

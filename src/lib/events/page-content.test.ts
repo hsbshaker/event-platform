@@ -16,7 +16,7 @@ const EMPTY: EventPageSource = {
   rsvpDeadline: null,
   timezone: "America/New_York",
   description: null,
-  promptFacts: null,
+  stated: {},
 };
 
 const FULL: EventPageSource = {
@@ -53,7 +53,7 @@ describe("eventPageContent", () => {
 
   it("guest: a missing fact is absent, never a placeholder", () => {
     const content = eventPageContent(
-      { ...EMPTY, promptFacts: { ...NO_FACTS, date: "Dec 19", venue: "Villa Rosa" } },
+      { ...EMPTY, stated: { date: "Dec 19", venue: "Villa Rosa" } },
       "guest",
       now,
     );
@@ -89,13 +89,7 @@ describe("eventPageContent", () => {
     const content = eventPageContent(
       {
         ...EMPTY,
-        promptFacts: {
-          ...NO_FACTS,
-          date: "Dec 19",
-          time: "1pm",
-          venue: "Villa Rosa",
-          hosts: "Alex",
-        },
+        stated: { date: "Dec 19", time: "1pm", venue: "Villa Rosa", hosts: "Alex" },
       },
       "creation",
       now,
@@ -110,7 +104,7 @@ describe("eventPageContent", () => {
 
   it("a stored value always wins over what the prompt states", () => {
     const content = eventPageContent(
-      { ...FULL, promptFacts: { ...NO_FACTS, date: "Jan 1", venue: "Elsewhere" } },
+      { ...FULL, stated: { date: "Jan 1", venue: "Elsewhere" } },
       "creation",
       now,
     );
@@ -142,13 +136,15 @@ describe("eventPageContent", () => {
     expect(content.hosts).toBeNull();
     expect(content.description).toBeNull();
   });
-});
 
-const NO_FACTS = {
-  hosts: null,
-  honoree: null,
-  date: null,
-  time: null,
-  venue: null,
-  location: null,
-};
+  it("creation: shows only the stated values the card shows, so the two agree", () => {
+    // A stated venue the card's fit check refused is not in \`stated\`: the placeholder stands.
+    const content = eventPageContent({ ...EMPTY, stated: { date: "Dec 19" } }, "creation", now);
+    expect(content.venue).toEqual({
+      name: PROVISIONAL_VENUE,
+      address: null,
+      needsConfirming: true,
+    });
+    expect(content.date).toEqual({ text: "Dec 19", needsConfirming: true });
+  });
+});

@@ -22,6 +22,9 @@ import { DetailsForm } from "./create/DetailsForm";
  * the details step uses with every field. Closing returns focus to the anchor that opened it.
  *
  * The card and the page update after saves by refreshing the server data; no model call is made.
+ * The editor always opens on the newest saved event (a save's answer can be newer than the page's
+ * last refresh), and closing it waits for its last edits to save: if one failed or was refused, it
+ * stays open with the message beside the field (a second close leaves anyway).
  * Only the owner's and co-hosts' page renders this, so the anchors never reach a guest.
  */
 
@@ -53,8 +56,15 @@ export function CreationCanvas({
   const descriptionAnchor = useRef<HTMLButtonElement | null>(null);
   const [saves] = useState(createSaveTracker);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closing = useRef(false);
+  // The last close was held open by a failed save: the next one leaves whatever happens.
+  const held = useRef(false);
+  // The newest saved event this page has seen: a save's answer, until the server data catches up.
+  const [latest, setLatest] = useState<EventDraftView>(event);
+  const current = latest.rowVersion > event.rowVersion ? latest : event;
 
   function saved(next: EventDraftView) {
+    setLatest((prev) => (next.rowVersion > prev.rowVersion ? next : prev));
     if (onSaved) return onSaved(next);
     // Autosaves can come in bursts: refresh once they settle.
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
@@ -62,13 +72,28 @@ export function CreationCanvas({
   }
 
   function show(anchor: Anchor, ref: { current: HTMLButtonElement | null }) {
+    // A failure from an earlier visit never holds this one open.
+    saves.takeFailures();
+    held.current = false;
     opener.current = ref.current;
     setOpen(anchor);
   }
 
-  function close() {
-    // Sends any edit still waiting on its debounce before the form goes away.
-    void saves.settle();
+  async function close() {
+    if (closing.current) return;
+    closing.current = true;
+    try {
+      // Saves any edit still waiting on its debounce, and waits for every save to answer.
+      await saves.settle();
+    } finally {
+      closing.current = false;
+    }
+    // A save that failed or was refused: the form shows why; the host closes again to leave.
+    if (saves.takeFailures() > 0 && !held.current) {
+      held.current = true;
+      return;
+    }
+    held.current = false;
     setOpen(null);
     // The browser returns focus to the opener; this makes it certain when the opener re-rendered.
     queueMicrotask(() => opener.current?.focus());
@@ -110,12 +135,13 @@ export function CreationCanvas({
         description="Changes save as you go. The card and the page update with them."
       >
         <DetailsForm
-          event={event}
+          event={current}
           variant="all"
           save={save}
           saves={saves}
           onSaved={saved}
-          focusId={open === "description" ? "description" : undefined}
+          // The field the host came for: the description, else the first field.
+          focusId={open === "description" ? "description" : "title"}
         />
       </Sheet>
     </>

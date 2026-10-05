@@ -331,6 +331,11 @@ export interface RevealCardContent {
    * placeholder (`spec.md §7.3`). Never published and never shown to guests.
    */
   unconfirmed: CardSlotId[];
+  /**
+   * The prompt-stated values the card shows, as the host wrote them (those that passed the entry
+   * and fit checks), so the page beneath the card shows the same ones (`eventPageContent`).
+   */
+  stated: Partial<Record<PromptFactSlot, string>>;
 }
 
 /**
@@ -393,14 +398,15 @@ export function revealCardContent({
   if (placeholders.venue.provisional) unconfirmed.add("venue");
 
   const candidates = promptFactCandidates({ event, promptFacts, slots });
-  let statedDate = false;
+  const stated: Partial<Record<PromptFactSlot, string>> = {};
   for (const slot of PROMPT_FACT_SLOTS) {
     const value = candidates[slot];
     if (value === undefined || !fits(slot, value)) continue;
     content[slot] = value;
+    stated[slot] = value;
     unconfirmed.add(slot);
-    if (slot === "date") statedDate = true;
   }
+  const statedDate = stated.date !== undefined;
 
   if (defaultDeadline !== null && timezone !== null && !statedDate) {
     content.rsvpBy = formatCardRsvpBy(defaultDeadline, timezone);
@@ -408,7 +414,7 @@ export function revealCardContent({
     // default"); only one counted from the placeholder date is a stand-in.
     if (placeholders.eventDate.provisional) unconfirmed.add("rsvpBy");
   }
-  return { content, unconfirmed: CARD_SLOT_IDS.filter((slot) => unconfirmed.has(slot)) };
+  return { content, unconfirmed: CARD_SLOT_IDS.filter((slot) => unconfirmed.has(slot)), stated };
 }
 
 /**

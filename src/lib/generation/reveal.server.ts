@@ -5,7 +5,7 @@ import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { isCanonicalHex } from "@/lib/card/color";
 import { validateCardData, type CardPanel } from "@/lib/card/card-data";
 import type { PanelFade } from "@/lib/card/layouts";
-import { effectiveCardTitle, parsePromptFacts } from "@/lib/card/facts";
+import { effectiveCardTitle, parsePromptFacts, type PromptFactSlot } from "@/lib/card/facts";
 import { CARD_LAYOUT_IDS, type CardLayoutId } from "@/lib/card/layouts";
 import { revealContentFor } from "@/lib/card/reveal-content.server";
 import { CARD_SHAPES, proportionOf, type CardProportion, type CardShape } from "@/lib/card/shapes";
@@ -70,6 +70,11 @@ export interface RevealedCard {
   };
   /** Ids of the boxes in `card.boxes` showing a prompt-stated value or a placeholder. */
   unconfirmed: string[];
+  /**
+   * The prompt-stated values the card shows, by fact (`revealCardContent`), for the page beneath
+   * the card to show the same ones.
+   */
+  stated: Partial<Record<PromptFactSlot, string>>;
   /** When `card.artwork.src` stops working (ISO 8601); load the card again after it. */
   artworkExpiresAt: string;
 }
@@ -280,7 +285,7 @@ async function buildRevealedCard({
   const { ink, panels } = zoneInk(art.ink, shape);
 
   const title = effectiveCardTitle(row.title, design.wording.title);
-  const { content, unconfirmed } = await revealContentFor({
+  const { content, unconfirmed, stated } = await revealContentFor({
     wording: {
       title,
       invitationLine: design.wording.invitationLine,
@@ -331,6 +336,7 @@ async function buildRevealedCard({
         (box) => box.source.kind === "fact" && marked.has(box.source.slot) && box.lines.length > 0,
       )
       .map((box) => box.id),
+    stated,
     artworkExpiresAt: new Date(now + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
   };
 }

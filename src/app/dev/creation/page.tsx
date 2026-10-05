@@ -20,6 +20,8 @@ import { CreationFixture } from "./CreationFixture";
  *   a prompt that states some facts;
  * - `&description=1` with `full`: a saved description;
  * - `&variant=guest`: the guest variant of the page (no anchors, no placeholders).
+ * - `&lag=1`: a save reaches the page's data only after a few seconds (a slow refresh).
+ * - `&refuse=1`: a title containing "Refuse" is refused, as the server's fit check would.
  */
 
 const NOW = new Date("2026-10-05T12:00:00Z");
@@ -120,6 +122,8 @@ export default async function CreationFixturePage({
     <CreationFixture
       initial={draft(data, one("description") === "1")}
       variant={one("variant") === "guest" ? "guest" : "creation"}
+      lag={one("lag") === "1"}
+      refuse={one("refuse") === "1"}
       card={
         <div
           className="w-full"

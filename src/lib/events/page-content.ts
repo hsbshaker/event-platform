@@ -3,8 +3,7 @@ import {
   formatCardDate,
   formatCardRsvpBy,
   formatCardTime,
-  promptFactCandidates,
-  type PromptFacts,
+  type PromptFactSlot,
 } from "@/lib/card/facts";
 import { provisionalContent } from "./provisional";
 
@@ -46,7 +45,11 @@ export interface EventPageSource {
   rsvpDeadline: string | null;
   timezone: string | null;
   description: string | null;
-  promptFacts: PromptFacts | null;
+  /**
+   * The prompt-stated values the card shows (`RevealedCard.stated`: those that passed the entry and
+   * fit checks), so the page shows the same ones as the card above it. Creation Mode only.
+   */
+  stated: Partial<Record<PromptFactSlot, string>>;
 }
 
 export interface EventPageContent {
@@ -81,22 +84,8 @@ export function eventPageContent(
   const timezone = text(source.timezone);
   const deadline = text(source.rsvpDeadline);
 
-  const stated = creation
-    ? promptFactCandidates({
-        event: {
-          babyName,
-          hosts,
-          eventDate,
-          startTime,
-          endTime: source.endTime,
-          venueName,
-          address,
-          rsvpDeadline: deadline,
-          timezone,
-        },
-        promptFacts: source.promptFacts,
-      })
-    : {};
+  // A stated value stands in only for a fact the host has not stored, as on the card.
+  const stated: Partial<Record<PromptFactSlot, string>> = creation ? source.stated : {};
   const placeholders = provisionalContent(
     {
       eventDate,

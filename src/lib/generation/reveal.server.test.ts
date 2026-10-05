@@ -157,6 +157,8 @@ describe("loadRevealedCard", () => {
       title: "Lemons & Linen",
       name: "Lemons & Linen",
       description: "A lemon branch over soft linen.",
+      // The prompt-stated values the card shows, for the page beneath it.
+      stated: { babyName: "Maya Lopez", date: "December 19", venue: "Villa Rosa" },
       artworkExpiresAt: new Date(NOW + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
     });
     expect(card.shape).toBe("rectangle");
