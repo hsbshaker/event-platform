@@ -202,8 +202,10 @@ Fields:
 - baby name;
 - date/time;
 - venue/address;
-- description;
-- simple info blocks.
+- description (up to 2,000 characters; empty clears it);
+- simple info blocks (a later Creation Mode slice).
+
+Every Edit/Add anchor on the event details and the description opens this one editor, focused on the field it was opened from.
 
 Autosave. Card and page update with no model call. Entry limits for card-bound fields come from the layout's slot limits (`docs/card-system.md §2.5`).
 

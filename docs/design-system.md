@@ -1594,11 +1594,17 @@ Includes:
 
 Do not nest multiple sheets unless unavoidable.
 
+`Sheet` and `SidePanel` (§10.7) are one responsive component, `src/components/app/Sheet.tsx`: full
+screen on phones, a right-edge panel from `lg`. It is a native modal `<dialog>`, so focus stays in
+it, Escape closes it and focus returns to the control that opened it; its body exists only while it
+is open, so closing it ends any edit in progress (autosave flushes).
+
 ## 10.7 `SidePanel`
 
-Desktop equivalent for medium-complexity contextual editing.
+Desktop equivalent for medium-complexity contextual editing — `Sheet`'s presentation from `lg`
+(§10.6).
 
-Preserves the event behind it.
+Preserves the event behind it, visible and dimmed.
 
 ## 10.8 `Dialog`
 
@@ -1751,7 +1757,7 @@ Page section
   └── collaboratorActionAnchor
 ```
 
-`CreationCanvas` attaches `Edit`, `Set up`, or `Add` controls to these anchors without requiring layout-specific positioning logic.
+`CreationCanvas` attaches `Edit`, `Set up`, or `Add` controls to these anchors without requiring layout-specific positioning logic. The control is the `CollaboratorActionSlot` component (`src/components/app/CollaboratorActionSlot.tsx`): an app-styled button labelled by its action and section ("Edit event details"), carrying `data-collaborator-anchor`; page sections carry `data-section`.
 
 Requirements:
 - every page section implements the same semantic anchor, and the card exposes anchors for its wording and its details;
