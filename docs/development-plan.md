@@ -59,8 +59,8 @@ Phase 2 shipped before the pivot. These are known gaps, owned by the phase named
 - **Generation surface.** Done in Phase 5c: `src/app/events/[id]/create/GenerationSurface.tsx`
   starts the first card, polls the real stage results and ends in the card's reveal.
 - **Fact extraction.** Done in Phase 5: the prompt's facts are extracted and kept on the event
-  (`events.prompt_facts`). The details form does not yet offer them for the host to confirm.
-  Owner: Phase 5c (`spec.md §7.3`).
+  (`events.prompt_facts`), and the details form offers them, pre-filled and marked "From your
+  description", for the host to confirm (Phase 5c, `spec.md §7.3`).
 - **Provisional title.** `src/lib/events/provisional.ts` still synthesizes a placeholder title from
   the event type. Under Revision 7 the title is wording (host's verbatim, else design-drafted), so
   the title placeholder is retired when generation lands. Owner: Phase 5.
