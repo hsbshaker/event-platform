@@ -63,6 +63,7 @@ export function CreationCanvas({
   onShapeApplied,
   choose,
   onChosen,
+  previewHref,
 }: {
   /** Everything above the page: the card with its markers and legend, and its actions. */
   card: ReactNode;
@@ -92,6 +93,8 @@ export function CreationCanvas({
   /** The designs list's choose action and what follows it; the fixture injects stubs. */
   choose?: (designId: string) => Promise<ChooseOutcome>;
   onChosen?: (designId: string) => void;
+  /** Where the toolbar's `Preview` goes; the event's preview page by default (the fixture's own). */
+  previewHref?: string;
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
@@ -180,6 +183,7 @@ export function CreationCanvas({
     <>
       <div className="flex w-full flex-col items-center gap-6 pb-20">
         <OwnerToolbar
+          previewHref={previewHref ?? `/events/${event.id}/preview`}
           designRef={designButton}
           onDesign={() => showPanel({ kind: "design" }, designButton.current)}
         />

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { CardTextLayoutError, generatedTextLayer } from "./card-text.server";
 import { pairingFaces } from "./layout-card";
-import { zoneFor } from "./layouts";
+import { guestCardContent } from "./facts";
+import { CARD_LAYOUT_IDS, layoutSupportsShape, zoneFor } from "./layouts";
+import { CARD_SHAPES } from "./shapes";
 import { CARD_SLOT_IDS } from "./slots";
 import { TYPICAL, WORST } from "./test-content";
 
@@ -62,6 +64,39 @@ describe("generatedTextLayer", () => {
     expect(error).toBeInstanceOf(CardTextLayoutError);
     expect(error.reasons).toEqual(["missing-characters"]);
     expect(error.message).toContain("title: 🎈");
+  });
+
+  it("lays out a guest's card with no facts saved in every layout and shape: only the wording shows", async () => {
+    const content = guestCardContent({
+      wording: { title: "Oh Baby", invitationLine: "Please join us for a baby shower" },
+      event: {
+        babyName: null,
+        hosts: null,
+        eventDate: null,
+        startTime: null,
+        endTime: null,
+        venueName: null,
+        address: null,
+        rsvpDeadline: null,
+        timezone: null,
+      },
+    });
+    for (const layout of CARD_LAYOUT_IDS) {
+      for (const shape of CARD_SHAPES.filter((s) => layoutSupportsShape(layout, s))) {
+        const boxes = await generatedTextLayer({
+          layout,
+          shape,
+          pairing: "hc_playfair_dmsans",
+          content,
+          ink: INK,
+        });
+        const shown = boxes.filter((b) => b.lines.length > 0).map((b) => b.lines.join(" "));
+        expect(shown, `${layout}/${shape}`).toEqual([
+          "Oh Baby",
+          "Please join us for a baby shower",
+        ]);
+      }
+    }
   });
 
   it("refuses a shape the layout does not support and an invalid ink", async () => {

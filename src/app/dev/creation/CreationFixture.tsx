@@ -55,6 +55,7 @@ export function CreationFixture({
   published,
   designs: initialDesigns,
   shapeWait = null,
+  previewHref,
 }: {
   /** The active design's card in each shape its layout supports. */
   cards: Record<CardShape, ReactNode>;
@@ -68,6 +69,8 @@ export function CreationFixture({
   designs: RevealedCard[];
   /** The design's shape switch painting or recently failed when the page loaded. */
   shapeWait?: LatestShapeSwitch | null;
+  /** Where the toolbar's `Preview` goes: the development preview fixture. */
+  previewHref: string;
 }) {
   const [event, setEvent] = useState(initial);
   const [current, setCurrent] = useState(shape);
@@ -163,6 +166,7 @@ export function CreationFixture({
             await new Promise((resolve) => setTimeout(resolve, 80));
             return { ok: true };
           }}
+          previewHref={previewHref}
           onChosen={(designId) =>
             setDesigns((all) => all.map((d) => ({ ...d, active: d.designId === designId })))
           }

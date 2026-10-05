@@ -5,7 +5,13 @@ import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { isCanonicalHex } from "@/lib/card/color";
 import { validateCardData, type CardPanel } from "@/lib/card/card-data";
 import type { PanelFade } from "@/lib/card/layouts";
-import { effectiveCardTitle, parsePromptFacts, type PromptFactSlot } from "@/lib/card/facts";
+import {
+  effectiveCardTitle,
+  guestCardContent,
+  parsePromptFacts,
+  type PromptFactSlot,
+  type RevealCardContent,
+} from "@/lib/card/facts";
 import { CARD_LAYOUT_IDS, type CardLayoutId } from "@/lib/card/layouts";
 import { revealContentFor } from "@/lib/card/reveal-content.server";
 import { CARD_SHAPES, proportionOf, type CardProportion, type CardShape } from "@/lib/card/shapes";
@@ -83,6 +89,12 @@ export interface LoadRevealedCardOptions {
   now?: () => number;
   /** A design of the event to show instead of the active one. */
   designId?: string;
+  /**
+   * `"guest"`: the card as guests see it (Preview) — the host's stored facts only, with no
+   * placeholder and no prompt-stated value, so `unconfirmed` and `stated` are empty
+   * (`guestCardContent`). Default `"host"`: Creation Mode's content.
+   */
+  audience?: "host" | "guest";
 }
 
 interface DesignRow {
@@ -244,6 +256,7 @@ export async function loadRevealedCard(
     artworks: (artData ?? []) as ArtRow[],
     active,
     now,
+    audience: options.audience ?? "host",
   });
 }
 
@@ -259,6 +272,7 @@ async function buildRevealedCard({
   artworks,
   active,
   now,
+  audience = "host",
 }: {
   admin: ReturnType<typeof createAdminClient>;
   event: EventRow;
@@ -267,6 +281,7 @@ async function buildRevealedCard({
   artworks: ArtRow[];
   active: boolean;
   now: number;
+  audience?: "host" | "guest";
 }): Promise<RevealedCard> {
   const design = designOf(designRow);
   const shape = active
@@ -285,25 +300,28 @@ async function buildRevealedCard({
   const { ink, panels } = zoneInk(art.ink, shape);
 
   const title = effectiveCardTitle(row.title, design.wording.title);
-  const { content, unconfirmed, stated } = await revealContentFor({
-    wording: {
-      title,
-      invitationLine: design.wording.invitationLine,
-    },
-    event: {
-      babyName: row.baby_name,
-      hosts: row.hosts,
-      eventDate: row.event_date,
-      startTime: row.start_time,
-      endTime: row.end_time,
-      venueName: row.venue_name,
-      address: row.address,
-      rsvpDeadline: row.rsvp_deadline,
-      timezone: row.timezone,
-    },
-    promptFacts: parsePromptFacts(row.prompt_facts),
-    now: new Date(now),
-  });
+  const wording = { title, invitationLine: design.wording.invitationLine };
+  const eventFacts = {
+    babyName: row.baby_name,
+    hosts: row.hosts,
+    eventDate: row.event_date,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    venueName: row.venue_name,
+    address: row.address,
+    rsvpDeadline: row.rsvp_deadline,
+    timezone: row.timezone,
+  };
+  // A guest's card carries the host's stored facts only: no placeholder, no prompt-stated value.
+  const { content, unconfirmed, stated }: RevealCardContent =
+    audience === "guest"
+      ? { content: guestCardContent({ wording, event: eventFacts }), unconfirmed: [], stated: {} }
+      : await revealContentFor({
+          wording,
+          event: eventFacts,
+          promptFacts: parsePromptFacts(row.prompt_facts),
+          now: new Date(now),
+        });
   const boxes = await generatedTextLayer({
     layout: design.layout,
     shape,

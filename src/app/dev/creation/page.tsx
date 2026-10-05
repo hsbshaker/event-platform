@@ -223,6 +223,7 @@ export default async function CreationFixturePage({
       supported={supported}
       published={published}
       designs={designs}
+      previewHref={`/dev/preview?data=${encodeURIComponent(data)}`}
     />
   );
 }
