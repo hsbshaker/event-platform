@@ -79,9 +79,13 @@ Heed deprecation notices in those docs over training-data habits.
 
 ## Phase 1 placeholders to close in later phases
 
-- **Co-host invitations**: RLS currently lets the owner insert a `cohost` membership for any
-  profile id. When the invitation flow lands (spec.md §6.2, §27 "explicit, invitation-based"),
-  move that write server-side and revoke the end-user `insert` on `event_members`.
+- **Co-host invitations**: closed in Creation Mode slice 4 — end users have no `insert`, `update`
+  or `delete` on `event_members`. A co-host joins only through an invite link the owner creates
+  (`/invite/<token>`, one use, 7 days, revocable; the database stores the token's HMAC only) and
+  `accept_cohost_invitation`; the owner removes one through `remove_cohost`. All of it goes
+  through `src/lib/cohosts/invitations.server.ts` (`manage_cohosts`, owner only) and the
+  service-role functions of `20261012000000_cohost_invitations.sql`. The platform sends no
+  invitation: the owner copies the link.
 - **Signup throttling**: now called from `signInWithEmail` in `src/app/actions/auth.ts`. OAuth
   sign-in starts at the provider, so it is throttled by Supabase's own limits rather than here.
 - **Pre-auth cleanup job**: implemented in Phase 2 at `/api/cron/purge-pre-auth` and scheduled

@@ -710,6 +710,9 @@ owner can overturn any of them.
 - **`Try another direction ✦` appears twice** in Creation Mode, under the card and in the Design
   panel, so it is easy to find (the owner could not find a way to change the card at first).
 - **A recent shape-switch failure** (within 30 minutes) shows again on a page loaded after it.
+- **Co-hosts are invited by link.** No email provider exists yet, so the owner creates an invite
+  link and shares it themselves; it works once, expires after 7 days and can be revoked. The
+  owner's `Co-hosts` control sits in the owner toolbar until an event menu exists.
 
 ## Still open
 

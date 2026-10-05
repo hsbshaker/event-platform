@@ -15,6 +15,8 @@ import type { RevealedCard } from "@/lib/generation/reveal.server";
 import type { CardShapeOptions, LatestShapeSwitch } from "@/lib/generation/shape.server";
 import { eventPageContent, type EventPageVariant } from "@/lib/events/page-content";
 
+import { fixtureCohostActions } from "./cohost-stubs";
+
 /**
  * Creation Mode's canvas from fixture data: the real `CreationCanvas`, `EventPage` and details
  * editor, with a stubbed save that applies the patch to local state (what the page's refresh does
@@ -64,6 +66,9 @@ export function CreationFixture({
   shapeWait = null,
   previewHref,
   storedCode = false,
+  role = "owner",
+  cohosts = 0,
+  pendingInvites = 0,
 }: {
   /** The active design's card in each shape its layout supports. */
   cards: Record<CardShape, ReactNode>;
@@ -81,8 +86,16 @@ export function CreationFixture({
   previewHref: string;
   /** The event starts with a code stored (the first of `FIXTURE_CODES`). */
   storedCode?: boolean;
+  /** Who is signed in: the owner (who manages co-hosts) or a co-host (who does not). */
+  role?: "owner" | "cohost";
+  /** Co-hosts and pending invite links the event starts with. */
+  cohosts?: number;
+  pendingInvites?: number;
 }) {
   const [event, setEvent] = useState(initial);
+  const [cohostActions] = useState(() =>
+    fixtureCohostActions({ cohosts, pending: pendingInvites }),
+  );
   const [current, setCurrent] = useState(shape);
   // The 5:7 shapes are fitted by the artwork the design was made with; a square needs new artwork
   // until one is painted (the stub's poll succeeds).
@@ -225,6 +238,8 @@ export function CreationFixture({
             return { ok: true };
           }}
           previewHref={previewHref}
+          cohosts={role === "owner" ? { manage: true, count: cohosts } : { manage: false }}
+          cohostActions={cohostActions}
           onChosen={(designId) =>
             setDesigns((all) => all.map((d) => ({ ...d, active: d.designId === designId })))
           }

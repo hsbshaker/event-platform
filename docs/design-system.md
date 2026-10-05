@@ -1639,7 +1639,8 @@ Contains only high-level controls:
 It is not a page-builder toolbar.
 
 Implemented as `src/components/app/OwnerToolbar.tsx`: `Design` and `Preview`, end-aligned above
-the card.
+the card, and, for the owner only, `Co-hosts` (until an event menu holds owner controls such as
+billing and delete).
 
 ## 10.11 `ContextEditAction`
 
@@ -1692,7 +1693,8 @@ details editor on its field. Each §23.1 requirement is its own row; the RSVP de
 clears when the date is saved (its default is stored with the date); the time zone, inferred from
 the venue (`spec.md §7.4`), opens the venue field. The private event code's row (only for an event made private before codes existed) opens the
 editor on `Make a code`.
-The recommended group appears once its surfaces (guests, registry, co-hosts) exist.
+The recommended group shows the rows whose surfaces exist: today `Co-host`, to the owner only
+(co-hosts cannot manage co-hosts); guests and registry join it with their surfaces.
 
 ## 10.14 `InvitationCard`
 

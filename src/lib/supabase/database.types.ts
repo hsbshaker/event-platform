@@ -1,7 +1,7 @@
 /**
  * Database contract for the Supabase client.
  *
- * Hand-authored to match supabase/migrations/ through 20261010000000_shape_switch.sql.
+ * Hand-authored to match supabase/migrations/ through 20261012000000_cohost_invitations.sql.
  * Regenerate with `npm run db:types` against a local stack when the schema changes; keep the
  * generated file in sync with the migration in the same PR.
  */
@@ -68,6 +68,13 @@ export type SwitchCardShapeOutcome =
 /** Outcomes of public.set_event_privacy and public.rotate_event_code (20261011000000_event_privacy.sql). */
 export type SetEventPrivacyOutcome = "saved" | "not_found";
 export type RotateEventCodeOutcome = "rotated" | "not_private" | "not_found";
+
+/** Outcomes of the co-host invitation functions (20261012000000_cohost_invitations.sql). */
+export type CreateCohostInvitationOutcome = "created" | "not_found";
+export type CohostInvitationPreviewStatus = "valid" | "member" | "invalid";
+export type AcceptCohostInvitationOutcome = "joined" | "already_member" | "invalid";
+export type RevokeCohostInvitationOutcome = "revoked" | "not_pending" | "not_found";
+export type RemoveCohostOutcome = "removed" | "not_found";
 
 /** Card enumerations (supabase/migrations/20261004000000_phase4_card_data.sql). */
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
@@ -140,6 +147,20 @@ type EventMemberRow = {
   user_id: string;
   role: EventMemberRole;
   created_at: string;
+};
+
+/** Server-only (20261012000000_cohost_invitations.sql): no end-user grants. */
+type CohostInvitationRow = {
+  id: string;
+  event_id: string;
+  /** HMAC of the link's token (bytea); never the token. */
+  token_hash: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  accepted_by: string | null;
+  accepted_at: string | null;
+  revoked_at: string | null;
 };
 
 type PreAuthEventDraftRow = {
@@ -393,6 +414,13 @@ export type Database = {
         >
       >;
       event_members: Table<EventMemberRow, Insert<EventMemberRow, "created_at">>;
+      cohost_invitations: Table<
+        CohostInvitationRow,
+        Insert<
+          CohostInvitationRow,
+          "id" | "created_at" | "accepted_by" | "accepted_at" | "revoked_at"
+        >
+      >;
       pre_auth_event_drafts: Table<
         PreAuthEventDraftRow,
         Insert<
@@ -688,6 +716,50 @@ export type Database = {
       rotate_event_code: {
         Args: { p_event_id: string; p_user_id: string; p_code_encrypted: string };
         Returns: { outcome: RotateEventCodeOutcome; code_encrypted: string | null }[];
+      };
+      /** Records a co-host invite link's hash for the event's owner (20261012000000_cohost_invitations.sql). */
+      create_cohost_invitation: {
+        /** p_token_hash: bytea, sent as `\x` and hex. */
+        Args: { p_event_id: string; p_user_id: string; p_token_hash: string };
+        Returns: {
+          outcome: CreateCohostInvitationOutcome;
+          invitation_id: string | null;
+          created_at: string | null;
+          expires_at: string | null;
+        }[];
+      };
+      /** What the invite page may show for a token hash (20261012000000_cohost_invitations.sql). */
+      cohost_invitation_preview: {
+        Args: { p_token_hash: string; p_user_id: string | null };
+        Returns: {
+          status: CohostInvitationPreviewStatus;
+          event_id: string | null;
+          event_title: string | null;
+          inviter_name: string | null;
+          role: EventMemberRole | null;
+        }[];
+      };
+      /** Makes the signed-in holder of a link a co-host (20261012000000_cohost_invitations.sql). */
+      accept_cohost_invitation: {
+        Args: { p_token_hash: string; p_user_id: string };
+        Returns: {
+          outcome: AcceptCohostInvitationOutcome;
+          event_id: string | null;
+          role: EventMemberRole | null;
+        }[];
+      };
+      revoke_cohost_invitation: {
+        Args: { p_event_id: string; p_user_id: string; p_invitation_id: string };
+        Returns: RevokeCohostInvitationOutcome;
+      };
+      remove_cohost: {
+        Args: { p_event_id: string; p_user_id: string; p_cohost_id: string };
+        Returns: RemoveCohostOutcome;
+      };
+      /** The event's working invite links, for its owner (20261012000000_cohost_invitations.sql). */
+      pending_cohost_invitations: {
+        Args: { p_event_id: string; p_user_id: string };
+        Returns: { id: string; created_at: string; expires_at: string }[];
       };
       /**
        * A shape switch's new artwork, added to its design, and the switch applied while that

@@ -21,6 +21,7 @@ import type { RevealedCard } from "@/lib/generation/reveal.server";
 import type { CardShapeOptions, LatestShapeSwitch } from "@/lib/generation/shape.server";
 import { shapeAppliedLine, shapeWaitLine } from "@/lib/generation/shape-wait";
 
+import { CohostsPanel, cohostCount, type CohostActions } from "./CohostsPanel";
 import { DesignPanel } from "./DesignPanel";
 import { DetailsForm } from "./create/DetailsForm";
 import type { PrivacyActions } from "./create/PrivacyControl";
@@ -46,10 +47,19 @@ import { useShapeSwitch } from "./use-shape-switch";
  * last refresh), and closing it waits for its last edits to save: if one failed or was refused, it
  * stays open with the message beside the field (a second close leaves anyway).
  * Only the owner's and co-hosts' page renders this, so the anchors never reach a guest.
+ *
+ * For the owner only (`cohosts.manage`, from `manage_cohosts`; `spec.md §25`): the Co-hosts sheet
+ * (`CohostsPanel`), reached from the setup checklist's **Recommended before sharing** Co-host row
+ * before publish, and from the toolbar's `Co-hosts` before and after publish (readiness is hidden
+ * once published). A co-host sees neither, and the server refuses them either way.
  */
 
 type Panel =
-  { kind: "details"; focusId?: string } | { kind: "design" } | { kind: "checklist" } | null;
+  | { kind: "details"; focusId?: string }
+  | { kind: "design" }
+  | { kind: "checklist" }
+  | { kind: "cohosts" }
+  | null;
 
 export function CreationCanvas({
   card,
@@ -65,6 +75,8 @@ export function CreationCanvas({
   choose,
   onChosen,
   previewHref,
+  cohosts,
+  cohostActions,
 }: {
   /** Everything above the page: the card with its markers and legend, and its actions. */
   card: ReactNode;
@@ -96,6 +108,13 @@ export function CreationCanvas({
   onChosen?: (designId: string) => void;
   /** Where the toolbar's `Preview` goes; the event's preview page by default (the fixture's own). */
   previewHref?: string;
+  /**
+   * Whether the signed-in member may manage co-hosts (the owner only) and, if so, how many there
+   * are.
+   */
+  cohosts: { manage: false } | { manage: true; count: number };
+  /** The Co-hosts sheet's actions; the development fixture injects stubs. */
+  cohostActions?: CohostActions;
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
@@ -104,6 +123,8 @@ export function CreationCanvas({
   const detailsAnchor = useRef<HTMLButtonElement | null>(null);
   const descriptionAnchor = useRef<HTMLButtonElement | null>(null);
   const designButton = useRef<HTMLButtonElement | null>(null);
+  const cohostsButton = useRef<HTMLButtonElement | null>(null);
+  const [cohostTotal, setCohostTotal] = useState(cohosts.manage ? cohosts.count : 0);
   const pill = useRef<HTMLButtonElement | null>(null);
   const [saves] = useState(createSaveTracker);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -188,6 +209,10 @@ export function CreationCanvas({
           previewHref={previewHref ?? `/events/${event.id}/preview`}
           designRef={designButton}
           onDesign={() => showPanel({ kind: "design" }, designButton.current)}
+          cohostsRef={cohostsButton}
+          onCohosts={
+            cohosts.manage ? () => showPanel({ kind: "cohosts" }, cohostsButton.current) : undefined
+          }
         />
         {(switching.kind === "starting" || switching.kind === "running") && (
           <InlineStatus
@@ -280,8 +305,41 @@ export function CreationCanvas({
           blockers={readiness.blockers}
           // The checklist hands over to the editor; closing the editor returns focus to the pill.
           onOpen={(focusId) => showPanel({ kind: "details", focusId }, null)}
+          recommended={
+            cohosts.manage
+              ? [
+                  {
+                    key: "cohost",
+                    label: "Co-host",
+                    description:
+                      cohostTotal === 0
+                        ? "Invite someone to help you plan and host."
+                        : cohostTotal === 1
+                          ? "1 co-host is helping you."
+                          : `${cohostTotal} co-hosts are helping you.`,
+                    done: cohostTotal > 0,
+                    // As for the editor: closing the sheet returns focus to the pill.
+                    onOpen: () => showPanel({ kind: "cohosts" }, null),
+                  },
+                ]
+              : []
+          }
         />
       </Sheet>
+      {cohosts.manage && (
+        <Sheet
+          open={panel?.kind === "cohosts"}
+          onClose={() => void closePanel("cohosts")}
+          title="Co-hosts"
+          description="Co-hosts can edit the invitation, manage guests and the registry, and publish once it's paid for. Only you can pay, manage co-hosts or delete the event."
+        >
+          <CohostsPanel
+            eventId={event.id}
+            actions={cohostActions}
+            onRoster={(roster) => setCohostTotal(cohostCount(roster))}
+          />
+        </Sheet>
+      )}
       <Sheet
         open={panel?.kind === "details"}
         onClose={() => void closePanel("details")}

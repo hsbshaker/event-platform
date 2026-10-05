@@ -53,11 +53,19 @@ describe("account linkage", () => {
     ]);
   });
 
-  it("lets users read and edit only their own profile", async () => {
+  it("lets users edit only their own profile, and read it and (as an owner) their members'", async () => {
+    // An event's owner also reads its members' profiles, for the Co-hosts sheet
+    // (20261012000000_cohost_invitations.sql); a co-host and a stranger read only their own.
     const mine = await asActor(db, { kind: "user", id: owner }, (q) =>
-      q(`select id from public.profiles`),
+      q(`select id from public.profiles order by email`),
     );
-    expect(mine.rows.map((r) => r.id)).toEqual([owner]);
+    expect(mine.rows.map((r) => r.id)).toEqual([cohost, owner]);
+    for (const id of [cohost, stranger]) {
+      const own = await asActor(db, { kind: "user", id }, (q) =>
+        q(`select id from public.profiles`),
+      );
+      expect(own.rows.map((r) => r.id)).toEqual([id]);
+    }
     const updated = await asActor(db, { kind: "user", id: owner }, (q) =>
       q(`update public.profiles set name = 'Renamed' where id = $1 returning name`, [cohost]),
     );
@@ -245,36 +253,33 @@ describe("events and membership", () => {
     await db.query(`update public.events set timezone = 'Europe/Paris' where id = $1`, [eventId]);
   });
 
-  it("only the owner manages co-hosts and can never remove the owner row", async () => {
-    const added = await asActor(db, { kind: "user", id: owner }, (q) =>
-      q(
-        `insert into public.event_members (event_id, user_id, role) values ($1, $2, 'cohost') returning role`,
-        [eventId, stranger],
-      ),
-    );
-    expect(added.rows[0].role).toBe("cohost");
-    expect(
-      await errorCode(
-        asActor(db, { kind: "user", id: cohost }, (q) =>
-          q(
-            `insert into public.event_members (event_id, user_id, role) values ($1, $2, 'cohost')`,
-            [eventId, stranger],
+  it("no end user writes membership, and the owner row can never be removed", async () => {
+    // Co-host access is invitation-based and server-side (spec.md §27;
+    // 20261012000000_cohost_invitations.sql): the end-user insert and delete Phase 1 left for the
+    // owner are revoked, for the owner as for everyone else.
+    for (const actor of [owner, cohost]) {
+      expect(
+        await errorCode(
+          asActor(db, { kind: "user", id: actor }, (q) =>
+            q(
+              `insert into public.event_members (event_id, user_id, role) values ($1, $2, 'cohost')`,
+              [eventId, stranger],
+            ),
           ),
         ),
-      ),
-    ).toBe("42501");
-    const removedByCohost = await asActor(db, { kind: "user", id: cohost }, (q) =>
-      q(`delete from public.event_members where event_id = $1 and user_id = $2`, [eventId, cohost]),
-    );
-    expect(removedByCohost.rowCount).toBe(0);
-    const removedByOwner = await asActor(db, { kind: "user", id: owner }, (q) =>
-      q(`delete from public.event_members where event_id = $1 and user_id = $2`, [eventId, cohost]),
-    );
-    expect(removedByOwner.rowCount).toBe(1);
-    const ownerRow = await asActor(db, { kind: "user", id: owner }, (q) =>
-      q(`delete from public.event_members where event_id = $1 and user_id = $2`, [eventId, owner]),
-    );
-    expect(ownerRow.rowCount).toBe(0);
+      ).toBe("42501");
+      expect(
+        await errorCode(
+          asActor(db, { kind: "user", id: actor }, (q) =>
+            q(`delete from public.event_members where event_id = $1 and user_id = $2`, [
+              eventId,
+              cohost,
+            ]),
+          ),
+        ),
+      ).toBe("42501");
+    }
+    // The owner's row is fixed on the trusted path too.
     expect(
       await errorCode(
         db.query(`delete from public.event_members where event_id = $1 and role = 'owner'`, [
