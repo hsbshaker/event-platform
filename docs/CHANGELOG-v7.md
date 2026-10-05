@@ -576,6 +576,13 @@ circles. Two decisions by the owner (2026-10-04):
   rounded box with a soft shadow edge — covered the giraffe's head. Taken up next: the panel as a
   soft fade into the artwork rather than a box (a layout-set change, with fixtures).
 
+### Phase 5c — order of the remaining work (owner decision, 2026-10-05)
+
+- **Creation Mode now.** `Make it yours` leads from the reveal into Creation Mode, which needs
+  Phase 6. Offered an interim page, holding the button, or building Creation Mode now, the owner
+  chose to build it now: Phase 6 follows the reveal directly, before another direction and
+  shape switches (5d) and taste clarification (5e). The reveal ships with it.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
