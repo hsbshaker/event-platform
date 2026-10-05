@@ -405,9 +405,16 @@ For each text zone, computed once per artwork, layout and shape — for every sh
 (§2.4), so a switch the artwork already fits never waits:
 
 1. Measure the artwork's background in the zone **conservatively**: its luminance range between a
-   low and a high percentile, never the mean. An ink darker than the whole range is judged against
-   its dark end, one lighter than the whole range against its light end, and an ink inside the
-   range fails (Phase 3 found the bug a median-based rule lets through: cream ink over cream).
+   low and a high percentile (the 8th and 92nd), never the mean. An ink darker than the whole range
+   is judged against its dark end, one lighter than the whole range against its light end, and an
+   ink inside the range fails (Phase 3 found the bug a median-based rule lets through: cream ink
+   over cream). The zone is measured **whole and strip by strip** (`card_compiler_v3`, owner
+   decision 2026-10-05): the same range is taken over half-overlapping horizontal strips about a
+   line of text tall (60 card units, one every 30), and the ink is judged against the widest of
+   the zone's and the strips' ranges. Artwork that reaches into one part of the zone — a
+   sculpture's base behind the first line of a title — is too small a share of the whole zone to
+   reach its tails, but not of the strip it crosses; it fails here, so the artwork is repainted and
+   then, if it still reaches in, given the panel (§3).
 2. Candidate inks: colours drawn from the artwork's own palette first, then a near-black and a
    near-white tuned toward the artwork's hue.
 3. Choose the first candidate, in that order (the artwork's palette by share of the artwork, then
@@ -426,8 +433,11 @@ One pure, versioned function, `layoutCard(layout, shape, pairing, content)`, dec
 font size and line breaks:
 
 - start each slot at the layout's maximum size and step down to its minimum;
-- break lines deterministically and evenly, never leaving a one-word last line where another break
-  exists, never breaking inside a word except just after a hyphen between letters
+- break lines deterministically and evenly, never stranding a short word (a line that is one word
+  of three characters or fewer, such as "A", "The" or "Our": "A Wild / Beginning", never
+  "A / Wild Beginning"; `card_compiler_v3`, owner decision 2026-10-05) and then never leaving a
+  one-word last line where another break exists, never breaking inside a word except just after a
+  hyphen between letters
   ("Montgomery-" / "Whitworth"), the hyphen kept on the first line. A space always ranks above a
   hyphen: the sizes are searched first with no hyphen breaks, and only if nothing fits are they
   searched again with them;
@@ -584,7 +594,8 @@ editor shows the card exactly as guests will see it.
 
 **Line breaking for edited boxes.** One deterministic function breaks a box's text at its width
 from the font's own metrics (the font store's extracted metrics, so the server and every browser
-agree), with the same rules as §4.3: even lines, no one-word last line where another break exists,
+agree), with the same rules as §4.3: even lines, no stranded short word and then no one-word last
+line where another break exists,
 never inside a word except just after a hyphen between letters (a space preferred), a hard break
 where the host typed one. The result is stored as the box's
 `lines` and rendered exactly; a later change to the text, width, font, size, spacing or case

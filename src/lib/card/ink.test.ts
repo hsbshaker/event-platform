@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { contrastRatio, parseHex, relativeLuminance, rgbToOklch } from "./color";
 import {
+  BAND_HEIGHT,
+  BAND_STEP,
   DARK_TAIL_PERCENTILE,
   LIGHT_TAIL_PERCENTILE,
   MIN_INK_CONTRAST,
@@ -10,7 +12,9 @@ import {
   paletteFromPixels,
   percentile,
   resolveInk,
+  sampleZoneBands,
   sampleZoneLuminance,
+  zoneBands,
 } from "./ink";
 
 const lum = (hex: string) => relativeLuminance(parseHex(hex));
@@ -176,6 +180,78 @@ describe("inkContrast — the nearest-tail rule", () => {
   });
   it("fails an ink inside the range", () => {
     expect(inkContrast(0.5, 0.02, 0.9)).toBe(1);
+  });
+});
+
+describe("zoneBands", () => {
+  it("covers the zone in half-overlapping strips, the last flush with its bottom", () => {
+    const zone = { x: 100, y: 800, width: 800, height: 230 };
+    const bands = zoneBands(zone);
+    expect(bands.map((b) => b.y)).toEqual([800, 830, 860, 890, 920, 950, 970]);
+    for (const b of bands) {
+      expect(b).toMatchObject({ x: 100, width: 800, height: BAND_HEIGHT });
+      expect(b.y + b.height).toBeLessThanOrEqual(zone.y + zone.height);
+    }
+    // Any part of the zone up to BAND_STEP tall lies wholly inside one strip.
+    for (let y = zone.y; y + BAND_STEP <= zone.y + zone.height; y += 1) {
+      expect(bands.some((b) => b.y <= y && y + BAND_STEP <= b.y + b.height)).toBe(true);
+    }
+  });
+
+  it("measures a zone no taller than a strip as one strip", () => {
+    const zone = { x: 0, y: 10, width: 500, height: BAND_HEIGHT };
+    expect(zoneBands(zone)).toEqual([zone]);
+    expect(zoneBands({ ...zone, height: 20 })).toEqual([{ ...zone, height: 20 }]);
+  });
+});
+
+describe("artwork reaching into part of a zone (card_compiler_v3)", () => {
+  // A 100 × 140 artwork for a 1000 × 1400 card: 10 card units per pixel. Cream paper, with a navy
+  // shape reaching 40 units into the top of a 400-unit zone across 40% of its width: 4% of the
+  // zone, inside its dark tail, but a quarter of the strip it crosses.
+  const w = 100;
+  const h = 140;
+  const zoneRect = { x: 0, y: 800, width: 1000, height: 400 };
+  const art = image(w, h, (x, y) =>
+    y >= 76 && y < 84 && x >= 30 && x < 70 ? hexRgb(NAVY) : hexRgb(CREAM),
+  );
+  const palette: PaletteColor[] = [
+    { color: CREAM, share: 0.97 },
+    { color: NAVY, share: 0.03 },
+  ];
+  const luminances = sampleZoneLuminance(art, w, h, zoneRect, () => true);
+  const bands = sampleZoneBands(art, w, h, zoneRect, () => true);
+
+  it("passes the whole-zone measure alone", () => {
+    const result = resolveInk({ luminances, palette });
+    expect(result.panel).toBeNull();
+    expect(result.ink).toBe(NAVY);
+  });
+
+  it("fails the strip it crosses, so the zone needs the panel", () => {
+    const result = resolveInk({ luminances, bands, palette });
+    expect(result.background.darkTail).toBeCloseTo(lum(NAVY), 10);
+    expect(result.background.lightTail).toBeCloseTo(lum(CREAM), 10);
+    expect(result.panel).not.toBeNull();
+    expect(contrastRatio(result.ink, result.panel!.color)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
+  });
+
+  it("changes nothing where every strip is as quiet as the zone", () => {
+    const quiet = image(w, h, () => hexRgb(CREAM));
+    const l = sampleZoneLuminance(quiet, w, h, zoneRect, () => true);
+    const b = sampleZoneBands(quiet, w, h, zoneRect, () => true);
+    expect(resolveInk({ luminances: l, bands: b, palette })).toEqual(
+      resolveInk({ luminances: l, palette }),
+    );
+  });
+
+  it("samples each strip inside the outline only", () => {
+    const left = (x: number) => x < 500;
+    const strips = sampleZoneBands(art, w, h, zoneRect, (x) => left(x));
+    expect(strips).toHaveLength(zoneBands(zoneRect).length);
+    // The top strip's left half holds pixels 0..49 of rows 80..85; the navy is at 30..49 there.
+    expect(strips[0].length).toBe(50 * 6);
+    expect(strips[0].filter((v) => v === strips[0][0]).length).toBe(20 * 4);
   });
 });
 

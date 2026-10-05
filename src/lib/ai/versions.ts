@@ -11,7 +11,7 @@ export const CARD_DESIGN_SCHEMA_VERSION = "card_design_schema_v2";
 export const CARD_ART_PROMPT_VERSION = "card_art_v3";
 export const CARD_LAYOUT_SET_VERSION = "card_layouts_v2";
 /** Design validation, ink resolution, layoutCard's sizing steps and line breaking (slot specs are layout-set data). */
-export const CARD_COMPILER_VERSION = "card_compiler_v2";
+export const CARD_COMPILER_VERSION = "card_compiler_v3";
 
 /** `docs/model-prompts/fact-extraction.system.md` (Phase 3 validation). */
 export const FACT_EXTRACTION_PROMPT_VERSION = "fact_extraction_v1";

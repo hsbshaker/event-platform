@@ -459,6 +459,33 @@ circles. Two decisions by the owner (2026-10-04):
   event-identity prompts and both schemas; `technology-decisions.md §8.1` (the inspection's people
   check).
 
+### Phase 5 — round two, and two compiler fixes (owner decisions, 2026-10-05)
+
+- **Round two.** The same sixteen prompts on the production stack with rendering families: sixteen
+  cards, one after a "Try again" (CU-01's first attempt, editorial, had text in both images).
+  Seven of the nine directions came up in the random draw, and every design followed its
+  suggestion, as it should when no prompt names a medium. Median 66 s, p75 69 s; $1.98 in all.
+- **Decision 1: never strand a short word.** Two titles broke "A / Wild Beginning" and
+  "A / Well-Played Journey": the rule against a one-word last line pushed the article onto a line
+  of its own. Line breaking now first avoids any line that is one word of three characters or
+  fewer ("A", "The", "Our") where another break exists, then a one-word last line, then balances
+  ("A Wild / Beginning"). It applies to all card text, the editor's boxes included; a hyphen break
+  still ranks worse than a stranded word, and fewer lines rank first.
+- **Decision 2: artwork reaching into the words is repainted, then given the panel.** On CU-10 a
+  sculpture's base sat behind the first line of the title and still passed: the background is
+  measured between its 8th and 92nd percentiles, and the intrusion was under 8% of the zone. The
+  zone is now also measured in half-overlapping strips about a line tall (60 card units, one every
+  30), and the ink is judged against the widest of the zone's and the strips' ranges. Artwork that
+  fails only in a strip takes the existing path: repaint within the two-extra-image cap, then the
+  panel. Calibrated on the 33 artworks of both rounds before shipping: twelve of 52 shape checks
+  changed, all real intrusions at a zone's edge (leaves, ribbons, a teddy, the sculpture), none
+  from paper texture; seven only took a darker ink, and three artworks would now be repainted.
+- **Version:** `card_compiler_v3` (line breaking and ink resolution). Ink already resolved for a
+  persisted artwork is never re-resolved; line breaks of the generated text layer are computed when
+  a card is drawn, so every card drawn from now on uses the new rule, and a card editor box's
+  stored lines change only when the box is next re-broken. Updated: `spec.md §7.9`, §11.6 and two
+  §31 criteria; `card-system.md §4.2`, §4.3 and §7.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
