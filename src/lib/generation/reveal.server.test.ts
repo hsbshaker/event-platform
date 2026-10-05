@@ -246,7 +246,27 @@ describe("loadRevealedCard", () => {
       proportion: "1:1",
     });
     expect(revealed!.card.panels).toEqual([{ ...panel, color: "#3A2A1F" }]);
+    // A card_layouts_v3 panel keeps its fade into the artwork.
+    expect(revealed!.card.panels[0].fade).toEqual({ kind: "edge", from: "bottom", length: 180 });
     expect(new Set(revealed!.card.boxes.map((b) => b.color))).toEqual(new Set(["#FDF8EE"]));
+  });
+
+  it("draws a card_layouts_v2 panel as it was persisted, with no fade", async () => {
+    const v2Panel = {
+      x: 30,
+      y: 600,
+      width: 940,
+      height: 380,
+      radius: 28,
+      softEdge: { spread: 20, blur: 40 },
+    };
+    admin.fake.state.tables.events = [eventRow()];
+    admin.fake.state.tables.card_art_assets = [
+      artRow({ ink: { rectangle: { text: { ink: INK, panel: v2Panel, panelColor: "#F4EEE2" } } } }),
+    ];
+    const revealed = await load();
+    expect(revealed!.card.panels).toEqual([{ ...v2Panel, color: "#F4EEE2" }]);
+    expect(revealed!.card.panels[0]).not.toHaveProperty("fade");
   });
 
   it("reads only this event's design and artwork", async () => {

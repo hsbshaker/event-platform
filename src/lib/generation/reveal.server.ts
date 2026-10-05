@@ -4,6 +4,7 @@ import { requireEventAccess } from "@/lib/auth/event-access";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { isCanonicalHex } from "@/lib/card/color";
 import { validateCardData, type CardPanel } from "@/lib/card/card-data";
+import type { PanelFade } from "@/lib/card/layouts";
 import { effectiveCardTitle, parsePromptFacts } from "@/lib/card/facts";
 import { CARD_LAYOUT_IDS, type CardLayoutId } from "@/lib/card/layouts";
 import { revealContentFor } from "@/lib/card/reveal-content.server";
@@ -128,6 +129,8 @@ function zoneInk(ink: Json, shape: CardShape): { ink: string; panels: CardPanel[
         radius: panel.radius as number,
         softEdge: { spread: panel.softEdge.spread as number, blur: panel.softEdge.blur as number },
         color: zone.panelColor,
+        // `card_layouts_v3` panels fade into the artwork; `validateCardData` checks the fade.
+        ...(panel.fade !== undefined ? { fade: panel.fade as unknown as PanelFade } : {}),
       },
     ],
   };
