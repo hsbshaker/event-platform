@@ -76,8 +76,11 @@ function DesignBlock({ design }: { design: DesignShown }) {
 export function GenerationPanel({
   state,
   onRetry,
+  title = "Creating your invitation",
 }: {
   state: PanelState;
+  /** The heading while the card is made: the first card's, or a new direction's. */
+  title?: string;
   /** `Try again`; shown only for a failure that can be retried. */
   onRetry?: () => void;
 }) {
@@ -113,7 +116,7 @@ export function GenerationPanel({
       ) : (
         <>
           <h2 id="generation-panel-heading" className="text-heading-md text-app-text">
-            Creating your invitation
+            {title}
           </h2>
           <InlineStatus live>
             {state.kind === "starting"
@@ -161,10 +164,16 @@ export function WaitLayout({ panel, form }: { panel: ReactNode; form: ReactNode 
 }
 
 /** The reveal's page: the card centred, no dashboard. */
-export function RevealLayout({ children }: { children: ReactNode }) {
+export function RevealLayout({
+  children,
+  heading = "Your invitation",
+}: {
+  children: ReactNode;
+  heading?: string;
+}) {
   return (
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col items-center gap-8 px-4 py-10 lg:py-14">
-      <h1 className="sr-only">Your invitation</h1>
+      <h1 className="sr-only">{heading}</h1>
       {children}
     </main>
   );

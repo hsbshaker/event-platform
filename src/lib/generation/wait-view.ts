@@ -55,6 +55,8 @@ export interface WaitGeneration {
   notice: string | null;
   /** The facts the prompt states, once extracted: the details form offers them to confirm. */
   facts: PromptFacts | null;
+  /** The design a succeeded generation made (the new card of `Try another direction`), else null. */
+  cardDesignId: string | null;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -126,6 +128,7 @@ export function readWaitGeneration(raw: unknown): WaitGeneration | null {
     failure: status === "failed" ? (readFailure(raw.failure) ?? generationFailure(null)) : null,
     notice: status === "running" && typeof raw.notice === "string" ? raw.notice : null,
     facts: parsePromptFacts(artifacts.facts),
+    cardDesignId: status === "succeeded" ? text(raw.cardDesignId) : null,
   };
 }
 
@@ -147,11 +150,13 @@ export function withHostCopy(view: {
   stage: string | null;
   artifacts: { identity?: unknown; design?: unknown; notice?: unknown; facts?: unknown };
   errorCode: string | null;
+  cardDesignId?: string | null;
 }): unknown {
   return {
     id: view.id,
     status: view.status,
     stage: view.stage,
+    cardDesignId: view.cardDesignId ?? null,
     artifacts: {
       identity: view.artifacts.identity,
       design: view.artifacts.design,
@@ -202,6 +207,7 @@ export type StartOutcome =
   | "designed"
   | "in_flight"
   | "published"
+  | "no_design"
   | "event_cap"
   | "host_cap"
   | "disabled";
@@ -209,7 +215,7 @@ export type StartOutcome =
 export type AfterStart =
   { kind: "poll" } | { kind: "reveal" } | { kind: "failed"; failure: GenerationFailure };
 
-/** What `startCardGeneration`'s outcome means for the surface. */
+/** What a start's outcome (`startCardGeneration`, `startAnotherDirection`) means for the surface. */
 export function afterStart(outcome: StartOutcome | string): AfterStart {
   switch (outcome) {
     case "started":
@@ -221,6 +227,7 @@ export function afterStart(outcome: StartOutcome | string): AfterStart {
     case "event_cap":
     case "host_cap":
     case "published":
+    case "no_design":
     case "disabled":
       return { kind: "failed", failure: generationFailure(outcome) };
     default:
@@ -235,4 +242,42 @@ export const POLL_MAX_BACKOFF_MS = 15_000;
 export function nextPollDelay(consecutiveFailures: number): number {
   if (consecutiveFailures <= 0) return POLL_INTERVAL_MS;
   return Math.min(POLL_INTERVAL_MS * 2 ** consecutiveFailures, POLL_MAX_BACKOFF_MS);
+}
+
+/** The poll route answered that this visitor cannot see the event (signed out, or no longer a member). */
+export const LOST_ACCESS: GenerationFailure = {
+  code: "internal",
+  title: "We can't show this event right now",
+  body: "You may have been signed out. Refresh the page, or sign in again.",
+  retry: false,
+};
+
+/** What one poll of `GET /api/events/[id]/generation` means for the surface. */
+export type PollStep =
+  /** 401/403/404: not a passing fault, polling again would only repeat it (`spec.md §32 #46`). */
+  | { kind: "lost" }
+  /** The server could not be reached or answered something unreadable: back off and try again. */
+  | { kind: "retry" }
+  | { kind: "running"; generation: WaitGeneration | null }
+  | { kind: "succeeded"; generation: WaitGeneration }
+  | { kind: "failed"; generation: WaitGeneration; failure: GenerationFailure };
+
+/**
+ * One poll's response read as a step. With `expectedId`, a body about any other generation (the
+ * event's latest is still an earlier one) reads as still running, never as that one's result.
+ */
+export function pollStep(status: number, body: unknown, expectedId?: string | null): PollStep {
+  if (status === 401 || status === 403 || status === 404) return { kind: "lost" };
+  if (status < 200 || status >= 300) return { kind: "retry" };
+  const read = readGenerationBody(body);
+  if (!read) return { kind: "retry" };
+  const generation = read.generation;
+  if (generation && expectedId && generation.id !== expectedId) {
+    return { kind: "running", generation: null };
+  }
+  if (generation?.status === "succeeded") return { kind: "succeeded", generation };
+  if (generation?.status === "failed") {
+    return { kind: "failed", generation, failure: generation.failure ?? generationFailure(null) };
+  }
+  return { kind: "running", generation };
 }

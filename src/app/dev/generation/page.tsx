@@ -17,7 +17,10 @@ import { GenerationFixture, type FixtureState } from "./GenerationFixture";
  * - `?state=starting|identity|design|notice|failed|reveal` (default `starting`);
  * - `&code=<failure code>` for `failed` (default `provider_error`);
  * - `&shape=rectangle|arch|square` and `&delay=<ms>` for `reveal`: the card's shape, and how long the
- *   envelope's tap takes to load the card.
+ *   envelope's tap takes to load the card;
+ * - `Try another direction`: `direction-box` (the box, with a stub start), `direction-wait`,
+ *   `direction-failed` (with `&code=`) and `direction-reveal` (the new card's reveal with its three
+ *   actions; `&choose=ok|published|not_found` is what `Choose this direction` answers).
  *
  * The card is drawn by the server path (`generatedTextLayer`) over synthetic artwork; the same
  * `RevealStage`, `GenerationPanel` and `DetailsForm` as the real surface render it.
@@ -30,7 +33,12 @@ const STATES: readonly FixtureState[] = [
   "notice",
   "failed",
   "reveal",
+  "direction-box",
+  "direction-wait",
+  "direction-failed",
+  "direction-reveal",
 ];
+const CARD_STATES: readonly FixtureState[] = ["reveal", "direction-box", "direction-reveal"];
 const SHAPES = ["rectangle", "arch", "square"] as const;
 const FACT_SLOTS_TO_CONFIRM = ["babyName", "date", "time", "venue"];
 
@@ -96,13 +104,14 @@ export default async function GenerationFixturePage({
   const shape = (SHAPES as readonly string[]).includes(one("shape") ?? "")
     ? (one("shape") as CardShape)
     : "rectangle";
-  const card = state === "reveal" ? await fixtureCard(shape) : null;
+  const card = CARD_STATES.includes(state) ? await fixtureCard(shape) : null;
 
   return (
     <GenerationFixture
       state={state}
       code={one("code") ?? "provider_error"}
       card={card}
+      choose={one("choose")}
       delayMs={Math.min(Number(one("delay")) || 0, 10_000)}
     />
   );

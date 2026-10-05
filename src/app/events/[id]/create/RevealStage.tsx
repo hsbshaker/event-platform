@@ -36,19 +36,20 @@ const BOX_WIDTH: Record<CardProportion, string> = {
 const BOX_HEIGHT: Record<CardProportion, string> = { "5:7": "140cqw", "1:1": "100cqw" };
 
 export function RevealStage({
-  eventId,
   title,
   proportion,
   loadCard,
+  actions,
   preloaded = null,
   beforeLoad,
 }: {
-  eventId: string;
   /** The card's effective title: the envelope's front. */
   title: string;
   proportion: CardProportion;
   /** Reads the card, with a fresh artwork URL; null when it cannot be shown. */
   loadCard: () => Promise<RevealedCard | null>;
+  /** What follows the card once it has settled, under its name and description. */
+  actions: (card: RevealedCard) => ReactNode;
   /** A card read just before, used on the tap while its artwork URL is still fresh. */
   preloaded?: RevealedCard | null;
   /** Resolves once the details form's last edit has been saved, before the card is read. */
@@ -97,18 +98,35 @@ export function RevealStage({
             <h2 className="text-heading-lg text-app-text">{card.name}</h2>
             <p className="max-w-prose text-body-md text-app-text-secondary">{card.description}</p>
           </div>
-          <p className="text-heading-md text-app-text">
-            Your invitation looks great.
-            <br />
-            Let&rsquo;s make it real.
-          </p>
-          {/* `Try another direction` joins this row with its flow (Phase 5d). */}
-          <AppButtonLink href={`/events/${eventId}`} size="lg">
-            Make it yours →
-          </AppButtonLink>
+          {actions(card)}
         </div>
       )}
     </div>
+  );
+}
+
+/** The first card's actions: into Creation Mode, or a new direction for the card on screen. */
+export function FirstCardActions({ eventId, designId }: { eventId: string; designId: string }) {
+  return (
+    <>
+      <p className="text-heading-md text-app-text">
+        Your invitation looks great.
+        <br />
+        Let&rsquo;s make it real.
+      </p>
+      <div className="flex flex-col items-center gap-3 sm:flex-row">
+        <AppButtonLink href={`/events/${eventId}`} size="lg">
+          Make it yours →
+        </AppButtonLink>
+        <AppButtonLink
+          href={`/events/${eventId}/direction?from=${designId}`}
+          variant="secondary"
+          size="lg"
+        >
+          Try another direction ✦
+        </AppButtonLink>
+      </div>
+    </>
   );
 }
 
