@@ -315,7 +315,7 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
       },
       unconfirmed: ["date", "time", "venue", "rsvpBy"],
     });
-    // A saved date with no saved deadline: its default, still unconfirmed.
+    // A saved date with no stored deadline yet: its default is the event's own, not a stand-in.
     const dated = revealCardContent({
       wording,
       event: { ...zoned, eventDate: "2026-06-06", startTime: "13:00" },
@@ -324,7 +324,7 @@ describe("revealCardContent (spec.md §7.3: the words the card shows right after
       now: new Date("2026-04-01T12:00:00Z"),
     });
     expect(dated.content.rsvpBy).toBe("RSVP by May 23");
-    expect(dated.unconfirmed).toEqual(["venue", "rsvpBy"]);
+    expect(dated.unconfirmed).toEqual(["venue"]);
     // A saved deadline is the host's: shown as stored, confirmed.
     const saved = revealCardContent({
       wording,

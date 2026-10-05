@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PromptFacts } from "@/lib/card/facts";
-import { promptPrefill, type PrefillCurrent } from "./prompt-prefill";
+import { formPrefill, promptPrefill, type PrefillCurrent } from "./prompt-prefill";
 
 const EMPTY: PrefillCurrent = {
   hosts: null,
@@ -61,5 +61,32 @@ describe("promptPrefill", () => {
 
   it("offers nothing when the prompt's facts are not extracted yet", () => {
     expect(promptPrefill(null, EMPTY)).toEqual({ fields: {}, hints: { date: null, time: null } });
+  });
+});
+
+describe("formPrefill (the form as it stands, including facts that arrive late)", () => {
+  it("offers the venue fields only when the form shows them", () => {
+    expect(formPrefill(FACTS, EMPTY, false).fields).toEqual({
+      hosts: "Ana & Leo",
+      babyName: "Maya Lopez",
+    });
+    expect(formPrefill(FACTS, EMPTY, true).fields).toMatchObject({
+      venueName: "Villa Rosa",
+      address: "12 Elm Street, Austin",
+    });
+  });
+
+  it("never overwrites what the host typed before the facts arrived", () => {
+    // The form's fields are strings; "" is empty.
+    const typed = { ...EMPTY, hosts: "Grandma Rose", eventDate: "2026-12-19" } as PrefillCurrent;
+    const offered = formPrefill(FACTS, typed, true);
+    expect(offered.fields.hosts).toBeUndefined();
+    expect(offered.fields.babyName).toBe("Maya Lopez");
+    expect(offered.hints).toEqual({ date: null, time: "2pm" });
+    const blank = { ...EMPTY, hosts: "", babyName: " " } as unknown as PrefillCurrent;
+    expect(formPrefill(FACTS, blank, false).fields).toEqual({
+      hosts: "Ana & Leo",
+      babyName: "Maya Lopez",
+    });
   });
 });

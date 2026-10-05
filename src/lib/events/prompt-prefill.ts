@@ -61,3 +61,22 @@ export function promptPrefill(
     },
   };
 }
+
+/**
+ * `promptPrefill` for the details form as it stands: the venue name and address are offered only
+ * when the form shows the venue fields (`venueShown`). Used when the form opens, and again when
+ * the facts arrive later (a first generation extracts them while the form is already open): a
+ * field the host has typed in by then is not empty, so it is never overwritten.
+ */
+export function formPrefill(
+  promptFacts: PromptFacts | null,
+  current: PrefillCurrent,
+  venueShown: boolean,
+): PromptPrefill {
+  const offered = promptPrefill(promptFacts, current);
+  if (!venueShown) {
+    delete offered.fields.venueName;
+    delete offered.fields.address;
+  }
+  return offered;
+}

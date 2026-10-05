@@ -288,7 +288,8 @@ Rules:
   confirmation; placeholders are never published (`spec.md §7.3`). A fact the prompt states
   (`Event.promptFacts`) stands in for a missing one from the reveal, as written, marked the same
   way, once it passes the entry and fit checks below; until the host confirms it, it is never
-  published and never given to the card design.
+  published and never given to the card design (except the occasion the prompt names, which the
+  design reads to word the invitation; it is never a slot).
 - **Slot limits** are part of the layout set and are enforced at entry, so real content always fits
   (§4.3 states the one exception: deliberately wide text within the limits).
   Since `card_layouts_v2`: title 40 characters, invitation line 72, baby name 40, hosts 60, venue 60.

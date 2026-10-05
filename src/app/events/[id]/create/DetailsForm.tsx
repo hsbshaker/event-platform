@@ -14,7 +14,8 @@ import { InlineStatus } from "@/components/app/InlineStatus";
 import { LOCAL_STORAGE_KEY } from "@/components/app/LandingComposer";
 import { cardTextFieldError, type CardTextField } from "@/lib/events/card-text";
 import type { SaveTracker } from "@/lib/events/save-tracker";
-import { promptPrefill, type PrefillField } from "@/lib/events/prompt-prefill";
+import type { PromptFacts } from "@/lib/card/facts";
+import { formPrefill, type PrefillField } from "@/lib/events/prompt-prefill";
 
 /**
  * The missing-details autosave form (spec.md §7.3, docs/design-system.md §3.7/§11,
@@ -65,10 +66,16 @@ function localInputValueToIso(value: string, timeZone: string): string | null {
 export function DetailsForm({
   event,
   saves,
+  promptFacts = event.promptFacts,
 }: {
   event: EventDraftView;
   /** Told of every save, and able to flush waiting edits, so the reveal reads the card after them. */
   saves?: SaveTracker;
+  /**
+   * The facts the prompt states, as soon as they are known: on a first generation they are
+   * extracted while this form is already open, so they can arrive after it renders.
+   */
+  promptFacts?: PromptFacts | null;
 }) {
   // Frozen on first render: fields the host already filled must not disappear mid-session
   // just because they were saved a moment ago.
@@ -76,14 +83,9 @@ export function DetailsForm({
 
   // What the prompt states for the fields still empty, shown pre-filled for the host to confirm.
   // Not saved until they confirm it or edit it; the date and time are only repeated as a hint.
-  const [prefill] = useState(() => {
-    const offered = promptPrefill(event.promptFacts, event);
-    if (!visibleMissing.has("venue")) {
-      delete offered.fields.venueName;
-      delete offered.fields.address;
-    }
-    return offered;
-  });
+  const [prefill, setPrefill] = useState(() =>
+    formPrefill(event.promptFacts, event, visibleMissing.has("venue")),
+  );
   const [unconfirmed, setUnconfirmed] = useState<ReadonlySet<PrefillField>>(
     () => new Set(Object.keys(prefill.fields) as PrefillField[]),
   );
@@ -99,6 +101,25 @@ export function DetailsForm({
   const [rsvpDeadlineIso, setRsvpDeadlineIso] = useState(event.rsvpDeadline);
   const [rsvpDeadlineEdited, setRsvpDeadlineEdited] = useState(event.rsvpDeadlineEdited);
   const [timezone, setTimezone] = useState(event.timezone ?? "UTC");
+
+  // Facts that arrive after the form opened are offered once, into the fields still empty: a
+  // field the host has typed in keeps what they typed. (State adjusted while rendering, as React
+  // recommends for a prop change, rather than in an effect.)
+  const [offeredFacts, setOfferedFacts] = useState(event.promptFacts);
+  if (promptFacts && !offeredFacts) {
+    setOfferedFacts(promptFacts);
+    const late = formPrefill(
+      promptFacts,
+      { hosts, babyName, venueName, address, eventDate, startTime },
+      visibleMissing.has("venue"),
+    );
+    setPrefill(late);
+    setUnconfirmed((prev) => new Set([...prev, ...(Object.keys(late.fields) as PrefillField[])]));
+    if (late.fields.hosts) setHosts(late.fields.hosts);
+    if (late.fields.babyName) setBabyName(late.fields.babyName);
+    if (late.fields.venueName) setVenueName(late.fields.venueName);
+    if (late.fields.address) setAddress(late.fields.address);
+  }
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [fieldStatus, setFieldStatus] = useState<Record<string, SaveState>>({});

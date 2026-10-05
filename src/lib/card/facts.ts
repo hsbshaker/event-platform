@@ -344,11 +344,12 @@ export interface RevealCardContent {
  *    Saturday, 1:00 pm, `Venue to be announced` (`provisionalContent`) — unconfirmed. The hosts and
  *    the baby name are absent rather than invented.
  *
- * The RSVP-by is the stored deadline; else, with a timezone, the default deadline of the date the
- * card shows (`computeRsvpDeadline`), unconfirmed — so the card's words do not move when the real
- * date arrives. When the date the card shows is the prompt's own words, which code does not read as
- * a date, the RSVP-by is absent until the host saves one, so the two never disagree (owner
- * decision, 2026-10-05).
+ * The RSVP-by is the stored deadline (the host's, or the default the details form stores once a
+ * date is saved); else, with a timezone, the default deadline of the date the card shows
+ * (`computeRsvpDeadline`) — marked unconfirmed while that date is the placeholder, so the card's
+ * words do not move when the real date arrives. When the date the card shows is the prompt's own
+ * words, which code does not read as a date, the RSVP-by is absent until the host saves one, so the
+ * two never disagree (owner decision, 2026-10-05).
  *
  * The one producer of this content: the artwork stage judges the ink behind these lines
  * (`run.server.ts`), the reveal and Creation Mode draw them (`loadRevealedCard`), and the live
@@ -403,7 +404,9 @@ export function revealCardContent({
 
   if (defaultDeadline !== null && timezone !== null && !statedDate) {
     content.rsvpBy = formatCardRsvpBy(defaultDeadline, timezone);
-    unconfirmed.add("rsvpBy");
+    // The default of a saved date is the event's own deadline (spec.md §7.3, "RSVP deadline
+    // default"); only one counted from the placeholder date is a stand-in.
+    if (placeholders.eventDate.provisional) unconfirmed.add("rsvpBy");
   }
   return { content, unconfirmed: CARD_SLOT_IDS.filter((slot) => unconfirmed.has(slot)) };
 }

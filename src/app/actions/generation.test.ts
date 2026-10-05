@@ -126,11 +126,14 @@ describe("startCardGeneration", () => {
     expect(scheduled).toEqual([]);
   });
 
-  it("starts nothing with generation switched off", async () => {
+  it("answers disabled, starting nothing, with generation switched off", async () => {
     process.env.GENERATION_ENABLED = "false";
-    await expect(startCardGeneration({ eventId: EVENT, idempotencyKey: KEY })).rejects.toThrow(
-      /switched off/,
-    );
+    resetEnvCache();
+    expect(await startCardGeneration({ eventId: EVENT, idempotencyKey: KEY })).toEqual({
+      outcome: "disabled",
+      generationId: null,
+    });
+    expect(admin.fake.rpc("start_generation")).toEqual([]);
     expect(scheduled).toEqual([]);
   });
 

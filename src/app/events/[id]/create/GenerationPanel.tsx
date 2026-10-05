@@ -164,6 +164,7 @@ export function WaitLayout({ panel, form }: { panel: ReactNode; form: ReactNode 
 export function RevealLayout({ children }: { children: ReactNode }) {
   return (
     <main className="mx-auto flex w-full max-w-(--width-wide) flex-1 flex-col items-center gap-8 px-4 py-10 lg:py-14">
+      <h1 className="sr-only">Your invitation</h1>
       {children}
     </main>
   );

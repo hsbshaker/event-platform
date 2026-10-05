@@ -641,11 +641,12 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
       [
         ["identity", ["identity", "facts", "droppedFacts"]],
         ["design", ["design"]],
-        ["design", ["notice"]],
+        ["design", ["notice", "design"]],
         ["design", ["design"]],
       ],
     );
-    expect(stages()[2][1]).toEqual({ notice: "provider_refusal" });
+    // The note clears the refused design, so the wait never shows it while the next is drafted.
+    expect(stages()[2][1]).toEqual({ notice: "provider_refusal", design: null });
     expect((stages()[3][1] as { design: { name: string } }).design.name).toBe("Grove Morning");
     // The second design's artwork is the refusal's regeneration, and it is what is persisted.
     expect(fake.calls.art[1]).toMatchObject({ layout: "framed", artMode: "framed" });
@@ -675,7 +676,10 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
     const { outcome, fake } = await run({ ...HAPPY, art: [NOT_PNG, refusal()] });
     expect(outcome).toEqual({ status: "failed", code: "provider_refusal" });
     expect(fake.calls.design).toHaveLength(1);
-    expect(stages().map(([, a]) => a)).not.toContainEqual({ notice: "provider_refusal" });
+    expect(stages().map(([, a]) => a)).not.toContainEqual({
+      notice: "provider_refusal",
+      design: null,
+    });
   });
 
   describe("Try again after a refusal takes the same step back (§31)", () => {
@@ -707,10 +711,10 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
       });
       expect(stages().map(([stage, a]) => [stage, Object.keys(a as object)])).toEqual([
         ["identity", ["identity", "facts", "droppedFacts"]],
-        ["design", ["notice"]],
+        ["design", ["notice", "design"]],
         ["design", ["design"]],
       ]);
-      expect(stages()[1][1]).toEqual({ notice: "provider_refusal" });
+      expect(stages()[1][1]).toEqual({ notice: "provider_refusal", design: null });
       expect(fake.calls.art).toHaveLength(1);
       expect(persisted()).toMatchObject({ p_name: "Grove Morning" });
       expect(telemetryOf()).toMatchObject({
@@ -732,7 +736,10 @@ describe("a provider refusal of the homage (spec.md §7.6)", () => {
       earlier("artwork_invalid");
       const { fake } = await run({ design: [DESIGN], art: [CLEAN] });
       expect(fake.calls.design[0].reprompt).toBeUndefined();
-      expect(stages().map(([, a]) => a)).not.toContainEqual({ notice: "provider_refusal" });
+      expect(stages().map(([, a]) => a)).not.toContainEqual({
+        notice: "provider_refusal",
+        design: null,
+      });
     });
   });
 });

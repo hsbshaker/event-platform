@@ -66,7 +66,7 @@ export type EnvelopeProps = SealedEnvelopeProps | OpenableEnvelopeProps;
 
 const ASPECT: Record<EnvelopeProportion, string> = { portrait: "5 / 7", square: "1 / 1" };
 // Fractions of --width-narrow: a 5:7 card at 0.64 stays under ~500px tall; a square can be wider.
-const WIDTH: Record<EnvelopeProportion, string> = {
+export const ENVELOPE_WIDTH: Record<EnvelopeProportion, string> = {
   portrait: "min(100%, calc(var(--width-narrow) * 0.64))",
   square: "min(100%, calc(var(--width-narrow) * 0.8))",
 };
@@ -191,7 +191,7 @@ export function Envelope(props: EnvelopeProps) {
     }
   }, [onOpen]);
 
-  const width = WIDTH[proportion];
+  const width = ENVELOPE_WIDTH[proportion];
 
   if (sealed) {
     return (

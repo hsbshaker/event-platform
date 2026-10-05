@@ -45,6 +45,7 @@ function generation(partial: Partial<WaitGeneration>): WaitGeneration {
     design: null,
     failure: null,
     notice: null,
+    facts: null,
     ...partial,
   };
 }

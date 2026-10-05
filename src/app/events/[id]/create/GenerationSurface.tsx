@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { EventDraftView } from "@/app/actions/event-details";
 import { startCardGeneration } from "@/app/actions/generation";
 import { loadRevealedCardAction } from "@/app/actions/reveal";
+import type { PromptFacts } from "@/lib/card/facts";
 import type { CardProportion } from "@/lib/card/shapes";
 import { generationFailure, type GenerationFailure } from "@/lib/generation/failure-copy";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
@@ -54,6 +55,14 @@ const COULD_NOT_OPEN: GenerationFailure = {
   title: "We couldn't open your card",
   body: "Your card is ready, but we couldn't load it just now. Try again in a moment.",
   retry: true,
+};
+
+/** The poll route answered that this visitor cannot see the event (signed out, or no longer a member). */
+const LOST_ACCESS: GenerationFailure = {
+  code: "internal",
+  title: "We can't show this event right now",
+  body: "You may have been signed out. Refresh the page, or sign in again.",
+  retry: false,
 };
 
 const KEY_PREFIX = "generation-key:";
@@ -111,6 +120,12 @@ export function GenerationSurface({
   const began = useRef(false);
   // The details form's saves: the card is read only after the host's last edit has landed.
   const [saves] = useState(() => createSaveTracker());
+  // The facts the prompt states: stored on the event once extracted, or read from the generation
+  // as it runs, so the details form can offer them as soon as they exist.
+  const [facts, setFacts] = useState<PromptFacts | null>(
+    () =>
+      draft.promptFacts ?? (initial.kind === "poll" ? (initial.generation?.facts ?? null) : null),
+  );
 
   const openReveal = useCallback(async () => {
     setPhase({ kind: "opening" });
@@ -196,12 +211,20 @@ export function GenerationSurface({
           cache: "no-store",
           headers: { Accept: "application/json" },
         });
+        if (res.status === 401 || res.status === 403 || res.status === 404) {
+          // Not a passing fault: polling again would only repeat it (spec.md §32 #46).
+          if (!cancelled) {
+            setPhase({ kind: "failed", failure: LOST_ACCESS, retrying: false, mode: "generate" });
+          }
+          return;
+        }
         if (!res.ok) throw new Error(`status ${res.status}`);
         const body = readGenerationBody(await res.json());
         if (!body) throw new Error("unreadable response");
         if (cancelled) return;
         failures = 0;
         const generation = body.generation;
+        if (generation?.facts) setFacts((known) => known ?? generation.facts);
         if (generation?.status === "succeeded") {
           void openReveal();
           return;
@@ -285,7 +308,7 @@ export function GenerationSurface({
           onRetry={retry}
         />
       }
-      form={<DetailsForm event={draft} saves={saves} />}
+      form={<DetailsForm event={draft} saves={saves} promptFacts={facts} />}
     />
   );
 }

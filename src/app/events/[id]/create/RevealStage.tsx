@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
-import { Envelope } from "@/components/app/Envelope";
+import { Envelope, ENVELOPE_WIDTH } from "@/components/app/Envelope";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import type { CardProportion } from "@/lib/card/shapes";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
@@ -28,10 +28,10 @@ function isFresh(card: RevealedCard, now: number): boolean {
   return Number.isFinite(expires) && expires - now > FRESH_FOR_MS;
 }
 
-/** The width the envelope gives its card (`Envelope.tsx`): the reserved box matches it. */
+/** The width the envelope gives its card: the reserved box matches it. */
 const BOX_WIDTH: Record<CardProportion, string> = {
-  "5:7": "min(100%, calc(var(--width-narrow) * 0.64))",
-  "1:1": "min(100%, calc(var(--width-narrow) * 0.8))",
+  "5:7": ENVELOPE_WIDTH.portrait,
+  "1:1": ENVELOPE_WIDTH.square,
 };
 const BOX_HEIGHT: Record<CardProportion, string> = { "5:7": "140cqw", "1:1": "100cqw" };
 

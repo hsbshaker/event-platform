@@ -5,10 +5,12 @@
  * Pure and isomorphic: the page reads the latest generation on the server and the client polls the
  * same shape from `GET /api/events/[id]/generation`. Both go through `readWaitGeneration`, which
  * keeps only what the surface may show — the identity's creative signals, the design's name,
- * description and art direction in words, a failure's host copy, the copyright note — and nothing
- * else (`spec.md §32 #42`). Anything it cannot read as such is treated as not there rather than
+ * description and art direction in words, a failure's host copy, the copyright note, and the facts
+ * the prompt states for the details form to offer — and nothing else (`spec.md §32 #42`). Anything it cannot read as such is treated as not there rather than
  * shown, so the surface never claims a result the pipeline did not record.
  */
+
+import { parsePromptFacts, type PromptFacts } from "@/lib/card/facts";
 
 import {
   generationFailure,
@@ -51,6 +53,8 @@ export interface WaitGeneration {
   design: DesignShown | null;
   failure: GenerationFailure | null;
   notice: string | null;
+  /** The facts the prompt states, once extracted: the details form offers them to confirm. */
+  facts: PromptFacts | null;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -121,6 +125,7 @@ export function readWaitGeneration(raw: unknown): WaitGeneration | null {
     design: readDesign(artifacts.design),
     failure: status === "failed" ? (readFailure(raw.failure) ?? generationFailure(null)) : null,
     notice: status === "running" && typeof raw.notice === "string" ? raw.notice : null,
+    facts: parsePromptFacts(artifacts.facts),
   };
 }
 
@@ -140,14 +145,18 @@ export function withHostCopy(view: {
   id: string;
   status: string;
   stage: string | null;
-  artifacts: { identity?: unknown; design?: unknown; notice?: unknown };
+  artifacts: { identity?: unknown; design?: unknown; notice?: unknown; facts?: unknown };
   errorCode: string | null;
 }): unknown {
   return {
     id: view.id,
     status: view.status,
     stage: view.stage,
-    artifacts: { identity: view.artifacts.identity, design: view.artifacts.design },
+    artifacts: {
+      identity: view.artifacts.identity,
+      design: view.artifacts.design,
+      facts: view.artifacts.facts,
+    },
     failure: view.status === "failed" ? generationFailure(view.errorCode) : null,
     notice: view.status === "running" ? generationNotice(view.artifacts.notice) : null,
   };
@@ -159,7 +168,9 @@ export function withHostCopy(view: {
  */
 export function waitStatusLine(generation: WaitGeneration | null): string {
   if (!generation || generation.stage === null) return "Understanding your event";
-  if (generation.stage === "identity") return "Designing your card";
+  // Painting only once a design is recorded: the copyright step-back clears the refused design
+  // while its replacement is drafted.
+  if (generation.design === null) return "Designing your card";
   return "Painting the artwork";
 }
 
@@ -184,8 +195,16 @@ export function initialWait(hasCard: boolean, generation: WaitGeneration | null)
   return { kind: "reveal" };
 }
 
+/** `start_generation`'s outcomes, and `disabled` when generation is switched off. */
 export type StartOutcome =
-  "started" | "existing" | "designed" | "in_flight" | "published" | "event_cap" | "host_cap";
+  | "started"
+  | "existing"
+  | "designed"
+  | "in_flight"
+  | "published"
+  | "event_cap"
+  | "host_cap"
+  | "disabled";
 
 export type AfterStart =
   { kind: "poll" } | { kind: "reveal" } | { kind: "failed"; failure: GenerationFailure };
@@ -202,6 +221,7 @@ export function afterStart(outcome: StartOutcome | string): AfterStart {
     case "event_cap":
     case "host_cap":
     case "published":
+    case "disabled":
       return { kind: "failed", failure: generationFailure(outcome) };
     default:
       return { kind: "failed", failure: generationFailure(null) };

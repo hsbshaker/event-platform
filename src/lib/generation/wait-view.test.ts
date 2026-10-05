@@ -55,11 +55,29 @@ describe("readWaitGeneration", () => {
   it("never carries anything beyond the shown artifacts", () => {
     const g = readWaitGeneration(
       running({
-        artifacts: { identity: { ...IDENTITY, raw: "model output" }, facts: { hosts: "Ana" } },
+        artifacts: {
+          identity: { ...IDENTITY, raw: "model output" },
+          facts: { hosts: "Ana", partial: [{ field: "date", text: "soon" }] },
+        },
         telemetry: { cost: 3 },
       }),
     );
-    expect(JSON.stringify(g)).not.toMatch(/model output|cost|Ana/);
+    expect(JSON.stringify(g)).not.toMatch(/model output|cost|soon/);
+  });
+
+  it("carries the facts the prompt states, for the details form to offer", () => {
+    const g = readWaitGeneration(
+      running({ stage: "identity", artifacts: { facts: { hosts: "Ana", date: "June 6" } } }),
+    );
+    expect(g?.facts).toEqual({
+      hosts: "Ana",
+      honoree: null,
+      date: "June 6",
+      time: null,
+      venue: null,
+      location: null,
+    });
+    expect(readWaitGeneration(running())?.facts).toBeNull();
   });
 
   it("reads a failed generation with its copy, and a bare one as the generic failure", () => {
@@ -116,9 +134,15 @@ describe("waitStatusLine", () => {
     expect(waitStatusLine(readWaitGeneration(running({ stage: "identity" })))).toBe(
       "Designing your card",
     );
-    expect(waitStatusLine(readWaitGeneration(running({ stage: "design" })))).toBe(
-      "Painting the artwork",
-    );
+    expect(
+      waitStatusLine(
+        readWaitGeneration(running({ stage: "design", artifacts: { design: DESIGN } })),
+      ),
+    ).toBe("Painting the artwork");
+    // The copyright step-back clears the refused design while its replacement is drafted.
+    expect(
+      waitStatusLine(readWaitGeneration(running({ stage: "design", artifacts: { design: null } }))),
+    ).toBe("Designing your card");
   });
 
   it("uses no number, percentage or technical term", () => {
@@ -156,7 +180,8 @@ describe("afterStart", () => {
   });
 
   it("gives plain copy for the refused starts, with no retry", () => {
-    for (const o of ["event_cap", "host_cap", "published"] as const) {
+    // `disabled`: generation switched off (the action's answer to the kill switch).
+    for (const o of ["event_cap", "host_cap", "published", "disabled"] as const) {
       const next = afterStart(o);
       expect(next).toEqual({ kind: "failed", failure: generationFailure(o) });
       expect(generationFailure(o).retry).toBe(false);

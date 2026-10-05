@@ -612,12 +612,12 @@ circles. Two decisions by the owner (2026-10-04):
 
 ### Phase 5c — the RSVP-by line on the first card (owner decision, 2026-10-05)
 
-- **Decision.** Before the host saves a deadline, the card shows the default RSVP-by of the date it
-  shows — two weeks before the placeholder date, or before the host's saved date — marked to
-  confirm like the date, so the card's words do not move when the real date arrives and the ink is
-  judged behind the line the host will see. When the date shown is the prompt's own words
-  ("December 19"), which code does not read as a date, there is no RSVP-by line until the host
-  saves a date, so the two never disagree. A saved deadline is shown as saved, confirmed.
+- **Decision.** Before the host saves a date, the card shows "RSVP by …" two weeks before the
+  placeholder date, marked to confirm like the date, so the card's words do not move when the real
+  date arrives and the ink is judged behind the line the host will see. Once a date is saved, its
+  default deadline (`spec.md §7.3`) is the event's own and shows unmarked. When the date shown is
+  the prompt's own words ("December 19"), which code does not read as a date, there is no RSVP-by
+  line until the host saves a date, so the two never disagree.
 - **Also built (5c server side).** The facts the prompt states are kept on the event
   (`events.prompt_facts`, written once with the first identity, by the server only) and shown as
   written when they pass the details form's own checks; `start_generation` answers `designed`

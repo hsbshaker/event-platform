@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { loadEventDraft } from "@/app/actions/event-details";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
-import { loadRevealedCard } from "@/lib/generation/reveal.server";
+import { loadRevealedCard, type RevealedCard } from "@/lib/generation/reveal.server";
 import { getGenerationView } from "@/lib/generation/status.server";
 import { initialWait, readWaitGeneration, withHostCopy } from "@/lib/generation/wait-view";
 import { EventUnavailable } from "../EventUnavailable";
@@ -47,10 +47,25 @@ export default async function CreateEventPage({ params }: { params: Promise<{ id
 
   // Only the card's title and proportion go to the client: the card itself is read when the
   // envelope is opened, so its artwork's signed URL is fresh then.
-  const revealed = await loadRevealedCard(id);
-  const view = revealed ? null : await getGenerationView(id);
+  // A stored card the loader cannot draw is not a reason to lose the details form: the surface
+  // goes to the reveal, whose read fails into its retryable "couldn't open" state.
+  let revealed: RevealedCard | null = null;
+  let unreadable = false;
+  try {
+    revealed = await loadRevealedCard(id);
+  } catch (error) {
+    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
+      return <EventUnavailable />;
+    }
+    console.error("[reveal] the event's card could not be read", {
+      eventId: id,
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    unreadable = true;
+  }
+  const view = revealed || unreadable ? null : await getGenerationView(id);
   const initial = initialWait(
-    revealed !== null,
+    revealed !== null || unreadable,
     readWaitGeneration(view ? withHostCopy(view) : null),
   );
 

@@ -643,9 +643,10 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   try {
     if (stepBack) {
       // The last try ended on the image provider's refusal: this one starts from the step-back,
-      // with the copyright note, and a refusal of it is again a visible failure.
+      // with the copyright note, and a refusal of it is again a visible failure. (Recording the
+      // note clears any design shown, so the wait never shows a design that is not being painted.)
       providerRefusal = true;
-      await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE });
+      await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE, design: null });
       chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
       art = await artwork(chosen);
     } else {
@@ -661,7 +662,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
           throw error;
         }
         providerRefusal = true;
-        await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE });
+        await recordStage("design", { notice: PROVIDER_REFUSAL_NOTICE, design: null });
         chosen = current = await design({ feedback: PROVIDER_REFUSAL_FEEDBACK });
         art = await artwork(chosen, { imagesRequested: error.imagesRequested });
       }

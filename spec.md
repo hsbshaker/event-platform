@@ -525,12 +525,16 @@ for the host to confirm or correct. The extracted values are kept on the event (
 event's own detail. A stated value appears on the card only if it passes the checks the details
 form applies to the host's own entry (`docs/card-system.md §2.5`); otherwise the placeholder
 stands. An unconfirmed value is never published, never shown to guests, and never given to the
-card design as a fact.
+card design as a fact. The one exception is the occasion the prompt names ("baby shower"): the
+design reads it, as the host's own word, to word the invitation, and it is never a fact slot on
+the card.
 
-Until the host saves an RSVP deadline, the card shows the default deadline (below) of the date it
-shows — the placeholder date or the host's saved date — marked as needing confirmation like a
-placeholder. When the date shown is one the prompt states, as written, the card shows no RSVP-by
-until the host saves a date, so the two never disagree (owner decision, 2026-10-05).
+While the card shows the placeholder date, it also shows that date's default RSVP deadline
+(below), marked as needing confirmation like the date, so the card's words do not move when the
+real date arrives. Once the host saves a date, its default deadline is the event's own and shows
+unmarked until the host changes it. When the date shown is one the prompt states, as written, the
+card shows no RSVP-by until the host saves a date, so the two never disagree (owner decision,
+2026-10-05).
 
 The card's **title** is wording (§7.7): if the host supplied a title it is used exactly; otherwise
 the design drafts one. The event title is therefore never a blocker to seeing a card.
