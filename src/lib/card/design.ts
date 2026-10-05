@@ -2,14 +2,18 @@
  * `CardDesign` (`docs/model-contracts.md §5.1`) and its deterministic validation
  * (`docs/card-system.md §4.1`, `docs/model-contracts.md §5.3`).
  *
- * The zod schema mirrors `docs/model-schemas/card-design.schema.json` (`card_design_schema_v2`);
+ * The zod schema mirrors `docs/model-schemas/card-design.schema.json` (`card_design_schema_v3`);
  * `design.test.ts` asserts the two cannot drift. Enums are generated from the catalogs. The JSON
  * key for the font pairing choice is `typography`, as in the committed schema. v2 adds the art
- * brief's required `rendering` family (`renderings.ts`) and `aesthetic` mood. Designs persisted under v1 have none; they
- * are immutable and never re-validated against this schema.
+ * brief's required `rendering` family (`renderings.ts`) and `aesthetic` mood. v3 adds the required
+ * `refinement`: what a `Try another direction` design made — a change to `part` of the card, to
+ * the `whole` look, or a new idea (`none`) — always `none` when the call carried no `changing`
+ * (`docs/model-contracts.md §5.1`). Designs persisted under an earlier schema lack these fields;
+ * they are immutable and never re-validated against this schema.
  *
- * Validation runs in order: (1) strict schema, (2) compatibility. The wording fact check
- * (`wording.ts`) and direction distinctness are separate steps with their own re-prompts.
+ * Validation runs in order: (1) strict schema, (2) compatibility and refinement consistency. The
+ * wording fact check (`wording.ts`) and direction distinctness are separate steps with their own
+ * re-prompts.
  */
 
 import { z } from "zod";
@@ -27,6 +31,14 @@ const pairingId = z.enum(
 );
 
 const text = (min: number, max: number) => z.string().min(min).max(max);
+
+/**
+ * What a design made (`card_design_schema_v3`): `part` — the card being changed with a change to
+ * part of it; `whole` — the same idea with the whole look changed; `none` — a new idea (always, for
+ * the first card and an empty box).
+ */
+export const REFINEMENTS = ["none", "part", "whole"] as const;
+export type Refinement = (typeof REFINEMENTS)[number];
 
 export const cardDesignSchema = z.strictObject({
   presentation: z.strictObject({
@@ -63,6 +75,7 @@ export const cardDesignSchema = z.strictObject({
     texture: text(3, 160),
     avoid: z.array(text(2, 120)).max(8),
   }),
+  refinement: z.enum(REFINEMENTS),
 });
 
 export type CardDesign = z.infer<typeof cardDesignSchema>;
@@ -74,6 +87,12 @@ export type CardDesignValidation =
 export interface ValidateCardDesignOptions {
   /** The identity's compatible typography categories; when given, every pairing must be in it. */
   compatibleCategories?: readonly TypographyCategory[];
+  /**
+   * The call carried `changing` (the card the host is changing), so `refinement` may be `part` or
+   * `whole`. Without it, anything but `none` is a catalog error (`docs/model-contracts.md §5.3`
+   * step 5), re-prompted like any other.
+   */
+  changing?: boolean;
 }
 
 function pathLabel(path: PropertyKey[]): string {
@@ -120,6 +139,11 @@ export function validateCardDesign(
         );
       }
     }
+  }
+  if (design.refinement !== "none" && options.changing !== true) {
+    problems.push(
+      `refinement must be "none": there is no card being changed, so this design is a new idea`,
+    );
   }
   if (problems.length) return { ok: false, kind: "compatibility", problems };
   return { ok: true, design };

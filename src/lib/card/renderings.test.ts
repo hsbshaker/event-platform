@@ -97,9 +97,9 @@ describe("versions (rendering families)", () => {
     expect(EVENT_IDENTITY_PROMPT_VERSION).toBe("event_identity_v6");
     // The identity schema is unchanged.
     expect(EVENT_IDENTITY_SCHEMA_VERSION).toBe("event_identity_schema_v5");
-    expect(CARD_DESIGN_PROMPT_VERSION).toBe("card_design_v3");
-    expect(CARD_DESIGN_SCHEMA_VERSION).toBe("card_design_schema_v2");
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v4");
+    expect(CARD_DESIGN_PROMPT_VERSION).toBe("card_design_v4");
+    expect(CARD_DESIGN_SCHEMA_VERSION).toBe("card_design_schema_v3");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v5");
     expect(CARD_ART_INSPECTION_PROMPT_VERSION).toBe("card_art_inspection_v2");
     expect(CARD_ART_INSPECTION_SCHEMA_VERSION).toBe("card_art_inspection_schema_v2");
   });

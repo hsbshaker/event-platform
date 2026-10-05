@@ -18,13 +18,15 @@ import { TEXT_ZONE } from "./artwork.server";
 import { CARD_ART_BUCKET, REVEAL_EVENT_COLUMNS, type RevealEventRow } from "./run.server";
 
 /**
- * The revealed card (`spec.md §7.3`, §7.11; `docs/screen-spec.md` `card-reveal`;
- * `docs/design-system.md §4.4`): the event's active design, ready for `InvitationCard`, with its
- * creative name and description and the text boxes whose words need the host's confirmation.
+ * The revealed card (`spec.md §7.3`, §7.11, §7.15; `docs/screen-spec.md` `card-reveal`,
+ * `try-another-direction`; `docs/design-system.md §4.4`): a design of the event — the active one
+ * by default, or the one asked for (`designId`), so a new direction is revealed before the host
+ * chooses it — ready for `InvitationCard`, with its creative name and description, whether it is
+ * the active design, and the text boxes whose words need the host's confirmation.
  *
  * For a signed-in owner or co-host (`view_event`; a member role is required, so never a guest). The
- * design is the event's active one in its active shape (`events.active_card_shape`, else the
- * design's own); its artwork is the newest of the design's artworks that fits that shape (the
+ * active design is drawn in its active shape (`events.active_card_shape`, else the design's own);
+ * any other design in its own shape. Its artwork is the newest of the design's artworks that fits that shape (the
  * rule beside `card_art_assets` in the Phase 4 migration), served through a short-lived signed URL
  * from the private `card-art` bucket; the ink and legibility panel are the ones persisted with
  * that artwork for that shape, never re-resolved (`spec.md §32 #27`); the text is the generated
@@ -44,8 +46,10 @@ import { CARD_ART_BUCKET, REVEAL_EVENT_COLUMNS, type RevealEventRow } from "./ru
 export const CARD_ART_SIGNED_URL_TTL_SECONDS = 300;
 
 export interface RevealedCard {
-  /** The active design (its id is the reveal's own; `getGenerationView` names it too). */
+  /** The design shown (`getGenerationView` names the one a generation produced). */
   designId: string;
+  /** Whether it is the event's active design; a new direction is not until the host chooses it. */
+  active: boolean;
   round: number;
   /** The card's effective title (`effectiveCardTitle`): the envelope's front, as guests' envelope shows it. */
   title: string;
@@ -67,6 +71,8 @@ export interface RevealedCard {
 
 export interface LoadRevealedCardOptions {
   now?: () => number;
+  /** A design of the event to show instead of the active one. */
+  designId?: string;
 }
 
 interface DesignRow {
@@ -157,7 +163,7 @@ function designOf(row: DesignRow): {
     typeof wording.title !== "string" ||
     typeof wording.invitationLine !== "string"
   ) {
-    throw new Error("The active card design is malformed.");
+    throw new Error("The card design is malformed.");
   }
   return {
     shape,
@@ -168,7 +174,8 @@ function designOf(row: DesignRow): {
 }
 
 /**
- * The event's revealed card, or null when it has no design yet. Throws `UnauthorizedError` /
+ * The event's revealed card: the design asked for, else the active one. Null when the event has no
+ * design yet, or the design asked for is not one of this event's. Throws `UnauthorizedError` /
  * `ForbiddenError` for a viewer who is not the event's owner or a co-host, before reading anything.
  */
 export async function loadRevealedCard(
@@ -187,19 +194,28 @@ export async function loadRevealedCard(
     .maybeSingle();
   if (eventError) throw eventError;
   const row = event as EventRow | null;
-  if (!row?.active_card_design_id) return null;
+  if (!row) return null;
+  const designId = options.designId ?? row.active_card_design_id;
+  if (!designId) return null;
+  const active = designId === row.active_card_design_id;
 
   const { data: designData, error: designError } = await admin
     .from("card_designs")
     .select("id, round, name, description, shape, layout, typography, wording")
-    .eq("id", row.active_card_design_id)
+    .eq("id", designId)
     .eq("event_id", eventId)
     .maybeSingle();
   if (designError) throw designError;
-  if (!designData) throw new Error("The event's active card design was not found.");
+  if (!designData) {
+    // A design asked for that is not this event's reads as absent, like an event with none.
+    if (!active) return null;
+    throw new Error("The event's active card design was not found.");
+  }
   const designRow = designData as DesignRow;
   const design = designOf(designRow);
-  const shape = (row.active_card_shape as CardShape | null) ?? design.shape;
+  const shape = active
+    ? ((row.active_card_shape as CardShape | null) ?? design.shape)
+    : design.shape;
   if (!CARD_SHAPES.includes(shape)) throw new Error("The event's active card shape is malformed.");
 
   const { data: artData, error: artError } = await admin
@@ -211,7 +227,7 @@ export async function loadRevealedCard(
   if (artError) throw artError;
   // The newest artwork of the design that fits the shape.
   const art = ((artData ?? []) as ArtRow[]).find((a) => a.fits_shapes.includes(shape));
-  if (!art) throw new Error(`The active card design has no artwork for the ${shape} card.`);
+  if (!art) throw new Error(`The card design has no artwork for the ${shape} card.`);
   const proportion = proportionOf(shape);
   const stored = art.proportion === "portrait_5_7" ? "5:7" : "1:1";
   if (stored !== proportion) {
@@ -259,6 +275,7 @@ export async function loadRevealedCard(
   const marked = new Set<string>(unconfirmed);
   return {
     designId: designRow.id,
+    active,
     round: designRow.round,
     title,
     name: designRow.name,

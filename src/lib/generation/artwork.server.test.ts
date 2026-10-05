@@ -18,7 +18,12 @@ import {
   SpendCeilingError,
 } from "@/lib/ai/errors";
 import type { CardArt } from "@/lib/ai/provider";
-import { assembleArtPrompt, assembleShapeSwitchPrompt, fitsShapes } from "@/lib/card/art-prompt";
+import {
+  assembleArtPrompt,
+  assembleRevisionPrompt,
+  assembleShapeSwitchPrompt,
+  fitsShapes,
+} from "@/lib/card/art-prompt";
 import type { CardDesign } from "@/lib/card/design";
 import type { Rendering } from "@/lib/card/renderings";
 import { MIN_INK_CONTRAST } from "@/lib/card/ink";
@@ -231,6 +236,35 @@ describe("the art request", () => {
       assembleShapeSwitchPrompt({ ...DESIGN, shape: "rectangle" }, "square"),
     );
     expect(result.proportion).toBe("1:1");
+  });
+
+  it("edits the changed card's artwork as a revision on a change to part of it (card_art_v5)", async () => {
+    const reference = BUSY;
+    const { fake, run } = stage(
+      { art: [CLEAN] },
+      { design: DESIGN, shape: "rectangle", reference, revision: true },
+    );
+    const result = await run();
+    expect(fake.calls.art).toEqual([
+      {
+        artBrief: DESIGN.artBrief,
+        artMode: "illustration",
+        layout: "art-top",
+        shape: "rectangle",
+        reference,
+        revision: true,
+      },
+    ]);
+    expect(result.artPrompt).toBe(assembleRevisionPrompt({ ...DESIGN, shape: "rectangle" }));
+  });
+
+  it("refuses a revision without its reference before any call", async () => {
+    const { fake, run } = stage(
+      { art: [CLEAN] },
+      { design: DESIGN, shape: "rectangle", revision: true },
+    );
+    await expect(run()).rejects.toThrow(/reference/);
+    expect(fake.calls.meters).toEqual([]);
   });
 
   it("refuses a shape the layout does not support before any call", async () => {
@@ -653,6 +687,18 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     const result = await run();
     expect(fake.calls.art).toHaveLength(2);
     expect(fake.calls.art.every((c) => c.reference === CLEAN)).toBe(true);
+    expect(fake.calls.art[1].repaint).toBe(true);
+    expect(result.telemetry).toMatchObject({ keptImage: 2, artRepaints: 1 });
+  });
+
+  it("repaints a revision as an edit of the same reference", async () => {
+    const { fake, run } = stage(
+      { art: [BUSY, CLEAN] },
+      { design: DESIGN, shape: "rectangle", reference: CLEAN, revision: true },
+    );
+    const result = await run();
+    expect(fake.calls.art).toHaveLength(2);
+    expect(fake.calls.art.every((c) => c.reference === CLEAN && c.revision === true)).toBe(true);
     expect(fake.calls.art[1].repaint).toBe(true);
     expect(result.telemetry).toMatchObject({ keptImage: 2, artRepaints: 1 });
   });

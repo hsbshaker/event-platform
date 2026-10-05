@@ -31,6 +31,7 @@ const valid: CardDesign = {
     texture: "soft paper grain",
     avoid: ["text", "balloons with faces"],
   },
+  refinement: "none",
 };
 
 const clone = () => structuredClone(valid) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -194,6 +195,29 @@ describe("validateCardDesign — compatibility", () => {
     d.shape = "circle";
     d.wording.title = "";
     expect(fails(d, "schema")).not.toMatch(/does not support/);
+  });
+});
+
+describe("validateCardDesign — refinement (card_design_schema_v3)", () => {
+  it("requires refinement, one of none, part or whole", () => {
+    const missing = clone();
+    delete missing.refinement;
+    expect(fails(missing, "schema")).toMatch(/refinement/);
+    const unknown = clone();
+    unknown.refinement = "sideways";
+    expect(fails(unknown, "schema")).toMatch(/refinement/);
+  });
+
+  it("holds refinement to none when the call had no card being changed", () => {
+    for (const refinement of ["part", "whole"]) {
+      const d = clone();
+      d.refinement = refinement;
+      expect(fails(d, "compatibility")).toMatch(/refinement must be "none"/);
+      expect(fails(d, "compatibility", { changing: false })).toMatch(/refinement must be "none"/);
+      expect(validateCardDesign(d, { changing: true }).ok).toBe(true);
+    }
+    // A new idea is always allowed, with or without a card being changed.
+    expect(validateCardDesign(valid, { changing: true }).ok).toBe(true);
   });
 });
 

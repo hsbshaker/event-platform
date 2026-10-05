@@ -41,6 +41,9 @@ type StartArgs = {
   eventCap?: number;
   hostCap?: number;
   staleSeconds?: number;
+  /** Another direction: the design it starts from (required there) and the host's words. */
+  fromDesign?: string | null;
+  feedback?: string | null;
 };
 
 async function start(
@@ -55,9 +58,11 @@ async function start(
     eventCap = 30,
     hostCap = 60,
     staleSeconds = 330,
+    fromDesign = null,
+    feedback = null,
   } = args;
   const { rows } = await client.query(
-    `select * from public.start_generation($1, $2, $3, $4, $5::bytea, $6::bytea, $7, $8, $9)`,
+    `select * from public.start_generation($1, $2, $3, $4, $5::bytea, $6::bytea, $7, $8, $9, $10, $11)`,
     [
       event,
       user,
@@ -68,6 +73,8 @@ async function start(
       eventCap,
       hostCap,
       staleSeconds,
+      feedback,
+      fromDesign,
     ],
   );
   expect(rows).toHaveLength(1);
@@ -255,11 +262,14 @@ describe("start_generation", () => {
   });
 
   it("allows one generation in flight per event, without consuming the caps", async () => {
-    const running = await start();
-    const second = await start({ kind: "another_direction" });
+    const design = await insertCardDesign(db, eventA);
+    const direction = { kind: "another_direction", fromDesign: design };
+    const running = await start(direction);
+    expect(running.outcome).toBe("started");
+    const second = await start(direction);
     expect(second).toEqual({ generation_id: running.generation_id, outcome: "in_flight" });
     // The co-host shares the event's lock.
-    expect(await start({ user: cohost })).toEqual({
+    expect(await start({ ...direction, user: cohost })).toEqual({
       generation_id: running.generation_id,
       outcome: "in_flight",
     });
@@ -269,7 +279,7 @@ describe("start_generation", () => {
     expect((await start({ event: eventB })).outcome).toBe("started");
     // Once the first finishes, the next starts.
     await finish(running.generation_id!, "failed");
-    expect((await start({ kind: "another_direction" })).outcome).toBe("started");
+    expect((await start(direction)).outcome).toBe("started");
   });
 
   it("takes over a running generation whose worker stopped heartbeating", async () => {
@@ -362,10 +372,12 @@ describe("start_generation", () => {
   it("starts nothing once the event is published (spec.md §8.2, §23)", async () => {
     const earlier = await start();
     await finish(earlier.generation_id!);
+    const design = await insertCardDesign(db, eventA);
     for (const status of ["PUBLISHED", "PASSED", "ARCHIVED"]) {
       await db.query(`update public.events set status = $2 where id = $1`, [eventA, status]);
       for (const kind of ["another_direction", "shape_switch"]) {
-        expect(await start({ kind }), `${status} ${kind}`).toEqual({
+        const fromDesign = kind === "another_direction" ? design : null;
+        expect(await start({ kind, fromDesign }), `${status} ${kind}`).toEqual({
           generation_id: null,
           outcome: "published",
         });
@@ -379,7 +391,7 @@ describe("start_generation", () => {
     const first = await start({ key: "first-card" });
     expect(first.outcome).toBe("started");
     await finish(first.generation_id!);
-    await insertCardDesign(db, eventA);
+    const design = await insertCardDesign(db, eventA);
     for (const user of [owner, cohost]) {
       expect(await start({ user }), user).toEqual({ generation_id: null, outcome: "designed" });
     }
@@ -392,7 +404,9 @@ describe("start_generation", () => {
       outcome: "existing",
     });
     // Another card is another direction (or a shape switch), which still starts.
-    expect((await start({ kind: "another_direction" })).outcome).toBe("started");
+    expect((await start({ kind: "another_direction", fromDesign: design })).outcome).toBe(
+      "started",
+    );
     // Another event without a design is unaffected.
     expect((await start({ event: eventB })).outcome).toBe("started");
   });

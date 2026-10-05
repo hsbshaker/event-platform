@@ -1,11 +1,10 @@
 "use server";
 
-import { after } from "next/server";
 import { z } from "zod";
 
 import { GenerationDisabledError } from "@/lib/ai/errors";
 import { startGeneration } from "@/lib/ai/generations.server";
-import { runGeneration } from "@/lib/generation/run.server";
+import { scheduleGeneration } from "@/lib/generation/schedule.server";
 import type { StartGenerationOutcome } from "@/lib/supabase/database.types";
 
 /**
@@ -58,19 +57,11 @@ export async function startCardGeneration(
     throw error;
   }
   if (started.outcome === "started" && started.generationId) {
-    const generationId = started.generationId;
-    after(async () => {
-      // runGeneration ends every failure on the generation itself; this only logs a bug.
-      try {
-        await runGeneration({ generationId, eventId, userId: started.userId, startedAt });
-      } catch (error) {
-        console.error("[generation] the worker stopped unexpectedly", {
-          generationId,
-          eventId,
-          error:
-            error instanceof Error ? { name: error.name, message: error.message } : typeof error,
-        });
-      }
+    scheduleGeneration({
+      generationId: started.generationId,
+      eventId,
+      userId: started.userId,
+      startedAt,
     });
   }
   return { outcome: started.outcome, generationId: started.generationId };

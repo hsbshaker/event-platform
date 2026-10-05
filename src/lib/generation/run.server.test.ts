@@ -104,6 +104,7 @@ const DESIGN: CardDesign = {
     texture: "cream laid paper",
     avoid: ["kitsch"],
   },
+  refinement: "none",
 };
 
 const WORLD_DESIGN: CardDesign = {
@@ -349,11 +350,11 @@ describe("the happy path", () => {
       p_art_brief: DESIGN.artBrief,
       p_raw: DESIGN,
       p_versions: {
-        designPrompt: "card_design_v3",
-        designSchema: "card_design_schema_v2",
+        designPrompt: "card_design_v4",
+        designSchema: "card_design_schema_v3",
         layoutSet: "card_layouts_v3",
         compiler: "card_compiler_v4",
-        artPrompt: "card_art_v4",
+        artPrompt: "card_art_v5",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       p_standard_wording_slots: [],
@@ -365,8 +366,11 @@ describe("the happy path", () => {
       p_proportion: "portrait_5_7",
       p_fits_shapes: [...fitsShapes("illustration", "art-top", "rectangle")],
       p_image_model: "gpt-image-2.5-sunburst-2026-09-08",
-      p_art_prompt_version: "card_art_v4",
+      p_art_prompt_version: "card_art_v5",
+      // A first card is a new idea, and changes no earlier card.
+      p_refinement: "none",
     });
+    expect(args).not.toHaveProperty("p_changed_from");
     expect(Object.keys(args.p_ink as object).sort()).toEqual(
       [...fitsShapes("illustration", "art-top", "rectangle")].sort(),
     );
@@ -384,11 +388,11 @@ describe("the happy path", () => {
       versions: {
         identityPrompt: "event_identity_v6",
         identitySchema: "event_identity_schema_v5",
-        designPrompt: "card_design_v3",
-        designSchema: "card_design_schema_v2",
+        designPrompt: "card_design_v4",
+        designSchema: "card_design_schema_v3",
         layoutSet: "card_layouts_v3",
         compiler: "card_compiler_v4",
-        artPrompt: "card_art_v4",
+        artPrompt: "card_art_v5",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       latency: { identityMs: 0, designMs: 0, artMs: 0, totalMs: 0 },
@@ -404,6 +408,10 @@ describe("the happy path", () => {
       suggestedRendering: "photographic",
       followedSuggestion: false,
       themeSeed: THEME_SEEDS[0],
+      kind: "initial",
+      refinement: "none",
+      refinementDowngraded: false,
+      artworkEdit: false,
     });
   });
 
@@ -909,8 +917,8 @@ describe("failures end the generation with fail_generation", () => {
     expect(fake.calls.meters).toEqual([]);
   });
 
-  it("another kind is not yet supported: failed, then thrown", async () => {
-    admin.state.tables.generations[0].kind = "another_direction";
+  it("a shape switch is not yet supported: failed, then thrown", async () => {
+    admin.state.tables.generations[0].kind = "shape_switch";
     await expect(run()).rejects.toBeInstanceOf(GenerationKindNotSupportedError);
     expect(failures()).toEqual(["unsupported_kind"]);
   });
@@ -1015,5 +1023,435 @@ describe("nothing is persisted once the generation stopped running", () => {
     const { outcome } = await run();
     expect(outcome).toEqual({ status: "stopped" });
     expect(JSON.stringify(errors.mock.calls)).toContain(admin.state.uploads[0].key);
+  });
+});
+
+describe("another direction (spec.md §7.7, §7.15)", () => {
+  const FROM = "a1a2a3a4-b5b6-4c7d-8e9f-0a1b2c3d4e5f";
+  const SECOND = "b1b2b3b4-c5c6-4d7e-8f9a-0b1c2d3e4f5a";
+  const LATER_IDENTITY: EventIdentity = { ...IDENTITY, copyTone: "breezy and bright" };
+  const REVISED_IDENTITY: EventIdentity = {
+    ...IDENTITY,
+    visualMotifs: ["lemon branches with blossom", "a small green toy dinosaur"],
+  };
+  const FEEDBACK = "add a little green dinosaur, Maya loves them";
+  const PART: CardDesign = {
+    ...DESIGN,
+    refinement: "part",
+    artBrief: {
+      ...DESIGN.artBrief,
+      subject: "a lemon branch heavy with fruit and blossom, a small green toy dinosaur beneath it",
+    },
+  };
+  const WHOLE: CardDesign = {
+    ...DESIGN,
+    refinement: "whole",
+    artBrief: { ...DESIGN.artBrief, mood: "a starry night over the grove" },
+  };
+  const NEW_IDEA: CardDesign = { ...WORLD_DESIGN, refinement: "none" };
+  const RECT_ART = new Uint8Array([1, 2, 3, 4]);
+  const OVAL_ART = new Uint8Array([5, 6, 7, 8]);
+
+  const designRow = (
+    id: string,
+    round: number,
+    design: CardDesign,
+    identityRevision: number,
+  ): Record<string, unknown> => ({
+    id,
+    event_id: EVENT,
+    round,
+    name: design.presentation.name,
+    shape: design.shape,
+    layout: design.layout,
+    art_mode: design.artMode,
+    typography: design.typography,
+    wording: design.wording,
+    art_brief: design.artBrief,
+    identity_revision: identityRevision,
+  });
+
+  beforeEach(() => {
+    Object.assign(admin.state.tables.generations[0], {
+      kind: "another_direction",
+      feedback: FEEDBACK,
+      from_design_id: FROM,
+      started_at: "2026-10-05T12:05:00Z",
+    });
+    Object.assign(admin.state.tables.events[0], {
+      prompt_facts: { ...FACTS, eventType: "garden baby shower" },
+      active_card_design_id: FROM,
+      active_card_shape: null,
+    });
+    admin.state.tables.event_identities = [
+      { event_id: EVENT, revision: 1, identity: IDENTITY, generation_id: EARLIER_GENERATION },
+      { event_id: EVENT, revision: 2, identity: LATER_IDENTITY, generation_id: null },
+    ];
+    admin.state.tables.card_designs = [
+      designRow(
+        SECOND,
+        2,
+        {
+          ...WORLD_DESIGN,
+          typography: { primary: "soft_fraunces_manrope", alternates: [] },
+          artBrief: { ...WORLD_DESIGN.artBrief, rendering: "vector" },
+        },
+        2,
+      ),
+      designRow(FROM, 1, DESIGN, 1),
+    ];
+    admin.state.tables.card_art_assets = [
+      {
+        card_design_id: FROM,
+        event_id: EVENT,
+        storage_key: "from/rect.png",
+        mime_type: "image/png",
+        fits_shapes: [...fitsShapes("illustration", "art-top", "rectangle")],
+        created_at: "2026-10-05T10:00:00Z",
+      },
+      {
+        card_design_id: FROM,
+        event_id: EVENT,
+        storage_key: "from/oval.png",
+        mime_type: "image/png",
+        fits_shapes: ["oval"],
+        created_at: "2026-10-05T11:00:00Z",
+      },
+    ];
+    admin.state.storage[CARD_ART_BUCKET] = {
+      "from/rect.png": RECT_ART,
+      "from/oval.png": OVAL_ART,
+    };
+    admin.state.rpcAnswers.record_event_identity = 3;
+    admin.state.rpcAnswers.persist_generated_card = [{ card_design_id: DESIGN_ID, round: 3 }];
+  });
+
+  const box = (feedback: string | null) => {
+    admin.state.tables.generations[0].feedback = feedback;
+  };
+
+  describe("a change to part of the card", () => {
+    it("revises the changed card's identity with the feedback, without a seed, facts or inspiration", async () => {
+      const { outcome, fake } = await run({
+        identity: [REVISED_IDENTITY],
+        design: [PART],
+        art: [CLEAN],
+      });
+      expect(outcome).toEqual({ status: "succeeded", cardDesignId: DESIGN_ID, round: 3 });
+      // The identity the changed card was made from (revision 1), not the latest (revision 2).
+      expect(fake.calls.identity).toEqual([
+        { prompt: PROMPT, redesignFeedback: FEEDBACK, previousIdentity: IDENTITY },
+      ]);
+      expect(fake.calls.facts).toEqual([]);
+      expect(admin.state.selects.map((s) => s.table)).not.toContain("inspiration_assets");
+      expect(admin.rpc("record_event_identity")).toEqual([
+        {
+          p_generation_id: GENERATION,
+          p_event_id: EVENT,
+          p_identity: REVISED_IDENTITY,
+          p_raw: JSON.stringify(REVISED_IDENTITY),
+          p_prompt_version: "event_identity_v6",
+          p_schema_version: "event_identity_schema_v5",
+        },
+      ]);
+      expect(stages()[0]).toEqual([
+        "identity",
+        {
+          identity: identityArtifacts(REVISED_IDENTITY),
+          facts: { ...FACTS, eventType: "garden baby shower" },
+        },
+      ]);
+      expect(persisted().p_identity_revision).toBe(3);
+      expect(telemetryOf()).toMatchObject({
+        kind: "another_direction",
+        identityReused: false,
+        themeSeed: null,
+        extraction: "skipped",
+      });
+    });
+
+    it("designs with the feedback, every earlier direction, an unused rendering and the card as seen", async () => {
+      const { fake } = await run({ identity: [REVISED_IDENTITY], design: [PART], art: [CLEAN] });
+      const call = fake.calls.design[0];
+      expect(call.eventIdentity).toEqual(REVISED_IDENTITY);
+      expect(call.feedback).toBe(FEEDBACK);
+      // Oldest round first.
+      expect(call.previousDirections).toEqual([
+        {
+          name: "Lemons & Linen",
+          layout: "art-top",
+          artMode: "illustration",
+          primary: "oldstyle_garamond_worksans",
+          subject: DESIGN.artBrief.subject,
+          rendering: "painterly",
+          aesthetic: "romantic",
+        },
+        {
+          name: "Grove Morning",
+          layout: "framed",
+          artMode: "framed",
+          primary: "soft_fraunces_manrope",
+          subject: WORLD_DESIGN.artBrief.subject,
+          rendering: "vector",
+          aesthetic: "romantic",
+        },
+      ]);
+      // `() => 0` draws the first rendering the event has not used.
+      expect(call.suggestedRendering).toBe("photographic");
+      expect(call.changing).toEqual({
+        name: "Lemons & Linen",
+        shape: "rectangle",
+        layout: "art-top",
+        artMode: "illustration",
+        primary: "oldstyle_garamond_worksans",
+        wording: DESIGN.wording,
+        artBrief: DESIGN.artBrief,
+      });
+      // The stated event type comes from the event's prompt facts.
+      expect(call.eventFacts.eventType).toBe("garden baby shower");
+    });
+
+    it("edits the artwork the host saw, as a revision, and persists it as a refinement of that card", async () => {
+      const { fake } = await run({ identity: [REVISED_IDENTITY], design: [PART], art: [CLEAN] });
+      expect(fake.calls.art).toEqual([
+        {
+          artBrief: PART.artBrief,
+          artMode: "illustration",
+          layout: "art-top",
+          shape: "rectangle",
+          reference: { mimeType: "image/png", bytes: RECT_ART },
+          revision: true,
+        },
+      ]);
+      expect(admin.state.downloads).toEqual([{ bucket: CARD_ART_BUCKET, key: "from/rect.png" }]);
+      expect(persisted()).toMatchObject({ p_refinement: "part", p_changed_from: FROM });
+      expect(telemetryOf()).toMatchObject({
+        refinement: "part",
+        refinementDowngraded: false,
+        artworkEdit: true,
+        // Keeping the card is the point: no distinctness re-prompt.
+        reprompts: [],
+      });
+    });
+
+    it("keeps the reference and the revision on a repaint", async () => {
+      const { fake } = await run({
+        identity: [REVISED_IDENTITY],
+        design: [PART],
+        art: [BUSY, CLEAN],
+      });
+      expect(fake.calls.art).toHaveLength(2);
+      expect(fake.calls.art[1]).toMatchObject({
+        reference: { bytes: RECT_ART },
+        revision: true,
+        repaint: true,
+      });
+      expect(telemetryOf()).toMatchObject({ artRepaints: 1, artworkEdit: true });
+    });
+
+    it("changes the active card in its active shape, with the newest artwork that fits it", async () => {
+      admin.state.tables.events[0].active_card_shape = "oval";
+      const { fake } = await run({
+        identity: [REVISED_IDENTITY],
+        design: [{ ...PART, shape: "oval" }],
+        art: [CLEAN],
+      });
+      expect(fake.calls.design[0].changing?.shape).toBe("oval");
+      expect(fake.calls.art[0]).toMatchObject({
+        shape: "oval",
+        reference: { bytes: OVAL_ART },
+        revision: true,
+      });
+    });
+
+    it("changes any other design in its own shape", async () => {
+      admin.state.tables.events[0].active_card_design_id = SECOND;
+      admin.state.tables.events[0].active_card_shape = "oval";
+      const { fake } = await run({ identity: [REVISED_IDENTITY], design: [PART], art: [CLEAN] });
+      expect(fake.calls.design[0].changing?.shape).toBe("rectangle");
+      expect(fake.calls.art[0]).toMatchObject({ reference: { bytes: RECT_ART } });
+    });
+
+    it("paints fresh, recording the downgrade, when the design changed the card's shape, layout or art mode", async () => {
+      for (const changed of [
+        { ...PART, layout: "framed", artMode: "framed" } as CardDesign,
+        { ...PART, shape: "arch" } as CardDesign,
+      ]) {
+        admin.state.downloads.length = 0;
+        const { fake } = await run({
+          identity: [REVISED_IDENTITY],
+          design: [changed],
+          art: [CLEAN],
+        });
+        expect(fake.calls.art[0]).not.toHaveProperty("reference");
+        expect(fake.calls.art[0]).not.toHaveProperty("revision");
+        expect(admin.state.downloads).toEqual([]);
+        expect(telemetryOf()).toMatchObject({
+          refinement: "part",
+          refinementDowngraded: true,
+          artworkEdit: false,
+        });
+        expect(admin.rpc("persist_generated_card").at(-1)).toMatchObject({
+          p_refinement: "part",
+          p_changed_from: FROM,
+        });
+      }
+    });
+
+    it("paints the step-back design fresh after the provider refuses the edit", async () => {
+      const { outcome, fake } = await run({
+        identity: [REVISED_IDENTITY],
+        design: [PART, PART],
+        art: [refusal(), CLEAN],
+      });
+      expect(outcome.status).toBe("succeeded");
+      expect(fake.calls.art[0]).toMatchObject({ revision: true });
+      expect(fake.calls.design[1]).toMatchObject({
+        reprompt: { kind: "provider-refusal", feedback: PROVIDER_REFUSAL_FEEDBACK },
+        feedback: FEEDBACK,
+        changing: { name: "Lemons & Linen" },
+      });
+      expect(fake.calls.art[1]).not.toHaveProperty("reference");
+      expect(telemetryOf()).toMatchObject({
+        providerRefusal: true,
+        refinementDowngraded: true,
+        artworkEdit: false,
+      });
+    });
+
+    it("never sends the host's words to the image model", async () => {
+      const { fake } = await run({
+        identity: [REVISED_IDENTITY],
+        design: [PART],
+        art: [BUSY, CLEAN],
+      });
+      const sent = JSON.stringify(fake.calls.art);
+      expect(sent).not.toContain("Maya");
+      expect(sent).not.toContain("loves them");
+      expect(JSON.stringify(admin.rpc("record_generation_stage"))).not.toContain("loves them");
+      expect(JSON.stringify(telemetryOf())).not.toContain("loves them");
+    });
+  });
+
+  it("a change to the whole look keeps the idea and paints fresh", async () => {
+    const { fake } = await run({ identity: [REVISED_IDENTITY], design: [WHOLE], art: [CLEAN] });
+    expect(fake.calls.art[0]).not.toHaveProperty("reference");
+    expect(admin.state.downloads).toEqual([]);
+    expect(persisted()).toMatchObject({ p_refinement: "whole", p_changed_from: FROM });
+    expect(telemetryOf()).toMatchObject({ refinementDowngraded: false, artworkEdit: false });
+  });
+
+  it("a new idea asked for in words is held to distinctness", async () => {
+    const repeat: CardDesign = { ...DESIGN, refinement: "none" };
+    const { fake } = await run({
+      identity: [REVISED_IDENTITY],
+      design: [repeat, NEW_IDEA],
+      art: [CLEAN],
+    });
+    expect(fake.calls.design[1].reprompt?.kind).toBe("repeat-direction");
+    expect(fake.calls.art[0]).not.toHaveProperty("reference");
+    expect(persisted()).toMatchObject({ p_refinement: "none", p_name: "Grove Morning" });
+  });
+
+  describe("an empty box: a new idea", () => {
+    beforeEach(() => box(null));
+
+    it("reuses the latest identity, sends no feedback or card to change, and paints fresh", async () => {
+      const { outcome, fake } = await run({ design: [NEW_IDEA], art: [CLEAN] });
+      expect(outcome.status).toBe("succeeded");
+      expect(fake.calls.identity).toEqual([]);
+      expect(admin.rpc("record_event_identity")).toEqual([]);
+      const call = fake.calls.design[0];
+      expect(call.eventIdentity).toEqual(LATER_IDENTITY);
+      expect(call).not.toHaveProperty("feedback");
+      expect(call).not.toHaveProperty("changing");
+      expect(call.previousDirections).toHaveLength(2);
+      expect(fake.calls.art[0]).not.toHaveProperty("reference");
+      expect(persisted()).toMatchObject({
+        p_identity_revision: 2,
+        p_refinement: "none",
+        p_changed_from: FROM,
+      });
+      expect(stages()[0]).toEqual([
+        "identity",
+        {
+          identity: identityArtifacts(LATER_IDENTITY),
+          facts: { ...FACTS, eventType: "garden baby shower" },
+        },
+      ]);
+      expect(telemetryOf()).toMatchObject({
+        kind: "another_direction",
+        identityReused: true,
+        themeSeed: null,
+        refinement: "none",
+      });
+    });
+
+    it("re-prompts a refinement it was not asked for, as invalid output", async () => {
+      const { fake } = await run({ design: [PART, NEW_IDEA], art: [CLEAN] });
+      expect(fake.calls.design[1].reprompt?.kind).toBe("schema");
+      expect(fake.calls.design[1].reprompt?.feedback).toMatch(/refinement must be "none"/);
+      expect(telemetryOf()).toMatchObject({ refinement: "none", schemaValidFirstCall: false });
+    });
+
+    it("draws the rendering from those the event has not used", async () => {
+      // Seven unused of nine (painterly and vector are used): the last draw is the seventh.
+      const { fake } = await run({ design: [NEW_IDEA], art: [CLEAN] }, () => 0.999);
+      expect(fake.calls.design[0].suggestedRendering).toBe("design-led");
+    });
+  });
+
+  describe("Try again after a refusal takes the same step back", () => {
+    beforeEach(() => {
+      admin.state.tables.generations.push({
+        id: EARLIER_GENERATION,
+        event_id: EVENT,
+        kind: "another_direction",
+        status: "failed",
+        error_code: "provider_refusal",
+        requested_by: USER,
+        started_at: "2026-10-05T12:00:00Z",
+      });
+    });
+
+    it("starts from the step-back design, painted fresh", async () => {
+      const { fake } = await run({ identity: [REVISED_IDENTITY], design: [PART], art: [CLEAN] });
+      expect(fake.calls.design[0].reprompt?.kind).toBe("provider-refusal");
+      expect(fake.calls.art[0]).not.toHaveProperty("reference");
+      expect(telemetryOf()).toMatchObject({ providerRefusal: true, refinementDowngraded: true });
+    });
+
+    it("only after a refusal of the same kind", async () => {
+      admin.state.tables.generations.at(-1)!.kind = "initial";
+      const { fake } = await run({ identity: [REVISED_IDENTITY], design: [PART], art: [CLEAN] });
+      expect(fake.calls.design[0].reprompt).toBeUndefined();
+    });
+  });
+
+  it("fails internally when the design to change is not the event's", async () => {
+    admin.state.tables.generations[0].from_design_id = "c0c0c0c0-0000-4000-8000-000000000000";
+    const { outcome, fake } = await run({ identity: [REVISED_IDENTITY], design: [PART] });
+    expect(outcome).toEqual({ status: "failed", code: "internal" });
+    expect(fake.calls.meters).toEqual([]);
+  });
+
+  it("records what the design made when its artwork fails", async () => {
+    const { outcome } = await run({
+      identity: [REVISED_IDENTITY],
+      design: [PART],
+      art: [NOT_PNG, NOT_PNG],
+    });
+    expect(outcome).toEqual({ status: "failed", code: "artwork_invalid" });
+    const [failed] = admin.rpc("fail_generation");
+    expect(failed.p_telemetry).toMatchObject({
+      failure: { code: "artwork_invalid", refinement: "part", refinementDowngraded: false },
+    });
+  });
+
+  it("fails internally when the artwork the host saw cannot be read", async () => {
+    admin.state.storage[CARD_ART_BUCKET] = {};
+    const { outcome, fake } = await run({ identity: [REVISED_IDENTITY], design: [PART] });
+    expect(outcome).toEqual({ status: "failed", code: "internal" });
+    expect(fake.calls.art).toEqual([]);
   });
 });

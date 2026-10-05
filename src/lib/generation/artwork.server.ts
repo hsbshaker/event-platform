@@ -7,7 +7,12 @@ import {
   ProviderRefusalError,
 } from "@/lib/ai/errors";
 import type { CardArt, GenerateCardArtInput } from "@/lib/ai/provider";
-import { assembleArtPrompt, assembleShapeSwitchPrompt, fitsShapes } from "@/lib/card/art-prompt";
+import {
+  assembleArtPrompt,
+  assembleRevisionPrompt,
+  assembleShapeSwitchPrompt,
+  fitsShapes,
+} from "@/lib/card/art-prompt";
 import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
 import type { CardDesign } from "@/lib/card/design";
 import { paletteFromPixels, resolveInk, sampleZoneLuminance } from "@/lib/card/ink";
@@ -40,9 +45,10 @@ import type { StageContext } from "./stage";
  * `docs/card-system.md §3`, §4.1, §4.2; `docs/model-contracts.md §7`, §9).
  *
  * The art prompt is assembled by code from the validated brief, art mode, layout and shape
- * (`assembleArtPrompt`, or `assembleShapeSwitchPrompt` with the design's own earlier artwork as
- * the reference on a shape switch); the provider builds the identical request from the same
- * fields, and no other input reaches the image model (`spec.md §32 #17`).
+ * (`assembleArtPrompt`; `assembleShapeSwitchPrompt` with the design's own earlier artwork as the
+ * reference on a shape switch; `assembleRevisionPrompt` with the changed card's artwork as the
+ * reference on a change to part of a card, `card_art_v5`); the provider builds the identical
+ * request from the same fields, and no other input reaches the image model (`spec.md §32 #17`).
  *
  * **Validation** (`validateArtwork`), cheapest first: an allowed type (PNG); a header that reads;
  * the shape's proportion within `ARTWORK_LIMITS.proportionTolerance`; the short side at least
@@ -166,8 +172,16 @@ export interface ArtworkStageInput {
    * the ink is judged behind each of their lines, laid out for every fitted shape.
    */
   content: CardContent;
-  /** A shape switch only: the design's own earlier artwork (never a host upload). */
+  /**
+   * The event's own generated artwork, never a host upload: on a shape switch, the design's own
+   * earlier artwork; with `revision`, the artwork of the card being changed.
+   */
   reference?: CardArt;
+  /**
+   * A change to part of a card (`refinement: "part"`): the artwork is an edit of `reference`,
+   * framed as a revision (`card_art_v5`); its repaints stay edits of the same reference.
+   */
+  revision?: boolean;
   /**
    * The image provider refused this artwork for an earlier design, and this design is the
    * re-prompted one (`spec.md §7.6`): its artwork is that refusal's one regeneration. It continues
@@ -392,12 +406,16 @@ export async function runArtworkStage(
   input: ArtworkStageInput,
 ): Promise<ArtworkStageResult> {
   const { shape, reference, content } = input;
+  const revision = input.revision === true;
   const { artBrief, artMode, layout, typography } = input.design;
   const promptInput = { artBrief, artMode, layout, shape };
+  if (revision && !reference) throw new Error("runArtworkStage: a revision needs its reference");
   // Assembled before any call: a shape the layout does not support throws here, unspent.
-  const artPrompt = reference
-    ? assembleShapeSwitchPrompt(promptInput, shape)
-    : assembleArtPrompt(promptInput);
+  const artPrompt = !reference
+    ? assembleArtPrompt(promptInput)
+    : revision
+      ? assembleRevisionPrompt(promptInput)
+      : assembleShapeSwitchPrompt(promptInput, shape);
   const fits = [...fitsShapes(artMode, layout, shape)];
   // Where the text will sit on each fitted shape: laid out before any call, so a failure here
   // (a font that does not load) costs no image.
@@ -408,6 +426,7 @@ export async function runArtworkStage(
     layout,
     shape,
     ...(reference ? { reference } : {}),
+    ...(revision ? { revision } : {}),
   };
   const maxImages = 1 + ARTWORK_LIMITS.extraImages;
   const prior = input.afterRefusal?.imagesRequested ?? 0;

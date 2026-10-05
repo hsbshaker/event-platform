@@ -57,6 +57,7 @@ async function fixtureCard(shape: CardShape): Promise<RevealedCard> {
   const png = washArtwork(proportion, zoneFor(layout, shape));
   return {
     designId: "fixture-design",
+    active: true,
     round: 1,
     title: "Lemons & Linen",
     name: "Lemons & Linen",
