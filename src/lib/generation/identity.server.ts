@@ -43,6 +43,8 @@ export interface IdentityStageInput {
   previousIdentity?: EventIdentity;
   /** Run fact extraction beside the identity. Default true; a revision of the identity skips it. */
   extractFacts?: boolean;
+  /** The theme seed drawn for this identity (`drawThemeSeed`), used only if the host left the look to us. */
+  themeSeed?: string;
 }
 
 /** The fact fields extraction returns (`fact_extraction_schema_v1`), in schema order. */
@@ -190,6 +192,7 @@ async function runIdentity(
     ...(input.inspiration?.length ? { inspiration: input.inspiration } : {}),
     ...(input.redesignFeedback ? { redesignFeedback: input.redesignFeedback } : {}),
     ...(input.previousIdentity ? { previousIdentity: input.previousIdentity } : {}),
+    ...(input.themeSeed ? { themeSeed: input.themeSeed } : {}),
   };
   let repairFeedback: string;
   try {

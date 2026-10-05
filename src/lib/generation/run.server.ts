@@ -28,6 +28,7 @@ import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.ser
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
+import { drawThemeSeed } from "./theme-seeds";
 import {
   ArtworkProviderRefusalError,
   attachFailureDetails,
@@ -172,6 +173,8 @@ export interface GenerationTelemetry {
   suggestedRendering: string;
   /** The accepted design's rendering is the suggested one. */
   followedSuggestion: boolean;
+  /** The theme seed given to a new identity (`drawThemeSeed`); null when the identity was reused. */
+  themeSeed: string | null;
 }
 
 interface EventRow {
@@ -267,6 +270,7 @@ export function failureTelemetry(error: unknown, code: string): Json {
         suggestedRendering?: unknown;
         rendering?: unknown;
         followedSuggestion?: unknown;
+        themeSeed?: unknown;
       }
     | undefined;
   if (typeof details?.imagesRequested === "number") {
@@ -276,6 +280,7 @@ export function failureTelemetry(error: unknown, code: string): Json {
     failure.suggestedRendering = details.suggestedRendering;
   }
   if (typeof details?.rendering === "string") failure.rendering = details.rendering;
+  if (typeof details?.themeSeed === "string") failure.themeSeed = details.themeSeed;
   if (typeof details?.followedSuggestion === "boolean") {
     failure.followedSuggestion = details.followedSuggestion;
   }
@@ -448,6 +453,9 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let identityRevision: number;
   let identityMs: number | null = null;
   let identityValidFirstCall: boolean | null = null;
+  // A starting point for the theme if the host left the look to us (owner decision, 2026-10-05):
+  // drawn only for a new identity, which ignores it whenever the host gave a creative cue.
+  let themeSeed: string | null = null;
   let extraction: string | null = null;
   let inspirationSkipped = 0;
   let droppedFacts = 0;
@@ -456,11 +464,13 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   if (!latest) {
     const loaded = await loadInspiration(admin, eventId);
     inspirationSkipped = loaded.skipped;
+    themeSeed = drawThemeSeed(random);
     const begun = now();
     const result = await runIdentityStage(ctx, {
       prompt: event.prompt,
       ...(loaded.images.length ? { inspiration: loaded.images } : {}),
       extractFacts: true,
+      themeSeed,
     });
     identityMs = now() - begun;
     identity = result.identity;
@@ -542,6 +552,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let current: DesignStageResult | null = null;
   const renderingDetails = () => ({
     suggestedRendering,
+    ...(themeSeed ? { themeSeed } : {}),
     ...(current
       ? {
           rendering: current.design.artBrief.rendering,
@@ -604,6 +615,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     providerRefusal,
     suggestedRendering,
     followedSuggestion: chosen.design.artBrief.rendering === suggestedRendering,
+    themeSeed,
   };
 
   const storageKey = `${eventId}/${generationId}/${randomUUID()}.png`;

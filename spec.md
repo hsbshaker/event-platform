@@ -593,8 +593,10 @@ It holds one boundary exactly:
 
 **When the host leaves the look to us** — "surprise me", "idk", only the occasion — the identity
 commits to one clear, concrete theme that suits the event, something a guest could name in a few
-words, never the stock reading of the occasion. The surprise is the choice, never abstract or
-random imagery
+words, never the stock reading of the occasion. So that such hosts do not all get the same card,
+code draws a theme seed at random from a broad list of everyday worlds (an orchard, an
+observatory, kites …) and the identity builds the theme from it; it ignores the seed whenever the
+host gave any creative cue. The surprise is the choice, never abstract or random imagery
 (owner decision, 2026-10-05).
 
 ### 7.6 Brand/style references
@@ -1058,8 +1060,9 @@ versions               // prompt, schema, layout set, compiler, image model
 latency                // identity, design, art, total
 suggestedRendering     // the rendering drawn for variety (§7.6a rule 7)
 followedSuggestion     // whether the design used it
+themeSeed              // the theme seed given to a new identity (§7.5), null when reused
 failure                // on a failed generation: code, stage, per-image validation reasons,
-                       // and the suggested and chosen rendering — never host content
+                       // the suggested and chosen rendering and the theme seed — never host content
 ```
 
 Schema validity, wording fallbacks, art regeneration and legibility panels are separate measures;
@@ -2386,7 +2389,9 @@ The host should feel:
   recorded (§7.7).
 - [ ] Explicit tone and colour constraints are respected by every design.
 - [ ] With no creative cue beyond the occasion ("surprise me"), the identity commits to one
-  concrete theme a guest could name, never abstract or random imagery; every card is built on one
+  concrete theme a guest could name, built from a randomly drawn theme seed so it varies across
+  events, never abstract or random imagery; a seed never enters an identity the host steered;
+  every card is built on one
   central idea, fusing the host's own specifics into one image where there are several, and a
   drafted title plays on it — judged on the creative-understanding corpus (§7.5, §7.7).
 

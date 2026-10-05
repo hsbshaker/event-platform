@@ -292,6 +292,8 @@ describe("Event Identity", () => {
     expect(data).toMatchObject({
       eventPrompt: HOST_PROMPT,
       redesignFeedback: null,
+      // No seed drawn for this call; the orchestration draws one per new identity.
+      themeSeed: null,
       inspiration: [],
     });
     expect(data.runtimeCatalog.typographyCategories).toContain("oldstyle");

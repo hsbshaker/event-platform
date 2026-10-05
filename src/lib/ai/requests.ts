@@ -132,6 +132,7 @@ export function eventIdentityRequest(
     eventPrompt: input.prompt,
     redesignFeedback: input.redesignFeedback ?? null,
     ...(input.previousIdentity ? { previousIdentity: input.previousIdentity } : {}),
+    themeSeed: input.themeSeed ?? null,
     inspiration: inspiration.map((image, i) => ({ image: i + 1, mimeType: image.mimeType })),
     runtimeCatalog: { typographyCategories: TYPOGRAPHY_CATEGORIES },
   };

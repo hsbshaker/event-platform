@@ -22,6 +22,7 @@ import { encodePng, flatArtwork } from "@/lib/link-preview/test-artwork";
 
 import { identityArtifacts } from "./identity.server";
 import { GenerationStageError } from "./stage";
+import { THEME_SEEDS } from "./theme-seeds";
 import {
   CARD_ART_BUCKET,
   GENERATION_DEADLINE_MS,
@@ -247,7 +248,8 @@ describe("the happy path", () => {
 
   it("persists the identity as the next revision, with its raw response", async () => {
     const { fake } = await run();
-    expect(fake.calls.identity[0]).toEqual({ prompt: PROMPT });
+    // `() => 0` draws the first theme seed; the identity uses it only if the host left the look to us.
+    expect(fake.calls.identity[0]).toEqual({ prompt: PROMPT, themeSeed: THEME_SEEDS[0] });
     expect(fake.calls.facts[0]).toEqual({ prompt: PROMPT });
     expect(admin.rpc("record_event_identity")).toEqual([
       {
@@ -389,6 +391,7 @@ describe("the happy path", () => {
       providerRefusal: false,
       suggestedRendering: "photographic",
       followedSuggestion: false,
+      themeSeed: THEME_SEEDS[0],
     });
   });
 
@@ -400,6 +403,13 @@ describe("the happy path", () => {
       suggestedRendering: "painterly",
       followedSuggestion: true,
     });
+  });
+
+  it("gives a new identity a theme seed drawn from the injected random source, and records it", async () => {
+    const draw = 40.5 / THEME_SEEDS.length;
+    const { fake } = await run(HAPPY, () => draw);
+    expect(fake.calls.identity[0].themeSeed).toBe(THEME_SEEDS[40]);
+    expect(telemetryOf()).toMatchObject({ themeSeed: THEME_SEEDS[40] });
   });
 
   it("formats the host's facts as the card shows them, leaving blanks out", () => {
@@ -457,6 +467,8 @@ describe("a retry reuses the identity (interpretation happens once)", () => {
     expect(persisted().p_identity_revision).toBe(2);
     expect(telemetryOf()).toMatchObject({
       identityReused: true,
+      // No new identity, so no theme seed is drawn.
+      themeSeed: null,
       identityValidFirstCall: null,
       extraction: null,
       latency: { identityMs: null },
@@ -525,7 +537,7 @@ describe("inspiration", () => {
     ];
     admin.state.storage.inspiration = { "e/1.png": JPEG_BYTES };
     const { fake } = await run();
-    expect(fake.calls.identity[0]).toEqual({ prompt: PROMPT });
+    expect(fake.calls.identity[0]).toEqual({ prompt: PROMPT, themeSeed: THEME_SEEDS[0] });
     expect(telemetryOf().inspirationSkipped).toBe(1);
   });
 
@@ -644,6 +656,7 @@ describe("failures end the generation with fail_generation", () => {
         suggestedRendering: "photographic",
         rendering: "painterly",
         followedSuggestion: false,
+        themeSeed: THEME_SEEDS[0],
         imagesRequested: 2,
         validationFailures: [
           { image: 1, reasons: ["type"] },
@@ -689,7 +702,12 @@ describe("failures end the generation with fail_generation", () => {
     await run({ ...HAPPY, design: [invalid(), invalid()] });
     // No design was accepted: only the suggestion is known.
     expect(admin.rpc("fail_generation")[0].p_telemetry).toEqual({
-      failure: { code: "invalid_output", stage: "design", suggestedRendering: "photographic" },
+      failure: {
+        code: "invalid_output",
+        stage: "design",
+        suggestedRendering: "photographic",
+        themeSeed: THEME_SEEDS[0],
+      },
     });
     expect(failureTelemetry(new SpendCeilingError(), "ceiling")).toEqual({
       failure: { code: "ceiling", refusal: "ceiling" },

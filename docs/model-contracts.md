@@ -118,7 +118,9 @@ me", "idk", only the occasion), the identity commits to one clear, concrete them
 event — a subject world a guest could name in a few words — never abstract forms or an
 "unexpected twist" standing in for a theme.
 
-**Inputs:** the raw prompt and inspiration images as untrusted data (§8); on `Try another
+**Inputs:** the raw prompt and inspiration images as untrusted data (§8); a `themeSeed` drawn at
+random by code from a broad list of everyday worlds (`src/lib/generation/theme-seeds.ts`), used
+only when the host leaves the look to us and ignored otherwise (prompt v6); on `Try another
 direction` with feedback, the previous identity and the feedback, to update or merge the identity.
 Do not re-send raw inspiration once its summary exists.
 
