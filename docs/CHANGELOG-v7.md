@@ -833,6 +833,46 @@ owner can overturn any of them.
   focus ring when focus moves to it after opening. Together the dusk box and that amber ring read as
   a mat and frame that belonged to the card. A sealed envelope keeps its dusk.
 
+### The art gives way (owner decisions, 2026-10-06)
+
+The owner saw a square `art-top` card whose 180-unit edge fade washed out and cut off its picture,
+and replaced the legibility panel for new designs (`card_layouts_v4`, `card_compiler_v5`;
+`docs/card-system.md §2.2`, §2.3, §4.2, §4.4; `spec.md §7.8`, §7.9, §11.6, §31, §32 #20, #22, #30):
+
+- **The art gives way instead of being painted over.** After the repaints (unchanged: two extra
+  images per artwork at most), if no ink clears 4.5:1 the artwork moves out of the words' way.
+  Nothing is laid over the picture; there is no fade and no feather.
+- **Words at an edge of the picture: 4.5:1 is guaranteed.** First a **crop**, only where cropping
+  loses ground and never a subject's head — `art-bottom` on rectangle, rounded rectangle and square:
+  the art scaled by 1.08, then 1.16, about the middle of the card's top, still full bleed; the first
+  scale at which an ink clears on the art as drawn is kept. Otherwise a **plate**: the art and the
+  card's own outline scaled together by 1, 0.9, 0.8, 0.7 or 0.6 about the middle of the picture's
+  outer edge, cut straight 30 units beyond the text zone, with a flat fill on the words' side; the
+  largest scale whose cut hides only even background, else 0.6. The fill is the hidden area's
+  dominant colour when an ink clears on it, else the paper (OKLCH L 0.965, the panel's old colour).
+  At scale 1 the plate is a plain crop at the cut.
+- **Centred words (`framed`, `corners`, `atmosphere`): nothing behind them, ever, for a new
+  design.** The ink is the candidate with the highest contrast; when it is below 4.5:1 the zone is
+  stored as low contrast with its contrast, and the host — never a guest — sees under the card in
+  the reveal and Creation Mode, while that design and shape have no saved customization: "Some
+  words sit on a busy part of the picture. If they're hard to read, move them in Edit card."
+- **Stored, not recomputed.** A zone's ink gains `placement` (`crop` or `plate`: the artwork's
+  rectangle in card units, a plate's cut and fill) or `lowContrast` with `contrast`, in
+  `card_art_assets.ink` per fitted shape; no migration. A placement is never stored with a panel.
+  The stored image is always the artwork as painted, so a reference sent to the image model (a shape
+  switch, a change to part of a card) is the raw artwork. Old designs keep their v2 and v3 panels,
+  drawn exactly as before (`spec.md §32 #27`). The card component and the link preview draw
+  placements from the stored rectangles; the layout and link-preview fixtures check both.
+- **Calibration** (build decision, from a synthetic and showcase contact sheet; no model calls):
+  "even" means at least 97% of the hidden pixels within OKLab ΔE 0.05 of the hidden area's dominant
+  colour. On the sheet, 97% of the hidden pixels of paper grain (±4 levels) lay within 0.012 of the
+  dominant colour, a watercolour wash within 0.02 and the pale end of a sky gradient within 0.047;
+  a subject or ground crossing the cut put 3% of them 0.09–0.4 away. The cut sits 30 units beyond
+  the zone, which on a rectangle is the boundary of the region the composition keeps clear.
+- **Telemetry:** `inkPanels` keeps its meaning (always empty for new designs); `inkPlacements`
+  (shape, zone, kind, scale) and `lowContrastZones` (shape, zone, contrast) are added. The repaint
+  reason keeps its recorded name, `panel-repaint`.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

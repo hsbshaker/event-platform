@@ -53,12 +53,14 @@ export const EVEN_SHARE = 0.97;
 
 /**
  * How far, in OKLab (Euclidean, L 0–1), a hidden pixel may be from the hidden area's dominant
- * colour and still count as even background. Calibrated on synthetic artwork (paper grain,
- * watercolour wash, a soft sky gradient, a subject crossing the cut) and the showcase cards: paper
- * grain of ±4 levels sits under 0.02, a wash's slow drift under 0.04, while a subject's edge, a
- * shadow or a shift from sky to ground is 0.08 and more. 0.05 accepts the first two and refuses
- * the third, and keeps the step at the cut — fill against what the art shows just above it — below
- * what reads as an edge on a quiet ground (about 2.5 just-noticeable differences of ~0.02).
+ * colour and still count as even background. Calibrated on a contact sheet of synthetic artwork
+ * (paper grain, a watercolour wash, a sky gradient, subjects and ground crossing the cut, busy
+ * foliage) and the showcase cards, no model call (`docs/CHANGELOG-v7.md`, "The art gives way"):
+ * 97% of the hidden pixels of paper grain (±4 levels) lay within 0.012 of the dominant colour, of a
+ * wash within 0.02, of the pale end of a sky gradient within 0.047; a subject or ground crossing the
+ * cut put them 0.09–0.4 away. 0.05 accepts the first three and refuses the last, and keeps the step
+ * at the cut — the fill against what the art shows just above it — near what reads as an edge on a
+ * quiet ground (about 2.5 just-noticeable differences of ~0.02).
  */
 export const EVEN_DELTA_E = 0.05;
 

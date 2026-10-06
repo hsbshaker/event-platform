@@ -49,7 +49,7 @@ Before proposing or implementing a solution, check it against these rules:
 - **Facts come only from the host.** Names, dates, times, venues on the card render from event data; AI wording never states or invents one.
 - **Brand references: close homage allowed, marks never.** A card may clearly evoke a brand's character or look; it never carries a logo, wordmark, brand or character name, or copied campaign art, and briefs never name the brand (`spec.md §7.6`; pending legal review before launch).
 - **Artwork contains no text.** Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
-- **Code owns the generated card's legibility and fit; the host owns their edits.** Ink and legibility panels are chosen deterministically so every text of the generated card clears 4.5:1, and `layoutCard` sizes and breaks it. In the card editor the host may restyle and move anything, add text, and pick any Google Font and colour, unchecked. Line breaks are always computed deterministically and stored; the browser never re-wraps card text, so guests see exactly what the host saw.
+- **Code owns the generated card's legibility and fit; the host owns their edits.** Ink, and how the artwork gives way to the words, are chosen deterministically: where the words sit at an edge of the picture every text clears 4.5:1 (by repaints, then a crop or a plate with the words on a flat fill); in a centred layout the ink is the best candidate, nothing is painted behind it, and the host is told when it falls below 4.5:1 (owner decision 2026-10-06). `layoutCard` sizes and breaks the text. In the card editor the host may restyle and move anything, add text, and pick any Google Font and colour, unchecked. Line breaks are always computed deterministically and stored; the browser never re-wraps card text, so guests see exactly what the host saw.
 - **The card editor edits text only.** Every text is a box the host can edit, move, resize, rotate and restyle on phone or desktop; the artwork, outline and envelope are never edited, and no images or graphics are added. Fact boxes stay linked to event details.
 - Persist `EventIdentity`, every `CardDesign` (raw and validated), its artwork, resolved ink and version set. Generated design data is immutable; host edits live on the event and in a `CardCustomization` per design and shape; renderer code may receive bug/accessibility/responsive fixes.
 - **The page under the card is one house style for every event.** Card styling, the house-style page and app chrome are separate systems.
@@ -136,8 +136,10 @@ host prompt + inspiration
    (a change to part of a card: an edit of that card's artwork)
 → artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety,
    no person in photographic, editorial, 3D or collage artwork   (one regeneration)
-→ ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
-   (while the artwork's shape would need a panel: repaint from the same art prompt, plus what to keep clear for art with a subject — two extra images per artwork at most)
+→ ink resolved deterministically per shape the artwork fits
+   (while no ink clears 4.5:1 on the artwork's shape: repaint from the same art prompt, plus what to keep clear for art with a subject — two extra images per artwork at most)
+   (then, if still needed, the art gives way: crop or plate for words at an edge of the picture — every such text ≥ 4.5:1;
+    centred words keep the best ink, nothing behind them, stored as low contrast and the host told)
 → persisted, immutable CardDesign + artwork + ink + versions
 → layoutCard (sizes, line breaks) → one card component → envelope → house-style page
 → card editor (optional): host edits the text layer → CardCustomization (stored boxes and line breaks) → same card component
@@ -196,13 +198,13 @@ Recommended format:
 ## Spec / acceptance criteria
 
 - `spec.md §31 — Card design, artwork and compiler`
-  - “Every text of the generated card clears 4.5:1 against the conservatively measured background of its zone …”
+  - “The generated card's ink is judged against the conservatively measured background of its zone … Where the words sit at an edge of the picture, every text clears 4.5:1 …”
   - “In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves its zone …”
 - `spec.md §32 guardrails #20, #22, #23`
 
 ## Verification
 
-- [x] unit test: ink resolution including the panel path
+- [x] unit test: ink resolution and the art giving way (crop, plate, low contrast)
 - [x] layout fixtures: every layout × pairing renders worst-case content in its zones
 - [x] existing card test suite passes
 ```
