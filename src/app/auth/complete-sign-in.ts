@@ -73,8 +73,9 @@ export async function completeSignIn(
     ? await claimDraftForUser(user.id)
     : { outcome: "not_found", eventId: null, hadToken: false };
 
-  // No draft on this browser. The link may have been opened in a mail-app webview, another
-  // browser profile or another device, where the cookie cannot follow. If a draft was bound
+  // No draft claimed by this browser's cookie (none there, or not asked to look). The link may
+  // have been opened in a mail-app webview, another browser profile or another device, where the
+  // cookie cannot follow. If a draft was bound
   // to this address when the link was requested, the session just proved control of that
   // address, which is exactly the authority needed to receive it (spec.md §7.2).
   if (claim.outcome === "not_found" && user.email) {
