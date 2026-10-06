@@ -38,7 +38,7 @@ export function ConfirmMarkers({
             height: `${rect.height}%`,
             transform: rect.rotation === 0 ? undefined : `rotate(${rect.rotation}deg)`,
           }}
-          className="absolute rounded-md border border-dashed border-app-action ring-1 ring-app-surface"
+          className="absolute rounded-md border border-dashed border-app-text ring-1 ring-app-surface"
         />
       ))}
     </div>

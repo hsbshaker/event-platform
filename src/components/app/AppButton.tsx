@@ -14,7 +14,7 @@ const VARIANT_CLASSES: Record<AppButtonVariant, string> = {
   secondary:
     "border border-app-border-strong bg-app-surface text-app-text hover:bg-app-surface-subtle",
   ghost: "bg-transparent text-app-text hover:bg-app-surface-muted",
-  destructive: "bg-app-danger text-app-action-text hover:opacity-90",
+  destructive: "bg-app-danger text-app-danger-text hover:opacity-90",
 };
 
 const SIZE_CLASSES: Record<AppButtonSize, string> = {
@@ -30,7 +30,7 @@ export function appButtonClasses(
   className?: string,
 ): string {
   return cx(
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+    "app-press inline-flex min-h-11 items-center justify-center gap-2 rounded-pill font-medium",
     "disabled:cursor-not-allowed disabled:opacity-50",
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],

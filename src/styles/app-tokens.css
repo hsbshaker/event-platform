@@ -1,58 +1,90 @@
 /*
- * Application chrome tokens — docs/design-system.md §6 (Revision-1 defaults).
+ * Application chrome tokens — docs/design-system.md §6 (Revision 5, Lantern).
  * Feature UI references these semantic tokens, never raw values (§23.2).
- * The application chrome is light-only for MVP (§5.3). Do not add dark-mode variants here.
+ * The application chrome is light for MVP (§5.3). The dusk field is a fixed brand surface for the
+ * landing page and the envelope opening only, not a mode: do not add dark-mode variants here.
  * Card typography lives in card-fonts.css and the card renderer, and never leaks into app chrome (§23.7).
  */
 :root {
-  /* 6.1 Color */
-  --app-bg: #f6f5f1;
+  /* 6.1 Color: light surfaces */
+  --app-bg: #eef0f8;
   --app-surface: #ffffff;
-  --app-surface-subtle: #fbfaf7;
-  --app-surface-muted: #efeee9;
+  --app-surface-subtle: #f7f8fc;
+  --app-surface-muted: #e9ecf6;
+  --app-surface-lit: #fff9f0;
+  --app-lit: #fdebcb;
 
-  --app-text: #1d211e;
-  --app-text-secondary: #666d68;
-  --app-text-tertiary: #6b726d;
+  --app-text: #1b1c2b;
+  --app-text-secondary: #4e5270;
+  --app-text-tertiary: #646884;
+  --app-link: #8e4c08;
 
-  --app-border: #e2e0d8;
-  --app-border-strong: #cfccc2;
+  --app-border: #d9dcea;
+  --app-border-strong: #7a81a6;
 
-  --app-action: #263a31;
-  --app-action-hover: #1e3028;
-  --app-action-text: #ffffff;
+  --app-action: #f4a43a;
+  --app-action-hover: #f7b455;
+  --app-action-text: #1b1c2b;
 
-  --app-focus: #557765;
+  --app-focus: #1f2a55;
 
-  --app-success: #35664e;
+  --app-success: #2f6b4f;
   --app-warning: #8a672c;
   --app-danger: #a0443c;
+  --app-danger-text: #ffffff;
 
-  --app-overlay: rgba(18, 22, 20, 0.36);
+  --app-overlay: rgba(15, 18, 45, 0.4);
+
+  /* 6.1 Color: the dusk field (§5.3), the landing page and the envelope opening only */
+  --dusk: #1f2a55;
+  --dusk-raised: #2a376c;
+  --dusk-text: #ffffff;
+  --dusk-text-secondary: #bac2e4;
+  --dusk-focus: #f4a43a;
+  --dusk-line: #c8a36b;
+
+  /* light as a material (§5.1, §6.5): lit paper and the light pool on dusk; never operational UI */
+  --app-surface-lit-gradient: radial-gradient(
+    120% 85% at 50% 0%,
+    #fffdf9 0%,
+    #fff8ec 58%,
+    #fdf0da 100%
+  );
+  --dusk-pool: radial-gradient(closest-side, rgba(255, 196, 112, 0.24), rgba(255, 196, 112, 0));
+  --dusk-bulb: radial-gradient(
+    circle,
+    var(--app-action) 0 3px,
+    rgba(255, 196, 112, 0.3) 4px,
+    rgba(255, 196, 112, 0) 12px
+  );
+  --shadow-on-dusk: drop-shadow(0 18px 22px rgba(8, 10, 30, 0.55));
 
   /* 6.2 Typography */
   --font-app:
-    var(--font-inter, Inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+    var(--font-alegreya-sans, "Alegreya Sans"), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* type scale: size / line-height / weight / tracking */
-  --type-display-lg: 700 48px/52px var(--font-app);
-  --type-display-md: 700 40px/44px var(--font-app);
-  --type-heading-xl: 700 32px/38px var(--font-app);
-  --type-heading-lg: 700 24px/30px var(--font-app);
-  --type-heading-md: 650 20px/26px var(--font-app);
-  --type-body-lg: 400 17px/26px var(--font-app);
-  --type-body-md: 400 15px/23px var(--font-app);
-  --type-body-sm: 400 13px/19px var(--font-app);
-  --type-label-md: 600 13px/17px var(--font-app);
-  --type-label-sm: 650 11px/15px var(--font-app);
-  --type-micro: 650 10px/14px var(--font-app);
+  /* the landing's headline: marketing display, responsive (§6.2) */
+  --type-display-hero: 300 clamp(42px, 30px + 2.8vw, 70px) / 1 var(--font-app);
+  --type-display-lg: 300 48px/52px var(--font-app);
+  --type-display-md: 300 40px/44px var(--font-app);
+  --type-heading-xl: 500 32px/38px var(--font-app);
+  --type-heading-lg: 500 26px/32px var(--font-app);
+  --type-heading-md: 500 21px/28px var(--font-app);
+  --type-body-lg: 400 18px/28px var(--font-app);
+  --type-body-md: 400 16px/24px var(--font-app);
+  --type-body-sm: 400 15px/22px var(--font-app);
+  --type-label-md: 500 15px/20px var(--font-app);
+  --type-label-sm: 700 13px/18px var(--font-app);
+  --type-micro: 700 12px/16px var(--font-app);
 
-  --tracking-display-lg: -0.04em;
-  --tracking-display-md: -0.035em;
-  --tracking-heading-xl: -0.03em;
-  --tracking-heading-lg: -0.025em;
-  --tracking-heading-md: -0.02em;
+  --tracking-display-hero: -0.015em;
+  --tracking-display-lg: -0.015em;
+  --tracking-display-md: -0.015em;
+  --tracking-heading-xl: -0.01em;
+  --tracking-heading-lg: -0.005em;
+  --tracking-heading-md: 0em;
 
   /* 6.3 Spacing */
   --space-0: 0px;
@@ -79,9 +111,9 @@
 
   /* 6.5 Shadows */
   --shadow-none: none;
-  --shadow-soft: 0 8px 24px rgba(20, 28, 24, 0.06);
-  --shadow-float: 0 10px 32px rgba(20, 28, 24, 0.14);
-  --shadow-overlay: 0 24px 70px rgba(20, 28, 24, 0.18);
+  --shadow-soft: 0 8px 24px rgba(15, 18, 45, 0.07);
+  --shadow-float: 0 2px 6px rgba(15, 18, 45, 0.1), 0 20px 44px -18px rgba(15, 18, 45, 0.45);
+  --shadow-overlay: 0 24px 70px rgba(15, 18, 45, 0.22);
 
   /* 6.6 Z-index */
   --z-base: 0;
@@ -99,10 +131,15 @@
   --width-full: 1280px;
 
   /* 8.1 Motion */
+  --motion-instant: 80ms;
   --motion-fast: 120ms;
+  --motion-press: 160ms;
   --motion-base: 180ms;
-  --motion-slow: 240ms;
-  --motion-reveal: 420ms;
+  --motion-slow: 240ms; /* motion-sheet */
+  --motion-reveal: 600ms;
+  --motion-light: 700ms;
   --motion-emphasis: 600ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }

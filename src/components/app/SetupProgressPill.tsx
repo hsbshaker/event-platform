@@ -30,7 +30,9 @@ export function SetupProgressPill({
         data-setup-pill={ready ? "ready" : "left"}
         onClick={onOpen}
         className={cx(
-          appButtonClasses(ready ? "secondary" : "primary", "md", "rounded-pill shadow-float"),
+          // Quiet while things are left, so it never outranks the page's primary action; the
+          // count wears the amber (design-system §10.12, Revision 5).
+          appButtonClasses("secondary", "md", "rounded-pill shadow-float"),
           "pointer-events-auto",
           ready && "text-app-success",
         )}
@@ -40,7 +42,12 @@ export function SetupProgressPill({
             <span aria-hidden="true">✓</span> Ready to publish
           </>
         ) : (
-          `Finish setup · ${left} left`
+          <>
+            Finish setup<span className="sr-only"> · </span>
+            <span className="ml-1 inline-grid place-items-center rounded-pill bg-app-action px-2 py-0.5 text-label-sm text-app-action-text">
+              {left} left
+            </span>
+          </>
         )}
       </button>
     </div>

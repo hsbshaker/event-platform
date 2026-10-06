@@ -16,7 +16,7 @@ export function IconButton({ label, className, children, ...props }: IconButtonP
       {...props}
       aria-label={label}
       className={cx(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-app-text-secondary transition-colors",
+        "app-press inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-pill text-app-text-secondary",
         "hover:bg-app-surface-muted hover:text-app-text",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,

@@ -11,6 +11,9 @@
   --color-app-surface: var(--app-surface);
   --color-app-surface-subtle: var(--app-surface-subtle);
   --color-app-surface-muted: var(--app-surface-muted);
+  --color-app-surface-lit: var(--app-surface-lit);
+  --color-app-lit: var(--app-lit);
+  --color-app-link: var(--app-link);
   --color-app-text: var(--app-text);
   --color-app-text-secondary: var(--app-text-secondary);
   --color-app-text-tertiary: var(--app-text-tertiary);
@@ -23,6 +26,12 @@
   --color-app-success: var(--app-success);
   --color-app-warning: var(--app-warning);
   --color-app-danger: var(--app-danger);
+  --color-app-danger-text: var(--app-danger-text);
+  --color-dusk: var(--dusk);
+  --color-dusk-raised: var(--dusk-raised);
+  --color-dusk-text: var(--dusk-text);
+  --color-dusk-text-secondary: var(--dusk-text-secondary);
+  --color-dusk-line: var(--dusk-line);
   --color-app-overlay: var(--app-overlay);
 
   --font-sans: var(--font-app);
@@ -48,12 +57,76 @@ html {
   background: var(--app-bg);
   color: var(--app-text);
   font-family: var(--font-app);
+  /* Alegreya Sans defaults to old-style figures; dates, times and counts read better lining. */
+  font-variant-numeric: lining-nums;
   -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 2px solid var(--app-focus);
+  outline: 2px solid var(--focus-ring, var(--app-focus));
   outline-offset: 2px;
+}
+
+/*
+ * The dusk field (docs/design-system.md §5.3): the landing page and the envelope opening only.
+ * Focus turns amber on it; lit paper inside it returns to the ink ring (§14.1, §15.6a).
+ */
+.surface-dusk {
+  background: var(--dusk);
+  color: var(--dusk-text);
+  --focus-ring: var(--dusk-focus);
+}
+.surface-lit {
+  background: var(--app-surface-lit-gradient);
+  color: var(--app-text);
+  --focus-ring: var(--app-focus);
+}
+/* A warm pool of light under an object on dusk (§6.5). Decorative; never operational UI. */
+.dusk-pool {
+  background: var(--dusk-pool);
+  pointer-events: none;
+}
+
+/* The landing's string of lights and its showcase cards (§4.1, §19.1). */
+.festoon-bulb {
+  width: var(--space-6);
+  height: var(--space-6);
+  margin: calc(var(--space-6) / -2);
+  border-radius: var(--radius-pill);
+  background: var(--dusk-bulb);
+}
+.showcase-pool {
+  position: absolute;
+  inset-inline: -33%;
+  top: 92%;
+  height: var(--space-24);
+  z-index: -1;
+}
+.showcase-card {
+  filter: var(--shadow-on-dusk);
+}
+
+/*
+ * Press feedback (§8.1): every button, chip, choice and toolbar item scales to 0.97 on press.
+ * Removed under reduced motion (§8.5).
+ */
+.app-press {
+  transition:
+    transform var(--motion-press) var(--ease-out),
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    color var(--motion-base) ease;
+}
+.app-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-press {
+    transition: none;
+  }
+  .app-press:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /*
@@ -61,6 +134,10 @@ html {
  * scale is not the design-system scale, so these map the canonical `--type-*`/`--tracking-*`
  * tokens to classes instead of ever hand-writing a size. No raw values here or at call sites.
  */
+.text-display-hero {
+  font: var(--type-display-hero);
+  letter-spacing: var(--tracking-display-hero);
+}
 .text-display-lg {
   font: var(--type-display-lg);
   letter-spacing: var(--tracking-display-lg);
@@ -98,6 +175,20 @@ html {
 }
 .text-micro {
   font: var(--type-micro);
+}
+/*
+ * Quoted host words (the showcase captions and the landing's first step, §4.1). The type tokens
+ * are `font` shorthands, which reset font-style, so the italic lives here rather than in a
+ * separate utility class that would lose to them.
+ */
+.text-quote-sm {
+  font: var(--type-body-sm);
+  font-style: italic;
+}
+.text-quote-lg {
+  font: var(--type-heading-lg);
+  font-weight: 300;
+  font-style: italic;
 }
 
 /*

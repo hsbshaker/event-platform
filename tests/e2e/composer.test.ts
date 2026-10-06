@@ -120,6 +120,33 @@ describe.each([
     }
   });
 
+  it("shows showcase cards as captioned pictures, never as choices", async () => {
+    // design-system §4.1 and spec.md §32 #6: real cards for sample events, never selectable.
+    const { page, close } = await newPage(browser, viewport);
+    try {
+      await page.goto(requireApp().baseUrl, { waitUntil: "domcontentloaded" });
+      const cards = page.locator("figure img[src*='showcase']");
+      const shown = await cards.evaluateAll((imgs) =>
+        imgs
+          .filter((img) => (img as HTMLElement).offsetParent !== null)
+          .map((img) => ({
+            alt: img.getAttribute("alt") ?? "",
+            interactive: Boolean(img.closest("a, button, [tabindex], [role=button], [role=link]")),
+            caption: img.closest("figure")?.querySelector("figcaption")?.textContent ?? "",
+          })),
+      );
+      // A phone shows one; a 1280 desktop the outer pair (the inner pair needs 1440).
+      expect(shown.length).toBe(viewport.width < 1024 ? 1 : 2);
+      for (const card of shown) {
+        expect(card.alt.length).toBeGreaterThan(20);
+        expect(card.interactive).toBe(false);
+        expect(card.caption).toMatch(/^“.+”$/);
+      }
+    } finally {
+      await close();
+    }
+  });
+
   it("gives the composer the first viewport without cutting it off", async () => {
     const { page, close } = await newPage(browser, viewport);
     try {

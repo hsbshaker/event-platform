@@ -15,7 +15,8 @@ import {
   type SavePartyActionResult,
   type SavePartyInput,
 } from "@/app/actions/guests";
-import { AppButton, appButtonClasses } from "@/components/app/AppButton";
+import { AppButton } from "@/components/app/AppButton";
+import { chipClasses } from "@/components/app/Chip";
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { InlineStatus } from "@/components/app/InlineStatus";
 import { Input } from "@/components/app/Input";
@@ -327,7 +328,7 @@ export function GuestsWorkspace({
               type="button"
               aria-pressed={filter === "all"}
               onClick={() => setFilter("all")}
-              className={appButtonClasses(filter === "all" ? "primary" : "secondary", "sm")}
+              className={chipClasses(filter === "all")}
             >
               All parties
             </button>
@@ -336,7 +337,7 @@ export function GuestsWorkspace({
               aria-pressed={filter === "needs_phone"}
               data-filter="needs-phone"
               onClick={() => setFilter("needs_phone")}
-              className={appButtonClasses(filter === "needs_phone" ? "primary" : "secondary", "sm")}
+              className={chipClasses(filter === "needs_phone")}
             >
               Needs phone ({COUNT.format(needPhone.length)})
             </button>

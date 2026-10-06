@@ -1158,6 +1158,7 @@ All values below are Revision 5 (Lantern) values and must be represented as sema
   --app-success: #2F6B4F;
   --app-warning: #8A672C;
   --app-danger: #A0443C;
+  --app-danger-text: #FFFFFF;     /* text on a destructive action; ink on amber, white on danger */
 
   --app-overlay: rgba(15, 18, 45, 0.40);
 
@@ -1172,6 +1173,8 @@ All values below are Revision 5 (Lantern) values and must be represented as sema
   /* light as a material (§5.1); never in operational UI */
   --app-surface-lit-gradient: radial-gradient(120% 85% at 50% 0%, #FFFDF9 0%, #FFF8EC 58%, #FDF0DA 100%);
   --dusk-pool: radial-gradient(closest-side, rgba(255, 196, 112, 0.24), rgba(255, 196, 112, 0));
+  --dusk-bulb: radial-gradient(circle, #F4A43A 0 3px, rgba(255, 196, 112, 0.3) 4px, rgba(255, 196, 112, 0) 12px);
+  --shadow-on-dusk: drop-shadow(0 18px 22px rgba(8, 10, 30, 0.55));  /* a card hanging on dusk */
 }
 ```
 
@@ -1210,6 +1213,7 @@ The app should not use card typography (the design's font pairings) in navigatio
 ### Application type scale
 
 ```text
+display-hero clamp(42–70) / 1  300   -0.015em   the landing's headline only
 display-lg   48 / 52   300   -0.015em
 display-md   40 / 44   300   -0.015em
 heading-xl   32 / 38   500   -0.01em

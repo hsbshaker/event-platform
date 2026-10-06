@@ -1,0 +1,137 @@
+{
+  "about": "Sample events for the landing's showcase cards (docs/design-system.md §4.1). Each prompt is the caption shown under its card, verbatim; the facts are sample facts, stored on the event as a host would enter them. Run with: node scripts/corpus/run-live.mjs preview --file scripts/showcase/sample-events.json --out <dir> --transparent",
+  "cases": [
+    {
+      "id": "S-01",
+      "prompt": "baby shower for our little one, woodland animals, cozy and sweet but not cartoonish",
+      "facts": {
+        "hosts": "Hannah & Leo",
+        "venue_name": "Fernwood Lodge",
+        "event_date": "2027-04-17",
+        "start_time": "13:00",
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "id": "S-02",
+      "prompt": "first birthday, hot air balloons drifting over green hills, soft and dreamy",
+      "facts": {
+        "hosts": "The Alvarez family",
+        "venue_name": "Sunnyside Park Pavilion",
+        "event_date": "2027-05-08",
+        "start_time": "10:30",
+        "timezone": "America/Chicago"
+      }
+    },
+    {
+      "id": "S-03",
+      "prompt": "dinosaur party for our 6 year old, fun and bold, not tacky",
+      "facts": {
+        "hosts": "Maya & Chris",
+        "venue_name": "Riverside Community Hall",
+        "event_date": "2027-06-12",
+        "start_time": "14:00",
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "id": "S-04",
+      "prompt": "my 30th, disco glam under the stars, gold and midnight blue",
+      "facts": {
+        "hosts": "Jordan",
+        "venue_name": "The Starlight Room",
+        "event_date": "2027-03-20",
+        "start_time": "20:00",
+        "timezone": "America/Los_Angeles"
+      }
+    },
+    {
+      "id": "S-05",
+      "prompt": "40th birthday dinner, candlelit, a moody little Italian trattoria",
+      "facts": {
+        "hosts": "Elena & Tom",
+        "venue_name": "Trattoria Lucia",
+        "event_date": "2027-02-13",
+        "start_time": "19:30",
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "id": "S-06",
+      "prompt": "bridal shower, garden tea party, blush roses and sage",
+      "facts": {
+        "hosts": "Sofia's bridesmaids",
+        "venue_name": "The Glasshouse",
+        "event_date": "2027-05-22",
+        "start_time": "14:00",
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "id": "S-07",
+      "prompt": "engagement party by the sea, olive branches and linen, Mediterranean summer",
+      "facts": {
+        "hosts": "Nina & James",
+        "venue_name": "Harborview Terrace",
+        "event_date": "2027-07-10",
+        "start_time": "18:00",
+        "timezone": "America/Los_Angeles"
+      }
+    },
+    {
+      "id": "S-08",
+      "prompt": "graduation party, she's off to study marine biology",
+      "facts": {
+        "hosts": "The Okafor family",
+        "venue_name": "Lakeside Clubhouse",
+        "event_date": "2027-06-05",
+        "start_time": "16:00",
+        "timezone": "America/Chicago"
+      }
+    },
+    {
+      "id": "S-09",
+      "prompt": "Dad's retirement party, he's finally going fishing every day",
+      "facts": {
+        "hosts": "The Brennan kids",
+        "venue_name": "Pine Lake Lodge",
+        "event_date": "2027-04-24",
+        "start_time": "17:00",
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "id": "S-10",
+      "prompt": "housewarming in our first home, plants everywhere, warm and modern",
+      "facts": {
+        "hosts": "Priya & Sam",
+        "venue_name": "The Maple Lane House",
+        "event_date": "2027-03-06",
+        "start_time": "18:00",
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "id": "S-11",
+      "prompt": "our 25th anniversary, silver, moonlight and a little romance",
+      "facts": {
+        "hosts": "Ruth & David",
+        "venue_name": "Willow Hall",
+        "event_date": "2027-09-18",
+        "start_time": "19:00",
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "id": "S-12",
+      "prompt": "holiday dinner party, candlelight, winter greenery and a touch of gold",
+      "facts": {
+        "hosts": "The Lindqvists",
+        "venue_name": "Hearth & Pine",
+        "event_date": "2026-12-19",
+        "start_time": "18:30",
+        "timezone": "America/Chicago"
+      }
+    }
+  ]
+}

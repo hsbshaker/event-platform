@@ -255,19 +255,26 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-(--width-standard) flex-1 flex-col justify-center gap-8 px-4 py-12 sm:py-16">
-      <header className="flex flex-col items-center gap-3 text-center">
-        <h1 className="text-display-md text-app-text">
-          Describe your event. We create the whole experience.
+    <div className="relative mx-auto flex w-full max-w-(--width-standard) flex-col gap-6 px-4 pb-16 pt-4 lg:pt-36">
+      <header className="flex flex-col items-center gap-4 text-center">
+        <h1 className="text-display-hero text-balance text-dusk-text">
+          Describe your event. Watch it light up.
         </h1>
+        <p className="max-w-(--width-narrow) text-body-lg text-dusk-text-secondary">
+          One invitation card, designed from your words and delivered in an envelope your guests
+          open.
+        </p>
       </header>
 
       {restoreNotice && (
-        <InlineStatus variant="warning" live>
-          We couldn&apos;t restore your saved idea from before
-          {restoreNotice === "taken" ? " — that draft was already used" : " — it had expired"}. Your
-          text below is safe; look it over and continue.
-        </InlineStatus>
+        // Status text needs light paper behind it: its colours are set for light surfaces (§5.3).
+        <div className="surface-lit rounded-xl px-4 py-3">
+          <InlineStatus variant="warning" live>
+            We couldn&apos;t restore your saved idea from before
+            {restoreNotice === "taken" ? " — that draft was already used" : " — it had expired"}.
+            Your text below is safe; look it over and continue.
+          </InlineStatus>
+        </div>
       )}
 
       <form action={handleCreate} className="flex flex-col gap-3">
@@ -344,10 +351,14 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
             </>
           }
         />
-        {createError && <InlineStatus variant="danger">{createError}</InlineStatus>}
+        {createError && (
+          <div className="surface-lit rounded-xl px-4 py-3">
+            <InlineStatus variant="danger">{createError}</InlineStatus>
+          </div>
+        )}
       </form>
 
-      <p className="text-center text-body-sm text-app-text-tertiary">
+      <p className="text-center text-body-sm text-dusk-text-secondary">
         Free to create · No templates · Publish when ready
       </p>
     </div>

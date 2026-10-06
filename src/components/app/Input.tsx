@@ -7,7 +7,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
     <input
       {...props}
       className={cx(
-        "min-h-11 w-full rounded-lg border border-app-border bg-app-surface px-4 text-body-md text-app-text",
+        "min-h-11 w-full rounded-md border border-app-border-strong bg-app-surface px-4 text-body-md text-app-text",
         "placeholder:text-app-text-tertiary",
         className,
       )}
