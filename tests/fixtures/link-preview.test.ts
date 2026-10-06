@@ -747,10 +747,29 @@ describe("link-preview images", () => {
     writeFileSync(path.join(OUT_DIR, "envelope.png"), png);
     const img = decodePng(png);
     expect([img.width, img.height]).toEqual([PREVIEW_SIZE.width, PREVIEW_SIZE.height]);
-    // Dark title ink inside the envelope's lower half; nothing card-coloured anywhere.
+    // The Lantern envelope (design-system §10.20): 640 × 448 at (280, 91) on the dusk field.
+    const at = (x: number, y: number) =>
+      [0, 1, 2].map((c) => img.rgba[(y * img.width + x) * 4 + c]);
+    const near = (got: number[], hex: string) =>
+      [1, 3, 5].every((i, c) => Math.abs(got[c] - parseInt(hex.slice(i, i + 2), 16)) <= 2);
+    for (const [x, y] of [
+      [10, 10],
+      [1190, 620],
+      [150, 315],
+    ]) {
+      expect(near(at(x, y), HOUSE.dusk), `field at ${x},${y}: ${at(x, y)}`).toBe(true);
+    }
+    // Lit paper in the pocket; the amber seal at the flap's point (40% down), beside its "R".
+    expect(lum(img, 300, 520)).toBeGreaterThan(220);
+    expect(near(at(570, 270), HOUSE.action), `seal: ${at(570, 270)}`).toBe(true);
+    // The light pool under the envelope is lighter than the field, and warm.
+    const pool = at(600, 555);
+    expect(lum(img, 600, 555)).toBeGreaterThan(lum(img, 150, 555) + 8);
+    expect(pool[0]).toBeGreaterThan(at(150, 555)[0] + 15);
+    // Dark title ink in the title area under the seal; nothing card-coloured anywhere.
     let dark = 0;
-    for (let y = 300; y < 560; y += 1) {
-      for (let x = 240; x < 960; x += 1) if (lum(img, x, y) < 80) dark += 1;
+    for (let y = 330; y < 505; y += 1) {
+      for (let x = 300; x < 900; x += 1) if (lum(img, x, y) < 80) dark += 1;
     }
     expect(dark).toBeGreaterThan(500);
     console.info(`envelope preview rendered in ${ms.toFixed(0)} ms`);

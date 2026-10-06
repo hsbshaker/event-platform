@@ -133,69 +133,96 @@ html {
  * Application type-scale utilities (docs/design-system.md §6.2). Tailwind's own font-size
  * scale is not the design-system scale, so these map the canonical `--type-*`/`--tracking-*`
  * tokens to classes instead of ever hand-writing a size. No raw values here or at call sites.
+ * They sit in the components layer so a Tailwind utility on the same element (`font-medium`,
+ * `italic`, `leading-*`) overrides the scale's default, as it reads; unlayered, their `font`
+ * shorthand would silently win.
  */
-.text-display-hero {
-  font: var(--type-display-hero);
-  letter-spacing: var(--tracking-display-hero);
-}
-.text-display-lg {
-  font: var(--type-display-lg);
-  letter-spacing: var(--tracking-display-lg);
-}
-.text-display-md {
-  font: var(--type-display-md);
-  letter-spacing: var(--tracking-display-md);
-}
-.text-heading-xl {
-  font: var(--type-heading-xl);
-  letter-spacing: var(--tracking-heading-xl);
-}
-.text-heading-lg {
-  font: var(--type-heading-lg);
-  letter-spacing: var(--tracking-heading-lg);
-}
-.text-heading-md {
-  font: var(--type-heading-md);
-  letter-spacing: var(--tracking-heading-md);
-}
-.text-body-lg {
-  font: var(--type-body-lg);
-}
-.text-body-md {
-  font: var(--type-body-md);
-}
-.text-body-sm {
-  font: var(--type-body-sm);
-}
-.text-label-md {
-  font: var(--type-label-md);
-}
-.text-label-sm {
-  font: var(--type-label-sm);
-}
-.text-micro {
-  font: var(--type-micro);
-}
-/*
- * Quoted host words (the showcase captions and the landing's first step, §4.1). The type tokens
- * are `font` shorthands, which reset font-style, so the italic lives here rather than in a
- * separate utility class that would lose to them.
- */
-.text-quote-sm {
-  font: var(--type-body-sm);
-  font-style: italic;
-}
-.text-quote-lg {
-  font: var(--type-heading-lg);
-  font-weight: 300;
-  font-style: italic;
+@layer components {
+  .text-display-hero {
+    font: var(--type-display-hero);
+    letter-spacing: var(--tracking-display-hero);
+  }
+  .text-display-lg {
+    font: var(--type-display-lg);
+    letter-spacing: var(--tracking-display-lg);
+  }
+  .text-display-md {
+    font: var(--type-display-md);
+    letter-spacing: var(--tracking-display-md);
+  }
+  .text-heading-xl {
+    font: var(--type-heading-xl);
+    letter-spacing: var(--tracking-heading-xl);
+  }
+  .text-heading-lg {
+    font: var(--type-heading-lg);
+    letter-spacing: var(--tracking-heading-lg);
+  }
+  .text-heading-md {
+    font: var(--type-heading-md);
+    letter-spacing: var(--tracking-heading-md);
+  }
+  .text-body-lg {
+    font: var(--type-body-lg);
+  }
+  .text-body-md {
+    font: var(--type-body-md);
+  }
+  .text-body-sm {
+    font: var(--type-body-sm);
+  }
+  .text-label-md {
+    font: var(--type-label-md);
+  }
+  .text-label-sm {
+    font: var(--type-label-sm);
+  }
+  .text-micro {
+    font: var(--type-micro);
+  }
+  /* Quoted host words: the showcase captions and the landing's first step (§4.1). */
+  .text-quote-sm {
+    font: var(--type-body-sm);
+    font-style: italic;
+  }
+  .text-quote-lg {
+    font: var(--type-heading-lg);
+    font-weight: 300;
+    font-style: italic;
+  }
 }
 
 /*
- * Envelope opening (docs/design-system.md §8.3, §10.20). The flap lifts and the envelope
- * settles away while the card rises into place, within `--motion-reveal`. Under reduced motion
- * (§8.5) the component skips the opening phase entirely, and these animations are also off.
+ * Envelope opening (docs/design-system.md §8.3, §10.20; Revision 5, Lantern). The house envelope
+ * is lit paper on the dusk stage (§5.3), with a light pool under it (§6.5). On the guest's tap the
+ * seal gives (`--motion-press`), then the flap opens (`--motion-slow`, the sheet duration) as the
+ * card rises out of the envelope (`--motion-reveal`, `--ease-out`) and the envelope settles away
+ * with it; the light comes up under the card about 200ms after it starts to rise
+ * (`--motion-light`). The card's animation ends the opening phase (`Envelope.tsx`), whose fallback
+ * timer outlasts every animation here, the light's included. Under reduced motion (§8.5) the
+ * component skips the opening phase, so nothing moves, and the light appears by opacity alone.
  */
+.envelope-pool {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  aspect-ratio: 4 / 1;
+  translate: 0 50%;
+}
+@keyframes envelope-seal-give {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  40% {
+    transform: scale(0.92);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(var(--space-4) * -1)) scale(0.92);
+    opacity: 0;
+  }
+}
 @keyframes envelope-flap-open {
   from {
     transform: rotateX(0deg);
@@ -207,39 +234,83 @@ html {
   }
 }
 @keyframes envelope-shell-away {
-  from {
-    transform: translateY(0);
+  0%,
+  60% {
+    transform: none;
     opacity: 1;
   }
-  to {
-    transform: translateY(var(--space-6));
+  100% {
+    transform: translateY(var(--space-4));
     opacity: 0;
   }
 }
+/*
+ * The card rises out of the envelope's mouth: `--envelope-card-from` is where it starts, inside
+ * the envelope, and the clip hides whatever of it is below the envelope's bottom edge, tracking that
+ * edge exactly while the card moves (`--envelope-clip-from` to `--envelope-clip-to`, linear in the
+ * same eased progress as the movement). The card stops at `--motion-reveal`; then the clip opens
+ * as the envelope settles away. The component sets the three per proportion.
+ */
 @keyframes envelope-card-rise {
+  0% {
+    transform: translateY(var(--envelope-card-from));
+    clip-path: inset(0 0 var(--envelope-clip-from) 0);
+  }
+  77% {
+    transform: none;
+    clip-path: inset(0 0 var(--envelope-clip-to) 0);
+  }
+  100% {
+    transform: none;
+    clip-path: inset(0);
+  }
+}
+@keyframes envelope-light-up {
   from {
-    transform: translateY(var(--space-10));
+    transform: scale(0.8);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: none;
     opacity: 1;
   }
+}
+@keyframes envelope-light-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.envelope-seal-giving {
+  animation: envelope-seal-give calc(var(--motion-press) + var(--motion-slow)) var(--ease-out) both;
 }
 .envelope-flap-opening {
   transform-origin: top;
-  animation: envelope-flap-open var(--motion-slow) var(--ease-standard) both;
+  animation: envelope-flap-open var(--motion-slow) var(--ease-standard) var(--motion-press) both;
 }
+/* The card's rise is 77% of its animation: `--motion-reveal` of `--motion-reveal` + `--motion-base`. */
 .envelope-shell-opening {
-  animation: envelope-shell-away var(--motion-reveal) var(--ease-standard) both;
+  animation: envelope-shell-away
+    calc(var(--motion-press) + var(--motion-reveal) + var(--motion-base)) var(--ease-standard) both;
 }
 .envelope-card-opening {
-  animation: envelope-card-rise var(--motion-reveal) var(--ease-standard) both;
+  animation: envelope-card-rise calc(var(--motion-reveal) + var(--motion-base)) var(--ease-out)
+    var(--motion-press) both;
+}
+.envelope-light-up {
+  animation: envelope-light-up var(--motion-light) var(--ease-out)
+    calc(var(--motion-press) + var(--motion-base)) both;
 }
 @media (prefers-reduced-motion: reduce) {
+  .envelope-seal-giving,
   .envelope-flap-opening,
   .envelope-shell-opening,
   .envelope-card-opening {
     animation: none;
+  }
+  .envelope-light-up {
+    animation: envelope-light-fade var(--motion-light) var(--ease-out) both;
   }
 }

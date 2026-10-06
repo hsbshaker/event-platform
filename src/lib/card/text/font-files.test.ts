@@ -35,14 +35,14 @@ describe("curated font files", () => {
     for (const family of Object.keys(CURATED_WEIGHTS)) {
       expectOfl(path.join(CURATED_FONT_DIR, `${family.replaceAll(" ", "")}-OFL.txt`));
     }
-    // The link preview's copy of the app's Inter, too.
+    // The link preview's copies of the app's Alegreya Sans, too.
     const previewFonts = path.join(CURATED_FONT_DIR, "../../../src/lib/link-preview/fonts");
     const families = new Set(
       readdirSync(previewFonts)
         .filter((f) => f.endsWith(".woff2"))
         .map((f) => f.split("-")[0]),
     );
-    expect([...families]).toEqual(["Inter"]);
+    expect([...families]).toEqual(["AlegreyaSans"]);
     for (const family of families) expectOfl(path.join(previewFonts, `${family}-OFL.txt`));
   });
 });

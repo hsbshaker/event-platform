@@ -1193,7 +1193,7 @@ Lit paper may use `--app-surface-lit-gradient`. Feature code never writes its ow
 
 Application family (Revision 5): **Alegreya Sans**, a humanist sans with a calligraphic warmth that stays plain at small sizes. The light weight (300) is the display voice; regular and medium do the work.
 
-It is self-hosted through `next/font/google` (latin subset; static weights 300, 400, 500, 700 and italic 300, 400), so no guest's browser contacts a third party. It is a static family: use only those weights and never request a synthetic weight.
+It is self-hosted through `next/font/google` (latin subset; static weights 300, 400, 500, 700, each with its italic; a browser downloads only the faces a page uses), so no guest's browser contacts a third party. It is a static family: use only those weights and never request a synthetic weight.
 
 ```css
 --font-app:

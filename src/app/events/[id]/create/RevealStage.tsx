@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
-import { Envelope, ENVELOPE_WIDTH } from "@/components/app/Envelope";
+import { Envelope, ENVELOPE_WIDTH, EnvelopeStage } from "@/components/app/Envelope";
 import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
 import type { CardProportion } from "@/lib/card/shapes";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
@@ -67,29 +67,33 @@ export function RevealStage({
 
   return (
     <div className="mx-auto flex w-full max-w-(--width-standard) flex-col items-center gap-8">
-      {/* The card's box, reserved: the closed envelope sits in it and the card replaces it. */}
-      <div
-        className="mx-auto w-full"
-        style={{ maxWidth: BOX_WIDTH[proportion], containerType: "inline-size" }}
-      >
+      {/* The card's box, reserved on the dusk stage (design-system §5.3): the closed envelope
+          sits in it and the card replaces it; the name, description and actions follow on the
+          light page. */}
+      <EnvelopeStage>
         <div
-          data-reveal-box=""
-          className="flex items-center"
-          style={{ minHeight: BOX_HEIGHT[proportion] }}
+          className="mx-auto w-full"
+          style={{ maxWidth: BOX_WIDTH[proportion], containerType: "inline-size" }}
         >
-          <Envelope
-            title={title}
-            proportion={proportion === "5:7" ? "portrait" : "square"}
-            onOpen={onOpen}
+          <div
+            data-reveal-box=""
+            className="flex items-center"
+            style={{ minHeight: BOX_HEIGHT[proportion] }}
           >
-            {card && (
-              <Settled onSettled={() => setSettled(true)}>
-                <CardWithMarkers card={card.card} unconfirmed={card.unconfirmed} />
-              </Settled>
-            )}
-          </Envelope>
+            <Envelope
+              title={title}
+              proportion={proportion === "5:7" ? "portrait" : "square"}
+              onOpen={onOpen}
+            >
+              {card && (
+                <Settled onSettled={() => setSettled(true)}>
+                  <CardWithMarkers card={card.card} unconfirmed={card.unconfirmed} />
+                </Settled>
+              )}
+            </Envelope>
+          </div>
         </div>
-      </div>
+      </EnvelopeStage>
 
       {card && settled && <ConfirmLegend boxes={card.card.boxes} unconfirmed={card.unconfirmed} />}
       {card && settled && (
