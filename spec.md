@@ -529,6 +529,10 @@ Saturday, 1:00 PM, `Venue to be announced`. A placeholder is never published and
 guests. When the host enters the real value, the card updates deterministically (§7.9); no model
 is called.
 
+**Marked as needing confirmation** means named in one line under the card ("Not confirmed yet:
+date, time, venue.") and flagged in the details form and on the page's detail rows. The card itself
+carries no outline or mark: it looks exactly as it will for guests (owner decision, 2026-10-06).
+
 A fact the prompt states (§7.5) is on the card from the reveal, as the host wrote it, marked as
 needing confirmation like a placeholder (owner decision, 2026-10-04); the details form shows it
 for the host to confirm or correct. The extracted values are kept on the event (`promptFacts`,
@@ -2524,6 +2528,8 @@ The host should feel:
 - [ ] Missing required facts show on the card as placeholders marked as needing confirmation and
   are never published; facts the prompt states show on the card as stated, marked as needing
   confirmation, until the host confirms them, and are never published unconfirmed (§7.3).
+- [ ] The mark is the line under the card and the flags on the details; nothing is drawn on the
+  card itself.
 - [ ] Routine edits autosave.
 - [ ] Guest workspace returns to prior Creation Mode context.
 - [ ] Setup checklist separates publish blockers from recommended work.

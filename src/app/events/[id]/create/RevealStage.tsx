@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { AppButtonLink } from "@/components/app/AppButtonLink";
-import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
+import { ConfirmLegend } from "@/components/app/ConfirmLegend";
 import { Envelope, ENVELOPE_WIDTH, EnvelopeStage } from "@/components/app/Envelope";
-import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
+import { InvitationCard } from "@/components/card/InvitationCard";
 import type { CardProportion } from "@/lib/card/shapes";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
 
@@ -87,7 +87,12 @@ export function RevealStage({
             >
               {card && (
                 <Settled onSettled={() => setSettled(true)}>
-                  <CardWithMarkers card={card.card} unconfirmed={card.unconfirmed} />
+                  <InvitationCard
+                    shape={card.card.shape}
+                    artwork={card.card.artwork}
+                    panels={card.card.panels}
+                    boxes={card.card.boxes}
+                  />
                 </Settled>
               )}
             </Envelope>

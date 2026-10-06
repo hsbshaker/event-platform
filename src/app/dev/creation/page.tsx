@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { connection } from "next/server";
 
 import type { EventDraftView } from "@/app/actions/event-details";
-import { CardWithMarkers } from "@/components/reveal/CardWithMarkers";
+import { InvitationCard } from "@/components/card/InvitationCard";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { layoutSupportsShape, zoneFor } from "@/lib/card/layouts";
 import { CARD_SHAPES, proportionOf, type CardShape } from "@/lib/card/shapes";
@@ -165,7 +165,12 @@ export default async function CreationFixturePage({
               aspectRatio: proportion === "5:7" ? "5 / 7" : "1 / 1",
             }}
           >
-            <CardWithMarkers card={data} unconfirmed={[]} />
+            <InvitationCard
+              shape={data.shape}
+              artwork={data.artwork}
+              panels={data.panels}
+              boxes={data.boxes}
+            />
           </div>,
         ];
       }),
