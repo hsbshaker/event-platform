@@ -182,19 +182,6 @@ Feature UI and the house-style guest page must use semantic app tokens/shared co
 
 The invitation card uses its own card system (`docs/card-system.md`, `src/lib/card/`, `src/styles/card-fonts.css`). Do not leak card styling into application chrome or the house-style page, or application styling into the card.
 
-## 6.1 UI-quality skills
-
-Four vendored skills live in `.claude/skills/`. Each opens with a **project overrides** block. Read it first: it records where the skill yields to `docs/design-system.md`. None of them applies to the invitation card.
-
-| Skill | Use it to |
-| --- | --- |
-| `redesign-existing-projects` | audit an existing screen for generic, "AI-made" patterns before polishing it |
-| `design-taste-frontend` | check new app-chrome or guest-page UI against its catalogue of AI tells, states and copy |
-| `web-design-guidelines` | review UI code for accessibility, forms, focus, motion and content handling (`file:line` findings) |
-| `playwright-cli` | look at the running app: snapshots and screenshots at the §24.1 widths, reduced motion, console |
-
-The skills are advice. The design system decides tokens, fonts, colours, radii, shadows, motion and components. Where a skill argues for a different value, write a proposal against `docs/design-system.md` (§12) instead of changing feature code. Provenance and the update procedure are in `.claude/skills/README.md`.
-
 ---
 
 # 7. PR acceptance-criteria contract
