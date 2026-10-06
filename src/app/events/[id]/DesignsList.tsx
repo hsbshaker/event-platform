@@ -109,6 +109,7 @@ export function DesignsList({
                   shape={design.card.shape}
                   artwork={design.card.artwork}
                   panels={design.card.panels}
+                  placement={design.card.placement}
                   boxes={design.card.boxes}
                 />
               </div>

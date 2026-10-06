@@ -6,6 +6,7 @@ import {
   CARD_LAYOUT_IDS,
   CARD_LAYOUT_SET_VERSION,
   CARD_LAYOUTS,
+  CUT_PADDING,
   layoutArtFor,
   layoutSupportsShape,
   panelFor,
@@ -13,9 +14,48 @@ import {
 } from "./layouts";
 import { CARD_SHAPES, canvasOf, insideOutline, insideTextSafe, SHAPE_GEOMETRY } from "./shapes";
 
-describe("layout set card_layouts_v3", () => {
+describe("layout set card_layouts_v4", () => {
   it("is versioned", () => {
-    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v3");
+    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v4");
+  });
+
+  it("gives way by layout: crop and plate at the picture's edge, nothing for centred words", () => {
+    expect(CARD_LAYOUTS["art-top"].giveWay).toEqual({
+      kind: "edge",
+      picture: "top",
+      // A crop would lose the subject's head: a plate only.
+      cropShapes: [],
+      cutPadding: CUT_PADDING,
+    });
+    expect(CARD_LAYOUTS["art-bottom"].giveWay).toEqual({
+      kind: "edge",
+      picture: "bottom",
+      // Only where cropping loses ground: the arch's and oval's curves would cut the subject.
+      cropShapes: ["rectangle", "rounded-rectangle", "square"],
+      cutPadding: CUT_PADDING,
+    });
+    for (const layout of ["framed", "corners", "atmosphere"] as const) {
+      expect(CARD_LAYOUTS[layout].giveWay, layout).toEqual({ kind: "centred" });
+    }
+  });
+
+  it("cuts a plate between the words and the picture, inside the region the composition keeps clear", () => {
+    for (const layout of ["art-top", "art-bottom"] as const) {
+      for (const shape of CARD_LAYOUTS[layout].shapes) {
+        const zone = zoneFor(layout, shape);
+        const { clear } = layoutArtFor(layout, shape);
+        const { height: h } = canvasOf(shape);
+        const label = `${layout}/${shape}`;
+        if (layout === "art-top") {
+          const cut = zone.y - CUT_PADDING;
+          // Below the cut lie the words; the cut is at or below where the clear region begins.
+          expect(cut, label).toBeGreaterThanOrEqual(h - (h * clear!.percent) / 100);
+        } else {
+          const cut = zone.y + zone.height + CUT_PADDING;
+          expect(cut, label).toBeLessThanOrEqual((h * clear!.percent) / 100);
+        }
+      }
+    }
   });
 
   it("has exactly the five layouts", () => {

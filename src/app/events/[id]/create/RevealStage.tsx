@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmLegend";
 import { Envelope, ENVELOPE_WIDTH, EnvelopeStage } from "@/components/app/Envelope";
+import { LowContrastHint } from "@/components/app/LowContrastHint";
 import { InvitationCard } from "@/components/card/InvitationCard";
 import type { CardProportion } from "@/lib/card/shapes";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
@@ -91,6 +92,7 @@ export function RevealStage({
                     shape={card.card.shape}
                     artwork={card.card.artwork}
                     panels={card.card.panels}
+                    placement={card.card.placement}
                     boxes={card.card.boxes}
                   />
                 </Settled>
@@ -101,6 +103,7 @@ export function RevealStage({
       </EnvelopeStage>
 
       {card && settled && <ConfirmLegend boxes={card.card.boxes} unconfirmed={card.unconfirmed} />}
+      {card && settled && <LowContrastHint card={card} className="max-w-prose" />}
       {card && settled && (
         <div className="flex flex-col items-center gap-6 text-center" data-reveal-actions="">
           <div className="flex flex-col gap-1">

@@ -14,11 +14,13 @@ import {
   fitsShapes,
 } from "@/lib/card/art-prompt";
 import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
+import type { CardPlacement } from "@/lib/card/card-data";
 import type { CardDesign } from "@/lib/card/design";
-import { paletteFromPixels, resolveInk, sampleZoneLuminance } from "@/lib/card/ink";
+import { resolveZoneLegibility, type ZoneLegibility } from "@/lib/card/give-way";
+import { paletteFromPixels } from "@/lib/card/ink";
 import type { CardRect } from "@/lib/card/ink";
 import { pairingFaces } from "@/lib/card/layout-card";
-import { panelFor, zoneFor } from "@/lib/card/layouts";
+import { zoneFor } from "@/lib/card/layouts";
 import type { CardLayoutId, CardPanelShape } from "@/lib/card/layouts";
 import {
   decodePng,
@@ -30,7 +32,7 @@ import {
 import type { DecodedPng } from "@/lib/card/png.server";
 import { PEOPLE_FREE_RENDERINGS } from "@/lib/card/renderings";
 import type { Rendering } from "@/lib/card/renderings";
-import { CARD_CANVAS, insideOutline, SHAPE_PROPORTION } from "@/lib/card/shapes";
+import { CARD_CANVAS, SHAPE_PROPORTION } from "@/lib/card/shapes";
 import type { CardProportion, CardShape } from "@/lib/card/shapes";
 import { textLineAreas } from "@/lib/card/text-areas";
 import type { CardContent } from "@/lib/card/text-box";
@@ -59,13 +61,13 @@ import type { StageContext } from "./stage";
  *
  * **Budget** (owner decisions 2026-10-04, `spec.md §7.8`): at most `1 + ARTWORK_LIMITS.extraImages`
  * image requests per artwork. A first image that fails validation earns one regeneration; a second
- * failure is a visible failure (`artwork_invalid`). Once a valid artwork exists, if the shape it
- * was painted for would need the legibility panel, it is repainted from the same prompt (and the
- * same reference), plus one composition line for art with a subject (`withRepaintComposition`,
+ * failure is a visible failure (`artwork_invalid`). Once a valid artwork exists, if no ink clears
+ * 4.5:1 on the shape it was painted for (`needsGiveWay`), it is repainted from the same prompt (and
+ * the same reference), plus one composition line for art with a subject (`withRepaintComposition`,
  * `card_art_v4`), one image at a time, while the budget lasts: the first repaint that is valid and
- * needs no panel is kept; if none is, the first valid artwork is kept with the panel. A repaint
- * that fails validation — or whose call fails — is dropped and still spends its image; a repaint
- * never causes a visible failure.
+ * on which an ink clears is kept; if none is, the first valid artwork is kept and gives way. A
+ * repaint that fails validation — or whose call fails — is dropped and still spends its image; a
+ * repaint never causes a visible failure.
  *
  * **Provider refusal**: a refused image request (the brand-homage case, `spec.md §7.6`) ends the
  * stage with `ArtworkProviderRefusalError` before a valid artwork exists, so the orchestration can
@@ -76,15 +78,19 @@ import type { StageContext } from "./stage";
  * A meter refusal before a valid artwork exists passes through unchanged; during repaints it stops
  * them and the valid artwork is kept.
  *
- * **Ink** (`card_compiler_v4`): for every shape the artwork fits (`fitsShapes`), the generated text
+ * **Ink** (`card_compiler_v5`): for every shape the artwork fits (`fitsShapes`), the generated text
  * layer the card will show right after generation (`input.content`, in the design's primary
  * pairing) is laid out once (`textLineAreas`), and each text zone (`zoneFor`) is sampled within
  * the outline — whole, and behind each line of that text with a small margin — and resolved
- * (`resolveInk`), so artwork under the letters needs the panel and earns a repaint while artwork in
- * the zone's empty parts does not; a zone that needs the panel records the layout's panel for the
- * shape (`panelFor`) and its colour. **Storage**: the kept PNG loses its colour and text chunks
- * without re-encoding (`stripColorAndTextChunks`), so it is untagged sRGB
- * (`docs/technology-decisions.md §8.2`).
+ * (`resolveZoneLegibility`), so artwork under the letters earns a repaint while artwork in the
+ * zone's empty parts does not. When no ink clears on the kept artwork, the art gives way
+ * (`card_layouts_v4`, `give-way.ts`): words at an edge of the picture get a crop or a plate,
+ * recorded as the zone's `placement`; centred words keep the best ink, recorded as `lowContrast`
+ * with its contrast. No new zone gets a legibility panel. The stored bytes are always the artwork
+ * as painted — a placement is drawn by the renderers from its rectangles — so a reference sent to
+ * the image model on a shape switch or a change to part of a card is the raw artwork.
+ * **Storage**: the kept PNG loses its colour and text chunks without re-encoding
+ * (`stripColorAndTextChunks`), so it is untagged sRGB (`docs/technology-decisions.md §8.2`).
  *
  * Nothing is persisted here.
  */
@@ -116,14 +122,31 @@ export const ARTWORK_LIMITS = {
  */
 export const TEXT_ZONE = "text";
 
-/** One zone's resolved ink (`card_art_assets.ink`: per fitted shape, per zone). */
+/**
+ * One zone's resolved ink (`card_art_assets.ink`: per fitted shape, per zone). Three generations
+ * of it are persisted, and each is drawn as stored (`spec.md §32 #27`):
+ *
+ * - `card_layouts_v2`/`v3`: `panel` and `panelColor` when no ink cleared 4.5:1 on the artwork;
+ * - `card_layouts_v4`: never a panel. For words at an edge of the picture, `placement` (a crop or a
+ *   plate, `give-way.ts`) when the art gave way, with the ink at least 4.5:1 against the art as
+ *   placed or the plate's fill; for centred words, `lowContrast` with the ink's measured
+ *   `contrast` when no ink cleared.
+ *
+ * A zone never has both a panel and a placement, nor a placement and `lowContrast`.
+ */
 export interface ZoneInk {
-  /** `#RRGGBB`, at least 4.5:1 against the measured background, or against the panel. */
+  /** `#RRGGBB`. */
   ink: string;
-  /** The legibility panel behind the zone, when no ink clears 4.5:1 without one (`panelFor`). */
+  /** The `card_layouts_v2`/`v3` legibility panel behind the zone (`panelFor`). */
   panel?: CardPanelShape;
   /** The panel's paper colour, `#RRGGBB`, drawn opaque. */
   panelColor?: string;
+  /** How the artwork gives way to the words (`card_layouts_v4`). */
+  placement?: CardPlacement;
+  /** No ink clears 4.5:1 on centred words, and nothing is painted behind them (`card_layouts_v4`). */
+  lowContrast?: true;
+  /** With `lowContrast`: the ink's WCAG contrast against the measured background, below 4.5. */
+  contrast?: number;
 }
 
 /** Ink by fitted shape, then by zone. Has an entry for every shape the artwork fits. */
@@ -205,8 +228,15 @@ export interface ArtworkTelemetry {
   artRepaints: number;
   /** Every image that failed validation, in order. */
   validationFailures: ArtworkValidationFailure[];
-  /** Zones of the kept artwork that need the legibility panel, per fitted shape. */
+  /**
+   * Zones of the kept artwork that got the legibility panel, per fitted shape. Always empty since
+   * `card_layouts_v4` (`inkPlacements`, `lowContrastZones`); kept for its earlier meaning.
+   */
   inkPanels: { shape: CardShape; zone: string }[];
+  /** Zones of the kept artwork whose art gave way, per fitted shape: how, and at what scale. */
+  inkPlacements: { shape: CardShape; zone: string; kind: "crop" | "plate"; scale: number }[];
+  /** Centred zones of the kept artwork where no ink cleared 4.5:1, with the best contrast. */
+  lowContrastZones: { shape: CardShape; zone: string; contrast: number }[];
   /** Repaints stopped early because the meter refused a call (the reason), else null. */
   repaintsStoppedBy: ModelCallRefusedError["reason"] | null;
   /**
@@ -357,11 +387,30 @@ export async function generatedLineAreas(
   return areas;
 }
 
+/** A zone's legibility as it is persisted (`ZoneInk`). */
+function zoneInkOf(legibility: ZoneLegibility): ZoneInk {
+  switch (legibility.kind) {
+    case "clear":
+      return { ink: legibility.ink.ink };
+    case "crop":
+      return { ink: legibility.ink.ink, placement: legibility.placement };
+    case "plate":
+      return { ink: legibility.ink, placement: legibility.placement };
+    case "low-contrast":
+      return {
+        ink: legibility.ink.ink,
+        lowContrast: true,
+        contrast: Math.round(legibility.ink.contrast * 1000) / 1000,
+      };
+  }
+}
+
 /**
- * Ink and panels for every shape an artwork fits (`docs/card-system.md §4.2`): the artwork's
- * palette once, then each shape's text zone sampled inside its outline, whole and behind each line
- * of the text (`lineAreas`), and resolved. Every fitted shape needs an entry in `lineAreas` (`null`
- * for the whole zone alone): a missing one is a caller's bug, never a silent zone-only measure.
+ * Ink for every shape an artwork fits (`docs/card-system.md §4.2`): the artwork's palette once,
+ * then each shape's text zone sampled inside its outline, whole and behind each line of the text
+ * (`lineAreas`), and resolved — giving way where no ink clears (`resolveZoneLegibility`). Every
+ * fitted shape needs an entry in `lineAreas` (`null` for the whole zone alone): a missing one is a
+ * caller's bug, never a silent zone-only measure.
  */
 export function resolveArtworkInk(
   decoded: DecodedPng,
@@ -373,26 +422,27 @@ export function resolveArtworkInk(
   const palette = paletteFromPixels(rgba, width, height);
   const ink: ArtworkInk = {};
   for (const shape of shapes) {
-    const rects = lineAreas[shape];
-    if (rects === undefined) throw new Error(`resolveArtworkInk: no line areas for ${shape}`);
-    const zone = zoneFor(layout, shape);
-    const inside = (x: number, y: number) => insideOutline(shape, x, y);
-    const luminances = sampleZoneLuminance(rgba, width, height, zone, inside);
-    const areas = (rects ?? []).map((rect) =>
-      sampleZoneLuminance(rgba, width, height, rect, inside),
-    );
-    const resolved = resolveInk({ luminances, areas, palette });
-    ink[shape] = {
-      [TEXT_ZONE]: resolved.panel
-        ? { ink: resolved.ink, panel: panelFor(layout, shape), panelColor: resolved.panel.color }
-        : { ink: resolved.ink },
-    };
+    const areas = lineAreas[shape];
+    if (areas === undefined) throw new Error(`resolveArtworkInk: no line areas for ${shape}`);
+    const legibility = resolveZoneLegibility({
+      pixels: rgba,
+      width,
+      height,
+      layout,
+      shape,
+      palette,
+      areas,
+    });
+    ink[shape] = { [TEXT_ZONE]: zoneInkOf(legibility) };
   }
   return ink;
 }
 
-function needsPanel(ink: ArtworkInk, shape: CardShape): boolean {
-  return Object.values(ink[shape] ?? {}).some((zone) => zone.panel !== undefined);
+/** Whether no ink cleared 4.5:1 on the artwork as painted, in some zone of `shape`. */
+function needsGiveWay(ink: ArtworkInk, shape: CardShape): boolean {
+  return Object.values(ink[shape] ?? {}).some(
+    (zone) => zone.placement !== undefined || zone.lowContrast === true,
+  );
 }
 
 type Painted =
@@ -520,11 +570,12 @@ export async function runArtworkStage(
     first = painted;
   }
 
-  // Repaints while the painted-for shape would need a panel, within the budget.
+  // Repaints while no ink clears on the painted-for shape, within the budget; only then does the
+  // art give way.
   let kept = first;
   let keptInk = resolveArtworkInk(first.decoded, layout, fits, lineAreas);
   let repaintsStoppedBy: ArtworkTelemetry["repaintsStoppedBy"] = null;
-  while (needsPanel(keptInk, shape) && images < maxImages) {
+  while (needsGiveWay(keptInk, shape) && images < maxImages) {
     let painted: Painted;
     try {
       painted = await paint(true);
@@ -546,20 +597,44 @@ export async function runArtworkStage(
       continue;
     }
     const ink = resolveArtworkInk(painted.decoded, layout, fits, lineAreas);
-    if (!needsPanel(ink, shape)) {
+    if (!needsGiveWay(ink, shape)) {
       kept = painted;
       keptInk = ink;
     }
-    // A valid repaint that still needs the panel is dropped: the first valid artwork stays.
+    // A valid repaint on which no ink clears either is dropped: the first valid artwork stays.
   }
-  // Every image requested after the first valid one was a repaint, kept or dropped.
+  // Every image requested after the first valid one was a repaint, kept or dropped. The reason
+  // keeps its recorded name (`panel-repaint`) though a panel is no longer what follows.
   const artRepaints = images - first.image;
   if (artRepaints > 0) artRegenerated ??= "panel-repaint";
 
+  const zonesOf = (s: CardShape) => Object.entries(keptInk[s] ?? {});
   const inkPanels = fits.flatMap((s) =>
-    Object.entries(keptInk[s] ?? {})
+    zonesOf(s)
       .filter(([, zone]) => zone.panel !== undefined)
       .map(([zone]) => ({ shape: s, zone })),
+  );
+  const inkPlacements = fits.flatMap((s) =>
+    zonesOf(s).flatMap(([zone, z]) =>
+      z.placement
+        ? [
+            {
+              shape: s,
+              zone,
+              kind: z.placement.kind,
+              scale:
+                Math.round(
+                  (z.placement.art.width / CARD_CANVAS[SHAPE_PROPORTION[s]].width) * 1000,
+                ) / 1000,
+            },
+          ]
+        : [],
+    ),
+  );
+  const lowContrastZones = fits.flatMap((s) =>
+    zonesOf(s).flatMap(([zone, z]) =>
+      z.lowContrast ? [{ shape: s, zone, contrast: z.contrast ?? 0 }] : [],
+    ),
   );
   return {
     bytes: stripColorAndTextChunks(kept.art.bytes),
@@ -577,6 +652,8 @@ export async function runArtworkStage(
       artRepaints,
       validationFailures,
       inkPanels,
+      inkPlacements,
+      lowContrastZones,
       repaintsStoppedBy,
       lineAreasFallback: fits.filter((shape) => lineAreas[shape] === null),
     },

@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { generatedTextLayer } from "@/lib/card/card-text.server";
-import { layoutSupportsShape, zoneFor } from "@/lib/card/layouts";
+import { plateCut, plateRect } from "@/lib/card/give-way";
+import { CARD_LAYOUTS, layoutSupportsShape, zoneFor } from "@/lib/card/layouts";
 import { proportionOf, type CardShape } from "@/lib/card/shapes";
 import { washArtwork } from "@/lib/link-preview/test-artwork";
 import type { RevealedCard } from "@/lib/generation/reveal.server";
@@ -18,6 +19,8 @@ import { GenerationFixture, type FixtureState } from "./GenerationFixture";
  * - `&code=<failure code>` for `failed` (default `provider_error`);
  * - `&shape=rectangle|arch|square` and `&delay=<ms>` for `reveal`: the card's shape, and how long the
  *   envelope's tap takes to load the card;
+ * - `&giveway=plate|low` for the card states: its art set back as a plate (`card_layouts_v4`), or
+ *   its ink stored as low contrast, so the reveal shows the host's hint;
  * - `Try another direction`: `direction-box` (the box, with a stub start), `direction-wait`,
  *   `direction-failed` (with `&code=`) and `direction-reveal` (the new card's reveal with its three
  *   actions; `&choose=ok|published|not_found` is what `Choose this direction` answers).
@@ -42,7 +45,10 @@ const CARD_STATES: readonly FixtureState[] = ["reveal", "direction-box", "direct
 const SHAPES = ["rectangle", "arch", "square"] as const;
 const FACT_SLOTS_TO_CONFIRM = ["babyName", "date", "time", "venue"];
 
-async function fixtureCard(shape: CardShape): Promise<RevealedCard> {
+/** How the fixture card's art gives way (`&giveway=`): a plate, or centred low-contrast ink. */
+type GiveWayFixture = "plate" | "low" | null;
+
+async function fixtureCard(shape: CardShape, giveWay: GiveWayFixture): Promise<RevealedCard> {
   const layout = "art-top";
   if (!layoutSupportsShape(layout, shape)) notFound();
   const proportion = proportionOf(shape);
@@ -63,6 +69,17 @@ async function fixtureCard(shape: CardShape): Promise<RevealedCard> {
     ink: "#3A2A1E",
   });
   const png = washArtwork(proportion, zoneFor(layout, shape));
+  // A plate as `give-way.ts` builds one for this layout and shape, at 0.8.
+  const spec = CARD_LAYOUTS[layout].giveWay;
+  const placement =
+    giveWay === "plate" && spec.kind === "edge"
+      ? {
+          kind: "plate" as const,
+          art: plateRect(spec, shape, 0.8),
+          cut: plateCut(spec, zoneFor(layout, shape)),
+          fill: "#F4EEE2",
+        }
+      : undefined;
   return {
     designId: "fixture-design",
     active: true,
@@ -75,8 +92,10 @@ async function fixtureCard(shape: CardShape): Promise<RevealedCard> {
       shape,
       artwork: { src: `data:image/png;base64,${Buffer.from(png).toString("base64")}`, proportion },
       panels: [],
+      ...(placement ? { placement } : {}),
       boxes,
     },
+    lowContrast: giveWay === "low",
     unconfirmed: boxes
       .filter(
         (box) =>
@@ -107,7 +126,9 @@ export default async function GenerationFixturePage({
   const shape = (SHAPES as readonly string[]).includes(one("shape") ?? "")
     ? (one("shape") as CardShape)
     : "rectangle";
-  const card = CARD_STATES.includes(state) ? await fixtureCard(shape) : null;
+  const giveWay: GiveWayFixture =
+    one("giveway") === "plate" ? "plate" : one("giveway") === "low" ? "low" : null;
+  const card = CARD_STATES.includes(state) ? await fixtureCard(shape, giveWay) : null;
 
   return (
     <GenerationFixture

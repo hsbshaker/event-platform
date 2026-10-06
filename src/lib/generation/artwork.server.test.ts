@@ -28,7 +28,7 @@ import type { CardDesign } from "@/lib/card/design";
 import type { Rendering } from "@/lib/card/renderings";
 import { MIN_INK_CONTRAST } from "@/lib/card/ink";
 import type { CardRect } from "@/lib/card/ink";
-import { panelFor, zoneFor } from "@/lib/card/layouts";
+import { zoneFor } from "@/lib/card/layouts";
 import { decodePng, pngChunkTypes } from "@/lib/card/png.server";
 import { contrastRatio } from "@/lib/card/color";
 import { TYPICAL } from "@/lib/card/test-content";
@@ -554,7 +554,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     });
   });
 
-  it("keeps the original, with the panel, when no repaint clears", async () => {
+  it("keeps the original when no repaint clears, and the art gives way (card_layouts_v4)", async () => {
     const { fake, run } = stage({ art: [BUSY, BUSY, BUSY, CLEAN] });
     const result = await run();
     expect(fake.calls.art).toHaveLength(1 + ARTWORK_LIMITS.extraImages);
@@ -563,17 +563,28 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       keptImage: 1,
       artRegenerated: "panel-repaint",
       artRepaints: 2,
-      inkPanels: [
-        { shape: "rectangle", zone: TEXT_ZONE },
-        { shape: "rounded-rectangle", zone: TEXT_ZONE },
+      inkPanels: [],
+      // A checkerboard is never even, so the plate is set back to its smallest.
+      inkPlacements: [
+        { shape: "rectangle", zone: TEXT_ZONE, kind: "plate", scale: 0.6 },
+        { shape: "rounded-rectangle", zone: TEXT_ZONE, kind: "plate", scale: 0.6 },
       ],
+      lowContrastZones: [],
     });
+    // The stored bytes are the artwork as painted: the plate is drawn from its rectangles.
     expect(samePixels(result.bytes, BUSY.bytes)).toBe(true);
     const zone = result.ink.rectangle?.[TEXT_ZONE];
-    expect(zone?.panel).toEqual(panelFor("art-top", "rectangle"));
-    expect(zone?.panelColor).toMatch(/^#[0-9A-F]{6}$/);
-    // The ink was chosen against the panel's own colour.
-    expect(contrastRatio(zone!.ink, zone!.panelColor!)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
+    expect(zone?.panel).toBeUndefined();
+    expect(zone?.placement).toEqual({
+      kind: "plate",
+      art: { x: 200, y: 0, width: 600, height: 840 },
+      cut: { y: zoneFor("art-top", "rectangle").y - 30, keep: "above" },
+      fill: expect.stringMatching(/^#[0-9A-F]{6}$/),
+    });
+    // The words sit on the fill alone, so the ink clears 4.5:1 against it.
+    expect(contrastRatio(zone!.ink, zone!.placement!.fill!)).toBeGreaterThanOrEqual(
+      MIN_INK_CONTRAST,
+    );
   });
 
   it("drops a repaint that fails validation, which still spends its image", async () => {
@@ -601,7 +612,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       { image: 2, reasons: ["type"] },
       { image: 3, reasons: ["request_failed"], detail: "provider_refusal" },
     ]);
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
+    expect(result.ink.rectangle?.[TEXT_ZONE].placement?.kind).toBe("plate");
   });
 
   it("shares the two extra images with a validation regeneration", async () => {
@@ -616,7 +627,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       artRegenerated: "type",
       artRepaints: 1,
     });
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
+    expect(result.ink.rectangle?.[TEXT_ZONE].placement?.kind).toBe("plate");
   });
 
   it("can still clear on the last image after a validation regeneration", async () => {
@@ -643,7 +654,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       artRepaints: 0,
       repaintsStoppedBy: "disabled",
     });
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
+    expect(result.ink.rectangle?.[TEXT_ZONE].placement?.kind).toBe("plate");
 
     // Refused at the repaint's moderation: the image was made and counts as a repaint.
     const later = stage({
@@ -671,7 +682,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       artRepaints: 0,
       repaintsStoppedBy: "deadline",
     });
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
+    expect(result.ink.rectangle?.[TEXT_ZONE].placement?.kind).toBe("plate");
     // Before a valid artwork exists, the same refusal ends the stage.
     await expect(stage({ art: [new GenerationDeadlineError()] }).run()).rejects.toBeInstanceOf(
       GenerationDeadlineError,
@@ -784,6 +795,96 @@ describe("ink for every fitted shape (docs/card-system.md §4.2)", () => {
         rectangle: null,
       }),
     ).toThrow(/no line areas for arch/);
+  });
+});
+
+describe("the art gives way after the repaints (card_layouts_v4)", () => {
+  /** Cream paper with a navy ground from card-unit row `from` to the bottom. */
+  const grounded = (from: number) =>
+    art(rgbArt(W, H5x7, (_x, y) => (y >= (from * W) / 1000 ? [27, 42, 74] : [238, 228, 212])));
+  const ART_BOTTOM = { ...DESIGN, layout: "art-bottom" as const };
+
+  it("crops art-bottom on a rectangle when its ground reaches into the words", async () => {
+    // The ground's edge 40 units inside the 150–600 zone: an 8% crop pushes it below.
+    const busy = grounded(560);
+    const { fake, run } = stage({ art: [busy, busy, busy] }, { ...INPUT, design: ART_BOTTOM });
+    const result = await run();
+    // The repaints come first: only then does the art give way.
+    expect(fake.calls.art).toHaveLength(3);
+    expect(result.fitsShapes).toEqual(["rectangle", "rounded-rectangle"]);
+    for (const shape of ["rectangle", "rounded-rectangle"] as const) {
+      const zone = result.ink[shape]?.[TEXT_ZONE];
+      expect(zone?.panel).toBeUndefined();
+      expect(zone?.lowContrast).toBeUndefined();
+      expect(zone?.placement).toEqual({
+        kind: "crop",
+        art: { x: -40, y: 0, width: 1080, height: 1512 },
+      });
+      // Judged on the cropped art: cream throughout the zone.
+      expect(contrastRatio(zone!.ink, "#EEE4D4")).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
+    }
+    expect(result.telemetry).toMatchObject({
+      inkPanels: [],
+      inkPlacements: [
+        { shape: "rectangle", zone: TEXT_ZONE, kind: "crop", scale: 1.08 },
+        { shape: "rounded-rectangle", zone: TEXT_ZONE, kind: "crop", scale: 1.08 },
+      ],
+      lowContrastZones: [],
+    });
+    expect(samePixels(result.bytes, busy.bytes)).toBe(true);
+  });
+
+  it("never crops an arch: a plate at the largest scale whose cut hides only even ground", async () => {
+    // arch's 240–800 zone, cut at 830: the navy ground from 700 is hidden by the cut at 1 (16%)
+    // and at 0.9 (rows 700–767, 9%); at 0.8 the cut hides only cream (rows above 687).
+    const busy = grounded(700);
+    const { run } = stage(
+      { art: [busy, busy, busy] },
+      { ...INPUT, design: ART_BOTTOM, shape: "arch" },
+    );
+    const result = await run();
+    expect(result.fitsShapes).toEqual(["arch", "oval"]);
+    const arch = result.ink.arch?.[TEXT_ZONE];
+    expect(arch?.placement).toEqual({
+      kind: "plate",
+      art: { x: 100, y: 280, width: 800, height: 1120 },
+      cut: { y: 830, keep: "below" },
+      // The hidden area is cream paper, and an ink clears on it: the fill is that cream.
+      fill: "#EEE4D4",
+    });
+    expect(contrastRatio(arch!.ink, "#EEE4D4")).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
+    expect(result.telemetry.inkPlacements).toContainEqual({
+      shape: "arch",
+      zone: TEXT_ZONE,
+      kind: "plate",
+      scale: 0.8,
+    });
+  });
+
+  it("keeps centred words on the art: the best ink, stored as low contrast, nothing behind", async () => {
+    const FRAMED = { ...DESIGN, layout: "framed" as const, artMode: "framed" as const };
+    const { fake, run } = stage({ art: [BUSY, BUSY, BUSY] }, { ...INPUT, design: FRAMED });
+    const result = await run();
+    expect(fake.calls.art).toHaveLength(3);
+    const zone = result.ink.rectangle?.[TEXT_ZONE];
+    expect(zone).toEqual({
+      ink: expect.stringMatching(/^#[0-9A-F]{6}$/),
+      lowContrast: true,
+      contrast: 1,
+    });
+    expect(result.telemetry).toMatchObject({
+      inkPanels: [],
+      inkPlacements: [],
+      lowContrastZones: [{ shape: "rectangle", zone: TEXT_ZONE, contrast: 1 }],
+    });
+  });
+
+  it("repaints centred words first, and keeps a repaint on which an ink clears", async () => {
+    const FRAMED = { ...DESIGN, layout: "framed" as const, artMode: "framed" as const };
+    const { run } = stage({ art: [BUSY, CLEAN] }, { ...INPUT, design: FRAMED });
+    const result = await run();
+    expect(result.telemetry).toMatchObject({ keptImage: 2, lowContrastZones: [] });
+    expect(result.ink.rectangle?.[TEXT_ZONE]).toEqual({ ink: expect.any(String) });
   });
 });
 

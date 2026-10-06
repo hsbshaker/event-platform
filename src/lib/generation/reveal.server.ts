@@ -2,7 +2,12 @@ import "server-only";
 
 import { requireEventAccess } from "@/lib/auth/event-access";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
-import { InvalidCardDataError, validateCardData, type CardPanel } from "@/lib/card/card-data";
+import {
+  InvalidCardDataError,
+  validateCardData,
+  type CardPanel,
+  type CardPlacement,
+} from "@/lib/card/card-data";
 import { type PromptFactSlot } from "@/lib/card/facts";
 import { CARD_SHAPES, proportionOf, type CardProportion, type CardShape } from "@/lib/card/shapes";
 import type { TextBox } from "@/lib/card/text-box";
@@ -95,8 +100,16 @@ export interface RevealedCard {
     shape: CardShape;
     artwork: { src: string; proportion: CardProportion };
     panels: CardPanel[];
+    /** How the artwork gives way to the words (`card_layouts_v4`), when it does. */
+    placement?: CardPlacement;
     boxes: TextBox[];
   };
+  /**
+   * The generated ink of a centred zone falls below 4.5:1 on this shape, with nothing behind the
+   * words (`card_layouts_v4`). The host is told while the card shows its generated layout
+   * (`LowContrastHint`); guests never are.
+   */
+  lowContrast: boolean;
   /** Ids of the boxes in `card.boxes` showing a prompt-stated value or a placeholder. */
   unconfirmed: string[];
   /**
@@ -264,7 +277,10 @@ async function buildRevealedCard({
   if (stored !== proportion) {
     throw new Error(`The ${shape} card's artwork is not ${proportion}.`);
   }
-  const { ink, panels } = zoneInk(art.ink, shape);
+  const { ink, panels, placement, lowContrast } = zoneInk(art.ink, shape);
+  // The stored artwork layer is checked before any text: a malformed panel or placement is the
+  // design's, never blamed on the host's customization below.
+  validateCardData({ shape, artworkProportion: proportion, panels, placement, boxes: [] });
 
   const contents = await cardContents(row, design.wording, new Date(now));
   // A guest's card carries the host's stored facts only: no placeholder, no prompt-stated value.
@@ -279,7 +295,13 @@ async function buildRevealedCard({
     unreadable = layer === null;
     if (layer) {
       try {
-        validateCardData({ shape, artworkProportion: proportion, panels, boxes: layer.boxes });
+        validateCardData({
+          shape,
+          artworkProportion: proportion,
+          panels,
+          placement,
+          boxes: layer.boxes,
+        });
       } catch (error) {
         // Unreachable for boxes that parsed (the schema holds what the component draws); kept so
         // a stored layer the component refuses is the generated card with a notice, never an error.
@@ -325,9 +347,10 @@ async function buildRevealedCard({
     shape,
     artwork: { src: signed.signedUrl, proportion },
     panels,
+    ...(placement ? { placement } : {}),
     boxes: layer.boxes,
   };
-  validateCardData({ shape, artworkProportion: proportion, panels, boxes: layer.boxes });
+  validateCardData({ shape, artworkProportion: proportion, panels, placement, boxes: layer.boxes });
 
   return {
     designId: designRow.id,
@@ -338,6 +361,7 @@ async function buildRevealedCard({
     name: designRow.name,
     description: designRow.description,
     card,
+    lowContrast,
     unconfirmed: layer.unconfirmed,
     stated,
     customization: customizationRow

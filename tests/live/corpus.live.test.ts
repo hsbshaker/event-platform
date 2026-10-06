@@ -10,7 +10,7 @@ import { InvitationCard } from "@/components/card/InvitationCard";
 import { GENERATION_STALE_SECONDS } from "@/lib/ai/generations.server";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
-import type { CardPanel } from "@/lib/card/card-data";
+import type { CardPanel, CardPlacement } from "@/lib/card/card-data";
 import type { CardLayoutId } from "@/lib/card/layouts";
 import { proportionOf, type CardShape } from "@/lib/card/shapes";
 import type { TypographyPairingId } from "@/lib/card/typography";
@@ -255,6 +255,10 @@ interface ZoneInk {
   ink: string;
   panel?: Omit<CardPanel, "color">;
   panelColor?: string;
+  /** `card_layouts_v4`: how the art gave way, or that centred words are low contrast. */
+  placement?: CardPlacement;
+  lowContrast?: true;
+  contrast?: number;
 }
 
 describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () => {
@@ -348,6 +352,7 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
                 proportion: proportionOf(shape),
               },
               panels,
+              placement: zone.placement,
               boxes,
             }),
           );

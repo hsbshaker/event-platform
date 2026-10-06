@@ -74,6 +74,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
           shape={card.shape}
           artwork={card.artwork}
           panels={card.panels}
+          placement={card.placement}
           boxes={card.boxes}
         />
       </PreviewStage>

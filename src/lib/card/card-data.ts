@@ -12,7 +12,13 @@
 import { isCanonicalHex } from "./color";
 import type { CardRect } from "./ink";
 import type { PanelFade } from "./layouts";
-import { CARD_SHAPES, SHAPE_PROPORTION, type CardProportion, type CardShape } from "./shapes";
+import {
+  CARD_CANVAS,
+  CARD_SHAPES,
+  SHAPE_PROPORTION,
+  type CardProportion,
+  type CardShape,
+} from "./shapes";
 import type { TextBox } from "./text-box";
 
 /**
@@ -99,6 +105,30 @@ export function panelFadeAxis(
   }
   return stops;
 }
+
+/**
+ * How the artwork gives way to the words (`card_layouts_v4`, `give-way.ts`), persisted with the
+ * zone's ink: where the artwork is drawn, in card units, instead of over the whole canvas. Stored
+ * as explicit rectangles so no later renderer change can move stored art.
+ *
+ * - `crop`: the artwork drawn at `art`, which covers the whole canvas (full bleed), clipped by the
+ *   card face. No `cut`.
+ * - `plate`: the artwork drawn at `art` — the canvas scaled about a point on the outline's own
+ *   edge — masked by the shape's outline scaled to `art`, and clipped at `cut`: it shows only on
+ *   the `keep` side of the horizontal line at `cut.y`. The face around it is `fill`, flat.
+ *
+ * `fill`, when present, is the card face's background (`#RRGGBB`) under the artwork. A placement is
+ * never stored with a legibility panel.
+ */
+export interface CardPlacement {
+  kind: "crop" | "plate";
+  art: CardRect;
+  cut?: { y: number; keep: "above" | "below" };
+  fill?: string;
+}
+
+/** How far a stored rectangle's proportion may stray from the canvas's (rounding to 0.001 unit). */
+const PLACEMENT_PROPORTION_TOLERANCE = 1e-4;
 
 export class InvalidCardDataError extends Error {
   constructor(message: string) {
@@ -187,11 +217,75 @@ function validatePanel(panel: CardPanel, index: number): void {
   );
 }
 
+function validatePlacement(placement: CardPlacement, proportion: CardProportion): void {
+  const p = placement as unknown as Partial<Record<string, unknown>> | null;
+  check(typeof p === "object" && p !== null, "placement is not an object");
+  check(p!.kind === "crop" || p!.kind === "plate", "placement: unknown kind");
+  const art = p!.art as Partial<Record<string, unknown>> | null | undefined;
+  check(
+    typeof art === "object" &&
+      art !== null &&
+      finite(art.x) &&
+      finite(art.y) &&
+      finite(art.width) &&
+      finite(art.height) &&
+      art.width > 0 &&
+      art.height > 0,
+    "placement: invalid art rectangle",
+  );
+  const rect = art as unknown as CardRect;
+  const canvas = CARD_CANVAS[proportion];
+  // Uniform scaling only: the artwork and the outline mask keep the canvas's proportion.
+  check(
+    Math.abs(rect.height / rect.width / (canvas.height / canvas.width) - 1) <=
+      PLACEMENT_PROPORTION_TOLERANCE,
+    "placement: the art rectangle is not the card's proportion",
+  );
+  if (p!.fill !== undefined) {
+    check(isCanonicalHex(p!.fill as string), "placement: fill is not #RRGGBB");
+  }
+  const cut = p!.cut as Partial<Record<string, unknown>> | null | undefined;
+  if (p!.kind === "crop") {
+    check(cut === undefined, "placement: a crop has no cut");
+    // Full bleed: the cropped artwork covers the whole canvas.
+    const eps = 1e-3;
+    check(
+      rect.x <= eps &&
+        rect.y <= eps &&
+        rect.x + rect.width >= canvas.width - eps &&
+        rect.y + rect.height >= canvas.height - eps,
+      "placement: a crop does not cover the card",
+    );
+    return;
+  }
+  check(
+    typeof cut === "object" &&
+      cut !== null &&
+      finite(cut.y) &&
+      cut.y > 0 &&
+      cut.y < canvas.height &&
+      (cut.keep === "above" || cut.keep === "below"),
+    "placement: a plate needs a cut inside the card",
+  );
+  check(p!.fill !== undefined, "placement: a plate needs a fill");
+  // A plate is the card scaled down about a point of its own edge: it lies inside the canvas.
+  const eps = 1e-3;
+  check(
+    rect.x >= -eps &&
+      rect.y >= -eps &&
+      rect.x + rect.width <= canvas.width + eps &&
+      rect.y + rect.height <= canvas.height + eps,
+    "placement: a plate lies inside the card",
+  );
+}
+
 export interface CardData {
   shape: CardShape;
   /** The proportion of the artwork supplied for the shape. */
   artworkProportion: CardProportion | undefined;
   panels: readonly CardPanel[];
+  /** How the artwork gives way to the words, when it does (`CardPlacement`). */
+  placement?: CardPlacement;
   boxes: readonly TextBox[];
 }
 
@@ -203,6 +297,7 @@ export function validateCardData({
   shape,
   artworkProportion,
   panels,
+  placement,
   boxes,
 }: CardData): CardProportion {
   check(CARD_SHAPES.includes(shape), `unknown shape ${String(shape)}`);
@@ -212,6 +307,11 @@ export function validateCardData({
     `artwork is ${String(artworkProportion)}, the ${shape} card is ${proportion}`,
   );
   panels.forEach(validatePanel);
+  if (placement !== undefined) {
+    // A placement replaced the panel (`card_layouts_v4`): one card never has both.
+    check(panels.length === 0, "a card with a placement has no legibility panel");
+    validatePlacement(placement, proportion);
+  }
   const ids = new Set<string>();
   for (const box of boxes) {
     validateBox(box);

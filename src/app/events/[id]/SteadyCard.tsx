@@ -25,6 +25,7 @@ export function SteadyCard({ card }: { card: RevealedCard["card"] }) {
       shape={card.shape}
       artwork={{ ...card.artwork, src }}
       panels={card.panels}
+      placement={card.placement}
       boxes={card.boxes}
     />
   );

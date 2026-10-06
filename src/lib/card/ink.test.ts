@@ -6,8 +6,11 @@ import {
   LIGHT_TAIL_PERCENTILE,
   MIN_INK_CONTRAST,
   type PaletteColor,
+  inkCandidates,
   inkContrast,
+  inkOnFlat,
   paletteFromPixels,
+  paperColor,
   percentile,
   resolveInk,
   sampleZoneLuminance,
@@ -201,16 +204,16 @@ describe("the areas behind the text's lines (card_compiler_v4)", () => {
 
   it("passes the whole-zone measure alone", () => {
     const result = resolveInk({ luminances, palette });
-    expect(result.panel).toBeNull();
+    expect(result.cleared).toBe(true);
     expect(result.ink).toBe(NAVY);
   });
 
-  it("fails a line set over the intrusion, so the zone needs the panel", () => {
+  it("fails a line set over the intrusion, so the art must give way", () => {
     const result = resolveInk({ luminances, areas: [sample(quietArea), sample(over)], palette });
     expect(result.background.darkTail).toBeCloseTo(lum(NAVY), 10);
     expect(result.background.lightTail).toBeCloseTo(lum(CREAM), 10);
-    expect(result.panel).not.toBeNull();
-    expect(contrastRatio(result.ink, result.panel!.color)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
+    expect(result.cleared).toBe(false);
+    expect(result.contrast).toBeLessThan(MIN_INK_CONTRAST);
   });
 
   it("ignores the intrusion where no line sits", () => {
@@ -238,7 +241,7 @@ describe("the areas behind the text's lines (card_compiler_v4)", () => {
     expect(resolveInk({ luminances: l, areas: [], palette })).toEqual(
       resolveInk({ luminances: l, palette }),
     );
-    expect(resolveInk({ luminances: l, palette }).panel).not.toBeNull();
+    expect(resolveInk({ luminances: l, palette }).cleared).toBe(false);
   });
 });
 
@@ -249,7 +252,7 @@ describe("resolveInk", () => {
       { color: CREAM, share: 0.3 },
     ];
     const result = resolveInk({ luminances: zone([[lum(NAVY), 1]]), palette });
-    expect(result.panel).toBeNull();
+    expect(result.cleared).toBe(true);
     expect(result.ink).toBe(CREAM);
     expect(result.source).toBe("art");
     expect(contrastRatio(result.ink, NAVY)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
@@ -261,7 +264,7 @@ describe("resolveInk", () => {
       { color: BROWN, share: 0.2 },
     ];
     const result = resolveInk({ luminances: zone([[lum(CREAM), 1]]), palette });
-    expect(result.panel).toBeNull();
+    expect(result.cleared).toBe(true);
     expect(result.ink).toBe(BROWN);
     expect(lum(result.ink)).toBeLessThan(lum(CREAM));
   });
@@ -270,7 +273,7 @@ describe("resolveInk", () => {
     const sage = "#9DB39A";
     const palette: PaletteColor[] = [{ color: sage, share: 1 }];
     const result = resolveInk({ luminances: zone([[lum(sage), 1]]), palette });
-    expect(result.panel).toBeNull();
+    expect(result.cleared).toBe(true);
     expect(result.source).toBe("tuned-dark");
     const ink = rgbToOklch(parseHex(result.ink));
     expect(Math.abs(ink.h - rgbToOklch(parseHex(sage)).h)).toBeLessThan(15);
@@ -288,7 +291,7 @@ describe("resolveInk", () => {
     expect(g).toBe(b);
   });
 
-  it("puts a panel behind a zone split between dark and light art", () => {
+  it("paints nothing behind a zone split between dark and light art: the best ink, not cleared", () => {
     const palette: PaletteColor[] = [
       { color: NAVY, share: 0.5 },
       { color: CREAM, share: 0.5 },
@@ -300,11 +303,61 @@ describe("resolveInk", () => {
       ]),
       palette,
     });
-    expect(result.panel).not.toBeNull();
-    expect(contrastRatio(result.ink, result.panel!.color)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
-    expect(result.contrast).toBeCloseTo(contrastRatio(result.ink, result.panel!.color), 10);
-    // The paper is derived from the art's lightest colour: light, and close to its hue.
-    expect(lum(result.panel!.color)).toBeGreaterThan(0.85);
+    expect(result.cleared).toBe(false);
+    // The highest contrast of every candidate, each judged by the nearest-tail rule.
+    const best = Math.max(
+      ...inkCandidates(palette).map((c) => inkContrast(lum(c.ink), lum(NAVY), lum(CREAM))),
+    );
+    expect(result.contrast).toBe(best);
+    expect(result.contrast).toBeLessThan(MIN_INK_CONTRAST);
+  });
+
+  it("keeps the first of equally good candidates when none clears", () => {
+    // Every candidate lies inside the measured range, so all score 1: the first (the art's own) wins.
+    const palette: PaletteColor[] = [{ color: "#808080", share: 1 }];
+    const result = resolveInk({
+      luminances: zone([
+        [0, 0.5],
+        [1, 0.5],
+      ]),
+      palette,
+    });
+    expect(result.cleared).toBe(false);
+    expect(result.contrast).toBe(1);
+    expect(result.ink).toBe("#808080");
+    expect(result.source).toBe("art");
+  });
+
+  it("chooses the first candidate that clears 4.5:1 on a flat colour (inkOnFlat)", () => {
+    const palette: PaletteColor[] = [
+      { color: CREAM, share: 0.7 },
+      { color: BROWN, share: 0.3 },
+    ];
+    expect(inkOnFlat(CREAM, palette)).toMatchObject({ ink: BROWN, source: "art" });
+    expect(contrastRatio(inkOnFlat(CREAM, palette)!.ink, CREAM)).toBeGreaterThanOrEqual(
+      MIN_INK_CONTRAST,
+    );
+    expect(inkOnFlat(NAVY, palette)).toMatchObject({ ink: CREAM, source: "art" });
+  });
+
+  it("finds no flat-colour ink on a mid-tone no candidate clears", () => {
+    // Mid grey: the tuned dark and light both fall short of 4.5:1 against it.
+    expect(inkOnFlat("#777777", [{ color: "#777777", share: 1 }])).toBeNull();
+  });
+
+  it("builds the paper (paperColor) from the art's lightest colour: light, low chroma, its hue", () => {
+    const palette: PaletteColor[] = [
+      { color: NAVY, share: 0.6 },
+      { color: "#F2E3C4", share: 0.4 },
+    ];
+    const paper = paperColor(palette);
+    expect(lum(paper)).toBeGreaterThan(0.85);
+    const o = rgbToOklch(parseHex(paper));
+    expect(o.l).toBeCloseTo(0.965, 2);
+    expect(o.c).toBeLessThanOrEqual(0.026);
+    expect(Math.abs(o.h - rgbToOklch(parseHex("#F2E3C4")).h)).toBeLessThan(10);
+    // Some ink always clears on it.
+    expect(inkOnFlat(paper, palette)).not.toBeNull();
   });
 
   // The Phase 3 bug (docs/model-evals/phase-3-validation.md, "Ink and legibility"): choosing the
@@ -324,7 +377,7 @@ describe("resolveInk", () => {
       ];
       const result = resolveInk({ luminances, palette });
       expect(result.ink).not.toBe(CREAM);
-      expect(result.panel).not.toBeNull();
+      expect(result.cleared).toBe(false);
     });
 
     it("when the zone is cream throughout", () => {
@@ -333,7 +386,7 @@ describe("resolveInk", () => {
         palette: [{ color: CREAM, share: 1 }],
       });
       expect(result.ink).not.toBe(CREAM);
-      expect(result.panel).toBeNull();
+      expect(result.cleared).toBe(true);
       expect(contrastRatio(result.ink, CREAM)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
     });
 
@@ -350,13 +403,13 @@ describe("resolveInk", () => {
     });
   });
 
-  it("every returned ink clears 4.5:1 against both tails it is judged by (property)", () => {
+  it("every cleared ink clears 4.5:1 against both tails it is judged by (property)", () => {
     const r = rng(42);
     const pick = () => {
       const c = () => Math.floor(r() * 256);
       return `#${[c(), c(), c()].map((v) => v.toString(16).padStart(2, "0").toUpperCase()).join("")}`;
     };
-    let panels = 0;
+    let uncleared = 0;
     for (let run = 0; run < 400; run += 1) {
       const clusters = 1 + Math.floor(r() * 3);
       const parts: [number, number][] = [];
@@ -374,18 +427,21 @@ describe("resolveInk", () => {
       const light = percentile(sorted, LIGHT_TAIL_PERCENTILE);
       expect(result.background).toEqual({ darkTail: dark, lightTail: light });
       const inkL = lum(result.ink);
-      if (result.panel === null) {
+      expect(result.contrast).toBeCloseTo(inkContrast(inkL, dark, light), 12);
+      if (result.cleared) {
         expect(ratio(inkL, dark)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
         expect(ratio(inkL, light)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
         expect(inkL <= dark || inkL >= light).toBe(true);
       } else {
-        panels += 1;
-        expect(contrastRatio(result.ink, result.panel.color)).toBeGreaterThanOrEqual(
-          MIN_INK_CONTRAST,
-        );
+        uncleared += 1;
+        // No candidate clears, and the one returned is the best of them.
+        for (const c of inkCandidates(palette)) {
+          expect(inkContrast(lum(c.ink), dark, light)).toBeLessThanOrEqual(result.contrast);
+        }
+        expect(result.contrast).toBeLessThan(MIN_INK_CONTRAST);
       }
     }
-    expect(panels).toBeGreaterThan(0);
+    expect(uncleared).toBeGreaterThan(0);
   });
 
   it("judges an ink against every area's tails, never more leniently than the zone (property)", () => {
@@ -401,7 +457,7 @@ describe("resolveInk", () => {
         light: percentile(sorted, LIGHT_TAIL_PERCENTILE),
       };
     };
-    let panels = 0;
+    let uncleared = 0;
     for (let run = 0; run < 300; run += 1) {
       const base = r();
       const noisy = (parts: [number, number][], n: number) =>
@@ -433,22 +489,19 @@ describe("resolveInk", () => {
       // Areas never narrow the measured range.
       expect(result.background.darkTail).toBeLessThanOrEqual(alone.background.darkTail);
       expect(result.background.lightTail).toBeGreaterThanOrEqual(alone.background.lightTail);
-      if (result.panel === null) {
+      if (result.cleared) {
         const inkL = lum(result.ink);
         for (const sample of [luminances, ...areas]) {
           const { dark, light } = tailsOf(sample);
           expect(inkContrast(inkL, dark, light)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
         }
       } else {
-        panels += 1;
-        // The zone alone needing a panel means the areas do too: the zone is the floor.
-        expect(contrastRatio(result.ink, result.panel.color)).toBeGreaterThanOrEqual(
-          MIN_INK_CONTRAST,
-        );
+        uncleared += 1;
       }
-      if (alone.panel !== null) expect(result.panel).not.toBeNull();
+      // The zone alone failing means the areas do too: the zone is the floor.
+      if (!alone.cleared) expect(result.cleared).toBe(false);
     }
-    expect(panels).toBeGreaterThan(0);
+    expect(uncleared).toBeGreaterThan(0);
   });
 
   it("is deterministic and refuses an empty or invalid measurement", () => {
@@ -478,7 +531,7 @@ describe("resolveInk", () => {
       () => true,
     );
     const result = resolveInk({ luminances, palette });
-    expect(result.panel).toBeNull();
+    expect(result.cleared).toBe(true);
     expect(result.ink).toBe(BROWN);
   });
 });
