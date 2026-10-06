@@ -820,6 +820,19 @@ owner can overturn any of them.
   a single-use, one-hour sign-in link for the preview project and `@example.com` test addresses
   only (a test host account by default), for tests that should not depend on a mailbox.
 
+### The card alone, as guests see it (owner decisions, 2026-10-06)
+
+- **Nothing is drawn on the card for details not confirmed yet.** The dashed outlines around
+  placeholder and prompt-stated details are gone from the reveal, Creation Mode and every other
+  host surface. "Marked as needing confirmation" (`spec.md §7.3`) now means one line under the card
+  ("Not confirmed yet: date, time, venue.") and the flags in the details form and on the page's
+  detail rows; a new §31 Creation Mode bullet says so. The host sees the card exactly as guests will.
+- **The dusk lifts once the card is out.** On the envelope opening (host reveal and guest), after
+  the card has risen and its light has come up, the stage and the light fade to the page and the
+  card sits on the light page alone (`docs/design-system.md §5.3`, §8.3). The card no longer draws a
+  focus ring when focus moves to it after opening. Together the dusk box and that amber ring read as
+  a mat and frame that belonged to the card. A sealed envelope keeps its dusk.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

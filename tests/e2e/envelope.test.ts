@@ -100,6 +100,36 @@ describe.each([
     }
   });
 
+  it("once the card is out, the dusk lifts and the card draws no frame", async () => {
+    // design-system §5.3, §8.3 (owner decision 2026-10-06): the stage and its light fade to the
+    // page, so nothing behind the card reads as part of it; focus lands on it without a ring.
+    const { page, close } = await openFixture(viewport);
+    try {
+      const stage = page.locator("[data-envelope-stage]");
+      const background = () => stage.evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(await background()).toBe("rgb(31, 42, 85)");
+      await page.getByRole("button", { name: /Garden Supper/ }).click();
+      const card = page.locator("[data-envelope-card]");
+      await card.waitFor({ state: "visible" });
+      await page.waitForFunction(
+        () =>
+          getComputedStyle(document.querySelector("[data-envelope-stage]")!).backgroundColor ===
+          "rgba(0, 0, 0, 0)",
+        undefined,
+        { timeout: 4_000 },
+      );
+      await page.waitForFunction(
+        () => Number(getComputedStyle(document.querySelector(".envelope-pool")!).opacity) === 0,
+        undefined,
+        { timeout: 4_000 },
+      );
+      expect(await card.evaluate((el) => el === document.activeElement)).toBe(true);
+      expect(await card.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("none");
+    } finally {
+      await close();
+    }
+  });
+
   it("sealed shows the title and the gate slot, and nothing of the card", async () => {
     const { page, close } = await openFixture(viewport, "?sealed=1");
     try {
@@ -109,6 +139,12 @@ describe.each([
       expect(await page.locator("[data-envelope-card]").count()).toBe(0);
       expect(await page.getByText(CARD_TEXT).count()).toBe(0);
       expect(await page.content()).not.toContain(CARD_TEXT);
+      // A sealed envelope keeps its dusk.
+      expect(
+        await page
+          .locator("[data-envelope-stage]")
+          .evaluate((el) => getComputedStyle(el).backgroundColor),
+      ).toBe("rgb(31, 42, 85)");
       expect(await hasHorizontalScroll(page)).toBe(false);
     } finally {
       await close();

@@ -334,6 +334,29 @@ html {
   animation: envelope-light-up var(--motion-light) var(--ease-out)
     calc(var(--motion-press) + var(--motion-base)) both;
 }
+/*
+ * Once the card is out, the dusk lifts (owner decision, 2026-10-06): after the light under the card
+ * has come up, the stage turns to the page and the light goes with it, so the card sits on the
+ * page alone and nothing behind it reads as part of it. A colour change and an opacity fade, the
+ * same with reduced motion. A sealed envelope keeps its dusk.
+ */
+@keyframes envelope-light-away {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+[data-envelope-stage] {
+  transition: background-color var(--motion-light) var(--ease-out) var(--motion-base);
+}
+[data-envelope-stage]:has([data-envelope-phase="open"]) {
+  background-color: transparent;
+}
+[data-envelope-stage]:has([data-envelope-phase="open"]) .envelope-pool {
+  animation: envelope-light-away var(--motion-light) var(--ease-out) var(--motion-base) both;
+}
 @media (prefers-reduced-motion: reduce) {
   .envelope-seal-giving,
   .envelope-flap-opening,

@@ -128,7 +128,9 @@ const OnStage = createContext(false);
 /**
  * The dusk stage the envelope opens on (docs/design-system.md §5.3, §8.3): the field the card
  * rises from, sized by what it holds. A caller that reserves the card's box wraps the box in it;
- * the page beneath stays light. Text and focus on it use the dusk tokens (`.surface-dusk`).
+ * the page beneath stays light. Text and focus on it use the dusk tokens (`.surface-dusk`). Once
+ * the card is out, the dusk lifts and the card sits on the page itself (`globals.css`), so
+ * nothing behind it reads as part of it.
  */
 export function EnvelopeStage({
   children,
@@ -249,7 +251,9 @@ export function Envelope(props: EnvelopeProps) {
 
   const { phase } = state;
 
-  // After opening, focus moves to the revealed card (never trapped: it is a plain tab stop).
+  // After opening, focus moves to the revealed card, so assistive tech lands on it. It is a focus
+  // target, not a tab stop or a control, so it draws no ring: a frame around the card would read as
+  // part of it.
   useEffect(() => {
     if (cardIsMounted(phase) && !focused.current) {
       focused.current = true;
@@ -309,6 +313,7 @@ export function Envelope(props: EnvelopeProps) {
   return (
     <OwnStage>
       <div
+        data-envelope-phase={phase}
         className={cx("mx-auto flex w-full flex-col items-center gap-6", className)}
         style={{ maxWidth: width }}
       >
@@ -400,10 +405,7 @@ function CardStage({
         onAnimationEnd={(e) => {
           if (e.target === e.currentTarget) onAnimationDone();
         }}
-        className={cx(
-          "relative h-full w-full outline-offset-4",
-          opening && "envelope-card-opening",
-        )}
+        className={cx("relative h-full w-full outline-none", opening && "envelope-card-opening")}
         style={CARD_RISE[proportion]}
       >
         {children}

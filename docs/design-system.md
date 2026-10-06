@@ -1114,7 +1114,7 @@ Do not implement:
 
 **The dusk field (Revision 5)** is a fixed brand surface, not a mode. It appears on exactly two surfaces:
 - the landing page's first section (header, showcase cards, headline, composer) and its closing call to action (§4.1);
-- the envelope opening: the stage the envelope sits on and the card rises from, for guests (§10.20) and for the host's card reveal (§4.4).
+- the envelope opening: the stage the envelope sits on and the card rises from, for guests (§10.20) and for the host's card reveal (§4.4). Once the card is out and its light has come up, the stage lifts to the page: the dusk and the light pool fade (`motion-light`) and the card sits on the light page alone, so nothing behind it reads as part of it (owner decision, 2026-10-06). A sealed envelope keeps its dusk.
 
 Everything a host operates in is light. That covers auth, generation and details, Creation Mode, the card editor, sheets and panels, guest management, publish, share and settings. The house-style page beneath the card is light too. On dusk, text uses `--dusk-text` or `--dusk-text-secondary`, focus uses `--dusk-focus`, and the composer and any form sit on lit paper, never directly on dusk.
 
@@ -1481,13 +1481,14 @@ The envelope is a house component, the same for every event (§10.20). It sits o
 1. the closed envelope (lit paper, amber seal) shows the event title;
 2. it opens on the guest's tap, an explicit action and never automatic (`spec.md §12.5`): the seal gives (`motion-press`) and the flap opens;
 3. the card rises out (`motion-reveal`, `--ease-out`). The light comes up under it about 200ms later (`motion-light`), and it settles at the top of the page; the page beneath is light;
-4. for the host, the reveal message and actions appear shortly after the card is visually stable.
+4. the dusk lifts: the stage and its light fade to the page (`motion-light`), and the card sits on the light page alone. Focus moves to the card for assistive tech without drawing a ring, since a frame around the card would read as part of it;
+5. for the host, the reveal message and actions appear shortly after the card is visually stable.
 
 The host sees the same reveal when a newly generated card is ready. The card's movement stays within `motion-reveal`; only the light may run to `motion-light`.
 
 The card is revealed as soon as its artwork and ink resolution exist. A brief transitional state is acceptable to create continuity, not to fake work (§12.2).
 
-Reduced motion: the card appears without the opening animation, and the light appears without moving; opacity only (§8.5).
+Reduced motion: the card appears without the opening animation, the light appears without moving, and the dusk lifts by a colour fade; opacity and colour only (§8.5).
 
 ## 8.4 "Let's make it real" transition
 
