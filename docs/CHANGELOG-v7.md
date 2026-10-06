@@ -782,6 +782,22 @@ owner can overturn any of them.
   house-style page; then Creation Mode and the card editor's chrome. Each step is its own PR with
   390px and desktop screenshots. The card itself does not change.
 
+### Sign-in by token hash; test links without email (build decisions, 2026-10-06; for the owner to confirm)
+
+- **`/auth/confirm` signs a person in by verifying an email token hash** (`verifyOtp`), then
+  attaches the draft exactly as `/auth/callback` does (shared `completeSignIn`). Unlike the
+  callback's code exchange, it needs nothing stored in the browser beforehand, so it is the route
+  that makes a link opened in another browser or device work (`spec.md §7.2`). Only email sign-in
+  types are accepted.
+- **Emailed links still use the callback** until the "Magic link" and "Confirm signup" email
+  templates in both Supabase projects point at `/auth/confirm` (owner approval pending; production
+  only after this route has shipped). Until then an emailed link completes only in the browser
+  that asked for it.
+- **Test links without email:** `scripts/auth/test-sign-in-link.mjs <deployment-url> [email]` makes
+  a single-use, one-hour sign-in link for the preview project only (a test host account by
+  default), because the built-in mailer allows two emails an hour and raising that needs custom
+  SMTP.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
