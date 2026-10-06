@@ -356,22 +356,23 @@ Three capabilities the card system needs, decided when it is built and recorded 
   half a unit, every Chromium baseline must sit within 0.6 units of the exact one (measured: 0.39).
   Negative controls (a line moved 2 px along, the card moved 2 px down, a vertical model 2 px off on
   both sides) are caught. The private event's sealed envelope is a static SVG drawing of the house
-  envelope in app-token colours (since design-system Revision 5, lit paper on the dusk field:
-  `docs/design-system.md §10.20`), its title also as outlines in the app's own font: Alegreya Sans
-  since Revision 5 (Inter before), from the Google Fonts WOFF2 file `next/font/google` self-hosts
-  for the one subset the app loads (latin), copied into `src/lib/link-preview/fonts/` for the
-  server because `ImageResponse` cannot load WOFF2 (the title's weight, 500); a test holds the
-  preview's subsets equal to the app's. The copy is a snapshot of the version `next/font` served
-  when it was taken: if Google Fonts later serves a newer one, the preview's title can differ from
-  the app's by that revision's changes until the copy is refreshed, which is cosmetic and never
-  touches the card. A title character outside the loaded subset (Greek, an emoji) the live
-  envelope sets in a system fallback face, so the preview refuses it rather than substituting; no
-  stored title reaches that path, since the entry check (`docs/card-system.md §2.5`) refuses every
-  title character the card's fonts cannot draw and the app font's latin subset draws all the rest
-  (a unit test holds this). The switch to Alegreya Sans ships only with that test passing against
-  it; if it cannot pass, the switch stops and goes back to the owner rather than narrowing the
-  entry check. Any later path that writes a title, fact extraction's drafts included, must run
-  the same check. Artwork should be stored as untagged sRGB (no `gAMA`,
+  envelope in app-token colours (from design-system Revision 5, lit paper on the dusk field:
+  `docs/design-system.md §10.20`), its title also as glyph outlines in the app's own font: Inter
+  until the Revision 5 switch to Alegreya Sans lands (below). The weight's latin WOFF2 file that
+  `next/font/google` self-hosts for the one subset the app loads is copied into
+  `src/lib/link-preview/fonts/` for the server, because `ImageResponse` cannot load WOFF2; the
+  title is drawn as outlines at that weight (650 on Inter's variable file; 500, a static file, on
+  Alegreya Sans), and a test holds the preview's subsets equal to the app's. The copy is a
+  snapshot of the version `next/font` served when it was taken: if Google Fonts later serves a
+  newer one, the preview's title can differ from the app's by that revision's changes until the
+  copy is refreshed, which is cosmetic and never touches the card. A title character outside the
+  loaded subset (Greek, an emoji) the live envelope sets in a system fallback face, so the preview
+  refuses it rather than substituting; no stored title reaches that path, since the entry check
+  (`docs/card-system.md §2.5`) refuses every title character the card's fonts cannot draw and the
+  app font's latin subset draws all the rest (a unit test holds this). The switch to Alegreya Sans
+  ships only with that test passing against it; if it cannot pass, the switch stops and goes back
+  to the owner rather than narrowing the entry check. Any later path that writes a title, fact
+  extraction's drafts included, must run the same check. Artwork should be stored as untagged sRGB (no `gAMA`,
   `cHRM` or `iCCP` chunk) when generation stores it (Phase 5): Chromium applies those and resvg does
   not, so a tagged file would differ in tone between the live card and its preview. Local cost:
   about 75–100 ms per preview warm (about 270 ms for the first in a process), and about 650 ms with

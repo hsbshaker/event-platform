@@ -126,7 +126,7 @@ The product should feel:
 
 - **quiet;**
 - **premium;**
-- **neutral;**
+- **neutral where hosts work, lit where it persuades (§5.1);**
 - **slightly warm;**
 - **confident rather than decorative;**
 - **simple without feeling sparse or unfinished.**
@@ -373,7 +373,7 @@ brand seal  Revelnote                                         Sign in
                  large outcome-oriented headline
                  short supporting line
          ┌────────────────── lit paper ──────────────────┐
-         │ Your event, in your words                     │
+         │ Describe the event you imagine...             │
          │                                               │
          │ + Add inspiration        Create my invitation ✦ │
          └───────────────────────────────────────────────┘
@@ -390,7 +390,7 @@ This is the landing's headline. The product promise (`spec.md §1`, `docs/produc
 
 The landing may show a few real invitation cards as illustration. They hang from the string of lights on the dusk field, each captioned with the words that produced it.
 
-- Each one is a real card the product generated for a sample event the platform owns. It is rendered by the production card component, or exported from it, from stored data, with sample facts. Its caption quotes that sample event's prompt verbatim.
+- Each one is a real card the product generated for a sample event the platform owns, with sample facts. It is shown as a static image exported from the production card component, so the landing loads no card fonts and has no live card text. Its caption quotes that sample event's prompt verbatim.
 - They are pictures, not choices: not links, not buttons, not focusable, no hover state, no "use this", "start from this" or "more like this". They are never a carousel, a grid of options, a starting point or a fallback (`spec.md §32` #6, §15.3).
 - Desktop shows at most four, beside the composer's column and never over it, and hides them before they would crowd the composer. A phone shows at most one, small, above the headline, and only if the composer's text area still starts inside the first viewport at 390 × 844.
 - Each has alt text describing the card. The caption is visible text.
@@ -1168,10 +1168,14 @@ All values below are Revision 5 (Lantern) values and must be represented as sema
   --dusk-text-secondary: #BAC2E4;
   --dusk-focus: #F4A43A;
   --dusk-line: #C8A36B;           /* the string of lights; decorative */
+
+  /* light as a material (§5.1); never in operational UI */
+  --app-surface-lit-gradient: radial-gradient(120% 85% at 50% 0%, #FFFDF9 0%, #FFF8EC 58%, #FDF0DA 100%);
+  --dusk-pool: radial-gradient(closest-side, rgba(255, 196, 112, 0.24), rgba(255, 196, 112, 0));
 }
 ```
 
-Lit paper may carry a soft top-lit gradient (`#FFFDF9` → `#FDF0DA`), defined once as a token. Feature code never writes its own gradient.
+Lit paper may use `--app-surface-lit-gradient`. Feature code never writes its own gradient.
 
 ### Rules
 
@@ -1304,7 +1308,7 @@ Recommended defaults:
 --shadow-overlay: 0 24px 70px rgba(15, 18, 45, 0.22);
 ```
 
-On the dusk field, a card or envelope may cast a light pool beneath it: a radial glow lighter than the field, defined once as a token. It is never placed in operational UI.
+On the dusk field, a card or envelope may cast a light pool beneath it (`--dusk-pool`): a warm glow lighter than the field, offset below the object. It is never placed in operational UI.
 
 A card does not receive a shadow merely because it is a card.
 
@@ -1497,7 +1501,7 @@ This creates the feeling that the finished invitation has simply become editable
 Honor `prefers-reduced-motion`. The card editor's motion rules are in §4.10a.
 
 With reduced motion:
-- remove large translation/scale;
+- remove large translation/scale, and the press scale too (§8.1);
 - retain short opacity changes where useful;
 - no essential information may depend on animation.
 
