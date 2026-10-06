@@ -110,6 +110,13 @@ describe("auth confirm", () => {
     );
   });
 
+  it("takes the token hash over a code when a link carries both, and never claims by cookie", async () => {
+    await confirm("?token_hash=h&type=email&code=c");
+    expect(verifyOtp).toHaveBeenCalledWith({ token_hash: "h", type: "email" });
+    expect(exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(claimDraftForUser).not.toHaveBeenCalled();
+  });
+
   it("refuses a missing token, a missing type and a type that is not an email sign-in", async () => {
     for (const query of [
       "",
