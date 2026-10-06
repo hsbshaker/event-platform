@@ -35,8 +35,8 @@ The card is the only themed surface. The page under it is one neutral house styl
 
 **Goal:** get the user creating before configuring (§7.1).
 
-Hero:
-> **Describe your event. We create the whole experience.**
+Hero (on the dusk field, with a few never-selectable showcase cards; `docs/design-system.md §4.1`):
+> **Describe your event. Watch it light up.**
 
 Controls:
 

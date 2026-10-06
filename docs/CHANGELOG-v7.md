@@ -752,8 +752,38 @@ owner can overturn any of them.
 - **Personal links** are made with every party and shown only after publish (`Copy personal link`,
   `Rotate link` with a confirmation). The guest's side of the link is the next slice.
 
+### Design-system Revision 5 — the Lantern visual language (owner decisions, 2026-10-06)
+
+- **The product is named Revelnote.** There is no logo yet. Until one exists, the app uses an amber
+  seal with an "R" as a marked placeholder, swapped centrally when the real mark arrives
+  (`docs/design-system.md §5.2`).
+- **Lantern is the visual language,** chosen from three concept directions (Studio, Lantern, Post)
+  built around real generated cards at phone and desktop sizes: *paper lit for the evening*. It
+  changes tokens, typeface, the landing composition, the envelope's look and two dusk surfaces. No
+  behaviour, component hierarchy or boundary changes.
+- **Dusk appears on two surfaces only:** the landing page and the envelope opening (guests', and
+  the host's card reveal). Everything a host operates in, and the page beneath the card, stays
+  light. There is no app dark mode (`docs/design-system.md §5.3`; `spec.md §31` updated).
+- **Showcase cards on the landing are kept, never clickable.** They are a few real cards generated
+  for sample events, captioned with their prompts, hung from a string of lights as illustration:
+  never focusable, never selectable, never a starting point or a gallery. A phone shows at most one,
+  and only if the composer still starts in the first viewport (`docs/design-system.md §4.1`;
+  `spec.md §7.1`, the non-goals and guardrail #6 clarified; a §31 bullet added).
+- **The landing headline is "Describe your event. Watch it light up."** The product promise in
+  `spec.md §1` and `docs/product-doctrine.md §1` is unchanged.
+- **Alegreya Sans replaces Inter** for app chrome, the house-style page and the envelope, served
+  through `next/font` like Inter was. The type scale moves one step larger for its smaller x-height.
+  The private-event link preview's title font follows, and the switch ships only if the title
+  coverage test passes against it (`docs/technology-decisions.md §8.2`).
+- **Amber is the primary action and the selected state, always with ink text.** Selection never
+  relies on the amber fill alone. Field and control borders darken to `#7A81A6` so every boundary
+  clears 3:1 (`docs/design-system.md §6.1`, §14.1).
+- **Build order:** tokens, typeface and shared components; then the landing; then the envelope and
+  house-style page; then Creation Mode and the card editor's chrome. Each step is its own PR with
+  390px and desktop screenshots. The card itself does not change.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
 re-check; the clarification question schema; an email provider for the reminder fallback; legal
-review of the brand line.
+review of the brand line. Also open: a real Revelnote logo to replace the placeholder seal.

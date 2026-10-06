@@ -2,10 +2,20 @@
 ## AI-Designed Event Invitation + RSVP + Registry Platform
 
 **Document:** `docs/design-system.md`  
-**Status:** Revision 4 — implementation baseline for PRD Revision 7  
+**Status:** Revision 5 — the Lantern visual language, on the Revision 4 baseline for PRD Revision 7  
 **Initial launch vertical:** Baby showers  
 **Applies to:** Host application, co-host application, guest experience shell (envelope and house-style event page), the boundary around the invitation card, responsive behavior, interaction patterns, motion, accessibility, and visual implementation governance  
 **Companion sources of truth:** `spec.md` (Revision 7) and `docs/card-system.md` (Revision 1)
+
+### Revision 5: the Lantern visual language
+
+The product is named **Revelnote**. From three concept directions the owner chose **Lantern** (2026-10-06): *paper lit for the evening*. Revision 5 changes visual values only: tokens, typeface, the landing composition, the envelope's look and two dusk surfaces. Behaviour, component hierarchy and the app / card / page boundary are unchanged.
+
+- App chrome stays light wherever hosts work. A **dusk field** appears on exactly two surfaces: the landing page and the envelope opening (§5.3).
+- Alegreya Sans replaces Inter (§6.2).
+- Amber is the primary action and the selected ("lit") state, always with ink text (§6.1).
+- The landing hangs a few real showcase cards from a string of lights. They are illustration and can never be selected (§4.1).
+- Press and sheet motion get their own tokens, and the envelope opening lights up (§8.1, §8.3).
 
 ### Revision 4 reconciliation
 
@@ -18,7 +28,7 @@ Application behavior that remains:
 - truthful publish-readiness checklist;
 - mobile-first, real desktop rendering;
 - strict shared application tokens/components;
-- light-only app chrome MVP.
+- light app chrome MVP (Revision 5 adds the dusk field on the landing page and the envelope opening only, §5.3).
 
 What changes:
 - one design at a time, with `Try another direction` (the change the host asks for, or a new idea), replaces three concepts and the concept comparison;
@@ -351,25 +361,40 @@ Do not show a success toast after every auto-save.
 
 The landing page should make creation obvious within seconds.
 
-Primary composition:
+Primary composition (Revision 5, Lantern):
 
 ```text
-brand / sign in
+── dusk field ───────────────────────────────────────────────────────
+brand seal  Revelnote                                         Sign in
+  ~~~~~~~~~~~~~~~~~~~~~~~~ string of lights ~~~~~~~~~~~~~~~~~~~~~~~~
+  [card]   [card]                                   [card]   [card]
+  "words"  "words"                                  "words"  "words"
 
-large outcome-oriented headline
-short supporting line
-
-┌─────────────────────────────────────────┐
-│ Describe the event you imagine...      │
-│                                         │
-│                                         │
-│ + Add inspiration     Create my invitation ✦ │
-└─────────────────────────────────────────┘
-
-Free to create · No templates · Publish when ready
+                 large outcome-oriented headline
+                 short supporting line
+         ┌────────────────── lit paper ──────────────────┐
+         │ Your event, in your words                     │
+         │                                               │
+         │ + Add inspiration        Create my invitation ✦ │
+         └───────────────────────────────────────────────┘
+         Free to create · No templates · Publish when ready
+── evening paper ───────────────────────────────────────────────────
+  below the fold: how a card comes to life · closing call to action
 ```
 
-Primary message: **Describe your event. We create the whole experience.**
+Primary message: **Describe your event. Watch it light up.**
+
+This is the landing's headline. The product promise (`spec.md §1`, `docs/product-doctrine.md §1`) stays *Describe your event. We create the whole experience.*
+
+### Showcase cards
+
+The landing may show a few real invitation cards as illustration. They hang from the string of lights on the dusk field, each captioned with the words that produced it.
+
+- Each one is a real card the product generated for a sample event the platform owns. It is rendered by the production card component, or exported from it, from stored data, with sample facts. Its caption quotes that sample event's prompt verbatim.
+- They are pictures, not choices: not links, not buttons, not focusable, no hover state, no "use this", "start from this" or "more like this". They are never a carousel, a grid of options, a starting point or a fallback (`spec.md §32` #6, §15.3).
+- Desktop shows at most four, beside the composer's column and never over it, and hides them before they would crowd the composer. A phone shows at most one, small, above the headline, and only if the composer's text area still starts inside the first viewport at 390 × 844.
+- Each has alt text describing the card. The caption is visible text.
+- The set is chosen by the platform and changes only deliberately. It is never personalised and never drawn from hosts' events.
 
 ### Requirements
 
@@ -380,6 +405,7 @@ Primary message: **Describe your event. We create the whole experience.**
 - Do not make the user choose a theme, palette or style before writing.
 - Optional inspiration belongs directly with the prompt.
 - The page may include supporting content below the fold, but it must not delay creation.
+- Showcase cards follow the rules above; no other example imagery is used.
 
 ### Desktop
 
@@ -1041,6 +1067,8 @@ Expired/invalid invitations require a calm inline error state with a path to con
 
 ## 5.1 Visual character
 
+**Lantern (Revision 5): paper lit for the evening.** An invitation is an evening about to happen. Working surfaces are evening paper. The two persuasive surfaces (§5.3) are dusk. Whatever is active or chosen glows amber from inside. Light is a material, never an effect: a glow is always lighter than the surface it falls on, warm rather than neon, and never used as decoration in operational UI.
+
 The host application should feel:
 - premium but not luxury-brand theatrical;
 - warm but not beige-on-beige;
@@ -1056,7 +1084,8 @@ Avoid:
 - strong shadows everywhere;
 - decorative illustration in operational UI;
 - playful blobs unrelated to event content;
-- visual noise.
+- visual noise;
+- glows or light pools anywhere but the dusk field and lit paper.
 
 ## 5.2 Brand tokens are provisional
 
@@ -1071,14 +1100,22 @@ Therefore:
 
 Never encode brand colors directly in feature components.
 
+Current values (Revision 5): the name is **Revelnote**. No logo exists yet. Until one does, the brand mark is an amber seal with an "R", treated as a placeholder and swapped centrally when the real mark arrives. The accent is amber, and the typeface is Alegreya Sans (§6.2).
+
 ## 5.3 Application appearance mode
 
-The application chrome is **light-only for MVP**.
+The application chrome is **light for MVP**.
 
 Do not implement:
 - app dark mode;
 - automatic system dark-mode theming;
 - partial dark-mode variants.
+
+**The dusk field (Revision 5)** is a fixed brand surface, not a mode. It appears on exactly two surfaces:
+- the landing page's first section (header, showcase cards, headline, composer) and its closing call to action (§4.1);
+- the envelope opening: the stage the envelope sits on and the card rises from, for guests (§10.20) and for the host's card reveal (§4.4).
+
+Everything a host operates in is light. That covers auth, generation and details, Creation Mode, the card editor, sheets and panels, guest management, publish, share and settings. The house-style page beneath the card is light too. On dusk, text uses `--dusk-text` or `--dusk-text-secondary`, focus uses `--dusk-focus`, and the composer and any form sit on lit paper, never directly on dusk.
 
 The invitation card is its own surface and may be any colour. A dark card does not imply dark application chrome, and the house-style page does not follow the card.
 
@@ -1090,37 +1127,51 @@ If application dark mode is added later, it requires a deliberate design-system 
 
 These tokens apply to the **application UI**, not the invitation card.
 
-All values below are Revision-1 defaults and must be represented as semantic variables.
+All values below are Revision 5 (Lantern) values and must be represented as semantic variables.
 
 ## 6.1 Color tokens
 
 ```css
 :root {
-  --app-bg: #F6F5F1;
+  /* light surfaces */
+  --app-bg: #EEF0F8;              /* evening paper: the working ground */
   --app-surface: #FFFFFF;
-  --app-surface-subtle: #FBFAF7;
-  --app-surface-muted: #EFEEE9;
+  --app-surface-subtle: #F7F8FC;
+  --app-surface-muted: #E9ECF6;
+  --app-surface-lit: #FFF9F0;     /* lit paper: composer, RSVP panel, envelope */
+  --app-lit: #FDEBCB;             /* selected / active fill on light surfaces */
 
-  --app-text: #1D211E;
-  --app-text-secondary: #666D68;
-  --app-text-tertiary: #6B726D;
+  --app-text: #1B1C2B;
+  --app-text-secondary: #4E5270;
+  --app-text-tertiary: #646884;
+  --app-link: #8E4C08;
 
-  --app-border: #E2E0D8;
-  --app-border-strong: #CFCCC2;
+  --app-border: #D9DCEA;          /* dividers, quiet edges */
+  --app-border-strong: #7A81A6;   /* field and control boundaries */
 
-  --app-action: #263A31;
-  --app-action-hover: #1E3028;
-  --app-action-text: #FFFFFF;
+  --app-action: #F4A43A;          /* the bulb */
+  --app-action-hover: #F7B455;
+  --app-action-text: #1B1C2B;     /* ink on amber, never white */
 
-  --app-focus: #557765;
+  --app-focus: #1F2A55;
 
-  --app-success: #35664E;
+  --app-success: #2F6B4F;
   --app-warning: #8A672C;
   --app-danger: #A0443C;
 
-  --app-overlay: rgba(18, 22, 20, 0.36);
+  --app-overlay: rgba(15, 18, 45, 0.40);
+
+  /* the dusk field (§5.3) */
+  --dusk: #1F2A55;
+  --dusk-raised: #2A376C;
+  --dusk-text: #FFFFFF;
+  --dusk-text-secondary: #BAC2E4;
+  --dusk-focus: #F4A43A;
+  --dusk-line: #C8A36B;           /* the string of lights; decorative */
 }
 ```
+
+Lit paper may carry a soft top-lit gradient (`#FFFDF9` → `#FDF0DA`), defined once as a token. Feature code never writes its own gradient.
 
 ### Rules
 
@@ -1128,22 +1179,18 @@ All values below are Revision-1 defaults and must be represented as semantic var
 - Do not create page-specific accent colors.
 - Card colours (artwork, ink, panels) never replace app chrome colors.
 - Status colors supplement text/icons; color alone never communicates state.
+- Amber is never a text colour on light surfaces (2.1:1 on white); links use `--app-link`.
+- A selected control shows the lit fill plus an ink outline or a check mark, never the fill alone (§14.6). Amber is only 2.1:1 against white, so the fill is never the only cue.
 
 ## 6.2 Typography
 
-Default application family:
+Application family (Revision 5): **Alegreya Sans**, a humanist sans with a calligraphic warmth that stays plain at small sizes. The light weight (300) is the display voice; regular and medium do the work.
 
-```text
-Inter Variable / approved product sans / system sans fallback
-```
-
-If the implementation uses non-variable/static Inter files, use only available standard weights (for example 400/500/600/700) and map the type scale accordingly. Do not request synthetic `650` weight from a static font file.
-
-Recommended stack:
+It is self-hosted through `next/font/google` (latin subset; static weights 300, 400, 500, 700 and italic 300, 400), so no guest's browser contacts a third party. It is a static family: use only those weights and never request a synthetic weight.
 
 ```css
 --font-app:
-  Inter,
+  "Alegreya Sans",
   ui-sans-serif,
   system-ui,
   -apple-system,
@@ -1152,23 +1199,27 @@ Recommended stack:
   sans-serif;
 ```
 
+Alegreya Sans has a smaller x-height than Inter, so the scale below sits one step larger than Revision 4's to read at the same size.
+
 The app should not use card typography (the design's font pairings) in navigation, editors, or admin controls.
 
 ### Application type scale
 
 ```text
-display-lg   48 / 52   700   -0.04em
-display-md   40 / 44   700   -0.035em
-heading-xl   32 / 38   700   -0.03em
-heading-lg   24 / 30   700   -0.025em
-heading-md   20 / 26   650   -0.02em
-body-lg      17 / 26   400
-body-md      15 / 23   400
-body-sm      13 / 19   400
-label-md     13 / 17   600
-label-sm     11 / 15   650
-micro        10 / 14   650
+display-lg   48 / 52   300   -0.015em
+display-md   40 / 44   300   -0.015em
+heading-xl   32 / 38   500   -0.01em
+heading-lg   26 / 32   500   -0.005em
+heading-md   21 / 28   500
+body-lg      18 / 28   400
+body-md      16 / 24   400
+body-sm      15 / 22   400
+label-md     15 / 20   500
+label-sm     13 / 18   700
+micro        12 / 16   700
 ```
+
+Guest-facing body text is never smaller than `body-md` and captions never smaller than `body-sm`. Guests include grandparents.
 
 Use responsive `clamp()` for large marketing headings.
 
@@ -1226,11 +1277,11 @@ radius-2xl  24px
 radius-pill 999px
 ```
 
-Use:
-- fields/buttons: `radius-md` or `radius-lg`;
-- cards: `radius-lg`;
-- large composer/sheets: `radius-xl` or `radius-2xl`;
-- chips/pills: `radius-pill`.
+Use (Revision 5: round like the lanterns):
+- buttons, chips and RSVP choices: `radius-pill`;
+- fields: `radius-md`;
+- cards and panels: `radius-lg`;
+- large composer, lit panels and sheets: `radius-xl` or `radius-2xl`.
 
 Do not create per-screen custom radii.
 
@@ -1248,10 +1299,12 @@ shadow-overlay   modal / sheet
 Recommended defaults:
 
 ```css
---shadow-soft: 0 8px 24px rgba(20, 28, 24, 0.06);
---shadow-float: 0 10px 32px rgba(20, 28, 24, 0.14);
---shadow-overlay: 0 24px 70px rgba(20, 28, 24, 0.18);
+--shadow-soft: 0 8px 24px rgba(15, 18, 45, 0.07);
+--shadow-float: 0 2px 6px rgba(15, 18, 45, 0.10), 0 20px 44px -18px rgba(15, 18, 45, 0.45);
+--shadow-overlay: 0 24px 70px rgba(15, 18, 45, 0.22);
 ```
+
+On the dusk field, a card or envelope may cast a light pool beneath it: a radial glow lighter than the field, defined once as a token. It is never placed in operational UI.
 
 A card does not receive a shadow merely because it is a card.
 
@@ -1367,10 +1420,12 @@ Avoid:
 ```text
 motion-instant  80ms
 motion-fast     120ms
+motion-press    160ms   pressed controls scale to 0.97
 motion-base     180ms
 motion-sheet    240ms
-motion-reveal   420ms
-motion-emphasis 600ms max
+motion-reveal   600ms   the card rising from the envelope
+motion-light    700ms   light coming up on the envelope stage (the envelope opening only)
+motion-emphasis 600ms max, except motion-light
 ```
 
 Preferred easing:
@@ -1379,7 +1434,14 @@ Preferred easing:
 --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
 --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+--ease-out: cubic-bezier(0.23, 1, 0.32, 1);     /* press and the card's rise */
+--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);  /* sheets and side panels */
 ```
+
+Rules (Revision 5):
+- Every button, chip, choice and toolbar item gives press feedback: `scale(0.97)` over `motion-press` with `--ease-out`.
+- Nothing that enters or responds to a press uses an ease-in curve. Nothing animates from `scale(0)`.
+- Hover effects apply only under `@media (hover: hover) and (pointer: fine)`.
 
 ## 8.2 Standard transitions
 
@@ -1406,17 +1468,17 @@ Modal:
 
 This is the most important transition.
 
-The envelope is a house component, the same for every event (§10.20). Recommended sequence:
-1. the sealed envelope shows the event title;
-2. it opens on the guest's tap — an explicit action, never automatically (`spec.md §12.5`);
-3. the card slides out and settles at the top of the page;
+The envelope is a house component, the same for every event (§10.20). It sits on the dusk stage (§5.3). Recommended sequence:
+1. the closed envelope (lit paper, amber seal) shows the event title;
+2. it opens on the guest's tap, an explicit action and never automatic (`spec.md §12.5`): the seal gives (`motion-press`) and the flap opens;
+3. the card rises out (`motion-reveal`, `--ease-out`). The light comes up under it about 200ms later (`motion-light`), and it settles at the top of the page; the page beneath is light;
 4. for the host, the reveal message and actions appear shortly after the card is visually stable.
 
-The host sees the same reveal when a newly generated card is ready. Total perceived transition should stay within the motion tokens (`motion-reveal`, never beyond `motion-emphasis`).
+The host sees the same reveal when a newly generated card is ready. The card's movement stays within `motion-reveal`; only the light may run to `motion-light`.
 
 The card is revealed as soon as its artwork and ink resolution exist. A brief transitional state is acceptable to create continuity, not to fake work (§12.2).
 
-Reduced motion: the card appears without the opening animation (§8.5).
+Reduced motion: the card appears without the opening animation, and the light appears without moving; opacity only (§8.5).
 
 ## 8.4 "Let's make it real" transition
 
@@ -1454,8 +1516,8 @@ Examples:
 - `Publish my invitation`
 
 Visual:
-- solid dark action background;
-- high contrast;
+- solid amber (`--app-action`) with ink text, a pill, on light and on dusk alike;
+- high contrast (ink on amber 8.2:1);
 - full-width on narrow mobile flows where appropriate.
 
 Only one dominant primary action should appear in a local decision area.
@@ -1529,6 +1591,8 @@ lg
 
 Do not add page-specific button variants.
 
+Shape: pill. Press: §8.1. On the dusk field `secondary` uses a quiet translucent fill with a light border, defined once in the component, not per page.
+
 ## 10.2 `IconButton`
 
 For:
@@ -1551,6 +1615,8 @@ Use for:
 - filters where truly needed.
 
 Do not use chips as a replacement for every button.
+
+A chip is at least 44px tall wherever it can be tapped. Selected is the lit fill plus an ink outline (§6.1).
 
 ## 10.4 `PromptComposer`
 
@@ -1794,6 +1860,8 @@ This preserves the app/card boundary and means every card layout needs no editor
 
 A house-designed envelope, the same for every event: not themed, not generated, and not an imitation of any competitor's envelope. It is sized to the card's proportion (portrait or square) and shows the event title on the front.
 
+Look (Revision 5): lit paper on the dusk stage, with the amber brand seal at the flap's point and the title in the app typeface. A light pool lies under it (§6.5). The seal is the placeholder brand mark until a real one exists (§5.2).
+
 States and behavior:
 - **sealed**: shown for a private event reached by the shared link until the code is entered; shows only the event title, nothing from the card or page (§15.7);
 - **closed → opening → open**: the guest taps (an explicit action; it never opens by itself) and the card slides out and settles at the top of the page (§8.3);
@@ -1952,6 +2020,20 @@ Application:
 - large text: target `≥ 3:1`;
 - interactive boundaries/focus indicators: target `≥ 3:1` against adjacent surface.
 
+Revision 5 pairs, measured:
+
+```text
+--app-text on --app-bg / white / lit paper            14.8 / 16.8 / 16.1
+--app-text-secondary on --app-bg / lit paper           6.7 / 7.3
+--app-text-tertiary on --app-bg / white / muted        4.8 / 5.5 / 4.6
+--app-link on white / --app-bg / --app-lit             6.6 / 5.8 / 5.6
+--app-action-text on --app-action                      8.2
+--app-border-strong on white / --app-bg / lit paper    3.8 / 3.3 / 3.6
+--app-focus on white / --app-bg                        13.8 / 12.1
+--dusk-text / --dusk-text-secondary on --dusk          13.8 / 7.8
+--dusk-focus on --dusk                                 6.7
+```
+
 Card text contrast is guaranteed by the card compiler for the generated card (≥ 4.5:1, §15.6); a host's own colour choices in the card editor are not checked (`spec.md §20.1`). The house-style page uses app tokens and meets the same targets, and carries every detail the card shows. The card editor's own chrome (frames, handles, toolbar) meets the targets above.
 
 ## 14.2 Focus
@@ -2013,8 +2095,8 @@ Three systems, kept separate:
 
 **Application UI**
 - stable;
-- neutral/warm;
-- light-only MVP;
+- evening paper and lit paper (Revision 5);
+- light MVP; the dusk field only where §5.3 allows;
 - application typography/tokens;
 - never styled by the card.
 
@@ -2078,6 +2160,13 @@ Required components include:
 - EventFooter.
 
 The page covers: event details, description and simple information blocks, the RSVP flow, registry (external destinations, native items, cash fund), the confirmation, error states, and the passed state (thank-you, registry still accessible).
+
+The house style (Revision 5) has these parts:
+- the envelope opening on the dusk stage (§8.3, §10.20), then light paper below;
+- the title in display weight, then details as rows of a quiet line icon, value and secondary line (when, where, hosts);
+- the RSVP on a lit-paper panel, one block per guest, with pill choices that show a check when chosen and the lit fill plus an ink outline;
+- registry links as quiet rows;
+- the footer.
 
 Requirements:
 - no per-event theming, no per-event variants;
@@ -2280,7 +2369,8 @@ Desktop must feel intentional.
 
 ## 19.1 Landing
 
-- centered prompt composer;
+- centered prompt composer on lit paper, on the dusk field;
+- the string of lights across the top, with showcase cards to either side of the composer's column (§4.1);
 - wider supporting copy;
 - no mobile device frame.
 
