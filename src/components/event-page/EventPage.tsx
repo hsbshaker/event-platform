@@ -130,14 +130,15 @@ function Row({
   children: ReactNode;
 }) {
   return (
-    <div className="flex gap-4 border-b border-app-border py-4 last:border-b-0">
-      <span aria-hidden="true" className="mt-0.5 shrink-0 text-app-text-secondary">
-        {icon}
-      </span>
-      <div className="flex min-w-0 flex-col gap-1">
-        <dt className="sr-only">{hideLabel ? label : `${label}:`}</dt>
-        <dd className="flex flex-col gap-1">{children}</dd>
-      </div>
+    // A `dl` group holds only `dt` and `dd`, so the icon lives inside the `dd`.
+    <div className="border-b border-app-border py-4 last:border-b-0">
+      <dt className="sr-only">{hideLabel ? label : `${label}:`}</dt>
+      <dd className="flex gap-4">
+        <span aria-hidden="true" className="mt-0.5 shrink-0 text-app-text-secondary">
+          {icon}
+        </span>
+        <span className="flex min-w-0 flex-col gap-1">{children}</span>
+      </dd>
     </div>
   );
 }

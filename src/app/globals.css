@@ -79,7 +79,21 @@ html {
 .surface-lit {
   background: var(--app-surface-lit-gradient);
   color: var(--app-text);
+}
+/* Inside lit paper the ring is ink; the lit box's own ring sits on what surrounds it. */
+.surface-lit * {
   --focus-ring: var(--app-focus);
+}
+/*
+ * A ring around a whole composite control while focus is inside it (the prompt composer). Its
+ * text area shows no ring of its own: the outer ring already marks it. Buttons inside keep theirs.
+ */
+.focus-ring-within:focus-within {
+  outline: 2px solid var(--focus-ring, var(--app-focus));
+  outline-offset: 2px;
+}
+.focus-ring-within textarea:focus-visible {
+  outline: none;
 }
 /* A warm pool of light under an object on dusk (§6.5). Decorative; never operational UI. */
 .dusk-pool {
@@ -189,6 +203,23 @@ html {
     font: var(--type-heading-lg);
     font-weight: 300;
     font-style: italic;
+  }
+  /* The `font` shorthand resets `font-variant-numeric`; restore the lining figures (html). */
+  .text-display-hero,
+  .text-display-lg,
+  .text-display-md,
+  .text-heading-xl,
+  .text-heading-lg,
+  .text-heading-md,
+  .text-body-lg,
+  .text-body-md,
+  .text-body-sm,
+  .text-label-md,
+  .text-label-sm,
+  .text-micro,
+  .text-quote-sm,
+  .text-quote-lg {
+    font-variant-numeric: lining-nums;
   }
 }
 

@@ -6,6 +6,9 @@
  *   node scripts/showcase/export.mjs <run-dir> <caseId>:<slug> [<caseId>:<slug> …]
  *
  * Prints one line per card (slug, width, height, design name) for `src/components/app/showcase.ts`.
+ *
+ * `sharp` is not a declared dependency: it is the copy Next.js installs for image optimisation,
+ * enough for this occasional dev script (no dependency is added for it).
  */
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";

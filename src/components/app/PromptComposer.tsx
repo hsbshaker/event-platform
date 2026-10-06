@@ -36,7 +36,7 @@ export function PromptComposer({
   actions,
 }: PromptComposerProps) {
   return (
-    <div className="surface-lit flex flex-col gap-4 rounded-2xl p-4 shadow-float outline-app-focus focus-within:outline-2 focus-within:outline-offset-2 sm:p-6">
+    <div className="surface-lit focus-ring-within flex flex-col gap-4 rounded-2xl p-4 shadow-float sm:p-6">
       <label htmlFor={id} className="sr-only">
         {label}
       </label>

@@ -24,16 +24,20 @@ interface Hang {
   /** The string's height at `centre`, in the path's box (computed from STRING_PATH). */
   attach: number;
   drop: number;
-  width: number;
-  /** Shown from this breakpoint up; inner cards need the widest screens. */
-  from: "lg" | "xl";
+  /** The outer pair shows from `lg`, narrower until `xl`; the inner pair needs `xl`. */
+  outer: boolean;
 }
 
+/*
+ * Placed so that from 1024px up no card or caption leaves the screen or reaches the composer's
+ * column (`--width-standard`, centred): at 1024 an outer card spans 17–137px and its caption
+ * 5–149px, against the composer's 168px.
+ */
 const HANGS: readonly Hang[] = [
-  { centre: 0.06, attach: 72, drop: 58, width: 140, from: "lg" },
-  { centre: 0.18, attach: 113, drop: 105, width: 150, from: "xl" },
-  { centre: 0.82, attach: 47, drop: 93, width: 150, from: "xl" },
-  { centre: 0.94, attach: 59, drop: 38, width: 140, from: "lg" },
+  { centre: 0.075, attach: 78, drop: 52, outer: true },
+  { centre: 0.19, attach: 116, drop: 100, outer: false },
+  { centre: 0.81, attach: 47, drop: 92, outer: false },
+  { centre: 0.925, attach: 57, drop: 40, outer: true },
 ];
 
 /** Bulbs along the string: their place across the hero and the string's height there. */
@@ -82,22 +86,23 @@ export function ShowcaseFestoon({ cards }: { cards: readonly ShowcaseCard[] }) {
           <figure
             key={card.id}
             className={cx(
-              "absolute isolate m-0 flex-col items-center",
-              hang.from === "xl" ? "hidden xl:flex" : "flex",
+              "absolute isolate m-0 -translate-x-1/2 flex-col items-center",
+              hang.outer ? "flex w-30 xl:w-35" : "hidden w-35 xl:flex",
             )}
-            style={{
-              left: `calc(${hang.centre * 100}% - ${hang.width / 2}px)`,
-              top: STRING_TOP + hang.attach,
-              width: hang.width,
-            }}
+            style={{ left: `${hang.centre * 100}%`, top: STRING_TOP + hang.attach }}
           >
             <span
               aria-hidden="true"
               className="w-px bg-dusk-line/70"
               style={{ height: hang.drop }}
             />
-            <ShowcaseImage card={card} width={hang.width} />
-            <figcaption className="mt-4 max-w-44 text-center text-quote-sm text-dusk-text-secondary">
+            <ShowcaseImage card={card} width={140} />
+            <figcaption
+              className={cx(
+                "mt-4 text-center text-quote-sm text-dusk-text-secondary",
+                hang.outer ? "max-w-36 xl:max-w-44" : "max-w-44",
+              )}
+            >
               “{card.prompt}”
             </figcaption>
           </figure>
@@ -131,8 +136,6 @@ function ShowcaseImage({ card, width }: { card: ShowcaseCard; width: number }) {
         width={card.width}
         height={card.height}
         sizes={`${width}px`}
-        // Above the fold on the landing: never wait for a scroll to load.
-        loading="eager"
         draggable={false}
         className="showcase-card block h-auto w-full select-none"
       />

@@ -147,6 +147,22 @@ describe.each([
     }
   });
 
+  it("rings the composer in amber on the dusk field when it has focus", async () => {
+    // design-system §5.3, §14.1: a focus indicator clears 3:1 against the surface it sits on.
+    const { page, close } = await newPage(browser, viewport);
+    try {
+      await page.goto(requireApp().baseUrl, { waitUntil: "domcontentloaded" });
+      await page.locator("#prompt").focus();
+      const ring = await page.locator("#prompt").evaluate((el) => {
+        const box = getComputedStyle(el.closest(".surface-lit")!);
+        return { style: box.outlineStyle, width: box.outlineWidth, color: box.outlineColor };
+      });
+      expect(ring).toEqual({ style: "solid", width: "2px", color: "rgb(244, 164, 58)" });
+    } finally {
+      await close();
+    }
+  });
+
   it("gives the composer the first viewport without cutting it off", async () => {
     const { page, close } = await newPage(browser, viewport);
     try {
@@ -295,6 +311,44 @@ describe("the generation and details surface is private", () => {
       const body = (await page.locator("body").innerText()).toLowerCase();
       expect(body).not.toContain("forbidden");
       expect(body).not.toMatch(/stack|at object|supabase/i);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe.each([
+  ["desktop 1024", { width: 1024, height: 800 }],
+  ["desktop 1440", { width: 1440, height: 900 }],
+])("landing showcase at %s", (_label, viewport) => {
+  it("keeps every hanging card and caption on screen and clear of the composer", async () => {
+    // design-system §4.1: cards hang beside the composer's column, never over it.
+    const { page, close } = await newPage(browser, viewport);
+    try {
+      await page.goto(requireApp().baseUrl, { waitUntil: "domcontentloaded" });
+      const composer = await page
+        .locator("#prompt")
+        .evaluate((el) => el.closest(".surface-lit")!.getBoundingClientRect().toJSON());
+      const figures = await page.locator("figure:has(img[src*='showcase'])").evaluateAll((els) =>
+        els
+          .filter((el) => (el as HTMLElement).offsetParent !== null)
+          .map((el) => {
+            // The caption may be wider than the card, so measure both together.
+            const card = el.getBoundingClientRect();
+            const caption = el.querySelector("figcaption")!.getBoundingClientRect();
+            return {
+              left: Math.min(card.left, caption.left),
+              right: Math.max(card.right, caption.right),
+            };
+          }),
+      );
+      expect(figures.length).toBe(viewport.width >= 1440 ? 4 : 2);
+      for (const f of figures) {
+        expect(f.left).toBeGreaterThanOrEqual(0);
+        expect(f.right).toBeLessThanOrEqual(viewport.width);
+        const apart = f.right <= composer.left || f.left >= composer.right;
+        expect(apart).toBe(true);
+      }
     } finally {
       await close();
     }
