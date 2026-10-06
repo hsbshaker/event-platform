@@ -14,6 +14,7 @@ const calls = vi.hoisted(() => ({
   otp: [] as { email: string; options: { emailRedirectTo: string } }[],
   oauth: [] as { provider: string; options: { redirectTo: string } }[],
   redirects: [] as string[],
+  signOutError: null as { message: string } | null,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -27,6 +28,7 @@ vi.mock("@/lib/supabase/server", () => ({
         calls.oauth.push(args);
         return { data: { url: "https://accounts.example/authorize" }, error: null };
       },
+      signOut: async () => ({ error: calls.signOutError }),
     },
   }),
 }));
@@ -42,12 +44,13 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/auth/rate-limit", () => ({ enforceSignupThrottle: async () => {} }));
 vi.mock("@/lib/drafts/store", () => ({ bindDraftToEmail: async () => {} }));
 
-const { signInWithEmail, signInWithOAuth } = await import("./auth");
+const { signInWithEmail, signInWithOAuth, signOut } = await import("./auth");
 
 beforeEach(() => {
   calls.otp = [];
   calls.oauth = [];
   calls.redirects = [];
+  calls.signOutError = null;
   process.env.NEXT_PUBLIC_OAUTH_PROVIDERS = "google";
 });
 
@@ -87,5 +90,18 @@ describe("the destination after sign-in", () => {
         "https://app.test/auth/confirm?type=email",
       );
     }
+  });
+});
+
+describe("signing out", () => {
+  it("returns to the landing page", async () => {
+    await expect(signOut()).rejects.toThrow("NEXT_REDIRECT");
+    expect(calls.redirects).toEqual(["/"]);
+  });
+
+  it("says so when the session could not be ended, instead of landing still signed in", async () => {
+    calls.signOutError = { message: "network" };
+    expect(await signOut()).toEqual({ ok: false, error: "Could not sign out. Try again." });
+    expect(calls.redirects).toEqual([]);
   });
 });

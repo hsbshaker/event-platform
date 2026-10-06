@@ -119,8 +119,14 @@ export async function signInWithEmail(email: string, next?: string): Promise<Ema
   return { ok: true, email: address };
 }
 
-export async function signOut(): Promise<never> {
+/**
+ * Ends this browser's session and returns to the landing page. Supabase keeps the session when
+ * the sign-out fails (a session that is already gone is not a failure), so say so rather than
+ * landing the person back on a page that still shows them signed in.
+ */
+export async function signOut(): Promise<{ ok: false; error: string } | never> {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) return { ok: false, error: "Could not sign out. Try again." };
   redirect("/");
 }

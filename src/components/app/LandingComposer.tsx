@@ -90,6 +90,7 @@ export function LandingComposer({ initialState, restoreNotice, account }: Landin
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -263,6 +264,20 @@ export function LandingComposer({ initialState, restoreNotice, account }: Landin
     // On success `createEvent` redirects and this component unmounts.
   }
 
+  async function handleSignOut() {
+    setSignOutError(null);
+    // Save the current text first, after anything already in flight: the landing page this
+    // returns to restores from the server draft, and must not come back with an older prompt.
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    await queueAutosave();
+    const result = await signOut();
+    if (!result.ok) setSignOutError(result.error);
+    // On success `signOut` redirects to the landing page, signed out.
+  }
+
   return (
     <div className="relative mx-auto flex w-full max-w-(--width-standard) flex-col gap-6 px-4 pb-16 pt-4 lg:pt-36">
       <header className="flex flex-col items-center gap-4 text-center">
@@ -275,7 +290,9 @@ export function LandingComposer({ initialState, restoreNotice, account }: Landin
         </p>
       </header>
 
-      {account && <SignedInAs email={account.email} />}
+      {account && (
+        <SignedInAs email={account.email} onSignOut={handleSignOut} error={signOutError} />
+      )}
 
       {restoreNotice && (
         // Status text needs light paper behind it: its colours are set for light surfaces (§5.3).
@@ -383,24 +400,42 @@ export function LandingComposer({ initialState, restoreNotice, account }: Landin
  * width, and the person can leave before their idea goes into that account. Its own form: it
  * must never submit the composer's.
  */
-function SignedInAs({ email }: { email: string | null }) {
+function SignedInAs({
+  email,
+  onSignOut,
+  error,
+}: {
+  email: string | null;
+  onSignOut: () => Promise<void>;
+  error: string | null;
+}) {
   return (
-    <form
-      action={signOut}
-      data-signed-in-as=""
-      className="flex flex-wrap items-center justify-center gap-x-1 text-center text-body-sm text-dusk-text-secondary"
-    >
-      <p className="min-w-0 wrap-anywhere">
-        {email ? (
-          <>
-            Creating as <span className="text-dusk-text">{email}</span>. Not you?
-          </>
-        ) : (
-          "You’re signed in. Not you?"
-        )}
-      </p>
-      <SignOutButton />
-    </form>
+    <div className="flex flex-col items-center gap-2">
+      <form
+        action={onSignOut}
+        data-signed-in-as=""
+        className="flex flex-wrap items-center justify-center gap-x-1 text-center text-body-sm text-dusk-text-secondary"
+      >
+        <p className="min-w-0 wrap-anywhere">
+          {email ? (
+            <>
+              Creating as <span className="text-dusk-text">{email}</span>. Not you?
+            </>
+          ) : (
+            "You’re signed in. Not you?"
+          )}
+        </p>
+        <SignOutButton />
+      </form>
+      {error && (
+        // Status text needs light paper behind it: its colours are set for light surfaces (§5.3).
+        <div className="surface-lit rounded-xl px-4 py-3">
+          <InlineStatus variant="danger" live>
+            {error}
+          </InlineStatus>
+        </div>
+      )}
+    </div>
   );
 }
 
