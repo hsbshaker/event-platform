@@ -15,9 +15,10 @@ import { createClient } from "@/lib/supabase/server";
  * (docs/technology-decisions.md §4).
  *
  * The draft cookie is untouched here: it is what carries the prompt and inspiration through
- * the redirect, and the callback claims it once the session exists.
+ * the redirect, and the OAuth callback claims it once the session exists. An email link may be
+ * opened in any browser, so its draft follows the address it is bound to here instead.
  *
- * `next` is where the person returns after signing in, carried as the auth callback's `next`
+ * `next` is where the person returns after signing in, carried as the sign-in route's `next`
  * (which validates it again). Only a co-host invite page's path is accepted (`spec.md §6.2`: "A
  * co-host invitation preserves its token through authentication"); anything else is dropped, so
  * the default destinations stand.
@@ -34,7 +35,18 @@ export async function enabledOAuthProviders(): Promise<OAuthProvider[]> {
     .filter((p): p is OAuthProvider => p === "google" || p === "apple");
 }
 
-async function callbackUrl(next?: string): Promise<string> {
+/**
+ * This deployment's URL for a sign-in route, from the request's own host, with `params` set in
+ * order. OAuth returns to `/auth/callback` (a PKCE code). An email link returns to
+ * `/auth/confirm` with `type` first: the email template appends `&token_hash=…` to this URL as
+ * given (`{{ .RedirectTo }}`), so it must already carry a query, and a template that still
+ * uses Supabase's own verify page sends a PKCE code here instead, which `/auth/confirm` hands to
+ * the callback.
+ */
+async function signInUrl(
+  path: "/auth/callback" | "/auth/confirm",
+  params: Record<string, string | undefined>,
+): Promise<string> {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto =
@@ -42,8 +54,10 @@ async function callbackUrl(next?: string): Promise<string> {
   const base = host
     ? `${proto}://${host}`
     : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
-  const url = new URL("/auth/callback", base);
-  if (next) url.searchParams.set("next", next);
+  const url = new URL(path, base);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) url.searchParams.set(key, value);
+  }
   return url.toString();
 }
 
@@ -62,7 +76,7 @@ export async function signInWithOAuth(
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: await callbackUrl(allowedNext(next)) },
+    options: { redirectTo: await signInUrl("/auth/callback", { next: allowedNext(next) }) },
   });
   if (error || !data.url) return { ok: false, error: "Could not start sign-in. Try again." };
   redirect(data.url);
@@ -94,7 +108,12 @@ export async function signInWithEmail(email: string, next?: string): Promise<Ema
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: address,
-    options: { emailRedirectTo: await callbackUrl(allowedNext(next)) },
+    options: {
+      emailRedirectTo: await signInUrl("/auth/confirm", {
+        type: "email",
+        next: allowedNext(next),
+      }),
+    },
   });
   if (error) return { ok: false, error: "Could not send the link. Check the address and retry." };
   return { ok: true, email: address };

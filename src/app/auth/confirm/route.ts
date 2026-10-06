@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { GET as exchangeCode } from "../callback/route";
 import { completeSignIn, safeNext } from "../complete-sign-in";
 
 /**
@@ -15,6 +16,11 @@ import { completeSignIn, safeNext } from "../complete-sign-in";
  * is single-use and expires (the project's OTP expiry), and Supabase verifies it; this route never
  * sees a password or a session secret in the URL. Only email sign-in types are accepted: invite,
  * recovery and email-change links are not this app's and are refused like an incomplete link.
+ *
+ * Emailed links return here (`signInWithEmail`). While a project's email template still sends
+ * people through Supabase's own verify page, they arrive with a PKCE code (or its error) and no
+ * token hash: that is the callback's flow, bound to the browser that asked, and it goes there
+ * unchanged, cookie claim included.
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +33,13 @@ export async function GET(request: NextRequest) {
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type") as EmailOtpType | null;
   const next = safeNext(url.searchParams.get("next"), origin);
+
+  if (
+    !tokenHash &&
+    ["code", "error", "error_description"].some((key) => url.searchParams.has(key))
+  ) {
+    return exchangeCode(request);
+  }
 
   if (!tokenHash || !type || !SIGN_IN_TYPES.has(type)) {
     const target = new URL("/signin", origin);

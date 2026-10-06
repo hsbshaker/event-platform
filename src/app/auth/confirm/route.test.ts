@@ -9,12 +9,13 @@ import { NextRequest } from "next/server";
  */
 
 const verifyOtp = vi.fn();
+const exchangeCodeForSession = vi.fn();
 const claimDraftForUser = vi.fn();
 const claimDraftForEmail = vi.fn();
 const maybeSingle = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { verifyOtp } }),
+  createClient: async () => ({ auth: { verifyOtp, exchangeCodeForSession } }),
 }));
 vi.mock("@/lib/drafts/store", () => ({
   claimDraftForUser: (...args: unknown[]) => claimDraftForUser(...args),
@@ -89,6 +90,24 @@ describe("auth confirm", () => {
       `${ORIGIN}/signin?error=exchange`,
     );
     expect(claimDraftForUser).not.toHaveBeenCalled();
+  });
+
+  it("hands a PKCE code to the callback: a template that still uses Supabase's verify page", async () => {
+    // That flow is bound to the browser that asked (its stored verifier), so the callback's
+    // cookie claim is right there, and nothing about it changes.
+    exchangeCodeForSession.mockResolvedValue({
+      data: { user: { id: "user-1", email: "host@example.test" } },
+      error: null,
+    });
+    const response = await confirm("?type=email&code=code-1");
+    expect(exchangeCodeForSession).toHaveBeenCalledWith("code-1");
+    expect(verifyOtp).not.toHaveBeenCalled();
+    expect(claimDraftForUser).toHaveBeenCalledWith("user-1");
+    expect(location(response)).toBe(`${ORIGIN}/events/event-1/create`);
+
+    expect(location(await confirm("?type=email&error=access_denied"))).toBe(
+      `${ORIGIN}/signin?error=provider`,
+    );
   });
 
   it("refuses a missing token, a missing type and a type that is not an email sign-in", async () => {

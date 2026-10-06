@@ -5,8 +5,9 @@ import { generateInviteToken } from "@/lib/cohosts/token";
 /**
  * Sign-in carries a co-host invite through authentication (`spec.md §6.2`: "A co-host invitation
  * preserves its token through authentication"; `docs/screen-spec.md` `cohost-invite-accept`):
- * the invite page's path rides as the auth callback's `next`, for OAuth and for the email link,
- * and nothing else can ride along.
+ * the invite page's path rides as the sign-in route's `next`, for OAuth and for the email link,
+ * and nothing else can ride along. The email link returns to `/auth/confirm` with `type` first,
+ * because the email template appends the token hash to it as given.
  */
 
 const calls = vi.hoisted(() => ({
@@ -62,7 +63,7 @@ describe("the destination after sign-in", () => {
       email: "guest@example.com",
     });
     expect(calls.otp[0]!.options.emailRedirectTo).toBe(
-      `https://app.test/auth/callback?next=${encodeURIComponent(path)}`,
+      `https://app.test/auth/confirm?type=email&next=${encodeURIComponent(path)}`,
     );
     expect(nextOf(calls.otp[0]!.options.emailRedirectTo)).toBe(path);
 
@@ -83,7 +84,7 @@ describe("the destination after sign-in", () => {
       calls.otp = [];
       await signInWithEmail("guest@example.com", next);
       expect(calls.otp[0]!.options.emailRedirectTo, String(next)).toBe(
-        "https://app.test/auth/callback",
+        "https://app.test/auth/confirm?type=email",
       );
     }
   });

@@ -782,7 +782,7 @@ owner can overturn any of them.
   house-style page; then Creation Mode and the card editor's chrome. Each step is its own PR with
   390px and desktop screenshots. The card itself does not change.
 
-### Sign-in by token hash; test links without email (build decisions, 2026-10-06; for the owner to confirm)
+### Sign-in by token hash; sign-in email through Resend (2026-10-06)
 
 - **`/auth/confirm` signs a person in by verifying an email token hash** (`verifyOtp`), then
   attaches the draft bound to that address (shared `completeSignIn`). Unlike the callback's code
@@ -794,14 +794,25 @@ owner can overturn any of them.
   opened in another person's browser, move that person's prompt into the sender's account (login
   CSRF). A draft follows only the address it was bound to; with none, the person lands on the
   composer signed in, and Create turns the idea into an event directly.
-- **Emailed links still use the callback** until the "Magic link" and "Confirm signup" email
-  templates in both Supabase projects point at `/auth/confirm` (owner approval pending; production
-  only after this route has shipped). Until then an emailed link completes only in the browser
-  that asked for it.
+- **Emailed links return to `/auth/confirm`** (owner decision, 2026-10-06, preview first).
+  `signInWithEmail` sends people back to `/auth/confirm?type=email` (plus `next` for an invite),
+  and the email template appends the token hash to that address as given:
+  `{{ .RedirectTo }}&token_hash={{ .TokenHash }}`, so a link works in any browser or mail app.
+  The preview project's "Magic link" and "Confirm signup" templates use it now; production's
+  switch after this ships. Until a project switches, its template still sends people through
+  Supabase's own verify page, which returns a PKCE code to `/auth/confirm`; the route hands that
+  to the callback unchanged, so that link completes only in the browser that asked, as before. A
+  `RedirectTo` Supabase refuses (an origin outside the allow list) falls back to the site URL and
+  makes an unusable link, so every deployment that sends sign-in email must be on the list.
+- **Sign-in email goes through Resend** on the preview project (owner decision, 2026-10-06):
+  Supabase Auth's custom SMTP (`smtp.resend.com`), 100 emails an hour instead of the built-in
+  two. Until a sending domain is verified in Resend, mail comes from Resend's shared test sender
+  and reaches only the Resend account's own address. Production stays on the built-in mailer
+  until a domain is verified. This is a Supabase Auth setting, not app code; the email provider
+  for the reminder fallback is still Phase 10's decision (`docs/development-plan.md`).
 - **Test links without email:** `scripts/auth/test-sign-in-link.mjs <deployment-url> [email]` makes
   a single-use, one-hour sign-in link for the preview project and `@example.com` test addresses
-  only (a test host account by default), because the built-in mailer allows two emails an hour and raising that needs custom
-  SMTP.
+  only (a test host account by default), for tests that should not depend on a mailbox.
 
 ## Still open
 
