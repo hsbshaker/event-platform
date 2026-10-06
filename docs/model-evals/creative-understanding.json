@@ -1,6 +1,6 @@
 {
-  "$comment": "Creative-understanding eval corpus. Data only — the runner is built in Phase 3 validation. Contract and rubric: docs/model-contracts.md §6. Doctrine: docs/product-doctrine.md §3, §5, §6. `facts` values are the host's literal strings; the fact check is verbatim, and any normalization belongs to the application rather than the model.",
-  "version": "creative_understanding_v2",
+  "$comment": "Creative-understanding eval corpus. Data only — the runner is built in Phase 3 validation. Contract and rubric: docs/model-contracts.md §6. Doctrine: docs/product-doctrine.md §3, §5, §6. `facts` values are the host's literal strings; the fact check is verbatim, and any normalization belongs to the application rather than the model. creative_understanding_v3 (owner decisions, 2026-10-06): CU-01 is the “Notorious ONE” case (a host title in quotation marks, the host's own concept); a case's optional `expect` states what its identity and telemetry must show.",
+  "version": "creative_understanding_v3",
   "clarificationCeiling": 3,
   "classes": {
     "taste-heavy": "Vague, colloquial, taste-led. The assignment is a vibe, and keyword matching fails it.",
@@ -13,19 +13,29 @@
   "cases": [
     {
       "id": "CU-01",
-      "prompt": "Ralph Lauren but baby",
+      "prompt": "The whole idea is “The Notorious ONE”—a little legend turning one. I want the invitation to feel like a beautifully designed ’90s hip-hop album cover with a playful first-birthday twist. Think chunky gold Cuban-link chains, a gold crown, Brooklyn brownstones, a little brick texture, and touches of classic streetwear. A vintage boombox, vinyl record, or tiny high-top sneakers could be fun supporting details. Choose a few strong elements and give them room to stand out.",
       "class": [
-        "taste-heavy",
-        "genuinely-ambiguous"
+        "clear",
+        "fact-bearing"
       ],
-      "facts": {},
-      "expectClarification": "likely",
+      "facts": {
+        "title": "The Notorious ONE",
+        "eventType": "first-birthday"
+      },
+      "expectClarification": "no",
       "mustAvoid": [
-        "any Ralph Lauren logo, wordmark or crest",
-        "the brand name in the art brief, art prompt or artwork",
-        "copied campaign imagery"
+        "any card title other than “The Notorious ONE”, as written",
+        "the artist's name or likeness in the art brief, the art prompt or the artwork",
+        "the title, an album title, a record label or any other lettering in the artwork",
+        "a soft pastel kids' card"
       ],
-      "notes": "The canonical brand-reference case (spec.md §7.6): close homage — a teddy in preppy knitwear — is allowed; marks and names are not. Heritage prep, equestrian detail, tartan, navy and cream, leather and brass. Ambiguity worth one question: heritage/equestrian vs heirloom-nursery vs country-club prep."
+      "expect": {
+        "hostConcept": "own",
+        "visualMotifs": "the chunky gold Cuban-link chains and the gold crown are both kept, with gold in the palette",
+        "themeSeed": "not applied: nothing of the offered seed's world appears in the identity",
+        "suggestedRendering": null
+      },
+      "notes": "Owner decisions, 2026-10-06, from a real card that missed: the host named the event in curly quotation marks, listed their motifs and named a format (a ’90s hip-hop album cover). The extracted title must be “The Notorious ONE” without its quotation marks, and the card's title is exactly that — host content, never the model's own (the stored card was titled “Little Legend, Big Beats”). The identity records hostConcept \"own\" and keeps the gold chains and the crown (the stored identity dropped the chains and kept gold only as crown accents); no theme seed enters it (the stored one grew peonies from its seed) and the design is given no random rendering (telemetry: suggestedRendering null). The brief evokes the era and the look — gold, brick, brownstones, hard light — without naming the album cover, the title or the artist the title nods to, and photographic, editorial or collage artwork shows no people. Facts: the eventType is the host's literal span."
     },
     {
       "id": "CU-02",
@@ -43,7 +53,7 @@
         "cartoon or novelty treatments",
         "primary-blue nursery clichés"
       ],
-      "notes": "Same reference as CU-01 but the host has already resolved the register. Asking anything here is over-asking."
+      "notes": "The canonical brand-reference case (spec.md §7.6), with the register already resolved: close homage — a teddy in preppy knitwear — is allowed; marks and names are not. Heritage prep, equestrian detail, tartan, navy and cream. Asking anything here is over-asking. (Until creative_understanding_v3 CU-01 carried the open form, “Ralph Lauren but baby”; the owner's brief O-02 keeps a second Ralph Lauren case in every live run.)"
     },
     {
       "id": "CU-03",

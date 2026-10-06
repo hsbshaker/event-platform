@@ -542,9 +542,9 @@ for the host to confirm or correct. The extracted values are kept on the event (
 event's own detail. A stated value appears on the card only if it passes the checks the details
 form applies to the host's own entry (`docs/card-system.md §2.5`); otherwise the placeholder
 stands. An unconfirmed value is never published, never shown to guests, and never given to the
-card design as a fact. The one exception is the occasion the prompt names ("baby shower"): the
-design reads it, as the host's own word, to word the invitation, and it is never a fact slot on
-the card.
+card design as a fact. There are two exceptions, both the host's own words and never fact slots on
+the card: the occasion the prompt names ("baby shower"), which the design reads to word the
+invitation, and the title the prompt names (below).
 
 While the card shows the placeholder date, it also shows that date's default RSVP deadline
 (below), marked as needing confirmation like the date, so the card's words do not move when the
@@ -555,6 +555,19 @@ card shows no RSVP-by until the host saves a date, so the two never disagree (ow
 
 The card's **title** is wording (§7.7): if the host supplied a title it is used exactly; otherwise
 the design drafts one. The event title is therefore never a blocker to seeing a card.
+
+A name the host gives the event or its idea in the prompt — in quotation marks (straight, curly or
+guillemets), or right after "called", "named" or "titled" ("The whole idea is “The Notorious
+ONE”", "we're calling it “Taco ’Bout a Baby”") — is a title the host supplied: the card's title,
+verbatim, without its quotation marks (owner decisions, 2026-10-06). A quoted vibe word ("boho"),
+words meant for something in the scene (a banner that says "Oh Baby"), a saying or lyric, and the
+bare name of a brand, show or character the party is themed on ("a “Bluey” party": the design
+writes a title evoking it, without the name) are not titles; when unsure, there is none. Fact
+extraction finds it; code keeps it only where the prompt names it so, and only if it passes the
+checks a typed title gets (`docs/card-system.md §2.5`); otherwise it is dropped and logged. It is
+kept with the prompt's facts (`promptFacts`), never written to the event's title, and the event's
+own title wins once the host types one or edits the title box; until then every later direction
+uses it too.
 
 **RSVP deadline default.** If the host does not set one: the event date minus 14 days, at 11:59 PM
 in the event timezone. If that instant is already past when the default is computed, use the day
@@ -579,11 +592,12 @@ Lifecycle calculations always use the stored IANA timezone.
 
 ### 7.5 Event Identity
 
-A strong multimodal model derives and persists the creative brief (`event_identity_schema_v5`,
+A strong multimodal model derives and persists the creative brief (`event_identity_schema_v6`,
 `docs/model-contracts.md §4`):
 
 ```ts
 EventIdentity {
+  hostConcept                        // open | cues | own: decided first (below)
   creativeDirection
   toneKeywords[]
   colorsExplicitlyConstrained: boolean
@@ -630,6 +644,17 @@ observatory, kites …) and the identity builds the theme from it; it ignores th
 host gave any creative cue. The surprise is the choice, never abstract or random imagery
 (owner decision, 2026-10-05).
 
+**Randomness is for vague prompts only** (owner decisions, 2026-10-06). The theme seed and the
+suggested rendering (§7.6a rule 7) exist for variety where the host gave no concept or style of
+their own. Because the identity is the only reader of the prompt, it records first which the host
+gave (`hostConcept`): nothing beyond the occasion (`open`), creative cues but no concept or style
+of their own (`cues`), or a clear concept or style of their own (`own`) — a named format (an album
+cover, a poster, a magazine, a storybook page), an explicit list of motifs, a decade or era, or a
+named aesthetic. The seed is offered with every new identity, since only the identity can tell,
+and used only when it records `open`; with `own`, code suggests no rendering. Every motif the host
+explicitly lists is kept in the identity; one left out for a product rule is named there, never
+dropped silently.
+
 ### 7.6 Brand/style references
 
 Named references such as Ralph Lauren are interpreted for the look the host means: heritage,
@@ -647,6 +672,9 @@ look. It never contains:
 Event Identity may record the reference by name. The art brief and the assembled art prompt never
 name the brand: the brief describes the homage in plain words (for example "a teddy bear in a cream
 cable-knit sweater over a blue oxford collar"), so the image model never receives a brand name.
+The same holds for a real person a homage evokes — an artist, a musician — whose name and likeness
+stay out of the brief, and for the card's title: a title the host gave prints on the card as
+written, but never enters the art brief or the art prompt (owner decisions, 2026-10-06).
 
 This line was chosen deliberately by the owner and carries trademark and copyright risk for a
 platform that charges to publish (`docs/CHANGELOG-v7.md`). It must be reviewed by counsel before
@@ -696,7 +724,10 @@ Binding rules:
    a reflex: elegant, romantic, floral, garden or beach language is not a request for it. Cards vary
    actively across events: the orchestration suggests a rendering drawn at random from those the
    event's earlier directions have not used, and the design follows it unless the host's words
-   strongly point to a treatment (owner decisions, 2026-10-04). Code turns the family into the art
+   strongly point to a treatment (owner decisions, 2026-10-04) — a named format such as an album
+   cover, a poster or a magazine among them. When the identity records that the host named a
+   concept or style of their own, no rendering is suggested and the design chooses the one that
+   carries it (§7.5; owner decisions, 2026-10-06). Code turns the family into the art
    prompt's rendering instruction (`docs/card-system.md §2.4`). A `design-led` card's pattern
    never contains letters, initials or monograms (rule 2); its typography is the card's own text.
 8. **No people in photographic, editorial, 3D or collage artwork.** Such artwork shows places,
@@ -751,8 +782,9 @@ CardDesign {
 ```
 
 Inputs: the persisted `EventIdentity`; the event facts present so far (so wording can use the
-host's own names exactly); a suggested rendering drawn at random from those the event has not used
-(§7.6a); on `Try another direction`, the host's optional feedback, a summary of every earlier
+host's own names exactly), with the title the prompt names when the host has typed none (§7.3); a
+suggested rendering drawn at random from those the event has not used, unless the identity records
+that the host named a concept or style of their own (§7.5, §7.6a); on `Try another direction`, the host's optional feedback, a summary of every earlier
 direction for this event and, when the host says what to change, the card they are changing.
 
 **One central idea.** Every card is built on one idea. Where the identity carries two or more of
@@ -787,8 +819,9 @@ stays as it was, in the designs list, and stays active until the host chooses th
 exactly as the host supplied it, and never contains a date, time, place, dress code or other fact.
 Code checks model-drafted wording deterministically where it can; a slot that fails twice falls
 back to standard wording (§7.9), visible and editable like any other text. If the host supplied a
-title, the design uses it verbatim; host-supplied and host-edited wording is host content, bounded
-only by length limits, and is never fact-checked or re-prompted.
+title — typed, or named in the prompt (§7.3) — the design uses it verbatim; host-supplied and
+host-edited wording is host content, bounded only by length limits, and is never fact-checked or
+re-prompted. The title never goes into the art brief.
 
 The model cannot emit HTML, CSS, JavaScript, SVG, text colours, sizes, positions, line breaks, the
 host's facts, or any ID outside its catalogs.
@@ -2486,6 +2519,10 @@ The host should feel:
   every card is built on one
   central idea, fusing the host's own specifics into one image where there are several, and a
   drafted title plays on it — judged on the creative-understanding corpus (§7.5, §7.7).
+- [ ] A name the host gives the event, in quotes or after called/named/titled, is the card's
+  title, verbatim; a quoted brand, show or character the party is themed on is not (§7.3).
+- [ ] A prompt that names its own concept or style gets no random theme seed or rendering
+  (§7.5, §7.6a).
 
 ### Card design, artwork and compiler
 - [ ] The card-design response validates against the strict schema; unknown keys, IDs outside the
