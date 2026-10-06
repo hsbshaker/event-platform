@@ -491,6 +491,11 @@ Reassurance may say:
 
 Do not require signup before the user writes.
 
+Signed in, the landing says whose account `Create my invitation ✦` will use: the full address,
+just above the composer, with `Sign out` beside it, in place of the header's `Sign in`. A sign-in link
+works in any browser, so a browser can be signed in by someone else's link; this is where the
+person sees it before their idea goes into that account.
+
 ### 7.2 Pre-auth draft and authentication
 
 On `Create my invitation`:
@@ -2412,6 +2417,8 @@ The host should feel:
 
 ### Prompt, auth, and generation
 - [ ] Landing page contains the primary event composer.
+- [ ] Signed in, the landing names the account Create uses, in full, on screen whenever Create is,
+  with Sign out; signed out, it offers Sign in.
 - [ ] Landing showcase cards, where shown, are real cards generated for sample events, captioned with
   their prompts, not focusable or selectable, and on a phone never push the composer's text area
   out of the first viewport (390 × 844).

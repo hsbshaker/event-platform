@@ -406,6 +406,7 @@ The landing may show a few real invitation cards as illustration. They hang from
 - Optional inspiration belongs directly with the prompt.
 - The page may include supporting content below the fold, but it must not delay creation.
 - Showcase cards follow the rules above; no other example imagery is used.
+- Signed in, the header drops `Sign in` and one quiet line between the supporting line and the composer names the account Create uses, in full (wrapping, never truncated), so it is on screen whenever Create is, with `Sign out` as a 44px text button: `Creating as <address>. Not you? Sign out` in dusk secondary text, the address and the button in dusk text (`spec.md §7.1`).
 
 ### Desktop
 

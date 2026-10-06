@@ -794,6 +794,12 @@ owner can overturn any of them.
   opened in another person's browser, move that person's prompt into the sender's account (login
   CSRF). A draft follows only the address it was bound to; with none, the person lands on the
   composer signed in, and Create turns the idea into an event directly.
+- **Signed in, the landing names the account Create uses** (owner decision, 2026-10-06;
+  `spec.md §7.1`): `Creating as <address>. Not you? Sign out` just above the composer, the address
+  in full, in place of the header's `Sign in`, so it is on screen whenever Create is. Someone's own link can still sign another browser in
+  as them (any link that works in every browser can); this line is where the person sees it
+  before their idea goes into that account. A dev fixture (`/dev/landing`) draws the signed-in
+  states for the browser tests.
 - **Emailed links return to `/auth/confirm`** (owner decision, 2026-10-06, preview first).
   `signInWithEmail` sends people back to `/auth/confirm?type=email` (plus `next` for an invite),
   and the email template appends the token hash to that address as given:

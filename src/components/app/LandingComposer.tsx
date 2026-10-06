@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useFormStatus } from "react-dom";
+import { signOut } from "@/app/actions/auth";
 import { createEvent, saveDraft, type ComposerState } from "@/app/actions/draft";
 import { convertHeicToJpeg, HeicDecodeError, isHeicFile } from "@/lib/drafts/heic-to-jpeg";
 import { AppButton } from "./AppButton";
@@ -18,6 +19,8 @@ import { PromptComposer } from "./PromptComposer";
  * click landing. The mirror is preserved through `?restore=expired|taken` (the local copy
  * is the only surviving copy of the host's text) and is cleared only once the draft has
  * been claimed into an event, from `DetailsForm` on the create page.
+ *
+ * Signed in, it says whose account Create puts the idea in, with a way out (`SignedInAs`).
  */
 
 /** Exported so the create-event page can clear this mirror once a draft is claimed. */
@@ -36,10 +39,16 @@ const ACCEPT_ATTRIBUTE = [...ALLOWED_MIME_TYPES, "image/heic", "image/heif", ".h
 type InspirationItem = ComposerState["inspiration"][number];
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+/** Who is signed in, when someone is. Apple and Google sign-ins carry an address; others may not. */
+export interface LandingAccount {
+  email: string | null;
+}
+
 export interface LandingComposerProps {
   initialState: ComposerState;
   /** From `?restore=expired|taken` — a restore failure that must never silently drop input. */
   restoreNotice: "expired" | "taken" | null;
+  account: LandingAccount | null;
 }
 
 function readLocalPrompt(): string {
@@ -74,7 +83,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function LandingComposer({ initialState, restoreNotice }: LandingComposerProps) {
+export function LandingComposer({ initialState, restoreNotice, account }: LandingComposerProps) {
   const [prompt, setPrompt] = useState(initialState.prompt);
   const [inspiration, setInspiration] = useState<InspirationItem[]>(initialState.inspiration);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -266,6 +275,8 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
         </p>
       </header>
 
+      {account && <SignedInAs email={account.email} />}
+
       {restoreNotice && (
         // Status text needs light paper behind it: its colours are set for light surfaces (§5.3).
         <div className="surface-lit rounded-xl px-4 py-3">
@@ -362,6 +373,48 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
         Free to create · No templates · Publish when ready
       </p>
     </div>
+  );
+}
+
+/**
+ * Whose account Create uses (spec.md §7.1). A sign-in link works in any browser
+ * (`/auth/confirm`), so a browser can be signed in by someone else's link. The full address,
+ * never truncated, sits just above the composer, so it is on screen whenever Create is, at every
+ * width, and the person can leave before their idea goes into that account. Its own form: it
+ * must never submit the composer's.
+ */
+function SignedInAs({ email }: { email: string | null }) {
+  return (
+    <form
+      action={signOut}
+      data-signed-in-as=""
+      className="flex flex-wrap items-center justify-center gap-x-1 text-center text-body-sm text-dusk-text-secondary"
+    >
+      <p className="min-w-0 wrap-anywhere">
+        {email ? (
+          <>
+            Creating as <span className="text-dusk-text">{email}</span>. Not you?
+          </>
+        ) : (
+          "You’re signed in. Not you?"
+        )}
+      </p>
+      <SignOutButton />
+    </form>
+  );
+}
+
+function SignOutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      // min-h/min-w keep the touch target at 44px on phones (design-system §7.6).
+      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 text-dusk-text underline underline-offset-2 disabled:opacity-60"
+    >
+      Sign out
+    </button>
   );
 }
 

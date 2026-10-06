@@ -36,7 +36,7 @@ Screen labels describe product surfaces, not necessarily URL routes. Section ref
 **Purpose:** creation begins immediately (§7.1).
 
 **Primary:** `Create my invitation ✦`  
-**Secondary:** Sign in  
+**Secondary:** Sign in (signed out). Signed in, just above the composer instead: `Creating as <address>. Not you? Sign out`, the address in full, never truncated  
 **Input:** freeform event vision  
 **Optional:** `+ Add inspiration`
 

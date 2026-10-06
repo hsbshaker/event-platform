@@ -47,7 +47,8 @@ Controls:
 Optional reassurance:
 > Free to create · No templates · Publish when ready
 
-Secondary: Sign in.
+Secondary: Sign in. Signed in instead: the account Create uses, in full, just above the
+composer, with Sign out.
 
 Do not show a template or art gallery.
 
