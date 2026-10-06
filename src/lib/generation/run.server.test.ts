@@ -16,6 +16,7 @@ import {
 import type { EventIdentity } from "@/lib/ai/event-identity";
 import type { ExtractedFacts } from "@/lib/ai/fact-extraction";
 import type { CardArt } from "@/lib/ai/provider";
+import { cardArtRequest } from "@/lib/ai/requests";
 import { fitsShapes } from "@/lib/card/art-prompt";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import type { CardDesign } from "@/lib/card/design";
@@ -268,8 +269,8 @@ describe("the happy path", () => {
         p_event_id: EVENT,
         p_identity: IDENTITY,
         p_raw: JSON.stringify(IDENTITY),
-        p_prompt_version: "event_identity_v6",
-        p_schema_version: "event_identity_schema_v5",
+        p_prompt_version: "event_identity_v7",
+        p_schema_version: "event_identity_schema_v6",
         // Kept on the event with the identity (`events.prompt_facts`), verbatim only.
         p_prompt_facts: { ...FACTS, location: null },
       },
@@ -351,7 +352,7 @@ describe("the happy path", () => {
       p_art_brief: DESIGN.artBrief,
       p_raw: DESIGN,
       p_versions: {
-        designPrompt: "card_design_v4",
+        designPrompt: "card_design_v5",
         designSchema: "card_design_schema_v3",
         layoutSet: "card_layouts_v4",
         compiler: "card_compiler_v5",
@@ -389,9 +390,9 @@ describe("the happy path", () => {
       inkPlacements: [],
       lowContrastZones: [],
       versions: {
-        identityPrompt: "event_identity_v6",
-        identitySchema: "event_identity_schema_v5",
-        designPrompt: "card_design_v4",
+        identityPrompt: "event_identity_v7",
+        identitySchema: "event_identity_schema_v6",
+        designPrompt: "card_design_v5",
         designSchema: "card_design_schema_v3",
         layoutSet: "card_layouts_v4",
         compiler: "card_compiler_v5",
@@ -411,6 +412,9 @@ describe("the happy path", () => {
       suggestedRendering: "photographic",
       followedSuggestion: false,
       themeSeed: THEME_SEEDS[0],
+      // The fixture identity predates `hostConcept` (event_identity_schema_v6).
+      hostConcept: null,
+      titleDropped: null,
       kind: "initial",
       refinement: "none",
       refinementDowngraded: false,
@@ -1160,8 +1164,8 @@ describe("another direction (spec.md §7.7, §7.15)", () => {
           p_event_id: EVENT,
           p_identity: REVISED_IDENTITY,
           p_raw: JSON.stringify(REVISED_IDENTITY),
-          p_prompt_version: "event_identity_v6",
-          p_schema_version: "event_identity_schema_v5",
+          p_prompt_version: "event_identity_v7",
+          p_schema_version: "event_identity_schema_v6",
         },
       ]);
       expect(stages()[0]).toEqual([
@@ -1945,5 +1949,217 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
     const { outcome, fake } = await run(SWITCH);
     expect(outcome).toEqual({ status: "stopped" });
     expect(fake.calls.art).toEqual([]);
+  });
+});
+
+describe("the host's title and their own concept (owner decisions, 2026-10-06)", () => {
+  const NOTORIOUS =
+    "The whole idea is \u201cThe Notorious ONE\u201d\u2014a little legend turning one. I want the invitation to feel like a beautifully designed \u201990s hip-hop album cover with a playful first-birthday twist. Think chunky gold Cuban-link chains, a gold crown, Brooklyn brownstones, a little brick texture, and touches of classic streetwear.";
+  const TITLE = "The Notorious ONE";
+  const NO_FACTS: ExtractedFacts = {
+    eventType: null,
+    title: null,
+    hosts: null,
+    honoree: null,
+    date: null,
+    time: null,
+    venue: null,
+    location: null,
+    partial: [],
+  };
+  const STATED: ExtractedFacts = {
+    ...NO_FACTS,
+    eventType: "first-birthday",
+    // As fact_extraction_v1 returned it: the quotation marks included.
+    title: `\u201c${TITLE}\u201d`,
+  };
+  const OWN: EventIdentity = {
+    ...IDENTITY,
+    hostConcept: "own",
+    creativeDirection: "A bold \u201990s hip-hop album-cover homage turned into a first birthday.",
+    visualMotifs: ["chunky gold Cuban-link chains", "a small gold crown", "brownstone brick"],
+  };
+  const ALBUM: CardDesign = {
+    ...DESIGN,
+    // The model's own title: the host's replaces it.
+    wording: {
+      title: "Little Legend, Big Beats",
+      invitationLine: "Please join us for a first birthday",
+    },
+    artBrief: {
+      ...DESIGN.artBrief,
+      subject: "chunky gold chains and a small gold crown on worn brownstone brick",
+      rendering: "photographic",
+      medium: "hard-flash still-life photograph",
+    },
+  };
+
+  beforeEach(() => {
+    admin.state.tables.events[0] = { ...EVENT_ROW, prompt: NOTORIOUS };
+  });
+
+  it("designs with the stated title, verbatim, never writing it to the event", async () => {
+    const { outcome, fake } = await run({
+      identity: [OWN],
+      facts: [STATED],
+      design: [ALBUM],
+      art: [CLEAN],
+    });
+    expect(outcome.status).toBe("succeeded");
+    expect(fake.calls.design[0].eventFacts.title).toBe(TITLE);
+    expect(fake.calls.design[0].eventFacts.eventType).toBe("first-birthday");
+    // Host content: used as given, never fact-checked or re-prompted.
+    expect(fake.calls.design).toHaveLength(1);
+    expect((persisted().p_wording as CardDesign["wording"]).title).toBe(TITLE);
+    // Kept on the event's prompt facts without its quotation marks; events.title is never written.
+    expect(admin.rpc("record_event_identity")[0].p_prompt_facts).toMatchObject({ title: TITLE });
+    expect(admin.state.log.some((entry) => entry.startsWith("update"))).toBe(false);
+    expect(admin.state.tables.events[0].title).toBeNull();
+    expect(telemetryOf()).toMatchObject({ titleDropped: null, droppedFacts: 0 });
+  });
+
+  it("builds the art request from the brief only: the title never reaches the art prompt", async () => {
+    const { fake } = await run({ identity: [OWN], facts: [STATED], design: [ALBUM], art: [CLEAN] });
+    const input = fake.calls.art[0];
+    expect(Object.keys(input).sort()).toEqual(["artBrief", "artMode", "layout", "shape"]);
+    expect(input.artBrief).toEqual(ALBUM.artBrief);
+    const { prompt } = cardArtRequest(input);
+    expect(prompt).toContain(ALBUM.artBrief.subject);
+    expect(prompt).not.toMatch(/notorious/i);
+    expect(JSON.stringify(fake.calls.art)).not.toMatch(/notorious|album cover/i);
+  });
+
+  it("the event's own title wins over the stated one", async () => {
+    admin.state.tables.events[0].title = "Mia\u2019s First";
+    const { fake } = await run({ identity: [OWN], facts: [STATED], design: [ALBUM], art: [CLEAN] });
+    expect(fake.calls.design[0].eventFacts.title).toBe("Mia\u2019s First");
+    expect((persisted().p_wording as CardDesign["wording"]).title).toBe("Mia\u2019s First");
+  });
+
+  it("drops a title the prompt does not name, and records why", async () => {
+    const { fake } = await run({
+      identity: [OWN],
+      facts: [{ ...STATED, title: "a little legend" }],
+      design: [ALBUM],
+      art: [CLEAN],
+    });
+    expect(fake.calls.design[0].eventFacts).not.toHaveProperty("title");
+    expect((persisted().p_wording as CardDesign["wording"]).title).toBe("Little Legend, Big Beats");
+    expect(admin.rpc("record_event_identity")[0].p_prompt_facts).toMatchObject({ title: null });
+    expect(telemetryOf()).toMatchObject({ titleDropped: "not-named", droppedFacts: 1 });
+  });
+
+  it("gives no theme-seeded or random rendering to a host who named their own concept", async () => {
+    const { fake } = await run({ identity: [OWN], facts: [STATED], design: [ALBUM], art: [CLEAN] });
+    expect(fake.calls.design[0]).not.toHaveProperty("suggestedRendering");
+    expect(telemetryOf()).toMatchObject({
+      hostConcept: "own",
+      suggestedRendering: null,
+      followedSuggestion: null,
+    });
+  });
+
+  it.each(["open", "cues"] as const)(
+    "still suggests a rendering when the identity says %s",
+    async (hostConcept) => {
+      const { fake } = await run(
+        { identity: [{ ...OWN, hostConcept }], facts: [STATED], design: [ALBUM], art: [CLEAN] },
+        () => 0,
+      );
+      expect(fake.calls.design[0].suggestedRendering).toBe("photographic");
+      expect(telemetryOf()).toMatchObject({
+        hostConcept,
+        suggestedRendering: "photographic",
+        followedSuggestion: true,
+      });
+    },
+  );
+
+  it("records the identity's judgement when the artwork fails", async () => {
+    await run({ identity: [OWN], facts: [STATED], design: [ALBUM], art: [NOT_PNG, NOT_PNG] });
+    const failed = admin.rpc("fail_generation")[0].p_telemetry as {
+      failure: Record<string, unknown>;
+    };
+    expect(failed.failure).toMatchObject({ hostConcept: "own", rendering: "photographic" });
+    expect(failed.failure).not.toHaveProperty("suggestedRendering");
+    expect(failed.failure).not.toHaveProperty("followedSuggestion");
+  });
+
+  describe("later generations read the stated title from the event's prompt facts", () => {
+    beforeEach(() => {
+      admin.state.tables.event_identities = [
+        { event_id: EVENT, revision: 1, identity: OWN, generation_id: EARLIER_GENERATION },
+      ];
+      admin.state.tables.generations.push({
+        id: EARLIER_GENERATION,
+        event_id: EVENT,
+        kind: "initial",
+        status: "failed",
+        requested_by: USER,
+        artifacts: { facts: { ...STATED, title: TITLE }, droppedFacts: [] },
+      });
+    });
+
+    it("on a retry, through the same guard, from facts kept before it existed", async () => {
+      // Kept by fact_extraction_v1 with its quotation marks.
+      admin.state.tables.events[0].prompt_facts = STATED;
+      const { fake } = await run({ design: [ALBUM], art: [CLEAN] });
+      expect(fake.calls.identity).toEqual([]);
+      expect(fake.calls.design[0].eventFacts.title).toBe(TITLE);
+      expect(fake.calls.design[0]).not.toHaveProperty("suggestedRendering");
+    });
+
+    it("drops a kept title the prompt does not name, and records why", async () => {
+      admin.state.tables.events[0].prompt_facts = { ...STATED, title: "little legend" };
+      const { fake } = await run({ design: [ALBUM], art: [CLEAN] });
+      expect(fake.calls.design[0].eventFacts).not.toHaveProperty("title");
+      expect(telemetryOf()).toMatchObject({ titleDropped: "not-named" });
+    });
+
+    it("on another direction, until the host gives a title of their own", async () => {
+      const FROM = "a1a2a3a4-b5b6-4c7d-8e9f-0a1b2c3d4e5f";
+      Object.assign(admin.state.tables.generations[0], {
+        kind: "another_direction",
+        feedback: null,
+        from_design_id: FROM,
+        started_at: "2026-10-06T12:05:00Z",
+      });
+      Object.assign(admin.state.tables.events[0], {
+        prompt_facts: { ...STATED, title: TITLE },
+        active_card_design_id: FROM,
+        active_card_shape: null,
+      });
+      admin.state.tables.card_designs = [
+        {
+          id: FROM,
+          event_id: EVENT,
+          round: 1,
+          name: ALBUM.presentation.name,
+          shape: ALBUM.shape,
+          layout: ALBUM.layout,
+          art_mode: ALBUM.artMode,
+          typography: ALBUM.typography,
+          wording: { ...ALBUM.wording, title: TITLE },
+          art_brief: ALBUM.artBrief,
+          identity_revision: 1,
+        },
+      ];
+      const NEW_IDEA: CardDesign = { ...WORLD_DESIGN, refinement: "none" };
+      let { fake } = await run({ design: [NEW_IDEA], art: [CLEAN] });
+      expect(fake.calls.design[0].eventFacts.title).toBe(TITLE);
+      expect(fake.calls.design[0]).not.toHaveProperty("suggestedRendering");
+
+      // The host edits the title box: events.title, which wins from then on.
+      admin.state.tables.events[0].title = "Big Little Legend";
+      ({ fake } = await run({ design: [NEW_IDEA], art: [CLEAN] }));
+      expect(fake.calls.design[0].eventFacts.title).toBe("Big Little Legend");
+    });
+  });
+
+  it("hostEventFacts: the event's title, else the stated title", () => {
+    expect(hostEventFacts({ ...EVENT_ROW, title: "Typed" }, null, TITLE).title).toBe("Typed");
+    expect(hostEventFacts({ ...EVENT_ROW, title: null }, null, TITLE).title).toBe(TITLE);
+    expect(hostEventFacts({ ...EVENT_ROW, title: "   " }, null, TITLE).title).toBe(TITLE);
+    expect(hostEventFacts({ ...EVENT_ROW, title: null }, null, null)).not.toHaveProperty("title");
   });
 });

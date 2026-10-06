@@ -193,7 +193,7 @@ describe("the card-design runtime catalog", () => {
   });
 });
 
-describe("the event-identity request (event_identity_v6)", () => {
+describe("the event-identity request (event_identity_v7)", () => {
   const payload = (themeSeed?: string) => {
     const request = eventIdentityRequest("instructions", {
       prompt: "something unique, idk surprise me",

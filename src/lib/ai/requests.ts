@@ -125,7 +125,7 @@ function withRepair(text: string, repairFeedback: string | undefined): string {
     : text;
 }
 
-/** Event Identity (`event_identity_v6`, GPT 6.1 Sol, `medium` effort): the only reader of the raw prompt. */
+/** Event Identity (`event_identity_v7`, GPT 6.1 Sol, `medium` effort): the only reader of the raw prompt. */
 export function eventIdentityRequest(
   instructions: string,
   input: GenerateEventIdentityInput,
@@ -161,7 +161,7 @@ export function eventIdentityRequest(
   });
 }
 
-/** Fact extraction (`fact_extraction_v1`, GPT 6 Luna, no reasoning effort): the prompt as plain text. */
+/** Fact extraction (`fact_extraction_v2`, GPT 6 Luna, no reasoning effort): the prompt as plain text. */
 export function factExtractionRequest(
   instructions: string,
   input: ExtractEventFactsInput,
@@ -213,7 +213,7 @@ export function cardDesignRuntimeCatalog(identity: EventIdentity) {
 }
 
 /**
- * Card Design (`card_design_v4`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. On
+ * Card Design (`card_design_v5`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. On
  * `Try another direction` it carries the host's feedback and, with it, the card being changed
  * (`changing`), both as data.
  */

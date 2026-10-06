@@ -1,12 +1,15 @@
 /**
  * Theme seeds: a random starting point for an identity whose host left the look to us
- * (`event_identity_v6`; `docs/model-contracts.md §4.1`; owner decision, 2026-10-05).
+ * (`event_identity_v6`, `event_identity_v7`; `docs/model-contracts.md §4.1`; owner decisions,
+ * 2026-10-05 and 2026-10-06).
  *
  * Told "surprise me", the identity committed to a clear theme but chose the same one four times out
  * of four, because the call has no source of variety of its own. So, as with the suggested
  * rendering (`suggestRendering`), code draws one seed per new identity and the identity builds a
- * theme from its world, interpreted to suit the event. The identity ignores the seed whenever the
- * host gave any creative cue.
+ * theme from its world, interpreted to suit the event. Only the identity reads the prompt, so the
+ * seed is drawn before it and offered with every new identity; the identity uses it only when it
+ * judges that the host left the look to us (`hostConcept: "open"`, decided first) and ignores it
+ * whenever the host gave any creative cue.
  *
  * The seeds are everyday worlds, not designs: a word or two the model turns into a theme, never a
  * template, artwork or layout (`spec.md §32 #21`). The list stays broad and event-neutral, and

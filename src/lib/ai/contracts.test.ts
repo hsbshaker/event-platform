@@ -11,7 +11,12 @@ import {
   ARTWORK_INSPECTION_PROMPT,
   artworkInspectionSchema,
 } from "./artwork-inspection";
-import { eventIdentitySchema, TYPOGRAPHY_CATEGORIES } from "./event-identity";
+import {
+  eventIdentitySchema,
+  HOST_CONCEPTS,
+  storedEventIdentitySchema,
+  TYPOGRAPHY_CATEGORIES,
+} from "./event-identity";
 import type { EventIdentity } from "./event-identity";
 import { extractedFactsSchema, FACT_EXTRACTION_JSON_SCHEMA } from "./fact-extraction";
 import { SYSTEM_PROMPTS, systemPrompt } from "./prompts.server";
@@ -93,6 +98,7 @@ function diff(json: unknown, schema: z.ZodType): string[] {
 }
 
 const IDENTITY: EventIdentity = {
+  hostConcept: "cues",
   creativeDirection: "A sunlit Italian lemon grove rendered with linen calm and ceramic detail.",
   toneKeywords: ["sunlit", "refined", "relaxed"],
   colorsExplicitlyConstrained: false,
@@ -113,7 +119,7 @@ const IDENTITY: EventIdentity = {
   inspirationSummary: "No visual inspiration supplied.",
 };
 
-describe("Event Identity validator (event_identity_schema_v5)", () => {
+describe("Event Identity validator (event_identity_schema_v6)", () => {
   it("matches docs/model-schemas/event-identity.schema.json", () => {
     expect(diff(identityJson, eventIdentitySchema)).toEqual([]);
   });
@@ -147,6 +153,34 @@ describe("Event Identity validator (event_identity_schema_v5)", () => {
   it("accepts a valid identity and rejects unknown keys", () => {
     expect(eventIdentitySchema.safeParse(IDENTITY).success).toBe(true);
     expect(eventIdentitySchema.safeParse({ ...IDENTITY, venue: "Positano" }).success).toBe(false);
+  });
+
+  it("requires hostConcept from the model, decided first (owner decisions, 2026-10-06)", () => {
+    const withoutConcept: Partial<EventIdentity> = { ...IDENTITY };
+    delete withoutConcept.hostConcept;
+    expect(eventIdentitySchema.safeParse(withoutConcept).success).toBe(false);
+    expect(eventIdentitySchema.safeParse({ ...IDENTITY, hostConcept: "maybe" }).success).toBe(
+      false,
+    );
+    for (const hostConcept of HOST_CONCEPTS) {
+      expect(eventIdentitySchema.safeParse({ ...IDENTITY, hostConcept }).success).toBe(true);
+    }
+    const json = identityJson as { required: string[]; properties: Record<string, Node> };
+    expect(Object.keys(json.properties)[0]).toBe("hostConcept");
+    expect(json.required[0]).toBe("hostConcept");
+  });
+
+  it("reads back an identity persisted before hostConcept, and nothing looser", () => {
+    const legacy: Partial<EventIdentity> = { ...IDENTITY };
+    delete legacy.hostConcept;
+    expect(storedEventIdentitySchema.safeParse(legacy).success).toBe(true);
+    expect(storedEventIdentitySchema.safeParse(IDENTITY).success).toBe(true);
+    expect(storedEventIdentitySchema.safeParse({ ...legacy, venue: "Positano" }).success).toBe(
+      false,
+    );
+    expect(storedEventIdentitySchema.safeParse({ ...IDENTITY, hostConcept: "x" }).success).toBe(
+      false,
+    );
   });
 
   it("ranks exactly the catalog's typography categories", () => {
@@ -230,4 +264,69 @@ describe("system prompts", () => {
       expect(text).toContain(`**Prompt version:** \`${version}\``);
     },
   );
+});
+
+/**
+ * The rules the owner decided on 2026-10-06 are in the prompts the models are sent, under the
+ * versions recorded with every run (`docs/model-contracts.md §2`).
+ */
+describe("prompt rules: the host's title and their own concept", () => {
+  it("fact_extraction_v2 names the title rule, its examples and its exclusions", () => {
+    const text = systemPrompt("structured_extraction");
+    expect(text).toContain("**Prompt version:** `fact_extraction_v2`");
+    expect(text).toContain('right after the word "called", "named" or "titled"');
+    expect(text).toContain("**without** the quotation marks around it");
+    expect(text).toContain("`The Notorious ONE`");
+    expect(text).toContain("`Taco ’Bout a Baby`");
+    for (const exclusion of [
+      "**A quoted vibe or style word**",
+      "**Words meant for something in the scene**",
+      "**A saying, a quotation or a song lyric**",
+      "**The bare name of a brand, show, film, game or character the party is themed on**",
+      "a “Bluey”",
+      "a banner that says “Oh Baby”",
+    ]) {
+      expect(text).toContain(exclusion);
+    }
+    expect(text).toContain(
+      "When you are unsure whether something is the event's own name, return null.",
+    );
+  });
+
+  it("event_identity_v7 decides hostConcept first, keeps listed motifs, and gates the seed", () => {
+    const text = systemPrompt("event_identity");
+    expect(text).toContain("**Prompt version:** `event_identity_v7`");
+    expect(text).toContain("**Schema version:** `event_identity_schema_v6`");
+    expect(text).toContain("### `hostConcept`\nDecide this first");
+    for (const signal of [
+      "a named format",
+      "an explicit list of motifs",
+      "a decade or era",
+      "a named aesthetic",
+    ]) {
+      expect(text).toContain(signal);
+    }
+    expect(text).toContain("**Every motif the host explicitly lists is kept.**");
+    expect(text).toContain("say so in `designConstraints`");
+    expect(text).toContain("gold jewellery, chains and crowns on a hip-hop or album-cover homage");
+    expect(text).toContain("When `hostConcept` is `cues` or `own`");
+    expect(text).toContain("never the person's name, likeness or signature portrait");
+  });
+
+  it("card_design_v5 keeps the title out of the brief and reads a named format as a style signal", () => {
+    const text = systemPrompt("card_design");
+    expect(text).toContain("**Prompt version:** `card_design_v5`");
+    expect(text).toContain("**The title never goes into the brief.**");
+    expect(text).toContain("given in their description");
+    expect(text).toContain(
+      "or a named format — an album cover or\n  record sleeve, a poster, a magazine cover, a storybook page",
+    );
+    expect(text).toContain(
+      "printed formats such\n  as album covers, record sleeves, posters, magazine covers and book covers",
+    );
+    expect(text).toContain('never "an album cover"');
+    expect(text).toContain(
+      "`suggestedRendering` is absent when the identity's `hostConcept` is `own`",
+    );
+  });
 });
