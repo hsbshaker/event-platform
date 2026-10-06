@@ -57,28 +57,29 @@ afterEach(() => {
 });
 
 describe("auth confirm", () => {
-  it("verifies the token hash and sends a newly claimed draft to its event", async () => {
+  it("verifies the token hash and sends the draft bound to the address to its event", async () => {
+    claimDraftForEmail.mockResolvedValue({ outcome: "claimed", eventId: "event-2" });
     const response = await confirm("?token_hash=hash-1&type=email");
     expect(verifyOtp).toHaveBeenCalledWith({ token_hash: "hash-1", type: "email" });
-    expect(location(response)).toBe(`${ORIGIN}/events/event-1/create`);
-    expect(claimDraftForUser).toHaveBeenCalledWith("user-1");
+    expect(location(response)).toBe(`${ORIGIN}/events/event-2/create`);
+    expect(claimDraftForEmail).toHaveBeenCalledWith("user-1", "host@example.test");
   });
 
   it("accepts the magic-link and sign-up types an email sign-in sends", async () => {
+    claimDraftForEmail.mockResolvedValue({ outcome: "claimed", eventId: "event-2" });
     for (const type of ["magiclink", "signup"]) {
       expect(location(await confirm(`?token_hash=h&type=${type}`)), type).toBe(
-        `${ORIGIN}/events/event-1/create`,
+        `${ORIGIN}/events/event-2/create`,
       );
     }
   });
 
-  it("reaches the draft bound to the address when opened in another browser (spec.md §7.2)", async () => {
-    // No draft cookie here; the address the link was sent to proves the claim.
-    claimDraftForUser.mockResolvedValue({ outcome: "not_found", eventId: null, hadToken: false });
-    claimDraftForEmail.mockResolvedValue({ outcome: "claimed", eventId: "event-2" });
-    expect(location(await confirm("?token_hash=h&type=email"))).toBe(
-      `${ORIGIN}/events/event-2/create`,
-    );
+  it("never claims the draft this browser's cookie names (login CSRF)", async () => {
+    // A token hash proves control of an address, not of this browser: an attacker's own link
+    // opened in a victim's browser must not move the victim's prompt to the attacker's account.
+    // With nothing bound to the address, the person lands on the composer, draft untouched.
+    expect(location(await confirm("?token_hash=h&type=email"))).toBe(`${ORIGIN}/`);
+    expect(claimDraftForUser).not.toHaveBeenCalled();
     expect(claimDraftForEmail).toHaveBeenCalledWith("user-1", "host@example.test");
   });
 

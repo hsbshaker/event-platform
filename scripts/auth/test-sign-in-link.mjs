@@ -2,15 +2,17 @@
 /**
  * A sign-in link for testing a preview deployment, without sending an email (the hosted
  * project's built-in mailer allows two emails an hour). The link opens `/auth/confirm`, which
- * verifies a one-time token hash exactly as an emailed link would, then claims the draft in that
- * browser like any sign-in (spec.md §7.2).
+ * verifies a one-time token hash exactly as an emailed link would, then attaches a draft bound to
+ * that address (never one this browser's cookie names), so open the link first, then write the
+ * prompt and press Create (spec.md §7.2).
  *
  *   SUPABASE_ACCESS_TOKEN=… node scripts/auth/test-sign-in-link.mjs <deployment-url> [email]
  *
  * Preview project only: production users sign in by email, never by a generated link. The email
- * defaults to a test host account, created on first use. The printed link is a credential for that
- * account: single-use, valid for the project's OTP lifetime (an hour), so share it only with the
- * person testing. The project's keys are read with the management token and never printed.
+ * must be an @example.com test address and defaults to a test host account, created on first use.
+ * The printed link is a credential for that account: single-use, valid for the project's OTP
+ * lifetime (an hour), so share it only with the person testing. The project's keys are read with
+ * the management token and never printed.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -35,6 +37,11 @@ if (!["https:", "http:"].includes(base.protocol)) {
   process.exit(2);
 }
 const email = (emailArg ?? DEFAULT_EMAIL).trim().toLowerCase();
+// Test accounts only: a link for a real address would sign anyone holding it in as that person.
+if (!email.endsWith("@example.com")) {
+  console.error("Test sign-in links are for @example.com addresses only.");
+  process.exit(2);
+}
 
 const res = await fetch(
   `https://api.supabase.com/v1/projects/${PREVIEW_REF}/api-keys?reveal=true`,

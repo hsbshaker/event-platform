@@ -1,7 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { claimDraftForEmail, claimDraftForUser } from "@/lib/drafts/store";
+import { claimDraftForEmail, claimDraftForUser, type ClaimResult } from "@/lib/drafts/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -51,12 +51,27 @@ export interface SignedInUser {
   email?: string | null;
 }
 
+export interface CompleteSignInOptions {
+  /**
+   * Claim the draft this browser's cookie names. Only a sign-in bound to this browser may: the
+   * callback's code exchange needs the verifier this browser stored (PKCE), so the person signing
+   * in is the one who wrote here. `/auth/confirm` passes `false`: its token hash works in any
+   * browser, so an attacker could open their own link in a victim's browser (login CSRF), and a
+   * cookie claim would then hand the victim's prompt and inspiration to the attacker's account.
+   * The draft still follows by the address it was bound to when the link was requested.
+   */
+  claimByCookie?: boolean;
+}
+
 export async function completeSignIn(
   user: SignedInUser,
   origin: string,
   next: URL | null,
+  { claimByCookie = true }: CompleteSignInOptions = {},
 ): Promise<NextResponse> {
-  let claim = await claimDraftForUser(user.id);
+  let claim: ClaimResult = claimByCookie
+    ? await claimDraftForUser(user.id)
+    : { outcome: "not_found", eventId: null, hadToken: false };
 
   // No draft on this browser. The link may have been opened in a mail-app webview, another
   // browser profile or another device, where the cookie cannot follow. If a draft was bound

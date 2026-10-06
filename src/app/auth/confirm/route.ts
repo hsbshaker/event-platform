@@ -5,14 +5,16 @@ import { completeSignIn, safeNext } from "../complete-sign-in";
 
 /**
  * Sign-in by token hash: verify a one-time email token on its own, then attach the pre-auth
- * draft exactly as `/auth/callback` does (`completeSignIn`; spec.md §7.2 steps 4-6).
+ * draft bound to the signed-in address (`completeSignIn`; spec.md §7.2 steps 4-6).
  *
  * Unlike the callback's code exchange, nothing has to be stored in the browser beforehand, so a
  * link opened in a mail app's browser, another profile or another device still signs the person
- * in; the draft then follows by the email it was bound to. The token is single-use and expires
- * (the project's OTP expiry), and Supabase verifies it; this route never sees a password or a
- * session secret in the URL. Only email sign-in types are accepted: invite, recovery and
- * email-change links are not this app's and are refused like an incomplete link.
+ * in; the draft then follows by the email it was bound to. For the same reason this route never
+ * claims a draft by this browser's cookie: a token hash proves control of an address, not of this
+ * browser, so an attacker's own link opened here must not take the prompt written here. The token
+ * is single-use and expires (the project's OTP expiry), and Supabase verifies it; this route never
+ * sees a password or a session secret in the URL. Only email sign-in types are accepted: invite,
+ * recovery and email-change links are not this app's and are refused like an incomplete link.
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,5 +42,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(target);
   }
 
-  return completeSignIn(data.user, origin, next);
+  // Never by this browser's draft cookie: see `CompleteSignInOptions.claimByCookie`.
+  return completeSignIn(data.user, origin, next, { claimByCookie: false });
 }
