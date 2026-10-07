@@ -980,29 +980,49 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   follow later. It is part of the Phase 6b card editor's requirements; this change delivers the
   data, validation, saving, rendering on the card and in link previews, reusable controls and a
   developer page that exercises them. The customer-facing editor is still Phase 6b.
-- **Build decisions, for the owner to confirm**: 4.5:1 per pixel as "readable"; the text keeps its
-  layout position when at least 95% of the background behind its lines reads at 4.5:1, and the
-  space counts as workable from 85%; the heading and details are split only when that reads at
-  least three points better. On the owner's two cards these keep the layout's position: near-white
-  text on the Notorious brick (95.7%), navy on the Boy Story sky (95.6%).
-- **More build decisions, for the owner to confirm**: workable space is judged on the best colour,
-  so a preference for an art colour that falls just short never costs a repaint; the stored shift
-  is applied only while the moved lines stay inside the text-safe area (else the words sit at the
-  layout's position); and a text background carried to a new design or shape keeps its style,
-  opacity and padding while its colour is re-picked against the new card's ink (colours start from
-  the new card, `spec.md §20.6`; a white fill behind a new white ink would hide the words).
-  `docs/product-doctrine.md §4`'s compiler row now names the starting text's placement in place of
-  legibility panels.
+- **Thresholds — owner decision (2026-10-07): provisional, tunable heuristics.** 4.5:1 per pixel as
+  "readable"; the text keeps its layout position when at least 95% of the background behind its
+  lines reads at 4.5:1, and the space is scored workable from 85%; the heading and details are
+  split only when that reads at least three points better. A score below 85% and minor overlap are
+  never failures, and none of these numbers may bring back a panel, a fade, moved artwork or an
+  overlap restriction. Whether a card genuinely has no workable space is judged by people on the
+  raw artwork and the final card; such a card is recorded as an unresolved generation case. On the
+  owner's two cards the text keeps the layout's position: near-white on the Notorious brick
+  (95.7%), navy on the Boy Story sky (95.6%).
+- **Confirmed by the owner (2026-10-07)**: workable space is judged on the best available colour,
+  so a preference for an art colour that falls just short never costs a repaint; the automatic
+  starting placement keeps its moves inside the text-safe area (else the words sit at the layout's
+  position), and that rule never moves a box the host has placed; the opacity slider runs 5–100%,
+  with None the default and the way to remove a background. `docs/product-doctrine.md §4`'s
+  compiler row now names the starting text's placement in place of legibility panels.
+- **Carried text backgrounds keep the host's colour** (owner decision, 2026-10-07, replacing the
+  build's first rule of re-picking it): a text background carried with its words to another design
+  or shape keeps its style, colour, opacity and padding exactly as chosen. A colour is recoloured
+  only when it is designated automatic: a background starts with its colour on **Automatic**
+  (`autoColor: true` — white behind dark text, near-black behind light), which follows the text's
+  colour, at a carry and whenever the box's text colour changes (derived again by the save).
+  Choosing a swatch or typing a colour makes it the host's; choosing Automatic hands it back. A
+  chosen colour is kept even where the new card's text colour no longer contrasts with it.
 - `card_art_v7`, `card_layouts_v7` (the legibility-panel shapes are removed from the catalog; stored
   panels still render), `card_compiler_v7`.
 - **Creative check** (2026-10-07, preview, $2.54; the owner's verdict pending): the corpus and the
   Boy Story brief, 17 cards. 16 generated; one (CU-13, "jazz and old maps") failed because both of
   its images carried lettering, the existing no-text rule. No card has a panel, a fade or moved
-  artwork. 15 of 16 found workable space with no repaint for it, 14 of them at the layout's
-  position; CU-06 moved its words up onto the sky. CU-01 (the Notorious brief) found none (78%), was
-  repainted once and kept the better image, so its starting text overlaps the shoes. Minor overlap
-  on two more: the Boy Story venue line crosses the rocket's handle, and the CU-06 venue line the
-  top of the topiary.
+  artwork. 15 of 16 scored workable with no repaint for it, 14 of them at the layout's position;
+  CU-06 moved its words up onto the sky. Minor overlap on two: the Boy Story venue line crosses the
+  rocket's handle, and the CU-06 venue line the top of the topiary.
+- **CU-01 (the Notorious brief): below the threshold, not without workable space.** It scored 78%
+  (73.5% at the layout's position), was repainted once and kept the better image; the first image
+  is not stored. The shaded brick wall across the top third is a real quiet area — near-white reads
+  on it and on the dark shoes, and fails on the sunlit brick at the right, the bright step edge and
+  the gold crown and chain — and the title sits on it clearly. The starting text at its starting
+  sizes is taller than that area, so the invitation line crosses the step edge and the crown and the
+  details sit on the shoes: legible, not a good composition. A wider search than the generator's
+  vertical-only one (each group moved sideways too) scores 86%, off-centre to the left. The image
+  model put the subject higher than the cover layout's quieter area asks (the crown reaches about
+  31% down; the layout asks for the top 45%), and the repaint did the same. Open for tuning, not
+  counted as meeting the bar: sideways moves for the starting text, and the quieter area's hold on
+  the image.
 
 ## Still open
 

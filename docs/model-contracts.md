@@ -569,7 +569,11 @@ A provider refusal of a brand or character homage is a failure whose regeneratio
 - **CA-03 workable space**: the artwork leaves workable space for the starting text — at least 85%
   of the background behind its lines reads at 4.5:1 for the chosen colour, wherever on the card the
   text starts — without the artwork being covered, moved or repainted for it (measured rate, judged
-  on raw artwork and final card side by side; owner decisions, 2026-10-07).
+  on raw artwork and final card side by side; owner decisions, 2026-10-07). The 85% bar is a
+  provisional heuristic: each case below it is reviewed on the raw artwork as either **below the
+  threshold** (workable space exists that the score or the vertical-only search missed) or
+  **genuinely no workable space**, which is recorded as an unresolved generation case — never
+  counted as meeting the bar because the host could fix it in the editor.
 - **CA-04 quality**: the artwork looks bespoke and specific to the brief, not generic AI or stock
   imagery (human judgement).
 - **CA-05 latency and cost**: p50/p75 per card, recorded for `spec.md §7.10`.
