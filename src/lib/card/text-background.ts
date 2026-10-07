@@ -74,7 +74,7 @@ export function textBackgroundIssue(value: unknown): string | null {
     (k) => !["style", "color", "opacity", "padding", "autoColor"].includes(k),
   );
   if (extra.length > 0) return `has an unknown field ${extra[0]}`;
-  if ("autoColor" in v && v.autoColor !== true) return "autoColor may only be true";
+  if (v.autoColor !== undefined && v.autoColor !== true) return "autoColor may only be true";
   if (!(TEXT_BACKGROUND_STYLES as readonly unknown[]).includes(v.style))
     return "has no valid style";
   if (typeof v.color !== "string" || !isCanonicalHex(v.color)) return "colour is not #RRGGBB";

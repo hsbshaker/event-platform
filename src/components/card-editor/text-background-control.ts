@@ -6,8 +6,8 @@
  */
 
 import {
-  automaticBackgroundColor,
   defaultTextBackground,
+  followTextColor,
   TEXT_BACKGROUND_LIMITS,
   textBackgroundIssue,
   type TextBackground,
@@ -47,13 +47,7 @@ export function chooseStyle(
   const starting = defaultTextBackground(choice, text);
   if (!current) return starting;
   const { style, opacity, padding } = starting;
-  return {
-    style,
-    color: current.autoColor ? automaticBackgroundColor(text.color) : current.color,
-    ...(current.autoColor ? { autoColor: true as const } : {}),
-    opacity,
-    padding,
-  };
+  return followTextColor({ ...current, style, opacity, padding }, text.color);
 }
 
 /** Choosing Automatic: the colour follows the box's text colour (`automaticBackgroundColor`). */
@@ -61,7 +55,7 @@ export function setAutomaticColor(
   current: TextBackground,
   text: Pick<TextBackgroundText, "color">,
 ): TextBackground {
-  return { ...current, color: automaticBackgroundColor(text.color), autoColor: true };
+  return followTextColor({ ...current, autoColor: true }, text.color);
 }
 
 /** Choosing a colour (a swatch, or typed): the host's from now on, kept as chosen. */

@@ -846,12 +846,15 @@ fallback.
 **Reconsidering the artwork** (owner decisions, 2026-10-07). A valid artwork is kept whenever it
 has workable space for the invitation's words (§7.9 step 5, §11.6): text over an illustrated
 object, a miss of the composition's percentage boundary or a starting text that falls short of a
-contrast check is never by itself a reason to repaint. Only when there is genuinely no workable
-composition on a shape the artwork was painted for is it repainted once, from the same art prompt
-plus one line asking for a quieter part of the picture for the words, for a new design and for a
-shape switch alike (a switch's repaint carries the same reference artwork); the image whose
-workable space reads better is kept. Code decides this from the measured image; no model judges
-legibility. An artwork gets at most **two extra images** in all: its one validation regeneration,
+contrast check is never by itself a reason to repaint. Only when the starting text's space is
+scored below the workable bar on a shape the artwork was painted for (§11.6; the bar is a
+provisional, tunable heuristic) is it repainted once, from the same art prompt plus one line asking
+for a quieter part of the picture for the words, for a new design and for a shape switch alike (a
+switch's repaint carries the same reference artwork); the image whose space scores better is kept.
+Code decides the repaint from the measured score; no model judges legibility. A score below the
+bar is not by itself proof that the artwork has no workable space: people judge that on the raw
+artwork and the final card (`docs/model-contracts.md §7.4`, CA-03), and an artwork with genuinely
+no workable space is recorded as an unresolved generation case. An artwork gets at most **two extra images** in all: its one validation regeneration,
 if it needed one, and that repaint share the budget. A repaint that fails validation is dropped (it
 still uses one image); a valid card already exists, so a repaint never causes a visible failure.
 Only the artwork the card shows is persisted as the design's artwork; the other images are metered
@@ -1148,7 +1151,7 @@ Each card generation records:
 schemaValidFirstCall
 reprompts[]            // kind: schema | wording | repeat-direction (at most one each)
 artRegenerated         // boolean, with the reason: the failed validation, or no-text-space (§7.8)
-artRepaints            // 0–1: the repaint made because no workable text space was found (§7.8)
+artRepaints            // 0–1: the repaint made because the text space scored below the workable bar (§7.8)
 standardWording[]      // slots that fell back to standard wording
 inkPanels[]            // always empty since 2026-10-07 (designs before it: zones that needed a panel)
 textSpace[]            // per fitted shape: readable share behind the text, workable, its position
@@ -2574,12 +2577,13 @@ The host should feel:
   template or stock fallback exists.
 - [ ] A valid artwork with workable space for the starting text is kept as generated: text over an
   illustrated object, a missed percentage boundary or a starting text that falls short of a
-  contrast check never triggers a repaint. Only an artwork with no workable space on a shape it was
-  painted for (a new design's or a shape switch's) is repainted once — from the same art prompt
-  plus one line asking for a quieter part of the picture for the words — decided by code from the
-  measured image, and the image whose space reads better is kept; an artwork gets at most two
-  extra images in all (validation regeneration and that repaint together), and a repaint never
-  causes a visible failure.
+  contrast check never triggers a repaint. Only an artwork whose text space scores below the
+  workable bar (a provisional heuristic, §11.6) on a shape it was painted for (a new design's or a
+  shape switch's) is repainted once — from the same art prompt plus one line asking for a quieter
+  part of the picture for the words — decided by code from the measured score, and the image whose
+  space scores better is kept; a score below the bar is never itself a failure; an artwork gets at
+  most two extra images in all (validation regeneration and that repaint together), and a repaint
+  never causes a visible failure.
 - [ ] When the image provider refuses a brand or character homage, the one regeneration comes
   from a re-prompted design that evokes the character's world rather than its signature look; the
   host sees a short, plain copyright note, never a provider error; a second refusal is a visible

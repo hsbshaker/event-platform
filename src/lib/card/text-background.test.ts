@@ -104,6 +104,8 @@ describe("textBackgroundIssue", () => {
   it("accepts exactly the four fields in range, and autoColor only as true", () => {
     expect(textBackgroundIssue(VALID)).toBeNull();
     expect(textBackgroundIssue({ ...VALID, autoColor: true })).toBeNull();
+    // An explicit undefined is absent, as the stored schema reads it.
+    expect(textBackgroundIssue({ ...VALID, autoColor: undefined })).toBeNull();
     expect(textBackgroundIssue({ ...VALID, opacity: 1, padding: 0 })).toBeNull();
     expect(textBackgroundIssue({ ...VALID, opacity: 0.001, padding: 120 })).toBeNull();
   });

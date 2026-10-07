@@ -56,6 +56,25 @@ describe("chooseStyle", () => {
     });
   });
 
+  it("derives an automatic colour against the text's current colour on a style switch, and keeps a chosen one", () => {
+    const auto = chooseStyle(undefined, "highlight", DARK_TEXT)!;
+    const lightText = { color: "#F4EEE2", size: 100 };
+    expect(chooseStyle(auto, "box", lightText)).toEqual({
+      style: "box",
+      color: "#1B1B1F",
+      autoColor: true,
+      opacity: 0.8,
+      padding: 45,
+    });
+    const chosen = chooseColor(auto, "#FFFFFF");
+    expect(chooseStyle(chosen, "box", lightText)).toEqual({
+      style: "box",
+      color: "#FFFFFF",
+      opacity: 0.8,
+      padding: 45,
+    });
+  });
+
   it("changes nothing when the chosen style is chosen again", () => {
     const custom: TextBackground = { style: "box", color: "#AA3311", opacity: 0.3, padding: 7 };
     expect(chooseStyle(custom, "box", DARK_TEXT)).toBe(custom);

@@ -1003,6 +1003,11 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   colour, at a carry and whenever the box's text colour changes (derived again by the save).
   Choosing a swatch or typing a colour makes it the host's; choosing Automatic hands it back. A
   chosen colour is kept even where the new card's text colour no longer contrasts with it.
+  Starting a new background on Automatic is the build's reading of "explicitly designated as
+  automatic" (the chip shows it pressed), for the owner to confirm. A background stored before
+  this change has no `autoColor` and so counts as chosen; only developer-page data existed, so
+  nothing was migrated. The editor screen (Phase 6b part 2) must apply `followTextColor` on screen
+  when the host changes a box's text colour; today the save derives it.
 - `card_art_v7`, `card_layouts_v7` (the legibility-panel shapes are removed from the catalog; stored
   panels still render), `card_compiler_v7`.
 - **Creative check** (2026-10-07, preview, $2.54; the owner's verdict pending): the corpus and the
