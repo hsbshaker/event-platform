@@ -15,11 +15,13 @@ import {
 
 import {
   choiceOf,
+  chooseColor,
   chooseStyle,
   OPACITY_PERCENT,
   opacityPercent,
   setColor,
   setOpacity,
+  setAutomaticColor,
   setPadding,
   type TextBackgroundChoice,
   type TextBackgroundText,
@@ -28,10 +30,11 @@ import {
 /**
  * The text background control of the card editor's Background panel (`spec.md §20.1`;
  * `docs/design-system.md §4.10a`): a radio group of four chips (None, Highlight, Rounded box, Soft
- * backdrop), and for a background its colour (artwork swatches plus white and near-black, and a
- * hex field), opacity and padding. App chrome in app tokens; it never draws card styling, and it
- * never touches the text's own colour or opacity. The swatches are the only coloured elements, and
- * show the colour they set.
+ * backdrop), and for a background its colour (Automatic, artwork swatches plus white and
+ * near-black, and a hex field), opacity and padding. A background starts with an automatic colour,
+ * which follows the text's; choosing a swatch or typing a colour makes it the host's, kept as
+ * chosen. App chrome in app tokens; it never draws card styling, and it never touches the text's
+ * own colour or opacity. The swatches are the only coloured elements, and show the colour they set.
  *
  * Controlled: `onChange` receives the next background, or `undefined` for None.
  */
@@ -121,6 +124,7 @@ export function TextBackgroundControl({
           <ColorPicker
             idPrefix={idPrefix}
             value={value}
+            text={text}
             colours={colours}
             disabled={disabled}
             onChange={onChange}
@@ -153,12 +157,14 @@ export function TextBackgroundControl({
 function ColorPicker({
   idPrefix,
   value,
+  text,
   colours,
   disabled,
   onChange,
 }: {
   idPrefix: string;
   value: TextBackground;
+  text: TextBackgroundText;
   colours: readonly string[];
   disabled?: boolean;
   onChange: (next: TextBackground) => void;
@@ -187,34 +193,48 @@ function ColorPicker({
         Colour
       </span>
       <div role="group" aria-labelledby={labelId} className="flex flex-wrap gap-2">
-        {colours.map((colour) => (
-          <button
-            key={colour}
-            type="button"
-            aria-label={colour}
-            aria-pressed={value.color === colour}
-            disabled={disabled}
-            data-text-background-swatch={colour}
-            onClick={() => {
-              setDraft(null);
-              setError(undefined);
-              onChange({ ...value, color: colour });
-            }}
-            className={
-              "app-press inline-flex h-11 w-11 items-center justify-center rounded-pill border disabled:cursor-not-allowed disabled:opacity-50 " +
-              (value.color === colour
-                ? "border-app-text ring-2 ring-app-text"
-                : "border-app-border-strong")
-            }
-          >
-            <span
-              aria-hidden="true"
-              className="h-7 w-7 rounded-pill border border-app-border"
-              // The swatch shows the colour it sets: a data value, not an app colour.
-              style={{ background: colour }}
-            />
-          </button>
-        ))}
+        <Chip
+          selected={value.autoColor === true}
+          disabled={disabled}
+          data-text-background-auto=""
+          onClick={() => {
+            setDraft(null);
+            setError(undefined);
+            if (!value.autoColor) onChange(setAutomaticColor(value, text));
+          }}
+        >
+          Automatic
+        </Chip>
+        {colours.map((colour) => {
+          // A swatch is pressed only for a colour the host chose: Automatic is its own choice.
+          const pressed = !value.autoColor && value.color === colour;
+          return (
+            <button
+              key={colour}
+              type="button"
+              aria-label={colour}
+              aria-pressed={pressed}
+              disabled={disabled}
+              data-text-background-swatch={colour}
+              onClick={() => {
+                setDraft(null);
+                setError(undefined);
+                if (!pressed) onChange(chooseColor(value, colour));
+              }}
+              className={
+                "app-press inline-flex h-11 w-11 items-center justify-center rounded-pill border disabled:cursor-not-allowed disabled:opacity-50 " +
+                (pressed ? "border-app-text ring-2 ring-app-text" : "border-app-border-strong")
+              }
+            >
+              <span
+                aria-hidden="true"
+                className="h-7 w-7 rounded-pill border border-app-border"
+                // The swatch shows the colour it sets: a data value, not an app colour.
+                style={{ background: colour }}
+              />
+            </button>
+          );
+        })}
       </div>
       <Field id={`${idPrefix}-hex`} label="Hex colour" error={error}>
         {(control) => (

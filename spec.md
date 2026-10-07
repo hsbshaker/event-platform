@@ -1264,8 +1264,12 @@ reads behind the most of its lines. The space is **workable** when most of that 
 it may be one area or two, need not match the layout's coordinates, and need not be flat, empty or
 white — sky, brick, walls, gradients, textures, solid colours and paper all count — while a tiny
 empty patch does not, because the whole starting text must fit in it at readable sizes. Text over
-an illustrated object is not a failure and there is no zero-overlap guarantee. Only an artwork
-with no workable space is reconsidered (§7.8). A design generated before this change keeps its
+an illustrated object is not a failure and there is no zero-overlap guarantee. The thresholds that
+score the space are provisional, tunable heuristics (`docs/card-system.md §4.2`); an artwork scored
+below the workable bar is reconsidered once (§7.8), and a score below it is never a failure and
+never brings back a panel, a fade, moved artwork or an overlap restriction. The automatic starting
+placement keeps its moves inside the shape's text-safe area; it never moves a box the host has
+placed. A design generated before this change keeps its
 stored panel and colour, drawn as stored. `layoutCard` decides every size and line break
 deterministically, never stranding a short word such as "A" on a line of its own where a space
 break at the same line count avoids it (owner decision, 2026-10-05); slot limits
@@ -1846,7 +1850,9 @@ Every piece of text on the card is a **text box**. The host may:
   the artwork and recent colours first), alignment, letter spacing, line height and case;
 - give it a **text background** (owner decisions, 2026-10-07), or take it away: **None** (the
   default), **Highlight** (a band following each line), **Rounded box** (around the text block) or
-  **Soft backdrop** (feathered locally behind the text), with its colour, opacity and padding;
+  **Soft backdrop** (feathered locally behind the text), with its colour, opacity and padding —
+  the colour starts **Automatic** (light behind dark text, dark behind light, following the text's
+  colour), and once the host picks a colour it is kept exactly as chosen;
 - duplicate or delete it, and bring it forward or send it back;
 - add a new text box.
 
@@ -1957,9 +1963,9 @@ Choosing another design (before publish), or switching the card's shape:
   shape), and lays them out fresh in the new card's generated layout; positions, sizes, rotation
   and colours start from the new card (its starting text placement included), and the carried
   layout is saved as the new card's customization. A text background on a carried title,
-  invitation line or added box travels with it — its style, opacity and padding as chosen, its
-  colour re-picked against the new card's ink as when the host first turns one on — and fact boxes
-  take the new card's own styling, without one. A card the host has not edited has no customization and carries nothing: the new
+  invitation line or added box travels with it exactly as chosen — its style, colour, opacity and
+  padding; only a colour left on Automatic follows the new card's text colour (owner decision,
+  2026-10-07) — and fact boxes take the new card's own styling, without one. A card the host has not edited has no customization and carries nothing: the new
   card shows its own generated layout and wording. When the destination already has a
   customization, that customization is shown instead;
 - keeps every customization already made for another design or shape, so switching back restores
@@ -2645,7 +2651,9 @@ The host should feel:
   text), with colour, opacity and padding. The background's opacity never lowers the text's; it
   moves, rotates and reflows with its box when the text is moved, resized or re-broken; it can be
   removed on its own; it is saved with the box and drawn identically on the card and in link
-  previews; nothing adds one automatically.
+  previews; nothing adds one automatically. Its colour starts Automatic (following the text's
+  colour); a colour the host picks is kept as chosen, including when the words carry to another
+  design or shape, and only an Automatic colour is ever recoloured.
 - [ ] The artwork, outline and envelope cannot be edited, moving or resizing text never alters the
   artwork, and no images or graphics can be added.
 - [ ] On a 390px phone: tap selects, drag moves, pinch scales, twist rotates, double-tap types; the

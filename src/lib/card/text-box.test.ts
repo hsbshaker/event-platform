@@ -296,16 +296,36 @@ describe("carryWords", () => {
     );
     const layout = carryWords({ from, content: CONTENT, card: newCard() });
     const byId = (id: string) => layout.boxes.find((b) => b.id === id)!;
-    // Style, opacity and padding as chosen; the colour re-picked against the new card's light ink
-    // (#F4EEE2), so a white highlight carried onto light words becomes near-black.
-    expect(byId("title").background).toEqual({ ...hi, color: "#1B1B1F" });
-    expect(byId("invitationLine").background).toEqual({ ...hi, color: "#1B1B1F" });
+    // Exactly as chosen — style, colour, opacity and padding — even though the new card's ink is
+    // light (#F4EEE2): a colour the host chose is theirs, not re-picked.
+    expect(byId("title").background).toEqual(hi);
+    expect(byId("invitationLine").background).toEqual(hi);
     expect(byId("note-1").background).toEqual(box);
     // Facts take the new card's own styling, as their font does.
     expect(byId("date")).not.toHaveProperty("background");
     expect(byId("venue")).not.toHaveProperty("background");
     // Copies: the carried layout never shares an object with the card it came from.
     expect(byId("title").background).not.toBe(hi);
+  });
+
+  it("re-derives only an automatic background colour against the new card's ink", () => {
+    const auto = {
+      style: "box" as const,
+      color: "#FFFFFF",
+      autoColor: true as const,
+      opacity: 0.8,
+      padding: 20,
+    };
+    const chosen = { style: "box" as const, color: "#FFFFFF", opacity: 0.8, padding: 20 };
+    const from = hostCard([
+      customBox("note-1", "No gifts please", karla, { background: chosen }),
+    ]).map((b) => (b.id === "title" ? { ...b, background: auto } : b));
+    const layout = carryWords({ from, content: CONTENT, card: newCard() });
+    const byId = (id: string) => layout.boxes.find((b) => b.id === id)!;
+    // The new ink is light (#F4EEE2): the automatic white becomes near-black, still automatic.
+    expect(byId("title").background).toEqual({ ...auto, color: "#1B1B1F" });
+    // The chosen white is kept, whatever the new ink.
+    expect(byId("note-1").background).toEqual(chosen);
   });
 
   it("keeps an invitation line the host deleted absent", () => {

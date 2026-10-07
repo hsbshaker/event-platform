@@ -6,6 +6,7 @@
  */
 
 import {
+  automaticBackgroundColor,
   defaultTextBackground,
   TEXT_BACKGROUND_LIMITS,
   textBackgroundIssue,
@@ -32,8 +33,9 @@ export function choiceOf(value: TextBackground | undefined): TextBackgroundChoic
 
 /**
  * Choosing `choice`: None removes the background; a style from None starts from
- * `defaultTextBackground`; a style from another style keeps the chosen colour and takes the new
- * style's default opacity and padding; choosing the style already chosen changes nothing.
+ * `defaultTextBackground` (an automatic colour); a style from another style keeps the colour —
+ * chosen or automatic — and takes the new style's default opacity and padding; choosing the style
+ * already chosen changes nothing.
  */
 export function chooseStyle(
   current: TextBackground | undefined,
@@ -43,7 +45,28 @@ export function chooseStyle(
   if (choice === "none") return undefined;
   if (current && current.style === choice) return current;
   const starting = defaultTextBackground(choice, text);
-  return current ? { ...starting, color: current.color } : starting;
+  if (!current) return starting;
+  const { style, opacity, padding } = starting;
+  return {
+    style,
+    color: current.autoColor ? automaticBackgroundColor(text.color) : current.color,
+    ...(current.autoColor ? { autoColor: true as const } : {}),
+    opacity,
+    padding,
+  };
+}
+
+/** Choosing Automatic: the colour follows the box's text colour (`automaticBackgroundColor`). */
+export function setAutomaticColor(
+  current: TextBackground,
+  text: Pick<TextBackgroundText, "color">,
+): TextBackground {
+  return { ...current, color: automaticBackgroundColor(text.color), autoColor: true };
+}
+
+/** Choosing a colour (a swatch, or typed): the host's from now on, kept as chosen. */
+export function chooseColor(current: TextBackground, color: string): TextBackground {
+  return { style: current.style, color, opacity: current.opacity, padding: current.padding };
 }
 
 /** `#RRGGBB` from what the host typed (with or without `#`, any case), or null. */
@@ -56,11 +79,14 @@ export type SetColorResult = { ok: true; value: TextBackground } | { ok: false; 
 
 export const COLOR_ERROR = "Enter a colour as six hex digits, like #FFFFFF.";
 
-/** A typed colour: accepted when it is a hex colour `textBackgroundIssue` takes, else an error. */
+/**
+ * A typed colour: accepted when it is a hex colour `textBackgroundIssue` takes (and then the host's,
+ * no longer automatic), else an error.
+ */
 export function setColor(current: TextBackground, input: string): SetColorResult {
   const color = normalizeHex(input);
   if (!color) return { ok: false, error: COLOR_ERROR };
-  const value = { ...current, color };
+  const value = chooseColor(current, color);
   return textBackgroundIssue(value) ? { ok: false, error: COLOR_ERROR } : { ok: true, value };
 }
 

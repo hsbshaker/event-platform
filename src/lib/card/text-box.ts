@@ -20,10 +20,12 @@ import type { CardShape } from "./shapes";
 import { CARD_SLOT_IDS, type CardSlotId, type FactSlotId, type WordingSlotId } from "./slots";
 import { breakLines, linesSpell, type BrokenLines } from "./text/line-break";
 import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
-import { defaultTextBackground, type TextBackground } from "./text-background";
+import { followTextColor, type TextBackground } from "./text-background";
 
 export {
+  automaticBackgroundColor,
   defaultTextBackground,
+  followTextColor,
   TEXT_BACKGROUND_DARK,
   TEXT_BACKGROUND_LIGHT,
   TEXT_BACKGROUND_LIMITS,
@@ -267,9 +269,9 @@ export interface CarryWordsInput {
  * The title, the invitation line and every added (custom) box keep their text and fonts from
  * `from`; `layoutCard` places them in the new card's zone — the generated slots first, then the
  * added boxes in their order as extra body lines — and sizes and breaks them as usual. Positions,
- * rotation and colours come from the new card; a text background the host chose on one of those
- * boxes is kept with its words and font — its style, opacity and padding — in a colour re-picked
- * against the new card's ink. Added boxes that cannot all fit the zone at
+ * rotation and text colours come from the new card; a text background the host chose on one of
+ * those boxes is kept with its words and font — its style, colour, opacity and padding as chosen,
+ * except that an automatic colour follows the new card's ink. Added boxes that cannot all fit the zone at
  * minimum size are stacked below it, for the host to arrange. Facts come from `content`, in the new
  * card's own fact styling, without a background. An invitation line the host deleted stays absent:
  * the carried layout has no box for it.
@@ -297,10 +299,9 @@ export function carryWords({ from, content, card }: CarryWordsInput): CardTextLa
     },
   });
 
-  // The text background the host chose travels with the words and font of the same boxes: its
-  // style, opacity and padding as chosen, its colour re-picked against the new card's ink by the
-  // rule that picks it when the host turns one on — colours come from the new card (`spec.md
-  // §20.6`), and a white fill kept behind a new white ink would hide the words.
+  // The text background the host chose travels with the words and font of the same boxes, exactly
+  // as chosen — style, colour, opacity and padding. Only an automatic colour (`autoColor`) follows
+  // the new card's ink, as it follows any change of its box's text colour (`spec.md §20.6`).
   const backgroundOf = (box: TextBox): TextBackground | undefined => {
     if (box.source.kind === "wording") return wording(box.source.slot)?.background;
     if (box.source.kind === "custom") {
@@ -312,9 +313,7 @@ export function carryWords({ from, content, card }: CarryWordsInput): CardTextLa
     ...layout,
     boxes: layout.boxes.map((box) => {
       const background = backgroundOf(box);
-      if (!background) return box;
-      const { color } = defaultTextBackground(background.style, box);
-      return { ...box, background: { ...background, color } };
+      return background ? { ...box, background: followTextColor(background, box.color) } : box;
     }),
   };
 }

@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import { textBackgroundIssue, type TextBackground } from "@/lib/card/text-background";
 import {
   choiceOf,
+  chooseColor,
   chooseStyle,
   normalizeHex,
   opacityPercent,
   setColor,
   setOpacity,
+  setAutomaticColor,
   setPadding,
 } from "./text-background-control";
 
@@ -16,7 +18,13 @@ const DARK_TEXT = { color: "#1B1B1F", size: 100 };
 describe("chooseStyle", () => {
   it("starts a style from None with its defaults, and None removes the background", () => {
     const box = chooseStyle(undefined, "box", DARK_TEXT)!;
-    expect(box).toEqual({ style: "box", color: "#FFFFFF", opacity: 0.8, padding: 45 });
+    expect(box).toEqual({
+      style: "box",
+      color: "#FFFFFF",
+      autoColor: true,
+      opacity: 0.8,
+      padding: 45,
+    });
     expect(textBackgroundIssue(box)).toBeNull();
     expect(chooseStyle(box, "none", DARK_TEXT)).toBeUndefined();
     expect(chooseStyle(undefined, "none", DARK_TEXT)).toBeUndefined();
@@ -34,6 +42,17 @@ describe("chooseStyle", () => {
       color: "#AA3311",
       opacity: 0.65,
       padding: 60,
+    });
+  });
+
+  it("keeps an automatic colour automatic across a style switch", () => {
+    const auto = chooseStyle(undefined, "highlight", DARK_TEXT)!;
+    expect(chooseStyle(auto, "box", DARK_TEXT)).toEqual({
+      style: "box",
+      color: "#FFFFFF",
+      autoColor: true,
+      opacity: 0.8,
+      padding: 45,
     });
   });
 
@@ -56,6 +75,22 @@ describe("colour", () => {
       expect(normalizeHex(input)).toBe("#AABBCC");
       expect(setColor(base, input)).toEqual({ ok: true, value: { ...base, color: "#AABBCC" } });
     }
+  });
+
+  it("makes a chosen or typed colour the host's, and Automatic makes it follow the text again", () => {
+    const auto = chooseStyle(undefined, "box", DARK_TEXT)!;
+    const chosen = chooseColor(auto, "#AA3311");
+    expect(chosen).toEqual({ style: "box", color: "#AA3311", opacity: 0.8, padding: 45 });
+    expect(chosen).not.toHaveProperty("autoColor");
+    const typed = setColor(auto, "#FFFFFF");
+    expect(typed).toEqual({ ok: true, value: { ...chosen, color: "#FFFFFF" } });
+    const light = { color: "#F4EEE2", size: 100 };
+    expect(setAutomaticColor(chosen, light)).toEqual({
+      ...chosen,
+      color: "#1B1B1F",
+      autoColor: true,
+    });
+    expect(textBackgroundIssue(setAutomaticColor(chosen, light))).toBeNull();
   });
 
   it("refuses anything else", () => {

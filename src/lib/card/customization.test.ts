@@ -188,6 +188,42 @@ describe("boxesToStore", () => {
     expect(removed).toEqual({ ok: true, boxes: prev, rebroken: [] });
   });
 
+  it("derives an automatic background colour from the box's text colour, and stores a chosen one as sent", () => {
+    const prev = previous();
+    const title = prev.find((b) => b.id === "title")!;
+    // An automatic colour sent stale (white behind light text) is stored as the text's own.
+    const light = "#F4EEE2";
+    const auto = {
+      style: "box" as const,
+      color: "#FFFFFF",
+      autoColor: true as const,
+      opacity: 0.8,
+      padding: 20,
+    };
+    const chosen = { style: "box" as const, color: "#FFFFFF", opacity: 0.8, padding: 20 };
+    const result = save(
+      prev
+        .map(strip)
+        .map((b) =>
+          b.id === "title"
+            ? { ...b, color: light, background: auto }
+            : b.id === "date"
+              ? { ...b, color: light, background: chosen }
+              : b,
+        ),
+      SAVED,
+      prev,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.boxes.find((b) => b.id === "title")!.background).toEqual({
+      ...auto,
+      color: "#1B1B1F",
+    });
+    expect(result.boxes.find((b) => b.id === "date")!.background).toEqual(chosen);
+    expect(title.color).not.toBe(light);
+  });
+
   it("re-breaks a box whose width, font, size, spacing or case changed, and only it", () => {
     const prev = previous();
     const changes: Partial<EditorTextBox>[] = [
@@ -354,10 +390,28 @@ describe("carriedBoxesFrom", () => {
     );
     const carried = carriedBoxesFrom({ from: source, host: HOST, saved: SAVED, card: card() });
     const byId = (id: string) => carried.boxes.find((b) => b.id === id)!;
-    // Its colour comes from the new card: white behind the new light ink would hide the words.
+    // A colour the host chose is kept as chosen, whatever the new card's ink.
+    expect(byId("title").background).toEqual(background);
+    expect(byId("c1").background).toEqual(background);
+    expect(byId("date")).not.toHaveProperty("background");
+  });
+
+  it("re-derives an automatic background colour against the new card's ink", () => {
+    const background = {
+      style: "box" as const,
+      color: "#FFFFFF",
+      autoColor: true as const,
+      opacity: 0.8,
+      padding: 20,
+    };
+    const source = from().map((b) =>
+      b.id === "title" || b.id === "c1" ? { ...b, background } : b,
+    );
+    const carried = carriedBoxesFrom({ from: source, host: HOST, saved: SAVED, card: card() });
+    const byId = (id: string) => carried.boxes.find((b) => b.id === id)!;
+    // White behind the new light ink would hide the words: an automatic colour follows the ink.
     expect(byId("title").background).toEqual({ ...background, color: "#1B1B1F" });
     expect(byId("c1").background).toEqual({ ...background, color: "#1B1B1F" });
-    expect(byId("date")).not.toHaveProperty("background");
   });
 
   it("stores the linked boxes as a seed does: saved words only", () => {

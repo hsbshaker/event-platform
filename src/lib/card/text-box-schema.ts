@@ -90,15 +90,16 @@ const sourceSchema = z.discriminatedUnion("kind", [
 ]);
 
 /**
- * A text background (`text-background.ts`): exactly its four fields — an unknown key is
- * refused, never dropped — a known style, a canonical colour, an opacity above 0 and at most 1, and
- * padding within the limits. `color` maps the colour as given (the stored schema takes only
- * `#RRGGBB`; a save upper-cases a picker's lower-case hex first).
+ * A text background (`text-background.ts`): exactly its fields — an unknown key is refused, never
+ * dropped — a known style, a canonical colour, an opacity above 0 and at most 1, padding within the
+ * limits, and `autoColor` only as `true`. `color` maps the colour as given (the stored schema takes
+ * only `#RRGGBB`; a save upper-cases a picker's lower-case hex first).
  */
 function textBackgroundSchema(color: z.ZodType<string, string>) {
   return z.strictObject({
     style: z.enum(TEXT_BACKGROUND_STYLES),
     color,
+    autoColor: z.literal(true).optional(),
     opacity: finiteNumber.refine(
       (v) => v > TEXT_BACKGROUND_LIMITS.opacity.min && v <= TEXT_BACKGROUND_LIMITS.opacity.max,
       "must be above 0 and at most 1",
@@ -123,6 +124,7 @@ function copyBackground(background: TextBackground | undefined): Pick<TextBox, "
         background: {
           style: background.style,
           color: background.color,
+          ...(background.autoColor ? { autoColor: true as const } : {}),
           opacity: background.opacity,
           padding: background.padding,
         },

@@ -24,6 +24,7 @@ import {
   boxText,
   breakBoxText,
   carryWords,
+  followTextColor,
   isLinkedBox,
   sameBreakStyle,
   seedCustomization,
@@ -154,12 +155,14 @@ export function boxesToStore({
   const rebroken: string[] = [];
   const boxes = incoming.map((box, i): TextBox => {
     // Every field the editor sent, its text background included (absent: none), with no lines yet.
+    // An automatic background colour is derived here from the box's text colour, whatever the
+    // editor sent; a colour the host chose is stored as chosen.
     const shell: TextBox = {
       ...box,
       source: { ...box.source },
       font: { ...box.font },
       lines: [],
-      ...(box.background ? { background: { ...box.background } } : {}),
+      ...(box.background ? { background: followTextColor(box.background, box.color) } : {}),
     };
     const linked = isLinkedBox(shell);
     const text = boxText(shell, saved);

@@ -38,6 +38,7 @@ afterAll(async () => {
 interface StoredBackground {
   style: string;
   color: string;
+  autoColor?: true;
   opacity: number;
   padding: number;
 }
@@ -341,6 +342,10 @@ describe("the text background in the card editor fixture", () => {
         await page.getByRole("radio", { name: "Highlight" }).click();
         await waitStored(page, "title", `box.background && box.background.style === "highlight"`);
         await settled(page);
+        // A new background's colour starts on Automatic.
+        expect((await stored(page, "title")).background!.autoColor).toBe(true);
+        const automatic = page.locator("[data-text-background-auto]");
+        expect(await automatic.getAttribute("aria-pressed")).toBe("true");
 
         // The style group: arrow keys move the choice (and the one tab stop with it).
         await page.getByRole("radio", { name: "Highlight" }).focus();
@@ -388,6 +393,28 @@ describe("the text background in the card editor fixture", () => {
         await waitStored(page, "title", `box.background.color === "#112233"`);
         await settled(page);
         expect(await page.locator("#bg-hex-error").count()).toBe(0);
+
+        // A typed colour is the host's; Automatic hands it back to the text's contrast colour.
+        expect((await stored(page, "title")).background).not.toHaveProperty("autoColor");
+        expect(await automatic.getAttribute("aria-pressed")).toBe("false");
+        await automatic.click();
+        await waitStored(page, "title", "box.background.autoColor === true");
+        await settled(page);
+        const auto = (await stored(page, "title")).background!;
+        expect(["#FFFFFF", "#1B1B1F"]).toContain(auto.color);
+        expect(await automatic.getAttribute("aria-pressed")).toBe("true");
+        // A swatch makes it the host's again, pressed only while chosen.
+        const swatch = page.locator("[data-text-background-swatch]").first();
+        const swatchColour = await swatch.getAttribute("data-text-background-swatch");
+        await swatch.click();
+        await waitStored(
+          page,
+          "title",
+          `box.background.color === "${swatchColour}" && !box.background.autoColor`,
+        );
+        await settled(page);
+        expect(await swatch.getAttribute("aria-pressed")).toBe("true");
+        expect(await automatic.getAttribute("aria-pressed")).toBe("false");
 
         // Every control of the editor is at least 44px in both directions.
         const small = await page.evaluate(() =>

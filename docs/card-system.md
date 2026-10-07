@@ -489,10 +489,20 @@ shape the artwork fits (§2.4), computed once per artwork (`src/lib/card/text-sp
    at least three points better. Sizes and line breaks never change, so fit (§4.3) is untouched.
 5. **Colour.** At that position, the first candidate in order whose readable share is within one
    point of the best.
-6. **Workable space.** The space is workable when the chosen readable share is at least 85%. A
-   tiny empty patch does not qualify, because the whole starting text must sit in it at readable
-   sizes. Only an artwork with no workable space on a shape it was painted for is reconsidered,
-   with one repaint (§3); the image whose share is higher is kept. Nothing here calls a model.
+6. **Workable space.** The space is scored workable when the chosen readable share is at least
+   85%. A tiny empty patch does not qualify, because the whole starting text must sit in it at
+   readable sizes. An artwork scored below that on a shape it was painted for is reconsidered once,
+   with one repaint (§3); the image whose share is higher is kept, and the card ships with it.
+   Nothing here calls a model.
+
+The 95% and 85% bars and the three-point split margin are **provisional, tunable heuristics**
+(owner decision, 2026-10-07), not rules about the picture. A score below 85%, and text crossing an
+illustrated object, are never failures; they never bring back a panel, a fade, moved artwork or an
+overlap restriction. The score cannot tell "below the threshold" — workable space the measurement
+or the vertical-only search missed — from "genuinely no workable space"; people judge that on the
+raw artwork and the final card side by side (`model-contracts.md §7.4`, CA-03), and an artwork with
+genuinely no workable space is recorded as an **unresolved generation case**, never counted as
+meeting the bar because the host could fix it in the editor.
 
 Nothing is ever drawn over the artwork to correct for text, and the artwork is never moved: no
 legibility panel, cream background, broad fade or wash; no slide, zoom, crop or separate picture
@@ -508,7 +518,9 @@ shift is applied only while every line, so moved, still lies inside the shape's 
 otherwise the words sit where the layout puts them. The host's view (with placeholders) and a
 guest's (saved facts only) are laid out separately, so the one can keep the shift while the other
 falls back; each is drawn the same way every time, and Preview shows the guest's. A carried layout that overflows its zone, or
-stacks added text below it, is not moved. Telemetry records, per fitted shape, the readable share,
+stacks added text below it, is not moved. This rule is for the automatic starting placement only:
+a box the host has placed is drawn exactly where they put it, inside the text-safe area or not, and
+nothing moves it (owner decision, 2026-10-07). Telemetry records, per fitted shape, the readable share,
 whether it was workable and the shift (`textSpace`), and `no-text-space` when the one repaint was
 made (`spec.md §9.5`).
 
@@ -679,9 +691,10 @@ added text boxes keep their text and fonts; `layoutCard` places
 them in the new layout's text zone — the generated slots first, then added boxes in their order,
 as extra body lines — and sizes and breaks them as usual; positions, rotation and colours come
 from the new card (its resolved ink, and its stored starting shift under the rule of §4.2). A text
-background on a carried title, invitation line or added box keeps its style, opacity and padding,
-its colour re-picked against the new card's ink by the rule that picks it when the host turns one
-on (a white fill kept behind a new white ink would hide the words); fact boxes carry none. In the pairing's own faces the title and invitation line
+background on a carried title, invitation line or added box keeps its style, colour, opacity and
+padding exactly as chosen; only a colour left automatic (`autoColor`) is derived again from the new
+text colour, as it is whenever its box's text colour changes (owner decision, 2026-10-07: a colour
+the host chose is theirs, even where it no longer contrasts); fact boxes carry none. In the pairing's own faces the title and invitation line
 always fit, because they keep their slot limits; a carried host font wide enough not to fit at
 minimum size is set at minimum size and runs below the zone, and when the added boxes cannot all
 fit the zone at minimum size, the overflowing added boxes are stacked below the zone — host
@@ -698,8 +711,8 @@ optional background, which the host adds and removes; nothing adds one automatic
 generation, and not the editor when a box is moved or resized. Styles: **None** (the default: the
 field is absent), **Highlight** (a band behind each line), **Rounded box** (one rectangle around
 the text block) and **Soft backdrop** (that rectangle, feathered locally); organic shapes may follow
-later. Each has a colour (`#RRGGBB`), an opacity (above 0, at most 1) and a padding (0–120 card
-units). The background is derived when the card is drawn from the box's own geometry and stored
+later. Each has a colour (`#RRGGBB`, marked automatic or the host's — below), an opacity (above 0,
+at most 1) and a padding (0–120 card units). The background is derived when the card is drawn from the box's own geometry and stored
 lines — never stored as pixels — so it moves, rotates and resizes with its box and follows its
 lines when the text is resized or re-broken. Its opacity is the fill's alpha only; the text keeps
 its own colour and opacity. It is drawn inside the box, behind that box's lines, within the card's
@@ -709,9 +722,13 @@ line's set width wᵢ placed by its alignment at oᵢ; p = padding): a highlight
 [minᵢ oᵢ − p, maxᵢ (oᵢ + wᵢ) + p] by [−p, n·L + p] with corner radius min(0.5·p + 0.12·size, half its
 smaller side); a soft backdrop is that rectangle unrounded, blurred with a Gaussian of standard
 deviation max(4, 0.6·p). The card component and the link-preview SVG draw the same geometry, held
-together by a fixture. When the host first picks a style its colour contrasts with the box's text
-(white behind dark text, near-black behind light), at opacity 0.85 (highlight), 0.8 (box) or 0.65
-(backdrop), with padding scaled to the text size.
+together by a fixture. When the host first picks a style its colour is **automatic**
+(`autoColor: true`): white behind text of relative luminance below 0.4, near-black behind lighter
+text, derived again by the save whenever the box's text colour changes and when the words carry to
+another design or shape. Choosing a swatch or typing a colour makes it the host's (`autoColor`
+absent), kept exactly as chosen through every edit and carry; choosing Automatic again hands it back.
+It starts at opacity 0.85 (highlight), 0.8 (box) or 0.65 (backdrop), with padding scaled to the text
+size.
 
 **What the host's edits are not checked for** (owner decision, `spec.md §20.1`): contrast, a box
 crossing the outline (clipped as guests will see it), overlap with the artwork's subject. The

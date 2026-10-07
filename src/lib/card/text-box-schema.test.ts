@@ -154,6 +154,10 @@ describe("parseStoredBoxes", () => {
         id: "added-3",
         background: { style: "backdrop", color: "#F4EEE2", opacity: 0.01, padding: 120 },
       }),
+      custom({
+        id: "added-4",
+        background: { style: "box", color: "#1B1B1F", autoColor: true, opacity: 0.8, padding: 9 },
+      }),
     ];
     const parsed = parseStoredBoxes(JSON.parse(JSON.stringify(boxes)));
     expect(parsed).toEqual({ ok: true, boxes });
@@ -183,6 +187,8 @@ describe("parseStoredBoxes", () => {
       { ...ok, padding: 121 },
       { ...ok, padding: "20" },
       { ...ok, url: "javascript:alert(1)" },
+      { ...ok, autoColor: false },
+      { ...ok, autoColor: "yes" },
       { style: "box", color: "#FFFFFF", opacity: 0.8 },
     ];
     for (const background of bad) {

@@ -14,6 +14,7 @@ import { allCuratedMetrics } from "@/lib/card/text/test-fonts";
 import {
   activeCard,
   carriedWords,
+  customizedText,
   rebreakEventCustomizations,
   storeCarriedWords,
   storeCarriedWordsAsServer,
@@ -268,6 +269,57 @@ describe("rebreakEventCustomizations", () => {
   it("reads nothing more for an event with no customization", async () => {
     expect(await rebreakEventCustomizations(client(), EVENT)).toEqual({ updated: 0, failed: 0 });
     expect(fake.state.log).toEqual(["select:card_customizations"]);
+  });
+});
+
+describe("customizedText", () => {
+  it("draws the host's boxes where the host put them: the starting-text placement rules never move them", async () => {
+    const seed = seededFor(A);
+    // Moved by the host far outside the text-safe area, partly off the card, rotated, with a
+    // chosen background: the automatic placement's safe-area rule (`shiftFits`) is for the
+    // generated starting text only.
+    const placed = seed.map((b) =>
+      b.id === "title"
+        ? {
+            ...b,
+            x: -40,
+            y: 1320,
+            rotation: -8,
+            background: { style: "box" as const, color: "#FFFFFF", opacity: 0.8, padding: 20 },
+          }
+        : b,
+    );
+    const saved = guestCardContent({
+      wording: { title: "A Little Wild One", invitationLine: "Please join us for a baby shower" },
+      event: {
+        babyName: null,
+        hosts: "Hosted by Maya & Tom",
+        eventDate: "2026-06-06",
+        startTime: "13:00",
+        endTime: null,
+        venueName: "The Willow House",
+        address: null,
+        rsvpDeadline: null,
+        timezone: "America/New_York",
+      },
+    });
+    const { boxes } = await customizedText(placed, saved);
+    const title = byId(boxes, "title");
+    expect({ x: title.x, y: title.y, rotation: title.rotation }).toEqual({
+      x: -40,
+      y: 1320,
+      rotation: -8,
+    });
+    expect(title.background).toEqual(byId(placed, "title").background);
+    for (const box of boxes) {
+      const before = byId(placed, box.id);
+      expect([box.x, box.y, box.width, box.rotation]).toEqual([
+        before.x,
+        before.y,
+        before.width,
+        before.rotation,
+      ]);
+    }
   });
 });
 
