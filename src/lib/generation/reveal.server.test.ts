@@ -6,7 +6,7 @@ import type { FakeAdmin } from "../../../tests/unit/support/fake-admin";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { InvalidCardDataError } from "@/lib/card/card-data";
-import { panelFor } from "@/lib/card/layouts";
+import { storedPanelShape } from "@/lib/card/test-panels";
 import type { TextBox } from "@/lib/card/text-box";
 
 /**
@@ -242,7 +242,7 @@ describe("loadRevealedCard", () => {
   });
 
   it("draws the active shape from the newest artwork that fits it, with its persisted panel", async () => {
-    const panel = panelFor("art-top", "square");
+    const panel = storedPanelShape("art-top", "square");
     admin.fake.state.tables.events = [eventRow({ active_card_shape: "square" })];
     admin.fake.state.tables.card_art_assets = [
       artRow(),
@@ -308,6 +308,50 @@ describe("loadRevealedCard", () => {
     }
   });
 
+  it("starts the generated words where the artwork's stored shift puts them (card_compiler_v7)", async () => {
+    const shift = { heading: -60, details: -40 };
+    admin.fake.state.tables.card_art_assets = [
+      artRow({
+        ink: Object.fromEntries(PORTRAIT.map((s) => [s, { text: { ink: INK, shift } }])),
+      }),
+    ];
+    const revealed = await load();
+    expect(revealed!.card.panels).toEqual([]);
+    const content = {
+      title: "Lemons & Linen",
+      invitationLine: "Please join us for a garden shower",
+      babyName: "Maya Lopez",
+      hosts: null,
+      date: "December 19",
+      time: "1:00 pm",
+      venue: "Villa Rosa",
+      rsvpBy: null,
+    };
+    const base = {
+      layout: "art-top",
+      shape: "rectangle",
+      pairing: "oldstyle_garamond_worksans",
+      content,
+      ink: INK,
+    } as const;
+    const plain = await generatedTextLayer(base);
+    expect(revealed!.card.boxes).toEqual(await generatedTextLayer({ ...base, shift }));
+    const y = (boxes: TextBox[], id: string) => boxes.find((b) => b.id === id)!.y;
+    expect(y(revealed!.card.boxes, "title")).toBeCloseTo(y(plain, "title") - 60, 3);
+    expect(y(revealed!.card.boxes, "venue")).toBeCloseTo(y(plain, "venue") - 40, 3);
+  });
+
+  it("refuses a malformed stored shift rather than drawing the words somewhere else", async () => {
+    admin.fake.state.tables.card_art_assets = [
+      artRow({
+        ink: Object.fromEntries(
+          PORTRAIT.map((s) => [s, { text: { ink: INK, shift: { heading: "up", details: 0 } } }]),
+        ),
+      }),
+    ];
+    await expect(load()).rejects.toThrow(/text placement for the rectangle card is malformed/);
+  });
+
   it("draws a card_layouts_v2 panel as it was persisted, with no fade", async () => {
     const v2Panel = {
       x: 30,
@@ -354,7 +398,11 @@ describe("loadRevealedCard", () => {
       artRow({
         ink: {
           rectangle: {
-            text: { ink: INK, panel: panelFor("art-top", "rectangle"), panelColor: "white" },
+            text: {
+              ink: INK,
+              panel: storedPanelShape("art-top", "rectangle"),
+              panelColor: "white",
+            },
           },
         },
       }),

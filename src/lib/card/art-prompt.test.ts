@@ -40,7 +40,7 @@ const design = (
 const ALWAYS = [
   "Absolutely no text of any kind: no letters, words, numbers, initials, monograms, signatures, labels, logos, wordmarks, crests or watermarks anywhere in the image.",
   "This is the artwork itself, filling the canvas — not a mockup: no photograph of a printed card, no envelope, table edge, hands, shadows of paper or frame around the canvas. The artwork may itself be a photograph when the rendering says so.",
-  "The calm area will carry typeset text that is added later, so leave it genuinely clear — but do not leave the rest of the card empty.",
+  "The quieter area will carry the invitation's words, set later as type: keep its detail low enough for words to read clearly over it. It need not be empty, white or flat, and the rest of the card should not be empty.",
 ];
 const CORNER_LINE =
   "The trimming is done later by the printer: carry the background all the way into every corner and edge of the canvas. Do not draw the outline itself, a vignette, a border line or blank corners.";
@@ -59,9 +59,9 @@ describe("the revision prompt (card_art_v5, model-contracts §7.2)", () => {
   });
 });
 
-describe("card_art_v6", () => {
+describe("card_art_v7", () => {
   it("is versioned", () => {
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v6");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v7");
     expect(ART_RASTER_SIZE).toEqual({ "5:7": "1440x2016", "1:1": "1440x1440" });
   });
 
@@ -81,7 +81,7 @@ describe("card_art_v6", () => {
     expect(p).toContain("Palette: warm honey and dusty rose (#F2D7A0, #C98B8B, #FFF8EE).");
     // An arch gives the picture 40% of the card (card_layouts_v2).
     expect(p).toContain(
-      "Composition: Place the subject in the upper 40% of the canvas. Keep the lower part of the canvas — the bottom 60% — completely clear",
+      "Composition: Place the subject in the upper 40% of the canvas. Let the lower part of the canvas — the bottom 60% — be a quieter area for the invitation's words, with low detail",
     );
     expect(p).toContain("it fills most of the upper 40%");
     // The artwork fits the arch and the oval, so it obeys the oval's crop.
@@ -358,20 +358,37 @@ describe("brief fields in the prompt", () => {
   });
 });
 
-describe("the repaint composition line (card_art_v4, owner decision 2026-10-05)", () => {
-  it("adds one line to a repaint of art with a subject, and nothing to a wash", () => {
+describe("the repaint composition line (card_art_v7, owner decision 2026-10-07)", () => {
+  it("adds one line to a repaint, whatever the art mode", () => {
     const prompt = "line one\nline two";
-    for (const mode of ["illustration", "framed"] as const) {
-      expect(withRepaintComposition(prompt, mode)).toBe(`${prompt}\n${REPAINT_COMPOSITION}`);
-    }
-    for (const mode of ["atmosphere", "minimal"] as const) {
-      expect(withRepaintComposition(prompt, mode)).toBe(prompt);
-    }
-    expect(REPAINT_COMPOSITION).toMatch(/calm area kept for the words/);
+    expect(withRepaintComposition(prompt)).toBe(`${prompt}\n${REPAINT_COMPOSITION}`);
+    expect(REPAINT_COMPOSITION).toBe(
+      "Leave a generous, quieter part of the picture for the invitation's words — low detail, such as open sky, a wall, a plain surface or the paper — and keep the subject's main features out of it.",
+    );
     // It never refers to an earlier image: on a shape switch the reference is the one to keep.
     expect(REPAINT_COMPOSITION).not.toMatch(/previous|last|earlier|reference|attempt/i);
     expect(REPAINT_COMPOSITION).not.toMatch(
       /\b(text|letters?|words?) (in|on) the (image|picture)\b/i,
     );
+  });
+});
+
+describe("the quieter area for the words (card_art_v7, owner decision 2026-10-07)", () => {
+  it("never asks for a completely clear, calm or empty area any more", () => {
+    for (const [layout, artMode, shape] of [
+      ["art-top", "illustration", "rectangle"],
+      ["art-top", "illustration", "square"],
+      ["art-bottom", "illustration", "rectangle"],
+      ["art-bottom", "illustration", "oval"],
+      ["cover-top", "illustration", "rectangle"],
+      ["cover-bottom", "illustration", "square"],
+      ["framed", "framed", "circle"],
+      ["corners", "illustration", "square"],
+      ["atmosphere", "atmosphere", "oval"],
+    ] as const) {
+      const p = assembleArtPrompt(design(shape, layout, artMode));
+      expect(p, `${layout}/${shape}`).not.toMatch(/completely clear|genuinely clear|calm and open/);
+      expect(p, `${layout}/${shape}`).toMatch(/quieter|quiet/);
+    }
   });
 });

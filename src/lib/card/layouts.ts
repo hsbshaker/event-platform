@@ -1,10 +1,19 @@
 /**
- * The layout set `card_layouts_v6` (`docs/card-system.md §2.3`); the covers since v5 (v4 and v5,
- * the art giving way by crop and plate, were withdrawn before release; owner decision 2026-10-07).
+ * The layout set `card_layouts_v7` (`docs/card-system.md §2.3`). The covers arrived in v6 (v4 and
+ * v5, the art giving way by crop and plate, were withdrawn before release; owner decision
+ * 2026-10-07).
+ *
+ * `card_layouts_v7` (owner decision 2026-10-07: generated cards are editable starting designs)
+ * drops the legibility panel from the catalog — no new card gets one — and asks the artwork for a
+ * *quieter* area for the words rather than a completely clear one: low detail, in whatever suits
+ * the design (sky, a wall, brick, fabric, a gradient, a texture, the paper), with the subject's
+ * main features kept out of it. Bands, zones and presence are those of `card_layouts_v6`. Panels
+ * persisted with earlier artwork keep their stored geometry and are drawn as stored
+ * (`card-data.ts`, `PanelFade` below); they are never re-resolved (`spec.md §32 #27`).
  *
  * `card_layouts_v1` was ported from the catalog validated in Phase 3 (`scripts/phase-3/catalog.mjs`),
  * with two fixes that landed before any card was made from it: `zoneFor` also checks the band's
- * bottom edge, and each layout's legibility-panel shape (`PanelSpec`). `card_layouts_v2` carries the
+ * bottom edge, and each layout's legibility-panel shape. `card_layouts_v2` carries the
  * owner's fit decisions (`docs/CHANGELOG-v7.md`, "Phase 4 — fitting every detail on every card"),
  * proven by the layout fixtures with worst-case content in every layout × shape × pairing:
  * - on `square`, `oval` and `arch`, a picture above or below the words takes roughly 40% of the
@@ -18,7 +27,7 @@
  *
  * `card_layouts_v3` changes only the legibility panel (owner verdict on round-three CU-08,
  * 2026-10-05: the panel read as a box laid over the picture): it fades into the artwork instead of
- * ending at a soft-edged rounded rectangle (`PanelSpec.fade`). Bands, zones, composition and
+ * ending at a soft-edged rounded rectangle (`PanelFade`). Bands, zones, composition and
  * presence are those of `card_layouts_v2`. A panel persisted with `card_layouts_v2` artwork has no
  * `fade` and is still drawn as it was (`card-data.ts`); persisted ink and panels are never
  * re-resolved (`spec.md §32 #27`).
@@ -69,9 +78,9 @@ export interface LayoutArt {
   /** How much presence the artwork wants (goes into the art prompt verbatim). */
   presence: string;
   /**
-   * For a picture above or below the words: the part of the canvas the composition keeps
-   * completely clear, as a share of the canvas height measured from one edge. The composition
-   * names the same share, and the band lies inside it (`layouts.test.ts`).
+   * For a picture above or below the words: the part of the canvas the composition keeps quieter
+   * for the words, as a share of the canvas height measured from one edge. The composition names
+   * the same share, and the band lies inside it (`layouts.test.ts`).
    */
   clear?: { edge: "top" | "bottom"; percent: number };
 }
@@ -85,83 +94,30 @@ export interface CardLayout {
   maxWidth: number;
   /** Per supported shape: the text band and the art instructions. */
   art: Readonly<Partial<Record<CardShape, LayoutArt>>>;
-  /** The legibility panel's shape, used only when ink resolution needs it (`panelFor`). */
-  panel: PanelSpec;
 }
 
 /**
- * How a layout's legibility panel gives way to the picture (`card_layouts_v3`). The paper is the
- * panel colour throughout, opaque over the panel's rectangle, then eased to transparent
- * (`PANEL_FADE_STOPS`, `card-data.ts`):
+ * How a persisted legibility panel gives way to the picture (`card_layouts_v3`–`v6`; no layout
+ * makes one since `card_layouts_v7`, and stored panels are drawn as stored: `card-data.ts`
+ * `CardPanel`, `card-record.server.ts` `zoneInk`). The paper is the panel colour throughout,
+ * opaque over the panel's rectangle, then eased to transparent (`PANEL_FADE_STOPS`, `card-data.ts`):
  *
  * - `edge` — for words at one end of the card and the picture at the other: the paper runs the
  *   card's full width from the edge named by `from` to the far side of the text zone (plus the
- *   padding), then fades over `length` card units toward the picture, so the background blends
- *   into paper rather than a box sitting on it;
+ *   padding), then fades over `length` card units toward the picture;
  * - `wash` — for words in the middle: the paper covers the zone plus the padding and feathers out
  *   over `feather` card units on every side, with no visible boundary.
  */
 export type PanelFade =
   { kind: "edge"; from: "top" | "bottom"; length: number } | { kind: "wash"; feather: number };
 
-/**
- * A layout's legibility-panel shape (`docs/card-system.md §2.2`, §2.3, §4.2), in card units. The
- * opaque paper covers at least the text zone padded by `padX` across and `padY` down (the Phase 3
- * mock's padding, `scripts/phase-3/compose.mjs`), then fades (`fade`). It is drawn opaque, because
- * ink is resolved against the panel's own colour (`resolveInk`) and contrast is only what was
- * measured if nothing shows through behind the text: every text of the zone sits on the opaque
- * part (`layouts.test.ts`, the layout fixtures).
- *
- * `card_layouts_v2` drew the zone ± padding as a rounded rectangle (radius 28) with a soft edge
- * (`box-shadow: 0 0 40 20`); panels persisted with it keep those fields and render unchanged.
- */
-export interface PanelSpec {
-  /** Padding beyond the zone on the left and right (a `wash` panel; an `edge` spans the card). */
-  padX: number;
-  /** Padding beyond the zone above and below. */
-  padY: number;
-  fade: PanelFade;
-}
-
-/**
- * Fade lengths, card units. `edge`: 180, about an eighth of a 5:7 card's height. The opaque paper
- * ends at the boundary of the region the composition keeps clear or up to 10 units inside it, so
- * the fade runs 170–180 units into the picture's part of the card: long enough to read as the sky
- * or background turning to paper, short enough to leave most of the subject. `wash`: 70 (owner
- * decision, 2026-10-05, from 140, 100 and 70 rendered on round-three cards): on a dark frame a
- * wider feather reads as fog over the knit and the subject, while 70 keeps the frame crisp and
- * still reads as soft light on a light one.
- */
-const EDGE_FADE_LENGTH = 180;
-const WASH_FEATHER = 70;
-
-/** Words above, picture below: paper from the top edge down, fading toward the picture. */
-const PANEL_FROM_TOP: PanelSpec = {
-  padX: 40,
-  padY: 30,
-  fade: { kind: "edge", from: "top", length: EDGE_FADE_LENGTH },
-};
-
-/** Picture above, words below: paper from the bottom edge up, fading toward the picture. */
-const PANEL_FROM_BOTTOM: PanelSpec = {
-  padX: 40,
-  padY: 30,
-  fade: { kind: "edge", from: "bottom", length: EDGE_FADE_LENGTH },
-};
-
-/** Words in the middle: the padded zone, feathered out on every side. */
-const PANEL_WASH: PanelSpec = {
-  padX: 40,
-  padY: 30,
-  fade: { kind: "wash", feather: WASH_FEATHER },
-};
-
-// Art instructions shared by several shapes. The half-card wording for a picture above or below
-// the words is Phase 3's, unchanged; the 40% wording keeps its tone.
+// Art instructions shared by several shapes. Since `card_layouts_v7` the words' part of the
+// canvas is quieter, not empty: low detail in whatever suits the design, the subject's main
+// features kept out of it (owner decision 2026-10-07). The 40% wording follows the half-card one.
 
 const PICTURE_ABOVE_HALF = {
   composition:
-    "Place the subject in the upper half of the canvas. Keep the lower part of the canvas — the bottom 45% — completely clear: nothing from the subject (feet, paws, tails, ribbons, fabric, shadows, foliage) crosses into it; only the paper, wash or a very soft continuation of the background texture.",
+    "Place the subject in the upper half of the canvas. Let the lower part of the canvas — the bottom 45% — be a quieter area for the invitation's words, with low detail: whatever suits this design, such as sky, a wall, brick, a floor, fabric, a soft gradient, a gentle texture, a solid colour or the paper itself. Keep the subject's main features out of it; supporting details may reach a little way in. Unless the design calls for one, there is no hard edge or separate band between it and the picture.",
   presence:
     "The subject is large and confident: it fills most of the upper half, with supporting elements that may trail a little way down the sides. It must not shrink to a small vignette floating in empty space.",
   clear: { edge: "bottom", percent: 45 },
@@ -169,7 +125,7 @@ const PICTURE_ABOVE_HALF = {
 
 const PICTURE_ABOVE_40 = {
   composition:
-    "Place the subject in the upper 40% of the canvas. Keep the lower part of the canvas — the bottom 60% — completely clear: nothing from the subject (feet, paws, tails, ribbons, fabric, shadows, foliage) crosses into it; only the paper, wash or a very soft continuation of the background texture.",
+    "Place the subject in the upper 40% of the canvas. Let the lower part of the canvas — the bottom 60% — be a quieter area for the invitation's words, with low detail: whatever suits this design, such as sky, a wall, brick, a floor, fabric, a soft gradient, a gentle texture, a solid colour or the paper itself. Keep the subject's main features out of it; supporting details may reach a little way in. Unless the design calls for one, there is no hard edge or separate band between it and the picture.",
   presence:
     "The subject is large and confident: it fills most of the upper 40%, with supporting elements that may trail a little way down the sides. It must not shrink to a small vignette floating in empty space.",
   clear: { edge: "bottom", percent: 60 },
@@ -177,7 +133,7 @@ const PICTURE_ABOVE_40 = {
 
 const PICTURE_BELOW_HALF = {
   composition:
-    "Ground the subject along the bottom of the canvas, rising through the lower half. Keep the upper part of the canvas — the top 45% — completely clear: nothing from the subject (leaves, steam, branches, shadows) rises into it; only paper, wash or soft sky.",
+    "Ground the subject along the bottom of the canvas, rising through the lower half. Let the upper part of the canvas — the top 45% — be a quieter area for the invitation's words, with low detail: whatever suits this design, such as sky, a wall, a ceiling, fabric, a soft gradient, a gentle texture, a solid colour or the paper itself. Keep the subject's main features out of it; supporting details may rise a little way in. Unless the design calls for one, there is no hard edge or separate band between it and the picture.",
   presence:
     "The subject is generous and fills most of the lower half, edge to edge where it suits it. It must not shrink to a small object in empty space.",
   clear: { edge: "top", percent: 45 },
@@ -185,7 +141,7 @@ const PICTURE_BELOW_HALF = {
 
 const PICTURE_BELOW_40 = {
   composition:
-    "Ground the subject along the bottom of the canvas, rising through the lower 40%. Keep the upper part of the canvas — the top 60% — completely clear: nothing from the subject (leaves, steam, branches, shadows) rises into it; only paper, wash or soft sky.",
+    "Ground the subject along the bottom of the canvas, rising through the lower 40%. Let the upper part of the canvas — the top 60% — be a quieter area for the invitation's words, with low detail: whatever suits this design, such as sky, a wall, a ceiling, fabric, a soft gradient, a gentle texture, a solid colour or the paper itself. Keep the subject's main features out of it; supporting details may rise a little way in. Unless the design calls for one, there is no hard edge or separate band between it and the picture.",
   presence:
     "The subject is generous and fills most of the lower 40%, edge to edge where it suits it. It must not shrink to a small object in empty space.",
   clear: { edge: "top", percent: 60 },
@@ -193,12 +149,12 @@ const PICTURE_BELOW_40 = {
 
 const FRAME = {
   composition:
-    "Arrange the artwork as a border, wreath, garland or frame running around the outer part of the canvas. Keep the central area (roughly the middle 60% of the width and the middle 45% of the height) calm and open: soft background only.",
+    "Arrange the artwork as a border, wreath, garland or frame running around the outer part of the canvas. Keep the central area (roughly the middle 60% of the width and the middle 45% of the height) quieter, for the invitation's words: background, paper or a gentle texture with low detail.",
   presence:
     "The frame is rich and substantial — a generous band of detail around all sides, not a thin line — unless the mode is minimal, where it is a refined, delicate border.",
 } as const;
 
-/** On square cards the text band is 260–740, so the calm centre is stated as the middle 50%. */
+/** On square cards the text band is 260–740, so the quieter centre is stated as the middle 50%. */
 const FRAME_SQUARE = {
   ...FRAME,
   composition: FRAME.composition.replace(
@@ -209,7 +165,7 @@ const FRAME_SQUARE = {
 
 const CORNER_CLUSTERS = {
   composition:
-    "Cluster the artwork in at least two corners (for example top-left and bottom-right, or all four), flowing a little along the edges. Keep the centre of the canvas (roughly a vertical oval covering the middle 60% of the width and 45% of the height) calm and open.",
+    "Cluster the artwork in at least two corners (for example top-left and bottom-right, or all four), flowing a little along the edges. Keep the centre of the canvas (roughly a vertical oval covering the middle 60% of the width and 45% of the height) quieter, with low detail, for the invitation's words.",
   presence:
     "Each corner cluster is substantial — roughly a quarter to a third of the card's width and height — and full of detail. Do not reduce the artwork to a few small props around an empty field.",
 } as const;
@@ -230,13 +186,13 @@ const WASH = {
 } as const;
 
 // The cover layouts (`card_layouts_v6`, owner decisions 2026-10-06): one full-bleed scene with the
-// words set in a calm band of it, as on a record sleeve or a poster. The band is the scene's own
-// backdrop, not paper; the shares match the picture layouts' so the zones are theirs. The text
-// never names the format: an image model asked for a cover or poster letters it.
+// words set in a quieter stretch of it, as on a record sleeve or a poster. That stretch is the
+// scene's own backdrop, not paper; the shares match the picture layouts' so the zones are theirs.
+// The text never names the format: an image model asked for a cover or poster letters it.
 
 const COVER_WORDS_ABOVE_HALF = {
   composition:
-    "Fill the whole canvas edge to edge with one scene. Ground one or two bold subjects in the lower 55% of the canvas, large and close, free to run off the bottom and sides; keep the top 45% as the scene's own calm backdrop — open sky, a plain wall or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+    "Fill the whole canvas edge to edge with one scene. Ground one or two bold subjects in the lower 55% of the canvas, large and close, free to run off the bottom and sides; let the top 45% be a quieter stretch of the same scene for the words — open sky, a wall or a deep field of colour, with low detail. Keep the subjects' main features out of it.",
   presence:
     "Bold and graphic: strong shapes, confident contrast and a few large elements given room to stand out. The subjects are big and close; nothing shrinks to a small vignette, and there is no border, frame or paper margin anywhere.",
   clear: { edge: "top", percent: 45 },
@@ -244,21 +200,21 @@ const COVER_WORDS_ABOVE_HALF = {
 
 const COVER_WORDS_ABOVE_40 = {
   composition:
-    "Fill the whole canvas edge to edge with one scene. Ground one or two bold subjects in the lower 40% of the canvas, large and close, free to run off the bottom and sides; keep the top 60% as the scene's own calm backdrop — open sky, a plain wall or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+    "Fill the whole canvas edge to edge with one scene. Ground one or two bold subjects in the lower 40% of the canvas, large and close, free to run off the bottom and sides; let the top 60% be a quieter stretch of the same scene for the words — open sky, a wall or a deep field of colour, with low detail. Keep the subjects' main features out of it.",
   presence: COVER_WORDS_ABOVE_HALF.presence,
   clear: { edge: "top", percent: 60 },
 } as const;
 
 const COVER_WORDS_BELOW_HALF = {
   composition:
-    "Fill the whole canvas edge to edge with one scene. One or two bold subjects fill the upper 55% of the canvas, large and close, free to run off the top and sides; keep the bottom 45% as the scene's own calm ground or backdrop — a plain floor, still water or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+    "Fill the whole canvas edge to edge with one scene. One or two bold subjects fill the upper 55% of the canvas, large and close, free to run off the top and sides; let the bottom 45% be a quieter stretch of the same scene for the words — a floor, still water or a deep field of colour, with low detail. Keep the subjects' main features out of it.",
   presence: COVER_WORDS_ABOVE_HALF.presence,
   clear: { edge: "bottom", percent: 45 },
 } as const;
 
 const COVER_WORDS_BELOW_40 = {
   composition:
-    "Fill the whole canvas edge to edge with one scene. One or two bold subjects fill the upper 40% of the canvas, large and close, free to run off the top and sides; keep the bottom 60% as the scene's own calm ground or backdrop — a plain floor, still water or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+    "Fill the whole canvas edge to edge with one scene. One or two bold subjects fill the upper 40% of the canvas, large and close, free to run off the top and sides; let the bottom 60% be a quieter stretch of the same scene for the words — a floor, still water or a deep field of colour, with low detail. Keep the subjects' main features out of it.",
   presence: COVER_WORDS_ABOVE_HALF.presence,
   clear: { edge: "bottom", percent: 60 },
 } as const;
@@ -281,7 +237,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       oval: { band: band(600, 1180), ...PICTURE_ABOVE_40 },
       square: { band: band(440, 920), ...PICTURE_ABOVE_40 },
     },
-    panel: PANEL_FROM_BOTTOM,
   }),
   "art-bottom": defineLayout({
     purpose:
@@ -295,7 +250,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       oval: { band: band(220, 800), ...PICTURE_BELOW_40 },
       square: { band: band(80, 560), ...PICTURE_BELOW_40 },
     },
-    panel: PANEL_FROM_TOP,
   }),
   framed: defineLayout({
     purpose: "A border, wreath, garland or frame surrounds a quiet centre that holds the text.",
@@ -309,7 +263,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(260, 740), ...FRAME_SQUARE },
       circle: { band: band(260, 740), ...FRAME_SQUARE },
     },
-    panel: PANEL_WASH,
   }),
   corners: defineLayout({
     purpose: "Motifs cluster in the corners and along the edges; the centre stays open for text.",
@@ -320,7 +273,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "rounded-rectangle": { band: band(420, 980), ...CORNER_CLUSTERS },
       square: { band: band(260, 740), ...CORNER_CLUSTERS_SQUARE },
     },
-    panel: PANEL_WASH,
   }),
   atmosphere: defineLayout({
     purpose: "A soft full-bleed wash, scenery or texture carries the mood; no discrete subject.",
@@ -334,11 +286,9 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(260, 740), ...WASH },
       circle: { band: band(260, 740), ...WASH },
     },
-    panel: PANEL_WASH,
   }),
   // A cover's bands and width are `art-bottom`'s and `art-top`'s, so its zones are theirs and no
-  // slot limit or stored text changes (`entry-fit.server.ts`, `layouts.test.ts`); so are its
-  // panels, words on top fading down toward the picture and words below fading up.
+  // slot limit or stored text changes (`entry-fit.server.ts`, `layouts.test.ts`).
   "cover-top": defineLayout({
     purpose:
       "A bold, full-bleed scene, like a record sleeve or a poster: the words sit in the calm sky or wall across the top, and one or two big subjects fill the rest.",
@@ -349,7 +299,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "rounded-rectangle": { band: band(150, 600), ...COVER_WORDS_ABOVE_HALF },
       square: { band: band(80, 560), ...COVER_WORDS_ABOVE_40 },
     },
-    panel: PANEL_FROM_TOP,
   }),
   "cover-bottom": defineLayout({
     purpose:
@@ -361,7 +310,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       "rounded-rectangle": { band: band(800, 1250), ...COVER_WORDS_BELOW_HALF },
       square: { band: band(440, 920), ...COVER_WORDS_BELOW_40 },
     },
-    panel: PANEL_FROM_BOTTOM,
   }),
 };
 
@@ -385,55 +333,6 @@ export interface CardZone {
   y: number;
   width: number;
   height: number;
-}
-
-/**
- * The legibility panel behind a zone, in card units: the rectangle the paper covers opaque, and
- * how it fades (`fade`). A panel persisted with `card_layouts_v2` artwork has no `fade`: it is a
- * rounded rectangle (`radius`) with a soft edge (`softEdge`, CSS `box-shadow: 0 0 blur spread`).
- * A faded panel has neither: `radius` 0 and `softEdge` zero.
- */
-export interface CardPanelShape {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  radius: number;
-  softEdge: { spread: number; blur: number };
-  fade?: PanelFade;
-}
-
-/**
- * The legibility panel for the layout's zone in this shape, kept within the canvas: for an `edge`
- * fade, the card's full width from the `from` edge to the zone's far side plus `padY`; for a
- * `wash`, the zone expanded by the padding. The fade lies outside this rectangle and the text
- * zone inside it. Where the outline is curved the panel is clipped by the outline, as everything
- * on the card is: the renderer masks the whole card, panel included (`outline.ts`). The zone lies
- * in the shape's text-safe area, so the clipped panel still backs all of it (`layouts.test.ts`).
- */
-export function panelFor(layout: CardLayoutId, shape: CardShape): CardPanelShape {
-  const zone = zoneFor(layout, shape);
-  const { padX, padY, fade } = CARD_LAYOUTS[layout].panel;
-  const canvas = CARD_CANVAS[SHAPE_PROPORTION[shape]];
-  let x0 = Math.max(0, zone.x - padX);
-  let y0 = Math.max(0, zone.y - padY);
-  let x1 = Math.min(canvas.width, zone.x + zone.width + padX);
-  let y1 = Math.min(canvas.height, zone.y + zone.height + padY);
-  if (fade.kind === "edge") {
-    x0 = 0;
-    x1 = canvas.width;
-    if (fade.from === "top") y0 = 0;
-    else y1 = canvas.height;
-  }
-  return {
-    x: x0,
-    y: y0,
-    width: x1 - x0,
-    height: y1 - y0,
-    radius: 0,
-    softEdge: { spread: 0, blur: 0 },
-    fade: { ...fade },
-  };
 }
 
 /**

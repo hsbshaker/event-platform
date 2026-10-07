@@ -4,7 +4,8 @@ import { isCanonicalHex } from "@/lib/card/color";
 import type { CardPanel } from "@/lib/card/card-data";
 import type { CardFactsInput } from "@/lib/card/facts";
 import { CARD_LAYOUT_IDS, type CardLayoutId, type PanelFade } from "@/lib/card/layouts";
-import { CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
+import { canvasOf, CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
+import type { TextShift } from "@/lib/card/text-space";
 import { TYPOGRAPHY_KEYS, type TypographyPairingId } from "@/lib/card/typography";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -86,18 +87,44 @@ export function eventFactsOf(row: CardEventRow): CardFactsInput {
   };
 }
 
+/** The persisted ink of the shape's text zone, with its legibility panel and its text shift. */
+export interface StoredZoneInk {
+  ink: string;
+  /** A panel persisted before `card_compiler_v7`, drawn as stored; none since. */
+  panels: CardPanel[];
+  /** Where the generated words start (`card_compiler_v7`); both 0 for earlier artwork. */
+  shift: TextShift;
+}
+
 /**
- * The persisted ink and legibility panel of the shape's text zone (`ArtworkInk`,
- * `artwork.server.ts`). Keys this reader does not know — those of withdrawn versions, such as the
- * slide's `artOffset` (`card_compiler_v6`) — are ignored: the artwork is always drawn as painted.
+ * The stored shift of a zone: absent (earlier artwork) is no shift; anything else must be two
+ * finite numbers within the canvas height, or the record is malformed.
  */
-export function zoneInk(ink: Json, shape: CardShape): { ink: string; panels: CardPanel[] } {
+function storedShift(value: unknown, shape: CardShape): TextShift {
+  if (value === undefined) return { heading: 0, details: 0 };
+  const limit = canvasOf(shape).height;
+  const valid = (n: unknown): n is number => finite(n) && Math.abs(n) <= limit;
+  if (!isObject(value) || !valid(value.heading) || !valid(value.details)) {
+    throw new Error(`The artwork's text placement for the ${shape} card is malformed.`);
+  }
+  return { heading: value.heading, details: value.details };
+}
+
+/**
+ * The persisted ink, legibility panel and text shift of the shape's text zone (`ArtworkInk`,
+ * `artwork.server.ts`). A panel persisted before `card_compiler_v7` is read and drawn exactly as
+ * stored (owner decision 2026-10-07); new artwork has none, and a shift instead. Keys this reader
+ * does not know — those of withdrawn versions, such as the slide's `artOffset`
+ * (`card_compiler_v6`) — are ignored: the artwork is always drawn as painted.
+ */
+export function zoneInk(ink: Json, shape: CardShape): StoredZoneInk {
   const byShape = isObject(ink) ? ink[shape] : undefined;
   const zone = isObject(byShape) ? byShape[TEXT_ZONE] : undefined;
   if (!isObject(zone) || typeof zone.ink !== "string" || !isCanonicalHex(zone.ink)) {
     throw new Error(`The artwork has no ink for the ${shape} card.`);
   }
-  if (zone.panel === undefined) return { ink: zone.ink, panels: [] };
+  const shift = storedShift(zone.shift, shape);
+  if (zone.panel === undefined) return { ink: zone.ink, panels: [], shift };
   const panel = zone.panel;
   if (
     !isObject(panel) ||
@@ -123,6 +150,7 @@ export function zoneInk(ink: Json, shape: CardShape): { ink: string; panels: Car
         ...(panel.fade !== undefined ? { fade: panel.fade as unknown as PanelFade } : {}),
       },
     ],
+    shift,
   };
 }
 

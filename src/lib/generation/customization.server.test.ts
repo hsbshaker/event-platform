@@ -366,6 +366,25 @@ describe("carriedWords", () => {
     const carried = await carry();
     expect(byId(carried!.boxes, "title").lines.join(" ")).toBe("Juniper's Garden Party");
   });
+
+  it("starts the carried words where the new card's artwork stored its shift (card_compiler_v7)", async () => {
+    fake.state.tables.card_customizations = [customizationRow(A, edited())];
+    const plain = (await carry())!.boxes;
+    const shift = { heading: -30, details: -10 };
+    fake.state.tables.card_art_assets = fake.state.tables.card_art_assets.map((row) =>
+      row.card_design_id === B
+        ? {
+            ...row,
+            ink: Object.fromEntries(PORTRAIT.map((s) => [s, { text: { ink: INK, shift } }])),
+          }
+        : row,
+    );
+    const placed = (await carry())!.boxes;
+    expect(byId(placed, "title").y).toBeCloseTo(byId(plain, "title").y - 30, 3);
+    expect(byId(placed, "invitationLine").y).toBeCloseTo(byId(plain, "invitationLine").y - 30, 3);
+    expect(byId(placed, "venue").y).toBeCloseTo(byId(plain, "venue").y - 10, 3);
+    expect(byId(placed, "c1").y).toBeCloseTo(byId(plain, "c1").y - 10, 3);
+  });
 });
 
 describe("storing carried words", () => {

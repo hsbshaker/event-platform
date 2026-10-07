@@ -48,7 +48,11 @@ import {
   storeCarriedWordsAsServer,
   type CardRef,
 } from "./customization.server";
-import type { ArtworkStageResult, ArtworkValidationFailure } from "./artwork.server";
+import type {
+  ArtworkStageResult,
+  ArtworkTelemetry,
+  ArtworkValidationFailure,
+} from "./artwork.server";
 import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { PROVIDER_REFUSAL_NOTICE } from "./failure-copy";
@@ -217,6 +221,14 @@ class GenerationStoppedError extends Error {
   }
 }
 
+/** Where the kept artwork's words start, per fitted shape (`ArtworkTelemetry.textSpace`). */
+export type TextSpaceTelemetry = {
+  shape: string;
+  coverage: number;
+  workable: boolean;
+  shift: { heading: number; details: number };
+}[];
+
 /**
  * The §9.5 record of one generation (`generations.telemetry`) when it succeeds. A failed
  * generation's telemetry is `{ failure }` instead (`failureTelemetry`). Never shown to the host.
@@ -228,7 +240,13 @@ export interface GenerationTelemetry {
   artRegenerated: string | null;
   artRepaints: number;
   standardWording: string[];
+  /**
+   * Zones given a legibility panel: always empty since `card_compiler_v7`, which makes none (the
+   * `generation_runs.ink_panels` column stays for earlier runs).
+   */
   inkPanels: { shape: string; zone: string }[];
+  /** The kept artwork's text placement per fitted shape (`text-space.ts`, `card_compiler_v7`). */
+  textSpace: TextSpaceTelemetry;
   versions: {
     identityPrompt: string;
     identitySchema: string;
@@ -304,7 +322,9 @@ export interface ShapeSwitchTelemetry {
   referenceShape: CardShape;
   artRegenerated: string | null;
   artRepaints: number;
+  /** Always empty since `card_compiler_v7` (`GenerationTelemetry.inkPanels`). */
   inkPanels: { shape: string; zone: string }[];
+  textSpace: TextSpaceTelemetry;
   imagesRequested: number;
   repaintsStoppedBy: string | null;
   lineAreasFallback: string[];
@@ -312,6 +332,15 @@ export interface ShapeSwitchTelemetry {
   fitsShapes: CardShape[];
   versions: { layoutSet: string; compiler: string; artPrompt: string; imageModel: string };
   latency: { artMs: number; totalMs: number };
+}
+
+function textSpaceOf(space: ArtworkTelemetry["textSpace"]): TextSpaceTelemetry {
+  return space.map((t) => ({
+    shape: t.shape,
+    coverage: t.coverage,
+    workable: t.workable,
+    shift: { ...t.shift },
+  }));
 }
 
 interface EventRow {
@@ -983,7 +1012,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     artRegenerated: art.telemetry.artRegenerated,
     artRepaints: art.telemetry.artRepaints,
     standardWording: [...chosen.telemetry.standardWordingSlots],
-    inkPanels: art.telemetry.inkPanels.map((p) => ({ shape: p.shape, zone: p.zone })),
+    inkPanels: [],
+    textSpace: textSpaceOf(art.telemetry.textSpace),
     versions: {
       identityPrompt: EVENT_IDENTITY_PROMPT_VERSION,
       identitySchema: EVENT_IDENTITY_SCHEMA_VERSION,
@@ -1183,7 +1213,8 @@ async function shapeSwitchPipeline(input: ShapeSwitchInput): Promise<RunGenerati
     referenceShape,
     artRegenerated: art.telemetry.artRegenerated,
     artRepaints: art.telemetry.artRepaints,
-    inkPanels: art.telemetry.inkPanels.map((p) => ({ shape: p.shape, zone: p.zone })),
+    inkPanels: [],
+    textSpace: textSpaceOf(art.telemetry.textSpace),
     imagesRequested: art.telemetry.imagesRequested,
     repaintsStoppedBy: art.telemetry.repaintsStoppedBy,
     lineAreasFallback: art.telemetry.lineAreasFallback,

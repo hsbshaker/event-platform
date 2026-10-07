@@ -404,6 +404,24 @@ describe("resetCardCustomization", () => {
     expect(await save(sent(seed), 1)).toMatchObject({ ok: false, reason: "conflict" });
   });
 
+  it("re-applies the seed where the artwork's stored shift starts the words (card_compiler_v7)", async () => {
+    const shift = { heading: -40, details: -20 };
+    db.fake.state.tables.card_art_assets = [
+      {
+        ...artRow(),
+        ink: Object.fromEntries(PORTRAIT.map((s) => [s, { text: { ink: INK, shift } }])),
+      },
+      artRow(OTHER),
+    ];
+    await save(sent(seed).map((b) => (b.id === "date" ? { ...b, y: 100 } : b)));
+    expect(await reset(1)).toMatchObject({ ok: true, customization: { revision: 2 } });
+    const after = stored();
+    for (const box of after) {
+      const dy = box.id === "title" || box.id === "invitationLine" ? -40 : -20;
+      expect(box.y, box.id).toBeCloseTo(byId(seed, box.id).y + dy, 3);
+    }
+  });
+
   it("writes nothing for a card that has no customization", async () => {
     expect(await reset(0)).toEqual({ ok: true, customization: null });
     expect(writes()).toEqual([]);

@@ -61,7 +61,7 @@ export interface LayoutCardInput {
   /** Display face (title) and body face (everything else). */
   pairing: { display: FontRef; body: FontRef };
   content: CardContent;
-  /** The zone's resolved ink (`resolveInk`), `#RRGGBB`. */
+  /** The zone's stored ink (`text-space.ts` `placeText`), `#RRGGBB`. */
   ink: string;
   metrics: FontMetricsResolver;
   /** The zone's slots, in order; defaults to every slot in the canonical order. */

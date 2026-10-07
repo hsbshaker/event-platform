@@ -314,4 +314,38 @@ describe("carriedBoxesFrom", () => {
     const b = carriedBoxesFrom({ from: from(), host: HOST, saved: SAVED, card: card() });
     expect(a).toEqual(b);
   });
+
+  it("starts the carried words where the new artwork's stored shift puts them (card_compiler_v7)", () => {
+    const plain = carriedBoxesFrom({ from: from(), host: HOST, saved: SAVED, card: card() });
+    const shift = { heading: -40, details: 20 };
+    const placed = carriedBoxesFrom({
+      from: from(),
+      host: HOST,
+      saved: SAVED,
+      card: card(),
+      placement: { shape: "square", shift },
+    });
+    expect(placed.boxes).toHaveLength(plain.boxes.length);
+    for (const [i, box] of plain.boxes.entries()) {
+      // The heading is the title and the invitation line; facts and added text are the details.
+      const dy = box.id === "title" || box.id === "invitationLine" ? -40 : 20;
+      expect(placed.boxes[i], box.id).toEqual({
+        ...box,
+        y: Math.round((box.y + dy) * 1000) / 1000,
+      });
+    }
+  });
+
+  it("keeps the carried words at the layout's position when the shift would take them out of the text-safe area", () => {
+    const plain = carriedBoxesFrom({ from: from(), host: HOST, saved: SAVED, card: card() });
+    // The square's text-safe area ends 70 units from its bottom: 400 down leaves it.
+    const placed = carriedBoxesFrom({
+      from: from(),
+      host: HOST,
+      saved: SAVED,
+      card: card(),
+      placement: { shape: "square", shift: { heading: 0, details: 400 } },
+    });
+    expect(placed).toEqual(plain);
+  });
 });

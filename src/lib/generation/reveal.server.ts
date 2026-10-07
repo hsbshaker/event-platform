@@ -39,8 +39,9 @@ import { CARD_ART_BUCKET } from "./run.server";
  * active design is drawn in its active shape (`events.active_card_shape`, else the design's own);
  * any other design in its own shape. Its artwork is the newest of the design's artworks that fits
  * that shape (the rule beside `card_art_assets` in the Phase 4 migration), served through a
- * short-lived signed URL from the private `card-art` bucket; the ink and legibility panel are the
- * ones persisted with that artwork for that shape, never re-resolved (`spec.md §32 #27`).
+ * short-lived signed URL from the private `card-art` bucket; the ink, the text shift and any
+ * legibility panel (persisted only before `card_compiler_v7`) are the ones persisted with that
+ * artwork for that shape, never re-resolved (`spec.md §32 #27`).
  *
  * The text (`docs/card-system.md §6.1`) is the host's customization of that design and shape when
  * one exists (`spec.md §20.5`): its stored boxes, each drawn in its stored lines, with every linked
@@ -264,7 +265,7 @@ async function buildRevealedCard({
   if (stored !== proportion) {
     throw new Error(`The ${shape} card's artwork is not ${proportion}.`);
   }
-  const { ink, panels } = zoneInk(art.ink, shape);
+  const { ink, panels, shift } = zoneInk(art.ink, shape);
 
   const contents = await cardContents(row, design.wording, new Date(now));
   // A guest's card carries the host's stored facts only: no placeholder, no prompt-stated value.
@@ -302,6 +303,7 @@ async function buildRevealedCard({
       pairing: design.pairing,
       content,
       ink,
+      shift,
     });
     const marked = new Set<string>(unconfirmed);
     layer = {

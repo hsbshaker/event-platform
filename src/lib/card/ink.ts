@@ -1,33 +1,25 @@
 /**
- * Ink and legibility for the generated card (`docs/card-system.md §4.2`).
+ * The ink candidates for the generated card and the artwork measures they come from
+ * (`docs/card-system.md §4.2`).
  *
  * Pure functions over raw, already-decoded RGB(A) pixel buffers: no image decoding happens here.
  * The buffer is the artwork at the card's proportion; card units map onto it uniformly
  * (`CARD_WIDTH` card units across the buffer's width).
  *
- * The rule (Phase 3, `docs/model-evals/phase-3-validation.md`, "Ink and legibility"): the zone's
- * background is measured as the luminance range between its 8th and 92nd percentiles. An ink darker
- * than the whole range is judged against the range's dark end, one lighter than the whole range
- * against its light end, and an ink inside the range collides with part of the zone and fails. The
- * first mock chose the tail by comparing the ink with the median, which let a cream ink pass over
- * a cream background; `inkContrast` is the nearest-tail rule that replaced it.
+ * The candidates, in preference order: the artwork's own palette by share (`paletteFromPixels`),
+ * then a near-black and a near-white tuned toward the artwork's hue (`inkCandidates`). Which one a
+ * card starts with, and where its words start, is `text-space.ts`'s choice (`card_compiler_v7`).
  *
- * `card_compiler_v3` (owner decision 2026-10-05) also measured the zone in half-overlapping
- * horizontal strips about a line of text tall, judging the ink against the widest of the zone's and
- * the strips' ranges. In a live run it caught too much: foliage or sky at the edges of empty parts
- * of the zone failed a strip, and 5 of 17 cards took two repaints and still ended with the panel.
+ * `card_compiler_v2`–`v6` resolved the ink here (`resolveInk`): against the zone's measured
+ * luminance range (the nearest-tail rule of Phase 3), from `card_compiler_v4` widened by the
+ * range behind each line of text, and with an art-derived paper panel behind the zone when no
+ * candidate cleared 4.5:1. The owner's decision of 2026-10-07 retired that: a generated card is an
+ * editable starting design, and no new card gets a panel. Panels persisted before it are still
+ * read and drawn exactly as stored (`card-record.server.ts` `zoneInk`, `card-data.ts`); they are
+ * never re-resolved (`spec.md §32 #27`).
  *
- * `card_compiler_v4` (owner decision 2026-10-05) measures only where the text is: the area behind
- * each line of the generated card's text, plus a small margin (`text-areas.ts`), each sampled like
- * the zone. The ink is judged against the widest of the zone's range and every area's range. The
- * whole-zone measure stays as a floor, so no ink passes that the zone as a whole would fail.
- * Artwork that sits under the letters — the base of a sculpture behind the first line of a title —
- * is a small share of the zone and hides in its tails, but not in that line's area, so it fails
- * here and the artwork is repainted, then given a panel. Artwork in a part of the zone no line
- * covers is no longer counted against the ink.
- *
- * Contrast is WCAG 2.x (`color.ts`); OKLCH is only the space the tuned neutrals and the panel are
- * built in. No step here calls a model.
+ * Contrast is WCAG 2.x (`color.ts`); OKLCH is only the space the tuned neutrals are built in. No
+ * step here calls a model.
  */
 
 import { type Oklch, type Rgb, oklchToHex, parseHex, relativeLuminance, rgbToOklch } from "./color";
@@ -35,12 +27,11 @@ import { type Oklch, type Rgb, oklchToHex, parseHex, relativeLuminance, rgbToOkl
 /** The card's width in card units; every proportion is 1000 units wide (`card-system.md §2.1`). */
 export const CARD_WIDTH = 1000;
 
-/** WCAG 2.x AA for normal text: every text of the generated card clears it. */
+/**
+ * WCAG 2.x AA for normal text: an artwork pixel counts as readable behind an ink at this contrast
+ * or more (`text-space.ts`).
+ */
 export const MIN_INK_CONTRAST = 4.5;
-
-/** The percentiles that bound the measured background (Phase 3). */
-export const DARK_TAIL_PERCENTILE = 8;
-export const LIGHT_TAIL_PERCENTILE = 92;
 
 /** A rectangle in card units, top-left origin. */
 export interface CardRect {
@@ -58,23 +49,11 @@ export interface PaletteColor {
 
 export type InkSource = "art" | "tuned-dark" | "tuned-light";
 
-export interface InkResolution {
-  /** `#RRGGBB`. */
-  ink: string;
-  /** Where the ink came from: the artwork's palette, or a neutral tuned toward its hue. */
-  source: InkSource;
-  /** WCAG contrast of the ink against what it is judged by (the nearest tail, or the panel). */
-  contrast: number;
-  /** The art-derived paper panel behind the zone, when no candidate clears 4.5:1 without one. */
-  panel: null | { color: string };
-  /**
-   * The measured background: relative luminance at the dark and light percentiles, the zone's range
-   * widened by every text area's.
-   */
-  background: { darkTail: number; lightTail: number };
-}
-
-function channelsOf(pixels: ArrayLike<number>, width: number, height: number): 3 | 4 {
+/**
+ * The channel count of an RGB or RGBA buffer of `width` × `height` pixels. Throws for any other
+ * length: a buffer that is neither must never be read as one.
+ */
+export function pixelChannels(pixels: ArrayLike<number>, width: number, height: number): 3 | 4 {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
     throw new Error(`Invalid pixel buffer size ${width}×${height}`);
   }
@@ -91,76 +70,10 @@ const LINEAR = Array.from(
   { length: 256 },
   (_, v) => relativeLuminance({ r: v, g: 0, b: 0 }) / 0.2126,
 );
-function luminanceOf(r: number, g: number, b: number): number {
+
+/** WCAG relative luminance of one 8-bit sRGB pixel (`color.ts` `relativeLuminance`, tabulated). */
+export function pixelLuminance(r: number, g: number, b: number): number {
   return 0.2126 * LINEAR[r] + 0.7152 * LINEAR[g] + 0.0722 * LINEAR[b];
-}
-
-/**
- * Relative luminance of every artwork pixel whose centre lies in `zone` (card units) and inside
- * the shape's outline (`inside(x, y)`, card units), sorted ascending.
- *
- * Alpha, when present, is ignored: artwork is validated as an opaque raster before this runs.
- * Throws when no pixel qualifies — a zone outside the canvas or the outline is a catalog bug, and
- * measuring nothing must never read as "legible".
- */
-export function sampleZoneLuminance(
-  pixels: ArrayLike<number>,
-  width: number,
-  height: number,
-  zone: CardRect,
-  inside: (x: number, y: number) => boolean,
-): Float64Array {
-  const channels = channelsOf(pixels, width, height);
-  const scale = width / CARD_WIDTH;
-  const unitsHigh = height / scale;
-  if (Math.abs(unitsHigh - 1400) > 2 && Math.abs(unitsHigh - 1000) > 2) {
-    throw new Error(`artwork ${width}×${height} is neither 5:7 nor 1:1`);
-  }
-  const x0 = Math.max(0, Math.floor(zone.x * scale));
-  const x1 = Math.min(width, Math.ceil((zone.x + zone.width) * scale));
-  const y0 = Math.max(0, Math.floor(zone.y * scale));
-  const y1 = Math.min(height, Math.ceil((zone.y + zone.height) * scale));
-
-  const out: number[] = [];
-  for (let py = y0; py < y1; py += 1) {
-    const cy = (py + 0.5) / scale;
-    if (cy < zone.y || cy > zone.y + zone.height) continue;
-    for (let px = x0; px < x1; px += 1) {
-      const cx = (px + 0.5) / scale;
-      if (cx < zone.x || cx > zone.x + zone.width) continue;
-      if (!inside(cx, cy)) continue;
-      const i = (py * width + px) * channels;
-      out.push(luminanceOf(pixels[i], pixels[i + 1], pixels[i + 2]));
-    }
-  }
-  if (out.length === 0) {
-    throw new Error("Zone contains no artwork pixels inside the outline");
-  }
-  const sorted = Float64Array.from(out);
-  sorted.sort();
-  return sorted;
-}
-
-/** Nearest-rank percentile of an ascending array (the Phase 3 definition). */
-export function percentile(sorted: ArrayLike<number>, p: number): number {
-  if (sorted.length === 0) throw new Error("percentile of an empty sample");
-  const i = Math.round((p / 100) * (sorted.length - 1));
-  return sorted[Math.min(sorted.length - 1, Math.max(0, i))];
-}
-
-function ratio(a: number, b: number): number {
-  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-}
-
-/**
- * The contrast an ink of luminance `inkL` is judged by against a measured range — the nearest-tail
- * rule. Darker than the whole range: against the dark tail. Lighter than the whole range: against
- * the light tail. Inside the range: 1, because some of the zone matches the ink.
- */
-export function inkContrast(inkL: number, darkTail: number, lightTail: number): number {
-  if (inkL <= darkTail) return ratio(inkL, darkTail);
-  if (inkL >= lightTail) return ratio(inkL, lightTail);
-  return 1;
 }
 
 /* ---------------------------------------------------------------- palette (k-means) */
@@ -219,7 +132,7 @@ export function paletteFromPixels(
 ): PaletteColor[] {
   const k = options.k ?? 6;
   const minShare = options.minShare ?? 0.01;
-  const channels = channelsOf(pixels, width, height);
+  const channels = pixelChannels(pixels, width, height);
 
   const count = new Float64Array(BIN_COUNT);
   const sumR = new Float64Array(BIN_COUNT);
@@ -310,12 +223,11 @@ export function paletteFromPixels(
     .sort((p, q) => q.share - p.share || (p.color < q.color ? -1 : p.color > q.color ? 1 : 0));
 }
 
-/* ---------------------------------------------------------------- resolution */
+/* ---------------------------------------------------------------- ink candidates */
 
-/** The tuned neutrals and the paper panel (Phase 3 values). */
+/** The tuned neutrals (Phase 3 values). */
 const TUNED_DARK = { l: 0.24, c: 0.03 };
 const TUNED_LIGHT = { l: 0.98, c: 0.012 };
-const PANEL = { l: 0.965, maxC: 0.025 };
 /** Below this OKLCH chroma a palette colour has no meaningful hue. */
 const CHROMATIC = 0.02;
 
@@ -336,87 +248,24 @@ function tuned(base: { l: number; c: number }, hue: { h: number; chromatic: bool
   return oklchToHex(o);
 }
 
-function lum(hex: string): number {
-  return relativeLuminance(parseHex(hex));
-}
-
-/** The luminance range between a sample's dark and light percentiles. */
-function measuredRange(luminances: ArrayLike<number>): { darkTail: number; lightTail: number } {
-  if (luminances.length === 0) throw new Error("resolveInk needs at least one luminance sample");
-  for (let i = 0; i < luminances.length; i += 1) {
-    const v = luminances[i];
-    if (!(v >= 0 && v <= 1)) throw new Error(`Luminance out of range: ${v}`);
-  }
-  const sorted = Float64Array.from(luminances);
-  sorted.sort();
-  return {
-    darkTail: percentile(sorted, DARK_TAIL_PERCENTILE),
-    lightTail: percentile(sorted, LIGHT_TAIL_PERCENTILE),
-  };
-}
-
-export interface ResolveInkInput {
-  /** The zone's background luminances (`sampleZoneLuminance`); need not be sorted. */
-  luminances: ArrayLike<number>;
-  /**
-   * The background behind each line of the card's text, plus its margin (`textLineAreas`, each
-   * sampled with `sampleZoneLuminance`); each need not be sorted. The ink is judged against the
-   * widest of the zone's and every area's measured range. Without areas, the zone alone.
-   */
-  areas?: readonly ArrayLike<number>[];
-  /** The artwork's palette, largest share first (`paletteFromPixels`). */
-  palette: readonly PaletteColor[];
+export interface InkCandidate {
+  /** `#RRGGBB`. */
+  ink: string;
+  /** Where the ink came from: the artwork's palette, or a neutral tuned toward its hue. */
+  source: InkSource;
 }
 
 /**
- * Choose the ink for one text zone (`card-system.md §4.2`).
- *
- * The measured background is the zone's range widened by every text area's: the darkest dark tail
- * and the lightest light tail among them, so areas can only make the judgement stricter. Candidates, in order: the artwork's palette by share, then a near-black
- * and a near-white tuned toward the artwork's hue. The first that reaches 4.5:1 by the
- * nearest-tail rule against that range wins. If none
- * does, an art-derived paper panel goes behind the zone and the ink is chosen against the panel
- * colour. The panel is opaque by contract: the renderer must draw it at full opacity behind the
- * text, or the ink's contrast against it is not what was measured here.
+ * The inks a generated card may start with, in preference order (`docs/card-system.md §4.2`): the
+ * artwork's palette colours by share, then a near-black and a near-white tuned toward the
+ * artwork's hue. The candidates and their order are those every compiler since Phase 3 tried;
+ * only how one is chosen has changed (`text-space.ts`, `card_compiler_v7`).
  */
-export function resolveInk({ luminances, palette, areas = [] }: ResolveInkInput): InkResolution {
-  let darkTail = Infinity;
-  let lightTail = -Infinity;
-  for (const sample of [luminances, ...areas]) {
-    const tails = measuredRange(sample);
-    darkTail = Math.min(darkTail, tails.darkTail);
-    lightTail = Math.max(lightTail, tails.lightTail);
-  }
-  const background = { darkTail, lightTail };
-
+export function inkCandidates(palette: readonly PaletteColor[]): InkCandidate[] {
   const hue = artHue(palette);
-  const tunedDark = tuned(TUNED_DARK, hue);
-  const tunedLight = tuned(TUNED_LIGHT, hue);
-  const candidates: { ink: string; source: InkSource }[] = [
+  return [
     ...palette.map((p) => ({ ink: p.color.toUpperCase(), source: "art" as const })),
-    { ink: tunedDark, source: "tuned-dark" },
-    { ink: tunedLight, source: "tuned-light" },
+    { ink: tuned(TUNED_DARK, hue), source: "tuned-dark" },
+    { ink: tuned(TUNED_LIGHT, hue), source: "tuned-light" },
   ];
-
-  for (const c of candidates) {
-    const contrast = inkContrast(lum(c.ink), darkTail, lightTail);
-    if (contrast >= MIN_INK_CONTRAST) {
-      return { ink: c.ink, source: c.source, contrast, panel: null, background };
-    }
-  }
-
-  // Legibility panel: paper derived from the artwork's lightest colour, ink chosen against it.
-  const lightest = [...palette].sort((p, q) => lum(q.color) - lum(p.color))[0];
-  const base = lightest ? rgbToOklch(parseHex(lightest.color)) : { l: 1, c: 0, h: 0 };
-  const panel = oklchToHex({ l: PANEL.l, c: Math.min(base.c, PANEL.maxC), h: base.h });
-  const panelL = lum(panel);
-  for (const c of candidates) {
-    const contrast = inkContrast(lum(c.ink), panelL, panelL);
-    if (contrast >= MIN_INK_CONTRAST) {
-      return { ink: c.ink, source: c.source, contrast, panel: { color: panel }, background };
-    }
-  }
-  // Unreachable with the constants above (the tuned dark clears ~14:1 on the panel); kept as a
-  // loud failure rather than a silent fallback should the constants ever change.
-  throw new Error(`No ink reaches ${MIN_INK_CONTRAST}:1 against panel ${panel}`);
 }

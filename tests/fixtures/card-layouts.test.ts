@@ -8,12 +8,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { InvitationCard, type CardPanel } from "@/components/card/InvitationCard";
 import { panelFeather } from "@/lib/card/card-data";
+import { storedPanelShape } from "@/lib/card/test-panels";
 import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
 import {
   CARD_LAYOUT_IDS,
   CARD_LAYOUT_SET_VERSION,
   CARD_LAYOUTS,
-  panelFor,
   zoneFor,
   type CardLayoutId,
 } from "@/lib/card/layouts";
@@ -196,7 +196,9 @@ function artworkSvg(combo: Combo): string {
 const artPath = (combo: Combo) => `/art/${combo.layout}-${combo.shape}.svg`;
 
 function panelsOf(render: Render): CardPanel[] {
-  return render.panel ? [{ ...panelFor(render.layout, render.shape), color: PANEL_COLOR }] : [];
+  return render.panel
+    ? [{ ...storedPanelShape(render.layout, render.shape), color: PANEL_COLOR }]
+    : [];
 }
 
 function cardMarkup(render: Render): string {
@@ -380,7 +382,7 @@ const FADE_TOLERANCE = 3;
  * the other axis is opaque there), and just past each fade (the artwork, alpha 0).
  */
 function panelProbePoints(render: Render): { kind: PanelProbeKind; x: number; y: number }[] {
-  const p = panelFor(render.layout, render.shape);
+  const p = storedPanelShape(render.layout, render.shape);
   const f = panelFeather(p);
   const zone = zoneFor(render.layout, render.shape);
   const { width: w, height: h } = canvasOf(render.shape);
@@ -549,7 +551,7 @@ function checkRender(render: Render, width: Width): string[] {
     });
   }
   if (render.panel) {
-    const want = panelFor(render.layout, render.shape);
+    const want = storedPanelShape(render.layout, render.shape);
     const f = panelFeather(want);
     const p = m.panels[0];
     if (m.panels.length !== 1 || !p) failures.push(`${m.panels.length} panels rendered`);

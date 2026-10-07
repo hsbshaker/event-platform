@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { flatArtwork } from "@/lib/link-preview/test-artwork";
 
 import { InvalidCardDataError } from "./card-data";
-import { panelFor } from "./layouts";
+import { storedPanelShape } from "./test-panels";
 import { outlinePath } from "./outline";
 import { artworkMime, cardPreviewSvg, type CardPreviewData } from "./preview-svg.server";
 import type { TextBox } from "./text-box";
@@ -192,7 +192,7 @@ describe("cardPreviewSvg", () => {
   it("draws a faded panel as InvitationCard does: the same stops, opaque over its rectangle", () => {
     const doc = svg({
       shape: "rectangle",
-      panels: [{ ...panelFor("art-bottom", "rectangle"), color: "#F6F1EA" }],
+      panels: [{ ...storedPanelShape("art-bottom", "rectangle"), color: "#F6F1EA" }],
     });
     expect(doc).toContain(
       '<linearGradient id="card-panel-fade-0" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="810">' +

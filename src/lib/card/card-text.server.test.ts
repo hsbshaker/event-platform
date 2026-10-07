@@ -108,4 +108,42 @@ describe("generatedTextLayer", () => {
       generatedTextLayer({ ...base, layout: "framed", shape: "circle", ink: "#3a2a1e" }),
     ).rejects.toThrow(/ink/);
   });
+
+  it("starts the words where the artwork's stored shift puts them (card_compiler_v7)", async () => {
+    const base = {
+      layout: "cover-top",
+      shape: "rectangle",
+      pairing: "hc_playfair_dmsans",
+      content: TYPICAL,
+      ink: INK,
+    } as const;
+    const plain = await generatedTextLayer(base);
+    const shifted = await generatedTextLayer({ ...base, shift: { heading: 20, details: 60 } });
+    for (const [i, box] of plain.entries()) {
+      const dy = box.id === "title" || box.id === "invitationLine" ? 20 : 60;
+      expect(shifted[i], box.id).toEqual({ ...box, y: Math.round((box.y + dy) * 1000) / 1000 });
+    }
+    // No shift, or a zero one, is the layout's own position.
+    expect(await generatedTextLayer({ ...base, shift: { heading: 0, details: 0 } })).toEqual(plain);
+  });
+
+  it("keeps words at the layout's position when they have outgrown the stored shift", async () => {
+    // The rectangle's text-safe top is 80 and the cover-top zone starts at 150: a shift of -100
+    // fits a short heading alone, centred well below the zone's top, but not words that fill the
+    // zone — the facts the host entered after generation.
+    const SHORT = { title: "Oh Baby", invitationLine: "Please join us for a baby shower" };
+    const base = {
+      layout: "cover-top",
+      shape: "rectangle",
+      pairing: "hc_playfair_dmsans",
+      ink: INK,
+      shift: { heading: -100, details: -100 },
+    } as const;
+    const short = await generatedTextLayer({ ...base, content: SHORT });
+    const shortPlain = await generatedTextLayer({ ...base, content: SHORT, shift: undefined });
+    expect(short[0].y).toBeCloseTo(shortPlain[0].y - 100, 3);
+    const worst = await generatedTextLayer({ ...base, content: WORST });
+    const worstPlain = await generatedTextLayer({ ...base, content: WORST, shift: undefined });
+    expect(worst).toEqual(worstPlain);
+  });
 });

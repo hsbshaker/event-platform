@@ -275,7 +275,7 @@ export interface ArtRequest {
 }
 
 /**
- * `card_art_v6` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
+ * `card_art_v7` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
  * full bleed, Sunburst `high` (`docs/technology-decisions.md §8.1`). The prompt is assembled by
  * code (`src/lib/card/art-prompt.ts`); with a reference it is the revision prompt when `revision`
  * is set (a change to part of a card), else the shape-switch prompt. A repaint keeps the reference
@@ -295,8 +295,7 @@ export function cardArtRequest(input: GenerateCardArtInput): ArtRequest {
     output_format: "png" as const,
     background: "opaque" as const,
   };
-  const repaint = (prompt: string) =>
-    input.repaint ? withRepaintComposition(prompt, input.artMode) : prompt;
+  const repaint = (prompt: string) => (input.repaint ? withRepaintComposition(prompt) : prompt);
   if (input.reference) {
     return {
       endpoint: "images/edits",

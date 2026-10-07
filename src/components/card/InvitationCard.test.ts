@@ -2,7 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { panelFor, type PanelFade } from "@/lib/card/layouts";
+import type { PanelFade } from "@/lib/card/layouts";
+import { storedPanelShape } from "@/lib/card/test-panels";
 import { outlineMaskImage } from "@/lib/card/outline";
 import type { TextBox } from "@/lib/card/text-box";
 
@@ -126,7 +127,7 @@ describe("InvitationCard", () => {
     // art-bottom on a rectangle (card_layouts_v3): paper from the top edge to 630, fading over 180.
     const html = render({
       shape: "rectangle",
-      panels: [{ ...panelFor("art-bottom", "rectangle"), color: "#F6F1EA" }],
+      panels: [{ ...storedPanelShape("art-bottom", "rectangle"), color: "#F6F1EA" }],
     });
     // The element covers the paper and its fade: 0–810.
     expect(html).toContain("left:0cqw;top:0cqw;width:100cqw;height:81cqw;");

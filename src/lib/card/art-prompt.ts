@@ -1,5 +1,5 @@
 /**
- * Art prompt assembly, `card_art_v6` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
+ * Art prompt assembly, `card_art_v7` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
  *
  * The art prompt is assembled by code from the validated art brief plus the layout and shape
  * rules; a model never writes it and the raw host prompt is never part of it (`spec.md §32 #17`).
@@ -15,6 +15,11 @@
  * composition line to a repaint of art that has a subject (`repaintComposition`). `card_art_v5`
  * (Phase 5d, owner decisions 2026-10-05) adds the revision prompt: a change to part of a card is an
  * edit of that card's artwork, framed as a revision of the reference (`assembleRevisionPrompt`).
+ * `card_art_v6` carried the cover layouts' composition (`card_layouts_v6`). `card_art_v7` (owner
+ * decision 2026-10-07: generated cards are editable starting designs) asks for a *quieter* area for
+ * the words — low detail, not necessarily empty, white or flat — in the layouts' composition
+ * (`card_layouts_v7`) and in the line on the text area below, and its repaint line asks for a
+ * generous quieter part of the picture in every art mode (`REPAINT_COMPOSITION`).
  * Changing any sentence is a `CARD_ART_PROMPT_VERSION` bump.
  */
 
@@ -146,7 +151,7 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
       : [
           "The trimming is done later by the printer: carry the background all the way into every corner and edge of the canvas. Do not draw the outline itself, a vignette, a border line or blank corners.",
         ]),
-    "The calm area will carry typeset text that is added later, so leave it genuinely clear — but do not leave the rest of the card empty.",
+    "The quieter area will carry the invitation's words, set later as type: keep its detail low enough for words to read clearly over it. It need not be empty, white or flat, and the rest of the card should not be empty.",
     "Absolutely no text of any kind: no letters, words, numbers, initials, monograms, signatures, labels, logos, wordmarks, crests or watermarks anywhere in the image.",
     "This is the artwork itself, filling the canvas — not a mockup: no photograph of a printed card, no envelope, table edge, hands, shadows of paper or frame around the canvas. The artwork may itself be a photograph when the rendering says so.",
     `An original style.${avoid}`,
@@ -154,27 +159,21 @@ export function assembleArtPrompt(design: ArtPromptInput): string {
 }
 
 /**
- * The line a repaint adds (`card_art_v4`; owner decision, 2026-10-05: "when a picture reaches into
- * the words, its repaint adds one plain composition line"). A repaint follows an artwork that would
- * need the legibility panel (`docs/card-system.md §3`); for art with a subject that means the
- * picture ran into the area the words need, and repeating the identical prompt tended to repeat the
- * composition (round three: a giraffe's head under the title in all three images). The line never
- * refers to an earlier image: on a shape switch the only image the model sees is the reference it
- * must keep.
+ * The line a repaint adds (`card_art_v7`). A repaint follows an artwork with no workable space for
+ * the words on some shape it fits (`text-space.ts`, `docs/card-system.md §3`): at most one per
+ * artwork. The line asks, in every art mode, for a generous quieter part of the picture, since an
+ * atmosphere or a minimal texture can be as busy under the words as a subject. It never refers to
+ * an earlier image: on a shape switch the only image the model sees is the reference it must keep.
+ *
+ * `card_art_v4`–`v6` added it only for art with a subject or a border, and asked for the whole
+ * subject to stay entirely outside a calm area that held only background.
  */
 export const REPAINT_COMPOSITION =
-  "Keep the whole subject — including anything tall or reaching, such as a neck, a branch, a tower or a wave — entirely outside the calm area kept for the words, with clear space between them: the calm area holds only background.";
+  "Leave a generous, quieter part of the picture for the invitation's words — low detail, such as open sky, a wall, a plain surface or the paper — and keep the subject's main features out of it.";
 
-/**
- * The art modes whose repaint adds `REPAINT_COMPOSITION`: those with a subject or a border that can
- * reach into the words. An `atmosphere` or `minimal` wash has no subject; its panel comes from the
- * tone under the words, so its repaint repeats the prompt unchanged.
- */
-export const REPAINT_COMPOSITION_MODES: readonly ArtMode[] = ["illustration", "framed"];
-
-/** An art prompt as a repaint of `artMode` art sends it. */
-export function withRepaintComposition(prompt: string, artMode: ArtMode): string {
-  return REPAINT_COMPOSITION_MODES.includes(artMode) ? `${prompt}\n${REPAINT_COMPOSITION}` : prompt;
+/** An art prompt as a repaint sends it: the prompt, then `REPAINT_COMPOSITION`. */
+export function withRepaintComposition(prompt: string): string {
+  return `${prompt}\n${REPAINT_COMPOSITION}`;
 }
 
 /**

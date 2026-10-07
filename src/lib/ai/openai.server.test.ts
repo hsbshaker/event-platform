@@ -478,7 +478,7 @@ describe("Card Design", () => {
       round: 2,
       prompt_version: "card_design_v6",
       schema_version: "card_design_schema_v4",
-      layout_set_version: "card_layouts_v6",
+      layout_set_version: "card_layouts_v7",
     });
   });
 
@@ -521,9 +521,9 @@ describe("card artwork", () => {
       model: "gpt-image-2.5-sunburst-2026-09-08",
       image_units: 1,
       output_tokens: 2000,
-      prompt_version: "card_art_v6",
+      prompt_version: "card_art_v7",
       schema_version: null,
-      layout_set_version: "card_layouts_v6",
+      layout_set_version: "card_layouts_v7",
       cost_estimate_usd: 0.062, // 400 × $5 + 2000 × $30, per 1M
     });
   });
