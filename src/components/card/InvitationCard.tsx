@@ -1,11 +1,9 @@
 /**
  * `InvitationCard` — the one card component (`docs/card-system.md §6.1`;
  * `docs/design-system.md §10.14`). It renders a card from data alone: the effective shape, the
- * artwork for that shape's proportion, where that artwork is drawn when it gave way to the words
- * (`placement`, `card_layouts_v4`) or the legibility panels stored with earlier artwork, and the
- * text layer as positioned `TextBox`es — the host's customization when one exists, otherwise the
- * generated layout (`card-text.server.ts`). It never computes a layout, a line break, a colour, a
- * font or where the artwork goes.
+ * artwork for that shape's proportion, the legibility panels resolved for it, and the text layer
+ * as positioned `TextBox`es — the host's customization when one exists, otherwise the generated
+ * layout (`card-text.server.ts`). It never computes a layout, a line break, a colour or a font.
  *
  * Rendering contract:
  *
@@ -15,8 +13,6 @@
  *   (`docs/card-system.md §2.1`).
  * - **The outline is a mask over the whole card** — artwork, panels and text — from code-defined
  *   geometry (`outline.ts`). Outside it the page shows through.
- * - **Stored rectangles, exactly.** A crop or a plate draws the artwork at the rectangle stored
- *   with it, and a plate's cut and fill as stored (`ArtworkLayer`); nothing here decides them.
  * - **Stored lines, exactly.** Each line is its own element with `white-space: pre`: the browser
  *   never wraps, joins or truncates card text (`spec.md §32 #23`).
  * - **Optical size pinned to card units.** `font-optical-sizing: none` and
@@ -48,7 +44,6 @@ import {
   readingOrder,
   validateCardData,
   type CardPanel,
-  type CardPlacement,
 } from "@/lib/card/card-data";
 import { outlineMaskImage } from "@/lib/card/outline";
 import { CARD_CANVAS, type CardProportion, type CardShape } from "@/lib/card/shapes";
@@ -57,7 +52,7 @@ import { curatedFontUrl } from "@/lib/card/text/font-files";
 import { SHAPING_LANGUAGE } from "@/lib/card/text/shaping-language";
 
 // Validation and ordering are shared with the link-preview image (`card-data.ts`).
-export { InvalidCardDataError, type CardPanel, type CardPlacement };
+export { InvalidCardDataError, type CardPanel };
 
 /** The artwork for the effective shape's proportion. */
 export interface CardArtwork {
@@ -68,16 +63,8 @@ export interface CardArtwork {
 export interface InvitationCardProps {
   shape: CardShape;
   artwork: CardArtwork;
-  /**
-   * The legibility panels persisted with `card_layouts_v2`/`v3` artwork, one per zone that needed
-   * one; none otherwise. Never together with `placement`.
-   */
+  /** One per zone that needs a panel; none when the ink cleared 4.5:1 on the artwork alone. */
   panels?: readonly CardPanel[];
-  /**
-   * How the artwork gives way to the words (`card_layouts_v4`): drawn at its stored rectangle
-   * instead of over the whole card. Absent, the artwork fills the card, as it always did.
-   */
-  placement?: CardPlacement;
   boxes: readonly TextBox[];
 }
 
@@ -221,121 +208,11 @@ function fadedPanelStyle(panel: CardPanel): CSSProperties {
   };
 }
 
-/**
- * The artwork `<img>`'s style at a box: stretched to it, never selectable. With no placement the
- * box is the whole face, and the style is exactly the one every earlier card was drawn with.
- */
-function artworkStyle(
-  left: string | number,
-  top: string | number,
-  width: string,
-  height: string,
-): CSSProperties {
-  return {
-    position: "absolute",
-    left,
-    top,
-    width,
-    height,
-    maxWidth: "none",
-    display: "block",
-    objectFit: "fill",
-    userSelect: "none",
-    WebkitUserSelect: "none",
-  };
-}
-
-/**
- * The artwork layer. Without a placement, the artwork over the whole face, as every card before
- * `card_layouts_v4` drew it. With one (`CardPlacement`):
- *
- * - `crop`: the artwork at its stored rectangle, which covers the face; the face clips it.
- * - `plate`: a wrapper clipped at the cut (`overflow: hidden` on the kept side of `cut.y`) holds
- *   the artwork at its stored rectangle, masked by the shape's outline sized to that rectangle —
- *   the outline scaled with the art, about a point on its own edge, so it lies inside the card's.
- */
-function ArtworkLayer({
-  src,
-  shape,
-  canvasHeight,
-  placement,
-}: {
-  src: string;
-  shape: CardShape;
-  canvasHeight: number;
-  placement: CardPlacement | undefined;
-}) {
-  if (!placement) {
-    return (
-      // Decorative artwork; a plain img, because the card renders outside Next too.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" draggable={false} style={artworkStyle(0, 0, "100%", "100%")} />
-    );
-  }
-  const { art } = placement;
-  if (placement.kind === "crop" || !placement.cut) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt=""
-        draggable={false}
-        data-card-art="crop"
-        style={artworkStyle(cu(art.x), cu(art.y), cu(art.width), cu(art.height))}
-      />
-    );
-  }
-  const { cut } = placement;
-  const top = cut.keep === "above" ? 0 : cut.y;
-  const height = cut.keep === "above" ? cut.y : canvasHeight - cut.y;
-  const mask = outlineMaskImage(shape);
-  return (
-    <div
-      data-card-art-cut=""
-      aria-hidden="true"
-      style={{
-        position: "absolute",
-        left: 0,
-        top: cu(top),
-        width: "100%",
-        height: cu(height),
-        overflow: "hidden",
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        draggable={false}
-        data-card-art="plate"
-        style={{
-          ...artworkStyle(cu(art.x), cu(art.y - top), cu(art.width), cu(art.height)),
-          maskImage: mask,
-          maskSize: "100% 100%",
-          maskRepeat: "no-repeat",
-          maskPosition: "0 0",
-          WebkitMaskImage: mask,
-          WebkitMaskSize: "100% 100%",
-          WebkitMaskRepeat: "no-repeat",
-          WebkitMaskPosition: "0 0",
-        }}
-      />
-    </div>
-  );
-}
-
-export function InvitationCard({
-  shape,
-  artwork,
-  panels = [],
-  placement,
-  boxes,
-}: InvitationCardProps) {
+export function InvitationCard({ shape, artwork, panels = [], boxes }: InvitationCardProps) {
   const proportion = validateCardData({
     shape,
     artworkProportion: artwork?.proportion,
     panels,
-    placement,
     boxes,
   });
   if (typeof artwork.src !== "string" || artwork.src === "") {
@@ -372,8 +249,6 @@ export function InvitationCard({
           width: "100cqw",
           height: cu(canvas.height),
           overflow: "hidden",
-          // A plate's flat fill, under the artwork; the outline mask clips it like everything else.
-          ...(placement?.fill ? { background: placement.fill } : {}),
           maskImage: mask,
           maskSize: "100% 100%",
           maskRepeat: "no-repeat",
@@ -384,11 +259,24 @@ export function InvitationCard({
           WebkitMaskPosition: "0 0",
         }}
       >
-        <ArtworkLayer
+        {/* Decorative artwork; a plain img, because the card renders outside Next too. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={artwork.src}
-          shape={shape}
-          canvasHeight={canvas.height}
-          placement={placement}
+          alt=""
+          draggable={false}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: "100%",
+            height: "100%",
+            maxWidth: "none",
+            display: "block",
+            objectFit: "fill",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+          }}
         />
         {panels.map((panel, index) => (
           <div

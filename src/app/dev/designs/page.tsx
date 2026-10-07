@@ -102,7 +102,6 @@ async function fixtureDesign(index: number, active: boolean, published: boolean)
       panels: [],
       boxes,
     },
-    lowContrast: false,
     unconfirmed: [],
     stated: {},
     customization: null,

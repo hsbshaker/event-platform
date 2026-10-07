@@ -76,7 +76,6 @@ export function DirectionBox({
           shape={card.shape}
           artwork={card.artwork}
           panels={card.panels}
-          placement={card.placement}
           boxes={card.boxes}
         />
       </div>

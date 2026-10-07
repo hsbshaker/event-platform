@@ -5,7 +5,6 @@ import { loadCardShapeOptionsAction } from "@/app/actions/shape";
 import { loadEventDraft, type EventDraftView } from "@/app/actions/event-details";
 import { AppButtonLink } from "@/components/app/AppButtonLink";
 import { ConfirmLegend } from "@/components/app/ConfirmLegend";
-import { LowContrastHint } from "@/components/app/LowContrastHint";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { cohostSummary } from "@/lib/cohosts/invitations.server";
 import { guestSummary } from "@/lib/guests/guests.server";
@@ -128,7 +127,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               unconfirmed={revealed.unconfirmed}
               className="max-w-prose"
             />
-            <LowContrastHint card={revealed} className="max-w-prose" />
             {/* Before publish only (`spec.md §8.2`). */}
             {!revealed.published && (
               <AppButtonLink

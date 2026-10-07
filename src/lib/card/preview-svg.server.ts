@@ -6,9 +6,7 @@
  * (`card-data.ts`), in the same coordinate system (card units, 1000 wide), with the same layers in
  * the same order:
  *
- * 1. the artwork, stretched to the canvas (`object-fit: fill`) — or, when it gave way to the words
- *    (`card_layouts_v4`), a plate's fill under it and the artwork at its stored rectangle, a plate
- *    clipped at its cut and by its own outline scaled to that rectangle (`artworkSvg`);
+ * 1. the artwork, stretched to the canvas (`object-fit: fill`);
  * 2. each panel: with a fade (`card_layouts_v3`), the opaque paper and its eased fade as gradients;
  *    without (`card_layouts_v2`), its soft edge (CSS `box-shadow: 0 0 blur spread`) and the opaque
  *    rounded rectangle;
@@ -30,7 +28,6 @@ import {
   panelFeather,
   validateCardData,
   type CardPanel,
-  type CardPlacement,
   InvalidCardDataError,
 } from "./card-data";
 import { outlinePath } from "./outline";
@@ -51,48 +48,7 @@ export interface CardPreviewData {
   shape: CardShape;
   artwork: CardPreviewArtwork;
   panels?: readonly CardPanel[];
-  placement?: CardPlacement;
   boxes: readonly TextBox[];
-}
-
-/**
- * The artwork layer, as `InvitationCard` draws it (`CardPlacement`): over the whole canvas with no
- * placement; at its stored rectangle for a crop; for a plate, at its stored rectangle clipped by
- * the outline scaled to that rectangle, inside a group clipped at the cut. A plate's fill is the
- * face under it, drawn first.
- */
-function artworkSvg(
-  shape: CardShape,
-  href: string,
-  canvas: { width: number; height: number },
-  placement: CardPlacement | undefined,
-): { defs: string; body: string } {
-  const { width: w, height: h } = canvas;
-  const image = (r: { x: number; y: number; width: number; height: number }, extra = "") =>
-    `<image href="${href}" x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}" ` +
-    `preserveAspectRatio="none"${extra}/>`;
-  if (!placement) return { defs: "", body: image({ x: 0, y: 0, width: w, height: h }) };
-  const fill = placement.fill
-    ? `<rect data-card-fill="" x="0" y="0" width="${w}" height="${h}" fill="${placement.fill}"/>`
-    : "";
-  const { art, cut } = placement;
-  if (placement.kind === "crop" || !cut) {
-    return { defs: "", body: fill + image(art, ` data-card-art="crop"`) };
-  }
-  const top = cut.keep === "above" ? 0 : cut.y;
-  const bottom = cut.keep === "above" ? cut.y : h;
-  const defs =
-    `<clipPath id="card-art-cut"><rect x="0" y="${n(top)}" width="${w}" height="${n(bottom - top)}"/></clipPath>` +
-    `<clipPath id="card-art-outline"><path d="${outlinePath(shape)}" ` +
-    `transform="translate(${n(art.x)} ${n(art.y)}) scale(${n5(art.width / w)} ${n5(art.height / h)})"/></clipPath>`;
-  return {
-    defs,
-    body:
-      fill +
-      `<g clip-path="url(#card-art-cut)">` +
-      image(art, ` clip-path="url(#card-art-outline)" data-card-art="plate"`) +
-      `</g>`,
-  };
 }
 
 /** The artwork's type from its magic bytes; anything but PNG or JPEG is refused. */
@@ -244,30 +200,26 @@ function boxSvg(box: TextBox, outlines: GlyphOutlinesResolver): string {
  * `UndrawableTextError` for a line it cannot draw exactly as a browser sets it.
  */
 export function cardPreviewSvg(card: CardPreviewData, outlines: GlyphOutlinesResolver): string {
-  const { shape, artwork, panels = [], placement, boxes } = card;
+  const { shape, artwork, panels = [], boxes } = card;
   const proportion = validateCardData({
     shape,
     artworkProportion: artwork?.proportion,
     panels,
-    placement,
     boxes,
   });
   const mime = artworkMime(artwork.bytes);
-  const canvas = CARD_CANVAS[proportion];
-  const { width: w, height: h } = canvas;
+  const { width: w, height: h } = CARD_CANVAS[proportion];
   const href = `data:${mime};base64,${Buffer.from(artwork.bytes).toString("base64")}`;
-  const art = artworkSvg(shape, href, canvas, placement);
   const drawnPanels = panels.map(panelSvg);
   const text = paintOrder(boxes).map((box) => boxSvg(box, outlines));
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" ` +
     `data-card-shape="${shape}">` +
     `<defs><clipPath id="card-outline"><path d="${outlinePath(shape)}"/></clipPath>` +
-    art.defs +
     drawnPanels.map((p) => p.defs).join("") +
     `</defs>` +
     `<g clip-path="url(#card-outline)">` +
-    art.body +
+    `<image href="${href}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none"/>` +
     drawnPanels.map((p) => p.body).join("") +
     `<g data-card-text="">${text.join("")}</g>` +
     `</g></svg>`

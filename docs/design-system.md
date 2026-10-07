@@ -1777,7 +1777,7 @@ joins it with its surface.
 
 ## 10.14 `InvitationCard`
 
-Renders the invitation card from the persisted design, its artwork, its resolved ink and placement (or stored panels), and the event's current content passed through the card's deterministic text layout (`docs/card-system.md §6.1`).
+Renders the invitation card from the persisted design, its artwork, its resolved ink and panels, and the event's current content passed through the card's deterministic text layout (`docs/card-system.md §6.1`).
 
 It is **owned by the card system, not by app chrome**: its styling, fonts and ink never come from app tokens, and no app component styles its internals.
 
@@ -2044,7 +2044,7 @@ Revision 5 pairs, measured:
 --dusk-focus on --dusk                                 6.7
 ```
 
-Card text contrast is decided by the card compiler for the generated card (≥ 4.5:1 wherever the words sit at an edge of the picture; best ink, with the host told, for centred words: §15.6); a host's own colour choices in the card editor are not checked (`spec.md §20.1`). The house-style page uses app tokens and meets the same targets, and carries every detail the card shows. The card editor's own chrome (frames, handles, toolbar) meets the targets above.
+Card text contrast is guaranteed by the card compiler for the generated card (≥ 4.5:1, §15.6); a host's own colour choices in the card editor are not checked (`spec.md §20.1`). The house-style page uses app tokens and meets the same targets, and carries every detail the card shows. The card editor's own chrome (frames, handles, toolbar) meets the targets above.
 
 ## 14.2 Focus
 
@@ -2112,7 +2112,7 @@ Three systems, kept separate:
 
 **Invitation card**
 - the only generated, themed surface;
-- driven by the persisted design (its artwork, resolved ink and placement or stored panels, and typography pairing) and, where the host has edited it, the host's saved text boxes (`spec.md §20.5`);
+- driven by the persisted design (its artwork, resolved ink and panels, and typography pairing) and, where the host has edited it, the host's saved text boxes (`spec.md §20.5`);
 - styling and card fonts (`src/styles/card-fonts.css`) live in the card renderer and nowhere else.
 
 **House-style guest page**
@@ -2137,7 +2137,7 @@ Per `docs/card-system.md`:
 
 - The strong model emits an `EventIdentity` and a `CardDesign`: layout (an ID from a small catalog), art mode, a curated typography pairing with up to two alternates, the card's wording (title and invitation line), an art brief, and a host-facing name and description. An image model generates the artwork from the art brief and the layout's and shape's composition rules, never from the raw host prompt.
 - The model does **not** emit HTML, CSS, JSX, JavaScript or SVG; text colours, font sizes, positions or line breaks; the host's facts; or any ID outside its catalogs.
-- Deterministic code (no model call) validates the design and artwork, checks that wording invents no fact, resolves ink and, where needed, how the artwork gives way to the words (a crop or a plate; never a panel for a new design), and sizes and breaks every line of text with one pure layout function. The design, artwork and resolved ink are persisted and immutable.
+- Deterministic code (no model call) validates the design and artwork, checks that wording invents no fact, resolves ink and any legibility panel, and sizes and breaks every line of text with one pure layout function. The design, artwork and resolved ink are persisted and immutable.
 - One card component renders from the persisted data only.
 
 Facts on the card (names, date, time, venue, RSVP-by) come only from event data the host entered or confirmed.
@@ -2217,9 +2217,9 @@ Behavior is defined by `spec.md §12`; this section governs only presentation.
 
 ## 15.6 Legibility and contrast
 
-- Code chooses ink colours (drawn from the artwork first). Where the words sit at an edge of the picture every text of the generated card clears **4.5:1**: when no ink clears on the artwork after its repaints, the artwork gives way — cropped, or set back as a plate with the words on a flat fill. Where the words sit in the middle, nothing is painted behind them: the ink is the best candidate, and when it is below 4.5:1 the host (never a guest) sees one plain line under the card, in the legend's text style, until they customize that card (`docs/card-system.md §4.2`; owner decision 2026-10-06). Cards persisted with an art-derived legibility panel keep it. A model never chooses a colour, size or line break.
+- Every text of the generated card clears **4.5:1** against the artwork behind it. Code chooses ink colours (drawn from the artwork first) and, when no ink can clear it, applies an art-derived legibility panel. A model never chooses a colour, size or line break.
 - Card text is live, selectable and screen-reader readable; artwork is decorative. Everything a guest needs is in the text and on the page.
-- Changing a font or shape does not change the generated card's ink, placement or panels. A colour the host picks in the card editor applies to that box only and is not checked (`spec.md §20.1`).
+- Changing a font or shape does not change the generated card's ink or panels. A colour the host picks in the card editor applies to that box only and is not checked (`spec.md §20.1`).
 - The house-style page and app chrome meet the contrast targets of §14.1 with app tokens. Card ink and artwork colours are never reused as page or chrome colours.
 
 ## 15.6a Focus indicator contract (guest-facing controls)
@@ -2248,7 +2248,7 @@ The envelope is not themed per event, not generated and not an imitation of any 
 
 ## 15.8 Generated design immutability
 
-Persist per generated design: the raw and validated `CardDesign`, its artwork, its resolved ink with any placement or low-contrast flag (or stored panels), and the version set (prompt, schema, layout set, compiler, image model).
+Persist per generated design: the raw and validated `CardDesign`, its artwork, its resolved ink and panels, and the version set (prompt, schema, layout set, compiler, image model).
 
 A design and its artwork never change once generated. Host edits (wording, fonts, text boxes, every fact) live on the event, as its card customization, and never mutate a design (`spec.md §20.5`). Do not regenerate or silently "upgrade" an existing card.
 

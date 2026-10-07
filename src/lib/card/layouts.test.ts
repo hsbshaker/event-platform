@@ -6,7 +6,6 @@ import {
   CARD_LAYOUT_IDS,
   CARD_LAYOUT_SET_VERSION,
   CARD_LAYOUTS,
-  CUT_PADDING,
   layoutArtFor,
   layoutSupportsShape,
   panelFor,
@@ -17,45 +16,6 @@ import { CARD_SHAPES, canvasOf, insideOutline, insideTextSafe, SHAPE_GEOMETRY } 
 describe("layout set card_layouts_v5", () => {
   it("is versioned", () => {
     expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v5");
-  });
-
-  it("gives way by layout: crop and plate at the picture's edge, nothing for centred words", () => {
-    expect(CARD_LAYOUTS["art-top"].giveWay).toEqual({
-      kind: "edge",
-      picture: "top",
-      // A crop would lose the subject's head: a plate only.
-      cropShapes: [],
-      cutPadding: CUT_PADDING,
-    });
-    expect(CARD_LAYOUTS["art-bottom"].giveWay).toEqual({
-      kind: "edge",
-      picture: "bottom",
-      // Only where cropping loses ground: the arch's and oval's curves would cut the subject.
-      cropShapes: ["rectangle", "rounded-rectangle", "square"],
-      cutPadding: CUT_PADDING,
-    });
-    for (const layout of ["framed", "corners", "atmosphere"] as const) {
-      expect(CARD_LAYOUTS[layout].giveWay, layout).toEqual({ kind: "centred" });
-    }
-  });
-
-  it("cuts a plate between the words and the picture, inside the region the composition keeps clear", () => {
-    for (const layout of ["art-top", "art-bottom"] as const) {
-      for (const shape of CARD_LAYOUTS[layout].shapes) {
-        const zone = zoneFor(layout, shape);
-        const { clear } = layoutArtFor(layout, shape);
-        const { height: h } = canvasOf(shape);
-        const label = `${layout}/${shape}`;
-        if (layout === "art-top") {
-          const cut = zone.y - CUT_PADDING;
-          // Below the cut lie the words; the cut is at or below where the clear region begins.
-          expect(cut, label).toBeGreaterThanOrEqual(h - (h * clear!.percent) / 100);
-        } else {
-          const cut = zone.y + zone.height + CUT_PADDING;
-          expect(cut, label).toBeLessThanOrEqual((h * clear!.percent) / 100);
-        }
-      }
-    }
   });
 
   it("has exactly the seven layouts", () => {
@@ -216,10 +176,9 @@ describe("layout set card_layouts_v5", () => {
     ]);
     expect(CARD_LAYOUTS["cover-top"].artModes).toEqual(["illustration"]);
     expect(CARD_LAYOUTS["cover-bottom"].artModes).toEqual(["illustration"]);
-    // Words on top: the picture is grounded below, so a crop may lose ground first.
-    expect(CARD_LAYOUTS["cover-top"].giveWay).toEqual(CARD_LAYOUTS["art-bottom"].giveWay);
-    // Words below: the picture holds the top, so only a plate (a crop would cut a head).
-    expect(CARD_LAYOUTS["cover-bottom"].giveWay).toEqual(CARD_LAYOUTS["art-top"].giveWay);
+    // Their panels are the picture layouts' too: from the words' edge, fading toward the picture.
+    expect(CARD_LAYOUTS["cover-top"].panel).toEqual(CARD_LAYOUTS["art-bottom"].panel);
+    expect(CARD_LAYOUTS["cover-bottom"].panel).toEqual(CARD_LAYOUTS["art-top"].panel);
     for (const id of ["cover-top", "cover-bottom"] as const) {
       for (const shape of CARD_LAYOUTS[id].shapes) {
         const { composition, presence } = layoutArtFor(id, shape);

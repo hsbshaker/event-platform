@@ -202,7 +202,6 @@ export default async function CreationFixturePage({
       description:
         index === 0 ? "A lemon branch over soft linen." : "Pale wildflowers under a low blue moon.",
       card: await cardData("rectangle", d.name, d.top, d.bottom),
-      lowContrast: false,
       unconfirmed: [],
       stated: {},
       customization: null,

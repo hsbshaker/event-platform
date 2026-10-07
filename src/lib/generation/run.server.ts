@@ -228,12 +228,7 @@ export interface GenerationTelemetry {
   artRegenerated: string | null;
   artRepaints: number;
   standardWording: string[];
-  /** Zones given the legibility panel; always empty since `card_layouts_v4`. */
   inkPanels: { shape: string; zone: string }[];
-  /** Zones whose art gave way (`card_layouts_v4`): a crop or a plate, at its scale. */
-  inkPlacements: { shape: string; zone: string; kind: string; scale: number }[];
-  /** Centred zones where no ink cleared 4.5:1 (`card_layouts_v4`), with the best contrast. */
-  lowContrastZones: { shape: string; zone: string; contrast: number }[];
   versions: {
     identityPrompt: string;
     identitySchema: string;
@@ -310,8 +305,6 @@ export interface ShapeSwitchTelemetry {
   artRegenerated: string | null;
   artRepaints: number;
   inkPanels: { shape: string; zone: string }[];
-  inkPlacements: { shape: string; zone: string; kind: string; scale: number }[];
-  lowContrastZones: { shape: string; zone: string; contrast: number }[];
   imagesRequested: number;
   repaintsStoppedBy: string | null;
   lineAreasFallback: string[];
@@ -991,8 +984,6 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     artRepaints: art.telemetry.artRepaints,
     standardWording: [...chosen.telemetry.standardWordingSlots],
     inkPanels: art.telemetry.inkPanels.map((p) => ({ shape: p.shape, zone: p.zone })),
-    inkPlacements: art.telemetry.inkPlacements.map((p) => ({ ...p })),
-    lowContrastZones: art.telemetry.lowContrastZones.map((z) => ({ ...z })),
     versions: {
       identityPrompt: EVENT_IDENTITY_PROMPT_VERSION,
       identitySchema: EVENT_IDENTITY_SCHEMA_VERSION,
@@ -1193,8 +1184,6 @@ async function shapeSwitchPipeline(input: ShapeSwitchInput): Promise<RunGenerati
     artRegenerated: art.telemetry.artRegenerated,
     artRepaints: art.telemetry.artRepaints,
     inkPanels: art.telemetry.inkPanels.map((p) => ({ shape: p.shape, zone: p.zone })),
-    inkPlacements: art.telemetry.inkPlacements.map((p) => ({ ...p })),
-    lowContrastZones: art.telemetry.lowContrastZones.map((z) => ({ ...z })),
     imagesRequested: art.telemetry.imagesRequested,
     repaintsStoppedBy: art.telemetry.repaintsStoppedBy,
     lineAreasFallback: art.telemetry.lineAreasFallback,

@@ -234,45 +234,6 @@ describe.each([
     });
   }
 
-  it("tells the host, under the card, when centred words sit on a busy part of the picture", async () => {
-    const { page, close } = await openFixture(viewport, "state=reveal&giveway=low");
-    try {
-      await page.getByRole("button", { name: /Lemons & Linen/ }).click();
-      await page.locator("[data-reveal-actions]").waitFor({ state: "visible", timeout: 5_000 });
-      const cardBox = await page.locator("[data-invitation-card]").boundingBox();
-      const hint = page.locator("[data-low-contrast-hint]");
-      expect(await hint.innerText()).toBe(
-        "Some words sit on a busy part of the picture. If they're hard to read, move them in Edit card.",
-      );
-      expect(await hint.getAttribute("role")).toBe("note");
-      expect((await hint.boundingBox())!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
-      // App chrome beside the card, never part of it, and nothing internal named.
-      expect(await page.locator("[data-invitation-card] [data-low-contrast-hint]").count()).toBe(0);
-      expect(await hint.innerText()).not.toMatch(INTERNAL);
-      expect(await hasHorizontalScroll(page)).toBe(false);
-      await shot(page, viewport, "reveal-low-contrast");
-    } finally {
-      await close();
-    }
-  });
-
-  it("draws a plate the art gave way to, with no hint (card_layouts_v4)", async () => {
-    const { page, close } = await openFixture(viewport, "state=reveal&giveway=plate");
-    try {
-      await page.getByRole("button", { name: /Lemons & Linen/ }).click();
-      await page.locator("[data-reveal-actions]").waitFor({ state: "visible", timeout: 5_000 });
-      const face = await page.locator("[data-card-face]").boundingBox();
-      const cut = await page.locator("[data-card-art-cut]").boundingBox();
-      // Kept above the cut at 770 of 1400 card units.
-      expect(cut!.y).toBeCloseTo(face!.y, 0);
-      expect(cut!.height / face!.height).toBeCloseTo(770 / 1400, 2);
-      expect(await page.locator("[data-low-contrast-hint]").count()).toBe(0);
-      await shot(page, viewport, "reveal-plate");
-    } finally {
-      await close();
-    }
-  });
-
   it("reduced motion opens the card without animation", async () => {
     const { page, close } = await openFixture(viewport, "state=reveal", "reduce");
     try {

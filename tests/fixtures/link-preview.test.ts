@@ -6,15 +6,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import {
-  InvitationCard,
-  type CardPanel,
-  type CardPlacement,
-} from "@/components/card/InvitationCard";
+import { InvitationCard, type CardPanel } from "@/components/card/InvitationCard";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { panelFeather } from "@/lib/card/card-data";
-import { cropRect, plateCut, plateRect } from "@/lib/card/give-way";
-import { CARD_LAYOUTS, panelFor, zoneFor, type CardLayoutId } from "@/lib/card/layouts";
+import { panelFor, zoneFor, type CardLayoutId } from "@/lib/card/layouts";
 import { canvasOf, insideOutline, proportionOf, type CardShape } from "@/lib/card/shapes";
 import { TYPICAL, WORST } from "@/lib/card/test-content";
 import type { CardContent, TextBox } from "@/lib/card/text-box";
@@ -136,8 +131,6 @@ interface Case {
   pairing: TypographyPairingId;
   /** A panel from `panelFor`, or the `card_layouts_v2` panel that persisted artwork still carries. */
   panel: boolean | "v2";
-  /** The art giving way (`card_layouts_v4`): a crop or a plate at a scale, as `give-way.ts` builds it. */
-  placement?: { kind: "crop" | "plate"; scale: number };
   /** The card's words: typical unless given. */
   content?: CardContent;
   /** Customize the generated boxes, as a host would in the editor. */
@@ -207,33 +200,6 @@ const CASES: Case[] = [
     panel: false,
   },
   {
-    // card_layouts_v4: a plate on an arch, the art and its outline scaled about the top centre.
-    id: "art-top-arch-plate",
-    layout: "art-top",
-    shape: "arch",
-    pairing: "hc_playfair_dmsans",
-    panel: false,
-    placement: { kind: "plate", scale: 0.7 },
-  },
-  {
-    // A plate kept below its cut, on an oval scaled about its bottom point.
-    id: "art-bottom-oval-plate",
-    layout: "art-bottom",
-    shape: "oval",
-    pairing: "soft_fraunces_manrope",
-    panel: false,
-    placement: { kind: "plate", scale: 0.8 },
-  },
-  {
-    // A crop: full bleed, scaled about the top centre.
-    id: "art-bottom-square-crop",
-    layout: "art-bottom",
-    shape: "square",
-    pairing: "oldstyle_garamond_worksans",
-    panel: false,
-    placement: { kind: "crop", scale: 1.16 },
-  },
-  {
     // A host's edits: rotation, alignment, letter spacing, case, colour, stacking, a line wider
     // than its box (start-aligned), and boxes moved apart so none overlaps another.
     id: "customized-rectangle",
@@ -294,94 +260,6 @@ function panelsOf(c: Case): CardPanel[] {
     return [{ ...v2, color: PANEL_COLOR }];
   }
   return [{ ...panelFor(c.layout, c.shape), color: PANEL_COLOR }];
-}
-
-/** A plate's fill: far from the wash, so a pixel of the wrong one shows. */
-const PLATE_FILL = "#C9D8C0";
-
-/** The placement a case is drawn with. */
-function placementOf(c: Case): CardPlacement | undefined {
-  if (!c.placement) return undefined;
-  const spec = CARD_LAYOUTS[c.layout].giveWay;
-  if (spec.kind !== "edge") throw new Error(`${c.id}: ${c.layout} has no edge give-way`);
-  if (c.placement.kind === "crop") {
-    return { kind: "crop", art: cropRect(spec, c.shape, c.placement.scale) };
-  }
-  return {
-    kind: "plate",
-    art: plateRect(spec, c.shape, c.placement.scale),
-    cut: plateCut(spec, zoneFor(c.layout, c.shape)),
-    fill: PLATE_FILL,
-  };
-}
-
-/** The live card drawn with its plate one step smaller: the art comparison must catch it. */
-let plateControl: { c: Case; chromiumBlank: DecodedPng } | null = null;
-
-/**
- * The two textless rasters compared over the whole card, inside the outline, away from every edge
- * the two renderers antialias differently: the outline, a plate's cut and its scaled outline. What
- * remains is the fill and the artwork as each renderer resamples it at its stored rectangle.
- */
-function artDiff(
-  id: string,
-  shape: CardShape,
-  placement: CardPlacement,
-  /** The text zone the synthetic artwork shades lighter: a hard edge in the art itself. */
-  zone: { x: number; y: number; width: number; height: number },
-  a: DecodedPng,
-  b: DecodedPng,
-): PanelComparison {
-  const scale = cardPreviewBox(shape).scale;
-  const { width: w, height: h } = canvasOf(shape);
-  const m = PANEL_OUTLINE_MARGIN;
-  const { art, cut } = placement;
-  const artAt = (x: number, y: number) => ({
-    ax: ((x - art.x) / art.width) * w,
-    ay: ((y - art.y) / art.height) * h,
-  });
-  const onArt = (x: number, y: number) => {
-    const { ax, ay } = artAt(x, y);
-    const kept = !cut || (cut.keep === "above" ? y < cut.y : y > cut.y);
-    return kept && ax >= 0 && ax <= w && ay >= 0 && ay <= h && insideOutline(shape, ax, ay);
-  };
-  // A hard edge in the artwork is resampled differently by Skia and resvg once it is scaled to
-  // a fractional pixel: pixels astride the artwork's own zone edge are left out too.
-  const inZone = (x: number, y: number) => {
-    const { ax, ay } = artAt(x, y);
-    return ax > zone.x && ax < zone.x + zone.width && ay > zone.y && ay < zone.y + zone.height;
-  };
-  const offsets = [
-    [0, 0],
-    [m, 0],
-    [-m, 0],
-    [0, m],
-    [0, -m],
-  ];
-  let pixels = 0;
-  let maxDiff = 0;
-  let sum = 0;
-  const width = Math.min(a.width, b.width);
-  const height = Math.min(a.height, b.height);
-  for (let py = 0; py < height; py += 1) {
-    for (let px = 0; px < width; px += 1) {
-      const x = (px + 0.5) / scale;
-      const y = (py + 0.5) / scale;
-      if (!offsets.every(([dx, dy]) => insideOutline(shape, x + dx, y + dy))) continue;
-      const here = onArt(x, y);
-      if (!offsets.every(([dx, dy]) => onArt(x + dx, y + dy) === here)) continue;
-      const zoned = inZone(x, y);
-      if (here && !offsets.every(([dx, dy]) => inZone(x + dx, y + dy) === zoned)) continue;
-      const ia = (py * a.width + px) * 4;
-      const ib = (py * b.width + px) * 4;
-      let d = 0;
-      for (let k = 0; k < 3; k += 1) d = Math.max(d, Math.abs(a.rgba[ia + k] - b.rgba[ib + k]));
-      pixels += 1;
-      sum += d;
-      maxDiff = Math.max(maxDiff, d);
-    }
-  }
-  return { id, pixels, maxDiff, meanDiff: pixels > 0 ? sum / pixels : Number.NaN };
 }
 
 /** The live card drawn with a fade 60 units shorter: the panel comparison must catch it. */
@@ -449,7 +327,6 @@ function panelDiff(
 interface Rendered {
   boxes: TextBox[];
   panels: CardPanel[];
-  placement?: CardPlacement;
   artwork: Uint8Array;
   preview: DecodedPng;
   previewBlank: DecodedPng;
@@ -483,7 +360,7 @@ function cropCard(img: DecodedPng, shape: CardShape): DecodedPng {
 
 async function renderPreview(
   c: Case,
-  r: Pick<Rendered, "boxes" | "panels" | "placement" | "artwork">,
+  r: Pick<Rendered, "boxes" | "panels" | "artwork">,
   withText: boolean,
 ) {
   const started = performance.now();
@@ -494,7 +371,6 @@ async function renderPreview(
         shape: c.shape,
         artwork: { bytes: r.artwork, proportion: proportionOf(c.shape) },
         panels: r.panels,
-        placement: r.placement,
         boxes: withText ? r.boxes : [],
       },
     },
@@ -505,7 +381,7 @@ async function renderPreview(
 
 async function renderChromium(
   c: Case,
-  r: { boxes: TextBox[]; panels: CardPanel[]; placement?: CardPlacement; artwork: Uint8Array },
+  r: { boxes: TextBox[]; panels: CardPanel[]; artwork: Uint8Array },
   withText: boolean,
 ) {
   const box = cardPreviewBox(c.shape);
@@ -517,7 +393,6 @@ async function renderChromium(
         proportion: proportionOf(c.shape),
       },
       panels: r.panels,
-      placement: r.placement,
       boxes: withText ? r.boxes : [],
     }),
   );
@@ -795,7 +670,7 @@ beforeAll(async () => {
     const boxes = c.edit ? c.edit(generated) : generated;
     const panels = panelsOf(c);
     const artwork = washArtwork(proportionOf(c.shape), zoneFor(c.layout, c.shape));
-    const base = { boxes, panels, placement: placementOf(c), artwork };
+    const base = { boxes, panels, artwork };
     const withText = await renderPreview(c, base, true);
     const blank = await renderPreview(c, base, false);
     const preview = decodePng(withText.png);
@@ -822,21 +697,6 @@ beforeAll(async () => {
   fadeControl = {
     c: edge,
     chromiumBlank: decodePng((await renderChromium(control, { ...r, panels: shorter }, false)).png),
-  };
-  // The live card's plate one step smaller (0.7 for 0.8): the art comparison must catch it.
-  const plated = CASES.find((c) => c.id === "art-bottom-oval-plate")!;
-  const smaller = placementOf({ ...plated, placement: { kind: "plate", scale: 0.7 } });
-  plateControl = {
-    c: plated,
-    chromiumBlank: decodePng(
-      (
-        await renderChromium(
-          { ...plated, id: `${plated.id}-control` },
-          { ...rendered.get(plated.id)!, placement: smaller },
-          false,
-        )
-      ).png,
-    ),
   };
 }, 600_000);
 
@@ -965,69 +825,6 @@ describe("the preview draws each panel as the live card does", () => {
   afterAll(() => {
     writeFileSync(
       path.join(OUT_DIR, "panels.json"),
-      JSON.stringify({ tolerance: PANEL_TOLERANCE, results }, null, 2),
-    );
-    console.info(
-      results
-        .map(
-          (x) => `${x.id}: ${x.pixels} px, max |Δ| ${x.maxDiff}, mean |Δ| ${x.meanDiff.toFixed(3)}`,
-        )
-        .join("\n"),
-    );
-  });
-});
-
-describe("the preview draws the art giving way as the live card does (card_layouts_v4)", () => {
-  const PLACED = CASES.filter((c) => c.placement);
-  const results: PanelComparison[] = [];
-
-  it("covers a plate kept above its cut, one kept below, and a crop", () => {
-    expect(
-      PLACED.map((c) => {
-        const p = placementOf(c)!;
-        return p.kind === "plate" ? `plate-${p.cut!.keep}` : p.kind;
-      }).sort(),
-    ).toEqual(["crop", "plate-above", "plate-below"]);
-  });
-
-  it.each(PLACED.map((c) => [c.id, c] as const))(
-    "%s: every pixel of the fill and the placed art within tolerance",
-    (_, c) => {
-      const r = rendered.get(c.id)!;
-      const result = artDiff(
-        c.id,
-        c.shape,
-        r.placement!,
-        zoneFor(c.layout, c.shape),
-        cropCard(r.previewBlank, c.shape),
-        r.chromiumBlank,
-      );
-      results.push(result);
-      expect(result.pixels).toBeGreaterThan(10_000);
-      expect(result.maxDiff, `${c.id}: mean ${result.meanDiff.toFixed(3)}`).toBeLessThanOrEqual(
-        PANEL_TOLERANCE,
-      );
-    },
-  );
-
-  it("catches a plate one step smaller (negative control)", () => {
-    const { c, chromiumBlank } = plateControl!;
-    const r = rendered.get(c.id)!;
-    const result = artDiff(
-      "plate-control",
-      c.shape,
-      r.placement!,
-      zoneFor(c.layout, c.shape),
-      cropCard(r.previewBlank, c.shape),
-      chromiumBlank,
-    );
-    results.push(result);
-    expect(result.maxDiff).toBeGreaterThan(PANEL_TOLERANCE * 4);
-  });
-
-  afterAll(() => {
-    writeFileSync(
-      path.join(OUT_DIR, "placements.json"),
       JSON.stringify({ tolerance: PANEL_TOLERANCE, results }, null, 2),
     );
     console.info(

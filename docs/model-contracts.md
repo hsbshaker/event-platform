@@ -539,17 +539,15 @@ count); it fails the artwork only when the brief's rendering is `photographic`, 
 Every finding fails the artwork the same way: one regeneration, and a repaint that has one is
 dropped.
 
-An artwork that passes but on which no ink clears 4.5:1 on the shape it was painted
+An artwork that passes but would need the layout's legibility panel on the shape it was painted
 for — decided by ink resolution in code, never by a model — is repainted from the same art prompt
 plus, for `illustration` and `framed` art, one composition line (`REPAINT_COMPOSITION`,
 `card_art_v4`: keep the whole subject, anything tall included, out of the calm area kept for the
-words; it never refers to an earlier image) — an `atmosphere` or `minimal` wash, whose failure
-comes from its tone, repeats the prompt — and a shape switch's repaint keeps its `reference` until
-an ink clears on an artwork, within two extra images per artwork in all, a validation regeneration
-included (`spec.md §7.8`). If none clears, the first valid artwork is kept and gives way to the
-words in code (`card_layouts_v4`, `docs/card-system.md §4.2`: a crop or a plate, or low-contrast
-ink for centred words); a repaint that fails validation is dropped. Only the artwork the card shows
-is persisted, as painted.
+words; it never refers to an earlier image) — an `atmosphere` or `minimal` wash, whose panel comes
+from its tone, repeats the prompt — and a shape switch's repaint keeps its `reference` until an artwork needs no panel, within two extra
+images per artwork in all, a validation regeneration included (`spec.md §7.8`). If none clears,
+the first valid artwork is kept with the panel; a repaint that fails validation is dropped. Only
+the artwork the card shows is persisted.
 
 A provider refusal of a brand or character homage is a failure whose regeneration comes from a
 `generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md
@@ -561,9 +559,8 @@ A provider refusal of a brand or character homage is a failure whose regeneratio
 - **CA-01 no text**: 0 accepted artworks containing text. Hard.
 - **CA-02 brand line**: 0 artworks containing a logo, wordmark, brand or character name, or a copied
   campaign image. Hard. Close homage to a character is allowed (`spec.md §7.6`).
-- **CA-03 layout respect**: the layout's quiet regions are quiet enough that the art rarely has to
-  give way (a crop, a plate or low-contrast ink; measured rate, formerly the legibility-panel rate
-  calibrated in Phase 3 validation).
+- **CA-03 layout respect**: the layout's quiet regions are quiet enough that ink resolution needs a
+  legibility panel rarely (measured rate; calibrated in Phase 3 validation).
 - **CA-04 quality**: the artwork looks bespoke and specific to the brief, not generic AI or stock
   imagery (human judgement).
 - **CA-05 latency and cost**: p50/p75 per card, recorded for `spec.md §7.10`.
@@ -594,7 +591,7 @@ bounds and fact check. Model prose is never authorization.
 | Event Identity | ordinary transient retry | one repair retry, then visible failure | — |
 | Fact extraction | ordinary transient retry | one retry, then no prefill (host enters details) | — |
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
-| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork on which no ink clears 4.5:1 on its shape: repaint until an ink clears, two extra images per artwork in all, then the first valid one, which gives way (crop, plate or low contrast, in code) |
+| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork that would need the legibility panel on its shape: repaint until one needs none, two extra images per artwork in all, then the first valid one with the panel |
 
 Card Design re-prompts are one of each kind per design. When a re-prompt's own call fails — its
 output invalid after the schema re-prompt is spent, or the provider call fails — the earlier valid

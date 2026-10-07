@@ -6,12 +6,7 @@ import { panelFor, type PanelFade } from "@/lib/card/layouts";
 import { outlineMaskImage } from "@/lib/card/outline";
 import type { TextBox } from "@/lib/card/text-box";
 
-import {
-  InvalidCardDataError,
-  InvitationCard,
-  type CardPlacement,
-  type InvitationCardProps,
-} from "./InvitationCard";
+import { InvalidCardDataError, InvitationCard, type InvitationCardProps } from "./InvitationCard";
 
 const ART = { src: "/art/flat.png", proportion: "5:7" } as const;
 
@@ -193,118 +188,6 @@ describe("InvitationCard", () => {
       "left:8cqw;top:77cqw;width:84cqw;height:51cqw;border-radius:2.8cqw;background:#F6F1EA;opacity:1;box-shadow:0 0 4cqw 2cqw #F6F1EA",
     );
     expect(html.indexOf("data-card-panel")).toBeLessThan(html.indexOf("data-card-text"));
-  });
-
-  describe("the art giving way (card_layouts_v4)", () => {
-    const PLATE: CardPlacement = {
-      kind: "plate",
-      art: { x: 100, y: 0, width: 800, height: 1120 },
-      cut: { y: 770, keep: "above" },
-      fill: "#F4EEE2",
-    };
-
-    it("draws artwork with no placement exactly as every earlier card: over the whole face", () => {
-      const html = render({ shape: "rectangle" });
-      expect(html).toContain(
-        'style="position:absolute;left:0;top:0;width:100%;height:100%;max-width:none;display:block;' +
-          'object-fit:fill;user-select:none;-webkit-user-select:none"',
-      );
-      expect(html).not.toContain("data-card-art");
-      // The face has no background of its own: the page shows outside the outline.
-      const face = html.slice(html.indexOf("data-card-face"), html.indexOf("<img"));
-      expect(face).not.toContain("background");
-    });
-
-    it("draws a crop at its stored rectangle, clipped by the face", () => {
-      const html = render({
-        shape: "rectangle",
-        placement: { kind: "crop", art: { x: -40, y: 0, width: 1080, height: 1512 } },
-      });
-      expect(html).toContain(
-        'data-card-art="crop" style="position:absolute;left:-4cqw;top:0cqw;width:108cqw;height:151.2cqw;',
-      );
-      expect(html).not.toContain("data-card-art-cut");
-      // The face, which clips it, is the one the outline masks.
-      expect(html.indexOf("data-card-face")).toBeLessThan(html.indexOf("data-card-art"));
-      expect(html).toContain("overflow:hidden");
-    });
-
-    it("draws a plate: the fill as the face, the art scaled with its own outline, cut straight", () => {
-      const html = render({ shape: "arch", placement: PLATE });
-      // The face's background is the fill, under everything; the face is still masked.
-      const face = html.slice(html.indexOf("data-card-face"), html.indexOf("data-card-art-cut"));
-      expect(face).toContain("background:#F4EEE2");
-      expect(face).toContain(`mask-image:${outlineMaskImage("arch").replaceAll('"', "&quot;")}`);
-      // The wrapper keeps the card above the cut at 770.
-      expect(html).toContain(
-        'data-card-art-cut="" aria-hidden="true" style="position:absolute;left:0;top:0cqw;width:100%;height:77cqw;overflow:hidden"',
-      );
-      // The art at its rectangle, masked by the arch's outline sized to that rectangle.
-      const img = html.slice(html.indexOf('data-card-art="plate"'));
-      expect(img).toContain("left:10cqw;top:0cqw;width:80cqw;height:112cqw;");
-      expect(img).toContain(`mask-image:${outlineMaskImage("arch").replaceAll('"', "&quot;")}`);
-      expect(img).toContain("mask-size:100% 100%");
-      // The text layer is unchanged and above the art.
-      expect(html.indexOf("data-card-art-cut")).toBeLessThan(html.indexOf("data-card-text"));
-    });
-
-    it("offsets the art within a wrapper that keeps the card below the cut", () => {
-      const html = render({
-        shape: "rectangle",
-        placement: {
-          kind: "plate",
-          art: { x: 100, y: 280, width: 800, height: 1120 },
-          cut: { y: 630, keep: "below" },
-          fill: "#F4EEE2",
-        },
-      });
-      expect(html).toContain("top:63cqw;width:100%;height:77cqw;overflow:hidden");
-      // 280 − 630: the art's top is above the wrapper's.
-      expect(html).toContain("left:10cqw;top:-35cqw;width:80cqw;height:112cqw;");
-    });
-
-    it("refuses a placement it could not draw as stored", () => {
-      const panel = { ...panelFor("art-top", "rectangle"), color: "#F6F1EA" };
-      const bad: [string, Partial<InvitationCardProps>][] = [
-        ["with a panel", { panels: [panel], placement: PLATE }],
-        ["unknown kind", { placement: { ...PLATE, kind: "fold" as "plate" } }],
-        ["plate without a cut", { placement: { kind: "plate", art: PLATE.art, fill: "#FFFFFF" } }],
-        ["plate without a fill", { placement: { kind: "plate", art: PLATE.art, cut: PLATE.cut } }],
-        ["fill colour", { placement: { ...PLATE, fill: "red" } }],
-        ["cut outside", { placement: { ...PLATE, cut: { y: 1400, keep: "above" } } }],
-        ["cut side", { placement: { ...PLATE, cut: { y: 700, keep: "left" as "above" } } }],
-        [
-          "not the card's proportion",
-          { placement: { ...PLATE, art: { ...PLATE.art, height: 900 } } },
-        ],
-        ["plate outside the card", { placement: { ...PLATE, art: { ...PLATE.art, x: 300 } } }],
-        [
-          "crop short of the card",
-          { placement: { kind: "crop", art: { x: 0, y: 0, width: 1000, height: 1400 - 1 } } },
-        ],
-        [
-          "crop with a cut",
-          {
-            placement: {
-              kind: "crop",
-              art: { x: -40, y: 0, width: 1080, height: 1512 },
-              cut: PLATE.cut,
-            },
-          },
-        ],
-        ["infinite rectangle", { placement: { ...PLATE, art: { ...PLATE.art, x: Infinity } } }],
-      ];
-      for (const [label, props] of bad) {
-        expect(() => render({ shape: "rectangle", ...props }), label).toThrow(InvalidCardDataError);
-      }
-      // A crop that over-covers the card is fine.
-      expect(() =>
-        render({
-          shape: "rectangle",
-          placement: { kind: "crop", art: { x: -80, y: 0, width: 1160, height: 1624 } },
-        }),
-      ).not.toThrow();
-    });
   });
 
   it("carries no collaborator controls and no app styling", () => {

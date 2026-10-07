@@ -162,10 +162,8 @@ describe("loadRevealedCard", () => {
       stated: { babyName: "Maya Lopez", date: "December 19", venue: "Villa Rosa" },
       // The host has not edited this card: its generated layout.
       customization: null,
-      lowContrast: false,
       artworkExpiresAt: new Date(NOW + CARD_ART_SIGNED_URL_TTL_SECONDS * 1000).toISOString(),
     });
-    expect(card).not.toHaveProperty("placement");
     expect(card.shape).toBe("rectangle");
     expect(card.artwork).toEqual({
       src: `https://storage.test/card-art/${EVENT}/g1/original.png?token=signed`,
@@ -326,65 +324,6 @@ describe("loadRevealedCard", () => {
     const revealed = await load();
     expect(revealed!.card.panels).toEqual([{ ...v2Panel, color: "#F4EEE2" }]);
     expect(revealed!.card.panels[0]).not.toHaveProperty("fade");
-  });
-
-  describe("the art giving way (card_layouts_v4)", () => {
-    const PLATE = {
-      kind: "plate",
-      art: { x: 100, y: 0, width: 800, height: 1120 },
-      cut: { y: 770, keep: "above" },
-      fill: "#F4EEE2",
-    } as const;
-
-    it("draws a stored plate exactly as persisted, with no panel", async () => {
-      admin.fake.state.tables.card_art_assets = [
-        artRow({ ink: { rectangle: { text: { ink: INK, placement: PLATE } } } }),
-      ];
-      const revealed = await load();
-      expect(revealed!.card.placement).toEqual(PLATE);
-      expect(revealed!.card.panels).toEqual([]);
-      expect(revealed!.lowContrast).toBe(false);
-      expect(new Set(revealed!.card.boxes.map((b) => b.color))).toEqual(new Set([INK]));
-    });
-
-    it("draws a stored crop exactly as persisted", async () => {
-      const crop = { kind: "crop", art: { x: -80, y: 0, width: 1160, height: 1624 } } as const;
-      admin.fake.state.tables.card_art_assets = [
-        artRow({ ink: { rectangle: { text: { ink: INK, placement: crop } } } }),
-      ];
-      expect((await load())!.card.placement).toEqual(crop);
-    });
-
-    it("tells the host about low-contrast centred words while the card is not customized", async () => {
-      admin.fake.state.tables.card_art_assets = [
-        artRow({ ink: { rectangle: { text: { ink: INK, lowContrast: true, contrast: 3.1 } } } }),
-      ];
-      const revealed = await load();
-      expect(revealed!.lowContrast).toBe(true);
-      expect(revealed!.card).not.toHaveProperty("placement");
-      expect(revealed!.card.panels).toEqual([]);
-      // Nothing is drawn behind the words: the ink is the stored one, on the artwork.
-      expect(new Set(revealed!.card.boxes.map((b) => b.color))).toEqual(new Set([INK]));
-    });
-
-    it("refuses a stored zone it could not draw as persisted", async () => {
-      const refused = [
-        // A placement never comes with a panel.
-        { ink: INK, placement: PLATE, panel: panelFor("art-top", "rectangle"), panelColor: INK },
-        // A plate needs its cut and fill.
-        { ink: INK, placement: { kind: "plate", art: PLATE.art } },
-        { ink: INK, placement: { ...PLATE, art: { x: 0, y: 0, width: 800, height: 800 } } },
-        { ink: INK, placement: { kind: "spiral", art: PLATE.art } },
-        // Low contrast is below 4.5:1, with nothing else stored beside it.
-        { ink: INK, lowContrast: true, contrast: 4.6 },
-        { ink: INK, lowContrast: true },
-        { ink: INK, lowContrast: true, contrast: 2, placement: PLATE },
-      ];
-      for (const zone of refused) {
-        admin.fake.state.tables.card_art_assets = [artRow({ ink: { rectangle: { text: zone } } })];
-        await expect(load(), JSON.stringify(zone)).rejects.toThrow();
-      }
-    });
   });
 
   it("reads only this event's design and artwork", async () => {

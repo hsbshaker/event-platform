@@ -76,7 +76,7 @@ function rgbToLinear(rgb: Rgb): LinearRgb {
   };
 }
 
-export interface Oklab {
+interface Oklab {
   l: number;
   a: number;
   b: number;
@@ -112,11 +112,6 @@ function oklabToLinearRgb(lab: Oklab): LinearRgb {
     g: -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
     b: -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
   };
-}
-
-/** 8-bit sRGB to OKLab (`l` 0..1). */
-export function rgbToOklab(rgb: Rgb): Oklab {
-  return linearRgbToOklab(rgbToLinear(rgb));
 }
 
 export function rgbToOklch(rgb: Rgb): Oklch {

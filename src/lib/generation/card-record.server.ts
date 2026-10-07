@@ -1,8 +1,7 @@
 import "server-only";
 
 import { isCanonicalHex } from "@/lib/card/color";
-import type { CardPanel, CardPlacement } from "@/lib/card/card-data";
-import { MIN_INK_CONTRAST } from "@/lib/card/ink";
+import type { CardPanel } from "@/lib/card/card-data";
 import type { CardFactsInput } from "@/lib/card/facts";
 import { CARD_LAYOUT_IDS, type CardLayoutId, type PanelFade } from "@/lib/card/layouts";
 import { CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
@@ -87,80 +86,14 @@ export function eventFactsOf(row: CardEventRow): CardFactsInput {
   };
 }
 
-/** The shape's text zone as it is drawn: its ink, and what keeps the words legible. */
-export interface ReadZoneInk {
-  ink: string;
-  /** The `card_layouts_v2`/`v3` legibility panel, when one was stored; else empty. */
-  panels: CardPanel[];
-  /** How the artwork gives way to the words (`card_layouts_v4`), when it does. */
-  placement?: CardPlacement;
-  /**
-   * The ink of centred words is below 4.5:1 with nothing behind it (`card_layouts_v4`): the host
-   * is told, never guests (`LowContrastHint`).
-   */
-  lowContrast: boolean;
-}
-
-/**
- * The stored placement, copied field by field so nothing else stored beside it reaches a renderer.
- * Its values are checked by `validateCardData`, where the card is drawn.
- */
-function placementOf(value: unknown, shape: CardShape): CardPlacement {
-  const malformed = () => new Error(`The artwork's placement for the ${shape} card is malformed.`);
-  if (!isObject(value) || !isObject(value.art)) throw malformed();
-  const { kind, art, cut, fill } = value;
-  if ((kind !== "crop" && kind !== "plate") || !isObject(art)) throw malformed();
-  if (![art.x, art.y, art.width, art.height].every(finite)) throw malformed();
-  if (cut !== undefined && (!isObject(cut) || !finite(cut.y) || typeof cut.keep !== "string")) {
-    throw malformed();
-  }
-  if (fill !== undefined && typeof fill !== "string") throw malformed();
-  return {
-    kind,
-    art: {
-      x: art.x as number,
-      y: art.y as number,
-      width: art.width as number,
-      height: art.height as number,
-    },
-    ...(isObject(cut) ? { cut: { y: cut.y as number, keep: cut.keep as "above" | "below" } } : {}),
-    ...(typeof fill === "string" ? { fill } : {}),
-  };
-}
-
-/** The persisted ink of the shape's text zone (`ArtworkInk`, `artwork.server.ts`). */
-export function zoneInk(ink: Json, shape: CardShape): ReadZoneInk {
+/** The persisted ink and panel of the shape's text zone (`ArtworkInk`, `artwork.server.ts`). */
+export function zoneInk(ink: Json, shape: CardShape): { ink: string; panels: CardPanel[] } {
   const byShape = isObject(ink) ? ink[shape] : undefined;
   const zone = isObject(byShape) ? byShape[TEXT_ZONE] : undefined;
   if (!isObject(zone) || typeof zone.ink !== "string" || !isCanonicalHex(zone.ink)) {
     throw new Error(`The artwork has no ink for the ${shape} card.`);
   }
-  if (zone.lowContrast !== undefined) {
-    if (
-      zone.lowContrast !== true ||
-      !finite(zone.contrast) ||
-      zone.contrast < 1 ||
-      zone.contrast >= MIN_INK_CONTRAST ||
-      zone.panel !== undefined ||
-      zone.placement !== undefined
-    ) {
-      throw new Error(`The artwork's low-contrast ink for the ${shape} card is malformed.`);
-    }
-    return { ink: zone.ink, panels: [], lowContrast: true };
-  }
-  if (zone.placement !== undefined) {
-    // A placement replaced the panel (`card_layouts_v4`): a zone with both was never written.
-    if (zone.panel !== undefined) {
-      throw new Error(`The artwork's ink for the ${shape} card has both a panel and a placement.`);
-    }
-    return {
-      ink: zone.ink,
-      panels: [],
-      placement: placementOf(zone.placement, shape),
-      lowContrast: false,
-    };
-  }
-  if (zone.panel === undefined) return { ink: zone.ink, panels: [], lowContrast: false };
+  if (zone.panel === undefined) return { ink: zone.ink, panels: [] };
   const panel = zone.panel;
   if (
     !isObject(panel) ||
@@ -186,7 +119,6 @@ export function zoneInk(ink: Json, shape: CardShape): ReadZoneInk {
         ...(panel.fade !== undefined ? { fade: panel.fade as unknown as PanelFade } : {}),
       },
     ],
-    lowContrast: false,
   };
 }
 

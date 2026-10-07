@@ -108,7 +108,6 @@ async function previewSvg(
     shape: card.shape,
     artworkProportion: card.artwork?.proportion,
     panels: card.panels ?? [],
-    placement: card.placement,
     boxes: card.boxes,
   });
   artworkMime(card.artwork.bytes);

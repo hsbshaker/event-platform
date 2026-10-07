@@ -355,7 +355,7 @@ describe("the happy path", () => {
         designPrompt: "card_design_v6",
         designSchema: "card_design_schema_v4",
         layoutSet: "card_layouts_v5",
-        compiler: "card_compiler_v5",
+        compiler: "card_compiler_v4",
         artPrompt: "card_art_v6",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
@@ -387,15 +387,13 @@ describe("the happy path", () => {
       artRepaints: 0,
       standardWording: [],
       inkPanels: [],
-      inkPlacements: [],
-      lowContrastZones: [],
       versions: {
         identityPrompt: "event_identity_v7",
         identitySchema: "event_identity_schema_v6",
         designPrompt: "card_design_v6",
         designSchema: "card_design_schema_v4",
         layoutSet: "card_layouts_v5",
-        compiler: "card_compiler_v5",
+        compiler: "card_compiler_v4",
         artPrompt: "card_art_v6",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
@@ -944,24 +942,17 @@ describe("the generation's deadline", () => {
     expect(outcome).toEqual({ status: "failed", code: "deadline" });
   });
 
-  it("a deadline refusal during repaints keeps the valid artwork, which gives way", async () => {
+  it("a deadline refusal during repaints keeps the valid artwork with its panel", async () => {
     const { outcome, fake } = await run({ ...HAPPY, art: [BUSY, new GenerationDeadlineError()] });
     expect(outcome.status).toBe("succeeded");
     expect(fake.calls.art).toHaveLength(2);
     expect(failures()).toEqual([]);
-    const ink = persisted().p_ink as Record<
-      string,
-      { text: { panel?: unknown; placement?: { kind: string } } }
-    >;
-    expect(ink.rectangle.text.panel).toBeUndefined();
-    expect(ink.rectangle.text.placement?.kind).toBe("plate");
+    const ink = persisted().p_ink as Record<string, { text: { panel?: unknown } }>;
+    expect(ink.rectangle.text.panel).toBeDefined();
     expect(telemetryOf()).toMatchObject({
       repaintsStoppedBy: "deadline",
       artRepaints: 0,
-      inkPanels: [],
-      inkPlacements: expect.arrayContaining([
-        { shape: "rectangle", zone: "text", kind: "plate", scale: 0.8 },
-      ]),
+      inkPanels: expect.arrayContaining([{ shape: "rectangle", zone: "text" }]),
     });
   });
 });
@@ -1764,15 +1755,13 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
       artRegenerated: null,
       artRepaints: 0,
       inkPanels: [],
-      inkPlacements: [],
-      lowContrastZones: [],
       imagesRequested: 1,
       repaintsStoppedBy: null,
       lineAreasFallback: [],
       fitsShapes: ["square"],
       versions: {
         layoutSet: "card_layouts_v5",
-        compiler: "card_compiler_v5",
+        compiler: "card_compiler_v4",
         artPrompt: "card_art_v6",
         imageModel: expect.any(String),
       },
@@ -1819,26 +1808,16 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
     });
   });
 
-  it("keeps the first valid artwork after two extra images, and resolves its own placement", async () => {
+  it("keeps the first valid artwork with its panel after two extra images", async () => {
     const { fake } = await run({ art: [BUSY_SQUARE, BUSY_SQUARE, BUSY_SQUARE] });
     expect(fake.calls.art).toHaveLength(3);
     expect(switchTelemetry()).toMatchObject({
       artRepaints: 2,
-      inkPanels: [],
-      inkPlacements: [{ shape: "square", zone: "text", kind: "plate", scale: 0.8 }],
-      lowContrastZones: [],
+      inkPanels: [{ shape: "square", zone: "text" }],
       imagesRequested: 3,
     });
-    const ink = persistedArt().p_ink as Record<
-      string,
-      { text: { panel?: unknown; placement?: { kind: string } } }
-    >;
-    expect(ink.square.text.panel).toBeUndefined();
-    expect(ink.square.text.placement?.kind).toBe("plate");
-    // The reference sent on every repaint is the raw artwork, never a placed one.
-    for (const call of fake.calls.art) {
-      expect(call.reference).toEqual({ mimeType: "image/png", bytes: RECT_ART });
-    }
+    const ink = persistedArt().p_ink as Record<string, { text: { panel?: unknown } }>;
+    expect(ink.square.text.panel).toBeDefined();
   });
 
   it("a provider refusal is a visible failure: no design re-prompt, nothing persisted", async () => {

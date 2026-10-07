@@ -40,13 +40,10 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
    and never invents them.
 5. **The model may write wording.** It drafts the card's title and invitation line (§2.5). The host
    can edit both. Model-drafted wording never introduces a fact the host did not supply.
-6. **The generated card's legibility is decided by code.** Ink colour, where the artwork gives way
-   to the words, font size and line breaks are chosen by code, never by a model (§4.2). Where the
-   words sit at an edge of the picture, every text of the generated card meets 4.5:1 contrast: by
-   repaints, then by cropping the art or setting it back as a plate with the words on a flat fill.
-   Where they sit in the middle of the picture, nothing is painted behind them: the ink is the best
-   candidate, and the host is told when it falls below 4.5:1 (owner decision 2026-10-06). After that
-   the text is the host's: in the card editor they may change any of it, unchecked (§7).
+6. **The generated card is legible by construction.** Ink colour, any legibility panel, font size
+   and line breaks are chosen by code, never by a model, and every text of the generated card meets
+   4.5:1 contrast against the artwork behind it (§4.2). After that the text is the host's: in the
+   card editor they may change any of it, unchecked (§7).
 7. **Line breaks are always deterministic.** The generated card's text is laid out by one
    deterministic function that never lets it leave its zone (§4.3); an edited box is broken at its
    width by the same rules and the result stored. The browser never re-wraps card text, so host and
@@ -120,24 +117,18 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
 
 Bottom to top:
 
-1. **Fill** (only when the art gives way as a plate, §4.2) — the card face in one flat colour: the
-   colour of the background the plate's cut hides, or the art-derived paper.
-2. **Artwork** — the generated image, full bleed at the shape's proportion, masked to the shape's
-   outline. When no ink clears 4.5:1 for words at an edge of the picture, the artwork gives way
-   (`card_layouts_v4`, owner decisions 2026-10-06) and is drawn at a rectangle stored with its ink:
-   a **crop** (scaled up about the middle of the words' edge, still full bleed) or a **plate** (the
-   artwork and the card's own outline scaled down together about the middle of the picture's outer
-   edge, cut straight just beyond the text zone, with the fill on the words' side). There is no
-   fade and no feather; the edge is clean. The stored image is always the artwork as painted.
-3. **Legibility panel** (artwork persisted before `card_layouts_v4` only) — paper in a colour
-   derived from the artwork, behind a text zone where no ink cleared: `card_layouts_v3` drew it
-   opaque over the zone and fading into the artwork (an edge fade of 180 units for words at one end
-   of the card, a 70-unit feathered wash for centred words); `card_layouts_v2` drew a rounded box
-   with a soft shadow edge. Artwork persisted with either keeps its panel and draws it exactly as
-   before (`spec.md §32 #27`). No new design gets a panel, and a card never has both a panel and a
-   placement.
-4. **Text** — live text in the layout's zones, in the design's typography pairing and the resolved
-   ink colour. Nothing is ever painted behind centred words.
+1. **Artwork** — the generated image, full bleed at the shape's proportion, masked to the shape's
+   outline.
+2. **Legibility panel** (optional) — paper in a colour derived from the artwork, defined by the
+   layout, behind a text zone only when the ink rules of §4.2 require it: opaque over the whole
+   zone, then fading into the artwork (`card_layouts_v3`, owner decisions 2026-10-05). Where the
+   words sit at one end of the card (`art-top`, `art-bottom`) it runs the card's full width from
+   that edge and fades over 180 card units toward the picture, so the sky or background reads as
+   turning to paper; where they sit in the middle (`framed`, `corners`, `atmosphere`) it is the
+   padded zone with a 70-unit feather. The fade is eased, in one colour. `card_layouts_v2` drew a
+   rounded box with a soft shadow edge; artwork persisted with it keeps that panel.
+3. **Text** — live text in the layout's zones, in the design's typography pairing and the resolved
+   ink colour.
 
 The card's text is real, selectable, screen-reader-readable text. The artwork is decorative
 (`alt=""`); everything a guest needs is in the text and on the page below.
@@ -160,31 +151,25 @@ layout declares the shapes it supports, and for each of them defines:
   example, substantial clusters in two corners, or a subject filling the upper half). Told only
   where to stay out, image models over-correct into a few token props on an empty field, which reads
   unfinished; the layout states the presence it wants as well as the space it reserves;
-- how its artwork **gives way** when no ink clears 4.5:1 after the repaints (§4.2): for words at an
-  edge of the picture, the picture's edge, the shapes on which a crop is allowed, and the cut's
-  padding; for centred words, nothing (`giveWay`, since `card_layouts_v4`; it replaces the panel
-  spec of `card_layouts_v3`, which stays only so stored panels keep their meaning).
+- its legibility panel — padding and fade (an edge fade from the top or bottom, or a wash) — used
+  only when §4.2 needs it.
 
 The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`) was `card_layouts_v1`.
 `card_layouts_v2` carries the owner's Phase 4 fit decisions (`CHANGELOG-v7.md`, "Phase 4 — fitting
 every detail on every card"), proven by the layout fixtures (§9) with every slot at its limit; no
 card was made from `card_layouts_v1`. `card_layouts_v3` changes only the panel (owner verdict on
-CU-08, 2026-10-05: a box over the picture read as a hard edge); v2 panels render unchanged.
-`card_layouts_v4` replaces the panel for new designs with the art giving way (owner decisions
-2026-10-06: on a square `art-top` card the fade washed out and cut off the picture); bands, zones,
-composition, presence and slot specs are unchanged, and v2 and v3 panels render unchanged. The
-geometry, bands, composition, presence and give-way rules are product code in
-`src/lib/card/layouts.ts`, `src/lib/card/shapes.ts` and `src/lib/card/give-way.ts`:
+CU-08, 2026-10-05: a box over the picture read as a hard edge); v2 panels render unchanged. The geometry, bands, composition and presence rules are
+product code in `src/lib/card/layouts.ts` and `src/lib/card/shapes.ts`:
 
-| Layout | Text | Artwork | Shapes | Art modes | When no ink clears after the repaints (§4.2) |
-| --- | --- | --- | --- | --- | --- |
-| `art-top` | lower part, centred | subject in the upper half, the bottom 45% clear; on `square`, `oval` and `arch` the upper 40%, the bottom 60% clear | all but `circle` | `illustration` | plate, scaled about the top centre; never a crop (it would lose the subject's head) |
-| `art-bottom` | upper part, centred | subject grounded at the bottom, the top 45% clear; on `square`, `oval` and `arch` the lower 40%, the top 60% clear | all but `circle` | `illustration` | crop on `rectangle`, `rounded-rectangle` and `square` (it loses only ground), then plate, scaled about the bottom centre |
-| `framed` | centred, inside the frame | border, wreath, garland or frame — rich, built from the event's motifs — around a quiet centre | all six | `framed`, `minimal` | nothing behind the words; best ink, stored as low contrast |
-| `corners` | centred | substantial motif clusters in two or more corners; centre quiet | `rectangle`, `rounded-rectangle`, `square` | `illustration`, `framed` | nothing behind the words; best ink, stored as low contrast |
-| `atmosphere` | centred | full-bleed wash or texture with real depth, low contrast through the centre | all six | `atmosphere`, `minimal` | nothing behind the words; best ink, stored as low contrast |
-| `cover-top` | upper part, centred, in the scene's calm sky, wall or colour field | one bold full-bleed scene, edge to edge: one or two big subjects grounded in the lower 55% (on `square` 40%), the top 45% (60%) the scene's own calm backdrop in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` | as `art-bottom`: crop, then plate about the bottom centre |
-| `cover-bottom` | lower part, centred, in the scene's calm ground or colour field | one bold full-bleed scene: one or two big subjects fill the upper 55% (on `square` 40%), the bottom 45% (60%) the scene's own calm ground in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` | as `art-top`: plate about the top centre |
+| Layout | Text | Artwork | Shapes | Art modes |
+| --- | --- | --- | --- | --- |
+| `art-top` | lower part, centred | subject in the upper half, the bottom 45% clear; on `square`, `oval` and `arch` the upper 40%, the bottom 60% clear | all but `circle` | `illustration` |
+| `art-bottom` | upper part, centred | subject grounded at the bottom, the top 45% clear; on `square`, `oval` and `arch` the lower 40%, the top 60% clear | all but `circle` | `illustration` |
+| `framed` | centred panel | border, wreath, garland or frame — rich, built from the event's motifs — around a quiet centre | all six | `framed`, `minimal` |
+| `corners` | centred | substantial motif clusters in two or more corners; centre quiet | `rectangle`, `rounded-rectangle`, `square` | `illustration`, `framed` |
+| `atmosphere` | centred | full-bleed wash or texture with real depth, low contrast through the centre | all six | `atmosphere`, `minimal` |
+| `cover-top` | upper part, centred, in the scene's calm sky, wall or colour field | one bold full-bleed scene, edge to edge: one or two big subjects grounded in the lower 55% (on `square` 40%), the top 45% (60%) the scene's own calm backdrop in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
+| `cover-bottom` | lower part, centred, in the scene's calm ground or colour field | one bold full-bleed scene: one or two big subjects fill the upper 55% (on `square` 40%), the bottom 45% (60%) the scene's own calm ground in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
 
 **The cover layouts** (`card_layouts_v5`, owner decisions 2026-10-06) set the words in a calm band
 of one bold full-bleed scene, the way a record sleeve or a poster sets its type, for a brief no
@@ -392,10 +377,9 @@ host prompt + optional inspiration
   → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
                                      (a change to part of a card: an edit of that card's artwork, framed as a revision)
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
-  → resolve ink                      deterministic, for every shape the artwork fits (§4.2)
-  → (while no ink clears on its shape) repaint: same art prompt (+ what to keep clear, for art with a subject); validate; resolve again — two extra images at most
-  → the art gives way, if still needed   deterministic: crop or plate for words at an edge of the picture; low contrast, nothing behind, for centred words (§4.2)
-  → persist CardDesign + artwork (as painted) + resolved ink and placements    immutable
+  → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
+  → (while its shape needs a panel) repaint: same art prompt (+ what to keep clear, for art with a subject); validate; resolve again — two extra images at most
+  → persist CardDesign + artwork + resolved ink    immutable
   → reveal the card
 ```
 
@@ -416,8 +400,7 @@ owner decisions 2026-10-05). The design says which it made:
   description does not change them"). Repaints stay edits of the same reference.
 - **a change to the whole look** (light, time of day, overall colour) keeps the idea and paints the
   revised brief fresh: an edit holds the original's tones, so a night sky came back mid-blue and
-  needed the legibility panel, and "warmer light" came back unchanged (Phase 5 refine experiment,
-  CHANGELOG).
+  needed the panel, and "warmer light" came back unchanged (Phase 5 refine experiment, CHANGELOG).
 - **a new idea** — the box empty, or asking for something new — must be a different direction
   (§4.1).
 
@@ -433,7 +416,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
-| `generateCardArt` | the artwork passes validation but no ink clears 4.5:1 on the shape it was painted for (a new design's, or a shape switch's) (§4.2): the picture has run into the text area | repainted from the same art prompt — for `illustration` and `framed` art plus one line saying what to keep clear of the words (`card_art_v4`, owner decision 2026-10-05); a wash's repaint repeats the prompt — (a switch, or a change to part of a card, keeps its reference) until an ink clears on an artwork, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept and the art gives way (§4.2; owner decisions 2026-10-06); a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
+| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) would need the legibility panel (§4.2): the picture has run into the text area | repainted from the same art prompt — for `illustration` and `framed` art plus one line saying what to keep clear of the words (`card_art_v4`, owner decision 2026-10-05); a wash's repaint repeats the prompt — (a switch, or a change to part of a card, keeps its reference) until an artwork needs no panel, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept with the panel; a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back. A shape switch's refusal fails visibly at once (`shape_refusal`), with no re-prompt: the design is immutable, and the card stays as it is |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it
@@ -490,8 +473,8 @@ For each text zone, computed once per artwork, layout and shape — for every sh
    judged against the widest of the zone's and the areas' ranges, so the whole zone stays the
    floor. Artwork that sits under the letters — a sculpture's base behind the first line of a
    title — is too small a share of the whole zone to reach its tails, but not of the line it
-   crosses; it fails here, so the artwork is repainted and then, if it still reaches in, gives way
-   (step 4, §3). Foliage at the edge of empty space does not. If that layout cannot be made, the
+   crosses; it fails here, so the artwork is repainted and then, if it still reaches in, given the
+   panel (§3). Foliage at the edge of empty space does not. If that layout cannot be made, the
    whole zone alone is measured. The ink is judged for that one layout of the words: a later fact
    edit, pairing switch or customization can move lines onto artwork that was not measured, where
    only the whole-zone floor holds, and persisted ink is never re-resolved. (`card_compiler_v3`
@@ -503,50 +486,12 @@ For each text zone, computed once per artwork, layout and shape — for every sh
 3. Choose the first candidate, in that order (the artwork's palette by share of the artwork, then
    the tuned neutrals), that reaches **4.5:1** against the
    measured background (`src/lib/card/color.ts`, WCAG 2.x luminance).
-4. If none does on the artwork that is kept (after the repaints of §3), **the art gives way**
-   (`card_layouts_v4`, `card_compiler_v5`; owner decisions 2026-10-06; `src/lib/card/give-way.ts`).
-   Nothing is laid over the picture: the layout's `giveWay` (§2.3) decides.
+4. If none does, apply the layout's legibility panel in an art-derived paper colour and choose the
+   ink against the panel.
 
-   **Words at an edge of the picture** (`art-top`, `art-bottom`): 4.5:1 is guaranteed.
-
-   - **Crop** — only where cropping loses ground, never a subject's head: `art-bottom` on
-     `rectangle`, `rounded-rectangle` and `square`. The artwork is scaled by 1.08, then 1.16, about
-     the midpoint of the words' edge (the card's top), still full bleed, and the ink is resolved
-     again on the artwork as drawn (the zone whole and behind each line, as in step 1). The first
-     scale at which an ink clears is kept.
-   - **Plate** — when the crop fails or is not allowed: the artwork and the card's own outline are
-     scaled together by 1, 0.9 or 0.8 about the midpoint of the picture's outer edge (top
-     centre for `art-top`, bottom centre for `art-bottom`); scaling about a point of the outline's
-     own edge keeps the plate inside the card's outline. The artwork is cut straight 30 units beyond
-     the text zone's edge (at a rectangle's boundary of the region the composition keeps clear), and
-     everything on the words' side of the cut is a flat **fill**. The largest scale whose cut hides
-     only even background is kept — at least 97% of the hidden pixels within OKLab ΔE 0.05 of the
-     hidden area's dominant colour (calibrated on paper grain, washes, sky gradients and subjects
-     crossing the cut: `CHANGELOG-v7.md`) — otherwise 0.8, never smaller, so the picture stays big and
-     what still crosses the cut is cut straight (owner decision on the contact sheet). At 1 the plate is a plain crop at the
-     cut. The fill is that dominant colour when an ink clears 4.5:1 on it, otherwise the
-     art-derived paper (OKLCH lightness 0.965 in the hue of the artwork's lightest colour, the
-     panel's old colour); the ink is the first candidate that clears on the fill. The words sit on
-     the fill alone, so their contrast is exact. There is no fade and no feather: the edge is clean.
-
-   **Words in the middle of the picture** (`framed`, `corners`, `atmosphere`): nothing is cropped,
-   set back or painted behind them, ever, for a new design. The ink is the candidate with the
-   highest contrast, and the zone is stored as **low contrast** with that contrast. The host — never
-   a guest — sees one plain line under the card, in the reveal and in Creation Mode, while this
-   design and shape have no saved customization: "Some words sit on a busy part of the picture. If
-   they're hard to read, move them in Edit card."
-
-The result per fitted shape — ink per zone, and a zone's placement (crop or plate: the artwork's
-rectangle in card units, a plate's cut and fill) or its low-contrast flag and contrast — is
-persisted with the artwork (`card_art_assets.ink`). Rectangles are stored explicitly, so no later
-renderer change can move stored art; the stored image is always the artwork as painted, and a
-reference sent to the image model (a shape switch, a change to part of a card) is that raw artwork.
-A shape switch the artwork already fits uses that shape's stored placement; a switch that paints new
-artwork resolves its own. Artwork persisted before `card_layouts_v4` keeps its ink and its panel
-(`panel` and `panelColor`: the v3 fade or the v2 rounded box), drawn exactly as before and never
-re-resolved; a zone never stores both a panel and a placement. The ink is the generated card's ink
-and the starting colour of text carried to a fresh layout; the host's colour choices in the card
-editor never change it.
+The result (per shape: ink per zone, panel on or off, panel colour) is persisted with the artwork.
+It is the generated card's ink and the starting colour of text carried to a fresh layout; the
+host's colour choices in the card editor never change it.
 
 ## 4.3 Text fit
 
@@ -581,11 +526,9 @@ has edited keep their stored lines (§7). What the host saw is what guests see.
 
 ## 4.4 What the compiler never does
 
-Call a model; regenerate or edit artwork (its pixels are stored as painted); move, crop or recolour
-artwork beyond the uniform scaling and outline mask of §2.1 and the crop and plate of §4.2 — a
-uniform scale about a fixed point, a straight cut and a flat fill, all chosen by code and stored as
-rectangles; paint anything behind centred words; let a model choose a colour, a size, a position,
-an outline, a crop or a line break; truncate text silently.
+Call a model; regenerate or edit artwork; move, crop or recolour artwork beyond the uniform scaling
+and outline mask of §2.1; let a model choose a colour, a size, a position, an outline or a line
+break; truncate text silently.
 
 ---
 
@@ -599,8 +542,7 @@ Persist per event:
   or a change to part of a card or to its whole look) and, for a change, the design it was made
   from (`changedFrom`);
 - every artwork asset in Supabase Storage, with its proportion, the shapes it fits, image model,
-  art-prompt version, and resolved ink per fitted shape — with any placement or low-contrast flag
-  (§4.2), or the panel stored before `card_layouts_v4`. A design has its original
+  art-prompt version, and resolved ink and panels per fitted shape. A design has its original
   artwork plus one more for each shape the host switched to that no existing artwork fits (§7);
 - `Event.activeCardDesignId`, `Event.activeCardShape` and `Event.title` (`spec.md §20.2`, §20.5);
 - one `CardCustomization` per design and shape the host has edited, or switched to carrying their
@@ -631,8 +573,7 @@ existing card renders, without regenerating its design or artwork.
 One component renders a card from: the persisted `CardDesign`, the effective shape (the design's,
 or the host's switch), the artwork for that shape's proportion, and the text layer — the host's
 `CardCustomization` for that design and shape when one exists, otherwise the generated layout
-(resolved ink, the event's current content passed through `layoutCard`) — over the artwork at its
-stored placement, or with its stored panels (§2.2). Every text box
+(resolved ink and panels, the event's current content passed through `layoutCard`). Every text box
 renders its stored lines at its position, width, rotation and style; the browser never re-wraps
 them. It applies the shape's outline as a mask, clipping anything outside it. It is the same
 component in the generation reveal, Creation Mode, the card editor, Preview and the guest page. A
@@ -671,8 +612,7 @@ envelope with the title for a private one. The
 card preview is drawn from the same stored data the card component renders, under the component's
 own validation, so it cannot disagree with the live card. Mechanism (`docs/technology-decisions.md §8.2`): the card is drawn as an SVG
 from exactly the data the card component renders — the stored text boxes (the customization's, or
-the generated layer from `layoutCard`), the outline, the panels, the artwork at its placement with
-a plate's cut and fill, and the ink — under the
+the generated layer from `layoutCard`), the outline, the panels, the artwork and the ink — under the
 component's own validation, with every stored line drawn as glyph outlines at the font instance it
 was measured with, and rasterized on the server by Next.js's `ImageResponse`; no browser runs in
 production. A layout fixture compares it with the card component in a real browser at the same
@@ -757,8 +697,8 @@ Recorded on every `CardDesign` and generation run (`src/lib/ai/versions.ts`):
 EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
-CARD_LAYOUT_SET_VERSION        // card_layouts_v5: layouts (the covers since v5), per-shape zones and art instructions, slot specs and limits, shape outlines, how the art gives way
-CARD_COMPILER_VERSION          // card_compiler_v5: validation, ink resolution and the art giving way, layoutCard's sizing steps, line breaking
+CARD_LAYOUT_SET_VERSION        // card_layouts_v5: layouts (the covers since v5), per-shape zones and art instructions, slot specs and limits, shape outlines
+CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard's sizing steps, line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```
 
@@ -770,11 +710,8 @@ set it was generated against; the renderer supports every layout-set version tha
 # 9. Tests and gates
 
 - **Unit:** schema validation; wording fact checks; layout/mode compatibility; ink resolution
-  against synthetic backgrounds (an ink inside the background's luminance range failing — the
-  Phase 3 bug); the art giving way (`give-way.test.ts`: a crop accepted and refused, the plate's
-  scale on even and busy hidden areas, its fill or the paper, centred words stored as low
-  contrast); stored placements validated (never with a panel) and drawn at their rectangles by both
-  renderers, with stored v2 and v3 panels unchanged; `layoutCard` sizing and line breaking; slot limits;
+  against synthetic backgrounds (including the panel path, and an ink inside the background's
+  luminance range failing — the Phase 3 bug); `layoutCard` sizing and line breaking; slot limits;
   every zone inside its shape's text-safe area; edited-box line breaking from stored metrics;
   carrying words to a fresh layout; customization revisions and stale-save refusal.
 - **Editor:** end-to-end at 390px and desktop — select, drag, pinch, rotate, type, restyle, add,
@@ -782,13 +719,8 @@ set it was generated against; the renderer supports every layout-set version tha
   positions and styles as the editor at the same size in the same browser.
 - **Layout fixtures:** every layout × supported shape × pairing with worst-case and typical content
   renders in a real browser at card scale with no text outside its zone or its shape's outline, with
-  no exceptions (`npm run test:fixtures`). The same run draws a plate on every shape of `art-top`
-  and `art-bottom`, a crop on `art-bottom`'s rectangle, rounded rectangle and square, and centred
-  words on busy art, and reads them from the pixels: the artwork at its stored rectangle, the fill
-  around and below a plate, every line on the words' side of the cut, nothing behind centred
-  words. The link-preview fixture compares a plate kept above its cut, one kept below and a crop
-  pixel by pixel with the live card. This is a test-time check; production does not run a browser
-  to verify cards.
+  no exceptions (`npm run test:fixtures`). This is a test-time check; production does
+  not run a browser to verify cards.
 - **Creative evaluation:** the corpus in `docs/model-evals/creative-understanding.json` against the
   real identity and card-design calls (`docs/model-contracts.md §6`).
 - **Human gate:** Human Test #2 judges real generated cards from real prompts, in colour, as the

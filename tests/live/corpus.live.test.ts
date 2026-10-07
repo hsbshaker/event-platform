@@ -10,7 +10,7 @@ import { InvitationCard } from "@/components/card/InvitationCard";
 import { GENERATION_STALE_SECONDS } from "@/lib/ai/generations.server";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
-import type { CardPanel, CardPlacement } from "@/lib/card/card-data";
+import type { CardPanel } from "@/lib/card/card-data";
 import type { CardLayoutId } from "@/lib/card/layouts";
 import { proportionOf, type CardShape } from "@/lib/card/shapes";
 import type { TypographyPairingId } from "@/lib/card/typography";
@@ -145,8 +145,6 @@ interface CaseResult {
     standardWordingSlots: string[];
   };
   panel?: boolean;
-  /** How the art gave way to the words (`card_layouts_v4`), or that centred words stayed low contrast. */
-  giveWay?: { kind: "crop" | "plate"; scale: number } | { kind: "low-contrast"; contrast: number };
   png?: string;
   renderError?: string;
 }
@@ -259,10 +257,6 @@ interface ZoneInk {
   ink: string;
   panel?: Omit<CardPanel, "color">;
   panelColor?: string;
-  /** `card_layouts_v4`: how the art gave way, or that centred words are low contrast. */
-  placement?: CardPlacement;
-  lowContrast?: true;
-  contrast?: number;
 }
 
 describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () => {
@@ -356,7 +350,6 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
                 proportion: proportionOf(shape),
               },
               panels,
-              placement: zone.placement,
               boxes,
             }),
           );
@@ -383,12 +376,6 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
             .screenshot({ path: png, omitBackground: TRANSPARENT });
           result.png = path.basename(png);
           result.panel = panels.length > 0;
-          if (zone.placement) {
-            const { kind, art } = zone.placement;
-            result.giveWay = { kind, scale: Math.round((art.width / 1000) * 100) / 100 };
-          } else if (zone.lowContrast && typeof zone.contrast === "number") {
-            result.giveWay = { kind: "low-contrast", contrast: zone.contrast };
-          }
           result.design = {
             name: design.name,
             description: design.description,

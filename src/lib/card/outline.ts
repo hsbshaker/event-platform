@@ -3,7 +3,7 @@
  * built from `SHAPE_GEOMETRY` and the canvas, and the mask image the card renderer applies to the
  * whole card (artwork, panels and text) so that everything outside the outline is transparent.
  *
- * The outline is code-defined geometry and part of the layout set (`card_layouts_v4`); a model
+ * The outline is code-defined geometry and part of the layout set (`card_layouts_v3`); a model
  * never draws, positions or sizes it (`spec.md §32 #28`). Pure, no DOM.
  *
  * The path agrees with `insideOutline` (`shapes.ts`) everywhere except the rounded rectangle's

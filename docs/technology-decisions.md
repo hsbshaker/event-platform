@@ -334,9 +334,8 @@ Three capabilities the card system needs, decided when it is built and recorded 
   `next/og`'s `ImageResponse`, no new dependency** (`src/lib/link-preview/`,
   `src/lib/card/preview-svg.server.ts`). The card is drawn as an SVG in card units from exactly the
   data `InvitationCard` renders, under the same validation (`src/lib/card/card-data.ts`): the
-  artwork as an `<image>` (at its stored rectangle when it gave way to the words, a plate clipped
-  at its cut and by its own scaled outline over its fill), the outline from `outline.ts` as a
-  `clipPath`, the opaque panels stored with earlier artwork with their CSS soft edge, and every stored line as HarfBuzz glyph outlines (`Font.drawGlyph`) at the
+  artwork as an `<image>`, the outline from `outline.ts` as a `clipPath`, the opaque panels with
+  their CSS soft edge, and every stored line as HarfBuzz glyph outlines (`Font.drawGlyph`) at the
   instance the measurement uses (`wght`, and `opsz` = the card-unit size), with the line's drawn
   width checked against `measure` before it is used; letter spacing, alignment (a line wider than
   its box start-aligned, as Chromium does), rotation about the box's centre, `textCase`, colour and

@@ -23,7 +23,7 @@ Screen labels describe product surfaces, not necessarily URL routes. Section ref
 - Preview and guest views use the production card, envelope and page.
 - One card component renders the card on every screen; the card never reflows (§11.2).
 - The card is the only themed surface. The page under it is one house style for every event (§11.9).
-- Never expose Event Identity, card design internals, layouts, art modes, art briefs, ink, legibility panels, crops or plates, compiler steps, model or provider names, token counts, or spend limits (§26).
+- Never expose Event Identity, card design internals, layouts, art modes, art briefs, ink or legibility panels, compiler steps, model or provider names, token counts, or spend limits (§26).
 - Application chrome stays visually stable; it never takes the card's styling.
 - Phone-first does not mean phone-framed desktop.
 
@@ -109,7 +109,6 @@ Message:
 **Rules**
 
 - one card at a time; the first becomes the active design, later ones only when chosen;
-- when a centred card's words sit on a busy part of the picture (low-contrast ink, `docs/card-system.md §4.2`) and the host has not customized that card, one plain line under the card, beside the confirmation line: "Some words sit on a busy part of the picture. If they're hard to read, move them in Edit card." Never shown to guests;
 - missing required facts render as placeholders marked as needing confirmation;
 - no setup dashboard.
 
@@ -169,7 +168,6 @@ Anchors (stable, absent for guests):
 - Registry → Add.
 
 Placeholders for missing required facts are marked as needing confirmation and never published.
-The low-contrast line of `card-reveal` shows under the card here too, on the same condition.
 
 Floating:
 

@@ -22,14 +22,6 @@
  * `fade` and is still drawn as it was (`card-data.ts`); persisted ink and panels are never
  * re-resolved (`spec.md §32 #27`).
  *
- * `card_layouts_v4` replaces the panel for new designs (owner decisions 2026-10-06, "the art gives
- * way": a square `art-top` card's fade washed out and cut off its picture). When no ink clears
- * 4.5:1 after the repaints, the art moves out of the words' way instead of being painted over
- * (`CardLayout.giveWay`, `give-way.ts`): a crop or a plate where the words sit at an edge of the
- * picture, and nothing at all behind centred words, whose ink is then stored as low contrast and
- * the host told. Bands, zones, composition, presence and the slot specs are `card_layouts_v3`'s;
- * `PanelSpec` and `panelFor` stay so the panels stored with earlier artwork keep their meaning.
- *
  * A layout decides only where the words go and which regions the artwork leaves quiet. It is
  * never shown to hosts. Adding, removing or changing a layout, a supported shape or a band is a
  * `CARD_LAYOUT_SET_VERSION` bump plus a fixture run (`spec.md §32 #24`); changing composition or
@@ -92,67 +84,9 @@ export interface CardLayout {
   maxWidth: number;
   /** Per supported shape: the text band and the art instructions. */
   art: Readonly<Partial<Record<CardShape, LayoutArt>>>;
-  /**
-   * The `card_layouts_v3` legibility panel's shape (`panelFor`). No new design gets a panel since
-   * `card_layouts_v4` (`giveWay`); it stays so the panels persisted with earlier artwork, and the
-   * fixtures that draw them, keep their meaning.
-   */
+  /** The legibility panel's shape, used only when ink resolution needs it (`panelFor`). */
   panel: PanelSpec;
-  /** What gives way when no ink clears 4.5:1 after the repaints (`card_layouts_v4`, `give-way.ts`). */
-  giveWay: GiveWaySpec;
 }
-
-/**
- * How a layout gives way when no ink clears 4.5:1 on the artwork after the repaints
- * (`card_layouts_v4`, owner decisions 2026-10-06, "the art gives way"; `give-way.ts`):
- *
- * - `edge` — the words sit at one end of the card and the picture at the other (`picture`, the
- *   edge the picture holds). The art moves out of the words' way: first, on the shapes in
- *   `cropShapes` only, a crop that scales the art about the midpoint of the words' edge so the
- *   picture's own edge (its ground) is what is lost; then a plate — the art scaled with the card's
- *   outline about the midpoint of the picture's outer edge and cut straight `cutPadding` units
- *   beyond the text zone, with a flat fill on the words' side. Words never sit on the artwork of a
- *   plate, so 4.5:1 holds by construction.
- * - `centred` — the words sit in the middle of the picture. Nothing moves and nothing is painted
- *   behind the words: the ink is the best candidate and the zone is stored as low contrast.
- */
-export type GiveWaySpec =
-  | {
-      kind: "edge";
-      picture: "top" | "bottom";
-      cropShapes: readonly CardShape[];
-      cutPadding: number;
-    }
-  | { kind: "centred" };
-
-/**
- * Card units between the text zone and a plate's cut. 30 puts the cut on the boundary of the region
- * the composition keeps clear on a rectangle (the band starts 30 units inside it, `layouts.test.ts`),
- * so a plate at full size removes only what crossed into that region.
- */
-export const CUT_PADDING = 30;
-
-/** Picture above, words below: no crop (it would lose the subject's head), only a plate. */
-const GIVE_WAY_PICTURE_TOP: GiveWaySpec = {
-  kind: "edge",
-  picture: "top",
-  cropShapes: [],
-  cutPadding: CUT_PADDING,
-};
-
-/**
- * Words above, picture below: a crop first where it loses only ground — the square-cornered and
- * softly rounded cards, whose sides and bottom hold background — then a plate. An arch's or oval's
- * curve would cut into the subject, so they take the plate alone.
- */
-const GIVE_WAY_PICTURE_BOTTOM: GiveWaySpec = {
-  kind: "edge",
-  picture: "bottom",
-  cropShapes: ["rectangle", "rounded-rectangle", "square"],
-  cutPadding: CUT_PADDING,
-};
-
-const GIVE_WAY_CENTRED: GiveWaySpec = { kind: "centred" };
 
 /**
  * How a layout's legibility panel gives way to the picture (`card_layouts_v3`). The paper is the
@@ -347,7 +281,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(440, 920), ...PICTURE_ABOVE_40 },
     },
     panel: PANEL_FROM_BOTTOM,
-    giveWay: GIVE_WAY_PICTURE_TOP,
   }),
   "art-bottom": defineLayout({
     purpose:
@@ -362,7 +295,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(80, 560), ...PICTURE_BELOW_40 },
     },
     panel: PANEL_FROM_TOP,
-    giveWay: GIVE_WAY_PICTURE_BOTTOM,
   }),
   framed: defineLayout({
     purpose: "A border, wreath, garland or frame surrounds a quiet centre that holds the text.",
@@ -377,7 +309,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       circle: { band: band(260, 740), ...FRAME_SQUARE },
     },
     panel: PANEL_WASH,
-    giveWay: GIVE_WAY_CENTRED,
   }),
   corners: defineLayout({
     purpose: "Motifs cluster in the corners and along the edges; the centre stays open for text.",
@@ -389,7 +320,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(260, 740), ...CORNER_CLUSTERS_SQUARE },
     },
     panel: PANEL_WASH,
-    giveWay: GIVE_WAY_CENTRED,
   }),
   atmosphere: defineLayout({
     purpose: "A soft full-bleed wash, scenery or texture carries the mood; no discrete subject.",
@@ -404,11 +334,10 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       circle: { band: band(260, 740), ...WASH },
     },
     panel: PANEL_WASH,
-    giveWay: GIVE_WAY_CENTRED,
   }),
   // A cover's bands and width are `art-bottom`'s and `art-top`'s, so its zones are theirs and no
-  // slot limit or stored text changes (`entry-fit.server.ts`, `layouts.test.ts`). `panel` is never
-  // drawn for a new design; it is set for the type, as on every `card_layouts_v4` layout.
+  // slot limit or stored text changes (`entry-fit.server.ts`, `layouts.test.ts`); so are its
+  // panels, words on top fading down toward the picture and words below fading up.
   "cover-top": defineLayout({
     purpose:
       "A bold, full-bleed scene, like a record sleeve or a poster: the words sit in the calm sky or wall across the top, and one or two big subjects fill the rest.",
@@ -420,7 +349,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(80, 560), ...COVER_WORDS_ABOVE_40 },
     },
     panel: PANEL_FROM_TOP,
-    giveWay: GIVE_WAY_PICTURE_BOTTOM,
   }),
   "cover-bottom": defineLayout({
     purpose:
@@ -433,7 +361,6 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
       square: { band: band(440, 920), ...COVER_WORDS_BELOW_40 },
     },
     panel: PANEL_FROM_BOTTOM,
-    giveWay: GIVE_WAY_PICTURE_TOP,
   }),
 };
 
@@ -587,7 +514,7 @@ const DETAIL: SlotSpec = {
 };
 
 /**
- * The slot specs of `card_layouts_v4`, unchanged from `card_layouts_v1` (`docs/card-system.md
+ * The slot specs of `card_layouts_v3`, unchanged from `card_layouts_v1` (`docs/card-system.md
  * §2.3`): in this version one table
  * serves every layout and shape. They are layout-set data, so changing one is a
  * `CARD_LAYOUT_SET_VERSION` bump. From the Phase 3 mock: title 104 (5:7) or 92 (1:1) down to 48, line height 1.05,
