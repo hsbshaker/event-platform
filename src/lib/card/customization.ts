@@ -153,7 +153,14 @@ export function boxesToStore({
   const fieldErrors: Record<string, string> = {};
   const rebroken: string[] = [];
   const boxes = incoming.map((box, i): TextBox => {
-    const shell: TextBox = { ...box, source: { ...box.source }, font: { ...box.font }, lines: [] };
+    // Every field the editor sent, its text background included (absent: none), with no lines yet.
+    const shell: TextBox = {
+      ...box,
+      source: { ...box.source },
+      font: { ...box.font },
+      lines: [],
+      ...(box.background ? { background: { ...box.background } } : {}),
+    };
     const linked = isLinkedBox(shell);
     const text = boxText(shell, saved);
 

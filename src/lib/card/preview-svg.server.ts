@@ -10,7 +10,8 @@
  * 2. each panel: with a fade (`card_layouts_v3`), the opaque paper and its eased fade as gradients;
  *    without (`card_layouts_v2`), its soft edge (CSS `box-shadow: 0 0 blur spread`) and the opaque
  *    rounded rectangle;
- * 3. every box with lines, in paint order (`z`, then reading order), each stored line drawn as
+ * 3. every box with lines, in paint order (`z`, then reading order): first its text background, if
+ *    the host chose one (`card-data.ts` `textBackgroundGeometry`), then each stored line drawn as
  *    glyph outlines (`text/glyph-outlines.ts`) at the box's position, width, alignment, rotation
  *    about its centre, size, line height, letter spacing, case and colour;
  *
@@ -23,11 +24,14 @@
 import "server-only";
 
 import {
+  lineOffset,
   paintOrder,
   panelFadeAxis,
   panelFeather,
+  textBackgroundGeometry,
   validateCardData,
   type CardPanel,
+  type TextBackgroundGeometry,
   InvalidCardDataError,
 } from "./card-data";
 import { outlinePath } from "./outline";
@@ -166,32 +170,79 @@ function panelSvg(panel: CardPanel, index: number): { defs: string; body: string
   return { defs, body: `<g data-card-panel="${index}">${soft}${rect}</g>` };
 }
 
-function boxSvg(box: TextBox, outlines: GlyphOutlinesResolver): string {
+/**
+ * A box's text background (`textBackgroundGeometry`), in the box's frame, as `InvitationCard`
+ * draws it: the rectangles in the solid colour inside a group at the background's opacity, the
+ * backdrop's blurred by a Gaussian of the same standard deviation as CSS `filter: blur()`.
+ */
+function textBackgroundSvg(
+  geometry: TextBackgroundGeometry,
+  index: number,
+): { defs: string; body: string } {
+  const { rects, radius, blur, color, opacity } = geometry;
+  let defs = "";
+  let filter = "";
+  if (blur > 0) {
+    const id = `card-text-backdrop-${index}`;
+    const reach = Math.ceil(blur * 3) + 1;
+    const r = rects[0];
+    defs =
+      `<filter id="${id}" filterUnits="userSpaceOnUse" x="${n(r.x - reach)}" y="${n(r.y - reach)}" ` +
+      `width="${n(r.width + reach * 2)}" height="${n(r.height + reach * 2)}" color-interpolation-filters="sRGB">` +
+      `<feGaussianBlur stdDeviation="${n(blur)}"/></filter>`;
+    filter = ` filter="url(#${id})"`;
+  }
+  const rounded = radius > 0 ? ` rx="${n(radius)}" ry="${n(radius)}"` : "";
+  const shapes = rects
+    .map(
+      (r) =>
+        `<rect x="${n(r.x)}" y="${n(r.y)}" width="${n(r.width)}" height="${n(r.height)}"${rounded}${filter}/>`,
+    )
+    .join("");
+  const alpha = opacity >= 1 ? "" : ` opacity="${n5(opacity)}"`;
+  return {
+    defs,
+    body: `<g data-card-text-background="${geometry.style}" fill="${color}"${alpha}>${shapes}</g>`,
+  };
+}
+
+function boxSvg(
+  box: TextBox,
+  index: number,
+  outlines: GlyphOutlinesResolver,
+): { defs: string; body: string } {
   const glyphs = outlines(box.font);
   const style = { size: box.size, letterSpacingEm: box.letterSpacing, textCase: box.textCase };
   const lineBox = box.size * box.lineHeight;
   const height = lineBox * box.lines.length;
   // CSS places the baseline half the leading below the line box's top, plus the ascent.
-  const { ascent, descent } = glyphs.verticalMetrics(box.size);
-  const baseline = (lineBox - (ascent + descent)) / 2 + ascent;
-  const lines = box.lines.map((text, index) => {
-    const run = glyphs.line(text, style);
-    // `text-align`, with a line wider than its box start-aligned, as CSS Text 3 §7.1 and
-    // Chromium do. The width includes the letter spacing after the last character.
-    const free = box.width - run.width;
-    const dx = free <= 0 || box.align === "left" ? 0 : box.align === "center" ? free / 2 : free;
-    const dy = index * lineBox + baseline;
+  const vertical = glyphs.verticalMetrics(box.size);
+  const baseline = (lineBox - (vertical.ascent + vertical.descent)) / 2 + vertical.ascent;
+  const runs = box.lines.map((text) => glyphs.line(text, style));
+  const lines = runs.map((run, i) => {
+    // The width includes the letter spacing after the last character.
+    const dx = lineOffset(box, run.width);
+    const dy = i * lineBox + baseline;
     const path = run.path ? `<path d="${run.path}"/>` : "";
-    return `<g data-card-line="${index}" transform="translate(${n(dx)} ${n(dy)})">${path}</g>`;
+    return `<g data-card-line="${i}" transform="translate(${n(dx)} ${n(dy)})">${path}</g>`;
   });
+  const geometry = textBackgroundGeometry(
+    box,
+    runs.map((run) => run.width),
+    vertical,
+  );
+  const background = geometry ? textBackgroundSvg(geometry, index) : { defs: "", body: "" };
   const transform =
     `translate(${n(box.x)} ${n(box.y)})` +
     (box.rotation === 0 ? "" : ` rotate(${n(box.rotation)} ${n(box.width / 2)} ${n(height / 2)})`);
-  return (
-    `<g data-card-box="${attr(box.id)}" transform="${transform}" fill="${box.color}">` +
-    lines.join("") +
-    `</g>`
-  );
+  return {
+    defs: background.defs,
+    body:
+      `<g data-card-box="${attr(box.id)}" transform="${transform}" fill="${box.color}">` +
+      background.body +
+      lines.join("") +
+      `</g>`,
+  };
 }
 
 /**
@@ -211,17 +262,18 @@ export function cardPreviewSvg(card: CardPreviewData, outlines: GlyphOutlinesRes
   const { width: w, height: h } = CARD_CANVAS[proportion];
   const href = `data:${mime};base64,${Buffer.from(artwork.bytes).toString("base64")}`;
   const drawnPanels = panels.map(panelSvg);
-  const text = paintOrder(boxes).map((box) => boxSvg(box, outlines));
+  const text = paintOrder(boxes).map((box, index) => boxSvg(box, index, outlines));
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" ` +
     `data-card-shape="${shape}">` +
     `<defs><clipPath id="card-outline"><path d="${outlinePath(shape)}"/></clipPath>` +
     drawnPanels.map((p) => p.defs).join("") +
+    text.map((t) => t.defs).join("") +
     `</defs>` +
     `<g clip-path="url(#card-outline)">` +
     `<image href="${href}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none"/>` +
     drawnPanels.map((p) => p.body).join("") +
-    `<g data-card-text="">${text.join("")}</g>` +
+    `<g data-card-text="">${text.map((t) => t.body).join("")}</g>` +
     `</g></svg>`
   );
 }

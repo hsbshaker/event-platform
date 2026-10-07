@@ -327,6 +327,170 @@ describe("cardPreviewSvg", () => {
     expect(artworkMime(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
   });
 
+  describe("a text background", () => {
+    const style = { size: 104, letterSpacingEm: 0, textCase: "none" as const };
+    const width = (text: string) => playfair.metrics.measure(text, style);
+    const lineBox = 104 * 1.05;
+    /** `<rect …/>` attributes in a group, as numbers where they are numbers. */
+    interface SvgRect {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      rx?: number;
+      ry?: number;
+      filter?: string;
+    }
+    const rects = (group: string): SvgRect[] =>
+      [...group.matchAll(/<rect ([^>]*)\/>/g)].map(
+        (m) =>
+          Object.fromEntries(
+            [...m[1].matchAll(/([a-z-]+)="([^"]*)"/g)].map(([, k, v]) => [
+              k,
+              /^-?[\d.]+$/.test(v) ? Number(v) : v,
+            ]),
+          ) as unknown as SvgRect,
+      );
+    const layerOf = (group: string) => {
+      const m = /<g data-card-text-background="[^"]+"[^>]*>.*?<\/g>/.exec(group);
+      expect(m).not.toBeNull();
+      return m![0];
+    };
+
+    it("is none by default: nothing drawn behind a box", () => {
+      expect(svg()).not.toContain("data-card-text-background");
+    });
+
+    it("highlight: a rectangle per line with text, hugging its set width and content area", () => {
+      const doc = svg({
+        boxes: [
+          box({
+            lines: ["A Little", "", "Wild One"],
+            background: { style: "highlight", color: "#FFFFFF", opacity: 0.85, padding: 20 },
+          }),
+        ],
+      });
+      const title = boxGroup(doc, "title");
+      const layer = layerOf(title);
+      // In the box's group (so it moves and rotates with it), before its lines, in the solid fill
+      // with the opacity on the layer; the box's own fill (its text colour) is untouched.
+      expect(title).toMatch(
+        /^<g data-card-box="title" transform="translate\(120 800\)" fill="#3A2A1E"><g data-card-text-background="highlight" fill="#FFFFFF" opacity="0.85">/,
+      );
+      expect(title.indexOf("data-card-text-background")).toBeLessThan(
+        title.indexOf("data-card-line"),
+      );
+      const { ascent, descent } = playfair.verticalMetrics(104);
+      const top = (lineBox - (ascent + descent)) / 2;
+      const drawn = rects(layer);
+      expect(drawn).toHaveLength(2);
+      [
+        ["A Little", 0],
+        ["Wild One", 2],
+      ].forEach(([text, i], k) => {
+        const w = width(text as string);
+        const r = drawn[k];
+        expect(r.x).toBeCloseTo((760 - w) / 2 - 20, 2);
+        expect(r.width).toBeCloseTo(w + 40, 2);
+        expect(r.y).toBeCloseTo((i as number) * lineBox + top - 20, 2);
+        expect(r.height).toBeCloseTo(ascent + descent + 40, 2);
+        expect(r).not.toHaveProperty("rx");
+      });
+    });
+
+    it("box: one rounded rectangle around every line's extent", () => {
+      const doc = svg({
+        boxes: [box({ background: { style: "box", color: "#1B1B1F", opacity: 0.8, padding: 40 } })],
+      });
+      const layer = layerOf(boxGroup(doc, "title"));
+      expect(layer).toMatch(/^<g data-card-text-background="box" fill="#1B1B1F" opacity="0.8">/);
+      const [r] = rects(layer);
+      const widest = Math.max(width("A Little"), width("Wild One"));
+      expect(r.x).toBeCloseTo((760 - widest) / 2 - 40, 2);
+      expect(r.width).toBeCloseTo(widest + 80, 2);
+      expect(r.y).toBe(-40);
+      expect(r.height).toBeCloseTo(2 * lineBox + 80, 2);
+      // min(0.5 × 40 + 0.12 × 104 = 32.48, half the smaller side).
+      expect(r.rx).toBe(32.48);
+      expect(r.ry).toBe(32.48);
+      expect(doc).not.toContain("feGaussianBlur");
+
+      // Right-aligned, and with a line wider than the box (start-aligned): from 0 to its end.
+      const right = rects(
+        layerOf(
+          boxGroup(
+            svg({
+              boxes: [
+                box({
+                  align: "right",
+                  background: { style: "box", color: "#1B1B1F", opacity: 1, padding: 0 },
+                }),
+              ],
+            }),
+            "title",
+          ),
+        ),
+      )[0];
+      expect(right.x).toBeCloseTo(760 - widest, 2);
+      expect(right.x + right.width).toBeCloseTo(760, 2);
+      const narrow = rects(
+        layerOf(
+          boxGroup(
+            svg({
+              boxes: [
+                box({
+                  width: 200,
+                  background: { style: "box", color: "#1B1B1F", opacity: 1, padding: 0 },
+                }),
+              ],
+            }),
+            "title",
+          ),
+        ),
+      )[0];
+      expect(narrow.x).toBe(0);
+      expect(narrow.width).toBeCloseTo(widest, 2);
+    });
+
+    it("backdrop: the same rectangle, square, blurred by its own filter, behind the text", () => {
+      const doc = svg({
+        boxes: [
+          box({
+            rotation: 10,
+            background: { style: "backdrop", color: "#FFFFFF", opacity: 0.65, padding: 50 },
+          }),
+        ],
+      });
+      const title = boxGroup(doc, "title");
+      const layer = layerOf(title);
+      const [r] = rects(layer);
+      expect(r.filter).toBe("url(#card-text-backdrop-0)");
+      expect(r).not.toHaveProperty("rx");
+      // σ = max(4, 0.6 × 50) = 30, defined once, in the box's frame; the region reaches 3σ + 1.
+      expect(doc).toContain(
+        `<filter id="card-text-backdrop-0" filterUnits="userSpaceOnUse" x="${Math.round((r.x - 91) * 1000) / 1000}" y="-141"`,
+      );
+      expect(doc).toContain('<feGaussianBlur stdDeviation="30"/>');
+      expect(doc.indexOf("<filter")).toBeLessThan(doc.indexOf("</defs>"));
+      // The lines are not in the blurred element, and the rotation is the box's own.
+      expect(title).toContain("rotate(10 380");
+      expect(layer).not.toContain("data-card-line");
+      expect(title.match(/filter=/g)).toHaveLength(1);
+    });
+
+    it("refuses what InvitationCard refuses", () => {
+      for (const background of [
+        { style: "box", color: "#fff", opacity: 0.5, padding: 1 },
+        { style: "box", color: "#FFFFFF", opacity: 0, padding: 1 },
+        { style: "box", color: "#FFFFFF", opacity: 0.5, padding: 500 },
+      ]) {
+        expect(() =>
+          svg({ boxes: [box({ background: background as TextBox["background"] })] }),
+        ).toThrow(InvalidCardDataError);
+      }
+    });
+  });
+
   it("escapes a box id", () => {
     const doc = svg({ boxes: [box({ id: 'x" onload="y' })] });
     expect(doc).toContain('data-card-box="x&quot; onload=&quot;y"');

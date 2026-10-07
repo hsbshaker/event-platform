@@ -19,6 +19,9 @@
  *   `font-variation-settings: "opsz" <size in card units>`, because line widths were measured at
  *   that optical size (`text/metrics.ts`); `auto` would follow the on-screen pixel size and glyph
  *   widths would change with the screen (`docs/technology-decisions.md §8.2`).
+ * - **Text backgrounds are the box's own.** A background the host chose (`TextBox.background`) is
+ *   drawn inside its box's element, behind that box's lines only, from the stored lines as the
+ *   browser sets them (`textBackgroundLayer`); it never changes the text's colour or opacity.
  * - **Live text.** Card text is real, selectable text in reading order (top to bottom, then left
  *   to right; stacking is `z`), in the shaping language. The artwork is decorative (`alt=""`).
  * - **Self-contained styling.** Inline styles only, so `react-dom/server` renders it outside
@@ -39,9 +42,12 @@ import { preload } from "react-dom";
 
 import {
   InvalidCardDataError,
+  lineHasText,
   panelFadeAxis,
   panelFeather,
   readingOrder,
+  textBackgroundBlur,
+  textBackgroundRadius,
   validateCardData,
   type CardPanel,
 } from "@/lib/card/card-data";
@@ -133,6 +139,117 @@ function boxStyle(box: TextBox): CSSProperties {
     textTransform: box.textCase,
     whiteSpace: "pre",
   };
+}
+
+/** A line of a text background's layer: the box's line box, its text never shown. */
+function backgroundLineStyle(lineBox: string): CSSProperties {
+  return { display: "block", height: lineBox, lineHeight: lineBox, whiteSpace: "pre" };
+}
+
+/**
+ * The host's text background for a box (`TextBox.background`; `card-data.ts`
+ * `textBackgroundGeometry` states its geometry, which the link preview draws from the same data).
+ *
+ * It is a layer inside the box's own element, so it moves, rotates and resizes with the box, at
+ * `z-index: -1` in the box's stacking context: behind every one of the box's lines and above
+ * nothing else of the card. It holds the stored lines again, hidden (`visibility: hidden`, outside
+ * the accessibility tree and selection), so the browser sets them exactly as it sets the visible
+ * ones and the background follows each line's set width without measuring anything. The opacity
+ * is the fill's alone: the text keeps its own colour and full opacity.
+ *
+ * - `highlight`: each line with text in an inline span with the solid fill, padded by p on every
+ *   side and pulled back by a negative margin of p left and right, so the line sets exactly as
+ *   without it and the fill covers its content area ± p (`box-decoration-break: clone`). The layer
+ *   as a whole takes the opacity, so highlights that meet between lines do not darken there.
+ * - `box` / `backdrop`: a block as wide as the widest line (`width: fit-content`), placed by the
+ *   box's alignment with auto margins — which fall to the start when it is wider than the box, as
+ *   a line does — with the fill, at the opacity as its alpha, p beyond it on every side: rounded,
+ *   or blurred. (One shape, so this is the same as the layer's opacity; an `opacity` over a
+ *   `filter` would have Chromium composite the box apart, and the text above it would be
+ *   rasterized differently.)
+ */
+function textBackgroundLayer(box: TextBox) {
+  const bg = box.background;
+  if (!bg || !box.lines.some(lineHasText)) return null;
+  const lineBox = cu(box.size * box.lineHeight);
+  const p = cu(bg.padding);
+  const layer: CSSProperties = {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: "100%",
+    display: "block",
+    zIndex: -1,
+    pointerEvents: "none",
+    userSelect: "none",
+    WebkitUserSelect: "none",
+  };
+  if (bg.style === "highlight") {
+    return (
+      <span
+        data-card-text-background="highlight"
+        aria-hidden="true"
+        style={{ ...layer, opacity: bg.opacity >= 1 ? undefined : dec(bg.opacity) }}
+      >
+        {box.lines.map((line, index) => (
+          <span key={index} style={backgroundLineStyle(lineBox)}>
+            {lineHasText(line) ? (
+              <span
+                data-card-text-highlight={index}
+                style={{
+                  background: bg.color,
+                  padding: p,
+                  marginLeft: cu(-bg.padding),
+                  marginRight: cu(-bg.padding),
+                  boxDecorationBreak: "clone",
+                  WebkitBoxDecorationBreak: "clone",
+                }}
+              >
+                <span style={{ visibility: "hidden" }}>{line}</span>
+              </span>
+            ) : null}
+          </span>
+        ))}
+      </span>
+    );
+  }
+  const auto = { marginLeft: "auto", marginRight: "auto" };
+  const margins =
+    box.align === "center"
+      ? auto
+      : box.align === "right"
+        ? { ...auto, marginRight: 0 }
+        : { marginLeft: 0, marginRight: 0 };
+  const block = box.lines.length * box.size * box.lineHeight;
+  return (
+    <span data-card-text-background={bg.style} aria-hidden="true" style={layer}>
+      <span style={{ display: "block", width: "fit-content", position: "relative", ...margins }}>
+        <span
+          data-card-text-background-shape=""
+          style={{
+            position: "absolute",
+            left: cu(-bg.padding),
+            top: cu(-bg.padding),
+            right: cu(-bg.padding),
+            bottom: cu(-bg.padding),
+            background: withAlpha(bg.color, bg.opacity),
+            // CSS holds the radius within half the width as well, keeping it circular.
+            borderRadius:
+              bg.style === "box"
+                ? cu(Math.min(textBackgroundRadius(bg.padding, box.size), block / 2 + bg.padding))
+                : undefined,
+            filter:
+              bg.style === "backdrop" ? `blur(${cu(textBackgroundBlur(bg.padding))})` : undefined,
+          }}
+        />
+        {box.lines.map((line, index) => (
+          <span key={index} style={{ ...backgroundLineStyle(lineBox), visibility: "hidden" }}>
+            {line}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
 }
 
 /** A `card_layouts_v2` panel: an opaque rounded rectangle with a soft edge (`box-shadow`). */
@@ -306,6 +423,7 @@ export function InvitationCard({ shape, artwork, panels = [], boxes }: Invitatio
               const lineBox = cu(box.size * box.lineHeight);
               return (
                 <p key={box.id} data-card-box={box.id} style={boxStyle(box)}>
+                  {textBackgroundLayer(box)}
                   {box.lines.map((line, index) => (
                     <span
                       key={index}

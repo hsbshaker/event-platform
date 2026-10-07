@@ -22,6 +22,11 @@ import { z } from "zod";
 
 import { isCanonicalHex } from "./color";
 import { CARD_SLOT_IDS, FACT_SLOT_IDS, WORDING_LIMITS, WORDING_SLOT_IDS } from "./slots";
+import {
+  TEXT_BACKGROUND_LIMITS,
+  TEXT_BACKGROUND_STYLES,
+  type TextBackground,
+} from "./text-background";
 import type { TextBox } from "./text-box";
 import { isKnownCardFont } from "./text/card-fonts";
 
@@ -84,6 +89,47 @@ const sourceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("custom") }),
 ]);
 
+/**
+ * A text background (`text-background.ts`): exactly its four fields — an unknown key is
+ * refused, never dropped — a known style, a canonical colour, an opacity above 0 and at most 1, and
+ * padding within the limits. `color` maps the colour as given (the stored schema takes only
+ * `#RRGGBB`; a save upper-cases a picker's lower-case hex first).
+ */
+function textBackgroundSchema(color: z.ZodType<string, string>) {
+  return z.strictObject({
+    style: z.enum(TEXT_BACKGROUND_STYLES),
+    color,
+    opacity: finiteNumber.refine(
+      (v) => v > TEXT_BACKGROUND_LIMITS.opacity.min && v <= TEXT_BACKGROUND_LIMITS.opacity.max,
+      "must be above 0 and at most 1",
+    ),
+    padding: finiteNumber.refine(
+      (v) => v >= TEXT_BACKGROUND_LIMITS.padding.min && v <= TEXT_BACKGROUND_LIMITS.padding.max,
+      `must be between ${TEXT_BACKGROUND_LIMITS.padding.min} and ${TEXT_BACKGROUND_LIMITS.padding.max}`,
+    ),
+  });
+}
+
+const storedColor = z.string().refine(isCanonicalHex, "must be #RRGGBB");
+/** Stored canonical (`#RRGGBB`), so a picker's lower-case hex is upper-cased, not refused. */
+const editorColor = z
+  .string()
+  .transform((c) => c.toUpperCase())
+  .refine(isCanonicalHex, "must be #RRGGBB");
+
+function copyBackground(background: TextBackground | undefined): Pick<TextBox, "background"> {
+  return background
+    ? {
+        background: {
+          style: background.style,
+          color: background.color,
+          opacity: background.opacity,
+          padding: background.padding,
+        },
+      }
+    : {};
+}
+
 const textSchema = z
   .string()
   .max(STORED.maxText)
@@ -99,13 +145,14 @@ const storedBoxSchema = z.object({
   rotation: finiteNumber,
   font: fontSchema,
   size: positiveNumber,
-  color: z.string().refine(isCanonicalHex, "must be #RRGGBB"),
+  color: storedColor,
   align: z.enum(["left", "center", "right"]),
   letterSpacing: finiteNumber,
   lineHeight: positiveNumber,
   textCase: z.enum(["none", "uppercase", "lowercase"]),
   // CSS `z-index` takes an integer (`card-data.ts`).
   z: z.number().int(),
+  background: textBackgroundSchema(storedColor).optional(),
   lines: z
     .array(
       z
@@ -198,6 +245,7 @@ function toTextBox(box: ParsedBox): TextBox {
     textCase: box.textCase,
     z: box.z,
     lines: [...box.lines],
+    ...copyBackground(box.background),
   };
 }
 
@@ -233,16 +281,14 @@ const editorBoxSchema = z.object({
   rotation: between(L.rotation.min, L.rotation.max),
   font: fontSchema,
   size: between(L.size.min, L.size.max),
-  /** Stored canonical (`#RRGGBB`), so a picker's lower-case hex is upper-cased, not refused. */
-  color: z
-    .string()
-    .transform((c) => c.toUpperCase())
-    .refine(isCanonicalHex, "must be #RRGGBB"),
+  color: editorColor,
   align: z.enum(["left", "center", "right"]),
   letterSpacing: between(L.letterSpacing.min, L.letterSpacing.max),
   lineHeight: between(L.lineHeight.min, L.lineHeight.max),
   textCase: z.enum(["none", "uppercase", "lowercase"]),
   z: z.number().int().min(L.z.min).max(L.z.max),
+  /** The host's text background; absent for none (removing one is sending the box without it). */
+  background: textBackgroundSchema(editorColor).optional(),
   /** Never trusted: the server breaks every line itself (`spec.md §20.4`). */
   lines: z.unknown().optional(),
 });
@@ -336,6 +382,7 @@ export function parseEditorBoxes(value: unknown): ParsedEditorBoxes {
       lineHeight: box.lineHeight,
       textCase: box.textCase,
       z: box.z,
+      ...copyBackground(box.background),
     };
   });
   if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };

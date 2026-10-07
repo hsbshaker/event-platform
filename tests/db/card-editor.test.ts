@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 
+import { parseStoredBoxes } from "@/lib/card/text-box-schema";
+
 import {
   asActor,
   connect,
@@ -223,6 +225,25 @@ describe("save_card_customization through the card editor's paths", () => {
       code: "PT409",
       detail: "current revision: 2",
     });
+  });
+
+  it("stores a box's text background and reads it back exactly, as every reader parses it", async () => {
+    const background = { style: "highlight", color: "#FFF2A8", opacity: 0.85, padding: 12.5 };
+    const boxes = [
+      box(["Oh Baby"], { background }),
+      box(["Hi"], { id: "c1", source: { kind: "custom" }, text: "Hi" }),
+    ];
+    expect(await save(OWNER(), 0, { boxes: JSON.stringify(boxes) })).toBe(1);
+    const stored = (await customization())!.boxes;
+    expect(stored).toEqual(boxes);
+    const parsed = parseStoredBoxes(stored);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.boxes[0].background).toEqual(background);
+    expect(parsed.boxes[1]).not.toHaveProperty("background");
+    // Removing it is a save of the box without it.
+    expect(await save(OWNER(), 1, { boxes: JSON.stringify([box(["Oh Baby"])]) })).toBe(2);
+    expect((await customization())!.boxes).toEqual([box(["Oh Baby"])]);
   });
 
   it("a fact edit's re-break is a save like any other: it bumps the revision an open editor holds", async () => {

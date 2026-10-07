@@ -95,6 +95,12 @@ describe("seedBoxes", () => {
     expect(byId("babyName").lines).toEqual([]);
   });
 
+  it("has no text background: the host adds one in the editor", () => {
+    for (const box of seedBoxes(generatedFor(HOST), SAVED, metrics)) {
+      expect(box).not.toHaveProperty("background");
+    }
+  });
+
   it("is deterministic, so a reset re-applies exactly the first edit's seed", () => {
     const a = seedBoxes(generatedFor(HOST), SAVED, metrics);
     const b = seedBoxes(generatedFor(HOST), SAVED, metrics);
@@ -134,6 +140,52 @@ describe("boxesToStore", () => {
     expect(result.ok && result.boxes.find((b) => b.id === "date")!.lines).toEqual(
       prev.find((b) => b.id === "date")!.lines,
     );
+  });
+
+  it("stores a text background the host chose, keeps the lines, and removes one left out", () => {
+    const prev = previous();
+    const background = { style: "backdrop" as const, color: "#FFFFFF", opacity: 0.65, padding: 30 };
+    const withBackground = save(
+      prev.map(strip).map((b) => (b.id === "title" ? { ...b, background } : b)),
+      SAVED,
+      prev,
+    );
+    expect(withBackground.ok && withBackground.rebroken).toEqual([]);
+    if (!withBackground.ok) return;
+    const title = withBackground.boxes.find((b) => b.id === "title")!;
+    expect(title.background).toEqual(background);
+    expect(title.lines).toEqual(prev.find((b) => b.id === "title")!.lines);
+    for (const box of withBackground.boxes) {
+      if (box.id !== "title") expect(box).not.toHaveProperty("background");
+    }
+
+    // Changing only the background never re-breaks; sending the box without it removes it.
+    const stored = withBackground.boxes;
+    const changed = save(
+      stored
+        .map(strip)
+        .map((b) =>
+          b.id === "title"
+            ? { ...b, background: { ...background, style: "highlight" as const } }
+            : b,
+        ),
+      SAVED,
+      stored,
+    );
+    expect(changed.ok && changed.rebroken).toEqual([]);
+    expect(changed.ok && changed.boxes.find((b) => b.id === "title")!.background?.style).toBe(
+      "highlight",
+    );
+    const removed = save(
+      stored.map(strip).map((b) => {
+        const { background: _bg, ...rest } = b;
+        void _bg;
+        return rest;
+      }),
+      SAVED,
+      stored,
+    );
+    expect(removed).toEqual({ ok: true, boxes: prev, rebroken: [] });
   });
 
   it("re-breaks a box whose width, font, size, spacing or case changed, and only it", () => {
@@ -293,6 +345,18 @@ describe("carriedBoxesFrom", () => {
     expect(byId("invitationLine").text).toBe("Come celebrate with us");
     expect(byId("c1")).toMatchObject({ text: "Bring a book", font: FRAUNCES, color: "#F4EEE2" });
     expect(byId("date").font).toEqual(pairingFaces("grotesk_archivo_inter").body);
+  });
+
+  it("keeps the text background the host chose on the words it carries", () => {
+    const background = { style: "box" as const, color: "#FFFFFF", opacity: 0.8, padding: 20 };
+    const source = from().map((b) =>
+      b.id === "title" || b.id === "c1" || b.id === "date" ? { ...b, background } : b,
+    );
+    const carried = carriedBoxesFrom({ from: source, host: HOST, saved: SAVED, card: card() });
+    const byId = (id: string) => carried.boxes.find((b) => b.id === id)!;
+    expect(byId("title").background).toEqual(background);
+    expect(byId("c1").background).toEqual(background);
+    expect(byId("date")).not.toHaveProperty("background");
   });
 
   it("stores the linked boxes as a seed does: saved words only", () => {

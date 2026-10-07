@@ -141,6 +141,56 @@ describe("parseStoredBoxes", () => {
     expect(parseStoredBoxes([])).toEqual({ ok: true, boxes: [] });
     expect(parseStoredBoxes([custom({ x: -900, y: 2300, rotation: 720 })]).ok).toBe(true);
   });
+
+  it("reads a text background back exactly, for each style, and none where there is none", () => {
+    const boxes = [
+      ...generated,
+      custom({ background: { style: "highlight", color: "#FFFFFF", opacity: 0.85, padding: 5 } }),
+      custom({
+        id: "added-2",
+        background: { style: "box", color: "#1B1B1F", opacity: 1, padding: 0 },
+      }),
+      custom({
+        id: "added-3",
+        background: { style: "backdrop", color: "#F4EEE2", opacity: 0.01, padding: 120 },
+      }),
+    ];
+    const parsed = parseStoredBoxes(JSON.parse(JSON.stringify(boxes)));
+    expect(parsed).toEqual({ ok: true, boxes });
+    if (parsed.ok) {
+      for (const box of parsed.boxes.slice(0, generated.length)) {
+        expect(box).not.toHaveProperty("background");
+      }
+    }
+    expect(() =>
+      validateCardData({ shape: "rectangle", artworkProportion: "5:7", panels: [], boxes }),
+    ).not.toThrow();
+  });
+
+  it("refuses a malformed text background rather than guessing at it", () => {
+    const ok = { style: "box", color: "#FFFFFF", opacity: 0.8, padding: 20 };
+    const bad: unknown[] = [
+      null,
+      "box",
+      { ...ok, style: "none" },
+      { ...ok, style: "shadow" },
+      { ...ok, color: "#ffffff" },
+      { ...ok, color: "rgb(0,0,0)" },
+      { ...ok, opacity: 0 },
+      { ...ok, opacity: 1.5 },
+      { ...ok, opacity: -1 },
+      { ...ok, padding: -0.5 },
+      { ...ok, padding: 121 },
+      { ...ok, padding: "20" },
+      { ...ok, url: "javascript:alert(1)" },
+      { style: "box", color: "#FFFFFF", opacity: 0.8 },
+    ];
+    for (const background of bad) {
+      const parsed = parseStoredBoxes([{ ...custom(), background }]);
+      expect(parsed.ok, JSON.stringify(background)).toBe(false);
+      if (!parsed.ok) expect(parsed.issues).toContain("0.background");
+    }
+  });
 });
 
 describe("parseEditorBoxes", () => {
@@ -238,6 +288,41 @@ describe("parseEditorBoxes", () => {
         { ...title, id: "title-copy", text: "Two" },
       ]).ok,
     ).toBe(false);
+  });
+
+  it("keeps a text background, canonical, and reads its absence as none", () => {
+    const parsed = parseEditorBoxes([
+      custom({ background: { style: "highlight", color: "#ffd000", opacity: 0.5, padding: 12 } }),
+      custom({ id: "added-2" }),
+    ]);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.boxes[0].background).toEqual({
+      style: "highlight",
+      color: "#FFD000",
+      opacity: 0.5,
+      padding: 12,
+    });
+    expect(parsed.boxes[1]).not.toHaveProperty("background");
+  });
+
+  it("refuses a malformed text background with a field error", () => {
+    const ok = { style: "backdrop", color: "#FFFFFF", opacity: 0.65, padding: 30 };
+    const cases: [unknown, string][] = [
+      [{ ...ok, style: "glow" }, "background.style"],
+      [{ ...ok, color: "#FFF" }, "background.color"],
+      [{ ...ok, opacity: 0 }, "background.opacity"],
+      [{ ...ok, opacity: 1.01 }, "background.opacity"],
+      [{ ...ok, padding: -1 }, "background.padding"],
+      [{ ...ok, padding: 120.01 }, "background.padding"],
+      [{ ...ok, blur: 12 }, "background"],
+      [null, "background"],
+    ];
+    for (const [background, field] of cases) {
+      const parsed = parseEditorBoxes([{ ...custom(), background }]);
+      expect(parsed.ok, JSON.stringify(background)).toBe(false);
+      if (!parsed.ok) expect(Object.keys(parsed.fieldErrors)).toContain(`boxes.0.${field}`);
+    }
   });
 
   it("refuses an unknown face, a control character and a forged source", () => {

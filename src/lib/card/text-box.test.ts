@@ -11,6 +11,7 @@ import {
   rebreakBox,
   rebreakFactBoxes,
   seedCustomization,
+  withLinkedLines,
 } from "./text-box";
 import type { FontMetricsResolver, FontRef } from "./text/metrics";
 import { allCuratedMetrics } from "./text/test-fonts";
@@ -74,6 +75,12 @@ describe("seedCustomization", () => {
     const baby = seed.find((b) => b.id === "babyName")!;
     expect(baby.source).toEqual({ kind: "fact", slot: "babyName" });
     expect(baby.lines).toEqual([]);
+  });
+
+  it("adds no text background: a generated box never has one", () => {
+    for (const box of seedCustomization(generated(), FACT_SLOT_IDS)) {
+      expect(box).not.toHaveProperty("background");
+    }
   });
 
   it("returns copies the caller can edit without touching the generated layout", () => {
@@ -155,6 +162,37 @@ describe("rebreakBox", () => {
     const result = rebreakBox(box, CONTENT, metrics).box;
     expect(box).toEqual(copy);
     expect({ ...result, lines: copy.lines }).toEqual(copy);
+  });
+
+  it("keeps a box's text background through a re-break, as an independent copy", () => {
+    const background = { style: "box" as const, color: "#FFFFFF", opacity: 0.8, padding: 14 };
+    const box = customBox("c1", "Bring a book and a blanket", playfair, {
+      width: 160,
+      background,
+    });
+    const result = rebreakBox(box, CONTENT, metrics).box;
+    expect(result.lines.length).toBeGreaterThan(1);
+    expect(result.background).toEqual(background);
+    expect(result.background).not.toBe(background);
+    // No background stays none: the field is absent, not undefined.
+    expect(rebreakBox(customBox("c2", "Hi", playfair), CONTENT, metrics).box).not.toHaveProperty(
+      "background",
+    );
+  });
+
+  it("keeps text backgrounds through a fact's re-break and on boxes whose lines are linked", () => {
+    const background = { style: "highlight" as const, color: "#1B1B1F", opacity: 0.6, padding: 6 };
+    const seed = seedCustomization(generated(), FACT_SLOT_IDS).map((b) =>
+      b.id === "babyName" || b.id === "title" ? { ...b, background } : b,
+    );
+    const content = { ...CONTENT, babyName: "Maximilian Augustin Montgomery-Whitworth" };
+    const after = rebreakFactBoxes(seed, "babyName", content, metrics);
+    expect(after.find((b) => b.id === "babyName")!.background).toEqual(background);
+    expect(after.find((b) => b.id === "title")!.background).toEqual(background);
+    const linked = withLinkedLines(seed, { ...content, title: "A Brand New Title" }, metrics);
+    expect(linked.rebroken).toContain("title");
+    expect(linked.boxes.find((b) => b.id === "title")!.background).toEqual(background);
+    expect(linked.boxes.find((b) => b.id === "babyName")!.background).toEqual(background);
   });
 
   it("re-breaks every box of a fact after that fact changes, and only those", () => {
@@ -245,6 +283,27 @@ describe("carryWords", () => {
     // The overflowing ones are the last ones, in order.
     const order = added.map((b) => b.id);
     expect(layout.belowZone).toEqual(order.slice(order.length - layout.belowZone.length));
+  });
+
+  it("keeps the text background of the title, the invitation line and added boxes, not a fact's", () => {
+    const hi = { style: "highlight" as const, color: "#FFFFFF", opacity: 0.85, padding: 8 };
+    const box = { style: "box" as const, color: "#1B1B1F", opacity: 0.8, padding: 20 };
+    const from = hostCard([customBox("note-1", "No gifts please", karla, { background: box })]).map(
+      (b) =>
+        b.id === "title" || b.id === "invitationLine" || b.id === "date"
+          ? { ...b, background: hi }
+          : b,
+    );
+    const layout = carryWords({ from, content: CONTENT, card: newCard() });
+    const byId = (id: string) => layout.boxes.find((b) => b.id === id)!;
+    expect(byId("title").background).toEqual(hi);
+    expect(byId("invitationLine").background).toEqual(hi);
+    expect(byId("note-1").background).toEqual(box);
+    // Facts take the new card's own styling, as their font does.
+    expect(byId("date")).not.toHaveProperty("background");
+    expect(byId("venue")).not.toHaveProperty("background");
+    // Copies: the carried layout never shares an object with the card it came from.
+    expect(byId("title").background).not.toBe(hi);
   });
 
   it("keeps an invitation line the host deleted absent", () => {

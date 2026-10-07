@@ -13,6 +13,7 @@ import { isCanonicalHex } from "./color";
 import type { CardRect } from "./ink";
 import type { PanelFade } from "./layouts";
 import { CARD_SHAPES, SHAPE_PROPORTION, type CardProportion, type CardShape } from "./shapes";
+import { textBackgroundIssue, type TextBackground } from "./text-background";
 import type { TextBox } from "./text-box";
 
 /**
@@ -149,6 +150,10 @@ function validateBox(box: TextBox): void {
   for (const line of box.lines) {
     check(typeof line === "string" && !CONTROL.test(line), `box ${id}: a line is not one line`);
   }
+  if (box.background !== undefined) {
+    const issue = textBackgroundIssue(box.background);
+    check(issue === null, `box ${id}: text background ${issue}`);
+  }
 }
 
 function validatePanel(panel: CardPanel, index: number): void {
@@ -243,4 +248,124 @@ export function paintOrder(boxes: readonly TextBox[]): TextBox[] {
     .map((box, index) => ({ box, index }))
     .sort((a, b) => a.box.z - b.box.z || a.index - b.index)
     .map(({ box }) => box);
+}
+
+/**
+ * Where a set line starts in its box, card units from the box's left edge: by `text-align`, with a
+ * line wider than its box start-aligned, as CSS Text 3 §7.1 and Chromium do. `width` is the line's
+ * set width, letter spacing after the last character included.
+ */
+export function lineOffset(box: Pick<TextBox, "width" | "align">, width: number): number {
+  const free = box.width - width;
+  if (free <= 0 || box.align === "left") return 0;
+  return box.align === "center" ? free / 2 : free;
+}
+
+/** A line has a highlight behind it only when it shows something: not empty, not only spaces. */
+export function lineHasText(line: string): boolean {
+  return line.trim() !== "";
+}
+
+/** A rectangle in a box's own frame: card units from its top-left corner, before rotation. */
+export interface BoxFrameRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A text background as both renderers draw it, in the box's own frame (`textBackgroundGeometry`):
+ * its rectangles filled with `color` and rounded by `radius`, blurred by a Gaussian of standard
+ * deviation `blur`, the whole layer at `opacity` — so highlights that meet between lines do not
+ * darken there — and all of it behind the box's lines, which keep their own colour.
+ */
+export interface TextBackgroundGeometry {
+  style: TextBackground["style"];
+  color: string;
+  opacity: number;
+  rects: BoxFrameRect[];
+  /** Corner radius, card units, within half the rectangle's smaller side. */
+  radius: number;
+  /** Standard deviation of the backdrop's blur, card units; 0 for the other styles. */
+  blur: number;
+}
+
+/**
+ * A `box` background's corner radius before it is held within half the rectangle's smaller side
+ * (CSS `border-radius` holds it there itself; `textBackgroundGeometry` does so explicitly).
+ */
+export function textBackgroundRadius(padding: number, size: number): number {
+  return 0.5 * padding + 0.12 * size;
+}
+
+/** A `backdrop` background's blur: the standard deviation of its Gaussian, card units. */
+export function textBackgroundBlur(padding: number): number {
+  return Math.max(4, 0.6 * padding);
+}
+
+/**
+ * A box's text background, derived from its stored lines (`text-box.ts` `TextBackground`; never
+ * stored). `lineWidths` are the set widths of `box.lines`, letter spacing after the last character
+ * included; `content` is the face's ascent and descent at the box's size — the content area CSS
+ * centres in each line box. With L the line box (size × line height), p the padding, and o_i and
+ * w_i a line's offset (`lineOffset`) and width:
+ *
+ * - `highlight`: for each line with text (`lineHasText`), [o_i − p, o_i + w_i + p] across its
+ *   content area ± p;
+ * - `box`: one rectangle from min o_i − p to max (o_i + w_i) + p over the lines with width, and from
+ *   −p to n·L + p, with corner radius min(0.5·p + 0.12·size, half its smaller side);
+ * - `backdrop`: the same rectangle, square-cornered, blurred by max(4, 0.6·p).
+ *
+ * Null with no background, or with no line with text to put it behind.
+ */
+export function textBackgroundGeometry(
+  box: Pick<TextBox, "width" | "align" | "size" | "lineHeight" | "lines" | "background">,
+  lineWidths: readonly number[],
+  content: { ascent: number; descent: number },
+): TextBackgroundGeometry | null {
+  const bg = box.background;
+  if (!bg || !box.lines.some(lineHasText)) return null;
+  if (lineWidths.length !== box.lines.length) {
+    throw new InvalidCardDataError("a text background needs every line's width");
+  }
+  const p = bg.padding;
+  const lineBox = box.size * box.lineHeight;
+  const common = { style: bg.style, color: bg.color, opacity: bg.opacity };
+  if (bg.style === "highlight") {
+    const area = content.ascent + content.descent;
+    const top = (lineBox - area) / 2;
+    const rects: BoxFrameRect[] = [];
+    box.lines.forEach((line, i) => {
+      if (!lineHasText(line)) return;
+      const w = lineWidths[i];
+      rects.push({
+        x: lineOffset(box, w) - p,
+        y: i * lineBox + top - p,
+        width: w + 2 * p,
+        height: area + 2 * p,
+      });
+    });
+    return { ...common, rects, radius: 0, blur: 0 };
+  }
+  let left = Infinity;
+  let right = -Infinity;
+  for (const w of lineWidths) {
+    if (!(w > 0)) continue;
+    const o = lineOffset(box, w);
+    left = Math.min(left, o);
+    right = Math.max(right, o + w);
+  }
+  if (!(right >= left)) return null;
+  const rect = {
+    x: left - p,
+    y: -p,
+    width: right - left + 2 * p,
+    height: box.lines.length * lineBox + 2 * p,
+  };
+  if (bg.style === "backdrop") {
+    return { ...common, rects: [rect], radius: 0, blur: textBackgroundBlur(p) };
+  }
+  const radius = Math.min(textBackgroundRadius(p, box.size), rect.width / 2, rect.height / 2);
+  return { ...common, rects: [rect], radius, blur: 0 };
 }
