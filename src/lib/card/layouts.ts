@@ -52,6 +52,8 @@ export const CARD_LAYOUT_IDS = [
   "framed",
   "corners",
   "atmosphere",
+  "cover-top",
+  "cover-bottom",
 ] as const;
 
 export type CardLayoutId = (typeof CARD_LAYOUT_IDS)[number];
@@ -292,6 +294,40 @@ const WASH = {
     "The atmosphere covers the whole card with real depth and variation; it is never a flat, empty field.",
 } as const;
 
+// The cover layouts (`card_layouts_v5`, owner decisions 2026-10-06): one full-bleed scene with the
+// words set in a calm band of it, as on a record sleeve or a poster. The band is the scene's own
+// backdrop, not paper; the shares match the picture layouts' so the zones are theirs. The text
+// never names the format: an image model asked for a cover or poster letters it.
+
+const COVER_WORDS_ABOVE_HALF = {
+  composition:
+    "Fill the whole canvas edge to edge with one scene. Ground one or two bold subjects in the lower 55% of the canvas, large and close, free to run off the bottom and sides; keep the top 45% as the scene's own calm backdrop — open sky, a plain wall or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+  presence:
+    "Bold and graphic: strong shapes, confident contrast and a few large elements given room to stand out. The subjects are big and close; nothing shrinks to a small vignette, and there is no border, frame or paper margin anywhere.",
+  clear: { edge: "top", percent: 45 },
+} as const;
+
+const COVER_WORDS_ABOVE_40 = {
+  composition:
+    "Fill the whole canvas edge to edge with one scene. Ground one or two bold subjects in the lower 40% of the canvas, large and close, free to run off the bottom and sides; keep the top 60% as the scene's own calm backdrop — open sky, a plain wall or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+  presence: COVER_WORDS_ABOVE_HALF.presence,
+  clear: { edge: "top", percent: 60 },
+} as const;
+
+const COVER_WORDS_BELOW_HALF = {
+  composition:
+    "Fill the whole canvas edge to edge with one scene. One or two bold subjects fill the upper 55% of the canvas, large and close, free to run off the top and sides; keep the bottom 45% as the scene's own calm ground or backdrop — a plain floor, still water or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+  presence: COVER_WORDS_ABOVE_HALF.presence,
+  clear: { edge: "bottom", percent: 45 },
+} as const;
+
+const COVER_WORDS_BELOW_40 = {
+  composition:
+    "Fill the whole canvas edge to edge with one scene. One or two bold subjects fill the upper 40% of the canvas, large and close, free to run off the top and sides; keep the bottom 60% as the scene's own calm ground or backdrop — a plain floor, still water or a deep field of colour — in one even tone, clearly dark or clearly light, with nothing crossing into it.",
+  presence: COVER_WORDS_ABOVE_HALF.presence,
+  clear: { edge: "bottom", percent: 60 },
+} as const;
+
 const band = (top: number, bottom: number): TextBand => ({ top, bottom });
 
 function defineLayout(def: Omit<CardLayout, "shapes">): CardLayout {
@@ -369,6 +405,35 @@ export const CARD_LAYOUTS: Readonly<Record<CardLayoutId, CardLayout>> = {
     },
     panel: PANEL_WASH,
     giveWay: GIVE_WAY_CENTRED,
+  }),
+  // A cover's bands and width are `art-bottom`'s and `art-top`'s, so its zones are theirs and no
+  // slot limit or stored text changes (`entry-fit.server.ts`, `layouts.test.ts`). `panel` is never
+  // drawn for a new design; it is set for the type, as on every `card_layouts_v4` layout.
+  "cover-top": defineLayout({
+    purpose:
+      "A bold, full-bleed scene, like a record sleeve or a poster: the words sit in the calm sky or wall across the top, and one or two big subjects fill the rest.",
+    artModes: ["illustration"],
+    maxWidth: 760,
+    art: {
+      rectangle: { band: band(150, 600), ...COVER_WORDS_ABOVE_HALF },
+      "rounded-rectangle": { band: band(150, 600), ...COVER_WORDS_ABOVE_HALF },
+      square: { band: band(80, 560), ...COVER_WORDS_ABOVE_40 },
+    },
+    panel: PANEL_FROM_TOP,
+    giveWay: GIVE_WAY_PICTURE_BOTTOM,
+  }),
+  "cover-bottom": defineLayout({
+    purpose:
+      "A bold, full-bleed scene, like a record sleeve or a poster: one or two big subjects fill the top, and the words sit in the calm ground or colour across the bottom.",
+    artModes: ["illustration"],
+    maxWidth: 760,
+    art: {
+      rectangle: { band: band(800, 1250), ...COVER_WORDS_BELOW_HALF },
+      "rounded-rectangle": { band: band(800, 1250), ...COVER_WORDS_BELOW_HALF },
+      square: { band: band(440, 920), ...COVER_WORDS_BELOW_40 },
+    },
+    panel: PANEL_FROM_BOTTOM,
+    giveWay: GIVE_WAY_PICTURE_TOP,
   }),
 };
 

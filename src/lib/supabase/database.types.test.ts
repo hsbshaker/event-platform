@@ -16,7 +16,7 @@ describe("card enums in the database contract", () => {
     expectTypeOf<Enums["card_layout"]>().toEqualTypeOf<CardLayoutId>();
     expectTypeOf<Enums["card_art_mode"]>().toEqualTypeOf<ArtMode>();
     expect(CARD_SHAPES).toHaveLength(6);
-    expect(CARD_LAYOUT_IDS).toHaveLength(5);
+    expect(CARD_LAYOUT_IDS).toHaveLength(7);
     expect(ART_MODES).toHaveLength(4);
   });
 });

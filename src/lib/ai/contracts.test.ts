@@ -313,9 +313,9 @@ describe("prompt rules: the host's title and their own concept", () => {
     expect(text).toContain("never the person's name, likeness or signature portrait");
   });
 
-  it("card_design_v5 keeps the title out of the brief and reads a named format as a style signal", () => {
+  it("card_design_v6 keeps the title out of the brief and reads a named format as a style signal", () => {
     const text = systemPrompt("card_design");
-    expect(text).toContain("**Prompt version:** `card_design_v5`");
+    expect(text).toContain("**Prompt version:** `card_design_v6`");
     expect(text).toContain("**The title never goes into the brief.**");
     expect(text).toContain("given in their description");
     expect(text).toContain(
@@ -328,5 +328,17 @@ describe("prompt rules: the host's title and their own concept", () => {
     expect(text).toContain(
       "`suggestedRendering` is absent when the identity's `hostConcept` is `own`",
     );
+  });
+
+  it("card_design_v6 chooses a cover for bold briefs and named formats, top or bottom by the subject", () => {
+    const text = systemPrompt("card_design");
+    expect(text).toContain("**Schema version:** `card_design_schema_v4`");
+    expect(text).toContain("**Cover layouts** (`cover-top`, `cover-bottom`)");
+    expect(text).toContain("whenever the host names a format such as an album cover");
+    expect(text).toContain(
+      "Never choose one for a restrained, delicate, romantic or typography-led",
+    );
+    expect(text).toContain("Choose\n  `cover-top` when the subject is grounded");
+    expect(text).toContain("choose `cover-bottom` when the subject hangs, rises or fills the sky");
   });
 });

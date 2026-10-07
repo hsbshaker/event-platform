@@ -1227,8 +1227,9 @@ persisted before `card_layouts_v4` keeps its art-derived legibility panel betwee
 
 ### 11.3 Layout catalog
 
-A small versioned catalog of text layouts (`card_layouts_v4`, `docs/card-system.md §2.3`: the set
-validated in Phase 3, refitted in Phase 4 so every detail fits every card). Each layout declares the shapes it
+A small versioned catalog of text layouts (`card_layouts_v5`, `docs/card-system.md §2.3`: the set
+validated in Phase 3, refitted in Phase 4 so every detail fits every card, with the two cover
+layouts added in v5 — one bold full-bleed scene with the words set in a calm band of it). Each layout declares the shapes it
 supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
 slot, the composition rule given to the art brief, and how its artwork gives way when no ink
 clears (§11.6). Slot character
@@ -2541,6 +2542,9 @@ The host should feel:
   rejects artwork that does (one regeneration) (§7.6a, §7.8).
 - [ ] Every design has one of the six shapes and a layout that supports it; text zones lie inside
   the shape's text-safe area; the outline is code-defined and never part of the artwork.
+- [ ] A cover layout sets the words in a calm band of a full-bleed picture; the card design chooses
+  it for bold or named-format briefs, never for restrained ones, and nothing that reaches the image
+  model names the format.
 - [ ] Artwork is at the shape's proportion (5:7 or 1:1), decodable, at minimum resolution, contains
   no embedded text, and passes
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no

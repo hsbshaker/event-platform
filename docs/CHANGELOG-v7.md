@@ -931,6 +931,27 @@ accents.
   six-prompt probe (`docs/model-evals/stated-title-probe.json`) checks the title rule does not
   over-trigger. Neither has been run; each paid run waits for the owner's approval.
 
+### The cover layouts (owner decisions, 2026-10-06)
+
+- **Two cover layouts, `cover-top` and `cover-bottom`** (`card_layouts_v5`, `card_art_v6`,
+  `card_design_schema_v4`, `card_design_v6`; `docs/card-system.md §2.3`): one bold full-bleed
+  scene with the words set in a calm band of it — the scene's own sky, wall, ground or field of
+  colour — the way a record sleeve or a poster sets its type. A host who asked for "a beautifully
+  designed ’90s hip-hop album cover" got a picture in the top 40% of a square card, because no
+  layout could express a cover.
+- **The design chooses between them** (owner: "let the design choose top or bottom"): `cover-top`
+  for a grounded subject, the words in the calm space above it; `cover-bottom` for a subject that
+  hangs, rises or fills the sky, the words in the calm ground below. A cover is chosen for bold,
+  graphic or editorial identities and named formats, never for restrained ones.
+- **Rectangle, rounded rectangle and square only**: a cover is a rectangular format, and curved
+  outlines eat the bleed. Their bands and zones are `art-bottom`'s and `art-top`'s, so no slot
+  limit, fit check or stored host text changes; the art is `illustration` with any rendering it
+  allows, and when no ink clears after the repaints the art gives way as `art-bottom`'s (crop, then
+  plate) and `art-top`'s (plate).
+- **No format word reaches the image model** (album, cover, poster, sleeve, magazine): those
+  formats come back lettered. A test holds the composition and presence text to that.
+- The database enum `card_layout` gains both values (migration `20261015000000_cover_layouts.sql`).
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

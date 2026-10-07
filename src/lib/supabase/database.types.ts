@@ -91,7 +91,8 @@ export type RotatePartyLinkOutcome = "rotated" | "not_published" | "not_found";
 export type CardShape = "rectangle" | "rounded-rectangle" | "arch" | "oval" | "square" | "circle";
 /** Database spelling of a proportion; `src/lib/card/shapes.ts` `CardProportion` is "5:7" | "1:1". */
 export type CardProportionCode = "portrait_5_7" | "square_1_1";
-export type CardLayout = "art-top" | "art-bottom" | "framed" | "corners" | "atmosphere";
+export type CardLayout =
+  "art-top" | "art-bottom" | "framed" | "corners" | "atmosphere" | "cover-top" | "cover-bottom";
 export type CardArtMode = "illustration" | "framed" | "atmosphere" | "minimal";
 
 /**

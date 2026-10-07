@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/card-design.schema.json",
   "title": "CardDesign",
-  "description": "card_design_schema_v3 (model-contracts.md §5). Enums are generated from the card catalogs: card_layouts_v3 (src/lib/card/layouts.ts), src/lib/card/typography.ts and src/lib/card/renderings.ts. v2 adds the required artBrief.rendering and artBrief.aesthetic; v3 adds the required refinement: what a Try another direction design made (part, whole or none), always none without changing.",
+  "description": "card_design_schema_v4 (model-contracts.md §5). Enums are generated from the card catalogs: card_layouts_v5 (src/lib/card/layouts.ts), src/lib/card/typography.ts and src/lib/card/renderings.ts. v2 adds the required artBrief.rendering and artBrief.aesthetic; v3 adds the required refinement: what a Try another direction design made (part, whole or none), always none without changing. v4 adds the cover layouts (cover-top, cover-bottom) to the layout enum.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -54,7 +54,9 @@
         "art-bottom",
         "framed",
         "corners",
-        "atmosphere"
+        "atmosphere",
+        "cover-top",
+        "cover-bottom"
       ]
     },
     "artMode": {

@@ -1037,20 +1037,23 @@ afterAll(async () => {
 
 describe("layout fixtures: every layout × supported shape × pairing in Chromium", () => {
   it("covers the whole layout set", () => {
-    expect(COMBOS).toHaveLength(25);
+    expect(COMBOS).toHaveLength(31);
     // Every pairing with typical and worst-case content, a panel, then the art giving way: a plate
-    // on each of art-top's and art-bottom's five shapes, a crop on art-bottom's three square-cornered
-    // or softly rounded ones, and one centred low-contrast card.
-    expect(renders).toHaveLength(25 * (2 * TYPOGRAPHY_KEYS.length + 1) + 10 + 3 + 1);
+    // on each of the picture layouts' shapes (art-top's and art-bottom's five, each cover's three), a
+    // crop where the words sit on top of a grounded picture (art-bottom's and cover-top's
+    // rectangle, rounded rectangle and square), and one centred low-contrast card.
+    expect(renders).toHaveLength(31 * (2 * TYPOGRAPHY_KEYS.length + 1) + 16 + 6 + 1);
+    const edgeLayouts = ["art-top", "art-bottom", "cover-top", "cover-bottom"] as const;
     expect(renders.filter((r) => r.giveWay === "plate").map(comboKey)).toEqual(
-      (["art-top", "art-bottom"] as const).flatMap((l) =>
-        CARD_LAYOUTS[l].shapes.map((shape) => `${l}/${shape}`),
-      ),
+      edgeLayouts.flatMap((l) => CARD_LAYOUTS[l].shapes.map((shape) => `${l}/${shape}`)),
     );
     expect(renders.filter((r) => r.giveWay === "crop").map(comboKey)).toEqual([
       "art-bottom/rectangle",
       "art-bottom/rounded-rectangle",
       "art-bottom/square",
+      "cover-top/rectangle",
+      "cover-top/rounded-rectangle",
+      "cover-top/square",
     ]);
   });
 

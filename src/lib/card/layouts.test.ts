@@ -14,9 +14,9 @@ import {
 } from "./layouts";
 import { CARD_SHAPES, canvasOf, insideOutline, insideTextSafe, SHAPE_GEOMETRY } from "./shapes";
 
-describe("layout set card_layouts_v4", () => {
+describe("layout set card_layouts_v5", () => {
   it("is versioned", () => {
-    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v4");
+    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v5");
   });
 
   it("gives way by layout: crop and plate at the picture's edge, nothing for centred words", () => {
@@ -58,8 +58,16 @@ describe("layout set card_layouts_v4", () => {
     }
   });
 
-  it("has exactly the five layouts", () => {
-    expect(CARD_LAYOUT_IDS).toEqual(["art-top", "art-bottom", "framed", "corners", "atmosphere"]);
+  it("has exactly the seven layouts", () => {
+    expect(CARD_LAYOUT_IDS).toEqual([
+      "art-top",
+      "art-bottom",
+      "framed",
+      "corners",
+      "atmosphere",
+      "cover-top",
+      "cover-bottom",
+    ]);
     expect(Object.keys(CARD_LAYOUTS)).toEqual([...CARD_LAYOUT_IDS]);
   });
 
@@ -185,7 +193,43 @@ describe("layout set card_layouts_v4", () => {
       "atmosphere/oval": "400-1000",
       "atmosphere/square": "260-740",
       "atmosphere/circle": "260-740",
+      "cover-top/rectangle": "150-600",
+      "cover-top/rounded-rectangle": "150-600",
+      "cover-top/square": "80-560",
+      "cover-bottom/rectangle": "800-1250",
+      "cover-bottom/rounded-rectangle": "800-1250",
+      "cover-bottom/square": "440-920",
     });
+  });
+
+  it("sets a cover's words in its picture's own band: art-bottom's and art-top's zones, full bleed", () => {
+    // The same zones, so no slot limit or stored host text changes (`entry-fit.server.ts`).
+    for (const shape of ["rectangle", "rounded-rectangle", "square"] as const) {
+      expect(zoneFor("cover-top", shape), shape).toEqual(zoneFor("art-bottom", shape));
+      expect(zoneFor("cover-bottom", shape), shape).toEqual(zoneFor("art-top", shape));
+    }
+    expect(CARD_LAYOUTS["cover-top"].shapes).toEqual(["rectangle", "rounded-rectangle", "square"]);
+    expect(CARD_LAYOUTS["cover-bottom"].shapes).toEqual([
+      "rectangle",
+      "rounded-rectangle",
+      "square",
+    ]);
+    expect(CARD_LAYOUTS["cover-top"].artModes).toEqual(["illustration"]);
+    expect(CARD_LAYOUTS["cover-bottom"].artModes).toEqual(["illustration"]);
+    // Words on top: the picture is grounded below, so a crop may lose ground first.
+    expect(CARD_LAYOUTS["cover-top"].giveWay).toEqual(CARD_LAYOUTS["art-bottom"].giveWay);
+    // Words below: the picture holds the top, so only a plate (a crop would cut a head).
+    expect(CARD_LAYOUTS["cover-bottom"].giveWay).toEqual(CARD_LAYOUTS["art-top"].giveWay);
+    for (const id of ["cover-top", "cover-bottom"] as const) {
+      for (const shape of CARD_LAYOUTS[id].shapes) {
+        const { composition, presence } = layoutArtFor(id, shape);
+        const text = `${composition} ${presence}`;
+        expect(text, `${id}/${shape}`).toMatch(/edge to edge/);
+        expect(text, `${id}/${shape}`).toMatch(/no border, frame or paper margin/);
+        // An image model asked for a cover, poster or sleeve letters it.
+        expect(text, `${id}/${shape}`).not.toMatch(/\b(album|cover|poster|sleeve|magazine)\b/i);
+      }
+    }
   });
 
   it("pairs layouts with compatible art modes", () => {
@@ -239,6 +283,8 @@ describe("layout set card_layouts_v4", () => {
       framed: wash,
       corners: wash,
       atmosphere: wash,
+      "cover-top": fromTop,
+      "cover-bottom": fromBottom,
     } as const;
     for (const layout of CARD_LAYOUT_IDS) {
       expect(CARD_LAYOUTS[layout].panel, layout).toEqual({

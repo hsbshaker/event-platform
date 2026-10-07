@@ -2,16 +2,17 @@
 ## Event Identity, Card Design and Card Art
 
 **Status:** Revision 3 — invitation-card baseline
-**Prompt versions:** `event_identity_v7`, `card_design_v5` (`card_design_v1` written in Phase 3
+**Prompt versions:** `event_identity_v7`, `card_design_v6` (`card_design_v1` written in Phase 3
 validation; v2 adds rendering families in Phase 5; v3 one central idea; v4 the change asked for, or
-a new idea; v5 the host's stated title and their own concept), `fact_extraction_v2` (v2 the title
-rule), `card_art_v5` (deterministic assembly; `card_art_v1` written in Phase 3 validation,
-`card_art_v2` in Phase 4 with `card_layouts_v2`, `card_art_v3` in Phase 5 with rendering families,
-`card_art_v4` adds the repaint's composition line, `card_art_v5` the revision framing of an edit),
+a new idea; v5 the host's stated title and their own concept; v6 the cover layouts),
+`fact_extraction_v2` (v2 the title rule), `card_art_v6` (deterministic assembly; `card_art_v1`
+written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`, `card_art_v3` in
+Phase 5 with rendering families, `card_art_v4` adds the repaint's composition line, `card_art_v5`
+the revision framing of an edit, `card_art_v6` the cover layouts' composition and presence),
 `card_art_inspection_v2`
-**Schema versions:** `event_identity_schema_v6`, `card_design_schema_v3` (`card_design_schema_v1`
+**Schema versions:** `event_identity_schema_v6`, `card_design_schema_v4` (`card_design_schema_v1`
 written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`; v3 adds
-`refinement`), `fact_extraction_schema_v1`,
+`refinement`; v4 adds the cover layouts to the layout enum), `fact_extraction_schema_v1`,
 `card_art_inspection_schema_v2`
 **Models:** GPT 6.1 Sol (Event Identity, Card Design); GPT Image 2.5 Sunburst (Card Art) —
 `technology-decisions.md §8.1`
@@ -58,11 +59,11 @@ Prompts, schemas and the layout set are versioned production assets (`src/lib/ai
 ```ts
 EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v7"
 EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v6"
-CARD_DESIGN_PROMPT_VERSION    = "card_design_v5"
-CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v3"
-CARD_ART_PROMPT_VERSION       = "card_art_v5"
-CARD_LAYOUT_SET_VERSION       = "card_layouts_v3"
-CARD_COMPILER_VERSION         = "card_compiler_v4"
+CARD_DESIGN_PROMPT_VERSION    = "card_design_v6"
+CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v4"
+CARD_ART_PROMPT_VERSION       = "card_art_v6"
+CARD_LAYOUT_SET_VERSION       = "card_layouts_v5"
+CARD_COMPILER_VERSION         = "card_compiler_v5"
 FACT_EXTRACTION_PROMPT_VERSION = "fact_extraction_v2"
 ```
 
@@ -197,7 +198,7 @@ this call.
 
 ---
 
-# 5. Card Design (`card_design_v5`)
+# 5. Card Design (`card_design_v6`)
 
 ## 5.1 Contract
 

@@ -142,7 +142,7 @@ Bottom to top:
 The card's text is real, selectable, screen-reader-readable text. The artwork is decorative
 (`alt=""`); everything a guest needs is in the text and on the page below.
 
-## 2.3 Layout set (`card_layouts_v4`)
+## 2.3 Layout set (`card_layouts_v5`)
 
 A **layout** says where text goes and, in return, where the artwork must leave calm space. Each
 layout declares the shapes it supports, and for each of them defines:
@@ -183,6 +183,17 @@ geometry, bands, composition, presence and give-way rules are product code in
 | `framed` | centred, inside the frame | border, wreath, garland or frame — rich, built from the event's motifs — around a quiet centre | all six | `framed`, `minimal` | nothing behind the words; best ink, stored as low contrast |
 | `corners` | centred | substantial motif clusters in two or more corners; centre quiet | `rectangle`, `rounded-rectangle`, `square` | `illustration`, `framed` | nothing behind the words; best ink, stored as low contrast |
 | `atmosphere` | centred | full-bleed wash or texture with real depth, low contrast through the centre | all six | `atmosphere`, `minimal` | nothing behind the words; best ink, stored as low contrast |
+| `cover-top` | upper part, centred, in the scene's calm sky, wall or colour field | one bold full-bleed scene, edge to edge: one or two big subjects grounded in the lower 55% (on `square` 40%), the top 45% (60%) the scene's own calm backdrop in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` | as `art-bottom`: crop, then plate about the bottom centre |
+| `cover-bottom` | lower part, centred, in the scene's calm ground or colour field | one bold full-bleed scene: one or two big subjects fill the upper 55% (on `square` 40%), the bottom 45% (60%) the scene's own calm ground in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` | as `art-top`: plate about the top centre |
+
+**The cover layouts** (`card_layouts_v5`, owner decisions 2026-10-06) set the words in a calm band
+of one bold full-bleed scene, the way a record sleeve or a poster sets its type, for a brief no
+other layout could express (a host who asked for "a ’90s hip-hop album cover"). Their bands and
+zones are `art-bottom`'s and `art-top`'s, so no slot limit, fit check or stored host text changes;
+what differs is the art: the band is the scene's own backdrop rather than paper, and the subjects are
+big and close. The card design chooses a cover for bold, graphic or editorial identities and named
+formats, never for restrained ones, and `cover-top` or `cover-bottom` by where the subject naturally
+sits. No text that reaches the image model names the format, which would come back lettered.
 
 **Every card shows every detail; the picture gives way** (owner decision). Where a picture sits
 above or below the words on a `square`, `oval` or `arch` card, it takes roughly 40% of the card and
@@ -198,6 +209,8 @@ at least 30 units inside the region its composition keeps clear:
 | `framed` | 400–1000 | 400–1000 | 400–1000 | 260–740 | 260–740 |
 | `corners` | 420–980 | — | — | 260–740 | — |
 | `atmosphere` | 400–1000 | 400–1000 | 400–1000 | 260–740 | 260–740 |
+| `cover-top` | 150–600 | — | — | 80–560 | — |
+| `cover-bottom` | 800–1250 | — | — | 440–920 | — |
 
 Phase 3's two judged misses were both sparse (a frame around a large empty centre, a quiet wash),
 so the presence rules of `framed` and `atmosphere` are the first thing to strengthen.
@@ -208,7 +221,7 @@ a circle); a layout's supported shapes are part of the set and are validated (§
 Layouts are chosen by the card-design model call from this catalog by ID; the catalog given to the
 model at runtime is built from `layouts.ts`, as the validator that checks its choice is. The
 catalog — layouts, their per-shape zones, bands, art instructions and limits, and the six shapes'
-outlines — is versioned together (`card_layouts_v4`); adding or changing a layout or a shape is a
+outlines — is versioned together (`card_layouts_v5`); adding or changing a layout or a shape is a
 version bump and re-runs the layout fixtures (§9). Layouts are never shown to the host as a gallery
 and the host does not pick one.
 
@@ -262,11 +275,12 @@ artwork fits. A photograph made by the image model is generated artwork, not sto
 | `framed`, `minimal` | only the shape it was generated for | Borders, frames and wreaths follow the outline; a rectangular border cut into an oval looks wrong |
 
 An artwork painted to keep one region quiet never fits a shape whose words need another. So in
-`card_layouts_v2` to `v4` the fit sets of `illustration` and `atmosphere` art are:
+`card_layouts_v2` to `v5` the fit sets of `illustration` and `atmosphere` art are:
 
 | Layout | 5:7 | 1:1 |
 | --- | --- | --- |
 | `art-top`, `art-bottom` | `rectangle` + `rounded-rectangle` (half-card picture); `arch` + `oval` (40% picture) | `square` |
+| `cover-top`, `cover-bottom` | `rectangle` + `rounded-rectangle` | `square` |
 | `corners` | `rectangle` + `rounded-rectangle` | `square` |
 | `atmosphere` | all four | `square` + `circle` |
 
@@ -743,7 +757,7 @@ Recorded on every `CardDesign` and generation run (`src/lib/ai/versions.ts`):
 EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
-CARD_LAYOUT_SET_VERSION        // card_layouts_v4: layouts, per-shape zones and art instructions, slot specs and limits, shape outlines, how the art gives way
+CARD_LAYOUT_SET_VERSION        // card_layouts_v5: layouts (the covers since v5), per-shape zones and art instructions, slot specs and limits, shape outlines, how the art gives way
 CARD_COMPILER_VERSION          // card_compiler_v5: validation, ink resolution and the art giving way, layoutCard's sizing steps, line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```

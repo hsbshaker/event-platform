@@ -352,11 +352,11 @@ describe("the happy path", () => {
       p_art_brief: DESIGN.artBrief,
       p_raw: DESIGN,
       p_versions: {
-        designPrompt: "card_design_v5",
-        designSchema: "card_design_schema_v3",
-        layoutSet: "card_layouts_v4",
+        designPrompt: "card_design_v6",
+        designSchema: "card_design_schema_v4",
+        layoutSet: "card_layouts_v5",
         compiler: "card_compiler_v5",
-        artPrompt: "card_art_v5",
+        artPrompt: "card_art_v6",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       p_standard_wording_slots: [],
@@ -368,7 +368,7 @@ describe("the happy path", () => {
       p_proportion: "portrait_5_7",
       p_fits_shapes: [...fitsShapes("illustration", "art-top", "rectangle")],
       p_image_model: "gpt-image-2.5-sunburst-2026-09-08",
-      p_art_prompt_version: "card_art_v5",
+      p_art_prompt_version: "card_art_v6",
       // A first card is a new idea, and changes no earlier card.
       p_refinement: "none",
     });
@@ -392,11 +392,11 @@ describe("the happy path", () => {
       versions: {
         identityPrompt: "event_identity_v7",
         identitySchema: "event_identity_schema_v6",
-        designPrompt: "card_design_v5",
-        designSchema: "card_design_schema_v3",
-        layoutSet: "card_layouts_v4",
+        designPrompt: "card_design_v6",
+        designSchema: "card_design_schema_v4",
+        layoutSet: "card_layouts_v5",
         compiler: "card_compiler_v5",
-        artPrompt: "card_art_v5",
+        artPrompt: "card_art_v6",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       latency: { identityMs: 0, designMs: 0, artMs: 0, totalMs: 0 },
@@ -1742,7 +1742,7 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
       p_height: 1024,
       p_proportion: "square_1_1",
       p_fits_shapes: [...fitsShapes("illustration", "art-top", "square")],
-      p_art_prompt_version: "card_art_v5",
+      p_art_prompt_version: "card_art_v6",
     });
     // Never a new design: no name, wording, brief or refinement is written.
     for (const key of ["p_name", "p_wording", "p_art_brief", "p_refinement", "p_raw"]) {
@@ -1771,9 +1771,9 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
       lineAreasFallback: [],
       fitsShapes: ["square"],
       versions: {
-        layoutSet: "card_layouts_v4",
+        layoutSet: "card_layouts_v5",
         compiler: "card_compiler_v5",
-        artPrompt: "card_art_v5",
+        artPrompt: "card_art_v6",
         imageModel: expect.any(String),
       },
       latency: { artMs: 0, totalMs: 0 },

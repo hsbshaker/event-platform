@@ -59,9 +59,9 @@ describe("the revision prompt (card_art_v5, model-contracts §7.2)", () => {
   });
 });
 
-describe("card_art_v5", () => {
+describe("card_art_v6", () => {
   it("is versioned", () => {
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v5");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v6");
     expect(ART_RASTER_SIZE).toEqual({ "5:7": "1440x2016", "1:1": "1440x1440" });
   });
 
