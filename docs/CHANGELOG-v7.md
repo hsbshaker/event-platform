@@ -984,7 +984,7 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   layout position when at least 95% of the background behind its lines reads at 4.5:1, and the
   space counts as workable from 85%; the heading and details are split only when that reads at
   least three points better. On the owner's two cards these keep the layout's position: near-white
-  text on the Notorious brick (95%), navy on the Boy Story sky (95.5%).
+  text on the Notorious brick (95.7%), navy on the Boy Story sky (95.6%).
 - **More build decisions, for the owner to confirm**: workable space is judged on the best colour,
   so a preference for an art colour that falls just short never costs a repaint; the stored shift
   is applied only while the moved lines stay inside the text-safe area (else the words sit at the
@@ -995,6 +995,14 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   legibility panels.
 - `card_art_v7`, `card_layouts_v7` (the legibility-panel shapes are removed from the catalog; stored
   panels still render), `card_compiler_v7`.
+- **Creative check** (2026-10-07, preview, $2.54; the owner's verdict pending): the corpus and the
+  Boy Story brief, 17 cards. 16 generated; one (CU-13, "jazz and old maps") failed because both of
+  its images carried lettering, the existing no-text rule. No card has a panel, a fade or moved
+  artwork. 15 of 16 found workable space with no repaint for it, 14 of them at the layout's
+  position; CU-06 moved its words up onto the sky. CU-01 (the Notorious brief) found none (78%), was
+  repainted once and kept the better image, so its starting text overlaps the shoes. Minor overlap
+  on two more: the Boy Story venue line crosses the rocket's handle, and the CU-06 venue line the
+  top of the topiary.
 
 ## Still open
 
