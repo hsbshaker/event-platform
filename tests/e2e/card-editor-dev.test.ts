@@ -438,6 +438,41 @@ describe("the text background in the card editor fixture", () => {
     });
   }
 
+  it("drops a half-typed colour when another box is selected (never applies it there)", async () => {
+    const { page, close } = await open(DESKTOP);
+    try {
+      // Two boxes with backgrounds.
+      await page.click('[data-dev-select="invitationLine"]');
+      await page.getByRole("radio", { name: "Rounded box" }).click();
+      await waitStored(page, "invitationLine", `box.background && box.background.style === "box"`);
+      await settled(page);
+      await page.click('[data-dev-select="title"]');
+      await page.getByRole("radio", { name: "Highlight" }).click();
+      await waitStored(page, "title", `box.background && box.background.style === "highlight"`);
+      await settled(page);
+      const second = (await stored(page, "invitationLine")).background!;
+
+      // A half-typed colour on the title, then the other box.
+      await page.fill("#bg-hex", "AA33");
+      await page.fill("#bg-opacity", "4");
+      await page.click('[data-dev-select="invitationLine"]');
+      await settled(page);
+      expect(await page.locator("#bg-hex").inputValue()).toBe(second.color);
+      expect(await page.locator("#bg-hex-error").count()).toBe(0);
+      expect(await page.locator("#bg-opacity").inputValue()).toBe(
+        String(Math.round(second.opacity * 100)),
+      );
+
+      // Finishing a colour now applies to the selected box only.
+      await page.fill("#bg-hex", "#112233");
+      await waitStored(page, "invitationLine", `box.background.color === "#112233"`);
+      await settled(page);
+      expect((await stored(page, "title")).background!.color).not.toBe("#112233");
+    } finally {
+      await close();
+    }
+  });
+
   it("works on the second card too, with its own artwork", async () => {
     const { page, close } = await open(MOBILE, "boystory");
     try {
