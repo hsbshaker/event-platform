@@ -1254,7 +1254,7 @@ For the card as generated: ink per text zone comes from the artwork's palette, m
 conservatively over the whole zone and behind each line of the card's text, aiming for **4.5:1**;
 otherwise the artwork is repainted (§7.8) and then, if still needed, the art gives way (owner
 decisions, 2026-10-06; `docs/card-system.md §4.2`). Where the words sit at an edge of the picture
-(`art-top`, `art-bottom`), 4.5:1 is guaranteed: the art is cropped where that loses only ground,
+(`art-top`, `art-bottom` and the covers), 4.5:1 is guaranteed: the art is cropped where that loses only ground,
 or else set back as a plate — scaled down with the card's outline and cut straight just beyond the
 words, which sit on a flat fill. Where the words sit in the middle (`framed`, `corners`,
 `atmosphere`), nothing is painted behind them: the ink is the best candidate, stored as low
@@ -2563,7 +2563,7 @@ The host should feel:
 - [ ] The generated card's ink is judged against the conservatively measured background of its
   zone, measured whole and behind each line of its text (with a small margin) so artwork under the
   text counts (host-chosen colours in the card editor are not checked). Where the words sit at an
-  edge of the picture, every text clears 4.5:1: on the artwork, else after the repaints by a crop
+  edge of the picture (`art-top`, `art-bottom` and the covers), every text clears 4.5:1: on the artwork, else after the repaints by a crop
   (where it loses only ground) or a plate — the artwork scaled with the card's outline and cut
   straight beyond the words, which sit on a flat fill — with no fade and nothing laid over the
   picture. Where the words sit in the middle of the picture, nothing is painted behind them: the

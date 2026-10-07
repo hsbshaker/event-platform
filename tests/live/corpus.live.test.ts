@@ -145,6 +145,8 @@ interface CaseResult {
     standardWordingSlots: string[];
   };
   panel?: boolean;
+  /** How the art gave way to the words (`card_layouts_v4`), or that centred words stayed low contrast. */
+  giveWay?: { kind: "crop" | "plate"; scale: number } | { kind: "low-contrast"; contrast: number };
   png?: string;
   renderError?: string;
 }
@@ -381,6 +383,12 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
             .screenshot({ path: png, omitBackground: TRANSPARENT });
           result.png = path.basename(png);
           result.panel = panels.length > 0;
+          if (zone.placement) {
+            const { kind, art } = zone.placement;
+            result.giveWay = { kind, scale: Math.round((art.width / 1000) * 100) / 100 };
+          } else if (zone.lowContrast && typeof zone.contrast === "number") {
+            result.giveWay = { kind: "low-contrast", contrast: zone.contrast };
+          }
           result.design = {
             name: design.name,
             description: design.description,

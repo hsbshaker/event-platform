@@ -40,6 +40,7 @@ import {
   resolveArtworkInk,
   runArtworkStage,
   TEXT_ZONE,
+  zoneInkOf,
 } from "./artwork.server";
 import type { ArtworkStageInput } from "./artwork.server";
 import { ArtworkProviderRefusalError, GenerationStageError } from "./stage";
@@ -903,5 +904,16 @@ describe("untagged sRGB storage (docs/technology-decisions.md §8.2)", () => {
       height: H5x7,
       proportion: "5:7",
     });
+  });
+});
+
+describe("a low-contrast zone as stored", () => {
+  it("rounds its contrast down, so a value just under 4.5 never reads back as 4.5", () => {
+    const stored = zoneInkOf({
+      kind: "low-contrast",
+      ink: { ink: "#222222", contrast: 4.49996 },
+    } as unknown as Parameters<typeof zoneInkOf>[0]);
+    expect(stored).toMatchObject({ lowContrast: true, contrast: 4.499 });
+    expect((stored as { contrast: number }).contrast).toBeLessThan(MIN_INK_CONTRAST);
   });
 });

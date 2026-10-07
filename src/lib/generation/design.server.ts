@@ -249,6 +249,7 @@ export async function runDesignStage(
     const validation = validateCardDesign(output, {
       compatibleCategories: input.identity.compatibleTypographyCategories,
       changing: input.changing !== undefined,
+      hostTitle,
     });
     attempts.push({ reprompt: reprompt?.kind ?? null, raw, valid: validation.ok });
     if (!validation.ok) {

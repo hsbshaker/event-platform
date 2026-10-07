@@ -345,7 +345,10 @@ In order, deterministic (`card-system.md §4.1`):
    colours valid. Failure → one re-prompt with the error list; second failure → visible failure
    with retry.
 2. **Compatibility**: layout ↔ art mode; layout supports the shape; alternates distinct from
-   primary.
+   primary; and what reaches the image model (owner decisions, 2026-10-06): no art-brief field
+   repeats the host's title (compared case-insensitively, quotation marks straightened), and none
+   but `avoid` names a printed format (album, book or magazine cover, record sleeve, poster), which
+   the image model would letter. Failure → one re-prompt with the problems, as for the schema.
 3. **Wording fact check** (§5.4), on model-drafted wording only, together with the checks a host's
    own text gets (`card-system.md §2.5`): drawable characters and a fit in every design. Failure →
    one re-prompt naming the slot; second failure → standard wording for that slot, logged.

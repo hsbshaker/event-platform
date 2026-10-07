@@ -213,7 +213,7 @@ export function cardDesignRuntimeCatalog(identity: EventIdentity) {
 }
 
 /**
- * Card Design (`card_design_v5`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. On
+ * Card Design (`card_design_v6`, GPT 6.1 Sol, `medium` effort). Never sees the raw prompt. On
  * `Try another direction` it carries the host's feedback and, with it, the card being changed
  * (`changing`), both as data.
  */
@@ -275,7 +275,7 @@ export interface ArtRequest {
 }
 
 /**
- * `card_art_v5` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
+ * `card_art_v6` at the shape's proportion (1440 × 2016 for 5:7, 1440 × 1440 for 1:1), PNG, opaque
  * full bleed, Sunburst `high` (`docs/technology-decisions.md §8.1`). The prompt is assembled by
  * code (`src/lib/card/art-prompt.ts`); with a reference it is the revision prompt when `revision`
  * is set (a change to part of a card), else the shape-switch prompt. A repaint keeps the reference

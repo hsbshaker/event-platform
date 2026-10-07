@@ -1,5 +1,5 @@
 /**
- * Art prompt assembly, `card_art_v5` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
+ * Art prompt assembly, `card_art_v6` (`docs/model-contracts.md §7.1`, `docs/card-system.md §2.4`).
  *
  * The art prompt is assembled by code from the validated art brief plus the layout and shape
  * rules; a model never writes it and the raw host prompt is never part of it (`spec.md §32 #17`).

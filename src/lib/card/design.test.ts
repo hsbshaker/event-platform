@@ -119,6 +119,34 @@ describe("validateCardDesign — schema", () => {
   });
 });
 
+describe("validateCardDesign — what reaches the image model (spec.md §7.6, §31)", () => {
+  it("re-prompts a brief that repeats the host's title, whatever its case or quotation marks", () => {
+    const d = clone();
+    d.artBrief.subject = "A crown over a boombox for “the notorious one” party";
+    expect(fails(d, "compatibility", { hostTitle: "The Notorious ONE" })).toMatch(
+      /repeats the card's title/,
+    );
+    // The same brief with no host title, or a different one, is fine.
+    expect(validateCardDesign(d).ok).toBe(true);
+    expect(validateCardDesign(d, { hostTitle: "Little Legend" }).ok).toBe(true);
+  });
+
+  it("re-prompts a brief that names a printed format, but not one that only avoids it", () => {
+    for (const named of ["a ’90s album cover", "a vintage record sleeve", "a gig poster"]) {
+      const d = clone();
+      d.artBrief.medium = `Bold graphic still life, like ${named}`;
+      expect(fails(d, "compatibility"), named).toMatch(/names a printed format/);
+    }
+    const avoided = clone();
+    avoided.artBrief.avoid = ["poster-style lettering", "album cover text"];
+    expect(validateCardDesign(avoided).ok).toBe(true);
+    // A word that only contains one is not a format.
+    const sleeve = clone();
+    sleeve.artBrief.texture = "faint grain, like a treasured vintage sleeve";
+    expect(validateCardDesign(sleeve).ok).toBe(true);
+  });
+});
+
 describe("validateCardDesign — rendering (card_design_schema_v2)", () => {
   it.each(RENDERINGS)("accepts the %s rendering", (rendering) => {
     const d = clone();

@@ -34,7 +34,7 @@ const QUOTES = new Set(['"', "'", "“", "”", "„", "‟", "‘", "’", "‚
 const WORD_CHARACTER = /[\p{L}\p{N}\p{M}]/u;
 
 /** "called", "named" or "titled" (any case), as a whole word, then optional `:` and whitespace, ending the text. */
-const NAMING_WORD = /(?:^|[^\p{L}\p{N}\p{M}])(?:called|named|titled):?\s+$/iu;
+const NAMING_WORD = /(?:^|[^\p{L}\p{N}\p{M}-])(?:called|named|titled):?\s+$/iu;
 
 function firstChar(text: string): string {
   return String.fromCodePoint(text.codePointAt(0) ?? 0);

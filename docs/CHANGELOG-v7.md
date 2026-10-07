@@ -951,6 +951,11 @@ accents.
 - **No format word reaches the image model** (album, cover, poster, sleeve, magazine): those
   formats come back lettered. A test holds the composition and presence text to that.
 - The database enum `card_layout` gains both values (migration `20261015000000_cover_layouts.sql`).
+- **Checked in code, not only asked of the model** (senior review): a design whose art brief repeats
+  the host's title, or names a printed format outside its `avoid` list, fails validation and is
+  re-prompted once (`docs/model-contracts.md §5.3` step 2). A low-contrast zone's measured contrast
+  is stored rounded down, so a value just under 4.5 can never read back as 4.5 and make the design
+  undrawable.
 
 ## Still open
 

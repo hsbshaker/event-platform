@@ -388,7 +388,7 @@ export async function generatedLineAreas(
 }
 
 /** A zone's legibility as it is persisted (`ZoneInk`). */
-function zoneInkOf(legibility: ZoneLegibility): ZoneInk {
+export function zoneInkOf(legibility: ZoneLegibility): ZoneInk {
   switch (legibility.kind) {
     case "clear":
       return { ink: legibility.ink.ink };
@@ -400,7 +400,8 @@ function zoneInkOf(legibility: ZoneLegibility): ZoneInk {
       return {
         ink: legibility.ink.ink,
         lowContrast: true,
-        contrast: Math.round(legibility.ink.contrast * 1000) / 1000,
+        // Rounded down, never up: a contrast just under 4.5 must stay under it once stored.
+        contrast: Math.floor(legibility.ink.contrast * 1000) / 1000,
       };
   }
 }

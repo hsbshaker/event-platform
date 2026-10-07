@@ -61,6 +61,12 @@ describe("statedTitleSpan", () => {
     });
   });
 
+  it("does not read a so-called phrase as a name the host gives", () => {
+    expect(statedTitleSpan("the so-called Big Day for the twins", "Big Day")).toEqual({
+      dropped: "not-named",
+    });
+  });
+
   it("rejects an unquoted phrase that no naming word introduces", () => {
     expect(statedTitleSpan(NOTORIOUS, "a little legend")).toEqual({ dropped: "not-named" });
     expect(statedTitleSpan("a renamed Little Legend party", "Little Legend")).toEqual({

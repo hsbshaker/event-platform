@@ -93,6 +93,35 @@ export interface ValidateCardDesignOptions {
    * step 5), re-prompted like any other.
    */
   changing?: boolean;
+  /**
+   * The host's title (`eventFacts.title`), when there is one. It is host content for the card's
+   * words, and must never reach the image model (`spec.md §7.6`): a brief that repeats it is
+   * re-prompted like any other problem.
+   */
+  hostTitle?: string | null;
+}
+
+/**
+ * Printed formats that come back lettered when named to the image model (`card_design_v5`,
+ * `spec.md §31`): the brief describes their look and never names them.
+ */
+const FORMAT_WORDS = /\b(?:album|book|magazine) covers?\b|\brecord sleeves?\b|\bposters?\b/i;
+
+/** Every string in the art brief, which is what reaches the image model of the design. */
+function briefStrings(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(briefStrings);
+  if (value && typeof value === "object") return Object.values(value).flatMap(briefStrings);
+  return [];
+}
+
+/** Lower-cased, with curly quotes and apostrophes straightened, for a verbatim comparison. */
+function comparable(text: string): string {
+  return text
+    .normalize("NFC")
+    .replace(/[\u2018\u2019\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201F]/g, '"')
+    .toLowerCase();
 }
 
 function pathLabel(path: PropertyKey[]): string {
@@ -139,6 +168,24 @@ export function validateCardDesign(
         );
       }
     }
+  }
+  const brief = briefStrings(design.artBrief);
+  const hostTitle = options.hostTitle?.trim();
+  if (hostTitle && brief.some((text) => comparable(text).includes(comparable(hostTitle)))) {
+    problems.push(
+      "the art brief repeats the card's title: describe the picture only; the title is set as text and never reaches the artwork",
+    );
+  }
+  // The things to avoid may name a format to keep it out ("no poster-style lettering").
+  const { avoid: _avoid, ...described } = design.artBrief;
+  void _avoid;
+  const format = briefStrings(described)
+    .map((text) => FORMAT_WORDS.exec(text)?.[0])
+    .find(Boolean);
+  if (format) {
+    problems.push(
+      `the art brief names a printed format ("${format}"): describe its look, never the format, which the image model would letter`,
+    );
   }
   if (design.refinement !== "none" && options.changing !== true) {
     problems.push(
