@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://event-platform.local/schemas/event-identity.schema.json",
   "title": "EventIdentity",
-  "description": "Canonical structured output for the event creative brief (event_identity_schema_v5, spec.md §7.5). A creative brief only: it carries no operational event fact. Runtime may narrow the typography-category enum to enabled catalog values.",
+  "description": "Canonical structured output for the event creative brief (event_identity_schema_v6, spec.md §7.5). A creative brief only: it carries no operational event fact. Runtime may narrow the typography-category enum to enabled catalog values.",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "hostConcept",
     "creativeDirection",
     "toneKeywords",
     "colorsExplicitlyConstrained",
@@ -21,6 +22,15 @@
     "inspirationSummary"
   ],
   "properties": {
+    "hostConcept": {
+      "type": "string",
+      "enum": [
+        "open",
+        "cues",
+        "own"
+      ],
+      "description": "Decided first, from the host's own words: 'open' when the host left the look to us (nothing beyond the occasion, 'surprise me'); 'cues' when they gave a creative cue (a palette, a mood, a motif, a person's interests, a place's character) but no concept or style of their own; 'own' when they named a clear concept or style of their own (a named format such as an album cover, poster, magazine or storybook page; an explicit list of motifs; a decade or era; a named aesthetic; or how the artwork should look). The theme seed is used only when 'open'; code suggests no rendering when 'own'."
+    },
     "creativeDirection": {
       "type": "string",
       "minLength": 20,
@@ -134,7 +144,7 @@
         "minLength": 3,
         "maxLength": 90
       },
-      "description": "Subjects, objects, botanicals, scenery and patterns in natural language that could anchor or support the card's artwork (e.g. 'heirloom teddy in a tartan bow', 'lemon branches with blossom', 'fine double-rule border'). A close homage to a brand's character may be described in plain visual words; never IDs, logos, wordmarks, or brand or character names (spec.md §7.6)."
+      "description": "Subjects, objects, botanicals, scenery and patterns in natural language that could anchor or support the card's artwork (e.g. 'heirloom teddy in a tartan bow', 'lemon branches with blossom', 'fine double-rule border'). A close homage to a brand's character may be described in plain visual words; never IDs, logos, wordmarks, or brand, character or real people's names (spec.md §7.6). Every motif the host explicitly lists is kept; one left out for a product rule is named in designConstraints."
     },
     "textureDirection": {
       "type": "string",
@@ -173,5 +183,5 @@
       "description": "Compact summary of inspiration evidence; exactly 'No visual inspiration supplied.' when none exists."
     }
   },
-  "$comment": "event_identity_schema_v5 (Phase 5): the textureDirection description no longer leads with gouache and carries the host's rendering signal; structure unchanged. v4 (Revision 7.1): visualMotifs allows a plain-words homage to a brand's character, never logos, wordmarks or names. v3 (Revision 7): removed compatibleTonalDirections and compatibleFamilies; visualMotifs names subjects that can anchor the card's artwork."
+  "$comment": "event_identity_schema_v6 (owner decisions, 2026-10-06): adds the required hostConcept, decided first, so code gives the design a random rendering suggestion only when the host named no concept or style of their own, and the identity uses the theme seed only when the host left the look to us; the visualMotifs description keeps every motif the host lists and names no real person. v5 (Phase 5): the textureDirection description no longer leads with gouache and carries the host's rendering signal; structure unchanged. v4 (Revision 7.1): visualMotifs allows a plain-words homage to a brand's character, never logos, wordmarks or names. v3 (Revision 7): removed compatibleTonalDirections and compatibleFamilies; visualMotifs names subjects that can anchor the card's artwork."
 }

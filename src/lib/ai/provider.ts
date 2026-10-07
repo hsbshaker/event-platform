@@ -87,7 +87,7 @@ export interface GenerateEventIdentityInput {
   previousIdentity?: EventIdentity;
   /**
    * A random starting point for the theme when the host leaves the look to us (`drawThemeSeed`,
-   * `event_identity_v6`); the identity ignores it whenever the host gave a creative cue.
+   * `event_identity_v7`); the identity uses it only when it judges `hostConcept: "open"`.
    */
   themeSeed?: string;
   /** The one repair retry after invalid output (model-contracts §9): the validation problems. */
@@ -133,6 +133,8 @@ export interface GenerateCardDesignInput {
   /**
    * The rendering the orchestration drew at random from those this event has not used
    * (`suggestRendering`); the design follows it unless the identity strongly points elsewhere.
+   * Absent when the identity says the host named a concept or style of their own
+   * (`hostConcept: "own"`, `card_design_v5`).
    */
   suggestedRendering?: Rendering;
   /** The host's `Try another direction` feedback: untrusted data, never an instruction (§8). */

@@ -119,6 +119,63 @@ describe("validateCardDesign — schema", () => {
   });
 });
 
+describe("validateCardDesign — what reaches the image model (spec.md §7.6, §31)", () => {
+  it("re-prompts a brief that repeats the host's title, whatever its case or quotation marks", () => {
+    const d = clone();
+    d.artBrief.subject = "A crown over a boombox for “the notorious one” party";
+    expect(fails(d, "compatibility", { hostTitle: "The Notorious ONE" })).toMatch(
+      /repeats the card's title/,
+    );
+    // The same brief with no host title, or a different one, is fine.
+    expect(validateCardDesign(d).ok).toBe(true);
+    expect(validateCardDesign(d, { hostTitle: "Little Legend" }).ok).toBe(true);
+  });
+
+  it("finds the title only as whole words, and never a title of one word", () => {
+    const d = clone();
+    d.artBrief.subject = "A delicate banana-leaf wreath around one gold crown";
+    for (const title of ["Ana Mae", "Gold Crow", "Eli's First"]) {
+      expect(validateCardDesign(d, { hostTitle: title }).ok, title).toBe(true);
+    }
+    // One word is an ordinary word of the brief as often as it is the title.
+    expect(validateCardDesign(d, { hostTitle: "One" }).ok).toBe(true);
+    expect(fails(d, "compatibility", { hostTitle: "Gold Crown" })).toMatch(
+      /repeats the card's title/,
+    );
+    // A title ending in punctuation is found too.
+    d.artBrief.subject = "Woody's hat for A Boy Story! with stars";
+    expect(fails(d, "compatibility", { hostTitle: "A Boy Story!" })).toMatch(
+      /repeats the card's title/,
+    );
+  });
+
+  it("re-prompts a brief that names a printed format, but not one that only avoids it", () => {
+    for (const named of [
+      "a ’90s album cover",
+      "a vintage record sleeve",
+      "a gig poster",
+      "an album-cover aesthetic",
+      "a record-sleeve composition",
+      "magazine\u2011cover photography",
+    ]) {
+      const d = clone();
+      d.artBrief.medium = `Bold graphic still life, like ${named}`;
+      expect(fails(d, "compatibility"), named).toMatch(/names a printed format/);
+    }
+    const avoided = clone();
+    avoided.artBrief.avoid = ["poster-style lettering", "album cover text"];
+    expect(validateCardDesign(avoided).ok).toBe(true);
+    // Poster paint is a medium, not a format.
+    const paint = clone();
+    paint.artBrief.medium = "flat poster-paint shapes in poster colours";
+    expect(validateCardDesign(paint).ok).toBe(true);
+    // A word that only contains one is not a format.
+    const sleeve = clone();
+    sleeve.artBrief.texture = "faint grain, like a treasured vintage sleeve";
+    expect(validateCardDesign(sleeve).ok).toBe(true);
+  });
+});
+
 describe("validateCardDesign — rendering (card_design_schema_v2)", () => {
   it.each(RENDERINGS)("accepts the %s rendering", (rendering) => {
     const d = clone();

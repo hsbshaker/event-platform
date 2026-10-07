@@ -255,6 +255,27 @@ describe("the wording fact check: one wording re-prompt, then standard wording",
     });
   });
 
+  it("uses the title the host's description names verbatim, like a typed one (owner decisions, 2026-10-06)", async () => {
+    // The stated title arrives in eventFacts.title (`hostEventFacts`); punctuation and capitals stay.
+    for (const stated of ["The Notorious ONE", "Taco ’Bout a Baby"]) {
+      const { fake, run } = stage([withWording("Little Legend, Big Beats")], {
+        eventFacts: { ...FACTS, title: stated },
+      });
+      const result = await run();
+      expect(fake.calls.design).toHaveLength(1);
+      expect(fake.calls.design[0].eventFacts.title).toBe(stated);
+      expect(result.design.wording.title).toBe(stated);
+      expect(result.telemetry).toMatchObject({ reprompts: [], hostTitleApplied: true });
+    }
+  });
+
+  it("sends no rendering when none is suggested, and records none followed", async () => {
+    const { fake, run } = stage([DESIGN]);
+    const result = await run();
+    expect(fake.calls.design[0]).not.toHaveProperty("suggestedRendering");
+    expect(result.telemetry).toMatchObject({ suggestedRendering: null, followedSuggestion: null });
+  });
+
   it("still checks the invitation line beside a host title", async () => {
     const { fake, run } = stage(
       [

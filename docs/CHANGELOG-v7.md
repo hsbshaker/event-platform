@@ -833,6 +833,107 @@ owner can overturn any of them.
   focus ring when focus moves to it after opening. Together the dusk box and that amber ring read as
   a mat and frame that belonged to the card. A sealed envelope keeps its dusk.
 
+### The host's title and their own concept (owner decisions, 2026-10-06)
+
+From the stored record of a real card that missed. The host wrote: "The whole idea is “The
+Notorious ONE”—a little legend turning one … a beautifully designed ’90s hip-hop album cover …
+chunky gold Cuban-link chains, a gold crown, Brooklyn brownstones …". Fact extraction returned the
+title (curly quotation marks included), but prompt facts never reached the design, so the card
+was titled "Little Legend, Big Beats". The new identity was given the random theme seed "peonies"
+and grew flowering vines; the design followed the random `vector` suggestion because "album cover"
+was not read as a style cue; the identity dropped the gold chains and kept gold only as crown
+accents.
+
+- **A name the host gives the event is the card's title, verbatim** (`spec.md §7.3`, §7.7, a new
+  §31 bullet). In quotation marks (straight, curly or guillemets) or right after "called", "named"
+  or "titled". Not a title: a quoted vibe word, words meant for something in the scene, a saying or
+  lyric, or the bare name of a brand, show or character the party is themed on ("a “Bluey” party":
+  the design writes a title evoking it, without the name); when unsure, none. `fact_extraction_v2`
+  states the rule with examples (schema unchanged). Code keeps the title (`statedTitle`) only if it
+  appears verbatim in the prompt in quotation marks or after one of those words, without its
+  quotation marks, and passes the entry and fit checks a typed title gets; otherwise it is dropped
+  and logged (`titleDropped`). It is kept in `events.prompt_facts.title`, never written to
+  `events.title`; the design's `eventFacts.title` is the event's own title, else this one, so the
+  host-title path uses it verbatim and never checks it, and every later direction reads it from
+  the prompt facts until the host types a title or edits the title box.
+- **The title never enters the art brief or art prompt**, and neither does a brand's or a real
+  person's name or likeness (`spec.md §7.6`; `card_design_v5`). A test holds the art request to the
+  brief alone.
+- **Randomness is for vague prompts only** (`spec.md §7.5`, §7.6a, a new §31 bullet). The identity
+  is the only reader of the prompt, so it decides: `event_identity_v7` and schema
+  `event_identity_schema_v6` add a required `hostConcept`, decided first — `open` (nothing beyond
+  the occasion), `cues` (cues but no concept or style of their own) or `own` (a named format such
+  as an album cover, poster, magazine or storybook page; an explicit list of motifs; a decade or
+  era; a named aesthetic; or how the artwork should look). The theme seed is still drawn before the
+  call, since only the identity can tell, and used only when it records `open`; code draws and
+  sends no rendering suggestion when it records `own`. Three values rather than two because the
+  two existing rules have different thresholds: the seed was already ignored on any creative cue,
+  while the rendering suggestion still varies cards whose hosts gave cues but no style. Identities
+  persisted under schema v5 have no `hostConcept` and get a suggestion, as they did. Telemetry
+  records `hostConcept`, and `suggestedRendering` and `followedSuggestion` are null when none was
+  drawn.
+- **A named format is a style signal; such formats carry writing** (`card_design_v5`). An album or
+  magazine cover points to photographic, editorial or collage; album covers, record sleeves,
+  posters, magazine and book covers join the things the brief describes by their look and never
+  names, or the image model letters them.
+- **Listed motifs are kept** (`event_identity_v7`). Every motif the host explicitly lists stays in
+  `visualMotifs`; one left out for a product rule is named in `designConstraints`, never dropped
+  silently. The prompt's restraint rules ("do not turn every word into a motif", "do not read
+  elevated as generic gold") read as covering the host's own list; they now apply to inferred
+  motifs only, and gold chains and crowns on an album-cover homage are named as ordinary props.
+  Colours the host's motifs carry belong in the preferred palette.
+- **Corpus** `creative_understanding_v3`: CU-01 is now the "Notorious ONE" case (title, event type,
+  the chains and crown kept, no seed and no rendering applied; must avoid another title, the
+  artist's name or likeness in the brief, lettering in the art, and a soft pastel kids' card), in
+  place of "Ralph Lauren but baby", whose reference CU-02 and O-02 still carry. A separate
+  six-prompt probe (`docs/model-evals/stated-title-probe.json`) checks the title rule does not
+  over-trigger. Neither has been run; each paid run waits for the owner's approval.
+
+### The cover layouts (owner decisions, 2026-10-06)
+
+- **Two cover layouts, `cover-top` and `cover-bottom`** (`card_layouts_v5`, `card_art_v6`,
+  `card_design_schema_v4`, `card_design_v6`; `docs/card-system.md §2.3`): one bold full-bleed
+  scene with the words set in a calm band of it — the scene's own sky, wall, ground or field of
+  colour — the way a record sleeve or a poster sets its type. A host who asked for "a beautifully
+  designed ’90s hip-hop album cover" got a picture in the top 40% of a square card, because no
+  layout could express a cover.
+- **The design chooses between them** (owner: "let the design choose top or bottom"): `cover-top`
+  for a grounded subject, the words in the calm space above it; `cover-bottom` for a subject that
+  hangs, rises or fills the sky, the words in the calm ground below. A cover is chosen for bold,
+  graphic or editorial identities and named formats, never for restrained ones.
+- **Rectangle, rounded rectangle and square only**: a cover is a rectangular format, and curved
+  outlines eat the bleed. Their bands and zones are `art-bottom`'s and `art-top`'s, so no slot
+  limit, fit check or stored host text changes; the art is `illustration` with any rendering it
+  allows, and when no ink clears after the repaints their legibility panels are `art-bottom`'s and
+  `art-top`'s, fading from the words' edge toward the picture.
+- **No format word reaches the image model** (album, cover, poster, sleeve, magazine): those
+  formats come back lettered. A test holds the composition and presence text to that.
+- The database enum `card_layout` gains both values (migration `20261015000000_cover_layouts.sql`).
+- **Checked in code, not only asked of the model** (senior review): a design whose art brief repeats
+  the host's title, or names a printed format outside its `avoid` list, fails validation and is
+  re-prompted once (`docs/model-contracts.md §5.3` step 2).
+
+### The fade stays clear of the subject (owner decisions, 2026-10-07)
+
+- **Walked back:** the art giving way of 2026-10-06 (`card_layouts_v4`/`v5`, `card_compiler_v5`):
+  the crop, the plate that shrank the picture and cut it straight on a flat fill, "nothing behind
+  the words" for centred layouts and the host's low-contrast hint. On the owner's own card it read
+  as a small picture pasted onto the card, and the owner had asked to fix only the fade that cut a
+  picture off, not to remove fading. Those versions never reached production; their labels are not
+  reused. The `card_layouts_v3` panels are back: the edge fade for words above or below a picture,
+  the small soft glow for words in the middle, and every text of a generated card clears 4.5:1.
+- **The slide** (`card_compiler_v6`; `docs/card-system.md §4.2` step 5): when the fade would lie
+  over the subject, the whole picture is first drawn moved away from the words — up when it is
+  above them, down when it is below — by the smallest of 5%, 10% or 15% of the card's height that
+  puts even background under the fade, keeping its full width and size. The strip at its far edge
+  leaves the card, whatever is there (on the owner's Notorious card, the top of the crown); the
+  strip it uncovers lies under the panel's opaque paper. When
+  no slide clears the subject, the one leaving the least of it under the fade is kept. The fade
+  itself is unchanged.
+- **Kept** (owner): the cover layouts (with the picture layouts' panels), the host's title from
+  the prompt, no random theme or rendering for a prompt with its own concept, and the brief checks.
+- `card_layouts_v6` carries the covers with the restored panels; `card_compiler_v6` the slide.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

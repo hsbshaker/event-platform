@@ -90,7 +90,9 @@ const OWNER_BRIEFS: CorpusCase[] = [
 function corpus(): CorpusCase[] {
   const file = FILE || path.resolve("docs/model-evals/creative-understanding.json");
   const { cases } = JSON.parse(readFileSync(file, "utf8")) as { cases: CorpusCase[] };
-  const all = FILE ? cases : [...cases, ...OWNER_BRIEFS];
+  // The corpus's `facts` are what extraction should find (`docs/model-contracts.md §6`), not
+  // details a host entered: only a `--file` case carries event columns to store.
+  const all = FILE ? cases : [...cases.map((c) => ({ ...c, facts: undefined })), ...OWNER_BRIEFS];
   return ONLY.length ? all.filter((c) => ONLY.includes(c.id)) : all;
 }
 

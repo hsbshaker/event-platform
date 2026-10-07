@@ -93,6 +93,57 @@ export interface ValidateCardDesignOptions {
    * step 5), re-prompted like any other.
    */
   changing?: boolean;
+  /**
+   * The host's title (`eventFacts.title`), when there is one. It is host content for the card's
+   * words, and must never reach the image model (`spec.md §7.6`): a brief that repeats it is
+   * re-prompted like any other problem.
+   */
+  hostTitle?: string | null;
+}
+
+/**
+ * Printed formats that come back lettered when named to the image model (`card_design_v5`,
+ * `spec.md §31`): the brief describes their look and never names them. The words of a format may
+ * be joined by spaces or hyphens ("album-cover aesthetic"); poster paint is a medium, not a format.
+ */
+const FORMAT_WORDS =
+  /\b(?:album|book|magazine)[\s\-\u2010\u2011]+covers?\b|\brecord[\s\-\u2010\u2011]+sleeves?\b|\bposters?\b(?![\s\-\u2010\u2011]+(?:paints?|colou?rs?)\b)/i;
+
+/** A letter, a digit or a combining mark: a title is not found inside a longer word. */
+const WORD_CHARACTER = /[\p{L}\p{N}\p{M}]/u;
+
+/** Every string in the art brief, which is what reaches the image model of the design. */
+function briefStrings(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(briefStrings);
+  if (value && typeof value === "object") return Object.values(value).flatMap(briefStrings);
+  return [];
+}
+
+/** Lower-cased, with curly quotes and apostrophes straightened, for a verbatim comparison. */
+function comparable(text: string): string {
+  return text
+    .normalize("NFC")
+    .replace(/[\u2018\u2019\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201F]/g, '"')
+    .toLowerCase();
+}
+
+/**
+ * Whether `text` contains `phrase` as a whole span: neither edge continues a word, so a title
+ * "Eli" is not found in "delicate".
+ */
+function containsSpan(text: string, phrase: string): boolean {
+  const first = String.fromCodePoint(phrase.codePointAt(0) ?? 0);
+  const last = Array.from(phrase).at(-1) ?? "";
+  for (let at = text.indexOf(phrase); at !== -1; at = text.indexOf(phrase, at + 1)) {
+    const before = Array.from(text.slice(0, at)).at(-1) ?? "";
+    const after = String.fromCodePoint(text.codePointAt(at + phrase.length) ?? 0);
+    const startsClean = !WORD_CHARACTER.test(first) || !WORD_CHARACTER.test(before);
+    const endsClean = !WORD_CHARACTER.test(last) || !WORD_CHARACTER.test(after);
+    if (startsClean && endsClean) return true;
+  }
+  return false;
 }
 
 function pathLabel(path: PropertyKey[]): string {
@@ -139,6 +190,30 @@ export function validateCardDesign(
         );
       }
     }
+  }
+  const brief = briefStrings(design.artBrief);
+  // A title of one word ("One", "Sunshine") is too often an ordinary word of an honest brief; the
+  // artwork's own text check still refuses it lettered.
+  const hostTitle = options.hostTitle?.trim();
+  if (
+    hostTitle &&
+    /\s/.test(hostTitle) &&
+    brief.some((text) => containsSpan(comparable(text), comparable(hostTitle)))
+  ) {
+    problems.push(
+      "the art brief repeats the card's title: describe the picture only; the title is set as text and never reaches the artwork",
+    );
+  }
+  // The things to avoid may name a format to keep it out ("no poster-style lettering").
+  const { avoid: _avoid, ...described } = design.artBrief;
+  void _avoid;
+  const format = briefStrings(described)
+    .map((text) => FORMAT_WORDS.exec(text)?.[0])
+    .find(Boolean);
+  if (format) {
+    problems.push(
+      `the art brief names a printed format ("${format}"): describe its look, never the format, which the image model would letter`,
+    );
   }
   if (design.refinement !== "none" && options.changing !== true) {
     problems.push(

@@ -346,3 +346,43 @@ describe("the verbatim check (spec.md §7.5: only what the prompt literally stat
     expect(result.droppedFacts).toEqual([{ field: "venue" }]);
   });
 });
+
+describe("the stated title (owner decisions, 2026-10-06)", () => {
+  const NAMED = `${PROMPT} We're calling it “Little Lemon”.`;
+
+  it("keeps a title the prompt names, without its quotation marks", async () => {
+    const { ctx } = stage({
+      identity: [IDENTITY],
+      facts: [{ ...FACTS, title: "“Little Lemon”" }],
+    });
+    const result = await runIdentityStage(ctx, { prompt: NAMED });
+    expect(result.facts?.title).toBe("Little Lemon");
+    expect(result.titleDropped).toBeNull();
+    expect(result.droppedFacts).toEqual([]);
+  });
+
+  it("drops a title the prompt states but does not name, and says why", async () => {
+    const { ctx } = stage({
+      identity: [IDENTITY],
+      facts: [{ ...FACTS, title: "Lemons and linen" }],
+    });
+    const result = await runIdentityStage(ctx, { prompt: NAMED });
+    expect(result.facts?.title).toBeNull();
+    expect(result.titleDropped).toBe("not-named");
+    expect(result.droppedFacts).toEqual([{ field: "title" }]);
+  });
+
+  it("records a title the verbatim check dropped", async () => {
+    const { ctx } = stage({ identity: [IDENTITY], facts: [{ ...FACTS, title: "Big Lemon" }] });
+    const result = await runIdentityStage(ctx, { prompt: NAMED });
+    expect(result.facts?.title).toBeNull();
+    expect(result.titleDropped).toBe("not-verbatim");
+    expect(result.droppedFacts).toEqual([{ field: "title" }]);
+  });
+
+  it("has nothing to drop when no title is extracted", async () => {
+    const { ctx } = stage({ identity: [IDENTITY], facts: [FACTS] });
+    const result = await runIdentityStage(ctx, { prompt: NAMED });
+    expect(result.titleDropped).toBeNull();
+  });
+});

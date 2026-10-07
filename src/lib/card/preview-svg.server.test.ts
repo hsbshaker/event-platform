@@ -115,6 +115,20 @@ describe("cardPreviewSvg", () => {
     );
   });
 
+  it("draws the slide as InvitationCard does: the artwork moved by its offset", () => {
+    const base = card({});
+    const doc = cardPreviewSvg(
+      {
+        ...base,
+        shape: "rectangle",
+        artwork: { ...base.artwork, offsetY: -140 },
+        panels: [{ ...panelFor("art-top", "rectangle"), color: "#F6F1EA" }],
+      },
+      outlines,
+    );
+    expect(doc).toMatch(/<image href="[^"]+" x="0" y="-140" width="1000" height="1400"/);
+  });
+
   it("draws one glyph group per stored line, in the box's colour", () => {
     const doc = svg();
     const title = boxGroup(doc, "title");

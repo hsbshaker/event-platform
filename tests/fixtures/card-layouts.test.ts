@@ -782,8 +782,8 @@ afterAll(async () => {
 
 describe("layout fixtures: every layout × supported shape × pairing in Chromium", () => {
   it("covers the whole layout set", () => {
-    expect(COMBOS).toHaveLength(25);
-    expect(renders).toHaveLength(25 * (2 * TYPOGRAPHY_KEYS.length + 1));
+    expect(COMBOS).toHaveLength(31);
+    expect(renders).toHaveLength(31 * (2 * TYPOGRAPHY_KEYS.length + 1));
   });
 
   it("lays out every combination, worst case included: nothing is refused", () => {

@@ -10,6 +10,8 @@ import type { EventIdentity } from "@/lib/ai/event-identity";
 import type { ExtractedFacts } from "@/lib/ai/fact-extraction";
 import type { GenerateEventIdentityInput, ModelResult } from "@/lib/ai/provider";
 
+import { statedTitle } from "./stated-title.server";
+import type { StatedTitleDrop } from "./stated-title.server";
 import { GenerationStageError } from "./stage";
 import type { StageContext } from "./stage";
 
@@ -28,7 +30,10 @@ import type { StageContext } from "./stage";
  *
  * Every extracted value then passes a deterministic verbatim check: the prompt "extracts only what
  * it literally states" (`spec.md §7.5`), so a value is kept only if it appears in the prompt,
- * ignoring case and runs of whitespace. Anything else is dropped and counted, never repaired.
+ * ignoring case and runs of whitespace. Anything else is dropped and counted, never repaired. The
+ * title then passes the stated-title guard (`statedTitle`): kept, without its quotation marks, only
+ * where the prompt names it in quotation marks or after "called", "named" or "titled", and only if
+ * it passes the checks a typed title gets; otherwise it is dropped and counted, with the reason.
  *
  * Nothing is persisted here.
  */
@@ -102,8 +107,10 @@ export interface IdentityStageResult {
   /** The kept facts, every value verbatim from the prompt; null when extraction gave no prefill. */
   facts: ExtractedFacts | null;
   extraction: ExtractionOutcome;
-  /** Values the verbatim check dropped. */
+  /** Values the verbatim check or the stated-title guard dropped. */
   droppedFacts: DroppedFact[];
+  /** Why the extracted title was dropped (`statedTitle`); null when none was, or none extracted. */
+  titleDropped: StatedTitleDrop | null;
   artifacts: IdentityArtifacts;
 }
 
@@ -317,8 +324,20 @@ export async function runIdentityStage(
   const { result, validFirstCall } = identitySettled.value;
   let facts: ExtractedFacts | null = null;
   let droppedFacts: DroppedFact[] = [];
+  let titleDropped: StatedTitleDrop | null = null;
   if (extraction.facts) {
     ({ facts, dropped: droppedFacts } = keepVerbatimFacts(input.prompt, extraction.facts));
+    if (droppedFacts.some((d) => d.field === "title")) titleDropped = "not-verbatim";
+    if (facts.title !== null) {
+      // The host's title from the prompt: kept only where the prompt names it (owner decisions,
+      // 2026-10-06), as the details form would accept it typed.
+      const stated = await statedTitle(input.prompt, facts.title);
+      facts = { ...facts, title: stated.title };
+      if (stated.dropped) {
+        droppedFacts.push({ field: "title" });
+        titleDropped = stated.dropped;
+      }
+    }
   }
   return {
     identity: result.output,
@@ -327,6 +346,7 @@ export async function runIdentityStage(
     facts,
     extraction: extraction.outcome,
     droppedFacts,
+    titleDropped,
     artifacts: identityArtifacts(result.output),
   };
 }

@@ -574,6 +574,29 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     expect(zone?.panelColor).toMatch(/^#[0-9A-F]{6}$/);
     // The ink was chosen against the panel's own colour.
     expect(contrastRatio(zone!.ink, zone!.panelColor!)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
+    // Busy art all the way up: no slide helps, so none is stored.
+    expect(zone).not.toHaveProperty("artOffset");
+  });
+
+  it("slides the picture up, clear of the fade, when its subject reaches into it", async () => {
+    // art-top: the fade runs from 590 to 770 card units. Sky, a red subject reaching to 690,
+    // and a checkerboard under the words from 910 that no slide brings into the fade.
+    const px = W / 1000;
+    const SUBJECT = art(
+      rgbArt(W, H5x7, (x, y) => {
+        if (y >= 910 * px) return (x + y) % 2 ? [0, 0, 0] : [255, 255, 255];
+        if (y >= 300 * px && y < 690 * px && x >= 300 * px && x < 700 * px) return [200, 40, 40];
+        return [150, 200, 240];
+      }),
+    );
+    const { run } = stage({ art: [SUBJECT, SUBJECT, SUBJECT] });
+    const result = await run();
+    for (const shape of ["rectangle", "rounded-rectangle"] as const) {
+      const zone = result.ink[shape]?.[TEXT_ZONE];
+      expect(zone?.panel, shape).toEqual(panelFor("art-top", shape));
+      // 70 units (5%) leaves the subject's foot in the fade; 140 (10%) clears it.
+      expect(zone?.artOffset, shape).toBe(-140);
+    }
   });
 
   it("drops a repaint that fails validation, which still spends its image", async () => {

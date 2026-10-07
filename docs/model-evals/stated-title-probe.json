@@ -1,0 +1,41 @@
+{
+  "$comment": "Over-trigger probe for the stated title (owner decisions, 2026-10-06; docs/model-contracts.md §4.3, §6). Six one-line prompts, run alone and only when the owner approves the paid run: node scripts/corpus/run-live.mjs preview --file docs/model-evals/stated-title-probe.json --out <dir>. Not part of the corpus. Each case's `expectTitle` is the title fact extraction should return after the guard (null: none), and the card's title must be exactly that when it is not null.",
+  "cases": [
+    {
+      "id": "T-01",
+      "prompt": "A baby shower that feels “boho” and relaxed, lots of dried grasses and warm neutrals",
+      "expectTitle": null,
+      "why": "a quoted vibe word"
+    },
+    {
+      "id": "T-02",
+      "prompt": "A “Bluey” party for our daughter turning four, bright and silly",
+      "expectTitle": null,
+      "why": "the bare name of a show the party is themed on: the design writes a title evoking it, without the name"
+    },
+    {
+      "id": "T-03",
+      "prompt": "Baby shower with a big balloon banner that says “Oh Baby” over a dessert table",
+      "expectTitle": null,
+      "why": "words meant for something in the scene"
+    },
+    {
+      "id": "T-04",
+      "prompt": "A taco-themed baby shower called Taco ’Bout a Baby, colourful and fun",
+      "expectTitle": "Taco ’Bout a Baby",
+      "why": "a name right after “called”"
+    },
+    {
+      "id": "T-05",
+      "prompt": "Sixtieth birthday dinner for my dad, who loves sailing and good red wine",
+      "expectTitle": null,
+      "why": "a plain prompt that names nothing"
+    },
+    {
+      "id": "T-06",
+      "prompt": "Our wedding shower should feel like “here comes the sun” — golden morning light, citrus and linen",
+      "expectTitle": null,
+      "why": "a song lyric in quotation marks"
+    }
+  ]
+}

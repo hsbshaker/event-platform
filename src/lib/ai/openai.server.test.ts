@@ -33,6 +33,7 @@ const CANARY = "Zanzibar-canary-7f3e";
 const HOST_PROMPT = `A garden baby shower for ${CANARY}, lemons and linen but classy.`;
 
 const IDENTITY: EventIdentity = {
+  hostConcept: "cues",
   creativeDirection: "A sunlit Italian lemon grove rendered with linen calm and ceramic detail.",
   toneKeywords: ["sunlit", "refined", "relaxed"],
   colorsExplicitlyConstrained: false,
@@ -310,8 +311,8 @@ describe("Event Identity", () => {
     });
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "event_identity",
-      prompt_version: "event_identity_v6",
-      schema_version: "event_identity_schema_v5",
+      prompt_version: "event_identity_v7",
+      schema_version: "event_identity_schema_v6",
       cost_estimate_usd: costOf({ model: "gpt-6.1-sol", inputTokens: 2500, outputTokens: 300 }),
       success: true,
     });
@@ -401,12 +402,12 @@ describe("fact extraction", () => {
     expect(body.input[0].content).toBe(HOST_PROMPT);
     expect(body.reasoning).toBeUndefined();
     expect(body.text.format.name).toBe("EventFacts");
-    expect(body.instructions).toContain("**Prompt version:** `fact_extraction_v1`");
+    expect(body.instructions).toContain("**Prompt version:** `fact_extraction_v2`");
     expect(result.output).toEqual(facts);
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "structured_extraction",
       model: "gpt-6-luna",
-      prompt_version: "fact_extraction_v1",
+      prompt_version: "fact_extraction_v2",
       schema_version: "fact_extraction_schema_v1",
     });
   });
@@ -459,7 +460,7 @@ describe("Card Design", () => {
     const body = sentJson();
     expect(body.model).toBe("gpt-6.1-sol");
     expect(body.text.format.name).toBe("CardDesign");
-    expect(body.instructions).toContain("**Prompt version:** `card_design_v4`");
+    expect(body.instructions).toContain("**Prompt version:** `card_design_v6`");
     expect(JSON.stringify(body)).not.toContain(CANARY);
     const data = JSON.parse(body.input[0].content);
     expect(Object.keys(data)).toEqual([
@@ -475,9 +476,9 @@ describe("Card Design", () => {
     expect(admin.fake.runs()[0]).toMatchObject({
       operation: "card_design",
       round: 2,
-      prompt_version: "card_design_v4",
-      schema_version: "card_design_schema_v3",
-      layout_set_version: "card_layouts_v3",
+      prompt_version: "card_design_v6",
+      schema_version: "card_design_schema_v4",
+      layout_set_version: "card_layouts_v6",
     });
   });
 
@@ -520,9 +521,9 @@ describe("card artwork", () => {
       model: "gpt-image-2.5-sunburst-2026-09-08",
       image_units: 1,
       output_tokens: 2000,
-      prompt_version: "card_art_v5",
+      prompt_version: "card_art_v6",
       schema_version: null,
-      layout_set_version: "card_layouts_v3",
+      layout_set_version: "card_layouts_v6",
       cost_estimate_usd: 0.062, // 400 × $5 + 2000 × $30, per 1M
     });
   });

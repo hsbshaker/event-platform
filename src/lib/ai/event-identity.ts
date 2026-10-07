@@ -1,9 +1,9 @@
 /**
- * `EventIdentity` (`event_identity_schema_v5`, `docs/model-contracts.md §4.1`) as the application
+ * `EventIdentity` (`event_identity_schema_v6`, `docs/model-contracts.md §4.1`) as the application
  * validates it. The provider's structured-output mode is never trusted to have enforced the schema
  * (`docs/model-contracts.md §3`, `spec.md §32 #19`): every response is parsed here.
  *
- * Mirrors `docs/model-schemas/event-identity.schema.json`; `event-identity.test.ts` holds the two
+ * Mirrors `docs/model-schemas/event-identity.schema.json`; `contracts.test.ts` holds the two
  * together (bounds, enums, required keys, strictness, uniqueness).
  */
 import { z } from "zod";
@@ -23,7 +23,25 @@ function uniqueList<T extends z.ZodType>(item: T, min: number, max: number) {
   return list.refine((a) => new Set(a).size === a.length, { message: "items must be unique" });
 }
 
+/**
+ * Whether the host gave a concept or style of their own (`event_identity_schema_v6`; owner
+ * decisions, 2026-10-06): the identity's own judgement of the prompt, since it is the only reader
+ * of it (`spec.md §7.5`).
+ * - `open`: the host left the look to us — nothing beyond the occasion. The identity builds its
+ *   theme from the theme seed, and the design is given a randomly suggested rendering.
+ * - `cues`: some creative cue (a palette, a mood, a motif, a person's interests, a place's
+ *   character) but no concept or style of their own. The seed is ignored; the design is still given
+ *   a suggested rendering.
+ * - `own`: the host named a clear concept or style of their own — a named format (album cover,
+ *   poster, magazine, storybook page), an explicit list of motifs, a decade or era, a named
+ *   aesthetic, or how the artwork should look. No seed and no suggested rendering.
+ */
+export const HOST_CONCEPTS = ["open", "cues", "own"] as const;
+export type HostConcept = (typeof HOST_CONCEPTS)[number];
+
+/** The identity as the model must return it now (`event_identity_schema_v6`). */
 export const eventIdentitySchema = z.strictObject({
+  hostConcept: z.enum(HOST_CONCEPTS),
   creativeDirection: text(20, 420),
   toneKeywords: uniqueList(text(2, 48), 3, 7),
   colorsExplicitlyConstrained: z.boolean(),
@@ -44,4 +62,16 @@ export const eventIdentitySchema = z.strictObject({
   inspirationSummary: text(5, 700),
 });
 
-export type EventIdentity = z.infer<typeof eventIdentitySchema>;
+/**
+ * A persisted identity as the pipeline reads it back: identities persisted before
+ * `event_identity_schema_v6` have no `hostConcept`. They are immutable and never re-validated
+ * against the newer schema (`docs/model-contracts.md §2`); without it the pipeline behaves as it
+ * did when they were made (a suggested rendering is drawn). Every new identity is parsed with the
+ * strict `eventIdentitySchema`, which requires it.
+ */
+export const storedEventIdentitySchema = eventIdentitySchema.extend({
+  hostConcept: z.enum(HOST_CONCEPTS).optional(),
+});
+
+/** An identity the pipeline holds: a new one always has `hostConcept`; one persisted before v6 may not. */
+export type EventIdentity = z.infer<typeof storedEventIdentitySchema>;

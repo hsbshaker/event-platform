@@ -2,15 +2,17 @@
 ## Event Identity, Card Design and Card Art
 
 **Status:** Revision 3 — invitation-card baseline
-**Prompt versions:** `event_identity_v6`, `card_design_v4` (`card_design_v1` written in Phase 3
+**Prompt versions:** `event_identity_v7`, `card_design_v6` (`card_design_v1` written in Phase 3
 validation; v2 adds rendering families in Phase 5; v3 one central idea; v4 the change asked for, or
-a new idea), `card_art_v5` (deterministic assembly; `card_art_v1` written in Phase 3 validation,
-`card_art_v2` in Phase 4 with `card_layouts_v2`, `card_art_v3` in Phase 5 with rendering families,
-`card_art_v4` adds the repaint's composition line, `card_art_v5` the revision framing of an edit),
+a new idea; v5 the host's stated title and their own concept; v6 the cover layouts),
+`fact_extraction_v2` (v2 the title rule), `card_art_v6` (deterministic assembly; `card_art_v1`
+written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`, `card_art_v3` in
+Phase 5 with rendering families, `card_art_v4` adds the repaint's composition line, `card_art_v5`
+the revision framing of an edit, `card_art_v6` the cover layouts' composition and presence),
 `card_art_inspection_v2`
-**Schema versions:** `event_identity_schema_v5`, `card_design_schema_v3` (`card_design_schema_v1`
+**Schema versions:** `event_identity_schema_v6`, `card_design_schema_v4` (`card_design_schema_v1`
 written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`; v3 adds
-`refinement`),
+`refinement`; v4 adds the cover layouts to the layout enum), `fact_extraction_schema_v1`,
 `card_art_inspection_schema_v2`
 **Models:** GPT 6.1 Sol (Event Identity, Card Design); GPT Image 2.5 Sunburst (Card Art) —
 `technology-decisions.md §8.1`
@@ -55,13 +57,14 @@ the assembled art prompt. The card compiler is application code and calls no mod
 Prompts, schemas and the layout set are versioned production assets (`src/lib/ai/versions.ts`):
 
 ```ts
-EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v6"
-EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v5"
-CARD_DESIGN_PROMPT_VERSION    = "card_design_v4"
-CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v3"
-CARD_ART_PROMPT_VERSION       = "card_art_v5"
-CARD_LAYOUT_SET_VERSION       = "card_layouts_v3"
-CARD_COMPILER_VERSION         = "card_compiler_v4"
+EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v7"
+EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v6"
+CARD_DESIGN_PROMPT_VERSION    = "card_design_v6"
+CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v4"
+CARD_ART_PROMPT_VERSION       = "card_art_v6"
+CARD_LAYOUT_SET_VERSION       = "card_layouts_v6"
+CARD_COMPILER_VERSION         = "card_compiler_v6"
+FACT_EXTRACTION_PROMPT_VERSION = "fact_extraction_v2"
 ```
 
 Record every version with generation telemetry, plus the image model per artwork. Do not edit a
@@ -80,7 +83,7 @@ improvement on top.
 
 ---
 
-# 4. Event Identity (`event_identity_v6`)
+# 4. Event Identity (`event_identity_v7`)
 
 **This call is the product's creative interpreter, not a preprocessing step.** Its question is
 *what does this host mean, and what creative world should this event belong to?*, and the bar on
@@ -96,6 +99,7 @@ Prompt: `model-prompts/event-identity.system.md`. Schema: `model-schemas/event-i
 
 ```ts
 EventIdentity {
+  hostConcept: "open" | "cues" | "own"    // schema v6: decided first, see below
   creativeDirection                       // 1–3 sentence thesis
   toneKeywords[3..7]
   colorsExplicitlyConstrained: boolean
@@ -121,9 +125,28 @@ me", "idk", only the occasion), the identity commits to one clear, concrete them
 event — a subject world a guest could name in a few words — never abstract forms or an
 "unexpected twist" standing in for a theme.
 
+Prompt v7, schema `event_identity_schema_v6` (owner decisions, 2026-10-06; `spec.md §7.5`):
+randomness is for vague prompts only. The identity first records `hostConcept`, its judgement of
+the host's own words, before any other field: `open` (nothing beyond the occasion, or "surprise
+me"), `cues` (creative cues — a palette, a mood, a motif or two, a person's interests, a place's
+character — but no concept or style of their own) or `own` (a clear concept or style of their own:
+a named format such as an album cover, poster, magazine or storybook page; an explicit list of
+motifs; a decade or era; a named aesthetic; or how the artwork should look). The theme seed is used
+only when `open`, and code gives the design no suggested rendering when `own` (§5.2). The judgement
+is the identity's because it is the only reader of the prompt: code never parses the prompt for it.
+Every motif the host explicitly lists is kept in `visualMotifs`; one left out for a product rule
+(a logo, a brand, character or real person's name or likeness, text in the artwork) is named in
+`designConstraints`, never dropped silently, and ordinary style props of a homage — gold chains and
+a crown on an album-cover homage — are not a reason to leave one out. A real person the host
+references is evoked by era, format and look, never by name or likeness. Identities persisted
+under schema v5 have no `hostConcept`; they are read back as they are (never re-validated against
+v6) and get a suggested rendering, as they did.
+
 **Inputs:** the raw prompt and inspiration images as untrusted data (§8); a `themeSeed` drawn at
 random by code from a broad list of everyday worlds (`src/lib/generation/theme-seeds.ts`), used
-only when the host leaves the look to us and ignored otherwise (prompt v6); on `Try another
+only when the host leaves the look to us and ignored otherwise (prompt v6) — offered with every new
+identity, since only the identity can tell, and used only when it records `hostConcept: "open"`
+(prompt v7); on `Try another
 direction` with feedback, the previous identity and the feedback, to update or merge the identity.
 That revision starts from the identity the changed card was made from (so going back to an earlier
 card and asking for a change revises that card's brief, not a later one's), with no fact
@@ -144,21 +167,38 @@ identity call returns no questions.
 ## 4.3 Fact extraction
 
 A separate cheaper-model call reads the same raw prompt and returns only facts the prompt literally
-states — event type, hosts, baby name, date, time, venue, address — each as the host's exact
+states — event type, title, hosts, baby name, date, time, venue, address — each as the host's exact
 string. Missing means absent. Its output is kept on the event as values for the host to confirm
 (`events.prompt_facts`, written once, by the server only, in the same transaction as the first
 identity whose extraction returned facts), never in the identity; the pipeline also keeps it with the generation
 (`generations.artifacts.facts`). Those values are on the card from the reveal, marked as needing
 confirmation, and in the details form for the host to confirm or correct (`spec.md §7.3`, owner
 decision); an unconfirmed value is never published and never given to the card design as a fact,
-except the event type: the design reads the occasion the host named to word the invitation, and
-it is never a slot on the card.
+except the event type and the title: the design reads the occasion the host named to word the
+invitation, and it is never a slot on the card; the title is below.
+
+**The stated title** (`fact_extraction_v2`; owner decisions, 2026-10-06; `spec.md §7.3`). A name
+the host gives the event or its idea — in quotation marks (straight, curly, low or guillemets) or
+right after "called", "named" or "titled" — is extracted as `title`, exactly as written and without
+its quotation marks; a quoted vibe word, words meant for something in the scene (a banner's
+"Oh Baby"), a saying or lyric, and the bare name of a brand, show or character the party is themed
+on ("a “Bluey” party") are not titles, and when unsure the field is null. The schema is unchanged.
+Code then keeps the title (`statedTitle`, `src/lib/generation/stated-title.server.ts`) only if,
+its surrounding quotation marks stripped, it appears verbatim in the prompt inside quotation marks
+or right after called/named/titled, and passes the checks a typed title gets in the details form
+(`validateCardText("title")` and `cardTextFitsEveryDesign`); otherwise it is dropped and logged
+(`droppedFacts`, and `titleDropped` with the reason: `not-verbatim`, `not-named`, `entry`, `fit`).
+The kept title is stored in `events.prompt_facts.title`, never in `events.title`. The design's
+`eventFacts.title` is the event's own title, else the stated title (`hostEventFacts`), so the
+existing host-title path uses it verbatim and never checks or replaces it (§5.4); every later
+generation reads it from `prompt_facts`, through the same guard, until the host types a title or
+edits the title box. The title never enters the art brief or the art prompt (§7.1).
 The fact check in `docs/model-evals/creative-understanding.json` (each case's `facts`) applies to
 this call.
 
 ---
 
-# 5. Card Design (`card_design_v4`)
+# 5. Card Design (`card_design_v6`)
 
 ## 5.1 Contract
 
@@ -230,6 +270,15 @@ Distinctness (§5.3) applies to `none` only. The feedback is never copied into t
 the design describes the change as an illustrator would, and only the brief reaches the image
 model. Designs persisted under schema v2 have no `refinement`; they read as `none`.
 
+Prompt `card_design_v5` (schema unchanged; owner decisions, 2026-10-06): `eventFacts.title` may be
+the title the host named in their description (§4.3), used verbatim like a typed one; the title
+never goes into the art brief, and neither does a brand's or a real person's name. With no
+`suggestedRendering` (the identity's `hostConcept` is `own`), the design chooses the rendering that
+carries the host's concept. A named format — album cover or record sleeve, poster, magazine cover,
+storybook page — is a style signal pointing to the renderings that format is made in (an album or
+magazine cover: photographic, editorial or collage), and such formats join the things that carry
+writing: the brief describes their look and never names them, or the image model letters them.
+
 String bounds (Phase 3, `model-schemas/card-design.schema.json`): `title` 2–40 characters,
 `invitationLine` 8–72, `artBrief.subject` 8–300, `artBrief.aesthetic` 3–40, other brief fields
 3–200, `avoid` 0–8 items. They are generated into the schema from the layout catalog, so a valid
@@ -244,11 +293,12 @@ is resolved from the finished artwork by code (`card-system.md §4.2`).
 ```ts
 GenerateCardDesignInput {
   eventIdentity: EventIdentity                 // persisted, validated
-  eventFacts: Record<string, string>           // facts present so far, host-supplied or confirmed
+  eventFacts: Record<string, string>           // facts present so far, host-supplied or confirmed,
+                                               // plus the title the prompt names (§4.3)
   previousDirections?: {                        // every earlier design for this event
     name, layout, artMode, primary, subject, rendering, aesthetic
   }[]
-  suggestedRendering?: Rendering                // drawn at random, see below
+  suggestedRendering?: Rendering                // drawn at random, see below; none when hostConcept is "own"
   feedback?: string                            // optional "Try another direction" feedback
   changing?: {                                  // with feedback: the card the host is changing
     name, shape, layout, artMode, primary, wording: { title, invitationLine }, artBrief
@@ -261,8 +311,9 @@ GenerateCardDesignInput {
 card shows them. Its `eventType` is the host's own words when the prompt states one (fact
 extraction's value, kept only if it is verbatim in the prompt), else the event's type. It reaches
 the card only through standard wording (§5.3), and only when that wording clears the card's checks;
-otherwise standard wording uses the default type. Extracted card facts — names, date, time, venue —
-reach the design only once the host has confirmed them.
+otherwise standard wording uses the default type. Its `title` is the event's own title, else the
+title the prompt names (§4.3). Extracted card facts — names, date, time, venue — reach the design
+only once the host has confirmed them.
 
 The prompt carries the layout catalog (each layout's purpose and compatible art modes), the art
 modes, the rendering families, the pairing catalog narrowed to the identity's compatible
@@ -274,12 +325,16 @@ the user's description strongly points toward a particular treatment"). Every ge
 `suggestedRendering` uniformly at random from the families this event's earlier directions have not
 used — all nine for an initial generation, and all nine again once every one has been used
 (`suggestRendering`) — and sends it with every call of its design stage, a provider-refusal
-re-prompt included. The design uses it unless the identity carries an explicit style signal from
+re-prompt included — unless the design's identity records `hostConcept: "own"` (owner decisions,
+2026-10-06: randomness is for vague prompts), when none is drawn or sent. The design uses it unless the identity carries an explicit style signal from
 the host in `textureDirection` or `creativeDirection` (photo or realistic, editorial, 3D, CGI,
-cartoon, vector, flat, watercolour, painted, hand-drawn, sketch, engraved, collage, pattern); its
-own `aesthetic` is never a reason to set the suggestion aside. `generations.telemetry` records
-`suggestedRendering` and `followedSuggestion`, and a failed generation's telemetry records the
-suggestion and, once a design exists, its rendering.
+cartoon, vector, flat, watercolour, painted, hand-drawn, sketch, engraved, collage, pattern, or a
+named format such as an album cover, poster or magazine); its own `aesthetic` is never a reason to
+set the suggestion aside. `generations.telemetry` records `suggestedRendering` (null when none was
+drawn) and `followedSuggestion` (null then), `themeSeed` (the seed offered to a new identity),
+`hostConcept` (null for an identity persisted before schema v6) and `titleDropped`, and a failed
+generation's telemetry records the suggestion, the identity's `hostConcept` and, once a design
+exists, its rendering.
 It never carries guest data, RSVP or registry contents, private codes, or the raw host prompt.
 
 ## 5.3 Validation
@@ -290,7 +345,10 @@ In order, deterministic (`card-system.md §4.1`):
    colours valid. Failure → one re-prompt with the error list; second failure → visible failure
    with retry.
 2. **Compatibility**: layout ↔ art mode; layout supports the shape; alternates distinct from
-   primary.
+   primary; and what reaches the image model (owner decisions, 2026-10-06): no art-brief field
+   repeats the host's title (compared case-insensitively, quotation marks straightened), and none
+   but `avoid` names a printed format (album, book or magazine cover, record sleeve, poster), which
+   the image model would letter. Failure → one re-prompt with the problems, as for the schema.
 3. **Wording fact check** (§5.4), on model-drafted wording only, together with the checks a host's
    own text gets (`card-system.md §2.5`): drawable characters and a fit in every design. Failure →
    one re-prompt naming the slot; second failure → standard wording for that slot, logged.
@@ -303,8 +361,9 @@ In order, deterministic (`card-system.md §4.1`):
 ## 5.4 Wording rules
 
 - `title` and `invitationLine` follow the identity's `copyTone`.
-- A host-supplied title (in `eventFacts`) is used verbatim as `title`. It is host content: never
-  fact-checked and never replaced. The same holds for any wording the host later edits.
+- A host-supplied title (in `eventFacts`: typed, or named in the prompt, §4.3) is used verbatim as
+  `title`. It is host content: never fact-checked and never replaced. The same holds for any
+  wording the host later edits. The title never goes into the art brief.
 - A name may appear only exactly as it appears in `eventFacts`.
 - Wording never contains a date, weekday, month, time, number, place, address, dress code, or any
   other fact. The deterministic check rejects digits, month and weekday names, time expressions,
@@ -348,8 +407,11 @@ failure is never acceptable:
 Everything else in this document measures whether output is **legal**. This measures whether it is
 **right**, which is the capability the product exists to deliver (`product-doctrine.md §3`).
 
-**Corpus:** `docs/model-evals/creative-understanding.json` (`creative_understanding_v2`: CU-10 and
-CU-13 carry the owner's 2026-10-05 verdicts), fourteen
+**Corpus:** `docs/model-evals/creative-understanding.json` (`creative_understanding_v3`: CU-10 and
+CU-13 carry the owner's 2026-10-05 verdicts; CU-01 is the "Notorious ONE" case of 2026-10-06 — a
+host title in quotation marks and the host's own concept, with an `expect` block for the identity
+and telemetry — in place of "Ralph Lauren but baby", whose reference CU-02 and O-02 still carry),
+fourteen
 cases: vague and taste-heavy prompts, prompts carrying a negative constraint, prompts already clear
 enough that the right number of questions is zero, prompts carrying facts that must survive
 verbatim, one open delegation, and one genuinely ambiguous case where a question should earn its
@@ -372,6 +434,12 @@ Phase 3 validation.
 
 **Do not pretend all ten automate.** A mechanical pass on 3–6 is necessary and never sufficient.
 
+**Stated-title probe:** `docs/model-evals/stated-title-probe.json`, six one-line prompts that must
+not over-trigger the title rule (a quoted vibe word, a "Bluey" party, a banner's words, a song
+lyric, a plain prompt) and one that must not under-trigger it ("called Taco ’Bout a Baby"). It is
+not part of the corpus and runs alone, with `scripts/corpus/run-live.mjs --file`, when the owner
+approves the run.
+
 **What this does not become:** a benchmark project. Fourteen cases, one rubric. Do not grow the
 corpus to chase coverage, do not build a scoring service, and do not gate ordinary code changes on
 it — it measures the creative stack, not the compiler.
@@ -384,7 +452,8 @@ it — it measures the creative stack, not the compiler.
 
 The art prompt is assembled **by application code**, never written verbatim by a model:
 
-- the art brief's subject, medium, mood, palette description and colours, texture;
+- the art brief's subject, medium, mood, palette description and colours, texture (never the
+  card's wording: the title, even the host's own, never reaches the art prompt);
 - the rendering family's instruction and the brief's aesthetic, as one `Rendering: … Aesthetic: …`
   line just before the medium (`src/lib/card/renderings.ts`, `card-system.md §2.4`); for
   `photographic`, `editorial`, `rendered-3d` and `collage` it says no people, faces, hands or
@@ -546,10 +615,11 @@ retry and never presents itself as a finished design.
 
 # 10. Files
 
-Prompts: `model-prompts/event-identity.system.md` (v5). `model-prompts/card-design.system.md` is
-written in Phase 3 validation.
-Schemas: `model-schemas/event-identity.schema.json` (v5). `model-schemas/card-design.schema.json`
+Prompts: `model-prompts/event-identity.system.md` (v7), `model-prompts/fact-extraction.system.md`
+(v2). `model-prompts/card-design.system.md` is written in Phase 3 validation.
+Schemas: `model-schemas/event-identity.schema.json` (v6). `model-schemas/card-design.schema.json`
 is generated from the card catalogs in Phase 3 validation.
-Evaluation corpus: `model-evals/creative-understanding.json`.
+Evaluation corpus: `model-evals/creative-understanding.json`; the stated-title probe
+`model-evals/stated-title-probe.json`.
 Catalogs: `src/lib/card/typography.ts`; the layout set and art modes are added with the card
 compiler.

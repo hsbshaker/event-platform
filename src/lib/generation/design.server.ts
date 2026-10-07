@@ -68,7 +68,8 @@ export interface DesignStageInput {
   changing?: ChangingCard;
   /**
    * The rendering the orchestration suggests (`suggestRendering`), sent with every call of this
-   * stage; the design follows it unless the identity strongly points elsewhere.
+   * stage; the design follows it unless the identity strongly points elsewhere. Absent when the
+   * identity says the host named a concept or style of their own (`hostConcept: "own"`).
    */
   suggestedRendering?: Rendering;
   /**
@@ -248,6 +249,7 @@ export async function runDesignStage(
     const validation = validateCardDesign(output, {
       compatibleCategories: input.identity.compatibleTypographyCategories,
       changing: input.changing !== undefined,
+      hostTitle,
     });
     attempts.push({ reprompt: reprompt?.kind ?? null, raw, valid: validation.ok });
     if (!validation.ok) {

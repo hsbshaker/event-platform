@@ -78,6 +78,14 @@ describe("the card-design runtime catalog", () => {
       supportedShapes: ["rectangle", "rounded-rectangle", "square"],
       compatibleArtModes: ["illustration", "framed"],
     });
+    // The cover layouts (since card_layouts_v6): rectangular shapes, illustration only.
+    for (const id of ["cover-top", "cover-bottom"] as const) {
+      expect(catalog.layouts[id], id).toEqual({
+        purpose: expect.stringContaining("full-bleed scene"),
+        supportedShapes: ["rectangle", "rounded-rectangle", "square"],
+        compatibleArtModes: ["illustration"],
+      });
+    }
     expect(Object.keys(catalog.artModes)).toEqual([
       "illustration",
       "framed",
@@ -193,7 +201,7 @@ describe("the card-design runtime catalog", () => {
   });
 });
 
-describe("the event-identity request (event_identity_v6)", () => {
+describe("the event-identity request (event_identity_v7)", () => {
   const payload = (themeSeed?: string) => {
     const request = eventIdentityRequest("instructions", {
       prompt: "something unique, idk surprise me",

@@ -3,8 +3,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { ModelCallRefusedError } from "@/lib/ai/errors";
-import { eventIdentitySchema } from "@/lib/ai/event-identity";
-import type { EventIdentity } from "@/lib/ai/event-identity";
+import { storedEventIdentitySchema } from "@/lib/ai/event-identity";
+import type { EventIdentity, HostConcept } from "@/lib/ai/event-identity";
 import { MODELS } from "@/lib/ai/models";
 import { getAiProvider } from "@/lib/ai/provider";
 import type {
@@ -53,6 +53,8 @@ import { runDesignStage } from "./design.server";
 import type { DesignStageResult } from "./design.server";
 import { PROVIDER_REFUSAL_NOTICE } from "./failure-copy";
 import { identityArtifacts, runIdentityStage } from "./identity.server";
+import { statedTitle } from "./stated-title.server";
+import type { StatedTitleDrop } from "./stated-title.server";
 import { drawThemeSeed } from "./theme-seeds";
 import { readSwitchingDesign, type SwitchingDesign } from "./switching-design";
 import {
@@ -81,7 +83,12 @@ import type { StageContext } from "./stage";
  *    identity, as `events.prompt_facts` — unconfirmed, never an event detail, never given to the
  *    design (`spec.md §7.3`).
  * 3. **Design** (`runDesignStage`) from the identity and the event's own fields — host-entered or
- *    host-confirmed values, never the unconfirmed extraction (`spec.md §32 #15`).
+ *    host-confirmed values, never the unconfirmed extraction (`spec.md §32 #15`) — except the
+ *    host's own words the prompt states for the occasion and, when the host has typed none, the
+ *    title (`statedTitle`, owner decisions 2026-10-06): host content, used verbatim. A suggested
+ *    rendering goes with it unless the identity says the host named a concept or style of their
+ *    own (`hostConcept: "own"`); the theme seed, drawn for a new identity, is the identity's to use
+ *    only when the host left the look to us (`hostConcept: "open"`).
  * 4. **Artwork** (`runArtworkStage`) for the design's shape. A provider refusal of the first image
  *    re-prompts the design (`provider-refusal`) and paints its artwork as that refusal's
  *    regeneration, with a notice for the host (`spec.md §7.6`); any other refusal, or a second
@@ -244,16 +251,34 @@ export interface GenerationTelemetry {
   /** Fitted shapes whose ink was judged on the whole zone alone (`card_compiler_v4` fallback). */
   lineAreasFallback: string[];
   providerRefusal: boolean;
-  /** The rendering drawn for this generation's design (`suggestRendering`). */
-  suggestedRendering: string;
+  /**
+   * The rendering drawn for this generation's design (`suggestRendering`); null when none was,
+   * because the identity says the host named a concept or style of their own.
+   */
+  suggestedRendering: string | null;
   /** The accepted design's rendering is the suggested one. */
-  /** Whether a new idea followed the suggested rendering; null for a requested change, which keeps the card's own. */
+  /**
+   * Whether a new idea followed the suggested rendering; null for a requested change, which keeps
+   * the card's own, and when no rendering was suggested.
+   */
   followedSuggestion: boolean | null;
   /**
    * The theme seed given to a new identity (`drawThemeSeed`); null when the identity was reused or
-   * revised (another direction never draws one).
+   * revised (another direction never draws one). The identity uses it only when `hostConcept` is
+   * `open`.
    */
   themeSeed: string | null;
+  /**
+   * The design's identity's judgement of the host's own concept (`event_identity_schema_v6`);
+   * null for an identity persisted before it.
+   */
+  hostConcept: HostConcept | null;
+  /**
+   * Why the title the prompt states was dropped (`statedTitle`): not verbatim, not named in
+   * quotation marks or after called/named/titled, or failing the entry or fit check; null when
+   * none was dropped.
+   */
+  titleDropped: StatedTitleDrop | null;
   /** The generation's kind. */
   kind: GenerationKind;
   /** What the accepted design made (`card_design_schema_v3`); `none` for every first card. */
@@ -313,10 +338,16 @@ interface EventRow {
  * extraction's value, which survived the verbatim check), else the event's type column. The
  * column is the launch default (`baby_shower`), not something the host said, so a host who wrote
  * "60th birthday" is never designed for as a baby shower. It never appears on the card.
+ *
+ * The title is the event's own (`events.title`, the host's: typed, or edited in the title box),
+ * else the title the prompt names (`statedTitle`, already through its guard; owner decisions,
+ * 2026-10-06). Either is host content the design uses verbatim. The stated title is never written
+ * to `events.title`.
  */
 export function hostEventFacts(
   event: EventRow,
   statedEventType?: string | null,
+  statedTitle?: string | null,
 ): Record<string, string> {
   const content = cardContent({
     title: event.title,
@@ -337,7 +368,7 @@ export function hostEventFacts(
     if (text !== "") facts[key] = text;
   };
   put("eventType", statedEventType?.trim() || event.type.replace(/_/g, " "));
-  put("title", content.title);
+  put("title", content.title ?? statedTitle);
   put("hosts", content.hosts);
   put("babyName", content.babyName);
   put("date", content.date);
@@ -437,6 +468,7 @@ export function failureTelemetry(error: unknown, code: string): Json {
         rendering?: unknown;
         followedSuggestion?: unknown;
         themeSeed?: unknown;
+        hostConcept?: unknown;
         refinement?: unknown;
         refinementDowngraded?: unknown;
       }
@@ -449,6 +481,7 @@ export function failureTelemetry(error: unknown, code: string): Json {
   }
   if (typeof details?.rendering === "string") failure.rendering = details.rendering;
   if (typeof details?.themeSeed === "string") failure.themeSeed = details.themeSeed;
+  if (typeof details?.hostConcept === "string") failure.hostConcept = details.hostConcept;
   if (typeof details?.followedSuggestion === "boolean") {
     failure.followedSuggestion = details.followedSuggestion;
   }
@@ -676,13 +709,18 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   let inspirationSkipped = 0;
   let droppedFacts = 0;
   let statedEventType: string | null = null;
+  // The title the prompt names, through its guard (`statedTitle`), and why one was dropped.
+  let promptTitle: string | null = null;
+  let titleDropped: StatedTitleDrop | null = null;
   // Try again after the image provider refused the homage takes the same step back (spec.md §7.6).
   let stepBack = false;
 
   if (direction && from) {
     if (!latest) throw new Error("Another direction needs the event's identity.");
-    // The event type in the host's own words, kept on the event with the first identity.
+    // The event type and the title in the host's own words, kept on the event with the first
+    // identity.
     statedEventType = factString(event.prompt_facts, "eventType");
+    ({ title: promptTitle, dropped: titleDropped } = await storedTitle(event));
     // A Try again of the same request (same card, same words) after a failure: it takes the same
     // step back after a provider refusal (spec.md §7.6) and reuses the identity that request
     // already revised, rather than interpreting the words a second time. Any other request is new.
@@ -757,6 +795,8 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     if (typeof revision !== "number") throw new GenerationStoppedError("persisting the identity");
     identityRevision = revision;
     statedEventType = result.facts?.eventType ?? null;
+    promptTitle = result.facts?.title ?? null;
+    titleDropped = result.titleDropped;
     await recordStage("identity", {
       identity: result.artifacts,
       facts: result.facts,
@@ -768,6 +808,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     identityRevision = latest.revision;
     const earlierFactsOf = await earlierFacts(admin, eventId, latest.generation_id);
     statedEventType = factString(earlierFactsOf.facts, "eventType");
+    ({ title: promptTitle, dropped: titleDropped } = await storedTitle(event));
     stepBack = await refusedBefore(admin, eventId, generationId, "initial");
     await recordStage("identity", {
       identity: identityArtifacts(identity),
@@ -776,16 +817,23 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   }
 
   // ------------------------------------------------------------------ 3. design
-  const eventFacts = hostEventFacts(event, statedEventType);
+  const eventFacts = hostEventFacts(event, statedEventType, promptTitle);
   const designs: DesignStageResult[] = [];
   // Active variation (owner decision): a rendering drawn at random from those this event's earlier
   // directions have not used — none for an initial generation — that the design follows unless
   // the identity strongly points elsewhere. A provider-refusal re-prompt keeps the same suggestion.
+  // None when the identity says the host named a concept or style of their own: randomness is for
+  // variety where the host gave none (owner decisions, 2026-10-06). The identity decides; code never
+  // reads the prompt for it. An identity from before `hostConcept` gets a suggestion, as it did.
   const previousDirections = earlier.flatMap((d) => (d.direction ? [d.direction] : []));
-  const suggestedRendering = suggestRendering(
-    random,
-    previousDirections.map((d) => d.rendering),
-  );
+  const hostConcept: HostConcept | null = identity.hostConcept ?? null;
+  const suggestedRendering: Rendering | null =
+    hostConcept === "own"
+      ? null
+      : suggestRendering(
+          random,
+          previousDirections.map((d) => d.rendering),
+        );
   // With feedback, the card the host is changing, as they saw it (model-contracts §5.2).
   const changing: ChangingCard | undefined =
     from && seenShape && direction?.feedback
@@ -806,7 +854,7 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     const result = await runDesignStage(ctx, {
       identity,
       eventFacts,
-      suggestedRendering,
+      ...(suggestedRendering ? { suggestedRendering } : {}),
       ...(previousDirections.length ? { previousDirections } : {}),
       ...(direction?.feedback ? { feedback: direction.feedback } : {}),
       ...(changing ? { changing } : {}),
@@ -876,16 +924,18 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
   // A failure from here on still records the rendering drawn and, once a design exists, the one it
   // chose — so renderings that fail more often never drop out of the measured mix.
   let current: DesignStageResult | null = null;
+  const followed = (d: CardDesign): boolean | null =>
+    suggestedRendering && d.refinement === "none"
+      ? d.artBrief.rendering === suggestedRendering
+      : null;
   const renderingDetails = () => ({
-    suggestedRendering,
+    ...(suggestedRendering ? { suggestedRendering } : {}),
     ...(themeSeed ? { themeSeed } : {}),
+    ...(hostConcept ? { hostConcept } : {}),
     ...(current
       ? {
           rendering: current.design.artBrief.rendering,
-          followedSuggestion:
-            current.design.refinement === "none"
-              ? current.design.artBrief.rendering === suggestedRendering
-              : null,
+          followedSuggestion: followed(current.design),
           ...(direction ? { refinement: current.design.refinement, refinementDowngraded } : {}),
         }
       : {}),
@@ -955,11 +1005,10 @@ async function pipeline(input: PipelineInput): Promise<RunGenerationOutcome> {
     lineAreasFallback: art.telemetry.lineAreasFallback,
     providerRefusal,
     suggestedRendering,
-    followedSuggestion:
-      chosen.design.refinement === "none"
-        ? chosen.design.artBrief.rendering === suggestedRendering
-        : null,
+    followedSuggestion: followed(chosen.design),
     themeSeed,
+    hostConcept,
+    titleDropped,
     kind: input.kind,
     refinement: chosen.design.refinement,
     refinementDowngraded,
@@ -1346,6 +1395,20 @@ function factString(facts: Json, field: string): string | null {
 }
 
 /**
+ * The title the prompt names, from the facts kept on the event (`events.prompt_facts.title`), for
+ * a generation that reuses or revises the identity: it carries to every later direction until the
+ * host gives a title of their own (`hostEventFacts`). Guarded again against the prompt
+ * (`statedTitle`), so facts kept before the guard existed are held to it too; a value already
+ * through it passes unchanged.
+ */
+async function storedTitle(event: {
+  prompt: string;
+  prompt_facts: Json;
+}): Promise<{ title: string | null; dropped: StatedTitleDrop | null }> {
+  return statedTitle(event.prompt, factString(event.prompt_facts, "title"));
+}
+
+/**
  * The event's previous generation of the same kind failed because the image provider refused its
  * artwork (`provider_refusal`): the host's Try again then takes the same step back (`spec.md
  * §7.6`, §31). For a first card only a retry reaches this — the refused generation had already
@@ -1423,9 +1486,12 @@ async function earlierFacts(
   };
 }
 
-/** The persisted identity, validated; a stored identity that does not validate is a bug. */
+/**
+ * The persisted identity, validated; a stored identity that does not validate is a bug. One
+ * persisted before `event_identity_schema_v6` has no `hostConcept` (`storedEventIdentitySchema`).
+ */
 function parseIdentity(stored: Json): EventIdentity {
-  const parsed = eventIdentitySchema.safeParse(stored);
+  const parsed = storedEventIdentitySchema.safeParse(stored);
   if (!parsed.success) throw new Error("The persisted Event Identity does not validate.");
   return parsed.data;
 }
