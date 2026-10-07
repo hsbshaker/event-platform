@@ -7,16 +7,18 @@
  * over the subject: a host saw it wash out and cut off half a boombox. So before the fade is drawn,
  * the whole picture may slide away from the words — up when it is above them, down when it is below
  * — by up to `MAX_SLIDE_SHARE` of the card's height, so that what lies under the fade is the
- * picture's own even background. The picture keeps its full width and size; a strip at its far edge
- * (sky or ground) leaves the card instead, and the strip the slide uncovers on the words' side lies
- * under the panel's opaque paper. When no slide clears the subject, the one that leaves the least of
- * it under the fade is kept, and none when no slide helps.
+ * picture's own even background. The picture keeps its full width and size; the strip at its far
+ * edge leaves the card instead, whatever is there (it is not measured), and the strip the slide
+ * uncovers on the words' side lies under the panel's opaque paper. When no slide clears the
+ * subject, the one that leaves the least of it under the fade is kept, and none when no slide
+ * helps.
  *
  * "Even" is measured, never asked of a model (`spec.md §32 #20`): the share of the pixels under the
  * fade, inside the card's outline, within `EVEN_DELTA_E` (OKLab) of their median colour. Pure and
  * deterministic over decoded pixels.
  */
 
+import { MAX_ARTWORK_OFFSET_SHARE } from "./card-data";
 import { rgbToOklch } from "./color";
 import type { CardPanelShape } from "./layouts";
 import { CARD_CANVAS, insideOutline, SHAPE_PROPORTION, type CardShape } from "./shapes";
@@ -24,8 +26,8 @@ import { CARD_CANVAS, insideOutline, SHAPE_PROPORTION, type CardShape } from "./
 /** The slides tried, as shares of the card's height, smallest first. */
 export const SLIDE_STEPS: readonly number[] = [0, 0.05, 0.1, 0.15];
 
-/** The largest slide: about 15% of the card's height (owner decision, 2026-10-07). */
-export const MAX_SLIDE_SHARE = 0.15;
+/** The largest slide: 15% of the card's height (owner decision, 2026-10-07), as the card checks it. */
+export const MAX_SLIDE_SHARE = MAX_ARTWORK_OFFSET_SHARE;
 
 /**
  * The fade lies over even background when at least this share of its pixels is within

@@ -174,7 +174,7 @@ product code in `src/lib/card/layouts.ts` and `src/lib/card/shapes.ts`:
 | `cover-top` | upper part, centred, in the scene's calm sky, wall or colour field | one bold full-bleed scene, edge to edge: one or two big subjects grounded in the lower 55% (on `square` 40%), the top 45% (60%) the scene's own calm backdrop in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
 | `cover-bottom` | lower part, centred, in the scene's calm ground or colour field | one bold full-bleed scene: one or two big subjects fill the upper 55% (on `square` 40%), the bottom 45% (60%) the scene's own calm ground in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
 
-**The cover layouts** (`card_layouts_v5`, owner decisions 2026-10-06) set the words in a calm band
+**The cover layouts** (`card_layouts_v6`, owner decisions 2026-10-06) set the words in a calm band
 of one bold full-bleed scene, the way a record sleeve or a poster sets its type, for a brief no
 other layout could express (a host who asked for "a ’90s hip-hop album cover"). Their bands and
 zones are `art-bottom`'s and `art-top`'s, so no slot limit, fit check or stored host text changes;
@@ -498,8 +498,9 @@ For each text zone, computed once per artwork, layout and shape — for every sh
    out and cut off half a boombox). If the pixels under the fade are not even — at least 97% within
    OKLab ΔE 0.05 of their median colour — the whole artwork is drawn moved away from the words,
    up when it is above them and down when it is below, by the smallest of 5%, 10% or 15% of the
-   card's height that makes them even. It keeps its full width and size: a strip of sky or ground
-   at its far edge leaves the card, and the strip it uncovers lies under the panel's opaque paper
+   card's height that makes them even. It keeps its full width and size: the strip at its far edge
+   leaves the card, whatever is there (it is not measured), and the strip it uncovers lies under
+   the panel's opaque paper
    (`slide.test.ts` proves this for every layout and shape). When no slide clears the subject, the
    one leaving the least of it under the fade is kept, and none when no slide helps. The fade
    itself is unchanged. Nothing here calls a model.

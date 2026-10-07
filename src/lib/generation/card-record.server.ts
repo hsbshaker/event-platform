@@ -101,7 +101,7 @@ export function zoneInk(
     throw new Error(`The artwork has no ink for the ${shape} card.`);
   }
   if (zone.panel === undefined) {
-    if (zone.artOffset !== undefined) {
+    if (zone.artOffset !== undefined && zone.artOffset !== 0) {
       throw new Error(`The artwork's slide for the ${shape} card has no panel.`);
     }
     return { ink: zone.ink, panels: [], artOffset: 0 };
@@ -119,7 +119,7 @@ export function zoneInk(
   // A slide moves the picture away from the words, only under a panel that fades from an edge
   // (`chooseSlide`): up when the picture is above them, down when it is below, never past the limit.
   let artOffset = 0;
-  if (zone.artOffset !== undefined) {
+  if (zone.artOffset !== undefined && zone.artOffset !== 0) {
     const fade = isObject(panel.fade) ? panel.fade : undefined;
     const direction = fade?.kind === "edge" ? (fade.from === "bottom" ? -1 : 1) : 0;
     if (

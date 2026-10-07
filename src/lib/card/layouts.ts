@@ -229,7 +229,7 @@ const WASH = {
     "The atmosphere covers the whole card with real depth and variation; it is never a flat, empty field.",
 } as const;
 
-// The cover layouts (`card_layouts_v5`, owner decisions 2026-10-06): one full-bleed scene with the
+// The cover layouts (`card_layouts_v6`, owner decisions 2026-10-06): one full-bleed scene with the
 // words set in a calm band of it, as on a record sleeve or a poster. The band is the scene's own
 // backdrop, not paper; the shares match the picture layouts' so the zones are theirs. The text
 // never names the format: an image model asked for a cover or poster letters it.

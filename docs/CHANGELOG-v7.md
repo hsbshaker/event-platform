@@ -925,8 +925,9 @@ accents.
 - **The slide** (`card_compiler_v6`; `docs/card-system.md §4.2` step 5): when the fade would lie
   over the subject, the whole picture is first drawn moved away from the words — up when it is
   above them, down when it is below — by the smallest of 5%, 10% or 15% of the card's height that
-  puts even background under the fade, keeping its full width and size. A strip of sky or ground
-  at its far edge leaves the card; the strip it uncovers lies under the panel's opaque paper. When
+  puts even background under the fade, keeping its full width and size. The strip at its far edge
+  leaves the card, whatever is there (on the owner's Notorious card, the top of the crown); the
+  strip it uncovers lies under the panel's opaque paper. When
   no slide clears the subject, the one leaving the least of it under the fade is kept. The fade
   itself is unchanged.
 - **Kept** (owner): the cover layouts (with the picture layouts' panels), the host's title from

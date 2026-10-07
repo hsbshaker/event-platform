@@ -15,6 +15,9 @@ describe("zoneInk: the stored slide (card_compiler_v6)", () => {
 
   it("reads no slide as 0, and a slide toward the words' side within 15%", () => {
     expect(zoneInk(stored("rectangle", { ink: "#222222" }), "rectangle").artOffset).toBe(0);
+    expect(
+      zoneInk(stored("rectangle", { ink: "#222222", artOffset: 0 }), "rectangle").artOffset,
+    ).toBe(0);
     const up = stored("rectangle", {
       ink: "#222222",
       panel: above,
