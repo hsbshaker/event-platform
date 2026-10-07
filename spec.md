@@ -64,8 +64,10 @@ colour, alignment, spacing and case — and they can add their own. It works by 
 well as with a mouse, in the spirit of Paperless Post and Canva. The artwork stays as generated;
 the shape is switched from the Design panel.
 
-Owner decisions: host-chosen colours are not checked for readability (the card as generated still
-clears 4.5:1, and the page under the card carries every detail in the accessible house style);
+Owner decisions: host-chosen colours are not checked for readability (the card as generated starts
+with text placed and coloured to read over its artwork, and the page under the card carries every
+detail in the accessible house style); every text box may carry an optional text background the
+host chooses (none by default);
 the full Google Fonts library, served from the platform's own storage; a new direction or a new
 shape keeps the host's words, added text and fonts and lays them out fresh, while the edited
 version of the previous card is kept to return to. Line breaks stay deterministic, so guests see
@@ -206,7 +208,7 @@ colours, borders, clip art or templates.
 
 The host describes intent; the system turns intent into an invitation.
 
-### 4.2 AI designs the card; code sets the facts and guarantees legibility
+### 4.2 AI designs the card; code sets the facts and the starting text
 
 The strong model creates:
 - an `EventIdentity` — what the host means and what creative world the event belongs to;
@@ -221,8 +223,9 @@ Deterministic application code:
 1. validates the design against a strict schema and catalogs;
 2. checks the wording invents no fact;
 3. validates the artwork;
-4. chooses ink colours and any legibility panel so every text of the generated card clears 4.5:1;
-5. sizes and breaks every line of card text so it fits;
+4. sizes and breaks every line of card text so it fits;
+5. places that text where the artwork has workable space and chooses its colour from contrast —
+   never adding a panel, fade or crop to the artwork, which is preserved as generated (§11.6);
 6. renders the card identically at every size, inside the envelope, above the house-style page.
 
 The model never emits HTML, CSS, JavaScript, SVG, colours for text, font sizes, positions or line
@@ -769,7 +772,7 @@ Once Event Identity is valid, the strong model designs one card (`card_design_sc
 CardDesign {
   presentation { name, description }        // host-facing; e.g. "Heirloom Teddy"
   shape           // rectangle | rounded-rectangle | arch | oval (5:7) · square | circle (1:1)
-  layout          // ID from the layout catalog (card_layouts_v3); must support the shape
+  layout          // ID from the layout catalog (card_layouts_v7); must support the shape
   artMode         // illustration | framed | atmosphere | minimal
   typography { primary, alternates[0..2] }  // curated pairing IDs
   wording { title, invitationLine }         // bounded free text; no invented facts
@@ -840,19 +843,19 @@ refusal is a failure; when it refuses a brand or character homage, the regenerat
 re-prompted design that evokes the character's world (§7.6). There is no template or stock
 fallback.
 
-**Repaints before a panel** (owner decisions, 2026-10-04). An artwork that passes validation but
-would need the layout's legibility panel on the shape it was painted for (§7.9, step 5) — the
-picture has run into the text area, or a wash is too dark or busy under it — is repainted from the
-same art prompt; for art with a subject (`illustration`, `framed`) the repaint adds one composition
-line saying what to keep clear of the words (owner decision, 2026-10-05; repeating the identical
-prompt tended to repeat the composition), for a new design and for a shape switch alike (a switch's repaint carries the same reference artwork). Ink resolution
-runs again on each repaint, and the first artwork that needs no panel is kept; if none does, the
-first valid artwork is kept with the panel. Code decides this from ink resolution; no model judges
+**Reconsidering the artwork** (owner decisions, 2026-10-07). A valid artwork is kept whenever it
+has workable space for the invitation's words (§7.9 step 5, §11.6): text over an illustrated
+object, a miss of the composition's percentage boundary or a starting text that falls short of a
+contrast check is never by itself a reason to repaint. Only when there is genuinely no workable
+composition on a shape the artwork was painted for is it repainted once, from the same art prompt
+plus one line asking for a quieter part of the picture for the words, for a new design and for a
+shape switch alike (a switch's repaint carries the same reference artwork); the image whose
+workable space reads better is kept. Code decides this from the measured image; no model judges
 legibility. An artwork gets at most **two extra images** in all: its one validation regeneration,
-if it needed one, and repaints share that budget. A repaint that fails validation is dropped (it
+if it needed one, and that repaint share the budget. A repaint that fails validation is dropped (it
 still uses one image); a valid card already exists, so a repaint never causes a visible failure.
 Only the artwork the card shows is persisted as the design's artwork; the other images are metered
-(§9.6) and not kept. Each repaint costs about 6¢ and adds about 30 s to the cards that need it.
+(§9.6) and not kept. A repaint costs about 6¢ and adds about 30 s to the cards that need it.
 
 ### 7.9 Card compilation
 
@@ -864,12 +867,15 @@ For each card, deterministic code with no model call (`docs/card-system.md §4`)
    slot, logged); host-supplied wording is not checked;
 3. checks direction distinctness against earlier designs (one re-prompt);
 4. validates the artwork (one regeneration);
-5. resolves ink per text zone, for every shape the artwork fits (`docs/card-system.md §2.4`), from
-   the artwork's own palette, measuring the background conservatively — the whole zone and the
-   area behind each line of the card's text, with a small margin, so artwork under the letters
-   counts (owner decisions, 2026-10-05) — so every card text clears **4.5:1**; applies the
-   layout's legibility panel when no ink can;
-6. persists the `CardDesign` (raw and validated), artwork and resolved ink with the version set.
+5. places the starting text, for every shape the artwork fits (`docs/card-system.md §2.4`): the
+   layout's text laid out at its starting sizes stays where the layout puts it when the background
+   behind its lines reads well, else moves vertically — as one block, or as the heading and the
+   details apart — to where the actual image reads best, and its colour comes from the artwork's
+   palette or a tuned near-black or near-white, whichever reads at **4.5:1** behind the most of its
+   lines (owner decisions, 2026-10-07). Nothing is drawn over the artwork and the artwork never
+   moves; the space is workable when most of the background behind the text reads (§11.6);
+6. persists the `CardDesign` (raw and validated), artwork, resolved ink and the starting text's
+   position with the version set.
 
 Card text layout for the generated card — font size and line breaks for every slot — is one pure
 versioned function (`layoutCard`), run when the design is compiled and whenever the generated layout
@@ -974,7 +980,8 @@ Creation Mode.
 - the designs generated so far, to choose another before publish.
 
 Text is edited directly on the card in the card editor. Do not expose the layout catalog, art
-modes, ink rules, panels, outlines beyond the six shapes, or any artwork editing.
+modes, ink rules, outlines beyond the six shapes, or any artwork editing (a box's text background
+is the host's own choice, §20.1).
 
 ### 7.15 Try another direction
 
@@ -1112,7 +1119,7 @@ Never call a model for:
 - validating Event Identity/CardDesign structure and enum IDs;
 - the wording fact check and direction-distinctness check;
 - assembling the art prompt;
-- ink resolution, legibility panels and contrast;
+- starting text placement, ink and contrast;
 - card text layout (`layoutCard`);
 - choosing or switching the active design;
 - enforcing generation limits;
@@ -1125,7 +1132,8 @@ Persist:
 - Event Identity (each revision);
 - every `CardDesign`, raw and validated, with its prompt, schema, layout-set and compiler versions;
 - every artwork asset, with its image model and art-prompt version;
-- each design's resolved ink and panels;
+- each design's resolved ink and starting text position (and, for a design generated before
+  2026-10-07, its stored legibility panel);
 - the event's active design and the host's card edits, separately from the designs.
 
 Do not re-send original raw inspiration after its summary is available. Do not regenerate or
@@ -1139,10 +1147,11 @@ Each card generation records:
 ```ts
 schemaValidFirstCall
 reprompts[]            // kind: schema | wording | repeat-direction (at most one each)
-artRegenerated         // boolean, with the reason: the failed validation, or panel-repaint (§7.8)
-artRepaints            // 0–2: repaints made because the artwork would need a panel (§7.8)
+artRegenerated         // boolean, with the reason: the failed validation, or no-text-space (§7.8)
+artRepaints            // 0–1: the repaint made because no workable text space was found (§7.8)
 standardWording[]      // slots that fell back to standard wording
-inkPanels[]            // zones that needed a legibility panel
+inkPanels[]            // always empty since 2026-10-07 (designs before it: zones that needed a panel)
+textSpace[]            // per fitted shape: readable share behind the text, workable, its position
 lineAreasFallback[]    // shapes whose ink was judged on the whole zone alone (text did not lay out)
 versions               // prompt, schema, layout set, compiler, image model
 latency                // identity, design, art, total
@@ -1154,10 +1163,10 @@ failure                // on a failed generation: code, stage, per-image validat
 ```
 
 A shape switch makes no identity or design call, so it records only the artwork's part — art
-regeneration, repaints, panels, line-area fallbacks, versions and latency — plus the shape asked
+regeneration, repaints, text space, line-area fallbacks, versions and latency — plus the shape asked
 for, the shape of the reference artwork and the shapes the new artwork fits.
 
-Schema validity, wording fallbacks, art regeneration and legibility panels are separate measures;
+Schema validity, wording fallbacks, art regeneration and text space are separate measures;
 never fold one into another.
 
 ### 9.6 Model usage and cost metering
@@ -1211,16 +1220,18 @@ Front only, in one of six shapes — rectangle, rounded rectangle, arch, oval (p
 square, circle (1:1) — defined in card units and rendered by uniform scaling, so the card is
 identical on a phone and on desktop. The outline is code-defined geometry applied as a mask; it is
 never drawn by a model or into the artwork, and text sits only inside each shape's text-safe area.
-Layers: generated artwork (full bleed at the shape's proportion, masked to the outline); an
-optional art-derived legibility panel; live text.
+Layers: generated artwork (full bleed at the shape's proportion, masked to the outline, drawn
+exactly where it was painted); live text, each box with its optional host-chosen text background
+(§20.1). A design generated before 2026-10-07 may also carry its stored art-derived legibility
+panel between the two, drawn as stored.
 
 ### 11.3 Layout catalog
 
-A small versioned catalog of text layouts (`card_layouts_v6`, `docs/card-system.md §2.3`: the set
+A small versioned catalog of text layouts (`card_layouts_v7`, `docs/card-system.md §2.3`: the set
 validated in Phase 3, refitted in Phase 4 so every detail fits every card, with the two cover
-layouts added in v5 — one bold full-bleed scene with the words set in a calm band of it). Each layout declares the shapes it
-supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
-slot, the composition rule given to the art brief, and its legibility-panel shape. Slot character
+layouts — one bold full-bleed scene with the words set in a quieter stretch of it). Each layout
+declares the shapes it supports and, per shape, its text zones, slot order, alignment, size range
+and maximum lines per slot, and the composition rule given to the art brief. Slot character
 limits hold for every shape the layout supports, so a shape switch never breaks fit. The model picks
 a layout by ID; the host never sees the catalog. Changing the catalog, including the shapes'
 outlines, is a layout-set version bump.
@@ -1236,15 +1247,26 @@ Wording slots (`title`, `invitationLine`) are drafted by the model and editable.
 (`babyName`, `hosts`, `date`, `time`, `venue`, `rsvpBy`) render from event data only. A slot with no
 value takes no space. Placeholders appear only in Creation Mode and are never published.
 
-### 11.6 Ink, legibility and fit
+### 11.6 The starting text, legibility and fit
 
-For the card as generated: ink per text zone comes from the artwork's palette, measured
-conservatively over the whole zone and behind each line of the card's text, reaching **4.5:1** for every
-text; otherwise the artwork is repainted (§7.8) and then, if still needed, the layout's
-art-derived legibility panel is applied. Where that panel fades into a picture above or below the
-words and its fade would lie over the subject, the picture is first drawn moved away from the
-words by up to 15% of the card's height, full width and full size, so the fade lies over its
-background (`docs/card-system.md §4.2` step 5; owner decision 2026-10-07). `layoutCard` decides every size and line break
+A generated card is an editable starting design (owner decisions, 2026-10-07): the artwork is
+preserved, the text starts somewhere sensible, and the host customises from there. The artwork is
+never covered by a panel, cream background or broad fade, and never slid, zoomed, cropped,
+repositioned or split into a separate picture section to make room for text. Fades, borders and
+textures that belong to the requested design are part of the artwork.
+
+Code judges the actual image (`docs/card-system.md §4.2`): the layout's text, at its starting sizes
+and line breaks, keeps the layout's position when the background behind its lines lets the chosen
+colour read at **4.5:1** almost everywhere; otherwise it moves vertically, as one block or as the
+heading (title and invitation line) and the details apart, to wherever on the card it reads best.
+Its colour is the candidate — the artwork's palette, then a tuned near-black and near-white — that
+reads behind the most of its lines. The space is **workable** when most of that background reads;
+it may be one area or two, need not match the layout's coordinates, and need not be flat, empty or
+white — sky, brick, walls, gradients, textures, solid colours and paper all count — while a tiny
+empty patch does not, because the whole starting text must fit in it at readable sizes. Text over
+an illustrated object is not a failure and there is no zero-overlap guarantee. Only an artwork
+with no workable space is reconsidered (§7.8). A design generated before this change keeps its
+stored panel and colour, drawn as stored. `layoutCard` decides every size and line break
 deterministically, never stranding a short word such as "A" on a line of its own where a space
 break at the same line count avoids it (owner decision, 2026-10-05); slot limits
 make fit always possible. A test renders every layout × pairing with worst-case content in a real
@@ -1294,8 +1316,8 @@ cannot disagree with the live card; a test-time fixture compares the two in a re
 
 ### 11.12 Quality gates
 
-- unit tests: schema validation, wording fact check, distinctness check, ink resolution (including
-  the panel path), `layoutCard`, slot limits;
+- unit tests: schema validation, wording fact check, distinctness check, starting text placement
+  and ink, `layoutCard`, slot limits, text backgrounds;
 - layout fixtures: every layout × pairing renders with no text outside its zone;
 - creative evaluation: the corpus in `docs/model-evals/creative-understanding.json` against the real
   identity and card-design calls (`docs/model-contracts.md §6`);
@@ -1822,11 +1844,21 @@ Every piece of text on the card is a **text box**. The host may:
 - change its font (any family in the Google Fonts library, with the design's own pairings shown
   first; weight and italic where the family has them), size, colour (any colour, with swatches from
   the artwork and recent colours first), alignment, letter spacing, line height and case;
+- give it a **text background** (owner decisions, 2026-10-07), or take it away: **None** (the
+  default), **Highlight** (a band following each line), **Rounded box** (around the text block) or
+  **Soft backdrop** (feathered locally behind the text), with its colour, opacity and padding;
 - duplicate or delete it, and bring it forward or send it back;
 - add a new text box.
 
+A text background belongs to its box: it moves, rotates and resizes with it and follows its lines
+when the text is resized or re-broken; its opacity is the background's alone and never lowers the
+text's; removing it leaves the box as it was; and it never changes the artwork. Nothing adds one
+automatically — not generation, not the editor when text is moved or resized. Organic shapes may
+follow later.
+
 The artwork, the outline and the envelope are not editable; the shape is switched from Design
-(§7.14). Images, stickers and other graphics cannot be added.
+(§7.14). Moving or resizing text never alters the artwork. Images, stickers and other graphics
+cannot be added.
 
 Host choices are not checked (owner decision, 7.2): a colour may be hard to read over the artwork,
 and text may be moved past the card's outline, where it is clipped exactly as guests will see it.
@@ -1879,8 +1911,8 @@ see. Interaction design: `docs/design-system.md`, `docs/screen-spec.md`.
   uniformly. The link-preview image is the one other drawing of a card: made on the server from
   the same stored data, under the component's validation, and held to the component by a
   test-time fixture (§11.10).
-- **The generated card's guarantees** (ink 4.5:1, fit, quiet regions) hold until the host changes
-  something.
+- **The generated card's starting text** (placed and coloured for its artwork, fitted to its
+  zone) is a starting point; the host's edits replace it, and nothing re-checks them.
 
 ### 20.5 Where edits live
 
@@ -2409,7 +2441,7 @@ message_opt_out
 ```
 
 Every metered model call also writes a `GenerationRun`. Wording fallbacks, art regenerations and
-legibility panels are recorded on the generation and never silently discarded.
+text space are recorded on the generation and never silently discarded.
 
 ## 30. MVP Success Criteria
 
@@ -2442,8 +2474,9 @@ The creative system succeeds when:
 17. Event Identity understands vague and taste-heavy prompts (`docs/model-contracts.md §6`);
 18. no card ever states a fact the host did not supply;
 19. no artwork contains text, logos, wordmarks or brand names;
-20. every text of the generated card clears 4.5:1 and fits its zone at every size, and every card
-    reads the same for host and guests at every size;
+20. every generated card keeps its artwork as painted and starts with text that fits its zone and
+    reads over the artwork where the image has workable space, and every card reads the same for
+    host and guests at every size;
 21. a requested change keeps the card and changes what was asked; a request for a new direction
     yields a different idea, not a palette or font swap;
 22. historical designs never change because prompts, layouts, the compiler or the image model
@@ -2523,39 +2556,45 @@ The host should feel:
   rejects artwork that does (one regeneration) (§7.6a, §7.8).
 - [ ] Every design has one of the six shapes and a layout that supports it; text zones lie inside
   the shape's text-safe area; the outline is code-defined and never part of the artwork.
-- [ ] A cover layout sets the words in a calm band of a full-bleed picture; the card design chooses
+- [ ] A cover layout sets the words in a quieter stretch of a full-bleed picture; the card design chooses
   it for bold or named-format briefs, never for restrained ones, and nothing that reaches the image
   model names the format.
 - [ ] Artwork is at the shape's proportion (5:7 or 1:1), decodable, at minimum resolution, contains
   no embedded text, and passes
   content safety; a failure is regenerated once, then shown as a visible failure with retry; no
   template or stock fallback exists.
-- [ ] An artwork that passes validation but would need the legibility panel on the shape it was
-  painted for (a new design's or a shape switch's) is repainted — from the same art prompt, plus for
-  art with a subject one line saying what to keep clear of the words — before the panel is used, decided by code from ink resolution; the first artwork that needs no panel is
-  kept, otherwise the first valid one with the panel; an artwork gets at most two extra images in
-  all (validation regeneration and repaints together), and a repaint never causes a visible
-  failure.
+- [ ] A valid artwork with workable space for the starting text is kept as generated: text over an
+  illustrated object, a missed percentage boundary or a starting text that falls short of a
+  contrast check never triggers a repaint. Only an artwork with no workable space on a shape it was
+  painted for (a new design's or a shape switch's) is repainted once — from the same art prompt
+  plus one line asking for a quieter part of the picture for the words — decided by code from the
+  measured image, and the image whose space reads better is kept; an artwork gets at most two
+  extra images in all (validation regeneration and that repaint together), and a repaint never
+  causes a visible failure.
 - [ ] When the image provider refuses a brand or character homage, the one regeneration comes
   from a re-prompted design that evokes the character's world rather than its signature look; the
   host sees a short, plain copyright note, never a provider error; a second refusal is a visible
   failure whose Try again takes the same step back (§7.6). A shape switch's refusal is a visible
   failure with no re-prompt, and the card stays as it is.
-- [ ] Every text of the generated card clears 4.5:1 against the conservatively measured background
-  of its zone, measured whole and behind each line of its text (with a small margin) so artwork
-  under the text counts
-  (host-chosen colours in the card editor are not checked);
-  otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it;
-  an edge fade that would lie over the subject first slides the picture away from the words, by up
-  to 15% of the card's height, never shrinking or boxing it.
+- [ ] The generated card adds nothing to its artwork: no legibility panel, cream background, broad
+  fade or wash behind the text, and the artwork is never slid, zoomed, cropped, repositioned or
+  split into a separate picture section to make room for text; it is drawn exactly as painted.
+  Fades, borders and textures that belong to the requested design are part of the artwork.
+- [ ] The generated card's starting text keeps the layout's position when the background behind its
+  lines reads at 4.5:1 almost everywhere, else moves vertically — as one block, or the heading and
+  the details apart — to where the actual image reads best, never changing its sizes or line
+  breaks; its colour is the artwork-palette or tuned near-black/near-white candidate that reads at
+  4.5:1 behind the most of its lines. Text over an illustrated object is allowed; a design
+  generated before 2026-10-07 keeps its stored panel and colour (host-chosen colours in the card
+  editor are not checked).
 - [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
   its zone; no word is broken except just after a hyphen it already contains; no short word such
   as "A" stands alone on a line where a space break at the same line count avoids it; text is never
   silently truncated; slot limits are enforced at entry,
   and characters the card's fonts cannot draw are refused at entry with a plain message.
 - [ ] No legibility, fit, compatibility or wording-fallback step calls a model.
-- [ ] `CardDesign` (raw and validated), artwork, resolved ink and the version set persist per design
-  and are never mutated.
+- [ ] `CardDesign` (raw and validated), artwork, resolved ink, the starting text's position and the
+  version set persist per design and are never mutated.
 - [ ] Card-editor edits and fact edits never mutate a design and never call a model.
 - [ ] Routine rendering never regenerates or recompiles a historical design.
 
@@ -2598,7 +2637,14 @@ The host should feel:
   party.
 - [ ] Any colour can be chosen, with artwork swatches and recent colours first; host choices are not
   checked or blocked.
-- [ ] The artwork, outline and envelope cannot be edited, and no images or graphics can be added.
+- [ ] Each text box has a Text background control: None (selected by default), Highlight (each
+  line), Rounded box (around the text block) and Soft backdrop (feathered locally behind the
+  text), with colour, opacity and padding. The background's opacity never lowers the text's; it
+  moves, rotates and reflows with its box when the text is moved, resized or re-broken; it can be
+  removed on its own; it is saved with the box and drawn identically on the card and in link
+  previews; nothing adds one automatically.
+- [ ] The artwork, outline and envelope cannot be edited, moving or resizing text never alters the
+  artwork, and no images or graphics can be added.
 - [ ] On a 390px phone: tap selects, drag moves, pinch scales, twist rotates, double-tap types; the
   toolbar is reachable with one thumb and the edited box stays visible above the keyboard.
 - [ ] On desktop: drag, width and rotation handles, arrow-key nudges, undo/redo/duplicate/delete
@@ -2732,8 +2778,8 @@ The host should feel:
 13. No model emits HTML, CSS, JavaScript, SVG, text colours, sizes, positions or line breaks.
 14. The model owns interpretation, the creative direction, the layout and art-mode choice, the
     pairing choice, the wording and the art brief (code may suggest a rendering at random for
-    variety, §7.6a rule 7; the design decides). Code owns facts, text placement, fit, ink,
-    contrast, panels, the envelope, the page, RSVP/registry semantics and business logic.
+    variety, §7.6a rule 7; the design decides). Code owns facts, the starting text's placement,
+    fit, ink and contrast, the envelope, the page, RSVP/registry semantics and business logic.
 15. Facts come only from host-supplied or host-confirmed event data. Never invent them, never let
     wording state them, never infer them.
 16. Artwork contains no text. Never ask the image model to render words, and reject artwork that
@@ -2748,15 +2794,17 @@ The host should feel:
     provider claims to enforce.
 20. Re-prompt the card-design call only for a schema-invalid design, a model-wording fact-check
     failure or an exact repeat of an earlier direction, once each; regenerate artwork once only for
-    failed validation, and repaint it only while the shape it was painted for would need a
-    legibility panel, within two extra images per artwork in all (§7.8); Event Identity and fact
+    failed validation, and repaint it once only when the shape it was painted for has no workable
+    space for the starting text, within two extra images per artwork in all (§7.8); Event Identity and fact
     extraction get one repair retry each (`docs/model-contracts.md §9`). Never call a model for
     legibility, fit or compatibility: code decides, and a repaint is a new image from the same art
     prompt, never a model's judgement.
 21. No library, template or stock fallback. A failed generation is shown honestly with a retry.
-22. Choose ink and panels deterministically; every text of the generated card clears 4.5:1
-    against a conservatively measured background. Host colour choices in the card editor are the
-    host's and are not checked.
+22. Choose the starting text's colour and position deterministically from the measured image, and
+    never correct the artwork for text: no legibility panel, cream background, broad fade or wash,
+    and no slide, zoom, crop, repositioning or separate picture section (owner decisions,
+    2026-10-07). Text over an illustrated object is not a failure. A text background is only ever
+    the host's choice in the card editor. Host colour choices are the host's and are not checked.
 23. `layoutCard` sizes and breaks the generated card's text, and one deterministic function breaks
     every edited text box at its width; the renderer sets the stored lines and never lets the
     browser re-wrap card text; never truncate silently; enforce length limits at entry.
@@ -2777,8 +2825,8 @@ The host should feel:
     card editor edits text only — never the artwork, the outline or the envelope.
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
-30. Each round generates one design and one artwork (plus at most two regenerations or repaints of
-    that artwork, made one at a time and stopping at the first that needs no panel, §7.8); never
+30. Each round generates one design and one artwork (plus at most two extra images of that
+    artwork — its validation regeneration and at most one repaint for missing text space, §7.8); never
     generate in bulk to pick from.
 31. No host-uploaded, stock or retrieved imagery on the card or page; the native product thumbnail
     is the only content-image exception.
@@ -2879,7 +2927,7 @@ Card design (layout, art mode, font pairing, wording, art brief)
     ↓
 Card artwork (image model; brief + layout and shape rules only; no text)
     ↓
-Deterministic compiler: validate · wording fact check · artwork checks · ink 4.5:1 · persist
+Deterministic compiler: validate · wording fact check · artwork checks · starting text placement and ink · persist
     ↓
 CARD REVEAL — out of its envelope
 "Your invitation looks great. Let's make it real."

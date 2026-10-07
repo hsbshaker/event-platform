@@ -5,10 +5,12 @@
 **Prompt versions:** `event_identity_v7`, `card_design_v6` (`card_design_v1` written in Phase 3
 validation; v2 adds rendering families in Phase 5; v3 one central idea; v4 the change asked for, or
 a new idea; v5 the host's stated title and their own concept; v6 the cover layouts),
-`fact_extraction_v2` (v2 the title rule), `card_art_v6` (deterministic assembly; `card_art_v1`
+`fact_extraction_v2` (v2 the title rule), `card_art_v7` (deterministic assembly; `card_art_v1`
 written in Phase 3 validation, `card_art_v2` in Phase 4 with `card_layouts_v2`, `card_art_v3` in
 Phase 5 with rendering families, `card_art_v4` adds the repaint's composition line, `card_art_v5`
-the revision framing of an edit, `card_art_v6` the cover layouts' composition and presence),
+the revision framing of an edit, `card_art_v6` the cover layouts' composition and presence,
+`card_art_v7` a quieter area for the words in the design's own terms instead of one kept
+"completely clear", and the repaint line asking for one),
 `card_art_inspection_v2`
 **Schema versions:** `event_identity_schema_v6`, `card_design_schema_v4` (`card_design_schema_v1`
 written in Phase 3 validation; v2 adds `artBrief.rendering` and `artBrief.aesthetic`; v3 adds
@@ -61,9 +63,9 @@ EVENT_IDENTITY_PROMPT_VERSION = "event_identity_v7"
 EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v6"
 CARD_DESIGN_PROMPT_VERSION    = "card_design_v6"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v4"
-CARD_ART_PROMPT_VERSION       = "card_art_v6"
-CARD_LAYOUT_SET_VERSION       = "card_layouts_v6"
-CARD_COMPILER_VERSION         = "card_compiler_v6"
+CARD_ART_PROMPT_VERSION       = "card_art_v7"
+CARD_LAYOUT_SET_VERSION       = "card_layouts_v7"
+CARD_COMPILER_VERSION         = "card_compiler_v7"
 FACT_EXTRACTION_PROMPT_VERSION = "fact_extraction_v2"
 ```
 
@@ -210,7 +212,7 @@ CardDesign {
   }
   shape: "rectangle" | "rounded-rectangle" | "arch" | "oval"   // portrait 5:7
        | "square" | "circle"                                  // square 1:1 (card-system.md §2.1)
-  layout: CardLayoutId           // card_layouts_v3 catalog (card-system.md §2.3); must support shape
+  layout: CardLayoutId           // card_layouts_v7 catalog (card-system.md §2.3); must support shape
   artMode: "illustration" | "framed" | "atmosphere" | "minimal"
   typography: {
     primary: TypographyPairingId                 // src/lib/card/typography.ts
@@ -446,7 +448,7 @@ it — it measures the creative stack, not the compiler.
 
 ---
 
-# 7. Card art (`card_art_v5`)
+# 7. Card art (`card_art_v7`)
 
 ## 7.1 Art prompt assembly
 
@@ -459,7 +461,9 @@ The art prompt is assembled **by application code**, never written verbatim by a
   `photographic`, `editorial`, `rendered-3d` and `collage` it says no people, faces, hands or
   bodies;
 - the layout's composition and presence rules for the shape (where the subject may sit, which
-  regions stay quiet; on a square, oval or arch card a picture above or below the words takes 40%,
+  region stays quieter for the words — with low detail, in whatever suits the design: sky, a wall,
+  brick, fabric, a gradient, a texture, a solid colour or the paper itself, never necessarily
+  empty or flat; on a square, oval or arch card a picture above or below the words takes 40%,
   `card-system.md §2.3`);
 - the shape's crop-safety rule: for `illustration` and `atmosphere` art, the rule of the tightest
   outline among the shapes the artwork fits — the layout's supported shapes of that proportion with
@@ -539,15 +543,18 @@ count); it fails the artwork only when the brief's rendering is `photographic`, 
 Every finding fails the artwork the same way: one regeneration, and a repaint that has one is
 dropped.
 
-An artwork that passes but would need the layout's legibility panel on the shape it was painted
-for — decided by ink resolution in code, never by a model — is repainted from the same art prompt
-plus, for `illustration` and `framed` art, one composition line (`REPAINT_COMPOSITION`,
-`card_art_v4`: keep the whole subject, anything tall included, out of the calm area kept for the
-words; it never refers to an earlier image) — an `atmosphere` or `minimal` wash, whose panel comes
-from its tone, repeats the prompt — and a shape switch's repaint keeps its `reference` until an artwork needs no panel, within two extra
-images per artwork in all, a validation regeneration included (`spec.md §7.8`). If none clears,
-the first valid artwork is kept with the panel; a repaint that fails validation is dropped. Only
-the artwork the card shows is persisted.
+An artwork that passes is kept as generated whenever it has workable space for the starting text
+(`card-system.md §4.2`, owner decisions 2026-10-07): text over an illustrated object, a missed
+percentage boundary or a starting text that falls short of a contrast check never earns a
+repaint, and nothing is ever drawn over the artwork to correct for text. Only an artwork with no
+workable space on the shape it was painted for — decided by code on the measured image, never by a
+model — is repainted once, from the same art prompt plus one composition line for every art mode
+(`REPAINT_COMPOSITION`, `card_art_v7`: leave a generous, quieter part of the picture for the
+words, with low detail, and keep the subject's main features out of it; it never refers to an
+earlier image); a shape switch's repaint keeps its `reference`. The image whose workable space
+reads better is kept, within two extra images per artwork in all, a validation regeneration
+included (`spec.md §7.8`); a repaint that fails validation is dropped. Only the artwork the card
+shows is persisted.
 
 A provider refusal of a brand or character homage is a failure whose regeneration comes from a
 `generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md
@@ -559,8 +566,10 @@ A provider refusal of a brand or character homage is a failure whose regeneratio
 - **CA-01 no text**: 0 accepted artworks containing text. Hard.
 - **CA-02 brand line**: 0 artworks containing a logo, wordmark, brand or character name, or a copied
   campaign image. Hard. Close homage to a character is allowed (`spec.md §7.6`).
-- **CA-03 layout respect**: the layout's quiet regions are quiet enough that ink resolution needs a
-  legibility panel rarely (measured rate; calibrated in Phase 3 validation).
+- **CA-03 workable space**: the artwork leaves workable space for the starting text — at least 85%
+  of the background behind its lines reads at 4.5:1 for the chosen colour, wherever on the card the
+  text starts — without the artwork being covered, moved or repainted for it (measured rate, judged
+  on raw artwork and final card side by side; owner decisions, 2026-10-07).
 - **CA-04 quality**: the artwork looks bespoke and specific to the brief, not generic AI or stock
   imagery (human judgement).
 - **CA-05 latency and cost**: p50/p75 per card, recorded for `spec.md §7.10`.
@@ -591,7 +600,7 @@ bounds and fact check. Model prose is never authorization.
 | Event Identity | ordinary transient retry | one repair retry, then visible failure | — |
 | Fact extraction | ordinary transient retry | one retry, then no prefill (host enters details) | — |
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
-| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork that would need the legibility panel on its shape: repaint until one needs none, two extra images per artwork in all, then the first valid one with the panel |
+| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork with no workable space for the starting text on its shape: one repaint, the better of the two kept, two extra images per artwork in all; never a panel |
 
 Card Design re-prompts are one of each kind per design. When a re-prompt's own call fails — its
 output invalid after the schema re-prompt is spent, or the provider call fails — the earlier valid

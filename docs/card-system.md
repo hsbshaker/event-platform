@@ -40,10 +40,13 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
    and never invents them.
 5. **The model may write wording.** It drafts the card's title and invitation line (§2.5). The host
    can edit both. Model-drafted wording never introduces a fact the host did not supply.
-6. **The generated card is legible by construction.** Ink colour, any legibility panel, font size
-   and line breaks are chosen by code, never by a model, and every text of the generated card meets
-   4.5:1 contrast against the artwork behind it (§4.2). After that the text is the host's: in the
-   card editor they may change any of it, unchecked (§7).
+6. **The generated card is a starting design; its artwork is preserved.** Ink colour, the starting
+   text's position, font size and line breaks are chosen by code, never by a model, from the actual
+   image: the text starts where the artwork has workable space, in the colour that reads best there
+   (§4.2). Nothing is added to the artwork to correct for text — no panel, cream background or
+   broad fade — and the artwork is never slid, cropped or split into a separate picture section
+   (owner decisions, 2026-10-07). After that the text is the host's: in the card editor they may
+   change any of it, unchecked, and give any box a text background (§7).
 7. **Line breaks are always deterministic.** The generated card's text is laid out by one
    deterministic function that never lets it leave its zone (§4.3); an edited box is broken at its
    width by the same rules and the result stored. The browser never re-wraps card text, so host and
@@ -118,27 +121,22 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
 Bottom to top:
 
 1. **Artwork** — the generated image, full bleed at the shape's proportion, masked to the shape's
-   outline.
-2. **Legibility panel** (optional) — paper in a colour derived from the artwork, defined by the
-   layout, behind a text zone only when the ink rules of §4.2 require it: opaque over the whole
-   zone, then fading into the artwork (`card_layouts_v3`, owner decisions 2026-10-05). Where the
-   words sit at one end of the card (`art-top`, `art-bottom`) it runs the card's full width from
-   that edge and fades over 180 card units toward the picture, so the sky or background reads as
-   turning to paper; where they sit in the middle (`framed`, `corners`, `atmosphere`) it is the
-   padded zone with a 70-unit feather. The fade is eased, in one colour. `card_layouts_v2` drew a
-   rounded box with a soft shadow edge; artwork persisted with it keeps that panel. An edge fade
-   never lands on the subject when a slide can prevent it (§4.2 step 5, `card_compiler_v6`): the
-   artwork is then drawn moved away from the words by up to 15% of the card's height, the strip it
-   uncovers lying under the panel's opaque paper.
-3. **Text** — live text in the layout's zones, in the design's typography pairing and the resolved
-   ink colour.
+   outline, drawn exactly where it was painted (never slid, zoomed or cropped).
+2. **Stored legibility panel** (designs generated before 2026-10-07 only) — the art-derived paper a
+   design of `card_layouts_v2`/`v3` stored when its ink needed it, drawn exactly as stored, because
+   that design's ink was chosen against it. New designs never get one (owner decisions,
+   2026-10-07); a stored slide (`artOffset`, `card_compiler_v6`) is ignored.
+3. **Text** — live text boxes in the design's typography pairing and the resolved ink colour, each
+   with its optional host-chosen **text background** drawn behind that box's own lines (§7.6).
 
 The card's text is real, selectable, screen-reader-readable text. The artwork is decorative
 (`alt=""`); everything a guest needs is in the text and on the page below.
 
-## 2.3 Layout set (`card_layouts_v6`)
+## 2.3 Layout set (`card_layouts_v7`)
 
-A **layout** says where text goes and, in return, where the artwork must leave calm space. Each
+A **layout** says where text starts and, in return, where the artwork should keep a quieter area for
+the words — whatever suits the design: sky, a wall, brick, fabric, a gradient, a texture, a solid
+colour or the paper itself, with low detail, never necessarily empty or flat. Each
 layout declares the shapes it supports, and for each of them defines:
 
 - its text zones, as rectangles in card units inside the shape's text-safe area, and which slots
@@ -149,32 +147,36 @@ layout declares the shapes it supports, and for each of them defines:
 - the character limit per slot that guarantees fit for every pairing **and every shape the layout
   supports** (§4.3), so switching shape can never make accepted text stop fitting;
 - the composition instruction added to the art brief, per shape: where the subject may sit and
-  which regions must stay quiet;
+  which region should stay quieter for the words;
 - the artwork's **presence**: how much of the card it should occupy outside the quiet regions (for
   example, substantial clusters in two corners, or a subject filling the upper half). Told only
   where to stay out, image models over-correct into a few token props on an empty field, which reads
-  unfinished; the layout states the presence it wants as well as the space it reserves;
-- its legibility panel — padding and fade (an edge fade from the top or bottom, or a wash) — used
-  only when §4.2 needs it.
+  unfinished; the layout states the presence it wants as well as the space it reserves.
+
+Since `card_layouts_v7` a layout has no legibility panel: the starting text is placed on the actual
+image instead (§4.2).
 
 The set validated in Phase 3 (`docs/model-evals/phase-3-validation.md`) was `card_layouts_v1`.
 `card_layouts_v2` carries the owner's Phase 4 fit decisions (`CHANGELOG-v7.md`, "Phase 4 — fitting
 every detail on every card"), proven by the layout fixtures (§9) with every slot at its limit; no
-card was made from `card_layouts_v1`. `card_layouts_v3` changes only the panel (owner verdict on
-CU-08, 2026-10-05: a box over the picture read as a hard edge); v2 panels render unchanged. The geometry, bands, composition and presence rules are
+card was made from `card_layouts_v1`. `card_layouts_v3` changed only the panel (owner verdict on
+CU-08, 2026-10-05: a box over the picture read as a hard edge); v2 panels render unchanged.
+`card_layouts_v7` removes the panel and rewrites the composition text: a quieter area with low
+detail in the design's own terms instead of an area kept "completely clear" for paper or a wash
+(owner decisions, 2026-10-07). The geometry, bands, composition and presence rules are
 product code in `src/lib/card/layouts.ts` and `src/lib/card/shapes.ts`:
 
 | Layout | Text | Artwork | Shapes | Art modes |
 | --- | --- | --- | --- | --- |
-| `art-top` | lower part, centred | subject in the upper half, the bottom 45% clear; on `square`, `oval` and `arch` the upper 40%, the bottom 60% clear | all but `circle` | `illustration` |
-| `art-bottom` | upper part, centred | subject grounded at the bottom, the top 45% clear; on `square`, `oval` and `arch` the lower 40%, the top 60% clear | all but `circle` | `illustration` |
-| `framed` | centred panel | border, wreath, garland or frame — rich, built from the event's motifs — around a quiet centre | all six | `framed`, `minimal` |
+| `art-top` | lower part, centred | subject in the upper half, the bottom 45% quieter; on `square`, `oval` and `arch` the upper 40%, the bottom 60% quieter | all but `circle` | `illustration` |
+| `art-bottom` | upper part, centred | subject grounded at the bottom, the top 45% quieter; on `square`, `oval` and `arch` the lower 40%, the top 60% quieter | all but `circle` | `illustration` |
+| `framed` | centred | border, wreath, garland or frame — rich, built from the event's motifs — around a quiet centre | all six | `framed`, `minimal` |
 | `corners` | centred | substantial motif clusters in two or more corners; centre quiet | `rectangle`, `rounded-rectangle`, `square` | `illustration`, `framed` |
 | `atmosphere` | centred | full-bleed wash or texture with real depth, low contrast through the centre | all six | `atmosphere`, `minimal` |
-| `cover-top` | upper part, centred, in the scene's calm sky, wall or colour field | one bold full-bleed scene, edge to edge: one or two big subjects grounded in the lower 55% (on `square` 40%), the top 45% (60%) the scene's own calm backdrop in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
-| `cover-bottom` | lower part, centred, in the scene's calm ground or colour field | one bold full-bleed scene: one or two big subjects fill the upper 55% (on `square` 40%), the bottom 45% (60%) the scene's own calm ground in one even tone; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
+| `cover-top` | upper part, centred, in a quieter stretch of the scene | one bold full-bleed scene, edge to edge: one or two big subjects grounded in the lower 55% (on `square` 40%), the top 45% (60%) a quieter stretch of the same scene — sky, a wall or a deep field of colour, low detail; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
+| `cover-bottom` | lower part, centred, in a quieter stretch of the scene | one bold full-bleed scene: one or two big subjects fill the upper 55% (on `square` 40%), the bottom 45% (60%) a quieter stretch of the same scene — a floor, still water or a deep field of colour, low detail; no border, frame or paper margin | `rectangle`, `rounded-rectangle`, `square` | `illustration` |
 
-**The cover layouts** (`card_layouts_v6`, owner decisions 2026-10-06) set the words in a calm band
+**The cover layouts** (`card_layouts_v6`, owner decisions 2026-10-06) set the words in a quieter band
 of one bold full-bleed scene, the way a record sleeve or a poster sets its type, for a brief no
 other layout could express (a host who asked for "a ’90s hip-hop album cover"). Their bands and
 zones are `art-bottom`'s and `art-top`'s, so no slot limit, fit check or stored host text changes;
@@ -186,9 +188,10 @@ sits. No text that reaches the image model names the format, which would come ba
 **Every card shows every detail; the picture gives way** (owner decision). Where a picture sits
 above or below the words on a `square`, `oval` or `arch` card, it takes roughly 40% of the card and
 the words get the other 60%, with that shape's own composition and presence text ("the upper 40% …
-keep the bottom 60% completely clear"). A circle keeps the words in the middle, so `art-top` and
-`art-bottom` do not offer it. Text bands, in card units (top–bottom); a picture layout's band lies
-at least 30 units inside the region its composition keeps clear:
+let … the bottom 60% be a quieter area"). A circle keeps the words in the middle, so `art-top` and
+`art-bottom` do not offer it. Text bands, in card units (top–bottom), are where the starting text is
+laid out before it is placed on the actual image (§4.2); a picture layout's band lies at least 30
+units inside the region its composition keeps quieter:
 
 | Layout | `rectangle`, `rounded-rectangle` | `arch` | `oval` | `square` | `circle` |
 | --- | --- | --- | --- | --- | --- |
@@ -209,7 +212,7 @@ a circle); a layout's supported shapes are part of the set and are validated (§
 Layouts are chosen by the card-design model call from this catalog by ID; the catalog given to the
 model at runtime is built from `layouts.ts`, as the validator that checks its choice is. The
 catalog — layouts, their per-shape zones, bands, art instructions and limits, and the six shapes'
-outlines — is versioned together (`card_layouts_v6`; v4 and v5, the art giving way by crop and
+outlines — is versioned together (`card_layouts_v7`; v4 and v5, the art giving way by crop and
 plate, were withdrawn before release by owner decision 2026-10-07); adding or changing a layout or a shape is a
 version bump and re-runs the layout fixtures (§9). Layouts are never shown to the host as a gallery
 and the host does not pick one.
@@ -381,9 +384,9 @@ host prompt + optional inspiration
   → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
                                      (a change to part of a card: an edit of that card's artwork, framed as a revision)
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
-  → resolve ink and panels           deterministic, for every shape the artwork fits (§4.2)
-  → (while its shape needs a panel) repaint: same art prompt (+ what to keep clear, for art with a subject); validate; resolve again — two extra images at most
-  → persist CardDesign + artwork + resolved ink    immutable
+  → place the starting text and ink  deterministic, on the actual image, for every shape the artwork fits (§4.2); nothing drawn over the artwork
+  → (only if no workable space) one repaint: same art prompt + a quieter part for the words; validate; place again; keep the better — two extra images at most
+  → persist CardDesign + artwork + ink and starting position    immutable
   → reveal the card
 ```
 
@@ -404,7 +407,7 @@ owner decisions 2026-10-05). The design says which it made:
   description does not change them"). Repaints stay edits of the same reference.
 - **a change to the whole look** (light, time of day, overall colour) keeps the idea and paints the
   revised brief fresh: an edit holds the original's tones, so a night sky came back mid-blue and
-  needed the panel, and "warmer light" came back unchanged (Phase 5 refine experiment, CHANGELOG).
+  "warmer light" came back unchanged (Phase 5 refine experiment, CHANGELOG).
 - **a new idea** — the box empty, or asking for something new — must be a different direction
   (§4.1).
 
@@ -420,7 +423,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
-| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) would need the legibility panel (§4.2): the picture has run into the text area | repainted from the same art prompt — for `illustration` and `framed` art plus one line saying what to keep clear of the words (`card_art_v4`, owner decision 2026-10-05); a wash's repaint repeats the prompt — (a switch, or a change to part of a card, keeps its reference) until an artwork needs no panel, within two extra images per artwork in all, a validation regeneration included; if none clears, the first valid artwork is kept with the panel; a repaint that fails validation is dropped (owner decisions, 2026-10-04; `spec.md §7.8`) |
+| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) has **no workable space** for the starting text (§4.2) — never merely text over an object, a missed percentage boundary or a failed contrast check | repainted once from the same art prompt plus one line asking for a quieter part of the picture for the words (`card_art_v7`), a switch or a change to part of a card keeping its reference; the image whose space reads better is kept; within two extra images per artwork in all, a validation regeneration included; a repaint that fails validation is dropped (owner decisions, 2026-10-07; `spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back. A shape switch's refusal fails visibly at once (`shape_refusal`), with no re-prompt: the design is immutable, and the card stays as it is |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it
@@ -456,59 +459,53 @@ No step here calls a model or regenerates artwork.
   `rendered-3d` or `collage` rendering, a person, face, hands or body fails the artwork too (§2.4),
   with the same one regeneration.
 
-## 4.2 Ink and legibility
+## 4.2 The starting text: placement and ink
 
-For each text zone, computed once per artwork, layout and shape — for every shape the artwork fits
-(§2.4), so a switch the artwork already fits never waits:
+A generated card is an editable starting design (owner decisions, 2026-10-07). The artwork is
+preserved exactly as painted; this step only decides where the starting text sits and in what
+colour, so the host begins from something that reads well and customises from there. For each
+shape the artwork fits (§2.4), computed once per artwork (`src/lib/card/text-space.ts`,
+`card_compiler_v7`):
 
-1. Measure the artwork's background in the zone **conservatively**: its luminance range between a
-   low and a high percentile (the 8th and 92nd), never the mean. An ink darker than the whole range
-   is judged against its dark end, one lighter than the whole range against its light end, and an
-   ink inside the range fails (Phase 3 found the bug a median-based rule lets through: cream ink
-   over cream). The zone is measured **whole and behind each line of the card's text**
-   (`card_compiler_v4`, owner decisions 2026-10-05): the generated text layer is laid out in the
-   primary pairing for the words the card shows right after generation (the design's wording, the
-   host's stored facts — re-read just before the artwork is painted, since the host may enter
-   details while waiting — then any fact the prompt states, as written, then placeholders for a
-   missing date, time or venue, and the default RSVP-by of the date shown unless the prompt states
-   that date (`spec.md §7.3`); one producer, `revealCardContent`); each line's area — its
-   measured width placed by its alignment, its line height, padded by a quarter of the line height
-   on every side and clamped to the zone (`textLineAreas`) — takes the same range; and the ink is
-   judged against the widest of the zone's and the areas' ranges, so the whole zone stays the
-   floor. Artwork that sits under the letters — a sculpture's base behind the first line of a
-   title — is too small a share of the whole zone to reach its tails, but not of the line it
-   crosses; it fails here, so the artwork is repainted and then, if it still reaches in, given the
-   panel (§3). Foliage at the edge of empty space does not. If that layout cannot be made, the
-   whole zone alone is measured. The ink is judged for that one layout of the words: a later fact
-   edit, pairing switch or customization can move lines onto artwork that was not measured, where
-   only the whole-zone floor holds, and persisted ink is never re-resolved. (`card_compiler_v3`
-   measured half-overlapping 60-unit strips across the whole zone instead; in the round-three
-   corpus that caught foliage and sky at the edges of empty space and ended five of seventeen
-   cards with the panel.)
-2. Candidate inks: colours drawn from the artwork's own palette first, then a near-black and a
-   near-white tuned toward the artwork's hue.
-3. Choose the first candidate, in that order (the artwork's palette by share of the artwork, then
-   the tuned neutrals), that reaches **4.5:1** against the
-   measured background (`src/lib/card/color.ts`, WCAG 2.x luminance).
-4. If none does, apply the layout's legibility panel in an art-derived paper colour and choose the
-   ink against the panel.
-5. **The slide** (`card_compiler_v6`, owner decision 2026-10-07; `src/lib/card/slide.ts`). Where
-   the panel fades from an edge into a picture above or below the words (`art-top`, `art-bottom`,
-   the covers), the fade must lie over the picture's background, not its subject (a host saw it wash
-   out and cut off half a boombox). If the pixels under the fade are not even — at least 97% within
-   OKLab ΔE 0.05 of their median colour — the whole artwork is drawn moved away from the words,
-   up when it is above them and down when it is below, by the smallest of 5%, 10% or 15% of the
-   card's height that makes them even. It keeps its full width and size: the strip at its far edge
-   leaves the card, whatever is there (it is not measured), and the strip it uncovers lies under
-   the panel's opaque paper
-   (`slide.test.ts` proves this for every layout and shape). When no slide clears the subject, the
-   one leaving the least of it under the fade is kept, and none when no slide helps. The fade
-   itself is unchanged. Nothing here calls a model.
+1. **Lay out the starting text** in the layout's zone for the shape (§2.3) at its starting sizes
+   and line breaks (`layoutCard`, §4.3), in the primary pairing, for the words the card shows right
+   after generation (the design's wording, the host's stored facts — re-read just before the
+   artwork is painted — then any fact the prompt states, as written, then placeholders; one
+   producer, `revealCardContent`). Each line's area is its measured width placed by its alignment,
+   its line height, and a small margin (`textLineAreas`). The lines form two groups: the
+   **heading** (title and invitation line) and the **details** (the facts).
+2. **Candidate colours**: the artwork's own palette by share, then a near-black and a near-white
+   tuned toward the artwork's hue.
+3. **Readable share.** For a colour and a position, the share of the artwork's pixels behind the
+   text's lines (inside the outline) against which that colour reaches **4.5:1** (WCAG 2.x,
+   `src/lib/card/color.ts`). It is measured on the actual image, so sky, brick, walls, gradients,
+   textures, solid colours and paper all count, and text crossing an illustrated object only lowers
+   the share by what it covers.
+4. **Position.** If some colour reads behind at least 95% of the lines where the layout puts them,
+   the text stays there. Otherwise it moves vertically, in 10-unit steps, inside the shape's
+   text-safe area — as one block, or with the heading and the details apart (the details never move
+   above the heading's position relative to it) — to wherever the readable share is highest; ties go
+   to keeping the block together and to the smallest move, and a split is taken only when it reads
+   at least three points better. Sizes and line breaks never change, so fit (§4.3) is untouched.
+5. **Colour.** At that position, the first candidate in order whose readable share is within one
+   point of the best.
+6. **Workable space.** The space is workable when the chosen readable share is at least 85%. A
+   tiny empty patch does not qualify, because the whole starting text must sit in it at readable
+   sizes. Only an artwork with no workable space on a shape it was painted for is reconsidered,
+   with one repaint (§3); the image whose share is higher is kept. Nothing here calls a model.
 
-The result (per shape: ink per zone, panel on or off, panel colour, and the slide in card units,
-`artOffset`, when there is one) is persisted with the artwork.
-It is the generated card's ink and the starting colour of text carried to a fresh layout; the
-host's colour choices in the card editor never change it.
+Nothing is ever drawn over the artwork to correct for text, and the artwork is never moved: no
+legibility panel, cream background, broad fade or wash; no slide, zoom, crop or separate picture
+section. The result per shape — the ink and, when the text moved, its vertical shift for the
+heading and the details (`shift`, in card units) — is persisted with the artwork. It is the
+generated card's starting text and the starting colour of text carried to a fresh layout; the
+host's choices in the card editor never change it.
+
+**Designs generated before 2026-10-07** keep what they stored: an ink judged by the earlier
+nearest-tail rule (`card_compiler_v3`/`v4`) and, where that ink needed it, the art-derived
+legibility panel of `card_layouts_v2`/`v3`, drawn exactly as stored because their ink was chosen
+against it. A stored slide (`artOffset`, `card_compiler_v6`) is ignored, so their artwork is drawn
+where it was painted.
 
 ## 4.3 Text fit
 
@@ -543,9 +540,10 @@ has edited keep their stored lines (§7). What the host saw is what guests see.
 
 ## 4.4 What the compiler never does
 
-Call a model; regenerate or edit artwork; move, crop or recolour artwork beyond the uniform scaling
-and outline mask of §2.1; let a model choose a colour, a size, a position, an outline or a line
-break; truncate text silently.
+Call a model; regenerate or edit artwork; move, slide, zoom, crop, cover or recolour artwork beyond
+the uniform scaling and outline mask of §2.1 — no legibility panel, cream background or fade over
+it; add a text background (that is only ever the host's choice, §7); let a model choose a colour,
+a size, a position, an outline or a line break; truncate text silently.
 
 ---
 
@@ -559,13 +557,15 @@ Persist per event:
   or a change to part of a card or to its whole look) and, for a change, the design it was made
   from (`changedFrom`);
 - every artwork asset in Supabase Storage, with its proportion, the shapes it fits, image model,
-  art-prompt version, and resolved ink and panels per fitted shape. A design has its original
+  art-prompt version, and per fitted shape its resolved ink and the starting text's vertical
+  shift (an older design: its ink and any stored legibility panel). A design has its original
   artwork plus one more for each shape the host switched to that no existing artwork fits (§7);
 - `Event.activeCardDesignId`, `Event.activeCardShape` and `Event.title` (`spec.md §20.2`, §20.5);
 - one `CardCustomization` per design and shape the host has edited, or switched to carrying their
   words (§7): the full text layer — every
   box's source, text, position, width, rotation, font, size, colour, alignment, spacing, case,
-  stacking order and stored line breaks — with a revision for collaborator conflicts
+  stacking order, stored line breaks and optional text background — with a revision for
+  collaborator conflicts
   (`spec.md §20.5`).
 
 A `CardDesign` and its artwork are immutable. Card-editor edits and shape switches never mutate the
@@ -590,9 +590,10 @@ existing card renders, without regenerating its design or artwork.
 One component renders a card from: the persisted `CardDesign`, the effective shape (the design's,
 or the host's switch), the artwork for that shape's proportion, and the text layer — the host's
 `CardCustomization` for that design and shape when one exists, otherwise the generated layout
-(resolved ink and panels, the event's current content passed through `layoutCard`). Every text box
-renders its stored lines at its position, width, rotation and style; the browser never re-wraps
-them. It applies the shape's outline as a mask, clipping anything outside it. It is the same
+(the resolved ink, the event's current content passed through `layoutCard` and placed by its
+stored shift, and an older design's stored panel). Every text box renders its stored lines at its
+position, width, rotation and style, with its text background behind them; the browser never
+re-wraps them. The artwork is drawn exactly as painted. It applies the shape's outline as a mask, clipping anything outside it. It is the same
 component in the generation reveal, Creation Mode, the card editor, Preview and the guest page. A
 link-preview image is the one other drawing of a card: from the same stored data, under this
 component's validation, held to it by a fixture (§6.4).
@@ -629,7 +630,7 @@ envelope with the title for a private one. The
 card preview is drawn from the same stored data the card component renders, under the component's
 own validation, so it cannot disagree with the live card. Mechanism (`docs/technology-decisions.md §8.2`): the card is drawn as an SVG
 from exactly the data the card component renders — the stored text boxes (the customization's, or
-the generated layer from `layoutCard`), the outline, the panels, the artwork and the ink — under the
+the generated layer from `layoutCard`), their text backgrounds, the outline, any stored panel, the artwork and the ink — under the
 component's own validation, with every stored line drawn as glyph outlines at the font instance it
 was measured with, and rasterized on the server by Next.js's `ImageResponse`; no browser runs in
 production. A layout fixture compares it with the card component in a real browser at the same
@@ -646,7 +647,8 @@ edits the card's **text layer**; the artwork, outline and envelope are never edi
 | Host action | Model call | Changes |
 | --- | --- | --- |
 | First edit of a card | none | creates a `CardCustomization` for this design and shape (unless a switch that carried words already did, §7 below), seeded from the generated layout, with a box for every fact slot the layout defines (an empty fact box renders nothing until its fact exists) |
-| Edit, move, resize, rotate, restyle, duplicate, reorder or delete a text box; add one | none | the customization; the edited box's lines re-broken and stored |
+| Edit, move, resize, rotate, restyle, duplicate, reorder or delete a text box; add one | none | the customization; the edited box's lines re-broken and stored; the artwork never changes |
+| Give a text box a text background, change its style, colour, opacity or padding, or remove it | none | that box's `background` only; nothing else on the card or in the artwork |
 | Choose a font (any Google Fonts family) | none | the box's font; the family added to the font store on first use; lines re-broken |
 | Edit the title box | none | `Event.title`, used everywhere; the title's boxes re-broken in every customization of the event |
 | Edit a fact (in its box or the details editor) | none | event data; that fact's boxes re-broken in every customization of the event; page updates |
@@ -676,6 +678,26 @@ theirs. The title box is linked to the effective title (`spec.md §20.2`), so th
 once the host has set `Event.title`; while it is unset, the new card's title box shows the new
 design's own drafted title, in the host's carried font, because a switch never changes event
 content (`spec.md §20.6`).
+
+**Text backgrounds** (owner decisions, 2026-10-07; `spec.md §20.1`). Any text box may carry one
+optional background, which the host adds and removes; nothing adds one automatically — not
+generation, and not the editor when a box is moved or resized. Styles: **None** (the default: the
+field is absent), **Highlight** (a band behind each line), **Rounded box** (one rectangle around
+the text block) and **Soft backdrop** (that rectangle, feathered locally); organic shapes may follow
+later. Each has a colour (`#RRGGBB`), an opacity (above 0, at most 1) and a padding (0–120 card
+units). The background is derived when the card is drawn from the box's own geometry and stored
+lines — never stored as pixels — so it moves, rotates and resizes with its box and follows its
+lines when the text is resized or re-broken. Its opacity is the fill's alpha only; the text keeps
+its own colour and opacity. It is drawn inside the box, behind that box's lines, within the card's
+outline, and never touches the artwork. Geometry, in the box's frame (L = size × line height; each
+line's set width wᵢ placed by its alignment at oᵢ; p = padding): a highlight is, per line,
+[oᵢ − p, oᵢ + wᵢ + p] across and the line's content area ± p down; a rounded box spans
+[minᵢ oᵢ − p, maxᵢ (oᵢ + wᵢ) + p] by [−p, n·L + p] with corner radius min(0.5·p + 0.12·size, half its
+smaller side); a soft backdrop is that rectangle unrounded, blurred with a Gaussian of standard
+deviation max(4, 0.6·p). The card component and the link-preview SVG draw the same geometry, held
+together by a fixture. When the host first picks a style its colour contrasts with the box's text
+(white behind dark text, near-black behind light), at opacity 0.85 (highlight), 0.8 (box) or 0.65
+(backdrop), with padding scaled to the text size.
 
 **What the host's edits are not checked for** (owner decision, `spec.md §20.1`): contrast, a box
 crossing the outline (clipped as guests will see it), overlap with the artwork's subject. The
@@ -714,8 +736,8 @@ Recorded on every `CardDesign` and generation run (`src/lib/ai/versions.ts`):
 EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
-CARD_LAYOUT_SET_VERSION        // card_layouts_v6: layouts (the covers since v5), per-shape zones and art instructions, slot specs and limits, shape outlines
-CARD_COMPILER_VERSION          // card_compiler_v6: validation, ink resolution and the slide, layoutCard's sizing steps, line breaking
+CARD_LAYOUT_SET_VERSION        // card_layouts_v7: layouts (the covers since v6), per-shape zones and art instructions, slot specs and limits, shape outlines
+CARD_COMPILER_VERSION          // card_compiler_v7: validation, starting text placement and ink on the actual image, layoutCard's sizing steps, line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```
 
@@ -726,9 +748,10 @@ set it was generated against; the renderer supports every layout-set version tha
 
 # 9. Tests and gates
 
-- **Unit:** schema validation; wording fact checks; layout/mode compatibility; ink resolution
-  against synthetic backgrounds (including the panel path, and an ink inside the background's
-  luminance range failing — the Phase 3 bug); `layoutCard` sizing and line breaking; slot limits;
+- **Unit:** schema validation; wording fact checks; layout/mode compatibility; starting text
+  placement and ink against synthetic backgrounds (staying put, moving, splitting, workable or
+  not, never leaving the text-safe area); `layoutCard` sizing and line breaking; slot limits;
+  text backgrounds (validation, saving, drawing in both renderers);
   every zone inside its shape's text-safe area; edited-box line breaking from stored metrics;
   carrying words to a fresh layout; customization revisions and stale-save refusal.
 - **Editor:** end-to-end at 390px and desktop — select, drag, pinch, rotate, type, restyle, add,

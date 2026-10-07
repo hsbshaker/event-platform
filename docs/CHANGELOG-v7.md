@@ -934,6 +934,60 @@ accents.
   the prompt, no random theme or rendering for a prompt with its own concept, and the brief checks.
 - `card_layouts_v6` carries the covers with the restored panels; `card_compiler_v6` the slide.
 
+### Generated cards are starting designs: the artwork is preserved (owner decisions, 2026-10-07)
+
+The owner clarified what a generated card is: an editable starting design. Hosts move, resize,
+restyle and add text in the card editor and decide for themselves how much text may overlap the
+artwork. The core rule: **preserve the generated artwork whenever it has workable space for the
+invitation's words, give a sensible starting text treatment, and let the host customise it.**
+
+- **Stopped — automatic corrections.** No legibility panel (no opaque paper or cream background, no
+  broad fade, no wash behind centred words) is added because the starting text has a contrast or
+  overlap problem. The artwork is never slid, zoomed, cropped or repositioned to make room for text
+  (the slide of `card_compiler_v6` is removed), never forced into a separate picture section with a
+  hard boundary, and never altered when the host moves or resizes text. Text over an illustrated
+  object is not a failure. An otherwise usable image is not repainted because it misses an exact
+  percentage boundary or because the starting text fails a contrast check. Workable space need not
+  be flat, empty, white or texture-free: sky, brick, walls, gradients, textures, solid colours and
+  intentionally designed paper all work.
+- **Not stopped — design.** Fades, borders, textures and other treatments that belong to the
+  requested artistic design are part of the artwork and stay valid. Paper backgrounds are fine when
+  they suit the style; nothing forces every card into one continuous illustrated scene.
+- **Workable space, judged on the actual image** (`card_compiler_v7`; `docs/card-system.md §4.2`).
+  Code measures, for the starting text at its starting sizes, how much of the background behind its
+  lines lets the chosen colour read at 4.5:1. The space may be one area or two (the heading — title
+  and invitation line — and the details may sit apart), need not match the layout's coordinates
+  exactly, and a tiny empty patch does not count because the whole starting text must sit in it at
+  readable sizes. The text stays where the layout put it when that already reads well; otherwise
+  it moves to the best place on the card, vertically, without changing its sizes or line breaks.
+  There is no complex positioning system and no zero-overlap guarantee.
+- **Reconsider the artwork only when there is genuinely no workable composition**: one repaint,
+  asking for a quieter part of the picture for the words, within the existing two-extra-image
+  budget; the better of the two images is kept, and the card is never replaced by anything
+  pre-made.
+- **The image prompt** (`card_art_v7`, `card_layouts_v7`) asks for a quieter area with low detail
+  where the words will sit — whatever suits the design (sky, a wall, brick, fabric, a gradient, a
+  texture, a solid colour or the paper itself) — instead of an empty "paper or wash" area kept
+  "completely clear". Changing the prompt alone was not enough; the compiler changed with it.
+- **Existing cards keep their stored look** (owner): a card generated with a panel keeps it, because
+  its text colour was chosen against that panel; only new generations follow these rules. A stored
+  slide (`artOffset`) is ignored, so such a card's artwork is drawn where it was painted.
+- **Text background, chosen by the host** (`spec.md §20.1`). Every text box gets an optional text
+  background: None (the default), Highlight (following each line), Rounded box (around the text
+  block) or Soft backdrop (feathered locally behind the text), with colour, opacity and padding.
+  Background opacity never lowers the text's. The background belongs to its box: it moves, rotates
+  and reflows with it, is removable on its own, and never changes the artwork. Organic shapes may
+  follow later. It is part of the Phase 6b card editor's requirements; this change delivers the
+  data, validation, saving, rendering on the card and in link previews, reusable controls and a
+  developer page that exercises them. The customer-facing editor is still Phase 6b.
+- **Build decisions, for the owner to confirm**: 4.5:1 per pixel as "readable"; the text keeps its
+  layout position when at least 95% of the background behind its lines reads at 4.5:1, and the
+  space counts as workable from 85%; the heading and details are split only when that reads at
+  least three points better. On the owner's two cards these keep the layout's position: near-white
+  text on the Notorious brick (95%), navy on the Boy Story sky (95.5%).
+- `card_art_v7`, `card_layouts_v7` (the legibility-panel shapes are removed from the catalog; stored
+  panels still render), `card_compiler_v7`.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
