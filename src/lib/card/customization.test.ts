@@ -354,8 +354,9 @@ describe("carriedBoxesFrom", () => {
     );
     const carried = carriedBoxesFrom({ from: source, host: HOST, saved: SAVED, card: card() });
     const byId = (id: string) => carried.boxes.find((b) => b.id === id)!;
-    expect(byId("title").background).toEqual(background);
-    expect(byId("c1").background).toEqual(background);
+    // Its colour comes from the new card: white behind the new light ink would hide the words.
+    expect(byId("title").background).toEqual({ ...background, color: "#1B1B1F" });
+    expect(byId("c1").background).toEqual({ ...background, color: "#1B1B1F" });
     expect(byId("date")).not.toHaveProperty("background");
   });
 

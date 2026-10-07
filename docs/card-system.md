@@ -497,9 +497,18 @@ shape the artwork fits (§2.4), computed once per artwork (`src/lib/card/text-sp
 Nothing is ever drawn over the artwork to correct for text, and the artwork is never moved: no
 legibility panel, cream background, broad fade or wash; no slide, zoom, crop or separate picture
 section. The result per shape — the ink and, when the text moved, its vertical shift for the
-heading and the details (`shift`, in card units) — is persisted with the artwork. It is the
-generated card's starting text and the starting colour of text carried to a fresh layout; the
-host's choices in the card editor never change it.
+heading and the details (`shift`, in card units; `card_art_assets.ink[shape].text` is
+`{ ink, shift? }`) — is persisted with the artwork. It is the generated card's starting text and
+the starting colour of text carried to a fresh layout; the host's choices in the card editor never
+change it.
+
+The shift was chosen for the words the card showed at generation. Whenever the generated layer is
+drawn again — with the host's later facts, or for words carried to a fresh layout (§7) — the stored
+shift is applied only while every line, so moved, still lies inside the shape's text-safe area;
+otherwise the words sit where the layout puts them. A carried layout that overflows its zone, or
+stacks added text below it, is not moved. Telemetry records, per fitted shape, the readable share,
+whether it was workable and the shift (`textSpace`), and `no-text-space` when the one repaint was
+made (`spec.md §9.5`).
 
 **Designs generated before 2026-10-07** keep what they stored: an ink judged by the earlier
 nearest-tail rule (`card_compiler_v3`/`v4`) and, where that ink needed it, the art-derived
@@ -667,7 +676,10 @@ what the host sees is stored and carries on at the next switch. The title, invit
 added text boxes keep their text and fonts; `layoutCard` places
 them in the new layout's text zone — the generated slots first, then added boxes in their order,
 as extra body lines — and sizes and breaks them as usual; positions, rotation and colours come
-from the new card (its resolved ink). In the pairing's own faces the title and invitation line
+from the new card (its resolved ink, and its stored starting shift under the rule of §4.2). A text
+background on a carried title, invitation line or added box keeps its style, opacity and padding,
+its colour re-picked against the new card's ink by the rule that picks it when the host turns one
+on (a white fill kept behind a new white ink would hide the words); fact boxes carry none. In the pairing's own faces the title and invitation line
 always fit, because they keep their slot limits; a carried host font wide enough not to fit at
 minimum size is set at minimum size and runs below the zone, and when the added boxes cannot all
 fit the zone at minimum size, the overflowing added boxes are stacked below the zone — host

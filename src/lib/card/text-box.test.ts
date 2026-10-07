@@ -296,8 +296,10 @@ describe("carryWords", () => {
     );
     const layout = carryWords({ from, content: CONTENT, card: newCard() });
     const byId = (id: string) => layout.boxes.find((b) => b.id === id)!;
-    expect(byId("title").background).toEqual(hi);
-    expect(byId("invitationLine").background).toEqual(hi);
+    // Style, opacity and padding as chosen; the colour re-picked against the new card's light ink
+    // (#F4EEE2), so a white highlight carried onto light words becomes near-black.
+    expect(byId("title").background).toEqual({ ...hi, color: "#1B1B1F" });
+    expect(byId("invitationLine").background).toEqual({ ...hi, color: "#1B1B1F" });
     expect(byId("note-1").background).toEqual(box);
     // Facts take the new card's own styling, as their font does.
     expect(byId("date")).not.toHaveProperty("background");

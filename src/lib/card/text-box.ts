@@ -20,7 +20,7 @@ import type { CardShape } from "./shapes";
 import { CARD_SLOT_IDS, type CardSlotId, type FactSlotId, type WordingSlotId } from "./slots";
 import { breakLines, linesSpell, type BrokenLines } from "./text/line-break";
 import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
-import type { TextBackground } from "./text-background";
+import { defaultTextBackground, type TextBackground } from "./text-background";
 
 export {
   defaultTextBackground,
@@ -268,7 +268,8 @@ export interface CarryWordsInput {
  * `from`; `layoutCard` places them in the new card's zone — the generated slots first, then the
  * added boxes in their order as extra body lines — and sizes and breaks them as usual. Positions,
  * rotation and colours come from the new card; a text background the host chose on one of those
- * boxes is kept with its words and font, as it was. Added boxes that cannot all fit the zone at
+ * boxes is kept with its words and font — its style, opacity and padding — in a colour re-picked
+ * against the new card's ink. Added boxes that cannot all fit the zone at
  * minimum size are stacked below it, for the host to arrange. Facts come from `content`, in the new
  * card's own fact styling, without a background. An invitation line the host deleted stays absent:
  * the carried layout has no box for it.
@@ -296,7 +297,10 @@ export function carryWords({ from, content, card }: CarryWordsInput): CardTextLa
     },
   });
 
-  // The text background the host chose travels with the words and font of the same boxes.
+  // The text background the host chose travels with the words and font of the same boxes: its
+  // style, opacity and padding as chosen, its colour re-picked against the new card's ink by the
+  // rule that picks it when the host turns one on — colours come from the new card (`spec.md
+  // §20.6`), and a white fill kept behind a new white ink would hide the words.
   const backgroundOf = (box: TextBox): TextBackground | undefined => {
     if (box.source.kind === "wording") return wording(box.source.slot)?.background;
     if (box.source.kind === "custom") {
@@ -308,7 +312,9 @@ export function carryWords({ from, content, card }: CarryWordsInput): CardTextLa
     ...layout,
     boxes: layout.boxes.map((box) => {
       const background = backgroundOf(box);
-      return background ? { ...box, background: { ...background } } : box;
+      if (!background) return box;
+      const { color } = defaultTextBackground(background.style, box);
+      return { ...box, background: { ...background, color } };
     }),
   };
 }

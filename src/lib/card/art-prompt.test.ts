@@ -286,7 +286,7 @@ describe("assembleShapeSwitchPrompt", () => {
     expect(p).toContain("Place the subject in the upper 40% of the canvas.");
     expect(p).not.toContain("upper half");
     expect(p).toContain(
-      "\nKeep the same subject, character, rendering, medium and palette as the reference artwork — the same small bear holding a red balloon — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the clear area completely clear.",
+      "\nKeep the same subject, character, rendering, medium and palette as the reference artwork — the same small bear holding a red balloon — rearranged for this new canvas and outline. Do not copy the reference's framing or the subject's size in it; recompose it to this canvas's composition, making the subject smaller where the composition gives it less of the card, and keep the quieter area for the words quiet.",
     );
   });
 

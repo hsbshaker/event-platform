@@ -1955,8 +1955,11 @@ Choosing another design (before publish), or switching the card's shape:
 - keeps the host's words — the title, the invitation line and every added text box — and their
   fonts, taken from the customization of the card being switched from (the active design and
   shape), and lays them out fresh in the new card's generated layout; positions, sizes, rotation
-  and colours start from the new card, and the carried layout is saved as the new card's
-  customization. A card the host has not edited has no customization and carries nothing: the new
+  and colours start from the new card (its starting text placement included), and the carried
+  layout is saved as the new card's customization. A text background on a carried title,
+  invitation line or added box travels with it — its style, opacity and padding as chosen, its
+  colour re-picked against the new card's ink as when the host first turns one on — and fact boxes
+  take the new card's own styling, without one. A card the host has not edited has no customization and carries nothing: the new
   card shows its own generated layout and wording. When the destination already has a
   customization, that customization is shown instead;
 - keeps every customization already made for another design or shape, so switching back restores

@@ -17,9 +17,10 @@ import { textBackgroundIssue, type TextBackground } from "./text-background";
 import type { TextBox } from "./text-box";
 
 /**
- * A legibility panel behind a text zone (`layouts.ts` `panelFor`), in its resolved paper colour
- * (`ink.ts` `resolveInk`). Its rectangle is drawn opaque: the zone's ink was chosen against
- * exactly this colour.
+ * A stored legibility panel behind a text zone, in its resolved paper colour, as a design generated
+ * before 2026-10-07 persisted it (`card_layouts_v2`/`v3`; new designs never get one, owner
+ * decisions 2026-10-07). It is drawn exactly as stored and opaque: that design's ink was chosen
+ * against exactly this colour.
  *
  * Two forms, by the layout set the artwork was made with:
  * - with `fade` (`card_layouts_v3`): the rectangle is the opaque paper, square-cornered, and the
