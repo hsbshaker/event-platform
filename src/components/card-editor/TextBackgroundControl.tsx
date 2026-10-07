@@ -87,7 +87,10 @@ export function TextBackgroundControl({
               // Roving tabindex: the group is one tab stop and the arrow keys move within it.
               tabIndex={selected === choice ? 0 : -1}
               data-text-background-choice={choice}
-              onClick={() => onChange(chooseStyle(value, choice, text))}
+              onClick={() => {
+                // Choosing the style already chosen changes nothing, and saves nothing.
+                if (choice !== selected) onChange(chooseStyle(value, choice, text));
+              }}
               onKeyDown={(event) => {
                 const step =
                   event.key === "ArrowRight" || event.key === "ArrowDown"
@@ -165,6 +168,19 @@ function ColorPicker({
   const [error, setError] = useState<string | undefined>();
   const labelId = `${idPrefix}-colour-label`;
 
+  // On Enter or leaving the field: a colour clears the draft; anything else stays, with the error,
+  // until it is corrected or a swatch is chosen. Never a silent drop.
+  function commit() {
+    if (draft === null) return;
+    const result = setColor(value, draft);
+    if (result.ok) {
+      setDraft(null);
+      setError(undefined);
+    } else {
+      setError(result.error);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <span id={labelId} className="text-label-md text-app-text">
@@ -212,21 +228,19 @@ function ColorPicker({
             disabled={disabled}
             value={draft ?? value.color}
             onChange={(event) => {
+              // A complete colour applies as it is typed; anything else waits for the commit.
               const input = event.target.value;
               setDraft(input);
               const result = setColor(value, input);
               if (result.ok) {
                 setError(undefined);
                 onChange(result.value);
-              } else {
-                setError(result.error);
               }
             }}
-            onBlur={() => {
-              // Back to the colour in force; a half-typed one is dropped.
-              setDraft(null);
-              setError(undefined);
+            onKeyDown={(event) => {
+              if (event.key === "Enter") commit();
             }}
+            onBlur={commit}
           />
         )}
       </Field>

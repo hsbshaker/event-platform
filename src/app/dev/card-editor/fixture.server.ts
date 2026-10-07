@@ -8,7 +8,7 @@ import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { seedBoxes } from "@/lib/card/customization";
 import { paletteFromPixels } from "@/lib/card/ink";
 import { zoneFor, type CardLayoutId } from "@/lib/card/layouts";
-import { decodePng } from "@/lib/card/png.server";
+import { decodePng, PngError } from "@/lib/card/png.server";
 import { proportionOf, type CardShape } from "@/lib/card/shapes";
 import type { CardContent, TextBox } from "@/lib/card/text-box";
 import { cardFontMetrics } from "@/lib/card/text/card-fonts.server";
@@ -79,16 +79,21 @@ export const DEV_CARD_DEFINITIONS: Record<DevCardName, DevCard> = {
 };
 
 /**
- * The artwork's exact bytes: `DEV_CARD_ARTWORK_DIR/<name>.png` when it is set and holds the file,
- * else a synthetic wash. Never re-encoded or resized.
+ * The artwork's exact bytes: `DEV_CARD_ARTWORK_DIR/<name>.png` when it is set and holds a PNG the
+ * card pipeline reads, else a synthetic wash. Never re-encoded or resized.
  */
 export async function devArtworkBytes(card: DevCard): Promise<Uint8Array> {
   const dir = process.env.DEV_CARD_ARTWORK_DIR;
   if (dir) {
     try {
-      return new Uint8Array(await readFile(path.join(dir, `${card.name}.png`)));
-    } catch {
-      // Not there: the fallback below.
+      const bytes = new Uint8Array(await readFile(path.join(dir, `${card.name}.png`)));
+      decodePng(bytes); // Unreadable as a PNG: the fallback below, not a broken page.
+      return bytes;
+    } catch (thrown) {
+      if (!(thrown instanceof PngError) && (thrown as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw thrown;
+      }
+      // Not there, or not a PNG we read: the fallback below.
     }
   }
   return washArtwork(

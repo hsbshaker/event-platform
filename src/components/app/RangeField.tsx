@@ -29,7 +29,8 @@ export interface RangeFieldProps {
   disabled?: boolean;
 }
 
-function snap(n: number, min: number, max: number, step: number): number {
+/** `n` to the nearest multiple of `step` from `min`, inside `min`..`max`. */
+export function snap(n: number, min: number, max: number, step: number): number {
   const stepped = min + Math.round((n - min) / step) * step;
   return Math.min(max, Math.max(min, Number(stepped.toFixed(6))));
 }
@@ -67,7 +68,12 @@ export function RangeField({
           }}
           className="h-11 min-w-0 flex-1 cursor-pointer accent-app-action disabled:cursor-not-allowed disabled:opacity-50"
         />
-        <Field id={id} label={unit ? `${label} (${unit})` : label} className="w-28 shrink-0">
+        <Field
+          id={id}
+          label={unit ? `${label} (${unit})` : label}
+          hint={hint}
+          className="w-28 shrink-0"
+        >
           {(control) => (
             <Input
               {...control}
@@ -76,7 +82,6 @@ export function RangeField({
               min={min}
               max={max}
               step={step}
-              title={hint}
               disabled={disabled}
               value={draft ?? String(value)}
               onChange={(event) => {

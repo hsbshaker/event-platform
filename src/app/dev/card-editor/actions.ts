@@ -12,6 +12,10 @@ import { DEV_CARD_DEFINITIONS, isDevCardName } from "./fixture.server";
  * (`saveCardCustomization`'s core) — `parseEditorBoxes`, then `boxesToStore` with the previous
  * stored boxes and the card's saved content, then `parseStoredBoxes` on the result, which is what
  * the card is drawn from. No model call, no write. Refuses unless ENABLE_DEV_FIXTURES=1.
+ *
+ * Not exercised here: the real action's `wordingErrors` (a reworded title or invitation line
+ * checked against its slot's limit and fit) and `customizedText` (fact boxes re-linked to event
+ * details as they change) — both need an event and a design row, and neither touches backgrounds.
  */
 export type DevSaveResult =
   | { ok: true; boxes: TextBox[] }

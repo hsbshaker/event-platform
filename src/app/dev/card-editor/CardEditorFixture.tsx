@@ -90,30 +90,36 @@ export function CardEditorFixture(props: CardEditorFixtureProps) {
     waiting.current += 1;
     setStatus("saving");
     setError(undefined);
-    queue.current = queue.current.then(async () => {
-      const base = latest.current;
-      const next = base.map((b) => (b.id === id ? change(b) : b));
-      let result;
-      try {
-        result = await saveDevBoxes({ card, previous: base, boxes: next.map(toEditorBox) });
-      } catch (thrown) {
-        result = { ok: false as const, error: String(thrown) };
-      }
-      waiting.current -= 1;
-      if (result.ok) {
-        latest.current = result.boxes;
-        setStored(result.boxes);
-        // Show a result only once no newer edit is waiting, so a drag never jumps back.
-        if (waiting.current === 0) {
-          setBoxes(result.boxes);
-          setStatus("saved");
+    queue.current = queue.current
+      .then(async () => {
+        const base = latest.current;
+        const next = base.map((b) => (b.id === id ? change(b) : b));
+        let result;
+        try {
+          result = await saveDevBoxes({ card, previous: base, boxes: next.map(toEditorBox) });
+        } catch (thrown) {
+          result = { ok: false as const, error: String(thrown) };
         }
-      } else {
-        setError(`${result.error} ${JSON.stringify(result.fieldErrors ?? {})}`);
+        waiting.current -= 1;
+        if (result.ok) {
+          latest.current = result.boxes;
+          setStored(result.boxes);
+          // Show a result only once no newer edit is waiting, so a drag never jumps back.
+          if (waiting.current === 0) {
+            setBoxes(result.boxes);
+            setStatus("saved");
+          }
+        } else {
+          setError(`${result.error} ${JSON.stringify(result.fieldErrors ?? {})}`);
+          setStatus("error");
+          if (waiting.current === 0) setBoxes(latest.current);
+        }
+      })
+      // A failure the step itself did not catch must not stop every later save.
+      .catch((thrown: unknown) => {
+        setError(String(thrown));
         setStatus("error");
-        if (waiting.current === 0) setBoxes(latest.current);
-      }
-    });
+      });
   }
 
   const visible = boxes.filter((b) => b.lines.length > 0);
