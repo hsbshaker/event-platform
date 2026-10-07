@@ -98,7 +98,9 @@ export interface StoredZoneInk {
 
 /**
  * The stored shift of a zone: absent (earlier artwork) is no shift; anything else must be two
- * finite numbers within the canvas height, or the record is malformed.
+ * finite numbers within the canvas height, or the record is malformed. Defence in depth: the
+ * reader stays loose, and `shiftFits` (`text-space.ts`) refuses at drawing time a pair that would
+ * reorder the groups or leave the text-safe area, so such a pair simply draws unshifted.
  */
 function storedShift(value: unknown, shape: CardShape): TextShift {
   if (value === undefined) return { heading: 0, details: 0 };

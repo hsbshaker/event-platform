@@ -2143,7 +2143,7 @@ CardArtAsset {
   proportion /* portrait_5_7 | square_1_1 */,
   fitsShapes[],                  // the shapes this artwork may be shown in (card-system §2.4)
   storageKey, mimeType, width, height, sizeBytes,
-  ink /* per fitted shape, per zone: { ink, panel?, panelColor? } */,
+  ink /* per fitted shape, per zone: { ink, shift? } (designs before 2026-10-07: { ink, panel?, panelColor? }) */,
   imageModel, artPromptVersion,
   createdAt
 }

@@ -234,6 +234,28 @@ describe("placeText (card_compiler_v7)", () => {
     ).toThrow(/no line areas/);
   });
 
+  it("judges workable space on the best ink, not on a preferred art colour just short of it", () => {
+    // Inside the zone: 84.8% cream (both dark inks read), 0.8% grey (only the near-black reads),
+    // 14.4% black. The palette's brown is within the tolerance of the best but short of workable.
+    const zone = { x: 100, y: 800, width: 800, height: 500 };
+    const art = artwork("rectangle", (x, y) => {
+      // A mid grey around the zone, where no candidate ink reads, so no move reads better.
+      if (y < 800 || y >= 1300) return [118, 118, 118];
+      const row = y - 800;
+      return row < 424 ? CREAM : row < 428 ? [150, 150, 150] : [0, 0, 0];
+    });
+    const result = placeTextInAreas({
+      ...art,
+      shape: "rectangle",
+      areas: { heading: [zone], details: [] },
+      palette: [{ color: "#5A3A22", share: 1 }],
+    });
+    expect(result.shift).toEqual({ heading: 0, details: 0 });
+    expect(result.source).toBe("tuned-dark");
+    expect(result.coverage).toBeGreaterThanOrEqual(WORKABLE);
+    expect(result.workable).toBe(true);
+  });
+
   it("measures a whole zone as one heading group", () => {
     const zone = zoneFor("art-top", "rectangle");
     const art = artwork("rectangle", () => CREAM);

@@ -1,7 +1,8 @@
 /**
  * `InvitationCard` — the one card component (`docs/card-system.md §6.1`;
  * `docs/design-system.md §10.14`). It renders a card from data alone: the effective shape, the
- * artwork for that shape's proportion, the legibility panels resolved for it, and the text layer
+ * artwork for that shape's proportion, any legibility panel a design generated before 2026-10-07
+ * stored, and the text layer
  * as positioned `TextBox`es — the host's customization when one exists, otherwise the generated
  * layout (`card-text.server.ts`). It never computes a layout, a line break, a colour or a font.
  *
@@ -69,7 +70,7 @@ export interface CardArtwork {
 export interface InvitationCardProps {
   shape: CardShape;
   artwork: CardArtwork;
-  /** One per zone that needs a panel; none when the ink cleared 4.5:1 on the artwork alone. */
+  /** A stored legibility panel per zone, on designs generated before 2026-10-07 only; new designs have none. */
   panels?: readonly CardPanel[];
   boxes: readonly TextBox[];
 }

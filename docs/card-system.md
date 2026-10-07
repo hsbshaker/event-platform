@@ -505,7 +505,9 @@ change it.
 The shift was chosen for the words the card showed at generation. Whenever the generated layer is
 drawn again — with the host's later facts, or for words carried to a fresh layout (§7) — the stored
 shift is applied only while every line, so moved, still lies inside the shape's text-safe area;
-otherwise the words sit where the layout puts them. A carried layout that overflows its zone, or
+otherwise the words sit where the layout puts them. The host's view (with placeholders) and a
+guest's (saved facts only) are laid out separately, so the one can keep the shift while the other
+falls back; each is drawn the same way every time, and Preview shows the guest's. A carried layout that overflows its zone, or
 stacks added text below it, is not moved. Telemetry records, per fitted shape, the readable share,
 whether it was workable and the shift (`textSpace`), and `no-text-space` when the one repaint was
 made (`spec.md §9.5`).

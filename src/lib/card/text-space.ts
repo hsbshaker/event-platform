@@ -389,7 +389,11 @@ export function placeTextInAreas(input: TextSpaceAreasInput): TextPlacement {
 
   const at = coverages(chosen.heading, chosen.details)!;
   const top = Math.max(...at);
-  const k = at.findIndex((c) => c >= top - INK_TOLERANCE);
+  // The first candidate within the tolerance of the best — an art colour over a neutral — unless
+  // that one falls short of workable while the best does not: workable space is judged on the best
+  // ink, so a preference for harmony never costs a repaint.
+  const preferred = at.findIndex((c) => c >= top - INK_TOLERANCE);
+  const k = at[preferred] < WORKABLE && top >= WORKABLE ? at.indexOf(top) : preferred;
   const shift = { heading: chosen.heading + 0, details: chosen.details + 0 };
   return {
     ink: inks[k].ink,

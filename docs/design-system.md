@@ -2045,7 +2045,7 @@ Revision 5 pairs, measured:
 --dusk-focus on --dusk                                 6.7
 ```
 
-Card text contrast is guaranteed by the card compiler for the generated card (≥ 4.5:1, §15.6); a host's own colour choices in the card editor are not checked (`spec.md §20.1`). The house-style page uses app tokens and meets the same targets, and carries every detail the card shows. The card editor's own chrome (frames, handles, toolbar) meets the targets above.
+The generated card's starting text is placed and coloured by the card compiler where the artwork reads at 4.5:1 behind most of it (§15.6; owner decisions, 2026-10-07: nothing is drawn over the artwork to force contrast, and text over an illustrated object is allowed); a host's own colour choices and text backgrounds in the card editor are not checked (`spec.md §20.1`). The house-style page uses app tokens and meets the same targets, and carries every detail the card shows. The card editor's own chrome (frames, handles, toolbar) meets the targets above.
 
 ## 14.2 Focus
 
@@ -2138,7 +2138,7 @@ Per `docs/card-system.md`:
 
 - The strong model emits an `EventIdentity` and a `CardDesign`: layout (an ID from a small catalog), art mode, a curated typography pairing with up to two alternates, the card's wording (title and invitation line), an art brief, and a host-facing name and description. An image model generates the artwork from the art brief and the layout's and shape's composition rules, never from the raw host prompt.
 - The model does **not** emit HTML, CSS, JSX, JavaScript or SVG; text colours, font sizes, positions or line breaks; the host's facts; or any ID outside its catalogs.
-- Deterministic code (no model call) validates the design and artwork, checks that wording invents no fact, resolves ink and any legibility panel, and sizes and breaks every line of text with one pure layout function. The design, artwork and resolved ink are persisted and immutable.
+- Deterministic code (no model call) validates the design and artwork, checks that wording invents no fact, places the starting text on the actual artwork and chooses its colour from contrast (never adding a panel, fade or crop), and sizes and breaks every line of text with one pure layout function. The design, artwork, resolved ink and starting position are persisted and immutable.
 - One card component renders from the persisted data only.
 
 Facts on the card (names, date, time, venue, RSVP-by) come only from event data the host entered or confirmed.
@@ -2218,9 +2218,9 @@ Behavior is defined by `spec.md §12`; this section governs only presentation.
 
 ## 15.6 Legibility and contrast
 
-- Every text of the generated card clears **4.5:1** against the artwork behind it. Code chooses ink colours (drawn from the artwork first) and, when no ink can clear it, applies an art-derived legibility panel. A model never chooses a colour, size or line break.
+- The generated card's starting text sits where the artwork reads best and in the colour (drawn from the artwork first, then a tuned near-black or near-white) that reads at **4.5:1** behind the most of its lines. Nothing is drawn over the artwork and the artwork never moves; designs made before 2026-10-07 keep their stored legibility panel (owner decisions, 2026-10-07). A model never chooses a colour, size, position or line break.
 - Card text is live, selectable and screen-reader readable; artwork is decorative. Everything a guest needs is in the text and on the page.
-- Changing a font or shape does not change the generated card's ink or panels. A colour the host picks in the card editor applies to that box only and is not checked (`spec.md §20.1`).
+- Changing a font or shape does not change the generated card's ink or starting position. A colour the host picks in the card editor applies to that box only and is not checked (`spec.md §20.1`).
 - The house-style page and app chrome meet the contrast targets of §14.1 with app tokens. Card ink and artwork colours are never reused as page or chrome colours.
 
 ## 15.6a Focus indicator contract (guest-facing controls)

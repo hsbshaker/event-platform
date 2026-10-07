@@ -985,6 +985,14 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   space counts as workable from 85%; the heading and details are split only when that reads at
   least three points better. On the owner's two cards these keep the layout's position: near-white
   text on the Notorious brick (95%), navy on the Boy Story sky (95.5%).
+- **More build decisions, for the owner to confirm**: workable space is judged on the best colour,
+  so a preference for an art colour that falls just short never costs a repaint; the stored shift
+  is applied only while the moved lines stay inside the text-safe area (else the words sit at the
+  layout's position); and a text background carried to a new design or shape keeps its style,
+  opacity and padding while its colour is re-picked against the new card's ink (colours start from
+  the new card, `spec.md §20.6`; a white fill behind a new white ink would hide the words).
+  `docs/product-doctrine.md §4`'s compiler row now names the starting text's placement in place of
+  legibility panels.
 - `card_art_v7`, `card_layouts_v7` (the legibility-panel shapes are removed from the catalog; stored
   panels still render), `card_compiler_v7`.
 
