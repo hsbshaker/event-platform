@@ -126,14 +126,17 @@ Bottom to top:
    that edge and fades over 180 card units toward the picture, so the sky or background reads as
    turning to paper; where they sit in the middle (`framed`, `corners`, `atmosphere`) it is the
    padded zone with a 70-unit feather. The fade is eased, in one colour. `card_layouts_v2` drew a
-   rounded box with a soft shadow edge; artwork persisted with it keeps that panel.
+   rounded box with a soft shadow edge; artwork persisted with it keeps that panel. An edge fade
+   never lands on the subject when a slide can prevent it (§4.2 step 5, `card_compiler_v6`): the
+   artwork is then drawn moved away from the words by up to 15% of the card's height, the strip it
+   uncovers lying under the panel's opaque paper.
 3. **Text** — live text in the layout's zones, in the design's typography pairing and the resolved
    ink colour.
 
 The card's text is real, selectable, screen-reader-readable text. The artwork is decorative
 (`alt=""`); everything a guest needs is in the text and on the page below.
 
-## 2.3 Layout set (`card_layouts_v5`)
+## 2.3 Layout set (`card_layouts_v6`)
 
 A **layout** says where text goes and, in return, where the artwork must leave calm space. Each
 layout declares the shapes it supports, and for each of them defines:
@@ -206,7 +209,8 @@ a circle); a layout's supported shapes are part of the set and are validated (§
 Layouts are chosen by the card-design model call from this catalog by ID; the catalog given to the
 model at runtime is built from `layouts.ts`, as the validator that checks its choice is. The
 catalog — layouts, their per-shape zones, bands, art instructions and limits, and the six shapes'
-outlines — is versioned together (`card_layouts_v5`); adding or changing a layout or a shape is a
+outlines — is versioned together (`card_layouts_v6`; v4 and v5, the art giving way by crop and
+plate, were withdrawn before release by owner decision 2026-10-07); adding or changing a layout or a shape is a
 version bump and re-runs the layout fixtures (§9). Layouts are never shown to the host as a gallery
 and the host does not pick one.
 
@@ -488,8 +492,20 @@ For each text zone, computed once per artwork, layout and shape — for every sh
    measured background (`src/lib/card/color.ts`, WCAG 2.x luminance).
 4. If none does, apply the layout's legibility panel in an art-derived paper colour and choose the
    ink against the panel.
+5. **The slide** (`card_compiler_v6`, owner decision 2026-10-07; `src/lib/card/slide.ts`). Where
+   the panel fades from an edge into a picture above or below the words (`art-top`, `art-bottom`,
+   the covers), the fade must lie over the picture's background, not its subject (a host saw it wash
+   out and cut off half a boombox). If the pixels under the fade are not even — at least 97% within
+   OKLab ΔE 0.05 of their median colour — the whole artwork is drawn moved away from the words,
+   up when it is above them and down when it is below, by the smallest of 5%, 10% or 15% of the
+   card's height that makes them even. It keeps its full width and size: a strip of sky or ground
+   at its far edge leaves the card, and the strip it uncovers lies under the panel's opaque paper
+   (`slide.test.ts` proves this for every layout and shape). When no slide clears the subject, the
+   one leaving the least of it under the fade is kept, and none when no slide helps. The fade
+   itself is unchanged. Nothing here calls a model.
 
-The result (per shape: ink per zone, panel on or off, panel colour) is persisted with the artwork.
+The result (per shape: ink per zone, panel on or off, panel colour, and the slide in card units,
+`artOffset`, when there is one) is persisted with the artwork.
 It is the generated card's ink and the starting colour of text carried to a fresh layout; the
 host's colour choices in the card editor never change it.
 
@@ -697,8 +713,8 @@ Recorded on every `CardDesign` and generation run (`src/lib/ai/versions.ts`):
 EVENT_IDENTITY_PROMPT_VERSION, EVENT_IDENTITY_SCHEMA_VERSION
 CARD_DESIGN_PROMPT_VERSION,    CARD_DESIGN_SCHEMA_VERSION
 CARD_ART_PROMPT_VERSION        // the deterministic art-prompt assembly
-CARD_LAYOUT_SET_VERSION        // card_layouts_v5: layouts (the covers since v5), per-shape zones and art instructions, slot specs and limits, shape outlines
-CARD_COMPILER_VERSION          // validation, ink resolution, layoutCard's sizing steps, line breaking
+CARD_LAYOUT_SET_VERSION        // card_layouts_v6: layouts (the covers since v5), per-shape zones and art instructions, slot specs and limits, shape outlines
+CARD_COMPILER_VERSION          // card_compiler_v6: validation, ink resolution and the slide, layoutCard's sizing steps, line breaking
 imageModel                     // provider + model id, recorded per artwork
 ```
 

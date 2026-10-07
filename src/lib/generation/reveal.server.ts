@@ -93,7 +93,8 @@ export interface RevealedCard {
   /** `InvitationCard`'s props. */
   card: {
     shape: CardShape;
-    artwork: { src: string; proportion: CardProportion };
+    /** `offsetY`: the slide, in card units (negative: up), when the artwork moved for its panel. */
+    artwork: { src: string; proportion: CardProportion; offsetY?: number };
     panels: CardPanel[];
     boxes: TextBox[];
   };
@@ -264,7 +265,7 @@ async function buildRevealedCard({
   if (stored !== proportion) {
     throw new Error(`The ${shape} card's artwork is not ${proportion}.`);
   }
-  const { ink, panels } = zoneInk(art.ink, shape);
+  const { ink, panels, artOffset } = zoneInk(art.ink, shape);
 
   const contents = await cardContents(row, design.wording, new Date(now));
   // A guest's card carries the host's stored facts only: no placeholder, no prompt-stated value.
@@ -323,7 +324,11 @@ async function buildRevealedCard({
 
   const card = {
     shape,
-    artwork: { src: signed.signedUrl, proportion },
+    artwork: {
+      src: signed.signedUrl,
+      proportion,
+      ...(artOffset !== 0 ? { offsetY: artOffset } : {}),
+    },
     panels,
     boxes: layer.boxes,
   };

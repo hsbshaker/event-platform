@@ -62,8 +62,8 @@ EVENT_IDENTITY_SCHEMA_VERSION = "event_identity_schema_v6"
 CARD_DESIGN_PROMPT_VERSION    = "card_design_v6"
 CARD_DESIGN_SCHEMA_VERSION    = "card_design_schema_v4"
 CARD_ART_PROMPT_VERSION       = "card_art_v6"
-CARD_LAYOUT_SET_VERSION       = "card_layouts_v5"
-CARD_COMPILER_VERSION         = "card_compiler_v5"
+CARD_LAYOUT_SET_VERSION       = "card_layouts_v6"
+CARD_COMPILER_VERSION         = "card_compiler_v6"
 FACT_EXTRACTION_PROMPT_VERSION = "fact_extraction_v2"
 ```
 

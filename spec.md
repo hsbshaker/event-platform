@@ -1216,7 +1216,7 @@ optional art-derived legibility panel; live text.
 
 ### 11.3 Layout catalog
 
-A small versioned catalog of text layouts (`card_layouts_v5`, `docs/card-system.md §2.3`: the set
+A small versioned catalog of text layouts (`card_layouts_v6`, `docs/card-system.md §2.3`: the set
 validated in Phase 3, refitted in Phase 4 so every detail fits every card, with the two cover
 layouts added in v5 — one bold full-bleed scene with the words set in a calm band of it). Each layout declares the shapes it
 supports and, per shape, its text zones, slot order, alignment, size range and maximum lines per
@@ -1241,7 +1241,10 @@ value takes no space. Placeholders appear only in Creation Mode and are never pu
 For the card as generated: ink per text zone comes from the artwork's palette, measured
 conservatively over the whole zone and behind each line of the card's text, reaching **4.5:1** for every
 text; otherwise the artwork is repainted (§7.8) and then, if still needed, the layout's
-art-derived legibility panel is applied. `layoutCard` decides every size and line break
+art-derived legibility panel is applied. Where that panel fades into a picture above or below the
+words and its fade would lie over the subject, the picture is first drawn moved away from the
+words by up to 15% of the card's height, full width and full size, so the fade lies over its
+background (`docs/card-system.md §4.2` step 5; owner decision 2026-10-07). `layoutCard` decides every size and line break
 deterministically, never stranding a short word such as "A" on a line of its own where a space
 break at the same line count avoids it (owner decision, 2026-10-05); slot limits
 make fit always possible. A test renders every layout × pairing with worst-case content in a real
@@ -2542,7 +2545,9 @@ The host should feel:
   of its zone, measured whole and behind each line of its text (with a small margin) so artwork
   under the text counts
   (host-chosen colours in the card editor are not checked);
-  otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it.
+  otherwise the layout's art-derived legibility panel is applied and the ink re-chosen against it;
+  an edge fade that would lie over the subject first slides the picture away from the words, by up
+  to 15% of the card's height, never shrinking or boxing it.
 - [ ] In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves
   its zone; no word is broken except just after a hyphen it already contains; no short word such
   as "A" stands alone on a line where a space break at the same line count avoids it; text is never

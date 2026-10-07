@@ -78,7 +78,7 @@ describe("the card-design runtime catalog", () => {
       supportedShapes: ["rectangle", "rounded-rectangle", "square"],
       compatibleArtModes: ["illustration", "framed"],
     });
-    // The cover layouts (card_layouts_v5): rectangular shapes, illustration only.
+    // The cover layouts (since card_layouts_v5): rectangular shapes, illustration only.
     for (const id of ["cover-top", "cover-bottom"] as const) {
       expect(catalog.layouts[id], id).toEqual({
         purpose: expect.stringContaining("full-bleed scene"),

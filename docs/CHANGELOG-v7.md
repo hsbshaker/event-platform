@@ -913,6 +913,26 @@ accents.
   the host's title, or names a printed format outside its `avoid` list, fails validation and is
   re-prompted once (`docs/model-contracts.md §5.3` step 2).
 
+### The fade stays clear of the subject (owner decisions, 2026-10-07)
+
+- **Walked back:** the art giving way of 2026-10-06 (`card_layouts_v4`/`v5`, `card_compiler_v5`):
+  the crop, the plate that shrank the picture and cut it straight on a flat fill, "nothing behind
+  the words" for centred layouts and the host's low-contrast hint. On the owner's own card it read
+  as a small picture pasted onto the card, and the owner had asked to fix only the fade that cut a
+  picture off, not to remove fading. Those versions never reached production; their labels are not
+  reused. The `card_layouts_v3` panels are back: the edge fade for words above or below a picture,
+  the small soft glow for words in the middle, and every text of a generated card clears 4.5:1.
+- **The slide** (`card_compiler_v6`; `docs/card-system.md §4.2` step 5): when the fade would lie
+  over the subject, the whole picture is first drawn moved away from the words — up when it is
+  above them, down when it is below — by the smallest of 5%, 10% or 15% of the card's height that
+  puts even background under the fade, keeping its full width and size. A strip of sky or ground
+  at its far edge leaves the card; the strip it uncovers lies under the panel's opaque paper. When
+  no slide clears the subject, the one leaving the least of it under the fade is kept. The fade
+  itself is unchanged.
+- **Kept** (owner): the cover layouts (with the picture layouts' panels), the host's title from
+  the prompt, no random theme or rendering for a prompt with its own concept, and the brief checks.
+- `card_layouts_v6` carries the covers with the restored panels; `card_compiler_v6` the slide.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

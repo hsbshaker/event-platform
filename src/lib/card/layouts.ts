@@ -1,5 +1,6 @@
 /**
- * The layout set `card_layouts_v5` (`docs/card-system.md §2.3`); the covers since v5.
+ * The layout set `card_layouts_v6` (`docs/card-system.md §2.3`); the covers since v5 (v4 and v5,
+ * the art giving way by crop and plate, were withdrawn before release; owner decision 2026-10-07).
  *
  * `card_layouts_v1` was ported from the catalog validated in Phase 3 (`scripts/phase-3/catalog.mjs`),
  * with two fixes that landed before any card was made from it: `zoneFor` also checks the band's

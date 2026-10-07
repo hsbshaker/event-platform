@@ -13,9 +13,9 @@ import {
 } from "./layouts";
 import { CARD_SHAPES, canvasOf, insideOutline, insideTextSafe, SHAPE_GEOMETRY } from "./shapes";
 
-describe("layout set card_layouts_v5", () => {
+describe("layout set card_layouts_v6", () => {
   it("is versioned", () => {
-    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v5");
+    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v6");
   });
 
   it("has exactly the seven layouts", () => {

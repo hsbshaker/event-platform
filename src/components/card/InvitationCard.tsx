@@ -58,6 +58,11 @@ export { InvalidCardDataError, type CardPanel };
 export interface CardArtwork {
   src: string;
   proportion: CardProportion;
+  /**
+   * The slide, in card units (negative: up): the artwork drawn away from the words so its panel's
+   * fade lies over its background (`slide.ts`). The strip it uncovers lies under the panel's paper.
+   */
+  offsetY?: number;
 }
 
 export interface InvitationCardProps {
@@ -214,6 +219,7 @@ export function InvitationCard({ shape, artwork, panels = [], boxes }: Invitatio
     artworkProportion: artwork?.proportion,
     panels,
     boxes,
+    artworkOffset: artwork?.offsetY,
   });
   if (typeof artwork.src !== "string" || artwork.src === "") {
     throw new InvalidCardDataError("artwork has no src");
@@ -268,7 +274,7 @@ export function InvitationCard({ shape, artwork, panels = [], boxes }: Invitatio
           style={{
             position: "absolute",
             left: 0,
-            top: 0,
+            top: artwork.offsetY ? cu(artwork.offsetY) : 0,
             width: "100%",
             height: "100%",
             maxWidth: "none",
