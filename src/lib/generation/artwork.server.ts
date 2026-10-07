@@ -31,7 +31,6 @@ import type { DecodedPng } from "@/lib/card/png.server";
 import { PEOPLE_FREE_RENDERINGS } from "@/lib/card/renderings";
 import type { Rendering } from "@/lib/card/renderings";
 import { CARD_CANVAS, insideOutline, SHAPE_PROPORTION } from "@/lib/card/shapes";
-import { chooseSlide } from "@/lib/card/slide";
 import type { CardProportion, CardShape } from "@/lib/card/shapes";
 import { textLineAreas } from "@/lib/card/text-areas";
 import type { CardContent } from "@/lib/card/text-box";
@@ -125,12 +124,6 @@ export interface ZoneInk {
   panel?: CardPanelShape;
   /** The panel's paper colour, `#RRGGBB`, drawn opaque. */
   panelColor?: string;
-  /**
-   * How far the artwork is drawn from its place, in card units (negative: up), so the panel's fade
-   * lies over its background rather than its subject (`chooseSlide`, `card_compiler_v6`). Only with
-   * a panel that fades from an edge; absent when the artwork stays where it was painted.
-   */
-  artOffset?: number;
 }
 
 /** Ink by fitted shape, then by zone. Has an entry for every shape the artwork fits. */
@@ -393,14 +386,11 @@ export function resolveArtworkInk(
       ink[shape] = { [TEXT_ZONE]: { ink: resolved.ink } };
       continue;
     }
-    const panel = panelFor(layout, shape);
-    const artOffset = chooseSlide(rgba, width, height, shape, panel);
     ink[shape] = {
       [TEXT_ZONE]: {
         ink: resolved.ink,
-        panel,
+        panel: panelFor(layout, shape),
         panelColor: resolved.panel.color,
-        ...(artOffset !== 0 ? { artOffset } : {}),
       },
     };
   }

@@ -41,8 +41,6 @@ export type ArtworkMime = "image/png" | "image/jpeg";
 export interface CardPreviewArtwork {
   bytes: Uint8Array;
   proportion: CardProportion;
-  /** The slide, in card units (negative: up), as `InvitationCard` draws it. */
-  offsetY?: number;
 }
 
 /** What a card preview is drawn from: `InvitationCard`'s props, with the artwork as bytes. */
@@ -208,7 +206,6 @@ export function cardPreviewSvg(card: CardPreviewData, outlines: GlyphOutlinesRes
     artworkProportion: artwork?.proportion,
     panels,
     boxes,
-    artworkOffset: artwork?.offsetY,
   });
   const mime = artworkMime(artwork.bytes);
   const { width: w, height: h } = CARD_CANVAS[proportion];
@@ -222,7 +219,7 @@ export function cardPreviewSvg(card: CardPreviewData, outlines: GlyphOutlinesRes
     drawnPanels.map((p) => p.defs).join("") +
     `</defs>` +
     `<g clip-path="url(#card-outline)">` +
-    `<image href="${href}" x="0" y="${artwork.offsetY ?? 0}" width="${w}" height="${h}" preserveAspectRatio="none"/>` +
+    `<image href="${href}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none"/>` +
     drawnPanels.map((p) => p.body).join("") +
     `<g data-card-text="">${text.join("")}</g>` +
     `</g></svg>`

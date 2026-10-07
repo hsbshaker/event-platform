@@ -118,25 +118,8 @@ describe("InvitationCard", () => {
     expect(html).not.toMatch(/aria-hidden="true"[^>]*data-card-box/);
   });
 
-  it("draws the artwork slid away from the words, only under a panel fading from their edge", () => {
-    // art-bottom: words above, the picture below slides down 210 units (15%) under its panel.
-    const slid = render({
-      shape: "rectangle",
-      artwork: { ...ART, offsetY: 210 },
-      panels: [{ ...panelFor("art-bottom", "rectangle"), color: "#F6F1EA" }],
-    });
-    expect(slid).toMatch(/<img[^>]*top:21cqw/);
-    // Unslid artwork sits at the top, as it always has.
-    expect(render({ shape: "rectangle" })).toMatch(/<img[^>]*top:0/);
-    // A slide without such a panel, toward the wrong side, or past 15% is refused.
-    const refuse = (offsetY: number, panels: InvitationCardProps["panels"]) =>
-      expect(() => render({ shape: "rectangle", artwork: { ...ART, offsetY }, panels })).toThrow(
-        InvalidCardDataError,
-      );
-    const fromTop = [{ ...panelFor("art-bottom", "rectangle"), color: "#F6F1EA" }];
-    refuse(140, []);
-    refuse(-140, fromTop);
-    refuse(211, fromTop);
+  it("draws the artwork where it was painted, filling the card", () => {
+    expect(render({ shape: "rectangle" })).toMatch(/<img[^>]*top:0[^>]*width:100%;height:100%/);
   });
 
   it("draws a faded panel: opaque paper over its rectangle, eased out toward the picture", () => {

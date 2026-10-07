@@ -5,7 +5,6 @@ import type { CardPanel } from "@/lib/card/card-data";
 import type { CardFactsInput } from "@/lib/card/facts";
 import { CARD_LAYOUT_IDS, type CardLayoutId, type PanelFade } from "@/lib/card/layouts";
 import { CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
-import { maxSlide } from "@/lib/card/slide";
 import { TYPOGRAPHY_KEYS, type TypographyPairingId } from "@/lib/card/typography";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -88,24 +87,17 @@ export function eventFactsOf(row: CardEventRow): CardFactsInput {
 }
 
 /**
- * The persisted ink, panel and slide of the shape's text zone (`ArtworkInk`, `artwork.server.ts`).
- * `artOffset` is 0 when the artwork is drawn where it was painted.
+ * The persisted ink and legibility panel of the shape's text zone (`ArtworkInk`,
+ * `artwork.server.ts`). Keys this reader does not know — those of withdrawn versions, such as the
+ * slide's `artOffset` (`card_compiler_v6`) — are ignored: the artwork is always drawn as painted.
  */
-export function zoneInk(
-  ink: Json,
-  shape: CardShape,
-): { ink: string; panels: CardPanel[]; artOffset: number } {
+export function zoneInk(ink: Json, shape: CardShape): { ink: string; panels: CardPanel[] } {
   const byShape = isObject(ink) ? ink[shape] : undefined;
   const zone = isObject(byShape) ? byShape[TEXT_ZONE] : undefined;
   if (!isObject(zone) || typeof zone.ink !== "string" || !isCanonicalHex(zone.ink)) {
     throw new Error(`The artwork has no ink for the ${shape} card.`);
   }
-  if (zone.panel === undefined) {
-    if (zone.artOffset !== undefined && zone.artOffset !== 0) {
-      throw new Error(`The artwork's slide for the ${shape} card has no panel.`);
-    }
-    return { ink: zone.ink, panels: [], artOffset: 0 };
-  }
+  if (zone.panel === undefined) return { ink: zone.ink, panels: [] };
   const panel = zone.panel;
   if (
     !isObject(panel) ||
@@ -116,25 +108,8 @@ export function zoneInk(
   ) {
     throw new Error(`The artwork's legibility panel for the ${shape} card is malformed.`);
   }
-  // A slide moves the picture away from the words, only under a panel that fades from an edge
-  // (`chooseSlide`): up when the picture is above them, down when it is below, never past the limit.
-  let artOffset = 0;
-  if (zone.artOffset !== undefined && zone.artOffset !== 0) {
-    const fade = isObject(panel.fade) ? panel.fade : undefined;
-    const direction = fade?.kind === "edge" ? (fade.from === "bottom" ? -1 : 1) : 0;
-    if (
-      !finite(zone.artOffset) ||
-      direction === 0 ||
-      Math.sign(zone.artOffset as number) !== direction ||
-      Math.abs(zone.artOffset as number) > maxSlide(shape)
-    ) {
-      throw new Error(`The artwork's slide for the ${shape} card is malformed.`);
-    }
-    artOffset = zone.artOffset as number;
-  }
   return {
     ink: zone.ink,
-    artOffset,
     panels: [
       {
         x: panel.x as number,

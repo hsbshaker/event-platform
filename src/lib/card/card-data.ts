@@ -12,13 +12,7 @@
 import { isCanonicalHex } from "./color";
 import type { CardRect } from "./ink";
 import type { PanelFade } from "./layouts";
-import {
-  CARD_CANVAS,
-  CARD_SHAPES,
-  SHAPE_PROPORTION,
-  type CardProportion,
-  type CardShape,
-} from "./shapes";
+import { CARD_SHAPES, SHAPE_PROPORTION, type CardProportion, type CardShape } from "./shapes";
 import type { TextBox } from "./text-box";
 
 /**
@@ -199,16 +193,7 @@ export interface CardData {
   artworkProportion: CardProportion | undefined;
   panels: readonly CardPanel[];
   boxes: readonly TextBox[];
-  /**
-   * The slide: the artwork drawn this many card units down (negative: up), so its panel's fade lies
-   * over its background (`slide.ts`). Only under a panel that fades from an edge, toward the words'
-   * side of it, and never more than `MAX_ARTWORK_OFFSET_SHARE` of the card's height.
-   */
-  artworkOffset?: number;
 }
-
-/** The largest slide, as a share of the card's height (`slide.ts` `MAX_SLIDE_SHARE`). */
-export const MAX_ARTWORK_OFFSET_SHARE = 0.15;
 
 /**
  * Validate everything a renderer draws. Returns the card's proportion. Throws
@@ -219,7 +204,6 @@ export function validateCardData({
   artworkProportion,
   panels,
   boxes,
-  artworkOffset,
 }: CardData): CardProportion {
   check(CARD_SHAPES.includes(shape), `unknown shape ${String(shape)}`);
   const proportion = SHAPE_PROPORTION[shape];
@@ -228,20 +212,6 @@ export function validateCardData({
     `artwork is ${String(artworkProportion)}, the ${shape} card is ${proportion}`,
   );
   panels.forEach(validatePanel);
-  if (artworkOffset !== undefined && artworkOffset !== 0) {
-    check(Number.isFinite(artworkOffset), "artwork offset is not a finite number");
-    const { height } = CARD_CANVAS[proportion];
-    check(
-      Math.abs(artworkOffset) <= Math.round(MAX_ARTWORK_OFFSET_SHARE * height),
-      `artwork offset ${artworkOffset} is beyond the slide's limit`,
-    );
-    // Up when the panel fades upward into a picture above the words, down when below.
-    const direction = artworkOffset < 0 ? "bottom" : "top";
-    check(
-      panels.some((panel) => panel.fade?.kind === "edge" && panel.fade.from === direction),
-      "artwork offset without a panel fading from the words' edge",
-    );
-  }
   const ids = new Set<string>();
   for (const box of boxes) {
     validateBox(box);
