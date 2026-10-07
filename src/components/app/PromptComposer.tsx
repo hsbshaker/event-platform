@@ -36,7 +36,7 @@ export function PromptComposer({
   actions,
 }: PromptComposerProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-app-border bg-app-surface p-4 shadow-soft sm:p-6">
+    <div className="surface-lit focus-ring-within flex flex-col gap-4 rounded-2xl p-4 shadow-float sm:p-6">
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
@@ -48,7 +48,7 @@ export function PromptComposer({
         placeholder={placeholder}
         disabled={disabled}
         rows={rows}
-        className="min-h-40 resize-y border-none px-0 text-body-lg focus-visible:outline-none sm:min-h-48"
+        className="min-h-40 resize-y border-none bg-transparent px-0 text-body-lg focus-visible:outline-none sm:min-h-48"
       />
       {attachments}
       <div className="flex flex-col-reverse gap-3 border-t border-app-border pt-4 sm:flex-row sm:items-center sm:justify-between">

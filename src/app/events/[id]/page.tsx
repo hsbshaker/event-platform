@@ -4,7 +4,7 @@ import { z } from "zod";
 import { loadCardShapeOptionsAction } from "@/app/actions/shape";
 import { loadEventDraft, type EventDraftView } from "@/app/actions/event-details";
 import { AppButtonLink } from "@/components/app/AppButtonLink";
-import { ConfirmLegend } from "@/components/app/ConfirmMarkers";
+import { ConfirmLegend } from "@/components/app/ConfirmLegend";
 import { ForbiddenError, UnauthorizedError } from "@/lib/auth/errors";
 import { cohostSummary } from "@/lib/cohosts/invitations.server";
 import { guestSummary } from "@/lib/guests/guests.server";
@@ -120,7 +120,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 aspectRatio: proportion === "5:7" ? "5 / 7" : "1 / 1",
               }}
             >
-              <SteadyCard card={card} unconfirmed={revealed.unconfirmed} />
+              <SteadyCard card={card} />
             </div>
             <ConfirmLegend
               boxes={card.boxes}

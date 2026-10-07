@@ -216,32 +216,14 @@ describe.each([
           "/events/00000000-0000-4000-8000-000000000000/direction?from=fixture-design",
         );
 
-        // Needs-confirmation outlines: purely visual, inside the card, merged around adjacent
-        // details; the legend under the card carries the meaning.
-        const markers = page.locator("[data-confirm-marker]");
-        const markerCount = await markers.count();
-        expect(markerCount).toBeGreaterThanOrEqual(1);
-        expect(markerCount).toBeLessThan(4);
-        expect(await page.locator("[data-confirm-marker][aria-label]").count()).toBe(0);
-        expect(await page.locator("[aria-hidden='true'] [data-confirm-marker]").count()).toBe(
-          markerCount,
-        );
+        // Nothing is drawn on the card for details not confirmed yet (spec.md §7.3, owner decision
+        // 2026-10-06): the host sees it as guests will, and one line under it names them.
+        expect(await page.locator("[data-confirm-marker]").count()).toBe(0);
         expect(await page.getByText("Confirm", { exact: true }).count()).toBe(0);
         const cardBox = await page.locator("[data-invitation-card]").boundingBox();
-        for (const handle of await markers.elementHandles()) {
-          const box = await handle.boundingBox();
-          expect(box!.x).toBeGreaterThanOrEqual(cardBox!.x - 1);
-          expect(box!.x + box!.width).toBeLessThanOrEqual(cardBox!.x + cardBox!.width + 1);
-          expect(box!.y).toBeGreaterThanOrEqual(cardBox!.y - 1);
-          expect(box!.y + box!.height).toBeLessThanOrEqual(cardBox!.y + cardBox!.height + 1);
-        }
-        // The marker layer sits outside the card's own element: card text is untouched.
-        expect(await page.locator("[data-invitation-card] [data-confirm-marker]").count()).toBe(0);
         const legend = page.getByRole("note");
         expect(await legend.count()).toBe(1);
-        expect(await legend.innerText()).toBe(
-          "Dashed details aren't confirmed yet: baby's name, date, time, venue.",
-        );
+        expect(await legend.innerText()).toBe("Not confirmed yet: baby's name, date, time, venue.");
         const legendBox = await legend.boundingBox();
         expect(legendBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
         expect(await hasHorizontalScroll(page)).toBe(false);

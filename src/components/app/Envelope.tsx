@@ -1,7 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, type ReactNode, type RefObject } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useReducer,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { AppButton } from "./AppButton";
+import { BrandSeal } from "./BrandSeal";
 import { InlineStatus } from "./InlineStatus";
 import { cx } from "./cx";
 import {
@@ -18,6 +30,12 @@ import {
  * given card colours or fonts. It never opens by itself. The card is rendered by the caller
  * and mounted in the DOM only after the guest opens the envelope.
  *
+ * Look (Revision 5, Lantern): lit paper on the dusk stage (§5.3), the brand seal at the flap's
+ * point (`BrandSeal`, the placeholder mark of §5.2), the title in the app typeface, and a light
+ * pool under the envelope, then under the card once it has risen (§6.5). The stage is
+ * `EnvelopeStage`: callers that reserve the card's box wrap that box in it, so the dusk field
+ * surrounds the whole reservation; an envelope mounted outside a stage brings its own.
+ *
  * Keeping the card out of the *response* is the caller's job, not this component's: anything a
  * Server Component passes as `children` is serialised into the page payload whether or not it is
  * mounted. So (spec.md §31 — Card rendering and envelope; design-system.md §15.7):
@@ -27,7 +45,9 @@ import {
  *
  * The card is exactly as wide as the envelope, the width of its opening, so the card does not
  * change size as it settles. The proportion only chooses the card's aspect ratio and the
- * width that keeps portrait cards from outgrowing a desktop viewport.
+ * width that keeps portrait cards from outgrowing a desktop viewport. An openable envelope
+ * occupies the card's box from the first paint, the closed envelope centred in it, so nothing
+ * moves when the card replaces it.
  */
 
 export type EnvelopeProportion = "portrait" | "square";
@@ -42,7 +62,7 @@ interface EnvelopeBaseProps {
 /** Private event reached by the shared link: only the title and `sealedContent` render. */
 export interface SealedEnvelopeProps extends EnvelopeBaseProps {
   sealed: true;
-  /** Where the access gate goes (a later phase supplies it). */
+  /** Where the access gate goes (a later phase supplies it). Set on lit paper, never on dusk. */
   sealedContent?: ReactNode;
   /** A sealed envelope is never given the card, so nothing of it reaches the response. */
   children?: never;
@@ -70,9 +90,31 @@ export const ENVELOPE_WIDTH: Record<EnvelopeProportion, string> = {
   portrait: "min(100%, calc(var(--width-narrow) * 0.64))",
   square: "min(100%, calc(var(--width-narrow) * 0.8))",
 };
+/**
+ * The card's rise (globals.css `envelope-card-rise`), as shares of the card's height `H`. The
+ * envelope is as wide as the card (`W`), 10:7, and centred in the card's box, so its bottom edge
+ * is `(H - 0.7W) / 2` above the box's. The card starts with its top 10% of the envelope's height
+ * below the envelope's top edge (`from`), clipped at the envelope's bottom edge (`clipFrom`, then
+ * `clipTo` once it has risen). Portrait (`H` = 1.4W): from (0.35 + 0.07) / 1.4, clipTo 0.35 / 1.4;
+ * square (`H` = W): from 0.15 + 0.07, clipTo 0.15. `clipFrom` = `clipTo` + `from`.
+ */
+const CARD_RISE: Record<EnvelopeProportion, CSSProperties> = {
+  portrait: {
+    "--envelope-card-from": "30%",
+    "--envelope-clip-from": "55%",
+    "--envelope-clip-to": "25%",
+  } as CSSProperties,
+  square: {
+    "--envelope-card-from": "22%",
+    "--envelope-clip-from": "37%",
+    "--envelope-clip-to": "15%",
+  } as CSSProperties,
+};
 
-// Slightly longer than --motion-emphasis, so a missed `animationend` can never strand the card.
-const OPENING_FALLBACK_MS = 700;
+// Longer than the longest opening animation (globals.css "Envelope opening": the card's ends at
+// --motion-press + --motion-reveal + --motion-base = 940ms, the light's at --motion-press +
+// --motion-base + --motion-light = 1040ms), so a missed `animationend` can never strand the card.
+const OPENING_FALLBACK_MS = 1200;
 
 function prefersReducedMotion(): boolean {
   return (
@@ -80,55 +122,107 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-/** The paper envelope itself: body, folded front, flap and the title. Decorative geometry. */
-function EnvelopeFace({
+/** True inside an `EnvelopeStage`. */
+const OnStage = createContext(false);
+
+/**
+ * The dusk stage the envelope opens on (docs/design-system.md §5.3, §8.3): the field the card
+ * rises from, sized by what it holds. A caller that reserves the card's box wraps the box in it;
+ * the page beneath stays light. Text and focus on it use the dusk tokens (`.surface-dusk`). Once
+ * the card is out, the dusk lifts and the card sits on the page itself (`globals.css`), so
+ * nothing behind it reads as part of it.
+ */
+export function EnvelopeStage({
   children,
-  hint,
-  opening,
+  className,
 }: {
   children: ReactNode;
-  hint?: ReactNode;
-  opening?: boolean;
+  className?: string;
 }) {
   return (
-    <span
-      className={cx(
-        "relative block w-full overflow-hidden rounded-lg border border-app-border-strong bg-app-surface-muted shadow-soft",
-        opening && "envelope-shell-opening",
-      )}
-      style={{ aspectRatio: "10 / 7" }}
-    >
-      {/* Front fold. */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 bg-app-surface-subtle"
-        style={{ clipPath: "polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)" }}
-      />
-      {/* Flap outline, then the flap. */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 bg-app-border-strong"
-        style={{ height: "58%", clipPath: "polygon(0 0, 100% 0, 50% 100%)" }}
-      />
-      <span
-        aria-hidden="true"
+    <OnStage.Provider value={true}>
+      <div
+        data-envelope-stage=""
         className={cx(
-          "absolute inset-x-0 top-0 bg-app-surface-muted",
-          opening && "envelope-flap-opening",
+          "surface-dusk flex w-full flex-col items-center overflow-hidden rounded-2xl px-4 py-12 sm:px-8 sm:py-16",
+          className,
         )}
-        style={{ height: "56%", clipPath: "polygon(0 0, 100% 0, 50% 100%)" }}
-      />
-      <span
-        className="absolute inset-x-0 flex items-center justify-center px-4 text-center"
-        style={{ top: "58%", bottom: "var(--space-6)" }}
       >
         {children}
+      </div>
+    </OnStage.Provider>
+  );
+}
+
+/** Mounts `children` on a stage unless one is already around them. */
+function OwnStage({ children }: { children: ReactNode }) {
+  return useContext(OnStage) ? children : <EnvelopeStage>{children}</EnvelopeStage>;
+}
+
+/**
+ * The paper envelope: decorative geometry. `whole` is the closed envelope; while opening it is
+ * drawn as two layers either side of the rising card: the `back` (the lit inside and the light
+ * pool) behind it, the `front` (the pocket, flap, seal and title) in front.
+ */
+function EnvelopeFace({
+  title,
+  layer = "whole",
+  opening,
+}: {
+  title?: ReactNode;
+  layer?: "whole" | "back" | "front";
+  opening?: boolean;
+}) {
+  const back = layer !== "front";
+  const front = layer !== "back";
+  return (
+    <span className="relative block w-full">
+      {back && <span aria-hidden="true" className="envelope-pool dusk-pool" />}
+      <span
+        className={cx("relative block w-full overflow-hidden rounded-sm", back && "bg-app-lit")}
+        style={{ aspectRatio: "10 / 7" }}
+      >
+        {front && (
+          <>
+            {/* The pocket, notched where the flap closes over it. */}
+            <span
+              aria-hidden="true"
+              className="surface-lit absolute inset-0"
+              style={{ clipPath: "polygon(0 0, 50% 38%, 100% 0, 100% 100%, 0 100%)" }}
+            />
+            {/* The flap's shadow line, then the flap, opening together. */}
+            <span
+              aria-hidden="true"
+              className={cx("absolute inset-0", opening && "envelope-flap-opening")}
+            >
+              <span
+                className="absolute inset-x-0 top-0 bg-app-lit"
+                style={{ height: "42%", clipPath: "polygon(0 0, 100% 0, 50% 100%)" }}
+              />
+              <span
+                className="surface-lit absolute inset-x-0 top-0"
+                style={{ height: "40%", clipPath: "polygon(0 0, 100% 0, 50% 100%)" }}
+              />
+            </span>
+            {/* The seal at the flap's point. */}
+            <span
+              aria-hidden="true"
+              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ top: "40%" }}
+            >
+              <BrandSeal size="lg" className={cx(opening && "envelope-seal-giving")} />
+            </span>
+            {title && (
+              <span
+                className="absolute inset-x-0 flex items-center justify-center px-4 text-center"
+                style={{ top: "calc(40% + var(--space-8))", bottom: "var(--space-4)" }}
+              >
+                {title}
+              </span>
+            )}
+          </>
+        )}
       </span>
-      {hint && (
-        <span className="absolute inset-x-0 bottom-2 text-center text-label-sm text-app-text-secondary">
-          {hint}
-        </span>
-      )}
     </span>
   );
 }
@@ -146,6 +240,7 @@ export function Envelope(props: EnvelopeProps) {
   const focused = useRef(false);
   const inFlight = useRef(false);
   const mounted = useRef(true);
+  const captionId = useId();
 
   useEffect(() => {
     mounted.current = true;
@@ -156,7 +251,9 @@ export function Envelope(props: EnvelopeProps) {
 
   const { phase } = state;
 
-  // After opening, focus moves to the revealed card (never trapped: it is a plain tab stop).
+  // After opening, focus moves to the revealed card, so assistive tech lands on it. It is a focus
+  // target, not a tab stop or a control, so it draws no ring: a frame around the card would read as
+  // part of it.
   useEffect(() => {
     if (cardIsMounted(phase) && !focused.current) {
       focused.current = true;
@@ -195,45 +292,69 @@ export function Envelope(props: EnvelopeProps) {
 
   if (sealed) {
     return (
-      <section
-        aria-label={title}
-        className={cx("mx-auto flex w-full flex-col items-center gap-6", className)}
-        style={{ maxWidth: width }}
-      >
-        <EnvelopeFace>
-          <h2 className={TITLE_CLASSES}>{title}</h2>
-        </EnvelopeFace>
-        {sealedContent && <div className="w-full">{sealedContent}</div>}
-      </section>
+      <OwnStage>
+        <section
+          aria-label={title}
+          className={cx("mx-auto flex w-full flex-col items-center gap-8", className)}
+          style={{ maxWidth: width }}
+        >
+          <EnvelopeFace title={<h2 className={TITLE_CLASSES}>{title}</h2>} />
+          {sealedContent && (
+            <div className="surface-lit w-full rounded-xl p-4 sm:p-6">{sealedContent}</div>
+          )}
+        </section>
+      </OwnStage>
     );
   }
 
   const pending = phase === "pending";
+  const cardMounted = cardIsMounted(phase);
 
-  if (!cardIsMounted(phase)) {
-    return (
+  return (
+    <OwnStage>
       <div
-        className={cx("mx-auto flex w-full flex-col items-center gap-4", className)}
+        data-envelope-phase={phase}
+        className={cx("mx-auto flex w-full flex-col items-center gap-6", className)}
         style={{ maxWidth: width }}
       >
-        <button
-          type="button"
-          onClick={() => void open()}
-          aria-busy={pending || undefined}
-          className={cx(
-            "block w-full rounded-lg transition-transform motion-safe:hover:-translate-y-0.5",
-            pending && "cursor-progress",
+        {/* The card's box, held from the first paint: the closed envelope sits in its middle. */}
+        <div className="relative w-full" style={{ aspectRatio: ASPECT[proportion] }}>
+          {cardMounted ? (
+            <CardStage
+              phase={phase}
+              proportion={proportion}
+              title={title}
+              cardRef={cardRef}
+              onAnimationDone={() => dispatch({ type: "animationDone" })}
+            >
+              {children}
+            </CardStage>
+          ) : (
+            <div className="absolute inset-0 flex items-center">
+              <div className="relative w-full">
+                <button
+                  type="button"
+                  onClick={() => void open()}
+                  aria-busy={pending || undefined}
+                  aria-describedby={captionId}
+                  className={cx("app-press block w-full rounded-sm", pending && "cursor-progress")}
+                >
+                  <EnvelopeFace title={<span className={TITLE_CLASSES}>{title}</span>} />
+                </button>
+                {/* Under the envelope, out of the flow so the envelope stays centred. */}
+                <p
+                  id={captionId}
+                  aria-live="polite"
+                  className="absolute inset-x-0 top-full mt-4 text-center text-label-md text-dusk-text-secondary"
+                >
+                  {pending ? "Opening your invitation…" : "Tap to open"}
+                </p>
+              </div>
+            </div>
           )}
-        >
-          <EnvelopeFace hint={pending ? "Opening…" : "Tap to open"}>
-            <span className={TITLE_CLASSES}>{title}</span>
-          </EnvelopeFace>
-        </button>
-        <div aria-live="polite" className="w-full">
-          {pending && <InlineStatus>Opening your invitation…</InlineStatus>}
         </div>
-        {state.failed && (
-          <div className="flex w-full flex-col items-center gap-3 text-center">
+        {state.failed && !cardMounted && (
+          <div className="surface-lit flex w-full flex-col items-center gap-3 rounded-xl p-4 text-center">
             <InlineStatus variant="danger">
               We couldn&rsquo;t open the invitation just now. Please try again.
             </InlineStatus>
@@ -243,43 +364,38 @@ export function Envelope(props: EnvelopeProps) {
           </div>
         )}
       </div>
-    );
-  }
-
-  return (
-    <CardStage
-      phase={phase}
-      proportion={proportion}
-      width={width}
-      className={className}
-      cardRef={cardRef}
-      onAnimationDone={() => dispatch({ type: "animationDone" })}
-    >
-      {children}
-    </CardStage>
+    </OwnStage>
   );
 }
 
 function CardStage({
   phase,
   proportion,
-  width,
-  className,
+  title,
   cardRef,
   onAnimationDone,
   children,
 }: {
   phase: EnvelopePhase;
   proportion: EnvelopeProportion;
-  width: string;
-  className?: string;
+  title: string;
   cardRef: RefObject<HTMLDivElement | null>;
   onAnimationDone: () => void;
   children: ReactNode;
 }) {
   const opening = phase === "opening";
   return (
-    <div className={cx("relative mx-auto w-full", className)} style={{ maxWidth: width }}>
+    <>
+      {/* The light coming up under the card (an animation of its own, never the card's). */}
+      <span aria-hidden="true" className="envelope-pool dusk-pool envelope-light-up" />
+      {opening && (
+        <div
+          aria-hidden="true"
+          className="envelope-shell-opening pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2"
+        >
+          <EnvelopeFace layer="back" />
+        </div>
+      )}
       <div
         ref={cardRef}
         tabIndex={-1}
@@ -289,16 +405,23 @@ function CardStage({
         onAnimationEnd={(e) => {
           if (e.target === e.currentTarget) onAnimationDone();
         }}
-        className={cx("w-full outline-offset-4", opening && "envelope-card-opening")}
-        style={{ aspectRatio: ASPECT[proportion] }}
+        className={cx("relative h-full w-full outline-none", opening && "envelope-card-opening")}
+        style={CARD_RISE[proportion]}
       >
         {children}
       </div>
       {opening && (
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0">
-          <EnvelopeFace opening>{null}</EnvelopeFace>
+        <div
+          aria-hidden="true"
+          className="envelope-shell-opening pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2"
+        >
+          <EnvelopeFace
+            layer="front"
+            opening
+            title={<span className={TITLE_CLASSES}>{title}</span>}
+          />
         </div>
       )}
-    </div>
+    </>
   );
 }

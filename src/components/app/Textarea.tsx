@@ -7,7 +7,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
     <textarea
       {...props}
       className={cx(
-        "w-full rounded-lg border border-app-border bg-app-surface px-4 py-3 text-body-md text-app-text",
+        "w-full rounded-md border border-app-border-strong bg-app-surface px-4 py-3 text-body-md text-app-text",
         "placeholder:text-app-text-tertiary",
         className,
       )}

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 
 import { AppButtonLink } from "@/components/app/AppButtonLink";
-import { appButtonClasses } from "@/components/app/AppButton";
+import { chipClasses } from "@/components/app/Chip";
 import { cx } from "@/components/app/cx";
 
 /**
@@ -54,7 +54,7 @@ export function PreviewShell({
                   type="button"
                   aria-pressed={width === option}
                   onClick={() => setWidth(option)}
-                  className={appButtonClasses(width === option ? "primary" : "secondary", "sm")}
+                  className={chipClasses(width === option)}
                 >
                   {option === "mobile" ? "Mobile" : "Desktop"}
                 </button>

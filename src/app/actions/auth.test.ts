@@ -5,14 +5,16 @@ import { generateInviteToken } from "@/lib/cohosts/token";
 /**
  * Sign-in carries a co-host invite through authentication (`spec.md §6.2`: "A co-host invitation
  * preserves its token through authentication"; `docs/screen-spec.md` `cohost-invite-accept`):
- * the invite page's path rides as the auth callback's `next`, for OAuth and for the email link,
- * and nothing else can ride along.
+ * the invite page's path rides as the sign-in route's `next`, for OAuth and for the email link,
+ * and nothing else can ride along. The email link returns to `/auth/confirm` with `type` first,
+ * because the email template appends the token hash to it as given.
  */
 
 const calls = vi.hoisted(() => ({
   otp: [] as { email: string; options: { emailRedirectTo: string } }[],
   oauth: [] as { provider: string; options: { redirectTo: string } }[],
   redirects: [] as string[],
+  signOutError: null as { message: string } | null,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -26,6 +28,7 @@ vi.mock("@/lib/supabase/server", () => ({
         calls.oauth.push(args);
         return { data: { url: "https://accounts.example/authorize" }, error: null };
       },
+      signOut: async () => ({ error: calls.signOutError }),
     },
   }),
 }));
@@ -41,12 +44,13 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/auth/rate-limit", () => ({ enforceSignupThrottle: async () => {} }));
 vi.mock("@/lib/drafts/store", () => ({ bindDraftToEmail: async () => {} }));
 
-const { signInWithEmail, signInWithOAuth } = await import("./auth");
+const { signInWithEmail, signInWithOAuth, signOut } = await import("./auth");
 
 beforeEach(() => {
   calls.otp = [];
   calls.oauth = [];
   calls.redirects = [];
+  calls.signOutError = null;
   process.env.NEXT_PUBLIC_OAUTH_PROVIDERS = "google";
 });
 
@@ -62,7 +66,7 @@ describe("the destination after sign-in", () => {
       email: "guest@example.com",
     });
     expect(calls.otp[0]!.options.emailRedirectTo).toBe(
-      `https://app.test/auth/callback?next=${encodeURIComponent(path)}`,
+      `https://app.test/auth/confirm?type=email&next=${encodeURIComponent(path)}`,
     );
     expect(nextOf(calls.otp[0]!.options.emailRedirectTo)).toBe(path);
 
@@ -83,8 +87,21 @@ describe("the destination after sign-in", () => {
       calls.otp = [];
       await signInWithEmail("guest@example.com", next);
       expect(calls.otp[0]!.options.emailRedirectTo, String(next)).toBe(
-        "https://app.test/auth/callback",
+        "https://app.test/auth/confirm?type=email",
       );
     }
+  });
+});
+
+describe("signing out", () => {
+  it("returns to the landing page", async () => {
+    await expect(signOut()).rejects.toThrow("NEXT_REDIRECT");
+    expect(calls.redirects).toEqual(["/"]);
+  });
+
+  it("says so when the session could not be ended, instead of landing still signed in", async () => {
+    calls.signOutError = { message: "network" };
+    expect(await signOut()).toEqual({ ok: false, error: "Could not sign out. Try again." });
+    expect(calls.redirects).toEqual([]);
   });
 });

@@ -47,14 +47,29 @@ import { startStaticServer } from "../fixtures/static-server";
 const LIVE = process.env.LIVE_CORPUS === "1";
 const OUT = process.env.CORPUS_OUT ?? path.resolve("corpus-out");
 const ONLY = (process.env.CORPUS_CASES ?? "").split(",").filter(Boolean);
+/** A cases file to run instead of the corpus (`run-live.mjs --file`), e.g. the showcase set. */
+const FILE = process.env.CORPUS_FILE ?? "";
+const TRANSPARENT = process.env.CORPUS_TRANSPARENT === "1";
 const CONCURRENCY = Number(process.env.CORPUS_CONCURRENCY ?? "2");
 const RUNNER_EMAIL = "corpus-runner@example.com";
+
+/** Facts a host enters while the card is made, stored on the event (column names). */
+interface CaseFacts {
+  hosts?: string;
+  venue_name?: string;
+  address?: string;
+  event_date?: string;
+  start_time?: string;
+  end_time?: string;
+  timezone?: string;
+}
 
 interface CorpusCase {
   id: string;
   prompt: string;
   class?: string;
   mustAvoid?: string[];
+  facts?: CaseFacts;
 }
 
 /** The owner's two Phase 3 briefs (`docs/model-evals/phase-3-validation.md`). */
@@ -73,9 +88,9 @@ const OWNER_BRIEFS: CorpusCase[] = [
 ];
 
 function corpus(): CorpusCase[] {
-  const file = path.resolve("docs/model-evals/creative-understanding.json");
+  const file = FILE || path.resolve("docs/model-evals/creative-understanding.json");
   const { cases } = JSON.parse(readFileSync(file, "utf8")) as { cases: CorpusCase[] };
-  const all = [...cases, ...OWNER_BRIEFS];
+  const all = FILE ? cases : [...cases, ...OWNER_BRIEFS];
   return ONLY.length ? all.filter((c) => ONLY.includes(c.id)) : all;
 }
 
@@ -157,6 +172,7 @@ async function generate(admin: Admin, userId: string, c: CorpusCase): Promise<Ca
     .insert({
       owner_id: userId,
       prompt: c.prompt,
+      ...c.facts,
       generation_requested_at: new Date().toISOString(),
     })
     .select("id")
@@ -340,7 +356,8 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
             pathname,
             `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
               `<link rel="stylesheet" href="/card-fonts.css">` +
-              `<style>html,body{margin:0;background:#f4f1ec}main{width:560px;padding:24px}</style>` +
+              `<style>html,body{margin:0;background:${TRANSPARENT ? "transparent" : "#f4f1ec"}}` +
+              `main{width:560px;padding:24px}</style>` +
               `</head><body><main>${markup}</main></body></html>`,
             "text/html; charset=utf-8",
           );
@@ -352,7 +369,9 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
             );
           });
           const png = path.join(OUT, `${result.id}.png`);
-          await page.locator("[data-invitation-card]").screenshot({ path: png });
+          await page
+            .locator("[data-invitation-card]")
+            .screenshot({ path: png, omitBackground: TRANSPARENT });
           result.png = path.basename(png);
           result.panel = panels.length > 0;
           result.design = {

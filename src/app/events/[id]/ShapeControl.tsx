@@ -96,10 +96,10 @@ export function ShapeControl({
                 }
               }}
               className={cx(
-                "flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-3 transition-colors",
+                "app-press flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-3",
                 "aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
                 current
-                  ? "border-app-action bg-app-surface-muted text-app-text"
+                  ? "border-app-text bg-app-lit text-app-text ring-1 ring-app-text"
                   : target
                     ? "border-app-border-strong bg-app-surface-subtle text-app-text"
                     : "border-app-border bg-app-surface text-app-text hover:bg-app-surface-subtle",

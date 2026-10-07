@@ -388,7 +388,9 @@ Implementing agents must **not** add these unless explicitly requested later:
 - a page builder, arbitrary CSS, or an image editor — the artwork is never edited, cropped,
   moved or partly regenerated (the card's **text** is fully editable, §20);
 - adding images, stickers, shapes or other graphics to the card;
-- customer-facing template, layout or artwork gallery;
+- customer-facing template, layout or artwork gallery (the landing page's few showcase cards, real
+  cards generated for sample events and shown as illustration that can never be selected, are not
+  a gallery: `docs/design-system.md §4.1`);
 - host controls for the artwork, palette, art mode, borders, the envelope or the page's styling;
 - a card back, multi-page cards, animated cards;
 - host-uploaded photos or images on the card or page; stock photography; retrieved web imagery;
@@ -474,17 +476,25 @@ Generation/spend/abuse limits apply at both the event and acting-account level.
 
 ### 7.1 Landing page is the prompt
 
-Primary message:
+Primary message (the landing's headline; the product promise in §1 is unchanged):
 
-> **Describe your event. We create the whole experience.**
+> **Describe your event. Watch it light up.**
 
-The natural-language composer is the hero of the landing page. Primary controls: a large
+The natural-language composer is the hero of the landing page. A few real showcase cards, generated
+for sample events and captioned with the words that produced them, may hang beside it as
+illustration; they are never selectable, never a starting point and never a gallery
+(`docs/design-system.md §4.1`). Primary controls: a large
 event-description input; `+ Add inspiration`; `Create my invitation ✦`.
 
 Reassurance may say:
 > Free to create · No templates · Publish when ready
 
 Do not require signup before the user writes.
+
+Signed in, the landing says whose account `Create my invitation ✦` will use: the full address,
+just above the composer, with `Sign out` beside it, in place of the header's `Sign in`. A sign-in link
+works in any browser, so a browser can be signed in by someone else's link; this is where the
+person sees it before their idea goes into that account.
 
 ### 7.2 Pre-auth draft and authentication
 
@@ -518,6 +528,10 @@ a bounded placeholder marked as needing confirmation — for example a date twel
 Saturday, 1:00 PM, `Venue to be announced`. A placeholder is never published and never shown to
 guests. When the host enters the real value, the card updates deterministically (§7.9); no model
 is called.
+
+**Marked as needing confirmation** means named in one line under the card ("Not confirmed yet:
+date, time, venue.") and flagged in the details form and on the page's detail rows. The card itself
+carries no outline or mark: it looks exactly as it will for guests (owner decision, 2026-10-06).
 
 A fact the prompt states (§7.5) is on the card from the reveal, as the host wrote it, marked as
 needing confirmation like a placeholder (owner decision, 2026-10-04); the details form shows it
@@ -2407,6 +2421,11 @@ The host should feel:
 
 ### Prompt, auth, and generation
 - [ ] Landing page contains the primary event composer.
+- [ ] Signed in, the landing names the account Create uses, in full, on screen whenever Create is,
+  with Sign out; signed out, it offers Sign in.
+- [ ] Landing showcase cards, where shown, are real cards generated for sample events, captioned with
+  their prompts, not focusable or selectable, and on a phone never push the composer's text area
+  out of the first viewport (390 × 844).
 - [ ] User may write prompt/add inspiration before authentication.
 - [ ] No strong-model or image-model generation begins before auth succeeds.
 - [ ] Prompt and successful inspiration uploads restore exactly after OAuth/email auth.
@@ -2509,6 +2528,8 @@ The host should feel:
 - [ ] Missing required facts show on the card as placeholders marked as needing confirmation and
   are never published; facts the prompt states show on the card as stated, marked as needing
   confirmation, until the host confirms them, and are never published unconfirmed (§7.3).
+- [ ] The mark is the line under the card and the flags on the details; nothing is drawn on the
+  card itself.
 - [ ] Routine edits autosave.
 - [ ] Guest workspace returns to prior Creation Mode context.
 - [ ] Setup checklist separates publish blockers from recommended work.
@@ -2640,7 +2661,8 @@ The host should feel:
 - [ ] Complete owner/co-host and guest flows work around 390px.
 - [ ] Desktop is real responsive desktop, not phone-frame UI.
 - [ ] Preview on larger screens has Mobile/Desktop width toggle.
-- [ ] App chrome is light-only MVP.
+- [ ] App chrome is light; the dusk field appears only on the landing page and the envelope opening;
+  there is no app dark mode.
 - [ ] App, card and guest page meet WCAG 2.2 AA targets described in the design docs.
 
 ## 32. Implementation Guardrails for Coding Agents
@@ -2651,7 +2673,8 @@ The host should feel:
 3. Landing page is the prompt; do not reinsert signup before the user can describe the event.
 4. Do not begin strong-model or image-model generation for anonymous users.
 5. Preserve prompt/inspiration through auth exactly.
-6. Do not add a template, layout or artwork gallery.
+6. Do not add a template, layout or artwork gallery. Landing showcase cards follow
+   `docs/design-system.md §4.1` and can never be selected.
 7. Do not send the card reveal to a generic pre-publish dashboard.
 8. Creation Mode is the invitation itself with contextual collaborator controls.
 9. Do not turn readiness into a wizard. Adaptive creative clarification (§7.6b) is the one

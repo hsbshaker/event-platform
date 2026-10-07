@@ -3,10 +3,11 @@ import type { EventPageContent, PageFact } from "@/lib/events/page-content";
 
 /**
  * The house-style page beneath the card (`spec.md §21`, `§31` — Creation Mode;
- * `docs/design-system.md §15`): one look for every event, in app tokens only — never the card's
- * colours or fonts (`spec.md §32 #29`). Sections, in order: event details (the title, hosts, baby's
- * name, date, time, venue, address and the RSVP-by line), the description when there is one, and
- * the footer. RSVP, registry and information blocks join in their own phases.
+ * `docs/design-system.md §15`, §15.4 Revision 5): one look for every event, in app tokens only —
+ * never the card's colours or fonts (`spec.md §32 #29`). Sections, in order: event details (the
+ * title, then rows of a quiet line icon and the value: when, where, hosts, the baby's name and the
+ * RSVP-by line), the description when there is one, and the footer. RSVP, registry and information
+ * blocks join in their own phases.
  *
  * It draws `content` as given (`eventPageContent`): for a guest that is real values only, so a
  * missing fact renders nothing; in Creation Mode a placeholder or prompt-stated value arrives
@@ -18,7 +19,7 @@ import type { EventPageContent, PageFact } from "@/lib/events/page-content";
  * Server-compatible.
  */
 
-export const PRODUCT_NAME = "Event Platform";
+export const PRODUCT_NAME = "Revelnote";
 
 export interface EventPageCollaborator {
   details?: ReactNode;
@@ -33,36 +34,59 @@ export function EventPage({
   collaborator?: EventPageCollaborator;
 }) {
   const showDescription = content.description !== null || collaborator?.description !== undefined;
+  const when = [content.date, content.time].filter((fact): fact is PageFact => fact !== null);
   return (
-    <div className="flex w-full max-w-(--width-narrow) flex-col gap-4" data-event-page="">
-      <section
-        data-section="details"
-        aria-label="Event details"
-        className="flex flex-col gap-4 rounded-2xl border border-app-border bg-app-surface p-5 shadow-soft sm:p-6"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-label-sm tracking-widest text-app-text-secondary uppercase">
-            Event details
-          </p>
+    <div className="flex w-full max-w-(--width-narrow) flex-col gap-8" data-event-page="">
+      <section data-section="details" aria-label="Event details" className="flex flex-col gap-6">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-display-md text-balance text-app-text">{content.title}</h1>
           {collaborator?.details}
         </div>
-        <h1 className="text-heading-lg text-app-text">{content.title}</h1>
-        <dl className="flex flex-col gap-4">
-          <Fact label="Hosted by" fact={content.hosts} />
-          <Fact label="For" fact={content.babyName} />
-          <Fact label="Date" fact={content.date} />
-          <Fact label="Time" fact={content.time} />
+        <dl className="flex flex-col border-y border-app-border">
+          {when.length > 0 && (
+            <Row icon={<CalendarIcon />} label="When">
+              {when.map((fact, i) => (
+                <Line key={i} secondary={i > 0} needsConfirming={fact.needsConfirming}>
+                  {fact.text}
+                </Line>
+              ))}
+            </Row>
+          )}
           {content.venue && (
-            <Row label="Where" needsConfirming={content.venue.needsConfirming}>
-              {content.venue.name && <span className="block">{content.venue.name}</span>}
+            <Row icon={<PinIcon />} label="Where">
+              {content.venue.name && (
+                <Line needsConfirming={content.venue.needsConfirming && !content.venue.address}>
+                  {content.venue.name}
+                </Line>
+              )}
               {content.venue.address && (
-                <span className="block whitespace-pre-line text-app-text-secondary">
-                  {content.venue.address}
-                </span>
+                <Line secondary needsConfirming={content.venue.needsConfirming}>
+                  <span className="whitespace-pre-line">{content.venue.address}</span>
+                </Line>
               )}
             </Row>
           )}
-          <Fact label="RSVP" fact={content.rsvpBy} hideLabel />
+          {content.hosts && (
+            <Row icon={<PeopleIcon />} label="Hosted by">
+              <Line needsConfirming={content.hosts.needsConfirming}>
+                <span aria-hidden="true">Hosted by </span>
+                {content.hosts.text}
+              </Line>
+            </Row>
+          )}
+          {content.babyName && (
+            <Row icon={<HeartIcon />} label="For">
+              <Line needsConfirming={content.babyName.needsConfirming}>
+                <span aria-hidden="true">For </span>
+                {content.babyName.text}
+              </Line>
+            </Row>
+          )}
+          {content.rsvpBy && (
+            <Row icon={<EnvelopeIcon />} label="RSVP" hideLabel>
+              <Line needsConfirming={content.rsvpBy.needsConfirming}>{content.rsvpBy.text}</Line>
+            </Row>
+          )}
         </dl>
       </section>
 
@@ -70,14 +94,11 @@ export function EventPage({
         <section
           data-section="description"
           aria-label="Description"
-          className="flex flex-col gap-3 rounded-2xl border border-app-border bg-app-surface p-5 shadow-soft sm:p-6"
+          className="flex flex-col gap-3"
         >
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-label-sm tracking-widest text-app-text-secondary uppercase">
-              Description
-            </h2>
-            {collaborator?.description}
-          </div>
+          {collaborator?.description && (
+            <div className="flex justify-end">{collaborator.description}</div>
+          )}
           {content.description !== null ? (
             <p className="text-body-lg whitespace-pre-line text-app-text">{content.description}</p>
           ) : (
@@ -95,43 +116,53 @@ export function EventPage({
   );
 }
 
-function Fact({
-  label,
-  fact,
-  hideLabel = false,
-}: {
-  label: string;
-  fact: PageFact | null;
-  /** The text says it already ("RSVP by …"): the label stays for assistive tech only. */
-  hideLabel?: boolean;
-}) {
-  if (!fact) return null;
-  return (
-    <Row label={label} needsConfirming={fact.needsConfirming} hideLabel={hideLabel}>
-      {fact.text}
-    </Row>
-  );
-}
-
+/** One detail: a quiet line icon, then the value's lines. The label is for assistive tech. */
 function Row({
+  icon,
   label,
-  needsConfirming,
   hideLabel = false,
   children,
 }: {
+  icon: ReactNode;
   label: string;
-  needsConfirming: boolean;
+  /** The text says it already ("RSVP by …"): the label stays for assistive tech only. */
   hideLabel?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <dt className={hideLabel ? "sr-only" : "text-label-sm text-app-text-secondary"}>{label}</dt>
-      <dd className="text-body-lg text-app-text">
-        {children}
-        {needsConfirming && <NeedsConfirming />}
+    // A `dl` group holds only `dt` and `dd`, so the icon lives inside the `dd`.
+    <div className="border-b border-app-border py-4 last:border-b-0">
+      <dt className="sr-only">{hideLabel ? label : `${label}:`}</dt>
+      <dd className="flex gap-4">
+        <span aria-hidden="true" className="mt-0.5 shrink-0 text-app-text-secondary">
+          {icon}
+        </span>
+        <span className="flex min-w-0 flex-col gap-1">{children}</span>
       </dd>
     </div>
+  );
+}
+
+function Line({
+  secondary = false,
+  needsConfirming,
+  children,
+}: {
+  secondary?: boolean;
+  needsConfirming: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <span className="flex flex-col gap-1">
+      <span
+        className={
+          secondary ? "text-body-md text-app-text-secondary" : "text-body-lg text-app-text"
+        }
+      >
+        {children}
+      </span>
+      {needsConfirming && <NeedsConfirming />}
+    </span>
   );
 }
 
@@ -140,9 +171,65 @@ function NeedsConfirming() {
   return (
     <span
       data-needs-confirming=""
-      className="mt-1 flex w-fit rounded-pill border border-dashed border-app-action px-2 py-0.5 text-label-sm text-app-text-secondary"
+      className="flex w-fit rounded-pill border border-dashed border-app-border-strong px-2 py-0.5 text-label-sm text-app-text-secondary"
     >
       Needs confirming
     </span>
+  );
+}
+
+/* Quiet line icons for the detail rows: 24px, 1.6 stroke, the text's own colour. */
+const ICON = {
+  width: 24,
+  height: 24,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.6,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+function CalendarIcon() {
+  return (
+    <svg {...ICON}>
+      <rect x="4" y="5" width="16" height="15" rx="3" />
+      <path d="M4 10h16M9 3v4M15 3v4" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </svg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg {...ICON}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6" />
+    </svg>
+  );
+}
+
+function HeartIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z" />
+    </svg>
+  );
+}
+
+function EnvelopeIcon() {
+  return (
+    <svg {...ICON}>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
+      <path d="M4.5 7l7.5 6 7.5-6" />
+    </svg>
   );
 }

@@ -36,13 +36,13 @@ Screen labels describe product surfaces, not necessarily URL routes. Section ref
 **Purpose:** creation begins immediately (§7.1).
 
 **Primary:** `Create my invitation ✦`  
-**Secondary:** Sign in  
+**Secondary:** Sign in (signed out). Signed in, just above the composer instead: `Creating as <address>. Not you? Sign out`, the address in full, never truncated  
 **Input:** freeform event vision  
 **Optional:** `+ Add inspiration`
 
 **Rules**
 
-- no template or art gallery;
+- no template or art gallery (the never-selectable showcase cards of `docs/design-system.md §4.1` are illustration, not a gallery);
 - no auth required to type;
 - no model or image generation yet.
 
@@ -476,7 +476,7 @@ co-host.
 
 # Guest surfaces
 
-The envelope and card are the event's themed surface; everything else is house-style page and app-level components, not themed forms.
+The card is the event's themed surface. The envelope is a house component, the same for every event (`docs/design-system.md §10.20`); everything else is house-style page and app-level components, not themed forms.
 
 ## `envelope`
 

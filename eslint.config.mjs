@@ -37,7 +37,8 @@ const SERVICE_ROLE = {
  *   read; the limiter is itself part of what authorizes everything else.
  * - `src/lib/drafts/**` — an anonymous visitor's pre-auth draft, scoped by the opaque `ep_draft`
  *   cookie resolved to its stored hash before any query.
- * - `src/app/auth/callback/route.ts` — runs after the session is established.
+ * - `src/app/auth/complete-sign-in.ts` — runs after a sign-in route has established the session
+ *   (`/auth/callback`'s code exchange or `/auth/confirm`'s token verification), for that user.
  * - `src/app/api/cron/purge-pre-auth/route.ts` — gated on `CRON_SECRET`, 404 without it.
  * - `src/lib/ai/generations.server.ts` — begins a generation only through `start_generation`,
  *   for the signed-in session's collaborator (`requireEventAccess`); the function refuses any
@@ -99,7 +100,7 @@ const SERVICE_ROLE = {
 const SERVICE_ROLE_CALLERS = [
   "src/lib/auth/rate-limit.ts",
   "src/lib/drafts/**",
-  "src/app/auth/callback/route.ts",
+  "src/app/auth/complete-sign-in.ts",
   "src/app/api/cron/purge-pre-auth/route.ts",
   "src/lib/ai/generations.server.ts",
   "src/lib/ai/meter.server.ts",

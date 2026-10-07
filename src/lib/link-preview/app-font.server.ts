@@ -1,15 +1,17 @@
 /**
- * The app's own font for link-preview images: Inter, the application chrome family
- * (`docs/design-system.md §6.2`), from the same file the app serves for the subset it loads.
+ * The app's own font for link-preview images: Alegreya Sans, the application chrome family
+ * (`docs/design-system.md §6.2`, Revision 5), from the same files the app serves for the subset
+ * it loads.
  *
- * The app loads Inter through `next/font/google`, which self-hosts Google Fonts' variable Inter
- * (`wght` 100–900) as WOFF2 files split by `unicode-range` subset. `ImageResponse` (satori) cannot
- * use them: it reads TTF, OTF and WOFF only, not WOFF2, and sets a variable font at its default
- * instance, not at the heading weight (650). So, like card text (`card/text/glyph-outlines.ts`),
- * the envelope title is drawn as HarfBuzz glyph outlines at `wght` 650, from copies of those
- * subset files kept in `./fonts` (Inter v20 from Google Fonts, SIL Open Font License 1.1; the
- * latin file is byte-identical to what `next/font/google` serves for the app, and to the card's
- * curated Inter, kept separately because card fonts belong to the card renderer only).
+ * The app loads Alegreya Sans through `next/font/google`, which self-hosts Google Fonts' static
+ * Alegreya Sans faces as WOFF2 files, one per weight, split by `unicode-range` subset.
+ * `ImageResponse` (satori) cannot use them: it reads TTF, OTF and WOFF only, not WOFF2. So, like
+ * card text (`card/text/glyph-outlines.ts`), preview text is drawn as HarfBuzz glyph outlines from
+ * copies of those subset files kept in `./fonts`, one per weight the preview draws
+ * (`APP_FONT_WEIGHTS`: 500 for the envelope title, 700 for the seal's "R"). They are Alegreya Sans
+ * v28 from Google Fonts (SIL Open Font License 1.1, `AlegreyaSans-OFL.txt` beside them), each
+ * byte-identical to the latin file `next/font/google` serves the app for that weight
+ * (`docs/technology-decisions.md §8.2`).
  *
  * Each character is set in the first subset, in CSS's order (the last `@font-face` rule defined
  * is tried first), whose `unicode-range` holds it and whose file has its glyph — what a browser
@@ -32,13 +34,24 @@ import {
 
 const FONT_DIR = path.join(process.cwd(), "src", "lib", "link-preview", "fonts");
 
+/** The application family, as `next/font/google` and its files' name tables name it. */
+export const APP_FONT_FAMILY = "Alegreya Sans";
+
 /**
- * The Google Fonts Inter subsets the app loads (`src/app/layout.tsx`: `subsets: ["latin"]`), most
- * preferred first (the reverse of their CSS order). Only these are drawn: a character outside them
- * the live envelope sets in a system fallback face, so the preview refuses it. Add a subset here in
- * step with the app (`app-font.test.ts` holds the two lists equal).
+ * The weights the preview draws, each a static face with its own file per subset
+ * (`AlegreyaSans-<subset>-<weight>.woff2`). Alegreya Sans is static: a weight without a file is
+ * refused, never synthesized.
  */
-export const INTER_SUBSETS: readonly { name: string; ranges: readonly [number, number][] }[] = [
+export const APP_FONT_WEIGHTS: readonly number[] = [500, 700];
+
+/**
+ * The Google Fonts Alegreya Sans subsets the app loads (`src/app/layout.tsx`:
+ * `subsets: ["latin"]`), most preferred first (the reverse of their CSS order). Only these are
+ * drawn: a character outside them the live envelope sets in a system fallback face, so the preview
+ * refuses it. Add a subset here in step with the app (`app-font.server.test.ts` holds the two
+ * lists equal).
+ */
+export const APP_FONT_SUBSETS: readonly { name: string; ranges: readonly [number, number][] }[] = [
   {
     name: "latin",
     ranges: [
@@ -72,7 +85,7 @@ export interface AppTextStyle {
   letterSpacingEm: number;
 }
 
-/** App text in one weight of Inter, across its subsets. */
+/** App text in one weight of the app font, across its subsets. */
 export interface AppFont {
   readonly weight: number;
   /** Ascent and descent of the first available face (latin), px. */
@@ -139,16 +152,24 @@ export function appFontFrom(
 
 const loaded = new Map<number, Promise<AppFont>>();
 
-/** Inter at `weight`, every subset, loaded once per process. */
+/** The app font at `weight` (one of `APP_FONT_WEIGHTS`), every subset, loaded once per process. */
 export function loadAppFont(weight: number, dir: string = FONT_DIR): Promise<AppFont> {
+  if (!APP_FONT_WEIGHTS.includes(weight)) {
+    return Promise.reject(
+      new Error(
+        `The preview draws ${APP_FONT_FAMILY} at weights ${APP_FONT_WEIGHTS.join(", ")} only`,
+      ),
+    );
+  }
   let pending = loaded.get(weight);
   if (!pending) {
+    const prefix = APP_FONT_FAMILY.replaceAll(" ", "");
     pending = Promise.all(
-      INTER_SUBSETS.map(async (subset) => ({
+      APP_FONT_SUBSETS.map(async (subset) => ({
         ...subset,
         outlines: await loadGlyphOutlinesFromFile(
-          await readFile(path.join(dir, `Inter-${subset.name}.woff2`)),
-          { family: "Inter", weight, italic: false },
+          await readFile(path.join(dir, `${prefix}-${subset.name}-${weight}.woff2`)),
+          { family: APP_FONT_FAMILY, weight, italic: false },
         ),
       })),
     ).then((faces) => appFontFrom(weight, faces));

@@ -752,8 +752,89 @@ owner can overturn any of them.
 - **Personal links** are made with every party and shown only after publish (`Copy personal link`,
   `Rotate link` with a confirmation). The guest's side of the link is the next slice.
 
+### Design-system Revision 5 — the Lantern visual language (owner decisions, 2026-10-06)
+
+- **The product is named Revelnote.** There is no logo yet. Until one exists, the app uses an amber
+  seal with an "R" as a marked placeholder, swapped centrally when the real mark arrives
+  (`docs/design-system.md §5.2`).
+- **Lantern is the visual language,** chosen from three concept directions (Studio, Lantern, Post)
+  built around real generated cards at phone and desktop sizes: *paper lit for the evening*. It
+  changes tokens, typeface, the landing composition, the envelope's look and two dusk surfaces. No
+  behaviour, component hierarchy or boundary changes.
+- **Dusk appears on two surfaces only:** the landing page and the envelope opening (guests', and
+  the host's card reveal). Everything a host operates in, and the page beneath the card, stays
+  light. There is no app dark mode (`docs/design-system.md §5.3`; `spec.md §31` updated).
+- **Showcase cards on the landing are kept, never clickable.** They are a few real cards generated
+  for sample events, captioned with their prompts, hung from a string of lights as illustration:
+  never focusable, never selectable, never a starting point or a gallery. A phone shows at most one,
+  and only if the composer still starts in the first viewport (`docs/design-system.md §4.1`;
+  `spec.md §7.1`, the non-goals and guardrail #6 clarified; a §31 bullet added).
+- **The landing headline is "Describe your event. Watch it light up."** The product promise in
+  `spec.md §1` and `docs/product-doctrine.md §1` is unchanged.
+- **Alegreya Sans replaces Inter** for app chrome, the house-style page and the envelope, served
+  through `next/font` like Inter was. The type scale moves one step larger for its smaller x-height.
+  The private-event link preview's title font follows, and the switch ships only if the title
+  coverage test passes against it (`docs/technology-decisions.md §8.2`).
+- **Amber is the primary action and the selected state, always with ink text.** Selection never
+  relies on the amber fill alone. Field and control borders darken to `#7A81A6` so every boundary
+  clears 3:1 (`docs/design-system.md §6.1`, §14.1).
+- **Build order:** tokens, typeface and shared components; then the landing; then the envelope and
+  house-style page; then Creation Mode and the card editor's chrome. Each step is its own PR with
+  390px and desktop screenshots. The card itself does not change.
+
+### Sign-in by token hash; sign-in email through Resend (2026-10-06)
+
+- **`/auth/confirm` signs a person in by verifying an email token hash** (`verifyOtp`), then
+  attaches the draft bound to that address (shared `completeSignIn`). Unlike the callback's code
+  exchange, it needs nothing stored in the browser beforehand, so it is the route that makes a link
+  opened in another browser or device work (`spec.md §7.2`). Only email sign-in types are
+  accepted.
+- **It never claims a draft by the browser's draft cookie.** A token hash proves control of an
+  address, not of the browser that opens it: claiming by cookie would let someone's own link,
+  opened in another person's browser, move that person's prompt into the sender's account (login
+  CSRF). A draft follows only the address it was bound to; with none, the person lands on the
+  composer signed in, and Create turns the idea into an event directly.
+- **Signed in, the landing names the account Create uses** (owner decision, 2026-10-06;
+  `spec.md §7.1`): `Creating as <address>. Not you? Sign out` just above the composer, the address
+  in full, in place of the header's `Sign in`, so it is on screen whenever Create is. Someone's own link can still sign another browser in
+  as them (any link that works in every browser can); this line is where the person sees it
+  before their idea goes into that account. A dev fixture (`/dev/landing`) draws the signed-in
+  states for the browser tests.
+- **Emailed links return to `/auth/confirm`** (owner decision, 2026-10-06, preview first).
+  `signInWithEmail` sends people back to `/auth/confirm?type=email` (plus `next` for an invite),
+  and the email template appends the token hash to that address as given:
+  `{{ .RedirectTo }}&token_hash={{ .TokenHash }}`, so a link works in any browser or mail app.
+  The preview project's "Magic link" and "Confirm signup" templates use it now; production's
+  switch after this ships. Until a project switches, its template still sends people through
+  Supabase's own verify page, which returns a PKCE code to `/auth/confirm`; the route hands that
+  to the callback unchanged, so that link completes only in the browser that asked, as before. A
+  `RedirectTo` Supabase refuses (an origin outside the allow list) falls back to the site URL and
+  makes an unusable link, so every deployment that sends sign-in email must be on the list.
+- **Sign-in email goes through Resend** on the preview project (owner decision, 2026-10-06):
+  Supabase Auth's custom SMTP (`smtp.resend.com`), 100 emails an hour instead of the built-in
+  two. Until a sending domain is verified in Resend, mail comes from Resend's shared test sender
+  and reaches only the Resend account's own address. Production stays on the built-in mailer
+  until a domain is verified. This is a Supabase Auth setting, not app code; the email provider
+  for the reminder fallback is still Phase 10's decision (`docs/development-plan.md`).
+- **Test links without email:** `scripts/auth/test-sign-in-link.mjs <deployment-url> [email]` makes
+  a single-use, one-hour sign-in link for the preview project and `@example.com` test addresses
+  only (a test host account by default), for tests that should not depend on a mailbox.
+
+### The card alone, as guests see it (owner decisions, 2026-10-06)
+
+- **Nothing is drawn on the card for details not confirmed yet.** The dashed outlines around
+  placeholder and prompt-stated details are gone from the reveal, Creation Mode and every other
+  host surface. "Marked as needing confirmation" (`spec.md §7.3`) now means one line under the card
+  ("Not confirmed yet: date, time, venue.") and the flags in the details form and on the page's
+  detail rows; a new §31 Creation Mode bullet says so. The host sees the card exactly as guests will.
+- **The dusk lifts once the card is out.** On the envelope opening (host reveal and guest), after
+  the card has risen and its light has come up, the stage and the light fade to the page and the
+  card sits on the light page alone (`docs/design-system.md §5.3`, §8.3). The card no longer draws a
+  focus ring when focus moves to it after opening. Together the dusk box and that amber ring read as
+  a mat and frame that belonged to the card. A sealed envelope keeps its dusk.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49
 re-check; the clarification question schema; an email provider for the reminder fallback; legal
-review of the brand line.
+review of the brand line. Also open: a real Revelnote logo to replace the placeholder seal.

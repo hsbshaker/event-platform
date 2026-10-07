@@ -35,8 +35,8 @@ The card is the only themed surface. The page under it is one neutral house styl
 
 **Goal:** get the user creating before configuring (§7.1).
 
-Hero:
-> **Describe your event. We create the whole experience.**
+Hero (on the dusk field, with a few never-selectable showcase cards; `docs/design-system.md §4.1`):
+> **Describe your event. Watch it light up.**
 
 Controls:
 
@@ -47,7 +47,8 @@ Controls:
 Optional reassurance:
 > Free to create · No templates · Publish when ready
 
-Secondary: Sign in.
+Secondary: Sign in. Signed in instead: the account Create uses, in full, just above the
+composer, with Sign out.
 
 Do not show a template or art gallery.
 

@@ -2,15 +2,16 @@
  * Link-preview images (`spec.md §11.10`; `docs/card-system.md §6.4`; `docs/design-system.md
  * §15.7`; mechanism: `docs/technology-decisions.md §8.2`).
  *
- * A 1200 × 630 PNG on the house background:
+ * A 1200 × 630 PNG:
  *
- * - **public event:** the card in its shape — `cardPreviewSvg`, drawn from the same stored data
- *   and validation as `InvitationCard`, with every stored line as glyph outlines;
- * - **private event:** the sealed envelope with the event title — `envelopePreviewSvg`, which
- *   takes nothing but the title.
+ * - **public event:** the card in its shape on the house background — `cardPreviewSvg`, drawn
+ *   from the same stored data and validation as `InvitationCard`, with every stored line as glyph
+ *   outlines;
+ * - **private event:** the sealed envelope with the event title on its dusk field —
+ *   `envelopePreviewSvg`, which takes nothing but the title.
  *
  * Each is an SVG, rasterized by `next/og`'s `ImageResponse` (satori lays out one `<img>` of it over
- * the house background; resvg draws it). No browser, no new dependency, and satori never sets any
+ * its background; resvg draws it). No browser, no new dependency, and satori never sets any
  * text itself: every glyph is already an outline, so its lack of variable-font support does not
  * matter.
  *
@@ -88,10 +89,18 @@ async function cardOutlines(
 async function previewSvg(
   preview: LinkPreview,
   options: PreviewImageOptions,
-): Promise<{ svg: string; width: number; height: number }> {
+): Promise<{ svg: string; width: number; height: number; background: string }> {
   if (preview.kind === "envelope") {
-    const font = await loadAppFont(HOUSE.headingMd.weight);
-    return { svg: envelopePreviewSvg(preview.title, font), ...PREVIEW_SIZE };
+    const [title, seal] = await Promise.all([
+      loadAppFont(HOUSE.headingMd.weight),
+      loadAppFont(HOUSE.seal.weight),
+    ]);
+    // The envelope draws its own dusk field over the whole image (design-system §5.3).
+    return {
+      svg: envelopePreviewSvg(preview.title, { title, seal }),
+      ...PREVIEW_SIZE,
+      background: HOUSE.dusk,
+    };
   }
   const { card } = preview;
   // Validated before any font is loaded, so malformed data is always an `InvalidCardDataError`.
@@ -105,7 +114,7 @@ async function previewSvg(
   const outlines = await cardOutlines(card, options.loadCardFont ?? loadCuratedFace);
   const svg = cardPreviewSvg(card, outlines);
   const box = cardPreviewBox(card.shape);
-  return { svg, width: box.width, height: box.height };
+  return { svg, width: box.width, height: box.height, background: HOUSE.bg };
 }
 
 /**
@@ -116,7 +125,7 @@ export async function previewImage(
   preview: LinkPreview,
   options: PreviewImageOptions = {},
 ): Promise<Uint8Array> {
-  const { svg, width, height } = await previewSvg(preview, options);
+  const { svg, width, height, background } = await previewSvg(preview, options);
   const response = new ImageResponse(
     <div
       style={{
@@ -125,7 +134,7 @@ export async function previewImage(
         justifyContent: "center",
         width: "100%",
         height: "100%",
-        background: HOUSE.bg,
+        background,
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}

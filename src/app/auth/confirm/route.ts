@@ -1,0 +1,60 @@
+import { NextResponse, type NextRequest } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
+import { GET as exchangeCode } from "../callback/route";
+import { completeSignIn, safeNext } from "../complete-sign-in";
+
+/**
+ * Sign-in by token hash: verify a one-time email token on its own, then attach the pre-auth
+ * draft bound to the signed-in address (`completeSignIn`; spec.md §7.2 steps 4-6).
+ *
+ * Unlike the callback's code exchange, nothing has to be stored in the browser beforehand, so a
+ * link opened in a mail app's browser, another profile or another device still signs the person
+ * in; the draft then follows by the email it was bound to. For the same reason this route never
+ * claims a draft by this browser's cookie: a token hash proves control of an address, not of this
+ * browser, so an attacker's own link opened here must not take the prompt written here. The token
+ * is single-use and expires (the project's OTP expiry), and Supabase verifies it; this route never
+ * sees a password or a session secret in the URL. Only email sign-in types are accepted: invite,
+ * recovery and email-change links are not this app's and are refused like an incomplete link.
+ *
+ * Emailed links return here (`signInWithEmail`). While a project's email template still sends
+ * people through Supabase's own verify page, they arrive with a PKCE code (or its error) and no
+ * token hash: that is the callback's flow, bound to the browser that asked, and it goes there
+ * unchanged, cookie claim included.
+ */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const SIGN_IN_TYPES: ReadonlySet<EmailOtpType> = new Set(["email", "magiclink", "signup"]);
+
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const origin = url.origin;
+  const tokenHash = url.searchParams.get("token_hash");
+  const type = url.searchParams.get("type") as EmailOtpType | null;
+  const next = safeNext(url.searchParams.get("next"), origin);
+
+  if (
+    !tokenHash &&
+    ["code", "error", "error_description"].some((key) => url.searchParams.has(key))
+  ) {
+    return exchangeCode(request);
+  }
+
+  if (!tokenHash || !type || !SIGN_IN_TYPES.has(type)) {
+    const target = new URL("/signin", origin);
+    target.searchParams.set("error", "missing_code");
+    return NextResponse.redirect(target);
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+  if (error || !data.user) {
+    const target = new URL("/signin", origin);
+    target.searchParams.set("error", "exchange");
+    return NextResponse.redirect(target);
+  }
+
+  // Never by this browser's draft cookie: see `CompleteSignInOptions.claimByCookie`.
+  return completeSignIn(data.user, origin, next, { claimByCookie: false });
+}

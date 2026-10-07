@@ -11,6 +11,9 @@
   --color-app-surface: var(--app-surface);
   --color-app-surface-subtle: var(--app-surface-subtle);
   --color-app-surface-muted: var(--app-surface-muted);
+  --color-app-surface-lit: var(--app-surface-lit);
+  --color-app-lit: var(--app-lit);
+  --color-app-link: var(--app-link);
   --color-app-text: var(--app-text);
   --color-app-text-secondary: var(--app-text-secondary);
   --color-app-text-tertiary: var(--app-text-tertiary);
@@ -23,6 +26,12 @@
   --color-app-success: var(--app-success);
   --color-app-warning: var(--app-warning);
   --color-app-danger: var(--app-danger);
+  --color-app-danger-text: var(--app-danger-text);
+  --color-dusk: var(--dusk);
+  --color-dusk-raised: var(--dusk-raised);
+  --color-dusk-text: var(--dusk-text);
+  --color-dusk-text-secondary: var(--dusk-text-secondary);
+  --color-dusk-line: var(--dusk-line);
   --color-app-overlay: var(--app-overlay);
 
   --font-sans: var(--font-app);
@@ -48,63 +57,203 @@ html {
   background: var(--app-bg);
   color: var(--app-text);
   font-family: var(--font-app);
+  /* Alegreya Sans defaults to old-style figures; dates, times and counts read better lining. */
+  font-variant-numeric: lining-nums;
   -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 2px solid var(--app-focus);
+  outline: 2px solid var(--focus-ring, var(--app-focus));
   outline-offset: 2px;
+}
+
+/*
+ * The dusk field (docs/design-system.md §5.3): the landing page and the envelope opening only.
+ * Focus turns amber on it; lit paper inside it returns to the ink ring (§14.1, §15.6a).
+ */
+.surface-dusk {
+  background: var(--dusk);
+  color: var(--dusk-text);
+  --focus-ring: var(--dusk-focus);
+}
+.surface-lit {
+  background: var(--app-surface-lit-gradient);
+  color: var(--app-text);
+}
+/* Inside lit paper the ring is ink; the lit box's own ring sits on what surrounds it. */
+.surface-lit * {
+  --focus-ring: var(--app-focus);
+}
+/*
+ * A ring around a whole composite control while focus is inside it (the prompt composer). Its
+ * text area shows no ring of its own: the outer ring already marks it. Buttons inside keep theirs.
+ */
+.focus-ring-within:focus-within {
+  outline: 2px solid var(--focus-ring, var(--app-focus));
+  outline-offset: 2px;
+}
+.focus-ring-within textarea:focus-visible {
+  outline: none;
+}
+/* A warm pool of light under an object on dusk (§6.5). Decorative; never operational UI. */
+.dusk-pool {
+  background: var(--dusk-pool);
+  pointer-events: none;
+}
+
+/* The landing's string of lights and its showcase cards (§4.1, §19.1). */
+.festoon-bulb {
+  width: var(--space-6);
+  height: var(--space-6);
+  margin: calc(var(--space-6) / -2);
+  border-radius: var(--radius-pill);
+  background: var(--dusk-bulb);
+}
+.showcase-pool {
+  position: absolute;
+  inset-inline: -33%;
+  top: 92%;
+  height: var(--space-24);
+  z-index: -1;
+}
+.showcase-card {
+  filter: var(--shadow-on-dusk);
+}
+
+/*
+ * Press feedback (§8.1): every button, chip, choice and toolbar item scales to 0.97 on press.
+ * Removed under reduced motion (§8.5).
+ */
+.app-press {
+  transition:
+    transform var(--motion-press) var(--ease-out),
+    background-color var(--motion-base) ease,
+    border-color var(--motion-base) ease,
+    color var(--motion-base) ease;
+}
+.app-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-press {
+    transition: none;
+  }
+  .app-press:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /*
  * Application type-scale utilities (docs/design-system.md §6.2). Tailwind's own font-size
  * scale is not the design-system scale, so these map the canonical `--type-*`/`--tracking-*`
  * tokens to classes instead of ever hand-writing a size. No raw values here or at call sites.
+ * They sit in the components layer so a Tailwind utility on the same element (`font-medium`,
+ * `italic`, `leading-*`) overrides the scale's default, as it reads; unlayered, their `font`
+ * shorthand would silently win.
  */
-.text-display-lg {
-  font: var(--type-display-lg);
-  letter-spacing: var(--tracking-display-lg);
-}
-.text-display-md {
-  font: var(--type-display-md);
-  letter-spacing: var(--tracking-display-md);
-}
-.text-heading-xl {
-  font: var(--type-heading-xl);
-  letter-spacing: var(--tracking-heading-xl);
-}
-.text-heading-lg {
-  font: var(--type-heading-lg);
-  letter-spacing: var(--tracking-heading-lg);
-}
-.text-heading-md {
-  font: var(--type-heading-md);
-  letter-spacing: var(--tracking-heading-md);
-}
-.text-body-lg {
-  font: var(--type-body-lg);
-}
-.text-body-md {
-  font: var(--type-body-md);
-}
-.text-body-sm {
-  font: var(--type-body-sm);
-}
-.text-label-md {
-  font: var(--type-label-md);
-}
-.text-label-sm {
-  font: var(--type-label-sm);
-}
-.text-micro {
-  font: var(--type-micro);
+@layer components {
+  .text-display-hero {
+    font: var(--type-display-hero);
+    letter-spacing: var(--tracking-display-hero);
+  }
+  .text-display-lg {
+    font: var(--type-display-lg);
+    letter-spacing: var(--tracking-display-lg);
+  }
+  .text-display-md {
+    font: var(--type-display-md);
+    letter-spacing: var(--tracking-display-md);
+  }
+  .text-heading-xl {
+    font: var(--type-heading-xl);
+    letter-spacing: var(--tracking-heading-xl);
+  }
+  .text-heading-lg {
+    font: var(--type-heading-lg);
+    letter-spacing: var(--tracking-heading-lg);
+  }
+  .text-heading-md {
+    font: var(--type-heading-md);
+    letter-spacing: var(--tracking-heading-md);
+  }
+  .text-body-lg {
+    font: var(--type-body-lg);
+  }
+  .text-body-md {
+    font: var(--type-body-md);
+  }
+  .text-body-sm {
+    font: var(--type-body-sm);
+  }
+  .text-label-md {
+    font: var(--type-label-md);
+  }
+  .text-label-sm {
+    font: var(--type-label-sm);
+  }
+  .text-micro {
+    font: var(--type-micro);
+  }
+  /* Quoted host words: the showcase captions and the landing's first step (§4.1). */
+  .text-quote-sm {
+    font: var(--type-body-sm);
+    font-style: italic;
+  }
+  .text-quote-lg {
+    font: var(--type-heading-lg);
+    font-weight: 300;
+    font-style: italic;
+  }
+  /* The `font` shorthand resets `font-variant-numeric`; restore the lining figures (html). */
+  .text-display-hero,
+  .text-display-lg,
+  .text-display-md,
+  .text-heading-xl,
+  .text-heading-lg,
+  .text-heading-md,
+  .text-body-lg,
+  .text-body-md,
+  .text-body-sm,
+  .text-label-md,
+  .text-label-sm,
+  .text-micro,
+  .text-quote-sm,
+  .text-quote-lg {
+    font-variant-numeric: lining-nums;
+  }
 }
 
 /*
- * Envelope opening (docs/design-system.md §8.3, §10.20). The flap lifts and the envelope
- * settles away while the card rises into place, within `--motion-reveal`. Under reduced motion
- * (§8.5) the component skips the opening phase entirely, and these animations are also off.
+ * Envelope opening (docs/design-system.md §8.3, §10.20; Revision 5, Lantern). The house envelope
+ * is lit paper on the dusk stage (§5.3), with a light pool under it (§6.5). On the guest's tap the
+ * seal gives (`--motion-press`), then the flap opens (`--motion-slow`, the sheet duration) as the
+ * card rises out of the envelope (`--motion-reveal`, `--ease-out`) and the envelope settles away
+ * with it; the light comes up under the card about 200ms after it starts to rise
+ * (`--motion-light`). The card's animation ends the opening phase (`Envelope.tsx`), whose fallback
+ * timer outlasts every animation here, the light's included. Under reduced motion (§8.5) the
+ * component skips the opening phase, so nothing moves, and the light appears by opacity alone.
  */
+.envelope-pool {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  aspect-ratio: 4 / 1;
+  translate: 0 50%;
+}
+@keyframes envelope-seal-give {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  40% {
+    transform: scale(0.92);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(var(--space-4) * -1)) scale(0.92);
+    opacity: 0;
+  }
+}
 @keyframes envelope-flap-open {
   from {
     transform: rotateX(0deg);
@@ -116,39 +265,106 @@ html {
   }
 }
 @keyframes envelope-shell-away {
-  from {
-    transform: translateY(0);
+  0%,
+  60% {
+    transform: none;
     opacity: 1;
   }
-  to {
-    transform: translateY(var(--space-6));
+  100% {
+    transform: translateY(var(--space-4));
     opacity: 0;
   }
 }
+/*
+ * The card rises out of the envelope's mouth: `--envelope-card-from` is where it starts, inside
+ * the envelope, and the clip hides whatever of it is below the envelope's bottom edge, tracking that
+ * edge exactly while the card moves (`--envelope-clip-from` to `--envelope-clip-to`, linear in the
+ * same eased progress as the movement). The card stops at `--motion-reveal`; then the clip opens
+ * as the envelope settles away. The component sets the three per proportion.
+ */
 @keyframes envelope-card-rise {
+  0% {
+    transform: translateY(var(--envelope-card-from));
+    clip-path: inset(0 0 var(--envelope-clip-from) 0);
+  }
+  77% {
+    transform: none;
+    clip-path: inset(0 0 var(--envelope-clip-to) 0);
+  }
+  100% {
+    transform: none;
+    clip-path: inset(0);
+  }
+}
+@keyframes envelope-light-up {
   from {
-    transform: translateY(var(--space-10));
+    transform: scale(0.8);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: none;
     opacity: 1;
   }
+}
+@keyframes envelope-light-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.envelope-seal-giving {
+  animation: envelope-seal-give calc(var(--motion-press) + var(--motion-slow)) var(--ease-out) both;
 }
 .envelope-flap-opening {
   transform-origin: top;
-  animation: envelope-flap-open var(--motion-slow) var(--ease-standard) both;
+  animation: envelope-flap-open var(--motion-slow) var(--ease-standard) var(--motion-press) both;
 }
+/* The card's rise is 77% of its animation: `--motion-reveal` of `--motion-reveal` + `--motion-base`. */
 .envelope-shell-opening {
-  animation: envelope-shell-away var(--motion-reveal) var(--ease-standard) both;
+  animation: envelope-shell-away
+    calc(var(--motion-press) + var(--motion-reveal) + var(--motion-base)) var(--ease-standard) both;
 }
 .envelope-card-opening {
-  animation: envelope-card-rise var(--motion-reveal) var(--ease-standard) both;
+  animation: envelope-card-rise calc(var(--motion-reveal) + var(--motion-base)) var(--ease-out)
+    var(--motion-press) both;
+}
+.envelope-light-up {
+  animation: envelope-light-up var(--motion-light) var(--ease-out)
+    calc(var(--motion-press) + var(--motion-base)) both;
+}
+/*
+ * Once the card is out, the dusk lifts (owner decision, 2026-10-06): after the light under the card
+ * has come up, the stage turns to the page and the light goes with it, so the card sits on the
+ * page alone and nothing behind it reads as part of it. A colour change and an opacity fade, the
+ * same with reduced motion. A sealed envelope keeps its dusk.
+ */
+@keyframes envelope-light-away {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+[data-envelope-stage] {
+  transition: background-color var(--motion-light) var(--ease-out) var(--motion-base);
+}
+[data-envelope-stage]:has([data-envelope-phase="open"]) {
+  background-color: transparent;
+}
+[data-envelope-stage]:has([data-envelope-phase="open"]) .envelope-pool {
+  animation: envelope-light-away var(--motion-light) var(--ease-out) var(--motion-base) both;
 }
 @media (prefers-reduced-motion: reduce) {
+  .envelope-seal-giving,
   .envelope-flap-opening,
   .envelope-shell-opening,
   .envelope-card-opening {
     animation: none;
+  }
+  .envelope-light-up {
+    animation: envelope-light-fade var(--motion-light) var(--ease-out) both;
   }
 }

@@ -34,5 +34,8 @@ export function cardPreviewBox(shape: CardShape): {
   };
 }
 
-/** The envelope's width in the image, px (it is 10:7, so 504 tall, centred). */
-export const ENVELOPE_PREVIEW_WIDTH = 720;
+/**
+ * The envelope's width in the image, px: it is 10:7, so 448 tall, centred on the dusk field, with
+ * room under it for its light pool.
+ */
+export const ENVELOPE_PREVIEW_WIDTH = 640;

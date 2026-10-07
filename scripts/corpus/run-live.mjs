@@ -5,7 +5,13 @@
  * about $0.10 a card, under the project's daily spend ceiling.
  *
  *   SUPABASE_ACCESS_TOKEN=… OPENAI_API_KEY=… \
- *     node scripts/corpus/run-live.mjs preview [CU-01,CU-03,…] [--out <dir>]
+ *     node scripts/corpus/run-live.mjs preview [CU-01,CU-03,…] [--out <dir>] [--file <cases.json>]
+ *       [--transparent]
+ *
+ * `--file` runs the cases in that file (`{ "cases": [{ id, prompt, facts? }] }`) instead of the
+ * corpus; a case's `facts` are stored on its event as a host would enter them while the card is
+ * made. The landing's showcase set (`scripts/showcase/sample-events.json`, `docs/design-system.md
+ * §4.1`) is generated this way. `--transparent` draws each card on a transparent background.
  *
  * The project's keys are fetched with the management token and handed to the test process in its
  * environment only; nothing is printed or written. Generation is switched on for that process
@@ -27,12 +33,17 @@ const args = process.argv.slice(2);
 const target = args[0];
 const ref = PROJECTS[target];
 if (!ref) {
-  console.error("usage: run-live.mjs preview [CASE,CASE,…] [--out <dir>]");
+  console.error(
+    "usage: run-live.mjs preview [CASE,CASE,…] [--out <dir>] [--file <cases.json>] [--transparent]",
+  );
   process.exit(2);
 }
 const outFlag = args.indexOf("--out");
 const out = path.resolve(outFlag >= 0 ? args[outFlag + 1] : "corpus-out");
 const cases = args[1] && !args[1].startsWith("--") ? args[1] : "";
+const fileFlag = args.indexOf("--file");
+const file = fileFlag >= 0 ? path.resolve(args[fileFlag + 1]) : "";
+const transparent = args.includes("--transparent");
 
 const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys?reveal=true`, {
   headers: { Authorization: `Bearer ${supabaseAccessToken()}` },
@@ -56,6 +67,8 @@ const child = spawn("npx", ["vitest", "run", "--project", "live"], {
     LIVE_CORPUS: "1",
     CORPUS_OUT: out,
     CORPUS_CASES: cases,
+    CORPUS_FILE: file,
+    CORPUS_TRANSPARENT: transparent ? "1" : "",
     NEXT_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co`,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: anon,
     SUPABASE_SERVICE_ROLE_KEY: service,

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useFormStatus } from "react-dom";
+import { signOut } from "@/app/actions/auth";
 import { createEvent, saveDraft, type ComposerState } from "@/app/actions/draft";
 import { convertHeicToJpeg, HeicDecodeError, isHeicFile } from "@/lib/drafts/heic-to-jpeg";
 import { AppButton } from "./AppButton";
@@ -18,6 +19,8 @@ import { PromptComposer } from "./PromptComposer";
  * click landing. The mirror is preserved through `?restore=expired|taken` (the local copy
  * is the only surviving copy of the host's text) and is cleared only once the draft has
  * been claimed into an event, from `DetailsForm` on the create page.
+ *
+ * Signed in, it says whose account Create puts the idea in, with a way out (`SignedInAs`).
  */
 
 /** Exported so the create-event page can clear this mirror once a draft is claimed. */
@@ -36,10 +39,16 @@ const ACCEPT_ATTRIBUTE = [...ALLOWED_MIME_TYPES, "image/heic", "image/heif", ".h
 type InspirationItem = ComposerState["inspiration"][number];
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+/** Who is signed in, when someone is. Apple and Google sign-ins carry an address; others may not. */
+export interface LandingAccount {
+  email: string | null;
+}
+
 export interface LandingComposerProps {
   initialState: ComposerState;
   /** From `?restore=expired|taken` — a restore failure that must never silently drop input. */
   restoreNotice: "expired" | "taken" | null;
+  account: LandingAccount | null;
 }
 
 function readLocalPrompt(): string {
@@ -74,13 +83,14 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function LandingComposer({ initialState, restoreNotice }: LandingComposerProps) {
+export function LandingComposer({ initialState, restoreNotice, account }: LandingComposerProps) {
   const [prompt, setPrompt] = useState(initialState.prompt);
   const [inspiration, setInspiration] = useState<InspirationItem[]>(initialState.inspiration);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -254,20 +264,45 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
     // On success `createEvent` redirects and this component unmounts.
   }
 
+  async function handleSignOut() {
+    setSignOutError(null);
+    // Save the current text first, after anything already in flight: the landing page this
+    // returns to restores from the server draft, and must not come back with an older prompt.
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    await queueAutosave();
+    const result = await signOut();
+    if (!result.ok) setSignOutError(result.error);
+    // On success `signOut` redirects to the landing page, signed out.
+  }
+
   return (
-    <div className="mx-auto flex w-full max-w-(--width-standard) flex-1 flex-col justify-center gap-8 px-4 py-12 sm:py-16">
-      <header className="flex flex-col items-center gap-3 text-center">
-        <h1 className="text-display-md text-app-text">
-          Describe your event. We create the whole experience.
+    <div className="relative mx-auto flex w-full max-w-(--width-standard) flex-col gap-6 px-4 pb-16 pt-4 lg:pt-36">
+      <header className="flex flex-col items-center gap-4 text-center">
+        <h1 className="text-display-hero text-balance text-dusk-text">
+          Describe your event. Watch it light up.
         </h1>
+        <p className="max-w-(--width-narrow) text-body-lg text-dusk-text-secondary">
+          One invitation card, designed from your words and delivered in an envelope your guests
+          open.
+        </p>
       </header>
 
+      {account && (
+        <SignedInAs email={account.email} onSignOut={handleSignOut} error={signOutError} />
+      )}
+
       {restoreNotice && (
-        <InlineStatus variant="warning" live>
-          We couldn&apos;t restore your saved idea from before
-          {restoreNotice === "taken" ? " — that draft was already used" : " — it had expired"}. Your
-          text below is safe; look it over and continue.
-        </InlineStatus>
+        // Status text needs light paper behind it: its colours are set for light surfaces (§5.3).
+        <div className="surface-lit rounded-xl px-4 py-3">
+          <InlineStatus variant="warning" live>
+            We couldn&apos;t restore your saved idea from before
+            {restoreNotice === "taken" ? " — that draft was already used" : " — it had expired"}.
+            Your text below is safe; look it over and continue.
+          </InlineStatus>
+        </div>
       )}
 
       <form action={handleCreate} className="flex flex-col gap-3">
@@ -344,13 +379,77 @@ export function LandingComposer({ initialState, restoreNotice }: LandingComposer
             </>
           }
         />
-        {createError && <InlineStatus variant="danger">{createError}</InlineStatus>}
+        {createError && (
+          <div className="surface-lit rounded-xl px-4 py-3">
+            <InlineStatus variant="danger">{createError}</InlineStatus>
+          </div>
+        )}
       </form>
 
-      <p className="text-center text-body-sm text-app-text-tertiary">
+      <p className="text-center text-body-sm text-dusk-text-secondary">
         Free to create · No templates · Publish when ready
       </p>
     </div>
+  );
+}
+
+/**
+ * Whose account Create uses (spec.md §7.1). A sign-in link works in any browser
+ * (`/auth/confirm`), so a browser can be signed in by someone else's link. The full address,
+ * never truncated, sits just above the composer, so it is on screen whenever Create is, at every
+ * width, and the person can leave before their idea goes into that account. Its own form: it
+ * must never submit the composer's.
+ */
+function SignedInAs({
+  email,
+  onSignOut,
+  error,
+}: {
+  email: string | null;
+  onSignOut: () => Promise<void>;
+  error: string | null;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <form
+        action={onSignOut}
+        data-signed-in-as=""
+        className="flex flex-wrap items-center justify-center gap-x-1 text-center text-body-sm text-dusk-text-secondary"
+      >
+        <p className="min-w-0 wrap-anywhere">
+          {email ? (
+            <>
+              Creating as <span className="text-dusk-text">{email}</span>. Not you?
+            </>
+          ) : (
+            "You’re signed in. Not you?"
+          )}
+        </p>
+        <SignOutButton />
+      </form>
+      {error && (
+        // Status text needs light paper behind it: its colours are set for light surfaces (§5.3).
+        <div className="surface-lit rounded-xl px-4 py-3">
+          <InlineStatus variant="danger" live>
+            {error}
+          </InlineStatus>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SignOutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      // min-h/min-w keep the touch target at 44px on phones (design-system §7.6).
+      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 text-dusk-text underline underline-offset-2 disabled:opacity-60"
+    >
+      Sign out
+    </button>
   );
 }
 
