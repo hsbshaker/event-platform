@@ -91,7 +91,7 @@ describe("geometry", () => {
   });
 
   it("scales a plate with the outline about the midpoint of the picture's outer edge", () => {
-    expect(PLATE_SCALES).toEqual([1, 0.9, 0.8, 0.7, 0.6]);
+    expect(PLATE_SCALES).toEqual([1, 0.9, 0.8]);
     // Picture at the top: anchored top-centre.
     expect(plateRect(edge("art-top"), "rectangle", 0.6)).toEqual({
       x: 200,
@@ -247,13 +247,13 @@ describe("resolveZoneLegibility", () => {
       expect(Math.abs(fill.l - rgbToOklch(parseHex(hex(CREAM))).l)).toBeLessThan(EVEN_DELTA_E);
     });
 
-    it("uses the smallest scale when every cut hides busy art", () => {
+    it("uses the smallest scale, 0.8, when every cut hides busy art", () => {
       const checker = image(W, H57, (x, y) => ((x + y) % 2 ? [0, 0, 0] : [255, 255, 255]));
       const plate = choosePlate(input(checker, "art-top", "rectangle"));
-      expect(plate.scale).toBe(0.6);
+      expect(plate.scale).toBe(0.8);
       expect(plate.hidden.evenness).toBeLessThan(EVEN_SHARE);
       const result = resolveZoneLegibility(input(checker, "art-top", "rectangle"));
-      expect(result).toMatchObject({ kind: "plate", scale: 0.6 });
+      expect(result).toMatchObject({ kind: "plate", scale: 0.8 });
     });
 
     it("counts a subject crossing the cut as uneven, beyond the 3% the even share allows", () => {

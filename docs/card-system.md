@@ -501,14 +501,15 @@ For each text zone, computed once per artwork, layout and shape — for every sh
      again on the artwork as drawn (the zone whole and behind each line, as in step 1). The first
      scale at which an ink clears is kept.
    - **Plate** — when the crop fails or is not allowed: the artwork and the card's own outline are
-     scaled together by 1, 0.9, 0.8, 0.7 or 0.6 about the midpoint of the picture's outer edge (top
+     scaled together by 1, 0.9 or 0.8 about the midpoint of the picture's outer edge (top
      centre for `art-top`, bottom centre for `art-bottom`); scaling about a point of the outline's
      own edge keeps the plate inside the card's outline. The artwork is cut straight 30 units beyond
      the text zone's edge (at a rectangle's boundary of the region the composition keeps clear), and
      everything on the words' side of the cut is a flat **fill**. The largest scale whose cut hides
      only even background is kept — at least 97% of the hidden pixels within OKLab ΔE 0.05 of the
      hidden area's dominant colour (calibrated on paper grain, washes, sky gradients and subjects
-     crossing the cut: `CHANGELOG-v7.md`) — otherwise 0.6. At 1 the plate is a plain crop at the
+     crossing the cut: `CHANGELOG-v7.md`) — otherwise 0.8, never smaller, so the picture stays big and
+     what still crosses the cut is cut straight (owner decision on the contact sheet). At 1 the plate is a plain crop at the
      cut. The fill is that dominant colour when an ink clears 4.5:1 on it, otherwise the
      art-derived paper (OKLCH lightness 0.965 in the hue of the artwork's lightest colour, the
      panel's old colour); the ink is the first candidate that clears on the fill. The words sit on

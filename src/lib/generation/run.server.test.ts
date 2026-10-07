@@ -960,7 +960,7 @@ describe("the generation's deadline", () => {
       artRepaints: 0,
       inkPanels: [],
       inkPlacements: expect.arrayContaining([
-        { shape: "rectangle", zone: "text", kind: "plate", scale: 0.6 },
+        { shape: "rectangle", zone: "text", kind: "plate", scale: 0.8 },
       ]),
     });
   });
@@ -1825,7 +1825,7 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
     expect(switchTelemetry()).toMatchObject({
       artRepaints: 2,
       inkPanels: [],
-      inkPlacements: [{ shape: "square", zone: "text", kind: "plate", scale: 0.6 }],
+      inkPlacements: [{ shape: "square", zone: "text", kind: "plate", scale: 0.8 }],
       lowContrastZones: [],
       imagesRequested: 3,
     });

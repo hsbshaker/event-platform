@@ -566,8 +566,8 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       inkPanels: [],
       // A checkerboard is never even, so the plate is set back to its smallest.
       inkPlacements: [
-        { shape: "rectangle", zone: TEXT_ZONE, kind: "plate", scale: 0.6 },
-        { shape: "rounded-rectangle", zone: TEXT_ZONE, kind: "plate", scale: 0.6 },
+        { shape: "rectangle", zone: TEXT_ZONE, kind: "plate", scale: 0.8 },
+        { shape: "rounded-rectangle", zone: TEXT_ZONE, kind: "plate", scale: 0.8 },
       ],
       lowContrastZones: [],
     });
@@ -577,7 +577,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     expect(zone?.panel).toBeUndefined();
     expect(zone?.placement).toEqual({
       kind: "plate",
-      art: { x: 200, y: 0, width: 600, height: 840 },
+      art: { x: 100, y: 0, width: 800, height: 1120 },
       cut: { y: zoneFor("art-top", "rectangle").y - 30, keep: "above" },
       fill: expect.stringMatching(/^#[0-9A-F]{6}$/),
     });

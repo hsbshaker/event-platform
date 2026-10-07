@@ -846,9 +846,11 @@ and replaced the legibility panel for new designs (`card_layouts_v4`, `card_comp
   loses ground and never a subject's head — `art-bottom` on rectangle, rounded rectangle and square:
   the art scaled by 1.08, then 1.16, about the middle of the card's top, still full bleed; the first
   scale at which an ink clears on the art as drawn is kept. Otherwise a **plate**: the art and the
-  card's own outline scaled together by 1, 0.9, 0.8, 0.7 or 0.6 about the middle of the picture's
+  card's own outline scaled together by 1, 0.9 or 0.8 about the middle of the picture's
   outer edge, cut straight 30 units beyond the text zone, with a flat fill on the words' side; the
-  largest scale whose cut hides only even background, else 0.6. The fill is the hidden area's
+  largest scale whose cut hides only even background, else 0.8. The owner chose 0.8 as the floor
+  after the calibration contact sheet: shrinking to 0.6 read as a small picture pasted on the card,
+  so the picture stays big and whatever still crosses the cut is cut straight. The fill is the hidden area's
   dominant colour when an ink clears on it, else the paper (OKLCH L 0.965, the panel's old colour).
   At scale 1 the plate is a plain crop at the cut.
 - **Centred words (`framed`, `corners`, `atmosphere`): nothing behind them, ever, for a new

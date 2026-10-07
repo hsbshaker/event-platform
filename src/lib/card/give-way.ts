@@ -45,8 +45,12 @@ import { canvasOf, insideOutline, type CardShape } from "./shapes";
 /** Crop scales, tried in order: 8% and 16% larger (owner decision 2026-10-06). */
 export const CROP_SCALES: readonly number[] = [1.08, 1.16];
 
-/** Plate scales, largest first; the last is used when no cut hides only even background. */
-export const PLATE_SCALES: readonly number[] = [1, 0.9, 0.8, 0.7, 0.6];
+/**
+ * Plate scales, largest first; the last is used when no cut hides only even background. Never
+ * below 0.8 (owner decision 2026-10-06): the picture stays big, and what still crosses the cut is
+ * cut straight rather than shrunk into a small inset.
+ */
+export const PLATE_SCALES: readonly number[] = [1, 0.9, 0.8];
 
 /** The share of hidden pixels that must be within `EVEN_DELTA_E` of the dominant colour. */
 export const EVEN_SHARE = 0.97;
