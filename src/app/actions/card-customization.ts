@@ -10,6 +10,7 @@ import { validateWordingText } from "@/lib/card/entry";
 import { cardTextFitsEveryDesign } from "@/lib/card/entry-fit.server";
 import { CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
 import type { TextBox } from "@/lib/card/text-box";
+import type { TextShift } from "@/lib/card/text-space";
 import { parseEditorBoxes, parseStoredBoxes } from "@/lib/card/text-box-schema";
 import { cardFontMetrics } from "@/lib/card/text/card-fonts.server";
 import { cardTextFieldErrors } from "@/lib/events/card-text";
@@ -143,6 +144,8 @@ interface EditedCard {
   event: CardEventRow;
   design: ReadDesign;
   ink: string;
+  /** Where the artwork's stored placement starts the generated words (`zoneInk`). */
+  shift: TextShift;
   contents: CardContents;
   stored: CustomizationRow | null;
 }
@@ -179,17 +182,19 @@ async function loadEditedCard(
   if (!art) return null;
   const event = eventResult.data as CardEventRow;
   const design = designOf(designResult.data as DesignRow);
+  const { ink, shift } = zoneInk(art.ink, shape);
   return {
     event,
     design,
-    ink: zoneInk(art.ink, shape).ink,
+    ink,
+    shift,
     contents: await cardContents(event, design.wording, now),
     stored,
   };
 }
 
 async function editorView(
-  card: { design: ReadDesign; ink: string; contents: CardContents },
+  card: { design: ReadDesign; ink: string; shift: TextShift; contents: CardContents },
   shape: CardShape,
   row: CustomizationRow,
 ): Promise<EditorCustomization> {
@@ -206,6 +211,7 @@ async function editorView(
       pairing: card.design.pairing,
       content: host.content,
       ink: card.ink,
+      shift: card.shift,
     });
     const marked = new Set<string>(host.unconfirmed);
     unconfirmed = boxes
@@ -342,6 +348,7 @@ export async function saveCardCustomization(
         design: card.design,
         shape,
         ink: card.ink,
+        shift: card.shift,
         contents: card.contents,
       });
     }
@@ -453,6 +460,7 @@ export async function resetCardCustomization(
       design: card.design,
       shape,
       ink: card.ink,
+      shift: card.shift,
       contents: card.contents,
     });
     const { error } = await supabase.rpc("save_card_customization", {

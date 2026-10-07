@@ -9,7 +9,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { InvitationCard, type CardPanel } from "@/components/card/InvitationCard";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
 import { panelFeather } from "@/lib/card/card-data";
-import { panelFor, zoneFor, type CardLayoutId } from "@/lib/card/layouts";
+import { zoneFor, type CardLayoutId } from "@/lib/card/layouts";
+import { storedPanelShape } from "@/lib/card/test-panels";
 import { canvasOf, insideOutline, proportionOf, type CardShape } from "@/lib/card/shapes";
 import { TYPICAL, WORST } from "@/lib/card/test-content";
 import type { CardContent, TextBox } from "@/lib/card/text-box";
@@ -129,7 +130,7 @@ interface Case {
   layout: CardLayoutId;
   shape: CardShape;
   pairing: TypographyPairingId;
-  /** A panel from `panelFor`, or the `card_layouts_v2` panel that persisted artwork still carries. */
+  /** A stored panel (`storedPanelShape`), or the `card_layouts_v2` panel that persisted artwork still carries. */
   panel: boolean | "v2";
   /** The card's words: typical unless given. */
   content?: CardContent;
@@ -259,7 +260,7 @@ function panelsOf(c: Case): CardPanel[] {
     };
     return [{ ...v2, color: PANEL_COLOR }];
   }
-  return [{ ...panelFor(c.layout, c.shape), color: PANEL_COLOR }];
+  return [{ ...storedPanelShape(c.layout, c.shape), color: PANEL_COLOR }];
 }
 
 /** The live card drawn with a fade 60 units shorter: the panel comparison must catch it. */

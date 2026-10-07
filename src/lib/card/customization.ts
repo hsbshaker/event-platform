@@ -24,6 +24,7 @@ import {
   boxText,
   breakBoxText,
   carryWords,
+  followTextColor,
   isLinkedBox,
   sameBreakStyle,
   seedCustomization,
@@ -33,7 +34,9 @@ import {
   type TextBox,
 } from "./text-box";
 import type { EditorTextBox } from "./text-box-schema";
+import type { CardShape } from "./shapes";
 import { FACT_SLOT_IDS } from "./slots";
+import { shiftFits, shiftTextBoxes, textGroupAreas, type TextShift } from "./text-space";
 
 /** Two boxes speak for the same words: the same source kind and slot. */
 function sameSource(a: TextBox["source"], b: TextBox["source"]): boolean {
@@ -65,16 +68,45 @@ export interface CarriedBoxesInput {
   saved: CardContent;
   /** The new card's generated-layout inputs; `metrics` covers its pairing and the carried fonts. */
   card: CarryWordsInput["card"];
+  /**
+   * Where the new card's artwork starts its generated words (`text-space.ts`, the artwork's stored
+   * shift, `card_compiler_v7`), and the new card's shape; absent for artwork made before it.
+   */
+  placement?: { shape: CardShape; shift: TextShift };
 }
 
 /**
  * The host's words laid out fresh on a new design or shape (`carryWords`; `docs/card-system.md
  * §7`, "Carrying words to a fresh layout"), as its customization stores them: the linked boxes'
  * lines broken from the saved words, like a seed.
+ *
+ * Positions come from the new card, so its artwork's stored shift moves the carried heading
+ * (title, invitation line) and details (facts, then added text) as it moves the generated layer
+ * (`generatedTextLayer`), by the same rule: only while every carried line, so moved, stays inside
+ * the shape's text-safe area (`shiftFits`, over the lines laid out for `host`, which is what the
+ * host sees). A layout that ran past its zone — an overflow, or added text stacked below the zone —
+ * is not moved: its lines outside the zone are not measured, so the rule cannot vouch for them.
  */
-export function carriedBoxesFrom({ from, host, saved, card }: CarriedBoxesInput): CardTextLayout {
+export function carriedBoxesFrom({
+  from,
+  host,
+  saved,
+  card,
+  placement,
+}: CarriedBoxesInput): CardTextLayout {
   const layout = carryWords({ from, content: host, card });
-  return { ...layout, boxes: withLinkedLines(layout.boxes, saved, card.metrics).boxes };
+  const moved =
+    placement !== undefined &&
+    !layout.overflow &&
+    layout.belowZone.length === 0 &&
+    shiftFits(
+      placement.shape,
+      textGroupAreas(layout.boxes, card.metrics, card.zone),
+      placement.shift,
+    )
+      ? shiftTextBoxes(layout.boxes, placement.shift)
+      : layout.boxes;
+  return { ...layout, boxes: withLinkedLines(moved, saved, card.metrics).boxes };
 }
 
 /** Characters a box's face lacks in `text`, as drawn (its case applied). */
@@ -122,7 +154,16 @@ export function boxesToStore({
   const fieldErrors: Record<string, string> = {};
   const rebroken: string[] = [];
   const boxes = incoming.map((box, i): TextBox => {
-    const shell: TextBox = { ...box, source: { ...box.source }, font: { ...box.font }, lines: [] };
+    // Every field the editor sent, its text background included (absent: none), with no lines yet.
+    // An automatic background colour is derived here from the box's text colour, whatever the
+    // editor sent; a colour the host chose is stored as chosen.
+    const shell: TextBox = {
+      ...box,
+      source: { ...box.source },
+      font: { ...box.font },
+      lines: [],
+      ...(box.background ? { background: followTextColor(box.background, box.color) } : {}),
+    };
     const linked = isLinkedBox(shell);
     const text = boxText(shell, saved);
 

@@ -1,7 +1,7 @@
 /**
  * Where the generated card's text sits, line by line (`card_compiler_v4`, owner decision
- * 2026-10-05): the areas whose background the ink is judged against, beside the whole zone
- * (`ink.ts`, `resolveInk`'s `areas`).
+ * 2026-10-05): the areas whose background the ink and the text's placement are judged against
+ * (`text-space.ts`, `card_compiler_v7`; `ink.ts` `resolveInk` until `card_compiler_v6`).
  *
  * Pure and deterministic. Each line is measured exactly as `layoutCard` measured it to break it —
  * the box's face, size, letter spacing and case, through the same `FontMetrics.measure` — so the

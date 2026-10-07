@@ -14,6 +14,7 @@ import { allCuratedMetrics } from "@/lib/card/text/test-fonts";
 import {
   activeCard,
   carriedWords,
+  customizedText,
   rebreakEventCustomizations,
   storeCarriedWords,
   storeCarriedWordsAsServer,
@@ -271,6 +272,57 @@ describe("rebreakEventCustomizations", () => {
   });
 });
 
+describe("customizedText", () => {
+  it("draws the host's boxes where the host put them: the starting-text placement rules never move them", async () => {
+    const seed = seededFor(A);
+    // Moved by the host far outside the text-safe area, partly off the card, rotated, with a
+    // chosen background: the automatic placement's safe-area rule (`shiftFits`) is for the
+    // generated starting text only.
+    const placed = seed.map((b) =>
+      b.id === "title"
+        ? {
+            ...b,
+            x: -40,
+            y: 1320,
+            rotation: -8,
+            background: { style: "box" as const, color: "#FFFFFF", opacity: 0.8, padding: 20 },
+          }
+        : b,
+    );
+    const saved = guestCardContent({
+      wording: { title: "A Little Wild One", invitationLine: "Please join us for a baby shower" },
+      event: {
+        babyName: null,
+        hosts: "Hosted by Maya & Tom",
+        eventDate: "2026-06-06",
+        startTime: "13:00",
+        endTime: null,
+        venueName: "The Willow House",
+        address: null,
+        rsvpDeadline: null,
+        timezone: "America/New_York",
+      },
+    });
+    const { boxes } = await customizedText(placed, saved);
+    const title = byId(boxes, "title");
+    expect({ x: title.x, y: title.y, rotation: title.rotation }).toEqual({
+      x: -40,
+      y: 1320,
+      rotation: -8,
+    });
+    expect(title.background).toEqual(byId(placed, "title").background);
+    for (const box of boxes) {
+      const before = byId(placed, box.id);
+      expect([box.x, box.y, box.width, box.rotation]).toEqual([
+        before.x,
+        before.y,
+        before.width,
+        before.rotation,
+      ]);
+    }
+  });
+});
+
 describe("activeCard", () => {
   it("is the active design in its active shape, else its own", async () => {
     expect(await activeCard(client(), EVENT)).toEqual({ designId: A, shape: "rectangle" });
@@ -365,6 +417,25 @@ describe("carriedWords", () => {
     fake.state.tables.card_customizations = [customizationRow(A, edited())];
     const carried = await carry();
     expect(byId(carried!.boxes, "title").lines.join(" ")).toBe("Juniper's Garden Party");
+  });
+
+  it("starts the carried words where the new card's artwork stored its shift (card_compiler_v7)", async () => {
+    fake.state.tables.card_customizations = [customizationRow(A, edited())];
+    const plain = (await carry())!.boxes;
+    const shift = { heading: -30, details: -10 };
+    fake.state.tables.card_art_assets = fake.state.tables.card_art_assets.map((row) =>
+      row.card_design_id === B
+        ? {
+            ...row,
+            ink: Object.fromEntries(PORTRAIT.map((s) => [s, { text: { ink: INK, shift } }])),
+          }
+        : row,
+    );
+    const placed = (await carry())!.boxes;
+    expect(byId(placed, "title").y).toBeCloseTo(byId(plain, "title").y - 30, 3);
+    expect(byId(placed, "invitationLine").y).toBeCloseTo(byId(plain, "invitationLine").y - 30, 3);
+    expect(byId(placed, "venue").y).toBeCloseTo(byId(plain, "venue").y - 10, 3);
+    expect(byId(placed, "c1").y).toBeCloseTo(byId(plain, "c1").y - 10, 3);
   });
 });
 

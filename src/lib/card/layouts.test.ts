@@ -8,14 +8,49 @@ import {
   CARD_LAYOUTS,
   layoutArtFor,
   layoutSupportsShape,
-  panelFor,
   zoneFor,
 } from "./layouts";
 import { CARD_SHAPES, canvasOf, insideOutline, insideTextSafe, SHAPE_GEOMETRY } from "./shapes";
+import { storedPanelShape } from "./test-panels";
 
-describe("layout set card_layouts_v6", () => {
+describe("layout set card_layouts_v7", () => {
   it("is versioned", () => {
-    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v6");
+    expect(CARD_LAYOUT_SET_VERSION).toBe("card_layouts_v7");
+  });
+
+  it("makes no legibility panel: no layout carries one (owner decision 2026-10-07)", () => {
+    for (const id of CARD_LAYOUT_IDS) {
+      expect(Object.keys(CARD_LAYOUTS[id]).sort(), id).toEqual(
+        ["art", "artModes", "maxWidth", "purpose", "shapes"].sort(),
+      );
+    }
+  });
+
+  it("asks for a quieter area for the words, never a completely clear one", () => {
+    for (const id of CARD_LAYOUT_IDS) {
+      for (const shape of CARD_LAYOUTS[id].shapes) {
+        const { composition } = layoutArtFor(id, shape);
+        const label = `${id}/${shape}`;
+        expect(composition, label).not.toMatch(/completely clear|calm and open|nothing crossing/);
+        if (id !== "atmosphere") expect(composition, label).toMatch(/quieter/);
+        if (id !== "atmosphere") expect(composition, label).toMatch(/low detail/);
+      }
+    }
+    expect(layoutArtFor("art-top", "rectangle").composition).toBe(
+      "Place the subject in the upper half of the canvas. Let the lower part of the canvas — the bottom 45% — be a quieter area for the invitation's words, with low detail: whatever suits this design, such as sky, a wall, brick, a floor, fabric, a soft gradient, a gentle texture, a solid colour or the paper itself. Keep the subject's main features out of it; supporting details may reach a little way in. Unless the design calls for one, there is no hard edge or separate band between it and the picture.",
+    );
+    expect(layoutArtFor("art-bottom", "arch").composition).toBe(
+      "Ground the subject along the bottom of the canvas, rising through the lower 40%. Let the upper part of the canvas — the top 60% — be a quieter area for the invitation's words, with low detail: whatever suits this design, such as sky, a wall, a ceiling, fabric, a soft gradient, a gentle texture, a solid colour or the paper itself. Keep the subject's main features out of it; supporting details may rise a little way in. Unless the design calls for one, there is no hard edge or separate band between it and the picture.",
+    );
+    expect(layoutArtFor("cover-bottom", "square").composition).toBe(
+      "Fill the whole canvas edge to edge with one scene. One or two bold subjects fill the upper 40% of the canvas, large and close, free to run off the top and sides; let the bottom 60% be a quieter stretch of the same scene for the words — a floor, still water or a deep field of colour, with low detail. Keep the subjects' main features out of it.",
+    );
+    expect(layoutArtFor("framed", "circle").composition).toContain(
+      "the middle 50% of the height) quieter, for the invitation's words: background, paper or a gentle texture with low detail.",
+    );
+    expect(layoutArtFor("corners", "square").composition).toContain(
+      "and 50% of the height) quieter, with low detail, for the invitation's words.",
+    );
   });
 
   it("has exactly the seven layouts", () => {
@@ -87,14 +122,14 @@ describe("layout set card_layouts_v6", () => {
     expect(layoutArtFor("art-top", "rectangle").composition).toContain("upper half of the canvas");
   });
 
-  it("keeps every band inside the region its composition keeps clear, at least 30 units from the picture", () => {
+  it("keeps every band inside the region its composition keeps quieter, at least 30 units from the picture", () => {
     for (const id of CARD_LAYOUT_IDS) {
       for (const shape of CARD_LAYOUTS[id].shapes) {
         const { band, clear, composition } = layoutArtFor(id, shape);
         if (!clear) continue;
         const label = `${id}/${shape}`;
         const h = canvasOf(shape).height;
-        // The composition names the share it keeps clear.
+        // The composition names the share it keeps quieter.
         expect(composition, label).toContain(`the ${clear.edge} ${clear.percent}%`);
         if (clear.edge === "bottom") {
           expect(band.top, label).toBeGreaterThanOrEqual((h * (100 - clear.percent)) / 100 + 30);
@@ -105,7 +140,7 @@ describe("layout set card_layouts_v6", () => {
     }
   });
 
-  it("states the square cards' calm centre as the middle 50%, matching their 260–740 band", () => {
+  it("states the square cards' quieter centre as the middle 50%, matching their 260–740 band", () => {
     for (const [layout, shape] of [
       ["framed", "square"],
       ["framed", "circle"],
@@ -176,9 +211,6 @@ describe("layout set card_layouts_v6", () => {
     ]);
     expect(CARD_LAYOUTS["cover-top"].artModes).toEqual(["illustration"]);
     expect(CARD_LAYOUTS["cover-bottom"].artModes).toEqual(["illustration"]);
-    // Their panels are the picture layouts' too: from the words' edge, fading toward the picture.
-    expect(CARD_LAYOUTS["cover-top"].panel).toEqual(CARD_LAYOUTS["art-bottom"].panel);
-    expect(CARD_LAYOUTS["cover-bottom"].panel).toEqual(CARD_LAYOUTS["art-top"].panel);
     for (const id of ["cover-top", "cover-bottom"] as const) {
       for (const shape of CARD_LAYOUTS[id].shapes) {
         const { composition, presence } = layoutArtFor(id, shape);
@@ -229,10 +261,16 @@ describe("layout set card_layouts_v6", () => {
 
   it("refuses an unsupported shape", () => {
     expect(() => zoneFor("corners", "oval")).toThrow(/does not support/);
-    expect(() => panelFor("corners", "oval")).toThrow(/does not support/);
   });
+});
 
-  it("fades the panel by layout: from the words' end of the card, or a wash around them", () => {
+/**
+ * The panels artwork stored before `card_compiler_v7` are drawn as stored (`spec.md §32 #27`), so
+ * the layout fixtures keep rendering them from a frozen copy of their geometry (`test-panels.ts`).
+ * These pin that copy to what `card_layouts_v3`–`v6` persisted.
+ */
+describe("stored legibility panels (card_layouts_v3–v6), as persisted", () => {
+  it("fades a stored panel by layout: from the words' end of the card, or a wash around them", () => {
     const fromTop = { kind: "edge", from: "top", length: 180 };
     const fromBottom = { kind: "edge", from: "bottom", length: 180 };
     const wash = { kind: "wash", feather: 70 };
@@ -246,14 +284,11 @@ describe("layout set card_layouts_v6", () => {
       "cover-bottom": fromBottom,
     } as const;
     for (const layout of CARD_LAYOUT_IDS) {
-      expect(CARD_LAYOUTS[layout].panel, layout).toEqual({
-        padX: 40,
-        padY: 30,
-        fade: want[layout],
-      });
+      const shape = CARD_LAYOUTS[layout].shapes[0];
+      expect(storedPanelShape(layout, shape).fade, layout).toEqual(want[layout]);
     }
     // Words above the picture: paper from the top edge, full width, to the zone's bottom + 30.
-    expect(panelFor("art-bottom", "rectangle")).toEqual({
+    expect(storedPanelShape("art-bottom", "rectangle")).toEqual({
       x: 0,
       y: 0,
       width: 1000,
@@ -263,7 +298,7 @@ describe("layout set card_layouts_v6", () => {
       fade: fromTop,
     });
     // Words below the picture: from the zone's top - 30 down to the bottom edge.
-    expect(panelFor("art-top", "rectangle")).toEqual({
+    expect(storedPanelShape("art-top", "rectangle")).toEqual({
       x: 0,
       y: 770,
       width: 1000,
@@ -274,7 +309,7 @@ describe("layout set card_layouts_v6", () => {
     });
     // Words in the middle: the zone padded 40 × 30.
     const zone = zoneFor("framed", "rectangle");
-    expect(panelFor("framed", "rectangle")).toEqual({
+    expect(storedPanelShape("framed", "rectangle")).toEqual({
       x: zone.x - 40,
       y: zone.y - 30,
       width: zone.width + 80,
@@ -288,7 +323,7 @@ describe("layout set card_layouts_v6", () => {
   it("puts an edge fade's opaque paper at the words' end of the card, the fade toward the picture", () => {
     for (const layout of ["art-top", "art-bottom"] as const) {
       for (const shape of CARD_LAYOUTS[layout].shapes) {
-        const panel = panelFor(layout, shape);
+        const panel = storedPanelShape(layout, shape);
         const { width: w, height: h } = canvasOf(shape);
         const { clear } = layoutArtFor(layout, shape);
         const label = `${layout}/${shape}`;
@@ -321,7 +356,7 @@ describe("layout set card_layouts_v6", () => {
     for (const layout of CARD_LAYOUT_IDS) {
       for (const shape of CARD_LAYOUTS[layout].shapes) {
         const zone = zoneFor(layout, shape);
-        const panel = panelFor(layout, shape);
+        const panel = storedPanelShape(layout, shape);
         const { width: w, height: h } = canvasOf(shape);
         const label = `${layout}/${shape}`;
         // The opaque rectangle is within the canvas and square-cornered: the fade lies outside it.

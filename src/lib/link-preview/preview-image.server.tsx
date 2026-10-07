@@ -109,7 +109,6 @@ async function previewSvg(
     artworkProportion: card.artwork?.proportion,
     panels: card.panels ?? [],
     boxes: card.boxes,
-    artworkOffset: card.artwork?.offsetY,
   });
   artworkMime(card.artwork.bytes);
   const outlines = await cardOutlines(card, options.loadCardFont ?? loadCuratedFace);

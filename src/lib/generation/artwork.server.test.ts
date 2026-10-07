@@ -28,7 +28,8 @@ import type { CardDesign } from "@/lib/card/design";
 import type { Rendering } from "@/lib/card/renderings";
 import { MIN_INK_CONTRAST } from "@/lib/card/ink";
 import type { CardRect } from "@/lib/card/ink";
-import { panelFor, zoneFor } from "@/lib/card/layouts";
+import { zoneFor } from "@/lib/card/layouts";
+import { shiftFits, WORKABLE } from "@/lib/card/text-space";
 import { decodePng, pngChunkTypes } from "@/lib/card/png.server";
 import { contrastRatio } from "@/lib/card/color";
 import { TYPICAL } from "@/lib/card/test-content";
@@ -36,8 +37,8 @@ import { encodePng } from "@/lib/link-preview/test-artwork";
 
 import {
   ARTWORK_LIMITS,
-  generatedLineAreas,
-  resolveArtworkInk,
+  generatedTextAreas,
+  placeArtworkText,
   runArtworkStage,
   TEXT_ZONE,
 } from "./artwork.server";
@@ -46,8 +47,9 @@ import { ArtworkProviderRefusalError, GenerationStageError } from "./stage";
 
 /**
  * Stage 3 (`spec.md §7.8`, §7.9; `docs/card-system.md §3`, §4.1, §4.2; `docs/model-contracts.md
- * §7.3`): validation with one regeneration, repaints before a panel within two extra images, ink
- * for every fitted shape, and untagged storage. Synthetic PNGs only.
+ * §7.3`): validation with one regeneration, one repaint for artwork with no workable space for the
+ * words (`card_compiler_v7`, owner decision 2026-10-07), within two extra images, ink and text
+ * placement for every fitted shape, no legibility panel, and untagged storage. Synthetic PNGs only.
  */
 
 /* ------------------------------------------------------------------ synthetic artwork */
@@ -69,15 +71,17 @@ const art = (bytes: Uint8Array): CardArt => ({ mimeType: "image/png", bytes });
 const samePixels = (a: Uint8Array, b: Uint8Array) =>
   Buffer.from(decodePng(a).rgba).equals(Buffer.from(decodePng(b).rgba));
 
-/** Calm cream paper: every zone takes a dark ink without a panel. */
+/** Calm cream paper: every zone's words read in a dark ink where the layout puts them. */
 const CLEAN = art(rgbArt(W, H5x7, () => [238, 228, 212]));
 const CLEAN_SQUARE = art(rgbArt(W, W, () => [238, 228, 212]));
-/** A black-and-white checkerboard: no ink clears 4.5:1 over it, so every zone needs the panel. */
-const BUSY = art(rgbArt(W, H5x7, (x, y) => ((x + y) % 2 ? [0, 0, 0] : [255, 255, 255])));
+/** Black and white 8-pixel blocks: no ink reads over more than about half, so nothing is workable. */
+const checker = (x: number, y: number) =>
+  (Math.floor(x / 8) + Math.floor(y / 8)) % 2 ? [0, 0, 0] : [255, 255, 255];
+const BUSY = art(rgbArt(W, H5x7, checker));
 /**
  * Cream paper with a navy shape over `rect` (card units) of a 5:7 artwork. At `INTRUSION` size it
- * is under 4% of the art-top rectangle's text zone — too small a share to reach the zone's dark
- * tail — but a quarter of the area behind the title's first line (`card_compiler_v4`).
+ * is under 4% of the art-top rectangle's text zone, and a quarter of the area behind the title's
+ * first line: an object under some of the words, which is not a failure (`card_compiler_v7`).
  */
 function intruding(rect: CardRect): CardArt {
   const px = W / 1000;
@@ -394,7 +398,7 @@ describe("validation: one regeneration, then a visible failure", () => {
     );
 
     it("drops a repaint that shows a person in photographic artwork", async () => {
-      const { run } = stage(
+      const { fake, run } = stage(
         {
           art: [BUSY, CLEAN, CLEAN],
           inspection: [inspected({}), inspected({ hasPerson: true }), inspected({})],
@@ -402,7 +406,8 @@ describe("validation: one regeneration, then a visible failure", () => {
         rendered("photographic"),
       );
       const result = await run();
-      expect(result.telemetry).toMatchObject({ imagesRequested: 3, keptImage: 3, artRepaints: 2 });
+      expect(fake.calls.art).toHaveLength(2);
+      expect(result.telemetry).toMatchObject({ imagesRequested: 2, keptImage: 1, artRepaints: 1 });
       expect(result.telemetry.validationFailures).toEqual([{ image: 2, reasons: ["person"] }]);
     });
   });
@@ -477,8 +482,8 @@ describe("validation: one regeneration, then a visible failure", () => {
   });
 });
 
-describe("repaints before a panel (spec.md §7.8): two extra images per artwork in all", () => {
-  it("does not repaint an artwork that needs no panel", async () => {
+describe("one repaint for artwork with no workable space for the words (owner decision 2026-10-07)", () => {
+  it("does not repaint artwork with workable space", async () => {
     const { fake, run } = stage({ art: [CLEAN, CLEAN] });
     const result = await run();
     expect(fake.calls.art).toHaveLength(1);
@@ -486,35 +491,90 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       imagesRequested: 1,
       artRegenerated: null,
       artRepaints: 0,
-      inkPanels: [],
+      textSpace: [
+        { shape: "rectangle", coverage: 1, workable: true, shift: { heading: 0, details: 0 } },
+        {
+          shape: "rounded-rectangle",
+          coverage: 1,
+          workable: true,
+          shift: { heading: 0, details: 0 },
+        },
+      ],
     });
+    expect(result.telemetry).not.toHaveProperty("inkPanels");
   });
 
-  it("keeps the first repaint that clears", async () => {
+  it("repaints once and keeps the repaint when its words read better", async () => {
     const { fake, run } = stage({ art: [BUSY, CLEAN, BUSY] });
     const result = await run();
     expect(fake.calls.art).toHaveLength(2);
     // A repaint is the same request — same brief, same shape — marked as a repaint, so its prompt
-    // says what to keep clear of the words (card_art_v4); the first image is not.
+    // asks for space for the words (card_art_v7); the first image is not.
     expect(fake.calls.art[0]).not.toHaveProperty("repaint");
     expect(fake.calls.art[1]).toEqual({ ...fake.calls.art[0], repaint: true });
     expect(result.telemetry).toMatchObject({
       imagesRequested: 2,
       keptImage: 2,
-      artRegenerated: "panel-repaint",
+      artRegenerated: "no-text-space",
       artRepaints: 1,
-      inkPanels: [],
     });
+    expect(result.telemetry.textSpace.every((t) => t.workable)).toBe(true);
     expect(samePixels(result.bytes, CLEAN.bytes)).toBe(true);
   });
 
-  describe("artwork under the text, and only under the text (card_compiler_v4)", () => {
-    const zone = zoneFor("art-top", "rectangle");
-    const areasOf = async () =>
-      (await generatedLineAreas("art-top", ["rectangle"], "hc_playfair_dmsans", CONTENT))
-        .rectangle!;
+  it("never repaints twice, and keeps the first artwork, with no panel, when the repaint is no better", async () => {
+    const { fake, run } = stage({ art: [BUSY, BUSY, CLEAN] });
+    const result = await run();
+    expect(fake.calls.art).toHaveLength(2);
+    expect(result.telemetry).toMatchObject({
+      imagesRequested: 2,
+      keptImage: 1,
+      artRegenerated: "no-text-space",
+      artRepaints: 1,
+    });
+    expect(samePixels(result.bytes, BUSY.bytes)).toBe(true);
+    for (const t of result.telemetry.textSpace) {
+      expect(t.workable).toBe(false);
+      expect(t.coverage).toBeLessThan(WORKABLE);
+    }
+    // The kept artwork is drawn as painted, with its words in the best ink found: never a panel.
+    for (const shape of result.fitsShapes) {
+      const zone = result.ink[shape]?.[TEXT_ZONE];
+      expect(zone?.ink).toMatch(/^#[0-9A-F]{6}$/);
+      expect(Object.keys(zone!).filter((k) => k !== "ink" && k !== "shift")).toEqual([]);
+    }
+  });
 
-    it("repaints artwork behind the first line of the title", async () => {
+  it("keeps whichever artwork's worst fitted shape reads better", async () => {
+    // A quarter of the 8-pixel blocks black: a dark ink reads over about three quarters of it —
+    // not workable, but better than the checkerboard.
+    const SPECKLED = art(
+      rgbArt(W, H5x7, (x, y) =>
+        Math.floor(x / 8) % 2 && Math.floor(y / 8) % 2 ? [0, 0, 0] : [255, 255, 255],
+      ),
+    );
+    const better = await stage({ art: [BUSY, SPECKLED] }).run();
+    expect(better.telemetry).toMatchObject({ imagesRequested: 2, keptImage: 2, artRepaints: 1 });
+    expect(samePixels(better.bytes, SPECKLED.bytes)).toBe(true);
+    const worse = await stage({ art: [SPECKLED, BUSY] }).run();
+    expect(worse.telemetry).toMatchObject({ imagesRequested: 2, keptImage: 1, artRepaints: 1 });
+    expect(samePixels(worse.bytes, SPECKLED.bytes)).toBe(true);
+    for (const t of worse.telemetry.textSpace) {
+      expect(t.workable).toBe(false);
+      expect(t.coverage).toBeGreaterThan(0.6);
+    }
+  });
+
+  describe("an object under some of the words is not a failure (card_compiler_v7)", () => {
+    const zone = zoneFor("art-top", "rectangle");
+    const areasOf = async () => {
+      const groups = (
+        await generatedTextAreas("art-top", ["rectangle"], "hc_playfair_dmsans", CONTENT)
+      ).rectangle!;
+      return [...groups.heading, ...groups.details];
+    };
+
+    it("does not repaint artwork behind the first line of the title", async () => {
       const [titleLine] = await areasOf();
       // Centred on the area behind the title's first line, inside the line itself.
       const intrusion = {
@@ -525,18 +585,14 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       expect(INTRUSION.width * INTRUSION.height).toBeLessThan(0.04 * zone.width * zone.height);
       const { fake, run } = stage({ art: [intruding(intrusion), CLEAN] });
       const result = await run();
-      expect(fake.calls.art).toHaveLength(2);
-      expect(result.telemetry).toMatchObject({
-        imagesRequested: 2,
-        keptImage: 2,
-        artRegenerated: "panel-repaint",
-        artRepaints: 1,
-        inkPanels: [],
-      });
-      expect(samePixels(result.bytes, CLEAN.bytes)).toBe(true);
+      expect(fake.calls.art).toHaveLength(1);
+      expect(result.telemetry).toMatchObject({ imagesRequested: 1, artRepaints: 0 });
+      const rectangle = result.telemetry.textSpace.find((t) => t.shape === "rectangle")!;
+      expect(rectangle.workable).toBe(true);
+      expect(rectangle.coverage).toBeLessThan(1);
     });
 
-    it("does not repaint the same intrusion in a part of the zone no line covers", async () => {
+    it("does not count the same object in a part of the zone no line covers", async () => {
       // The zone's top-left corner, beside the title.
       const intrusion = { ...INTRUSION, x: zone.x + 4, y: zone.y + 4 };
       const areas = await areasOf();
@@ -545,58 +601,30 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       const { fake, run } = stage({ art: [intruding(intrusion), CLEAN] });
       const result = await run();
       expect(fake.calls.art).toHaveLength(1);
-      expect(result.telemetry).toMatchObject({
-        imagesRequested: 1,
-        artRegenerated: null,
-        artRepaints: 0,
-        inkPanels: [],
-      });
+      expect(result.telemetry.textSpace.map((t) => t.coverage)).toEqual([1, 1]);
     });
   });
 
-  it("keeps the original, with the panel, when no repaint clears", async () => {
-    const { fake, run } = stage({ art: [BUSY, BUSY, BUSY, CLEAN] });
-    const result = await run();
-    expect(fake.calls.art).toHaveLength(1 + ARTWORK_LIMITS.extraImages);
-    expect(result.telemetry).toMatchObject({
-      imagesRequested: 3,
-      keptImage: 1,
-      artRegenerated: "panel-repaint",
-      artRepaints: 2,
-      inkPanels: [
-        { shape: "rectangle", zone: TEXT_ZONE },
-        { shape: "rounded-rectangle", zone: TEXT_ZONE },
-      ],
-    });
-    expect(samePixels(result.bytes, BUSY.bytes)).toBe(true);
-    const zone = result.ink.rectangle?.[TEXT_ZONE];
-    expect(zone?.panel).toEqual(panelFor("art-top", "rectangle"));
-    expect(zone?.panelColor).toMatch(/^#[0-9A-F]{6}$/);
-    // The ink was chosen against the panel's own colour.
-    expect(contrastRatio(zone!.ink, zone!.panelColor!)).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
-    // Busy art all the way up: no slide helps, so none is stored.
-    expect(zone).not.toHaveProperty("artOffset");
-  });
-
-  it("slides the picture up, clear of the fade, when its subject reaches into it", async () => {
-    // art-top: the fade runs from 590 to 770 card units. Sky, a red subject reaching to 690,
-    // and a checkerboard under the words from 910 that no slide brings into the fade.
-    const px = W / 1000;
-    const SUBJECT = art(
-      rgbArt(W, H5x7, (x, y) => {
-        if (y >= 910 * px) return (x + y) % 2 ? [0, 0, 0] : [255, 255, 255];
-        if (y >= 300 * px && y < 690 * px && x >= 300 * px && x < 700 * px) return [200, 40, 40];
-        return [150, 200, 240];
-      }),
+  it("moves the words into the artwork's quiet space, and stores the shift with the ink", async () => {
+    // Busy across the lower half of the art-top zone, quiet cream above it: the words move up.
+    const LOW = art(
+      rgbArt(W, H5x7, (x, y) => (y > H5x7 * (1060 / 1400) ? checker(x, y) : [238, 228, 212])),
     );
-    const { run } = stage({ art: [SUBJECT, SUBJECT, SUBJECT] });
+    const { fake, run } = stage({ art: [LOW] });
     const result = await run();
-    for (const shape of ["rectangle", "rounded-rectangle"] as const) {
-      const zone = result.ink[shape]?.[TEXT_ZONE];
-      expect(zone?.panel, shape).toEqual(panelFor("art-top", shape));
-      // 70 units (5%) leaves the subject's foot in the fade; 140 (10%) clears it.
-      expect(zone?.artOffset, shape).toBe(-140);
-    }
+    expect(fake.calls.art).toHaveLength(1);
+    const zone = result.ink.rectangle?.[TEXT_ZONE];
+    expect(zone?.shift).toBeDefined();
+    expect(zone!.shift!.heading).toBeLessThan(0);
+    expect(zone!.shift!.details).toBeLessThan(0);
+    const rectangle = result.telemetry.textSpace.find((t) => t.shape === "rectangle")!;
+    expect(rectangle.shift).toEqual(zone!.shift);
+    expect(rectangle.workable).toBe(true);
+    // The stored shift keeps the words in the text-safe area.
+    const areas = (
+      await generatedTextAreas("art-top", ["rectangle"], "hc_playfair_dmsans", CONTENT)
+    ).rectangle!;
+    expect(shiftFits("rectangle", areas, zone!.shift!)).toBe(true);
   });
 
   it("drops a repaint that fails validation, which still spends its image", async () => {
@@ -606,25 +634,29 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     });
     const result = await run();
     expect(result.telemetry).toMatchObject({
-      imagesRequested: 3,
-      keptImage: 3,
-      artRepaints: 2,
-      artRegenerated: "panel-repaint",
+      imagesRequested: 2,
+      keptImage: 1,
+      artRepaints: 1,
+      artRegenerated: "no-text-space",
     });
     expect(result.telemetry.validationFailures).toEqual([
       expect.objectContaining({ image: 2, reasons: ["text"] }),
     ]);
   });
 
-  it("never fails visibly on a repaint: invalid, refused or failed repaints are dropped", async () => {
-    const { run } = stage({ art: [BUSY, NOT_PNG, refusal()] });
-    const result = await run();
-    expect(result.telemetry).toMatchObject({ imagesRequested: 3, keptImage: 1, artRepaints: 2 });
-    expect(result.telemetry.validationFailures).toEqual([
-      { image: 2, reasons: ["type"] },
-      { image: 3, reasons: ["request_failed"], detail: "provider_refusal" },
+  it("never fails visibly on a repaint: an invalid or refused repaint is dropped", async () => {
+    const invalid = await stage({ art: [BUSY, NOT_PNG] }).run();
+    expect(invalid.telemetry).toMatchObject({ imagesRequested: 2, keptImage: 1, artRepaints: 1 });
+    expect(invalid.telemetry.validationFailures).toEqual([{ image: 2, reasons: ["type"] }]);
+    const refused = await stage({ art: [BUSY, refusal()] }).run();
+    expect(refused.telemetry).toMatchObject({ imagesRequested: 2, keptImage: 1, artRepaints: 1 });
+    expect(refused.telemetry.validationFailures).toEqual([
+      { image: 2, reasons: ["request_failed"], detail: "provider_refusal" },
     ]);
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
+    const failed = await stage({ art: [BUSY, http500()] }).run();
+    expect(failed.telemetry.validationFailures).toEqual([
+      { image: 2, reasons: ["request_failed"], detail: "http_500" },
+    ]);
   });
 
   it("shares the two extra images with a validation regeneration", async () => {
@@ -639,10 +671,9 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       artRegenerated: "type",
       artRepaints: 1,
     });
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
   });
 
-  it("can still clear on the last image after a validation regeneration", async () => {
+  it("can still find space on the last image after a validation regeneration", async () => {
     const { run } = stage({ art: [outputError(), BUSY, CLEAN] });
     const result = await run();
     expect(result.telemetry).toMatchObject({
@@ -650,11 +681,25 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       keptImage: 3,
       artRegenerated: "output",
       artRepaints: 1,
-      inkPanels: [],
     });
   });
 
-  it("stops repainting when the meter refuses, keeping the valid artwork", async () => {
+  it("makes no repaint when a validation regeneration and a refusal spent the budget", async () => {
+    const { fake, run } = stage(
+      { art: [NOT_PNG, BUSY, CLEAN] },
+      { ...INPUT, afterRefusal: { imagesRequested: 1 } },
+    );
+    // After a refusal a failed validation is visible; a valid busy artwork is simply kept.
+    await expect(run()).rejects.toMatchObject({ code: "artwork_invalid" });
+    expect(fake.calls.art).toHaveLength(1);
+    const kept = await stage(
+      { art: [BUSY, CLEAN] },
+      { ...INPUT, afterRefusal: { imagesRequested: ARTWORK_LIMITS.extraImages } },
+    ).run();
+    expect(kept.telemetry).toMatchObject({ imagesRequested: 3, keptImage: 3, artRepaints: 0 });
+  });
+
+  it("stops the repaint when the meter refuses, keeping the valid artwork", async () => {
     // Refused at the image request: no image was made, so none is counted.
     const { fake, run } = stage({ art: [BUSY, new GenerationDisabledError(), CLEAN] });
     const result = await run();
@@ -666,9 +711,8 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       artRepaints: 0,
       repaintsStoppedBy: "disabled",
     });
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
 
-    // Refused at the repaint's moderation: the image was made and counts as a repaint.
+    // Refused at the repaint's moderation: the image was made and counts as the repaint.
     const later = stage({
       art: [BUSY, CLEAN, CLEAN],
       moderation: [CLEAN_MODERATION, new SpendCeilingError()],
@@ -678,13 +722,13 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
     expect(after.telemetry).toMatchObject({
       imagesRequested: 2,
       keptImage: 1,
-      artRegenerated: "panel-repaint",
+      artRegenerated: "no-text-space",
       artRepaints: 1,
       repaintsStoppedBy: "ceiling",
     });
   });
 
-  it("stops repainting at the generation's deadline, keeping the valid artwork", async () => {
+  it("stops the repaint at the generation's deadline, keeping the valid artwork", async () => {
     const { fake, run } = stage({ art: [BUSY, new GenerationDeadlineError(), CLEAN] });
     const result = await run();
     expect(fake.calls.art).toHaveLength(2);
@@ -694,7 +738,6 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
       artRepaints: 0,
       repaintsStoppedBy: "deadline",
     });
-    expect(result.ink.rectangle?.[TEXT_ZONE].panel).toBeDefined();
     // Before a valid artwork exists, the same refusal ends the stage.
     await expect(stage({ art: [new GenerationDeadlineError()] }).run()).rejects.toBeInstanceOf(
       GenerationDeadlineError,
@@ -702,7 +745,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
   });
 
   it("repaints a shape switch with the same reference", async () => {
-    const BUSY_SQUARE = art(rgbArt(W, W, (x, y) => ((x + y) % 2 ? [0, 0, 0] : [255, 255, 255])));
+    const BUSY_SQUARE = art(rgbArt(W, W, checker));
     const { fake, run } = stage(
       { art: [BUSY_SQUARE, CLEAN_SQUARE] },
       { design: DESIGN, shape: "square", reference: CLEAN },
@@ -727,7 +770,7 @@ describe("repaints before a panel (spec.md §7.8): two extra images per artwork 
   });
 });
 
-describe("ink for every fitted shape (docs/card-system.md §4.2)", () => {
+describe("ink and placement for every fitted shape (docs/card-system.md §4.2)", () => {
   it.each([
     ["art-top", "illustration", "rectangle"],
     ["art-top", "illustration", "arch"],
@@ -743,51 +786,56 @@ describe("ink for every fitted shape (docs/card-system.md §4.2)", () => {
     for (const s of fits) {
       const zone = result.ink[s]?.[TEXT_ZONE];
       expect(zone?.ink).toMatch(/^#[0-9A-F]{6}$/);
-      expect(zone?.panel).toBeUndefined();
+      // Clean art keeps the layout's position: the ink alone, with no shift and never a panel.
+      expect(Object.keys(zone!)).toEqual(["ink"]);
       expect(contrastRatio(zone!.ink, "#EEE4D4")).toBeGreaterThanOrEqual(MIN_INK_CONTRAST);
     }
+    expect(result.telemetry.textSpace.map((t) => t.shape)).toEqual([...fits]);
   });
 
   it("has all four portrait shapes for atmosphere art and both square shapes on 1:1", async () => {
     const portraitShapes = ["rectangle", "rounded-rectangle", "arch", "oval"] as const;
-    const portrait = resolveArtworkInk(
+    const portrait = placeArtworkText(
       decodePng(CLEAN.bytes),
       "atmosphere",
       portraitShapes,
-      await generatedLineAreas("atmosphere", portraitShapes, "hc_playfair_dmsans", CONTENT),
+      await generatedTextAreas("atmosphere", portraitShapes, "hc_playfair_dmsans", CONTENT),
     );
-    expect(Object.keys(portrait)).toHaveLength(4);
+    expect(Object.keys(portrait.ink)).toHaveLength(4);
     const squareShapes = ["square", "circle"] as const;
-    const square = resolveArtworkInk(
+    const square = placeArtworkText(
       decodePng(CLEAN_SQUARE.bytes),
       "atmosphere",
       squareShapes,
-      await generatedLineAreas("atmosphere", squareShapes, "hc_playfair_dmsans", CONTENT),
+      await generatedTextAreas("atmosphere", squareShapes, "hc_playfair_dmsans", CONTENT),
     );
-    expect(Object.keys(square)).toEqual(["square", "circle"]);
+    expect(Object.keys(square.ink)).toEqual(["square", "circle"]);
+    expect(square.workable).toBe(true);
   });
 
   it("lays the text out for every fitted shape, behind which the ink is judged", async () => {
     const shapes = ["rectangle", "rounded-rectangle", "arch", "oval"] as const;
-    const areas = await generatedLineAreas("atmosphere", shapes, "hc_playfair_dmsans", CONTENT);
+    const areas = await generatedTextAreas("atmosphere", shapes, "hc_playfair_dmsans", CONTENT);
     for (const shape of shapes) {
       const zone = zoneFor("atmosphere", shape);
-      const rects = areas[shape];
-      // Title (2 lines here or 1), invitation line, hosts, date, time, venue: one area a line.
-      expect(rects?.length).toBeGreaterThanOrEqual(6);
-      for (const r of rects!) expect(overlaps(zone, r)).toBe(true);
+      const groups = areas[shape]!;
+      // Title (2 lines here or 1) and invitation line; hosts, date, time, venue: one area a line.
+      expect(groups.heading.length).toBeGreaterThanOrEqual(2);
+      expect(groups.details.length).toBeGreaterThanOrEqual(4);
+      for (const r of [...groups.heading, ...groups.details]) expect(overlaps(zone, r)).toBe(true);
     }
   });
 
   it("falls back to the whole zone for a shape whose text does not lay out", async () => {
     // Characters the curated faces cannot draw: the layout is refused, never thrown from here.
-    const areas = await generatedLineAreas("art-top", ["rectangle"], "hc_playfair_dmsans", {
+    const areas = await generatedTextAreas("art-top", ["rectangle"], "hc_playfair_dmsans", {
       ...CONTENT,
       title: "\u{1F388}\u{1F388}",
     });
     expect(areas).toEqual({ rectangle: null });
-    const ink = resolveArtworkInk(decodePng(CLEAN.bytes), "art-top", ["rectangle"], areas);
-    expect(ink.rectangle?.[TEXT_ZONE]?.panel).toBeUndefined();
+    const space = placeArtworkText(decodePng(CLEAN.bytes), "art-top", ["rectangle"], areas);
+    expect(space.ink.rectangle?.[TEXT_ZONE]).toEqual({ ink: expect.stringMatching(/^#/) });
+    expect(space.placements[0].placement).toMatchObject({ coverage: 1, workable: true });
   });
 
   it("records each fitted shape judged on the whole zone alone", async () => {
@@ -803,10 +851,10 @@ describe("ink for every fitted shape (docs/card-system.md §4.2)", () => {
 
   it("refuses to judge a fitted shape it was given no line areas for", () => {
     expect(() =>
-      resolveArtworkInk(decodePng(CLEAN.bytes), "art-top", ["rectangle", "arch"], {
+      placeArtworkText(decodePng(CLEAN.bytes), "art-top", ["rectangle", "arch"], {
         rectangle: null,
       }),
-    ).toThrow(/no line areas for arch/);
+    ).toThrow(/no text areas for arch/);
   });
 });
 

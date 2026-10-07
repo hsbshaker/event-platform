@@ -10,7 +10,6 @@ import { InvitationCard } from "@/components/card/InvitationCard";
 import { GENERATION_STALE_SECONDS } from "@/lib/ai/generations.server";
 import { hashRateLimitKey } from "@/lib/auth/rate-limit";
 import { generatedTextLayer } from "@/lib/card/card-text.server";
-import type { CardPanel } from "@/lib/card/card-data";
 import type { CardLayoutId } from "@/lib/card/layouts";
 import { proportionOf, type CardShape } from "@/lib/card/shapes";
 import type { TypographyPairingId } from "@/lib/card/typography";
@@ -22,6 +21,7 @@ import {
   runGeneration,
   type RevealEventRow,
 } from "@/lib/generation/run.server";
+import { zoneInk } from "@/lib/generation/card-record.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { launchChromium } from "../fixtures/browser";
@@ -36,8 +36,9 @@ import { startStaticServer } from "../fixtures/static-server";
  *
  * Opt-in and live: it runs only with `LIVE_CORPUS=1`, through `scripts/corpus/run-live.mjs`,
  * which points it at a project and switches generation on for this process alone. It makes real,
- * metered model calls (about $0.10 a card) under the project's daily ceiling. Output: one PNG and
- * one summary row per case in `CORPUS_OUT`.
+ * metered model calls (about $0.10 a card) under the project's daily ceiling. Output per case in
+ * `CORPUS_OUT`: the artwork exactly as generated and stored (`<id>-art.png`), the card drawn from it
+ * (`<id>.png`), and a summary row with the starting text's placement and its text-space telemetry.
  *
  * As the host first sees it, from the one producer the artwork stage judged the ink behind
  * (`revealContent`): no case's host confirms anything, so the facts a prompt states (CU-11's date,
@@ -144,7 +145,12 @@ interface CaseResult {
     artBrief: unknown;
     standardWordingSlots: string[];
   };
-  panel?: boolean;
+  /** The stored ink and starting shift, as the reveal reads them (`zoneInk`). */
+  placement?: { ink: string; shift: { heading: number; details: number }; panel: boolean };
+  /** Per fitted shape: readable share behind the text, workable, shift (`generations.telemetry`). */
+  textSpace?: unknown;
+  /** The artwork exactly as generated and stored, beside the card drawn from it. */
+  art?: string;
   png?: string;
   renderError?: string;
 }
@@ -253,12 +259,6 @@ async function pool<T, R>(items: T[], size: number, work: (item: T) => Promise<R
   return results;
 }
 
-interface ZoneInk {
-  ink: string;
-  panel?: Omit<CardPanel, "color">;
-  panelColor?: string;
-}
-
 describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () => {
   it("generates, persists and draws every case", { timeout: 3_600_000 }, async () => {
     const admin = createAdminClient();
@@ -322,8 +322,11 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
           const layout = design.layout as CardLayoutId;
           const typography = design.typography as { primary: TypographyPairingId };
           const wording = design.wording as { title: string; invitationLine: string };
-          const zone = (asset.ink as unknown as Record<string, Record<string, ZoneInk>>)[shape]
-            .text;
+          // The production reader: ink, the starting shift, and a stored panel only on old designs.
+          const zone = zoneInk(asset.ink, shape);
+          const art = path.join(OUT, `${result.id}-art.png`);
+          writeFileSync(art, bytes);
+          result.art = path.basename(art);
           const { data: event, error: eventError } = await admin
             .from("events")
             .select(REVEAL_EVENT_COLUMNS)
@@ -339,9 +342,9 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
             pairing: typography.primary,
             content,
             ink: zone.ink,
+            shift: zone.shift,
           });
-          const panels: CardPanel[] =
-            zone.panel && zone.panelColor ? [{ ...zone.panel, color: zone.panelColor }] : [];
+          const panels = zone.panels;
           const markup = renderToStaticMarkup(
             createElement(InvitationCard, {
               shape,
@@ -375,7 +378,9 @@ describe.skipIf(!LIVE)("the corpus through the production pipeline (live)", () =
             .locator("[data-invitation-card]")
             .screenshot({ path: png, omitBackground: TRANSPARENT });
           result.png = path.basename(png);
-          result.panel = panels.length > 0;
+          result.placement = { ink: zone.ink, shift: zone.shift, panel: panels.length > 0 };
+          result.textSpace =
+            (result.telemetry as { textSpace?: unknown } | null)?.textSpace ?? null;
           result.design = {
             name: design.name,
             description: design.description,

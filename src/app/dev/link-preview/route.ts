@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { NextRequest } from "next/server";
 
 import { CardTextLayoutError, generatedTextLayer } from "@/lib/card/card-text.server";
-import { CARD_LAYOUT_IDS, layoutSupportsShape, panelFor, zoneFor } from "@/lib/card/layouts";
+import { CARD_LAYOUT_IDS, layoutSupportsShape, zoneFor } from "@/lib/card/layouts";
 import { CARD_SHAPES, proportionOf, type CardShape } from "@/lib/card/shapes";
 import { UndrawableTextError } from "@/lib/card/text/glyph-outlines";
 import type { CardContent } from "@/lib/card/text-box";
@@ -19,7 +19,9 @@ import { previewImage, type LinkPreview } from "@/lib/link-preview/preview-image
  * too, with `serverExternalPackages` in `next.config.ts`: `docs/technology-decisions.md §8.2`.)
  *
  * - `?kind=card&layout=art-top&shape=arch&pairing=hc_playfair_dmsans[&panel=1]` — a public
- *   event's card, laid out by the server path (`generatedTextLayer`) over synthetic artwork;
+ *   event's card, laid out by the server path (`generatedTextLayer`) over synthetic artwork; with
+ *   `panel=1`, behind a legibility panel as artwork made before `card_compiler_v7` stored one (no
+ *   new card gets a panel, but stored ones are drawn as stored);
  * - `?kind=envelope[&title=…]` — a private event's sealed envelope.
  *
  * Real event previews (looking up the event, its privacy and its card) are a later phase; they
@@ -85,16 +87,27 @@ export async function GET(request: NextRequest): Promise<Response> {
       }
       throw error;
     }
-    const panel = q.get("panel") === "1";
+    const zone = zoneFor(id, shape as CardShape);
+    // A stored `card_layouts_v3`–`v6` wash panel: the zone ± 40 × 30, feathered over 70 units.
+    const storedPanel = {
+      x: zone.x - 40,
+      y: zone.y - 30,
+      width: zone.width + 80,
+      height: zone.height + 60,
+      radius: 0,
+      softEdge: { spread: 0, blur: 0 },
+      fade: { kind: "wash" as const, feather: 70 },
+      color: PANEL_COLOR,
+    };
     preview = {
       kind: "card",
       card: {
         shape: shape as CardShape,
         artwork: {
-          bytes: washArtwork(proportionOf(shape as CardShape), zoneFor(id, shape as CardShape)),
+          bytes: washArtwork(proportionOf(shape as CardShape), zone),
           proportion: proportionOf(shape as CardShape),
         },
-        panels: panel ? [{ ...panelFor(id, shape as CardShape), color: PANEL_COLOR }] : [],
+        panels: q.get("panel") === "1" ? [storedPanel] : [],
         boxes,
       },
     };

@@ -4,8 +4,8 @@ import { isCanonicalHex } from "@/lib/card/color";
 import type { CardPanel } from "@/lib/card/card-data";
 import type { CardFactsInput } from "@/lib/card/facts";
 import { CARD_LAYOUT_IDS, type CardLayoutId, type PanelFade } from "@/lib/card/layouts";
-import { CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
-import { maxSlide } from "@/lib/card/slide";
+import { canvasOf, CARD_SHAPES, type CardShape } from "@/lib/card/shapes";
+import type { TextShift } from "@/lib/card/text-space";
 import { TYPOGRAPHY_KEYS, type TypographyPairingId } from "@/lib/card/typography";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -87,25 +87,46 @@ export function eventFactsOf(row: CardEventRow): CardFactsInput {
   };
 }
 
+/** The persisted ink of the shape's text zone, with its legibility panel and its text shift. */
+export interface StoredZoneInk {
+  ink: string;
+  /** A panel persisted before `card_compiler_v7`, drawn as stored; none since. */
+  panels: CardPanel[];
+  /** Where the generated words start (`card_compiler_v7`); both 0 for earlier artwork. */
+  shift: TextShift;
+}
+
 /**
- * The persisted ink, panel and slide of the shape's text zone (`ArtworkInk`, `artwork.server.ts`).
- * `artOffset` is 0 when the artwork is drawn where it was painted.
+ * The stored shift of a zone: absent (earlier artwork) is no shift; anything else must be two
+ * finite numbers within the canvas height, or the record is malformed. Defence in depth: the
+ * reader stays loose, and `shiftFits` (`text-space.ts`) refuses at drawing time a pair that would
+ * reorder the groups or leave the text-safe area, so such a pair simply draws unshifted.
  */
-export function zoneInk(
-  ink: Json,
-  shape: CardShape,
-): { ink: string; panels: CardPanel[]; artOffset: number } {
+function storedShift(value: unknown, shape: CardShape): TextShift {
+  if (value === undefined) return { heading: 0, details: 0 };
+  const limit = canvasOf(shape).height;
+  const valid = (n: unknown): n is number => finite(n) && Math.abs(n) <= limit;
+  if (!isObject(value) || !valid(value.heading) || !valid(value.details)) {
+    throw new Error(`The artwork's text placement for the ${shape} card is malformed.`);
+  }
+  return { heading: value.heading, details: value.details };
+}
+
+/**
+ * The persisted ink, legibility panel and text shift of the shape's text zone (`ArtworkInk`,
+ * `artwork.server.ts`). A panel persisted before `card_compiler_v7` is read and drawn exactly as
+ * stored (owner decision 2026-10-07); new artwork has none, and a shift instead. Keys this reader
+ * does not know — those of withdrawn versions, such as the slide's `artOffset`
+ * (`card_compiler_v6`) — are ignored: the artwork is always drawn as painted.
+ */
+export function zoneInk(ink: Json, shape: CardShape): StoredZoneInk {
   const byShape = isObject(ink) ? ink[shape] : undefined;
   const zone = isObject(byShape) ? byShape[TEXT_ZONE] : undefined;
   if (!isObject(zone) || typeof zone.ink !== "string" || !isCanonicalHex(zone.ink)) {
     throw new Error(`The artwork has no ink for the ${shape} card.`);
   }
-  if (zone.panel === undefined) {
-    if (zone.artOffset !== undefined && zone.artOffset !== 0) {
-      throw new Error(`The artwork's slide for the ${shape} card has no panel.`);
-    }
-    return { ink: zone.ink, panels: [], artOffset: 0 };
-  }
+  const shift = storedShift(zone.shift, shape);
+  if (zone.panel === undefined) return { ink: zone.ink, panels: [], shift };
   const panel = zone.panel;
   if (
     !isObject(panel) ||
@@ -116,25 +137,8 @@ export function zoneInk(
   ) {
     throw new Error(`The artwork's legibility panel for the ${shape} card is malformed.`);
   }
-  // A slide moves the picture away from the words, only under a panel that fades from an edge
-  // (`chooseSlide`): up when the picture is above them, down when it is below, never past the limit.
-  let artOffset = 0;
-  if (zone.artOffset !== undefined && zone.artOffset !== 0) {
-    const fade = isObject(panel.fade) ? panel.fade : undefined;
-    const direction = fade?.kind === "edge" ? (fade.from === "bottom" ? -1 : 1) : 0;
-    if (
-      !finite(zone.artOffset) ||
-      direction === 0 ||
-      Math.sign(zone.artOffset as number) !== direction ||
-      Math.abs(zone.artOffset as number) > maxSlide(shape)
-    ) {
-      throw new Error(`The artwork's slide for the ${shape} card is malformed.`);
-    }
-    artOffset = zone.artOffset as number;
-  }
   return {
     ink: zone.ink,
-    artOffset,
     panels: [
       {
         x: panel.x as number,
@@ -148,6 +152,7 @@ export function zoneInk(
         ...(panel.fade !== undefined ? { fade: panel.fade as unknown as PanelFade } : {}),
       },
     ],
+    shift,
   };
 }
 

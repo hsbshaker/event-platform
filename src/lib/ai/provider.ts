@@ -170,8 +170,8 @@ export interface GenerateCardArtInput {
    */
   revision?: boolean;
   /**
-   * A repaint after the picture ran into the words' area: the prompt adds one composition line
-   * (`withRepaintComposition`, `card_art_v4`).
+   * A repaint of an artwork with no workable space for the words (`text-space.ts`): the prompt
+   * adds one composition line (`withRepaintComposition`, `card_art_v7`).
    */
   repaint?: boolean;
 }

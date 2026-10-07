@@ -99,7 +99,7 @@ describe("versions (rendering families)", () => {
     expect(EVENT_IDENTITY_SCHEMA_VERSION).toBe("event_identity_schema_v6");
     expect(CARD_DESIGN_PROMPT_VERSION).toBe("card_design_v6");
     expect(CARD_DESIGN_SCHEMA_VERSION).toBe("card_design_schema_v4");
-    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v6");
+    expect(CARD_ART_PROMPT_VERSION).toBe("card_art_v7");
     expect(CARD_ART_INSPECTION_PROMPT_VERSION).toBe("card_art_inspection_v2");
     expect(CARD_ART_INSPECTION_SCHEMA_VERSION).toBe("card_art_inspection_schema_v2");
   });

@@ -118,19 +118,20 @@ const WORLD_DESIGN: CardDesign = {
 };
 
 const art = (bytes: Uint8Array): CardArt => ({ mimeType: "image/png", bytes });
-/** Calm cream paper: valid, and every zone takes ink without a panel. */
+/** Calm cream paper: valid, and every zone's words read where the layout puts them. */
 const CLEAN = art(flatArtwork(1024, 1434, [238, 228, 212]));
-/** A checkerboard: valid, but every zone needs the legibility panel. */
-const BUSY = art(
-  (() => {
-    const rgb = new Uint8Array(1024 * 1434 * 3);
-    for (let y = 0; y < 1434; y += 1) {
-      for (let x = 0; x < 1024; x += 1)
-        rgb.fill((x + y) % 2 ? 0 : 255, (y * 1024 + x) * 3, (y * 1024 + x) * 3 + 3);
+/** Black and white 8-pixel blocks: valid, but no zone has workable space for the words. */
+const checkerboard = (width: number, height: number) => {
+  const rgb = new Uint8Array(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const on = (Math.floor(x / 8) + Math.floor(y / 8)) % 2;
+      rgb.fill(on ? 0 : 255, (y * width + x) * 3, (y * width + x) * 3 + 3);
     }
-    return encodePng(1024, 1434, rgb);
-  })(),
-);
+  }
+  return encodePng(width, height, rgb);
+};
+const BUSY = art(checkerboard(1024, 1434));
 const NOT_PNG = art(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 
 const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
@@ -354,9 +355,9 @@ describe("the happy path", () => {
       p_versions: {
         designPrompt: "card_design_v6",
         designSchema: "card_design_schema_v4",
-        layoutSet: "card_layouts_v6",
-        compiler: "card_compiler_v6",
-        artPrompt: "card_art_v6",
+        layoutSet: "card_layouts_v7",
+        compiler: "card_compiler_v7",
+        artPrompt: "card_art_v7",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       p_standard_wording_slots: [],
@@ -368,7 +369,7 @@ describe("the happy path", () => {
       p_proportion: "portrait_5_7",
       p_fits_shapes: [...fitsShapes("illustration", "art-top", "rectangle")],
       p_image_model: "gpt-image-2.5-sunburst-2026-09-08",
-      p_art_prompt_version: "card_art_v6",
+      p_art_prompt_version: "card_art_v7",
       // A first card is a new idea, and changes no earlier card.
       p_refinement: "none",
     });
@@ -387,14 +388,23 @@ describe("the happy path", () => {
       artRepaints: 0,
       standardWording: [],
       inkPanels: [],
+      textSpace: [
+        { shape: "rectangle", coverage: 1, workable: true, shift: { heading: 0, details: 0 } },
+        {
+          shape: "rounded-rectangle",
+          coverage: 1,
+          workable: true,
+          shift: { heading: 0, details: 0 },
+        },
+      ],
       versions: {
         identityPrompt: "event_identity_v7",
         identitySchema: "event_identity_schema_v6",
         designPrompt: "card_design_v6",
         designSchema: "card_design_schema_v4",
-        layoutSet: "card_layouts_v6",
-        compiler: "card_compiler_v6",
-        artPrompt: "card_art_v6",
+        layoutSet: "card_layouts_v7",
+        compiler: "card_compiler_v7",
+        artPrompt: "card_art_v7",
         imageModel: "gpt-image-2.5-sunburst-2026-09-08",
       },
       latency: { identityMs: 0, designMs: 0, artMs: 0, totalMs: 0 },
@@ -942,17 +952,20 @@ describe("the generation's deadline", () => {
     expect(outcome).toEqual({ status: "failed", code: "deadline" });
   });
 
-  it("a deadline refusal during repaints keeps the valid artwork with its panel", async () => {
+  it("a deadline refusal of the repaint keeps the valid artwork, with no panel", async () => {
     const { outcome, fake } = await run({ ...HAPPY, art: [BUSY, new GenerationDeadlineError()] });
     expect(outcome.status).toBe("succeeded");
     expect(fake.calls.art).toHaveLength(2);
     expect(failures()).toEqual([]);
-    const ink = persisted().p_ink as Record<string, { text: { panel?: unknown } }>;
-    expect(ink.rectangle.text.panel).toBeDefined();
+    const ink = persisted().p_ink as Record<string, { text: Record<string, unknown> }>;
+    expect(ink.rectangle.text.ink).toMatch(/^#[0-9A-F]{6}$/);
+    expect(ink.rectangle.text).not.toHaveProperty("panel");
+    expect(ink.rectangle.text).not.toHaveProperty("panelColor");
     expect(telemetryOf()).toMatchObject({
       repaintsStoppedBy: "deadline",
       artRepaints: 0,
-      inkPanels: expect.arrayContaining([{ shape: "rectangle", zone: "text" }]),
+      inkPanels: [],
+      textSpace: expect.arrayContaining([expect.objectContaining({ workable: false })]),
     });
   });
 });
@@ -1529,16 +1542,7 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
   const RECT_ART = new Uint8Array([1, 2, 3, 4]);
   const OVAL_ART = new Uint8Array([5, 6, 7, 8]);
   const CLEAN_SQUARE = art(flatArtwork(1024, 1024, [238, 228, 212]));
-  const BUSY_SQUARE = art(
-    (() => {
-      const rgb = new Uint8Array(1024 * 1024 * 3);
-      for (let y = 0; y < 1024; y += 1) {
-        for (let x = 0; x < 1024; x += 1)
-          rgb.fill((x + y) % 2 ? 0 : 255, (y * 1024 + x) * 3, (y * 1024 + x) * 3 + 3);
-      }
-      return encodePng(1024, 1024, rgb);
-    })(),
-  );
+  const BUSY_SQUARE = art(checkerboard(1024, 1024));
 
   const designRow = (design: CardDesign, id = FROM, round = 1): Record<string, unknown> => ({
     id,
@@ -1733,7 +1737,7 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
       p_height: 1024,
       p_proportion: "square_1_1",
       p_fits_shapes: [...fitsShapes("illustration", "art-top", "square")],
-      p_art_prompt_version: "card_art_v6",
+      p_art_prompt_version: "card_art_v7",
     });
     // Never a new design: no name, wording, brief or refinement is written.
     for (const key of ["p_name", "p_wording", "p_art_brief", "p_refinement", "p_raw"]) {
@@ -1755,14 +1759,17 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
       artRegenerated: null,
       artRepaints: 0,
       inkPanels: [],
+      textSpace: [
+        { shape: "square", coverage: 1, workable: true, shift: { heading: 0, details: 0 } },
+      ],
       imagesRequested: 1,
       repaintsStoppedBy: null,
       lineAreasFallback: [],
       fitsShapes: ["square"],
       versions: {
-        layoutSet: "card_layouts_v6",
-        compiler: "card_compiler_v6",
-        artPrompt: "card_art_v6",
+        layoutSet: "card_layouts_v7",
+        compiler: "card_compiler_v7",
+        artPrompt: "card_art_v7",
         imageModel: expect.any(String),
       },
       latency: { artMs: 0, totalMs: 0 },
@@ -1794,30 +1801,31 @@ describe("a shape switch (spec.md §7.14, §10; model-contracts §7.2)", () => {
     });
   });
 
-  it("repaints while the new shape would need the panel, keeping the reference", async () => {
+  it("repaints once when the new shape has no workable space for the words, keeping the reference", async () => {
     const { fake } = await run({ art: [BUSY_SQUARE, CLEAN_SQUARE] });
     expect(fake.calls.art).toHaveLength(2);
     expect(fake.calls.art[1]).toEqual({ ...fake.calls.art[0], repaint: true });
     expect(fake.calls.art[1].reference).toEqual({ mimeType: "image/png", bytes: RECT_ART });
     expect(fake.calls.art[1]).not.toHaveProperty("revision");
     expect(switchTelemetry()).toMatchObject({
-      artRegenerated: "panel-repaint",
+      artRegenerated: "no-text-space",
       artRepaints: 1,
       inkPanels: [],
       imagesRequested: 2,
     });
   });
 
-  it("keeps the first valid artwork with its panel after two extra images", async () => {
+  it("keeps the first valid artwork, with no panel, when the one repaint is no better", async () => {
     const { fake } = await run({ art: [BUSY_SQUARE, BUSY_SQUARE, BUSY_SQUARE] });
-    expect(fake.calls.art).toHaveLength(3);
+    expect(fake.calls.art).toHaveLength(2);
     expect(switchTelemetry()).toMatchObject({
-      artRepaints: 2,
-      inkPanels: [{ shape: "square", zone: "text" }],
-      imagesRequested: 3,
+      artRepaints: 1,
+      inkPanels: [],
+      textSpace: [expect.objectContaining({ shape: "square", workable: false })],
+      imagesRequested: 2,
     });
-    const ink = persistedArt().p_ink as Record<string, { text: { panel?: unknown } }>;
-    expect(ink.square.text.panel).toBeDefined();
+    const ink = persistedArt().p_ink as Record<string, { text: Record<string, unknown> }>;
+    expect(ink.square.text).not.toHaveProperty("panel");
   });
 
   it("a provider refusal is a visible failure: no design re-prompt, nothing persisted", async () => {

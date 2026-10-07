@@ -250,7 +250,7 @@ describe("artwork requests", () => {
     expect(request.reference).toBeUndefined();
   });
 
-  it("adds the repaint composition line only to a repaint of art with a subject", () => {
+  it("adds the repaint composition line to a repaint, in every art mode (card_art_v7)", () => {
     const input = {
       artBrief: brief,
       artMode: "illustration",
@@ -261,9 +261,11 @@ describe("artwork requests", () => {
     const repaint = cardArtRequest({ ...input, repaint: true });
     expect(repaint.prompt).toBe(`${plain.prompt}\n${REPAINT_COMPOSITION}`);
     expect(plain.prompt).not.toContain(REPAINT_COMPOSITION);
-    // A wash has no subject: its repaint repeats the prompt unchanged.
+    // A wash can be as busy under the words as a subject: its repaint asks for space too.
     const wash = { ...input, artMode: "atmosphere", layout: "atmosphere" } as const;
-    expect(cardArtRequest({ ...wash, repaint: true }).prompt).toBe(cardArtRequest(wash).prompt);
+    expect(cardArtRequest({ ...wash, repaint: true }).prompt).toBe(
+      `${cardArtRequest(wash).prompt}\n${REPAINT_COMPOSITION}`,
+    );
   });
 
   it("uses edits, the switch prompt and the reference only on a shape switch", () => {

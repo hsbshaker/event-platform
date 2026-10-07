@@ -17,7 +17,7 @@ Use this source-of-truth order:
 1. **`spec.md`** — product, business, data, architecture, permissions, lifecycle, acceptance criteria (§31), and implementation guardrails (§32).
 2. **`docs/technology-decisions.md`** — locked MVP stack. Do not relitigate or substitute infrastructure by preference.
 3. **`docs/design-system.md`** — application UX, interaction patterns, visual tokens, responsive behavior, motion, accessibility, strict component governance, the house-style guest page and the boundary around the card.
-4. **`docs/card-system.md`** — the invitation card: `EventIdentity → CardDesign (layout, art mode, pairing, wording, art brief) → artwork (image model) → deterministic card compiler (validate, wording fact check, ink/legibility, layoutCard) → one card component`, plus the envelope.
+4. **`docs/card-system.md`** — the invitation card: `EventIdentity → CardDesign (layout, art mode, pairing, wording, art brief) → artwork (image model) → deterministic card compiler (validate, wording fact check, layoutCard, starting text placement and ink) → one card component`, plus the envelope.
 5. **`docs/model-contracts.md`** — Event Identity, fact extraction, Card Design and Card Art contracts, validation, re-prompt policy, and evals. Prompts live in `docs/model-prompts/`, schemas in `docs/model-schemas/`, the creative-understanding corpus in `docs/model-evals/`.
 6. **`docs/e2e-workflow.md`** — canonical owner/co-host and guest journeys.
 7. **`docs/screen-spec.md`** — screen/surface-level behavior.
@@ -49,8 +49,8 @@ Before proposing or implementing a solution, check it against these rules:
 - **Facts come only from the host.** Names, dates, times, venues on the card render from event data; AI wording never states or invents one.
 - **Brand references: close homage allowed, marks never.** A card may clearly evoke a brand's character or look; it never carries a logo, wordmark, brand or character name, or copied campaign art, and briefs never name the brand (`spec.md §7.6`; pending legal review before launch).
 - **Artwork contains no text.** Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
-- **Code owns the generated card's legibility and fit; the host owns their edits.** Ink and legibility panels are chosen deterministically so every text of the generated card clears 4.5:1, and `layoutCard` sizes and breaks it. In the card editor the host may restyle and move anything, add text, and pick any Google Font and colour, unchecked. Line breaks are always computed deterministically and stored; the browser never re-wraps card text, so guests see exactly what the host saw.
-- **The card editor edits text only.** Every text is a box the host can edit, move, resize, rotate and restyle on phone or desktop; the artwork, outline and envelope are never edited, and no images or graphics are added. Fact boxes stay linked to event details.
+- **The generated card is a starting design; the artwork is preserved.** Code places the starting text where the actual artwork has workable space and picks its colour from contrast; it never covers the artwork with a panel, cream background or broad fade, and never slides, zooms, crops or splits it to make room for text (owner decisions, 2026-10-07). Text over an illustrated object is not a failure; only an artwork whose space scores below the workable bar (a provisional, tunable heuristic) is reconsidered, once. `layoutCard` sizes and breaks the text. In the card editor the host may restyle and move anything, add text, and pick any Google Font and colour, unchecked. Line breaks are always computed deterministically and stored; the browser never re-wraps card text, so guests see exactly what the host saw.
+- **The card editor edits text only.** Every text is a box the host can edit, move, resize, rotate and restyle on phone or desktop, and give an optional text background (none by default: highlight, rounded box or soft backdrop, with colour, opacity and padding) that moves with its box and never lowers the text's opacity; the artwork, outline and envelope are never edited, moving text never alters the artwork, and no images or graphics are added. Fact boxes stay linked to event details.
 - Persist `EventIdentity`, every `CardDesign` (raw and validated), its artwork, resolved ink and version set. Generated design data is immutable; host edits live on the event and in a `CardCustomization` per design and shape; renderer code may receive bug/accessibility/responsive fixes.
 - **The page under the card is one house style for every event.** Card styling, the house-style page and app chrome are separate systems.
 - Personal invitation links identify the party and skip the private code; the platform texts invitations only after publish, after host attestation, within caps. Shared-link RSVP uses name lookup + SMS OTP.
@@ -103,7 +103,7 @@ The most commonly violated ones are likely to be:
 - do not let AI wording state a fact; facts come only from host data (#15);
 - do not ask the image model to render text, and reject artwork that contains it (#16);
 - do not send the raw prompt or inspiration images to the image model (#17);
-- do not call a model for legibility, fit or compatibility (#20);
+- do not call a model for legibility, fit or compatibility (#20); do not correct the artwork for text (#22);
 - do not let the browser re-wrap card text or truncate it silently (#23);
 - do not add a layout, art mode, shape or slot limit without a layout-set version bump and fixtures (#24);
 - do not regenerate or "upgrade" historical designs (#27);
@@ -136,11 +136,13 @@ host prompt + inspiration
    (a change to part of a card: an edit of that card's artwork)
 → artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety,
    no person in photographic, editorial, 3D or collage artwork   (one regeneration)
-→ ink + legibility panels resolved deterministically per shape the artwork fits (every card text ≥ 4.5:1)
-   (while the artwork's shape would need a panel: repaint from the same art prompt, plus what to keep clear for art with a subject — two extra images per artwork at most)
-→ persisted, immutable CardDesign + artwork + ink + versions
-→ layoutCard (sizes, line breaks) → one card component → envelope → house-style page
-→ card editor (optional): host edits the text layer → CardCustomization (stored boxes and line breaks) → same card component
+→ starting text placed on the actual image per shape the artwork fits: layoutCard (sizes, line breaks) in the layout's zone,
+   kept there or moved vertically to where it reads best (heading and details may sit apart); ink = the candidate that reads at 4.5:1 behind the most of its lines;
+   nothing drawn over the artwork, which is never moved
+   (only if the space scores below the workable bar: one repaint asking for a quieter part for the words — two extra images per artwork at most)
+→ persisted, immutable CardDesign + artwork + ink + starting position + versions
+→ one card component → envelope → house-style page
+→ card editor (optional): host edits the text layer, incl. optional text backgrounds → CardCustomization (stored boxes and line breaks) → same card component
 ```
 
 Do not:
@@ -150,6 +152,7 @@ Do not:
 - let a model draw or position the card's outline, or offer the host a shape the design's layout does not support;
 - let the browser re-wrap card text, or truncate any card text silently;
 - let the card editor touch the artwork, outline or envelope, or fetch fonts for guests from a third party;
+- cover, fade, slide, zoom, crop or split the artwork to make room for text, or add a text background the host did not choose;
 - derive CSS from model output;
 - regenerate, recompile or re-resolve the ink of a historical design;
 - add a template, art library, stock set or template fallback;
@@ -159,7 +162,7 @@ Do not:
 
 Each card's artwork is generated for that event's card, from that event's `EventIdentity`. There is no library of pre-made cards, artwork or stock images, and no path — selection, nearest match, fallback — by which a host receives a card that was not designed for their event. The layout catalog decides only where words go and which regions the artwork leaves quiet; it is never shown to hosts, never chosen by them, and never the reason two events' cards look alike. A generation that fails is shown honestly with a retry, never replaced with something pre-made.
 
-Regression gate for any change to the card design prompt or schema, layout set, compiler, ink resolution, `layoutCard`, art-prompt assembly or envelope: the unit tests under `src/lib/card/`, the layout fixtures (every layout × pairing in a real browser), and — when a prompt or schema changes — the creative-understanding corpus (`docs/model-contracts.md §6`).
+Regression gate for any change to the card design prompt or schema, layout set, compiler, starting text placement and ink, `layoutCard`, art-prompt assembly, text backgrounds or envelope: the unit tests under `src/lib/card/`, the layout fixtures (every layout × pairing in a real browser), and — when a prompt or schema changes — the creative-understanding corpus (`docs/model-contracts.md §6`).
 
 ---
 
@@ -196,13 +199,13 @@ Recommended format:
 ## Spec / acceptance criteria
 
 - `spec.md §31 — Card design, artwork and compiler`
-  - “Every text of the generated card clears 4.5:1 against the conservatively measured background of its zone …”
+  - “The generated card's starting text keeps the layout's position when the background behind its lines reads at 4.5:1 almost everywhere, else moves vertically …”
   - “In the generated card, `layoutCard` decides every slot's size and line breaks; no text leaves its zone …”
 - `spec.md §32 guardrails #20, #22, #23`
 
 ## Verification
 
-- [x] unit test: ink resolution including the panel path
+- [x] unit test: starting text placement and ink, including a moved and a split placement
 - [x] layout fixtures: every layout × pairing renders worst-case content in its zones
 - [x] existing card test suite passes
 ```
@@ -215,7 +218,7 @@ A PR touching one of these areas must cite **at least one exact bullet from ever
 | --- | --- |
 | Landing composer, pre-auth draft, OAuth/auth restoration, generation start, required details, timezone, generation surface | **Prompt, auth, and generation** |
 | Event Identity, clarification, fact extraction, card direction, direction distinctness | **Event Identity and card direction** |
-| Card Design schema and prompt, artwork generation and validation, wording fact check, ink/legibility, `layoutCard`, persistence and versioning | **Card design, artwork and compiler** |
+| Card Design schema and prompt, artwork generation and validation, wording fact check, starting text placement and ink, `layoutCard`, persistence and versioning | **Card design, artwork and compiler** |
 | Card reveal, `Make it yours`, designs list, choosing a design | **Card experience** |
 | Inline/contextual editing, collaborator anchors, autosave, readiness checklist, guest workspace, Design panel | **Creation Mode** |
 | Card editor: text boxes, gestures, toolbar, font store, colour picker, stored line breaks, customizations | **Card editor** **and** **Card rendering and envelope** |
@@ -328,7 +331,7 @@ Four project agents live in `.claude/agents/`. Use the least expensive agent tha
 | --- | --- | --- |
 | Haiku | `repo-explorer` (read-only) | locating files, symbols, call sites and tests; targeted search; summarizing logs. Never edits, architecture, or product decisions. |
 | Sonnet | `implementation-worker` | the default for well-defined work: ordinary features, UI, route handlers, routine data changes, localized refactors, ordinary tests, understood bug fixes. Stops and escalates on ambiguity instead of inventing. |
-| Opus | `senior-implementer` | hard engineering with settled architecture: root-cause debugging, complex migrations and RLS, auth and security code, concurrency and idempotency, card compiler internals (ink resolution, `layoutCard`), AI and image pipeline integration and spend controls, performance, cross-cutting changes, anything Sonnet could not resolve cleanly. The preferred senior implementation model. |
+| Opus | `senior-implementer` | hard engineering with settled architecture: root-cause debugging, complex migrations and RLS, auth and security code, concurrency and idempotency, card compiler internals (starting text placement and ink, `layoutCard`), AI and image pipeline integration and spend controls, performance, cross-cutting changes, anything Sonnet could not resolve cleanly. The preferred senior implementation model. |
 | Fable | lead session and `senior-reviewer` (read-only) | decomposition, ambiguous requirements, architecture and product interpretation, canonical-contract changes, decisions with several materially different valid implementations, high-risk design/security/data decisions, and the final review of meaningful integrated changes. Not the default pair of hands. |
 
 **Delegation.** Do the work directly when it is trivial and sequential; delegation has its own context cost. Delegate when a subtask is independently scoped, parallelizable, context-heavy, or benefits from specialization. Give a worker a small task packet, never the whole project context: objective; the exact `spec.md §31` bullets and `§32` guardrails; files or subsystem; explicit non-goals; expected output; verification required. Workers return concise summaries, not source dumps. The lead owns integration and final correctness. Workers that run in an isolated worktree start from the last commit: commit (or hand over) any uncommitted canonical change they depend on before delegating, and bring their output back into the branch yourself.

@@ -2,7 +2,8 @@
  * The generated card's text layer (`docs/card-system.md §4.3`, §6.1): the boxes `InvitationCard`
  * renders for a design with no customization, from the layout's zone for the shape, the design's
  * typography pairing, the event's current content and the zone's resolved ink, laid out by
- * `layoutCard` with the curated fonts' own metrics.
+ * `layoutCard` with the curated fonts' own metrics, then moved to where the artwork's quiet space is
+ * (`text-space.ts`, the artwork's stored `shift`, `card_compiler_v7`).
  *
  * A generated card whose text does not fit is a failure, never a card (`spec.md §31`, "Card
  * design, artwork and compiler"; `docs/development-plan.md` Phase 4): an `overflow` layout, or one
@@ -15,6 +16,7 @@ import "server-only";
 import { layoutCard, pairingFaces, type CardTextLayout } from "./layout-card";
 import { zoneFor, type CardLayoutId } from "./layouts";
 import { proportionOf, type CardShape } from "./shapes";
+import { isNoShift, shiftFits, shiftTextBoxes, textGroupAreas, type TextShift } from "./text-space";
 import type { CardContent, TextBox } from "./text-box";
 import { curatedMetricsResolver } from "./text/curated-fonts";
 import type { TypographyPairingId } from "./typography";
@@ -47,16 +49,28 @@ export interface GeneratedTextLayerInput {
   pairing: TypographyPairingId;
   /** The event's current words: the effective title, the invitation line and the facts. */
   content: CardContent;
-  /** The zone's resolved ink for this artwork and shape (`resolveInk`), `#RRGGBB`. */
+  /** The zone's stored ink for this artwork and shape (`text-space.ts` `placeText`), `#RRGGBB`. */
   ink: string;
+  /**
+   * Where the artwork's quiet space put the words (`placeText`), stored with its ink; none for an
+   * artwork made before `card_compiler_v7`, whose words sit at the layout's position.
+   */
+  shift?: TextShift;
 }
 
 /**
  * The generated card's text boxes. Throws `CardTextLayoutError` when they cannot be rendered as
  * laid out, and a plain error for an unsupported layout × shape or an invalid ink.
+ *
+ * With a `shift`, the heading boxes move by its `heading` and every other box by its `details`
+ * (`shiftTextBoxes`) — while the words now on the card, so moved, still sit inside the shape's
+ * text-safe area (`shiftFits`, the rule the shift was chosen by). The words can outgrow the space
+ * the shift was chosen for (a fact the host entered after generation is longer than its
+ * placeholder): then they stay at the layout's position, which `layoutCard` always keeps inside the
+ * zone, rather than leave the text-safe area or the card.
  */
 export async function generatedTextLayer(input: GeneratedTextLayerInput): Promise<TextBox[]> {
-  const { layout, shape, pairing, content, ink } = input;
+  const { layout, shape, pairing, content, ink, shift } = input;
   const zone = zoneFor(layout, shape);
   const faces = pairingFaces(pairing);
   const metrics = await curatedMetricsResolver([faces.display, faces.body]);
@@ -74,5 +88,8 @@ export async function generatedTextLayer(input: GeneratedTextLayerInput): Promis
   if (reasons.length > 0) {
     throw new CardTextLayoutError(reasons, result, `${layout}/${shape}/${pairing}`);
   }
-  return result.boxes;
+  if (shift === undefined || isNoShift(shift)) return result.boxes;
+  return shiftFits(shape, textGroupAreas(result.boxes, metrics, zone), shift)
+    ? shiftTextBoxes(result.boxes, shift)
+    : result.boxes;
 }

@@ -16,6 +16,7 @@ import { revealContentFor } from "@/lib/card/reveal-content.server";
 import { CARD_SHAPES, proportionOf, type CardShape } from "@/lib/card/shapes";
 import type { CardSlotId } from "@/lib/card/slots";
 import { isLinkedBox, withLinkedLines, type CardContent, type TextBox } from "@/lib/card/text-box";
+import type { TextShift } from "@/lib/card/text-space";
 import { parseStoredBoxes } from "@/lib/card/text-box-schema";
 import { cardFontMetrics } from "@/lib/card/text/card-fonts.server";
 import type { FontRef } from "@/lib/card/text/metrics";
@@ -170,17 +171,20 @@ export async function customizedText(
 export async function storedSeed(input: {
   design: ReadDesign;
   shape: CardShape;
-  /** The zone's resolved ink for the artwork the card is drawn with. */
+  /** The zone's stored ink for the artwork the card is drawn with. */
   ink: string;
+  /** Where that artwork's stored placement starts the generated words (`zoneInk`). */
+  shift?: TextShift;
   contents: CardContents;
 }): Promise<TextBox[]> {
-  const { design, shape, ink, contents } = input;
+  const { design, shape, ink, shift, contents } = input;
   const generated = await generatedTextLayer({
     layout: design.layout,
     shape,
     pairing: design.pairing,
     content: contents.host.content,
     ink,
+    ...(shift ? { shift } : {}),
   });
   const metrics = await cardFontMetrics(fontsOf(generated));
   return seedBoxes(generated, contents.saved, metrics);
@@ -398,7 +402,7 @@ export async function carriedWords(
   if (!art) return null;
 
   const design = designOf(designResult.data as DesignRow);
-  const { ink } = zoneInk(art.ink, to.shape);
+  const { ink, shift } = zoneInk(art.ink, to.shape);
   const contents = await cardContents(eventResult.data as CardEventRow, design.wording, now);
   const pairing = pairingFaces(design.pairing);
   const metrics = await cardFontMetrics([
@@ -417,6 +421,7 @@ export async function carriedWords(
       ink,
       metrics,
     },
+    placement: { shape: to.shape, shift },
   });
   if (Object.keys(carried.missingCharacters).length > 0) {
     throw new Error(

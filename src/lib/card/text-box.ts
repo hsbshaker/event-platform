@@ -6,7 +6,8 @@
  *   every fact slot the layout defines (an empty one renders nothing until its fact exists);
  * - `rebreakBox` / `rebreakFactBoxes` — re-break a box at its width after a change to its text,
  *   width, font, size, spacing or case, or after a fact edit;
- * - `carryWords` — lay the host's words out fresh on a new design or shape.
+ * - `carryWords` — lay the host's words out fresh on a new design or shape;
+ * - `defaultTextBackground` — the starting values of a text background the host turns on.
  *
  * Geometry is in card units (the card is 1000 wide), rotation in degrees, letter spacing in em of
  * the box's size (CSS `letter-spacing`), line height a multiple of the size. No model is called and
@@ -19,6 +20,21 @@ import type { CardShape } from "./shapes";
 import { CARD_SLOT_IDS, type CardSlotId, type FactSlotId, type WordingSlotId } from "./slots";
 import { breakLines, linesSpell, type BrokenLines } from "./text/line-break";
 import type { FontMetricsResolver, FontRef, TextCase } from "./text/metrics";
+import { followTextColor, type TextBackground } from "./text-background";
+
+export {
+  automaticBackgroundColor,
+  defaultTextBackground,
+  followTextColor,
+  TEXT_BACKGROUND_DARK,
+  TEXT_BACKGROUND_LIGHT,
+  TEXT_BACKGROUND_LIMITS,
+  TEXT_BACKGROUND_PADDING_MAX,
+  TEXT_BACKGROUND_STYLES,
+  textBackgroundIssue,
+  type TextBackground,
+  type TextBackgroundStyle,
+} from "./text-background";
 
 export type TextBoxSource =
   | { kind: "wording"; slot: WordingSlotId }
@@ -54,6 +70,8 @@ export interface TextBox {
   z: number;
   /** The stored line breaks, in the source text's own case; the renderer sets exactly these. */
   lines: string[];
+  /** The host's text background; absent for none, as on every generated box. */
+  background?: TextBackground;
 }
 
 export interface CardCustomization {
@@ -84,11 +102,13 @@ export function boxText(box: TextBox, content: CardContent): string {
 }
 
 function copyBox(box: TextBox): TextBox {
+  const { background, ...rest } = box;
   return {
-    ...box,
+    ...rest,
     source: { ...box.source },
     font: { ...box.font },
     lines: [...box.lines],
+    ...(background ? { background: { ...background } } : {}),
   };
 }
 
@@ -249,10 +269,12 @@ export interface CarryWordsInput {
  * The title, the invitation line and every added (custom) box keep their text and fonts from
  * `from`; `layoutCard` places them in the new card's zone — the generated slots first, then the
  * added boxes in their order as extra body lines — and sizes and breaks them as usual. Positions,
- * rotation and colours come from the new card. Added boxes that cannot all fit the zone at minimum
- * size are stacked below it, for the host to arrange. Facts come from `content`, in the new card's
- * own fact styling. An invitation line the host deleted stays absent: the carried layout has no box
- * for it.
+ * rotation and text colours come from the new card; a text background the host chose on one of
+ * those boxes is kept with its words and font — its style, colour, opacity and padding as chosen,
+ * except that an automatic colour follows the new card's ink. Added boxes that cannot all fit the zone at
+ * minimum size are stacked below it, for the host to arrange. Facts come from `content`, in the new
+ * card's own fact styling, without a background. An invitation line the host deleted stays absent:
+ * the carried layout has no box for it.
  */
 export function carryWords({ from, content, card }: CarryWordsInput): CardTextLayout {
   const wording = (slot: WordingSlotId) =>
@@ -263,7 +285,7 @@ export function carryWords({ from, content, card }: CarryWordsInput): CardTextLa
     .filter((b) => b.source.kind === "custom")
     .map((b) => ({ id: b.id, text: b.text ?? "", font: { ...b.font } }));
 
-  return layoutCard({
+  const layout = layoutCard({
     ...card,
     // A deleted invitation line is left out, not carried as an empty box the host cannot see.
     slots: invitation
@@ -276,4 +298,22 @@ export function carryWords({ from, content, card }: CarryWordsInput): CardTextLa
       added,
     },
   });
+
+  // The text background the host chose travels with the words and font of the same boxes, exactly
+  // as chosen — style, colour, opacity and padding. Only an automatic colour (`autoColor`) follows
+  // the new card's ink, as it follows any change of its box's text colour (`spec.md §20.6`).
+  const backgroundOf = (box: TextBox): TextBackground | undefined => {
+    if (box.source.kind === "wording") return wording(box.source.slot)?.background;
+    if (box.source.kind === "custom") {
+      return from.find((b) => b.source.kind === "custom" && b.id === box.id)?.background;
+    }
+    return undefined;
+  };
+  return {
+    ...layout,
+    boxes: layout.boxes.map((box) => {
+      const background = backgroundOf(box);
+      return background ? { ...box, background: followTextColor(background, box.color) } : box;
+    }),
+  };
 }
