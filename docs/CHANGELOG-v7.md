@@ -1003,8 +1003,10 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   colour, at a carry and whenever the box's text colour changes (derived again by the save).
   Choosing a swatch or typing a colour makes it the host's; choosing Automatic hands it back. A
   chosen colour is kept even where the new card's text colour no longer contrasts with it.
-  Starting a new background on Automatic is the build's reading of "explicitly designated as
-  automatic" (the chip shows it pressed), for the owner to confirm. A background stored before
+  Confirmed by the owner (2026-10-07): every text box starts with None, and generating a card or
+  opening the editor adds no background; once the host chooses Highlight, Rounded box or Soft
+  backdrop, its colour may start on Automatic; a swatch or a typed hex makes it explicit, carried
+  unchanged across designs and shapes. A background stored before
   this change has no `autoColor` and so counts as chosen; only developer-page data existed, so
   nothing was migrated. The editor screen (Phase 6b part 2) must apply `followTextColor` on screen
   when the host changes a box's text colour; today the save derives it.
@@ -1025,9 +1027,9 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   details sit on the shoes: legible, not a good composition. A wider search than the generator's
   vertical-only one (each group moved sideways too) scores 86%, off-centre to the left. The image
   model put the subject higher than the cover layout's quieter area asks (the crown reaches about
-  31% down; the layout asks for the top 45%), and the repaint did the same. Open for tuning, not
-  counted as meeting the bar: sideways moves for the starting text, and the quieter area's hold on
-  the image.
+  31% down; the layout asks for the top 45%), and the repaint did the same. Documented as a
+  **placement-tuning case** (owner, 2026-10-07), not counted as meeting the bar; no stronger
+  quiet-area restriction or wider positioning system is part of this change.
 
 ## Still open
 

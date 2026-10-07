@@ -1861,9 +1861,9 @@ Every piece of text on the card is a **text box**. The host may:
 
 A text background belongs to its box: it moves, rotates and resizes with it and follows its lines
 when the text is resized or re-broken; its opacity is the background's alone and never lowers the
-text's; removing it leaves the box as it was; and it never changes the artwork. Nothing adds one
-automatically — not generation, not the editor when text is moved or resized. Organic shapes may
-follow later.
+text's; removing it leaves the box as it was; and it never changes the artwork. Every text box
+starts with None, and nothing adds one automatically — not generation, not opening the editor, not
+the editor when text is moved or resized. Organic shapes may follow later.
 
 The artwork, the outline and the envelope are not editable; the shape is switched from Design
 (§7.14). Moving or resizing text never alters the artwork. Images, stickers and other graphics

@@ -707,8 +707,9 @@ design's own drafted title, in the host's carried font, because a switch never c
 content (`spec.md §20.6`).
 
 **Text backgrounds** (owner decisions, 2026-10-07; `spec.md §20.1`). Any text box may carry one
-optional background, which the host adds and removes; nothing adds one automatically — not
-generation, and not the editor when a box is moved or resized. Styles: **None** (the default: the
+optional background, which the host adds and removes; every box starts with none, and nothing adds
+one automatically — not generation, not opening the editor, and not the editor when a box is moved
+or resized. Styles: **None** (the default: the
 field is absent), **Highlight** (a band behind each line), **Rounded box** (one rectangle around
 the text block) and **Soft backdrop** (that rectangle, feathered locally); organic shapes may follow
 later. Each has a colour (`#RRGGBB`, marked automatic or the host's — below), an opacity (above 0,
