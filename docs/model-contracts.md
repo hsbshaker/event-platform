@@ -604,7 +604,7 @@ bounds and fact check. Model prose is never authorization.
 | Event Identity | ordinary transient retry | one repair retry, then visible failure | — |
 | Fact extraction | ordinary transient retry | one retry, then no prefill (host enters details) | — |
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
-| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork with no workable space for the starting text on its shape: one repaint, the better of the two kept, two extra images per artwork in all; never a panel |
+| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork whose starting-text space scores below the workable bar on its shape: one repaint, the better of the two kept, two extra images per artwork in all; never a panel |
 
 Card Design re-prompts are one of each kind per design. When a re-prompt's own call fails — its
 output invalid after the schema re-prompt is spent, or the provider call fails — the earlier valid

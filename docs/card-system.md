@@ -385,7 +385,7 @@ host prompt + optional inspiration
                                      (a change to part of a card: an edit of that card's artwork, framed as a revision)
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
   → place the starting text and ink  deterministic, on the actual image, for every shape the artwork fits (§4.2); nothing drawn over the artwork
-  → (only if no workable space) one repaint: same art prompt + a quieter part for the words; validate; place again; keep the better — two extra images at most
+  → (only if the space scores below the workable bar) one repaint: same art prompt + a quieter part for the words; validate; place again; keep the better — two extra images at most
   → persist CardDesign + artwork + ink and starting position    immutable
   → reveal the card
 ```
@@ -423,7 +423,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
-| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) has **no workable space** for the starting text (§4.2) — never merely text over an object, a missed percentage boundary or a failed contrast check | repainted once from the same art prompt plus one line asking for a quieter part of the picture for the words (`card_art_v7`), a switch or a change to part of a card keeping its reference; the image whose space reads better is kept; within two extra images per artwork in all, a validation regeneration included; a repaint that fails validation is dropped (owner decisions, 2026-10-07; `spec.md §7.8`) |
+| `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) scores **below the workable bar** for the starting text (§4.2; a provisional heuristic, not proof that there is no workable space) — never merely text over an object, a missed percentage boundary or a failed contrast check | repainted once from the same art prompt plus one line asking for a quieter part of the picture for the words (`card_art_v7`), a switch or a change to part of a card keeping its reference; the image whose space reads better is kept; within two extra images per artwork in all, a validation regeneration included; a repaint that fails validation is dropped (owner decisions, 2026-10-07; `spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back. A shape switch's refusal fails visibly at once (`shape_refusal`), with no re-prompt: the design is immutable, and the card stays as it is |
 
 There is no library or template fallback. A failure is shown honestly and the host can retry; it

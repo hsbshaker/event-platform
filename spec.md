@@ -2809,8 +2809,9 @@ The host should feel:
     provider claims to enforce.
 20. Re-prompt the card-design call only for a schema-invalid design, a model-wording fact-check
     failure or an exact repeat of an earlier direction, once each; regenerate artwork once only for
-    failed validation, and repaint it once only when the shape it was painted for has no workable
-    space for the starting text, within two extra images per artwork in all (§7.8); Event Identity and fact
+    failed validation, and repaint it once only when the starting text's space on the shape it was
+    painted for scores below the workable bar (a provisional heuristic, §11.6), within two extra
+    images per artwork in all (§7.8); Event Identity and fact
     extraction get one repair retry each (`docs/model-contracts.md §9`). Never call a model for
     legibility, fit or compatibility: code decides, and a repaint is a new image from the same art
     prompt, never a model's judgement.
