@@ -91,9 +91,12 @@ export async function devArtworkBytes(card: DevCard): Promise<Uint8Array> {
       // Not there: the fallback below.
     }
   }
-  return washArtwork(proportionOf(card.shape), zoneFor(card.layout, card.shape), [226, 224, 170], [
-    236, 226, 200,
-  ]);
+  return washArtwork(
+    proportionOf(card.shape),
+    zoneFor(card.layout, card.shape),
+    [226, 224, 170],
+    [236, 226, 200],
+  );
 }
 
 export interface DevCardPlacement {

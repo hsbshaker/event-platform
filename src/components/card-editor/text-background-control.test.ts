@@ -23,7 +23,12 @@ describe("chooseStyle", () => {
   });
 
   it("keeps the chosen colour but takes the new style's opacity and padding on a switch", () => {
-    const custom: TextBackground = { style: "highlight", color: "#AA3311", opacity: 0.3, padding: 7 };
+    const custom: TextBackground = {
+      style: "highlight",
+      color: "#AA3311",
+      opacity: 0.3,
+      padding: 7,
+    };
     expect(chooseStyle(custom, "backdrop", DARK_TEXT)).toEqual({
       style: "backdrop",
       color: "#AA3311",

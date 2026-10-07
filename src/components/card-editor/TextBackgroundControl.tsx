@@ -66,7 +66,9 @@ export function TextBackgroundControl({
   const selected = choiceOf(value);
   const labelId = `${idPrefix}-style-label`;
   const colours = [
-    ...new Set([...swatches, TEXT_BACKGROUND_LIGHT, TEXT_BACKGROUND_DARK].map((c) => c.toUpperCase())),
+    ...new Set(
+      [...swatches, TEXT_BACKGROUND_LIGHT, TEXT_BACKGROUND_DARK].map((c) => c.toUpperCase()),
+    ),
   ];
 
   return (

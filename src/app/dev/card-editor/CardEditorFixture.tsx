@@ -124,7 +124,8 @@ export function CardEditorFixture(props: CardEditorFixtureProps) {
       <header className="mb-4 flex flex-col gap-1">
         <h1 className="text-title-md text-app-text">Card editor fixture: {label}</h1>
         <p className="text-body-sm text-app-text-secondary">
-          Development fixture for the text background. {standIn && "The wording of this card is a stand-in. "}
+          Development fixture for the text background.{" "}
+          {standIn && "The wording of this card is a stand-in. "}
           <a className="text-app-link underline" href="?card=notorious">
             Notorious ONE
           </a>{" "}

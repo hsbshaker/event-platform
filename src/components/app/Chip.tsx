@@ -18,20 +18,16 @@ export function chipClasses(selected: boolean, className?: string): string {
   );
 }
 
-export interface ChipProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-pressed" | "aria-checked"> {
+export interface ChipProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "aria-pressed" | "aria-checked"
+> {
   selected: boolean;
 }
 
 export function Chip({ selected, className, type = "button", ...props }: ChipProps) {
   // A chip in a radio group (`role="radio"`) is checked, not pressed: one state, the right attribute.
-  const state = props.role === "radio" ? { "aria-checked": selected } : { "aria-pressed": selected };
-  return (
-    <button
-      {...props}
-      {...state}
-      type={type}
-      className={chipClasses(selected, className)}
-    />
-  );
+  const state =
+    props.role === "radio" ? { "aria-checked": selected } : { "aria-pressed": selected };
+  return <button {...props} {...state} type={type} className={chipClasses(selected, className)} />;
 }

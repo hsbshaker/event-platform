@@ -71,7 +71,9 @@ async function stored(page: Page, id: string): Promise<StoredBox> {
 async function waitStored(page: Page, id: string, predicate: string) {
   await page.waitForFunction(
     ({ boxId, body }) => {
-      const boxes = JSON.parse(document.getElementById("stored-boxes")!.textContent!) as StoredBox[];
+      const boxes = JSON.parse(
+        document.getElementById("stored-boxes")!.textContent!,
+      ) as StoredBox[];
       const box = boxes.find((b) => b.id === boxId);
       return box !== undefined && new Function("box", `return (${body});`)(box) === true;
     },
@@ -101,9 +103,7 @@ async function artwork(page: Page) {
 async function backgroundRect(page: Page, style: string) {
   return page.evaluate((s) => {
     const face = document.querySelector("[data-card-face]")!.getBoundingClientRect();
-    const el = document.querySelector(
-      `[data-card-box="title"] [data-card-text-background="${s}"]`,
-    );
+    const el = document.querySelector(`[data-card-box="title"] [data-card-text-background="${s}"]`);
     if (!el) return null;
     const rect = el.getBoundingClientRect();
     return {
@@ -139,9 +139,11 @@ describe("the text background in the card editor fixture", () => {
         expect(before.naturalWidth).toBeGreaterThan(0);
         // The served bytes are the ones hashed: the route never re-encodes.
         const served = await fetch(new URL(before.src!, app!.baseUrl));
-        expect(createHash("sha256").update(Buffer.from(await served.arrayBuffer())).digest("hex")).toBe(
-          before.sha,
-        );
+        expect(
+          createHash("sha256")
+            .update(Buffer.from(await served.arrayBuffer()))
+            .digest("hex"),
+        ).toBe(before.sha);
 
         await page.click('[data-dev-select="title"]');
         const title = await stored(page, "title");
@@ -155,7 +157,9 @@ describe("the text background in the card editor fixture", () => {
           const after = await stored(page, "title");
           expect(after.color).toBe(title.color);
           expect(after.background!.opacity).toBeGreaterThan(0);
-          await page.waitForSelector(`[data-card-box="title"] [data-card-text-background="${style}"]`);
+          await page.waitForSelector(
+            `[data-card-box="title"] [data-card-text-background="${style}"]`,
+          );
           expect(await textColor(page)).toBe(color);
           expect(await page.getByRole("radio", { name: label }).getAttribute("aria-checked")).toBe(
             "true",
@@ -165,9 +169,9 @@ describe("the text background in the card editor fixture", () => {
         await page.getByRole("radio", { name: "None" }).click();
         await waitStored(page, "title", "box.background === undefined");
         await settled(page);
-        expect(await page.locator('[data-card-box="title"] [data-card-text-background]').count()).toBe(
-          0,
-        );
+        expect(
+          await page.locator('[data-card-box="title"] [data-card-text-background]').count(),
+        ).toBe(0);
         expect(await textColor(page)).toBe(color);
         expect(await hasHorizontalScroll(page)).toBe(false);
 
@@ -269,10 +273,17 @@ describe("the text background in the card editor fixture", () => {
 
         // Every control of the editor is at least 44px in both directions.
         const small = await page.evaluate(() =>
-          [...document.querySelectorAll<HTMLElement>('section[aria-label="Editor"] button, section[aria-label="Editor"] input')]
+          [
+            ...document.querySelectorAll<HTMLElement>(
+              'section[aria-label="Editor"] button, section[aria-label="Editor"] input',
+            ),
+          ]
             .map((el) => ({ el, rect: el.getBoundingClientRect() }))
             .filter(({ rect }) => rect.width > 0 && (rect.width < 43.5 || rect.height < 43.5))
-            .map(({ el, rect }) => `${el.tagName} ${el.id || el.textContent} ${rect.width}x${rect.height}`),
+            .map(
+              ({ el, rect }) =>
+                `${el.tagName} ${el.id || el.textContent} ${rect.width}x${rect.height}`,
+            ),
         );
         expect(small).toEqual([]);
         expect(await hasHorizontalScroll(page)).toBe(false);
