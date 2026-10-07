@@ -4,7 +4,8 @@ import { cx } from "./cx";
 /**
  * Canonical chip (docs/design-system.md §10.3): a selected option, a filter, a lightweight toggle.
  * At least 44px tall wherever it can be tapped. Selected is the lit fill plus an ink outline, never
- * the fill alone (§6.1, §14.6), and the state is exposed through `aria-pressed`.
+ * the fill alone (§6.1, §14.6), and the state is exposed through `aria-pressed` (or `aria-checked`
+ * when the chip is one option of a `role="radiogroup"`, e.g. the card editor's text background).
  */
 export function chipClasses(selected: boolean, className?: string): string {
   return cx(
@@ -17,16 +18,19 @@ export function chipClasses(selected: boolean, className?: string): string {
   );
 }
 
-export interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-pressed"> {
+export interface ChipProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-pressed" | "aria-checked"> {
   selected: boolean;
 }
 
 export function Chip({ selected, className, type = "button", ...props }: ChipProps) {
+  // A chip in a radio group (`role="radio"`) is checked, not pressed: one state, the right attribute.
+  const state = props.role === "radio" ? { "aria-checked": selected } : { "aria-pressed": selected };
   return (
     <button
       {...props}
+      {...state}
       type={type}
-      aria-pressed={selected}
       className={chipClasses(selected, className)}
     />
   );
