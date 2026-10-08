@@ -122,7 +122,7 @@ Message:
 
 - Heading: **What should we change?**
 - helper: *Say what to change, or leave it empty for a new idea.*
-- feedback is optional: a change ("add a little dinosaur", "make it a starry night") keeps the card and changes that; empty, or asking for something new, makes a genuinely different card. One box; the host never picks a mode;
+- feedback is optional: a change ("add a little dinosaur", "make it a starry night", "put the 5 on it", "without the number") keeps the card and changes that; empty, or asking for something new, makes a genuinely different card. One box; the host never picks a mode;
 - `+ Add inspiration` is optional.
 
 **Reassurance:**
@@ -204,6 +204,12 @@ Fields:
 - title;
 - hosts;
 - baby name;
+- milestone number (`spec.md §7.6c`; owner decisions, 2026-10-08): optional, *The number you're
+  celebrating* — a count from 1 to 110 or a four-digit year, offered for confirmation when the
+  prompt stated it. It appears only in the card's artwork, when the design draws it. When the host
+  changes it while the active card shows it, the editor offers `Update the number on the card`
+  (before publish), a change to part of the card through `try-another-direction`; nothing changes
+  on the card until the host chooses it;
 - date/time;
 - venue/address;
 - description (up to 2,000 characters; empty clears it);

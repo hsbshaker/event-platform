@@ -2270,14 +2270,14 @@ It uses the house style, remains low-emphasis, and is non-editable in MVP.
 ## 15.11 Imagery rule
 
 Permitted:
-- the card's generated artwork (every card has some, from a full illustration to a refined border or paper texture; it contains no text);
+- the card's generated artwork (every card has some, from a full illustration to a refined border or paper texture; it contains no text, except the occasion's milestone number when the design draws it, `spec.md §7.6c`);
 - the native registry product thumbnail, which is product content (§15.9).
 
 Not permitted:
 - host-uploaded photos or images on the card or page;
 - stock photography;
 - retrieved web imagery;
-- text inside artwork;
+- text inside artwork (other than the occasion's milestone number, `spec.md §7.6c`);
 - images, stickers or graphics added in the card editor;
 - crop/position tools, galleries, or imagery placed by anything other than the card layout.
 
