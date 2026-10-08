@@ -1031,6 +1031,47 @@ invitation's words, give a sensible starting text treatment, and let the host cu
   **placement-tuning case** (owner, 2026-10-07), not counted as meeting the bar; no stronger
   quiet-area restriction or wider positioning system is part of this change.
 
+### The milestone number in the artwork (owner decisions, 2026-10-08)
+
+Hosts asked for the number of a first or fifth birthday on the card, and the card left it out: the
+artwork may contain no text, the inspection rejects any number, and model wording never states one.
+The owner decided a number drawn as part of the picture belongs on such a card (`spec.md §7.6c`).
+Specified here; not built yet.
+
+- **One milestone number, drawn into the artwork.** A count from 1 to 110 (an age, years together or
+  since, days) or a year as four digits (a class year, the year a New Year's Eve party welcomes, a
+  founding year), as an object in the scene: balloons, candles, a topiary, glitter. Digits only,
+  exactly once; no ordinal or word, no short year ("'26": full four digits, owner), no Roman
+  numerals, nothing on a sign or banner. The one exception to "no text in the artwork".
+- **Only what the host stated.** A number stated plainly in the prompt, extracted and kept for the
+  host to confirm, or entered in the details form. Never inferred; a New Year's Eve year is never
+  computed from the date (owner). Code puts the digits into the art prompt; the design decides only
+  whether to draw it and how.
+- **Eligible, not mandatory** (owner: "not everybody's gonna want the number on their card even if
+  they say it"). The design decides whether the number belongs in its idea; the host can add or
+  remove it with `Try another direction`.
+- **Never wrong.** The artwork passes only showing exactly that number, once, with no other text.
+  A miss earns one regeneration with the number, then one image without it, and the card ships with
+  no number — never a typeset one (owner). Such an artwork may use three extra images instead of two
+  (owner).
+- **When the number changes**, Creation Mode offers `Update the number on the card`, a change to
+  part of the card; the card never changes by itself (owner).
+- Documents: `spec.md` §7.3, §7.6a, new §7.6c, §7.7, §7.8, §7.15, §9.5, §11.11, §18, §24, §31 and
+  guardrails #15, #16 and #20; `CLAUDE.md`; `card-system.md` invariant 3, new §2.7, §3, §4.1, §5 and
+  §10; `model-contracts.md` §4.3, §5.1, §5.2, §5.4, §6, §7.1, §7.3, §7.4 (CA-01, new CA-08) and §9;
+  `product-doctrine.md` §4 and §14 (row 8); `design-system.md`; `screen-spec.md`;
+  `development-plan.md` (5e); guardrails #12 and #30 too. Also
+  corrected in `model-contracts.md §7.3`: a repaint follows a score below the workable bar, not "no
+  workable space" (the owner's 2026-10-07 decision; one sentence the earlier sweep missed).
+- **The owner's answers on the PR** (2026-10-08): a card may publish showing a number the host has
+  not confirmed; after publish the number can still be changed in the details, with a note that
+  the card keeps the number its artwork shows (no new artwork after publish, §8.2); the artwork
+  stays decorative to screen readers, so the number is not announced; and new artwork for a shape
+  switch never falls back to no number — a second miss fails the switch with a retry.
+- **No repaint after publish** (owner, 2026-10-08): `Update the number on the card` is a repaint, so
+  it stays before publish only; the rule that no new artwork is made after publish (§8.2) keeps no
+  exception, and a number changed after publish leaves the artwork as it is, with the note.
+
 ## Still open
 
 Tracked in `docs/product-doctrine.md §14`: the layout catalog as versioned code (Phase 4); the $49

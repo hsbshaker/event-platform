@@ -34,7 +34,9 @@ style for every event (`spec.md §21`, `docs/design-system.md`).
 2. **Every card has generated artwork.** The artwork may be a full illustration or as little as a
    border or a paper texture; the creative direction decides how much (§2.4).
 3. **The artwork contains no text.** No letters, numbers, names, dates, logos, wordmarks or
-   watermarks. Every word on the card is real text set by application code over the art.
+   watermarks. Every word on the card is real text set by application code over the art. The one
+   exception is the occasion's milestone number, drawn as an object in the scene when the design
+   includes it, with digits code puts into the art prompt from the number the host stated (§2.7).
 4. **Facts come only from the host.** Names, date, time, venue, location and RSVP deadline on the
    card are rendered from event data the host entered or confirmed. The model never writes them
    and never invents them.
@@ -368,6 +370,47 @@ platform storage and its metrics extracted for line breaking — and served from
 guests and link previews (`docs/technology-decisions.md §8.3`). Guests' browsers never fetch a font
 from a third party.
 
+## 2.7 The milestone number
+
+(Owner decisions, 2026-10-08; `spec.md §7.6c`.) A card may show one number the occasion celebrates,
+drawn into the artwork: a count from 1 to 110 (an age, years together or since, days) or a year
+as four digits (a class year, the year a New Year's Eve party welcomes, a founding year). It is the
+one exception to invariant 3.
+
+- **Source.** Only a number the host states plainly: in the prompt, through fact extraction, kept
+  in `Event.promptFacts` for the host to confirm, or in the details form (`Event.milestoneNumber`).
+  Never inferred; a New Year's year is never computed from the date.
+- **Design.** The design receives the number and its kind as host content and decides whether the
+  number belongs in its idea. When it draws it, `CardDesign.milestoneNumber.treatment` says how, in
+  words ("a bunch of gold foil balloons", "candles on the cake"); the digits never appear in the
+  design or its brief.
+- **Art prompt.** Code adds one line with the digits and the treatment, and the global rules allow
+  that number, exactly once, as an object in the scene, and nothing else: no ordinal or word, no
+  short year, no Roman numerals, nothing on a sign, banner or label (§3).
+- **Check and budget.** The artwork passes only if the inspection reads exactly that number, once,
+  and no other text (§4.1). Such an artwork may use up to three extra images in all. A wrong or
+  missing number is never itself a visible failure: it earns one regeneration with the number, then
+  one image painted without it, and the card ships with no number, never a typeset one. Any other
+  validation failure keeps its one regeneration, and an image without the number that fails
+  validation is the visible failure with a retry. The space repaint (§4.2) comes last, is checked
+  the same way, and is skipped when no image is left; it keeps the number line only while the number
+  is still drawn, and after the image without the number it omits the number too.
+- **Publish.** The number shows in the artwork from the reveal, confirmed or not, and the card may
+  publish with it unconfirmed. After publish no new artwork is made (`spec.md §8.2`): the host may
+  still change the number in the details, and the form notes that the card keeps the number its
+  artwork shows (owner decisions, 2026-10-08).
+- **Shape switches and changes.** New artwork for another shape carries the same line and the same
+  check, but never falls back to no number: a miss earns the number's regeneration within the
+  budget, and a second miss fails the switch visibly with a retry (owner decision, 2026-10-08). A
+  request to add or remove the number is a change to part of the card (an edit of its
+  artwork, §3). Each artwork records the number it shows (§5); whenever the active card's artwork
+  shows a number other than the event's — changed in the details, or an earlier design chosen —
+  Creation Mode offers `Update the number on the card`, which is that change; nothing happens until
+  the host chooses it.
+- **Not text.** The number is part of the artwork. It is no text box, the card editor cannot move or
+  restyle it (§7), and model-drafted wording never states it (§2.5). The artwork stays decorative
+  to screen readers; the number is not announced (owner decision, 2026-10-08).
+
 ---
 
 # 3. Generation pipeline
@@ -381,17 +424,19 @@ host prompt + optional inspiration
                                      on Try another direction, the change asked for or a new idea, and which it made)
   → validate CardDesign              deterministic (§4.1)
   → assemble the art prompt          deterministic: brief (with its rendering line, §2.4) + layout and shape composition rules + global rules
+                                     (+ the milestone number's digits and treatment when the design draws it, §2.7)
   → generateCardArt                  GPT Image 2.5 Sunburst; at the shape's proportion, no text
                                      (a change to part of a card: an edit of that card's artwork, framed as a revision)
   → validate artwork                 deterministic checks, plus the text/safety check fixed in Phase 3
+                                     (a design that draws the milestone number: exactly that number, once, and no other text)
   → place the starting text and ink  deterministic, on the actual image, for every shape the artwork fits (§4.2); nothing drawn over the artwork
-  → (only if the space scores below the workable bar) one repaint: same art prompt + a quieter part for the words; validate; place again; keep the better — two extra images at most
+  → (only if the space scores below the workable bar) one repaint: same art prompt + a quieter part for the words; validate; place again; keep the better — two extra images at most (three when the design draws the milestone number)
   → persist CardDesign + artwork + ink and starting position    immutable
   → reveal the card
 ```
 
 In parallel with identity, a cheaper structured-extraction call pulls any facts the prompt states
-(names, date, time, venue) and keeps them on the event (`Event.promptFacts`) as values for the
+(names, date, time, venue, a plainly stated milestone number) and keeps them on the event (`Event.promptFacts`) as values for the
 host to confirm (`spec.md §7.3`, `§9.2`). Facts never come from `EventIdentity` and are never inferred.
 
 **One design at a time.** Each round generates one card. "Try another direction" runs
@@ -400,11 +445,11 @@ for this event and, when the host says what to change, the card being changed (`
 owner decisions 2026-10-05). The design says which it made:
 
 - **a change to part of the card** keeps the card — idea, subject, rendering, layout, shape, art
-  mode, pairing, title and invitation line, unless the request names one — and rewrites the brief
-  with the change. Its artwork is an **edit** of the changed card's artwork: the image model's
-  edits endpoint with that artwork as the reference, the assembled art prompt framed as a revision
-  ("keep its composition, subject placement, rendering, lighting and palette wherever this
-  description does not change them"). Repaints stay edits of the same reference.
+  mode, pairing, title, invitation line and milestone number, unless the request names one — and
+  rewrites the brief with the change. Its artwork is an **edit** of the changed card's artwork: the
+  image model's edits endpoint with that artwork as the reference, the assembled art prompt framed
+  as a revision ("keep its composition, subject placement, rendering, lighting and palette wherever
+  this description does not change them"). Repaints stay edits of the same reference.
 - **a change to the whole look** (light, time of day, overall colour) keeps the idea and paints the
   revised brief fresh: an edit holds the original's tones, so a night sky came back mid-blue and
   "warmer light" came back unchanged (Phase 5 refine experiment, CHANGELOG).
@@ -423,6 +468,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
+| `generateCardArt` | the design draws the milestone number and the artwork shows a wrong number, no number, or the number with other text (§2.7) — never itself a visible failure | one last image painted without the number; the card ships with none (a typeset number is never substituted); if that image fails validation, fail visibly with a retry; a shape switch never falls back to no number and fails visibly with a retry instead; up to three extra images per such artwork in all, the space repaint last and skipped when none is left (owner decisions, 2026-10-08) |
 | `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) scores **below the workable bar** for the starting text (§4.2; a provisional heuristic, not proof that there is no workable space) — never merely text over an object, a missed percentage boundary or a failed contrast check | repainted once from the same art prompt plus one line asking for a quieter part of the picture for the words (`card_art_v7`), a switch or a change to part of a card keeping its reference; the image whose space reads better is kept; within two extra images per artwork in all, a validation regeneration included; a repaint that fails validation is dropped (owner decisions, 2026-10-07; `spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back. A shape switch's refusal fails visibly at once (`shape_refusal`), with no re-prompt: the design is immutable, and the card stays as it is |
 
@@ -455,7 +501,9 @@ No step here calls a model or regenerates artwork.
   the host asked for is exempt: keeping the card is the point.
 - Artwork: file type, the requested proportion (5:7 or 1:1) within tolerance, minimum resolution,
   decodable. Detecting embedded text (which covers logos and wordmarks) and unsafe content is
-  required; the mechanism is chosen in Phase 3 validation. For a `photographic`, `editorial`,
+  required; the mechanism is chosen in Phase 3 validation. For a design that draws the milestone
+  number, the check reads every text-like mark and passes only exactly that number, once, with no
+  other text (§2.7). For a `photographic`, `editorial`,
   `rendered-3d` or `collage` rendering, a person, face, hands or body fails the artwork too (§2.4),
   with the same one regeneration.
 
@@ -580,8 +628,10 @@ Persist per event:
   or a change to part of a card or to its whole look) and, for a change, the design it was made
   from (`changedFrom`);
 - every artwork asset in Supabase Storage, with its proportion, the shapes it fits, image model,
-  art-prompt version, and per fitted shape its resolved ink and the starting text's vertical
-  shift (an older design: its ink and any stored legibility panel). A design has its original
+  art-prompt version, the milestone number it shows if any (kind and value, fixed with the artwork,
+  §2.7), and per fitted shape its
+  resolved ink and the starting text's vertical shift (an older design: its ink and any stored
+  legibility panel). A design has its original
   artwork plus one more for each shape the host switched to that no existing artwork fits (§7);
 - `Event.activeCardDesignId`, `Event.activeCardShape` and `Event.title` (`spec.md §20.2`, §20.5);
 - one `CardCustomization` per design and shape the host has edited, or switched to carrying their
@@ -804,7 +854,7 @@ set it was generated against; the renderer supports every layout-set version tha
 # 10. Deliberately not in this system
 
 Page composition by the model; per-event themed page styling; model-chosen colours, sizes,
-positions or line breaks; text inside artwork; host-uploaded, stock or retrieved imagery on the
+positions or line breaks; text inside artwork (other than the milestone number, §2.7); host-uploaded, stock or retrieved imagery on the
 card; inspiration images sent to the image model; a template or art gallery; a card back; an
 image editor or any artwork editing; adding images, stickers or graphics to the card; landscape
 cards and other die-cut shapes (scalloped, ticket, pill/capsule, custom) — deferred

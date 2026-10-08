@@ -45,10 +45,10 @@ Before proposing or implementing a solution, check it against these rules:
 - **Creation Mode is the invitation itself** — the card and the page beneath it — with contextual `Edit` / `Set up` / `Add` controls.
 - Setup/readiness is not a wizard. Adaptive creative clarification is the one permitted pre-design question: taste only, never logistics, at most three.
 - Guests, Registry and invitations are not publish blockers (`spec.md §23.1`).
-- The models return an `EventIdentity`, a `CardDesign` (shape, layout ID, art mode, pairing IDs, bounded wording, art brief, presentation) and artwork — nothing else. They never emit HTML, CSS, JSX, JavaScript, SVG, text colours, font sizes, positions or line breaks.
+- The models return an `EventIdentity`, a `CardDesign` (shape, layout ID, art mode, pairing IDs, bounded wording, art brief, presentation and, when it draws the milestone number, how it is drawn — never the digits) and artwork — nothing else. They never emit HTML, CSS, JSX, JavaScript, SVG, text colours, font sizes, positions or line breaks.
 - **Facts come only from the host.** Names, dates, times, venues on the card render from event data; AI wording never states or invents one.
 - **Brand references: close homage allowed, marks never.** A card may clearly evoke a brand's character or look; it never carries a logo, wordmark, brand or character name, or copied campaign art, and briefs never name the brand (`spec.md §7.6`; pending legal review before launch).
-- **Artwork contains no text.** Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
+- **Artwork contains no text** — with one exception: the occasion's milestone number (a count from 1 to 110, or a four-digit year), drawn as an object in the scene when the host stated it and the design includes it; code puts its digits into the art prompt and the artwork must show exactly that number once (`spec.md §7.6c`; owner decisions, 2026-10-08). Every card has generated artwork (it may be as minimal as a border or texture); no host-uploaded, stock or retrieved imagery; the native registry thumbnail is the only content-image exception.
 - **The generated card is a starting design; the artwork is preserved.** Code places the starting text where the actual artwork has workable space and picks its colour from contrast; it never covers the artwork with a panel, cream background or broad fade, and never slides, zooms, crops or splits it to make room for text (owner decisions, 2026-10-07). Text over an illustrated object is not a failure; only an artwork whose space scores below the workable bar (a provisional, tunable heuristic) is reconsidered, once. `layoutCard` sizes and breaks the text. In the card editor the host may restyle and move anything, add text, and pick any Google Font and colour, unchecked. Line breaks are always computed deterministically and stored; the browser never re-wraps card text, so guests see exactly what the host saw.
 - **The card editor edits text only.** Every text is a box the host can edit, move, resize, rotate and restyle on phone or desktop, and give an optional text background (none by default: highlight, rounded box or soft backdrop, with colour, opacity and padding) that moves with its box and never lowers the text's opacity; the artwork, outline and envelope are never edited, moving text never alters the artwork, and no images or graphics are added. Fact boxes stay linked to event details.
 - Persist `EventIdentity`, every `CardDesign` (raw and validated), its artwork, resolved ink and version set. Generated design data is immutable; host edits live on the event and in a `CardCustomization` per design and shape; renderer code may receive bug/accessibility/responsive fixes.
@@ -101,7 +101,7 @@ The most commonly violated ones are likely to be:
 - do not send the card reveal to a pre-publish dashboard; do not create a setup wizard (#7, #9);
 - do not let a model emit HTML/CSS/JS/SVG, text colours, sizes, positions or line breaks (#13);
 - do not let AI wording state a fact; facts come only from host data (#15);
-- do not ask the image model to render text, and reject artwork that contains it (#16);
+- do not ask the image model to render text, and reject artwork that contains it — the milestone number, exactly as stated, is the one exception (#16);
 - do not send the raw prompt or inspiration images to the image model (#17);
 - do not call a model for legibility, fit or compatibility (#20); do not correct the artwork for text (#22);
 - do not let the browser re-wrap card text or truncate it silently (#23);
@@ -134,12 +134,12 @@ host prompt + inspiration
 → strict schema + catalog validation · wording fact check · direction distinctness for a new idea   (one re-prompt each)
 → art prompt assembled by code (brief + layout and shape rules + global rules) → image model → artwork
    (a change to part of a card: an edit of that card's artwork)
-→ artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text, safety,
+→ artwork validation: type, proportion (5:7 or 1:1), resolution, no embedded text (or exactly the milestone number, once, when the design draws it), safety,
    no person in photographic, editorial, 3D or collage artwork   (one regeneration)
 → starting text placed on the actual image per shape the artwork fits: layoutCard (sizes, line breaks) in the layout's zone,
    kept there or moved vertically to where it reads best (heading and details may sit apart); ink = the candidate that reads at 4.5:1 behind the most of its lines;
    nothing drawn over the artwork, which is never moved
-   (only if the space scores below the workable bar: one repaint asking for a quieter part for the words — two extra images per artwork at most)
+   (only if the space scores below the workable bar: one repaint asking for a quieter part for the words — two extra images per artwork at most, three when the design draws the milestone number)
 → persisted, immutable CardDesign + artwork + ink + starting position + versions
 → one card component → envelope → house-style page
 → card editor (optional): host edits the text layer, incl. optional text backgrounds → CardCustomization (stored boxes and line breaks) → same card component
@@ -147,7 +147,7 @@ host prompt + inspiration
 
 Do not:
 - let a model choose a text colour, a size, a position or a line break, or write a fact;
-- put text, logos, wordmarks or brand names in artwork, or send the raw prompt, the host's feedback or inspiration images to the image model (the event's own generated artwork, as a reference on a shape switch or a change to part of a card, is the only image it may receive);
+- put text, logos, wordmarks or brand names in artwork (the milestone number, exactly as the host stated it, is the one exception), or send the raw prompt, the host's feedback or inspiration images to the image model (the event's own generated artwork, as a reference on a shape switch or a change to part of a card, is the only image it may receive);
 - add a layout, art mode, shape or slot limit without a layout-set version bump and a fixture run;
 - let a model draw or position the card's outline, or offer the host a shape the design's layout does not support;
 - let the browser re-wrap card text, or truncate any card text silently;

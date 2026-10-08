@@ -94,7 +94,7 @@ into a single vague prompt.
 | **`EventIdentity`** | *What does this host mean, and what creative world should this event belong to?* | Interpretation: tone, aesthetic character, sophistication, subjects and symbols, materials and textures, palette territory, typography character, copy voice, what to avoid, and named references captured as the look the host means (homage allowed, marks never, §11). |
 | **fact extraction** (cheaper model) | *What did the host literally state?* | Names, date, time, venue — quoted, never inferred — kept on the event for the host to confirm. |
 | **`CardDesign`** | *What is one excellent card for this identity?* | Layout from the catalog, art mode, font pairing, the card's wording, and the art brief. |
-| **card artwork** (image model) | *What artwork serves this brief and this layout?* | The image, with no text, leaving the layout's quiet regions quiet. |
+| **card artwork** (image model) | *What artwork serves this brief and this layout?* | The image, with no text (save the occasion's milestone number when the design draws it, `spec.md §7.6c`), leaving the layout's quiet regions quiet. |
 | **card compiler + renderer** (code) | *Is it legible, does it fit, is it the same everywhere?* | Facts on the card, the starting text's placement, ink and contrast (never by covering or moving the artwork), text size and line breaks, the envelope, the page, RSVP/registry, business logic. |
 
 **`EventIdentity` is this product's creative interpreter**, and it is the reason a raw prompt never
@@ -283,7 +283,10 @@ work of one art director.
 
 **The image model paints; it never writes.** No text, numbers, logos or watermarks in the artwork.
 Every word is real text, which is why it can be edited, read by a screen reader, kept exactly
-correct, and kept legible.
+correct, and kept legible. The one exception is a picture of a number, not a word: the occasion's
+milestone number — a "1" in balloons for a first birthday, "2027" in glitter for New Year's Eve —
+drawn only when the host stated it, put into the prompt by code, and checked to be exactly right
+(owner decisions, 2026-10-08; `spec.md §7.6c`).
 
 **Integrated, not boxed.** The strongest references integrate their subject with the page — a bear
 above the words, a wreath around them, a floral cluster in a corner — rather than a rectangle with
@@ -361,6 +364,7 @@ phase of `docs/development-plan.md`:
 | 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 5 |
 | 6 | An email provider for the reminder/announcement fallback in `spec.md §13.1` (no email provider is in the locked stack) | Phase 10 |
 | 7 | Legal review of the close-homage brand line (`spec.md §7.6`): trademark and copyright exposure for a platform that charges to publish, and image-provider policies that may refuse some requests | Before launch |
+| 8 | ~~The milestone number's open questions~~ — **decided** by the owner (`spec.md §7.6c`; `CHANGELOG-v7.md`, 2026-10-08): no repaint after publish, among them | Closed |
 
 ## 15. Where the work starts
 

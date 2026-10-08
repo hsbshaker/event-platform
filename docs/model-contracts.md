@@ -137,7 +137,8 @@ motifs; a decade or era; a named aesthetic; or how the artwork should look). The
 only when `open`, and code gives the design no suggested rendering when `own` (§5.2). The judgement
 is the identity's because it is the only reader of the prompt: code never parses the prompt for it.
 Every motif the host explicitly lists is kept in `visualMotifs`; one left out for a product rule
-(a logo, a brand, character or real person's name or likeness, text in the artwork) is named in
+(a logo, a brand, character or real person's name or likeness, text in the artwork — the
+occasion's milestone number aside, which fact extraction carries, §4.3) is named in
 `designConstraints`, never dropped silently, and ordinary style props of a homage — gold chains and
 a crown on an album-cover homage — are not a reason to leave one out. A real person the host
 references is evoked by era, format and look, never by name or likeness. Identities persisted
@@ -195,6 +196,16 @@ The kept title is stored in `events.prompt_facts.title`, never in `events.title`
 existing host-title path uses it verbatim and never checks or replaces it (§5.4); every later
 generation reads it from `prompt_facts`, through the same guard, until the host types a title or
 edits the title box. The title never enters the art brief or the art prompt (§7.1).
+**The milestone number** (owner decisions, 2026-10-08; `spec.md §7.6c`; to be built, with a
+schema bump). A number the prompt states plainly as the occasion's milestone — "first birthday",
+"turning 40", "our 25th anniversary", "class of 2026", "ring in 2027" — is extracted as
+`milestoneNumber`: its kind (`count`, 1–110, or `year`, four digits), its digits, and the host's
+words it came from. Code keeps it only if those words appear verbatim in the prompt and the value is
+in range; a short year ("'26") is not a year, and nothing is inferred — a New Year's Eve party's
+year never comes from its date. Like the title, it is kept in `prompt_facts` for the host to confirm
+and is given to the card design even unconfirmed (§5.2), because the design decides whether to
+draw it.
+
 The fact check in `docs/model-evals/creative-understanding.json` (each case's `facts`) applies to
 this call.
 
@@ -234,6 +245,9 @@ CardDesign {
     avoid: string[]              // 0–8; carries the identity's negative constraints forward
   }
   refinement: "none" | "part" | "whole"   // card_design_schema_v3: what this design is, see below
+  milestoneNumber?: {                      // to be built (spec.md §7.6c): only when eventFacts has
+    treatment: string                      // one and the design draws it; how it is drawn, in words
+  }                                        // ("gold foil balloons"); never the digits
 }
 ```
 
@@ -296,15 +310,17 @@ is resolved from the finished artwork by code (`card-system.md §4.2`).
 GenerateCardDesignInput {
   eventIdentity: EventIdentity                 // persisted, validated
   eventFacts: Record<string, string>           // facts present so far, host-supplied or confirmed,
-                                               // plus the title the prompt names (§4.3)
+                                               // plus the title the prompt names (§4.3) and the
+                                               // milestone number the host stated, with its kind
   previousDirections?: {                        // every earlier design for this event
     name, layout, artMode, primary, subject, rendering, aesthetic
   }[]
   suggestedRendering?: Rendering                // drawn at random, see below; none when hostConcept is "own"
   feedback?: string                            // optional "Try another direction" feedback
   changing?: {                                  // with feedback: the card the host is changing
-    name, shape, layout, artMode, primary, wording: { title, invitationLine }, artBrief
-  }
+    name, shape, layout, artMode, primary, wording: { title, invitationLine }, artBrief,
+    milestoneNumber?                            // its { treatment } when it draws the number: a
+  }                                             // change to part of the card keeps it unless asked
   reprompt?: { kind: "schema" | "wording" | "repeat-direction" | "provider-refusal"; feedback: string }
 }
 ```
@@ -378,6 +394,8 @@ In order, deterministic (`card-system.md §4.1`):
   check and are left to the corpus.
 - No brand names, character names or slogans in model-drafted wording; the host's own wording may
   contain anything.
+- The milestone number is never wording: model-drafted wording does not state it (the digit check
+  above holds), and it reaches the card only through the artwork (`spec.md §7.6c`).
 
 ## 5.5 Evals
 
@@ -400,7 +418,8 @@ failure is never acceptable:
 - **CD-06 wording quality**: the title and invitation line have the right voice and would not need
   rescuing (qualitative).
 - **CD-07 adversarial feedback**: feedback asking for HTML, CSS, a specific hex for the text, a
-  logo, a wordmark or text in the artwork yields an ordinary valid design without it.
+  logo, a wordmark or text in the artwork yields an ordinary valid design without it; asking for
+  the event's own milestone number ("put the 5 on it") is the one exception (`spec.md §7.6c`).
 
 ---
 
@@ -442,6 +461,12 @@ lyric, a plain prompt) and one that must not under-trigger it ("called Taco ’B
 not part of the corpus and runs alone, with `scripts/corpus/run-live.mjs --file`, when the owner
 approves the run.
 
+**Milestone-number probe** (to be written with the feature; `spec.md §7.6c`): one-line prompts
+across counts and years — ages such as 1, 5, 11, 16, 50, 100 and 110, a 25th anniversary, a class
+of 2026 and a 2027 New Year's Eve party — and a few where the number must not be drawn (a number
+that is not the milestone, a short year, a New Year's Eve party that names no year). Like the
+stated-title probe it is not part of the corpus and runs alone, when the owner approves the run.
+
 **What this does not become:** a benchmark project. Fourteen cases, one rubric. Do not grow the
 corpus to chase coverage, do not build a scoring service, and do not gate ordinary code changes on
 it — it measures the creative stack, not the compiler.
@@ -471,8 +496,10 @@ The art prompt is assembled **by application code**, never written verbatim by a
   them; for `framed` and `minimal` art, the rule of the requested shape only (`card-system.md
   §2.4`);
 - the art mode's instruction (illustration, framed, atmosphere, minimal);
-- the global rules: no text, letters or numbers; no logos, wordmarks, brand or character names, or
-  watermarks; no copied campaign artwork; an
+- the global rules: no text, letters or numbers — except, when the design draws the milestone
+  number, one line code adds with its digits and the design's treatment, allowing that number
+  exactly once as an object in the scene and nothing else (`spec.md §7.6c`); no logos, wordmarks,
+  brand or character names, or watermarks; no copied campaign artwork; an
   original style; the shape's proportion (5:7 or 1:1) and its composition rule (e.g. arch: the top
   corners are cut away; oval and circle: keep everything important inside the outline); the
   brief's `avoid` list.
@@ -481,7 +508,8 @@ The validated `artMode` is passed with every request, because it selects both th
 instruction and the crop rule; it is never inferred from the brief's free text
 (`src/lib/card/art-modes.ts`).
 
-It contains no raw host prompt, no event facts and no inspiration image. `card_art_v3` also drops
+It contains no raw host prompt, no event facts other than the milestone number's digits (above)
+and no inspiration image. `card_art_v3` also drops
 the wording that pushed every card toward paint: no "painted" in the art modes, the corner rule
 says "carry the background", and the mockup rule forbids a photograph *of a printed card*, not a
 photograph — the artwork may itself be one when the rendering says so.
@@ -489,7 +517,11 @@ photograph — the artwork may itself be one when the rendering says so.
 ## 7.2 Input and output
 
 ```ts
-GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape; reference?; revision? }
+GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape; reference?; revision?;
+                       milestoneNumber? }
+// milestoneNumber = { digits, treatment }, code-owned: the event's number and the design's
+// treatment, present only for an image that should show it (absent for the image without it and
+// for a repaint after it); the art prompt's number line is built from it (spec.md §7.6c)
 // proportion derived from shape; reference = the event's own generated artwork: the design's own
 // earlier artwork on a shape switch, or the changed card's artwork on a change to part of a card
 // (revision: true frames the prompt as a revision of the reference)
@@ -530,7 +562,7 @@ Deterministic: decodable allowed image type; the requested proportion within tol
 resolution. Required,
 mechanism chosen in Phase 3 validation (`technology-decisions.md §8.1`): no embedded text;
 content safety. A failure earns one regeneration; a second failure is a visible failure with
-retry. No template or stock fallback.
+retry (a wrong or missing milestone number takes its own path, below). No template or stock fallback.
 
 The inspection (`card_art_inspection_v2`, `src/lib/ai/artwork-inspection.ts`) reports `hasText`,
 `hasLogoOrBrandMark`, `isMockup` and `hasPerson`. `isMockup` is true only when the image shows a
@@ -546,15 +578,29 @@ dropped.
 An artwork that passes is kept as generated whenever it has workable space for the starting text
 (`card-system.md §4.2`, owner decisions 2026-10-07): text over an illustrated object, a missed
 percentage boundary or a starting text that falls short of a contrast check never earns a
-repaint, and nothing is ever drawn over the artwork to correct for text. Only an artwork with no
-workable space on the shape it was painted for — decided by code on the measured image, never by a
-model — is repainted once, from the same art prompt plus one composition line for every art mode
+repaint, and nothing is ever drawn over the artwork to correct for text. Only an artwork whose
+starting-text space scores below the workable bar on the shape it was painted for — decided by
+code on the measured image, never by a model — is repainted once, from the same art prompt plus one composition line for every art mode
 (`REPAINT_COMPOSITION`, `card_art_v7`: leave a generous, quieter part of the picture for the
 words, with low detail, and keep the subject's main features out of it; it never refers to an
 earlier image); a shape switch's repaint keeps its `reference`. The image whose workable space
 reads better is kept, within two extra images per artwork in all, a validation regeneration
 included (`spec.md §7.8`); a repaint that fails validation is dropped. Only the artwork the card
 shows is persisted.
+
+**The milestone number** (to be built; `spec.md §7.6c`). For a design that draws it, the inspection
+transcribes every text-like mark it sees, and the artwork passes only if that is exactly the
+number's digits, once, with no other text (a swapped "2072", a doubled "11", an "I" for a "1" or an
+"O" for a zero all fail). A wrong or missing number earns one regeneration with the number; a second
+miss gets one last image from the same brief without the number line, which must pass the ordinary
+no-text check — if it fails validation, that is the visible failure with a retry — and the card
+ships with no number, never a typeset one. A wrong or missing number is never itself a visible
+failure, and any other validation failure keeps its one regeneration. Such an artwork may use up to
+three extra images in all; the space repaint comes last, is checked the same way, and is skipped
+when no image is left; it keeps the number line only while the number is still drawn, and after the
+image without the number it omits the number too. New artwork for a shape
+switch never falls back to no number: a second miss fails the switch visibly with a retry (owner
+decision, 2026-10-08).
 
 A provider refusal of a brand or character homage is a failure whose regeneration comes from a
 `generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md
@@ -563,7 +609,8 @@ A provider refusal of a brand or character homage is a failure whose regeneratio
 
 ## 7.4 Evals
 
-- **CA-01 no text**: 0 accepted artworks containing text. Hard.
+- **CA-01 no text**: 0 accepted artworks containing text, other than a design's milestone number
+  exactly as stated (`spec.md §7.6c`). Hard.
 - **CA-02 brand line**: 0 artworks containing a logo, wordmark, brand or character name, or a copied
   campaign image. Hard. Close homage to a character is allowed (`spec.md §7.6`).
 - **CA-03 workable space**: the artwork leaves workable space for the starting text — at least 85%
@@ -582,6 +629,9 @@ A provider refusal of a brand or character homage is a failure whose regeneratio
 - **CA-07 subject continuity**: regenerating for a new shape with `reference` keeps the same subject
   (human judgement). If the chosen model cannot over the API, Phase 3 validation records it and the
   brief alone is used.
+- **CA-08 milestone number**: 0 accepted artworks showing a wrong number (hard); and, of the
+  designs that draw the number, the share whose artwork shows it exactly, by kind and digit count —
+  judged on a probe of its own (§6) before the feature ships.
 
 ---
 
@@ -604,7 +654,7 @@ bounds and fact check. Model prose is never authorization.
 | Event Identity | ordinary transient retry | one repair retry, then visible failure | — |
 | Fact extraction | ordinary transient retry | one retry, then no prefill (host enters details) | — |
 | Card Design | ordinary transient retry | one re-prompt, then visible failure | wording: one re-prompt, then standard wording; repeat direction: one re-prompt, then accept |
-| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork whose starting-text space scores below the workable bar on its shape: one repaint, the better of the two kept, two extra images per artwork in all; never a panel |
+| Card Art | ordinary transient retry | one regeneration, then visible failure | same as invalid output, including a person in photographic, editorial, 3D or collage artwork; an artwork whose starting-text space scores below the workable bar on its shape: one repaint, the better of the two kept, two extra images per artwork in all; never a panel; a design's milestone number shown wrong or not at all: one regeneration with it, then one image without it, three extra images in all (`spec.md §7.6c`) |
 
 Card Design re-prompts are one of each kind per design. When a re-prompt's own call fails — its
 output invalid after the schema re-prompt is spent, or the provider call fails — the earlier valid
@@ -615,8 +665,8 @@ carries one re-prompt.
 
 A provider refusal of an artwork's **first** image is that artwork's failure: its one regeneration
 is the re-prompted design's artwork (`spec.md §7.6`), which continues the same budget of two extra
-images — so its own failed validation or refusal is a visible failure, and it has at most one
-repaint left. A refusal of the regeneration of an already-failed first image is the second failure
+images (three for a design that draws the milestone number) — so its own failed validation or
+refusal is a visible failure, and it has at most one repaint left. A refusal of the regeneration of an already-failed first image is the second failure
 and is visible. Either way the failure's code is `provider_refusal`, and the host's Try again takes
 the same step back: the retry, reusing the identity, starts from the `provider-refusal` re-prompt
 with the copyright note shown, and a refusal of that is again a visible failure (`spec.md §7.6`).
