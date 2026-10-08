@@ -809,9 +809,9 @@ candles on the cake, "2027" in gold glitter. It is the one exception to §7.6a r
   card`: a change to part of the card through `Try another direction`, repainting the number as an
   edit of the current artwork. It is the one case where changing a detail offers a design change,
   and only the host starts it; the card never changes by itself. This is before publish only: after
-  publish no new artwork is made (§8.2), so the host may still change the number in the details,
-  and the form notes that the card keeps the number its artwork shows (owner decision,
-  2026-10-08).
+  publish no new artwork is made (§8.2, with no exception for the number), so the host may still
+  change the number in the details, and the form notes that the card keeps the number its artwork
+  shows (owner decisions, 2026-10-08).
 - **Not text on the card.** The number belongs to the artwork: it is not a text box and cannot be
   moved or restyled in the card editor (§20). Model-drafted wording still never states it (§7.7); a
   host's own title may ("The Notorious ONE"). The artwork stays decorative to screen readers, so the

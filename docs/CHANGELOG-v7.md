@@ -1068,8 +1068,9 @@ Specified here; not built yet.
   the card keeps the number its artwork shows (no new artwork after publish, §8.2); the artwork
   stays decorative to screen readers, so the number is not announced; and new artwork for a shape
   switch never falls back to no number — a second miss fails the switch with a retry.
-- **Open, for the owner:** whether `Update the number on the card` should be able to repaint after
-  publish, as an exception to §8.2.
+- **No repaint after publish** (owner, 2026-10-08): `Update the number on the card` is a repaint, so
+  it stays before publish only; the rule that no new artwork is made after publish (§8.2) keeps no
+  exception, and a number changed after publish leaves the artwork as it is, with the note.
 
 ## Still open
 
