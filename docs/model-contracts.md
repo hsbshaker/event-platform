@@ -592,7 +592,9 @@ no-text check — if it fails validation, that is the visible failure with a ret
 ships with no number, never a typeset one. A wrong or missing number is never itself a visible
 failure, and any other validation failure keeps its one regeneration. Such an artwork may use up to
 three extra images in all; the space repaint comes last, keeps the number line while the number is
-drawn, is checked the same way, and is skipped when no image is left.
+drawn, is checked the same way, and is skipped when no image is left. New artwork for a shape
+switch never falls back to no number: a second miss fails the switch visibly with a retry (owner
+decision, 2026-10-08).
 
 A provider refusal of a brand or character homage is a failure whose regeneration comes from a
 `generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md

@@ -364,7 +364,7 @@ phase of `docs/development-plan.md`:
 | 5 | The clarification question schema and surface (`spec.md §7.6b`) | Phase 5 |
 | 6 | An email provider for the reminder/announcement fallback in `spec.md §13.1` (no email provider is in the locked stack) | Phase 10 |
 | 7 | Legal review of the close-homage brand line (`spec.md §7.6`): trademark and copyright exposure for a platform that charges to publish, and image-provider policies that may refuse some requests | Before launch |
-| 8 | The milestone number (`spec.md §7.6c`): publishing while the card shows a number the host has not confirmed; a number changed after publish, when no new artwork is made; how screen readers learn a number that lives only in decorative artwork; a shape switch whose new artwork falls back to no number while another shape shows it (`CHANGELOG-v7.md`, 2026-10-08) | Phase 5e, with the owner |
+| 8 | The milestone number (`spec.md §7.6c`): whether `Update the number on the card` should be able to repaint after publish, as an exception to `spec.md §8.2` (`CHANGELOG-v7.md`, 2026-10-08) | Phase 5e, with the owner |
 
 ## 15. Where the work starts
 

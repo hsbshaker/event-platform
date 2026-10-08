@@ -209,7 +209,8 @@ Fields:
   prompt stated it. It appears only in the card's artwork, when the design draws it. When the host
   changes it while the active card shows it, the editor offers `Update the number on the card`
   (before publish), a change to part of the card through `try-another-direction`; nothing changes
-  on the card until the host chooses it;
+  on the card until the host chooses it. After publish the number can still be changed, with a note
+  under the field: *Your card keeps showing {n}: the artwork can't be repainted after publishing*;
 - date/time;
 - venue/address;
 - description (up to 2,000 characters; empty clears it);

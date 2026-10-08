@@ -1063,10 +1063,13 @@ Specified here; not built yet.
   `development-plan.md` (5e); guardrails #12 and #30 too. Also
   corrected in `model-contracts.md §7.3`: a repaint follows a score below the workable bar, not "no
   workable space" (the owner's 2026-10-07 decision; one sentence the earlier sweep missed).
-- **Open, for the owner:** publishing while the card shows a number the host never confirmed; a
-  number changed after publish, when the card can no longer be repainted; how screen readers learn a
-  number that lives only in the artwork; and a shape switch whose new artwork falls back to no number
-  while another shape shows it.
+- **The owner's answers on the PR** (2026-10-08): a card may publish showing a number the host has
+  not confirmed; after publish the number can still be changed in the details, with a note that
+  the card keeps the number its artwork shows (no new artwork after publish, §8.2); the artwork
+  stays decorative to screen readers, so the number is not announced; and new artwork for a shape
+  switch never falls back to no number — a second miss fails the switch with a retry.
+- **Open, for the owner:** whether `Update the number on the card` should be able to repaint after
+  publish, as an exception to §8.2.
 
 ## Still open
 

@@ -546,8 +546,9 @@ stands. An unconfirmed value is never published, never shown to guests, and neve
 card design as a fact. There are three exceptions, all the host's own words and never fact slots
 on the card: the occasion the prompt names ("baby shower"), which the design reads to word the
 invitation; the title the prompt names (below); and the milestone number the prompt states plainly
-("first birthday", "ring in 2027"), which the design may have drawn into the artwork (§7.6c;
-whether such a card may publish while the number is unconfirmed is open there).
+("first birthday", "ring in 2027"), which the design may have drawn into the artwork (§7.6c).
+Unlike a fact on the card, a drawn number is not held back from publishing while unconfirmed: it
+is part of the artwork (owner decision, 2026-10-08).
 
 While the card shows the placeholder date, it also shows that date's default RSVP deadline
 (below), marked as needing confirmation like the date, so the card's words do not move when the
@@ -782,8 +783,8 @@ candles on the cake, "2027" in gold glitter. It is the one exception to §7.6a r
   any stated fact and kept for the host to confirm (§7.3, §7.5), or entered in the details form
   (§18). It is never inferred — not from the date (a New Year's Eve party's year is drawn only when
   the host states it), a name or a theme. Code, never a model, puts its digits into the art prompt;
-  the card design decides only whether it is drawn and how (§7.7). Whether a card may be published
-  while it shows a number the host has not confirmed is open (`docs/CHANGELOG-v7.md`, 2026-10-08).
+  the card design decides only whether it is drawn and how (§7.7). A card may be published while it
+  shows a number the host has not confirmed (owner decision, 2026-10-08).
 - **Whether it appears.** A stated number makes the card eligible; it never makes the number
   mandatory. The design decides whether the number belongs in its idea: a first birthday almost
   always carries it, an adult's milestone may not. The host can ask for it or remove it with `Try
@@ -799,16 +800,22 @@ candles on the cake, "2027" in gold glitter. It is the one exception to §7.6a r
   failure with a retry. The space repaint (§7.8) comes last, keeps the number line while the number
   is drawn, and is skipped when no image is left. The fallback is always no number, never a
   typeset one.
+- **Shape switches.** New artwork for another shape of a design that draws the number must show it
+  too. A miss earns the number's regeneration within the budget, and if that misses as well, the
+  switch fails visibly with a retry: no shape of such a design ever shows the card without its
+  number (owner decision, 2026-10-08).
 - **When the number changes.** The host cannot edit the artwork, so when they change the number in
   the details form while the active card shows it, Creation Mode offers `Update the number on the
   card`: a change to part of the card through `Try another direction`, repainting the number as an
   edit of the current artwork. It is the one case where changing a detail offers a design change,
   and only the host starts it; the card never changes by itself. This is before publish only: after
-  publish no new artwork is made (§8.2), so the artwork keeps its number; how the details form
-  treats such a change then is open (`docs/CHANGELOG-v7.md`, 2026-10-08).
+  publish no new artwork is made (§8.2), so the host may still change the number in the details,
+  and the form notes that the card keeps the number its artwork shows (owner decision,
+  2026-10-08).
 - **Not text on the card.** The number belongs to the artwork: it is not a text box and cannot be
   moved or restyled in the card editor (§20). Model-drafted wording still never states it (§7.7); a
-  host's own title may ("The Notorious ONE").
+  host's own title may ("The Notorious ONE"). The artwork stays decorative to screen readers, so the
+  number is not announced (owner decision, 2026-10-08).
 
 ### 7.7 Card design
 
@@ -2656,7 +2663,8 @@ The host should feel:
   scene; code puts its digits into the art prompt and the design never writes them; the artwork
   passes only showing exactly that number, once, with no other text; a wrong or missing number
   earns one regeneration with the number, then one image without it, and the card ships with no
-  number — up to three extra images for such an artwork, and never a typeset number instead (§7.6c).
+  number — up to three extra images for such an artwork, and never a typeset number instead; new
+  artwork for a shape switch of such a design that still misses fails visibly with a retry (§7.6c).
 - [ ] When the image provider refuses a brand or character homage, the one regeneration comes
   from a re-prompted design that evokes the character's world rather than its signature look; the
   host sees a short, plain copyright note, never a provider error; a second refusal is a visible
