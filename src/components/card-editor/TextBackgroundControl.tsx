@@ -47,6 +47,11 @@ const CHOICES: { choice: TextBackgroundChoice; label: string }[] = [
 ];
 
 export interface TextBackgroundControlProps {
+  /**
+   * The edited box's id. Typing state (a half-typed hex colour or number) belongs to one box and
+   * is dropped when the edited box changes, so it never applies to another.
+   */
+  boxId: string;
   value: TextBackground | undefined;
   /** The box's text colour and size: the starting fill and padding derive from them. */
   text: TextBackgroundText;
@@ -59,6 +64,7 @@ export interface TextBackgroundControlProps {
 }
 
 export function TextBackgroundControl({
+  boxId,
   value,
   text,
   swatches = [],
@@ -75,7 +81,8 @@ export function TextBackgroundControl({
   ];
 
   return (
-    <div className="flex flex-col gap-4" data-text-background-control="">
+    // Keyed by the box: a new box remounts the fields, so no draft survives a change of box.
+    <div key={boxId} className="flex flex-col gap-4" data-text-background-control="">
       <div className="flex flex-col gap-2">
         <span id={labelId} className="text-label-md text-app-text">
           Text background

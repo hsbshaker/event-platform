@@ -206,6 +206,7 @@ export function CardEditorFixture(props: CardEditorFixtureProps) {
               </div>
 
               <TextBackgroundControl
+                boxId={selected.id}
                 idPrefix="bg"
                 value={selected.background}
                 text={{ color: selected.color, size: selected.size }}
