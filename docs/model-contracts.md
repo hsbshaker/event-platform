@@ -557,7 +557,7 @@ Deterministic: decodable allowed image type; the requested proportion within tol
 resolution. Required,
 mechanism chosen in Phase 3 validation (`technology-decisions.md §8.1`): no embedded text;
 content safety. A failure earns one regeneration; a second failure is a visible failure with
-retry. No template or stock fallback.
+retry (a wrong or missing milestone number takes its own path, below). No template or stock fallback.
 
 The inspection (`card_art_inspection_v2`, `src/lib/ai/artwork-inspection.ts`) reports `hasText`,
 `hasLogoOrBrandMark`, `isMockup` and `hasPerson`. `isMockup` is true only when the image shows a
@@ -588,9 +588,11 @@ transcribes every text-like mark it sees, and the artwork passes only if that is
 number's digits, once, with no other text (a swapped "2072", a doubled "11", an "I" for a "1" or an
 "O" for a zero all fail). A wrong or missing number earns one regeneration with the number; a second
 miss gets one last image from the same brief without the number line, which must pass the ordinary
-no-text check, and the card ships with no number — never a typeset one. Such an artwork may use up
-to three extra images in all, the space repaint included, which keeps the number line and is
-checked the same way.
+no-text check — if it fails validation, that is the visible failure with a retry — and the card
+ships with no number, never a typeset one. A wrong or missing number is never itself a visible
+failure, and any other validation failure keeps its one regeneration. Such an artwork may use up to
+three extra images in all; the space repaint comes last, keeps the number line while the number is
+drawn, is checked the same way, and is skipped when no image is left.
 
 A provider refusal of a brand or character homage is a failure whose regeneration comes from a
 `generateCardDesign` re-prompt of kind `provider-refusal` (`model-prompts/card-design.system.md
@@ -655,8 +657,8 @@ carries one re-prompt.
 
 A provider refusal of an artwork's **first** image is that artwork's failure: its one regeneration
 is the re-prompted design's artwork (`spec.md §7.6`), which continues the same budget of two extra
-images — so its own failed validation or refusal is a visible failure, and it has at most one
-repaint left. A refusal of the regeneration of an already-failed first image is the second failure
+images (three for a design that draws the milestone number) — so its own failed validation or
+refusal is a visible failure, and it has at most one repaint left. A refusal of the regeneration of an already-failed first image is the second failure
 and is visible. Either way the failure's code is `provider_refusal`, and the host's Try again takes
 the same step back: the retry, reusing the identity, starts from the `provider-refusal` re-prompt
 with the copyright note shown, and a refusal of that is again a visible failure (`spec.md §7.6`).

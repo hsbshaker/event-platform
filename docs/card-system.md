@@ -388,10 +388,16 @@ one exception to invariant 3.
   that number, exactly once, as an object in the scene, and nothing else: no ordinal or word, no
   short year, no Roman numerals, nothing on a sign, banner or label (§3).
 - **Check and budget.** The artwork passes only if the inspection reads exactly that number, once,
-  and no other text (§4.1). A wrong or missing number earns one regeneration with the number; a
-  second miss gets one last image painted without the number, and the card ships with none, never
-  with a typeset number. Such an artwork may use up to three extra images in all; the space repaint
-  (§4.2) keeps the number line and is checked the same way.
+  and no other text (§4.1). Such an artwork may use up to three extra images in all. A wrong or
+  missing number is never itself a visible failure: it earns one regeneration with the number, then
+  one image painted without it, and the card ships with no number, never a typeset one. Any other
+  validation failure keeps its one regeneration, and an image without the number that fails
+  validation is the visible failure with a retry. The space repaint (§4.2) comes last, keeps the
+  number line while the number is drawn, is checked the same way, and is skipped when no image is
+  left.
+- **Publish.** The number shows in the artwork from the reveal, confirmed or not; whether such a
+  card may publish while the number is unconfirmed, and what a change after publish does (no new
+  artwork is made then, `spec.md §8.2`), are open (`CHANGELOG-v7.md`, 2026-10-08).
 - **Shape switches and changes.** New artwork for another shape carries the same line and the same
   check. A request to add or remove the number is a change to part of the card (an edit of its
   artwork, §3). When the host changes the number in the details while the active card shows it,
@@ -457,7 +463,7 @@ regeneration); if the second attempt fails too:
 | `generateCardDesign` | repeats an earlier direction (§4.1) | accept, logged |
 | `generateCardDesign` | wording fails the fact check | standard wording for the failing slot (§4.1), logged |
 | `generateCardArt` | artwork fails validation | fail visibly with a retry action |
-| `generateCardArt` | the design draws the milestone number and the artwork shows a wrong number, no number, or the number with other text (§2.7) | one last image painted without the number; the card ships with none (a typeset number is never substituted); up to three extra images per such artwork in all (owner decisions, 2026-10-08) |
+| `generateCardArt` | the design draws the milestone number and the artwork shows a wrong number, no number, or the number with other text (§2.7) — never itself a visible failure | one last image painted without the number; the card ships with none (a typeset number is never substituted); if that image fails validation, fail visibly with a retry; up to three extra images per such artwork in all, the space repaint last and skipped when none is left (owner decisions, 2026-10-08) |
 | `generateCardArt` | the artwork passes validation but the shape it was painted for (a new design's, or a shape switch's) scores **below the workable bar** for the starting text (§4.2; a provisional heuristic, not proof that there is no workable space) — never merely text over an object, a missed percentage boundary or a failed contrast check | repainted once from the same art prompt plus one line asking for a quieter part of the picture for the words (`card_art_v7`), a switch or a change to part of a card keeping its reference; the image whose space reads better is kept; within two extra images per artwork in all, a validation regeneration included; a repaint that fails validation is dropped (owner decisions, 2026-10-07; `spec.md §7.8`) |
 | `generateCardArt` | the provider refuses a brand or character homage | the regeneration comes from a `generateCardDesign` re-prompt (`provider-refusal`) that evokes the character's world rather than its signature look, with a short plain copyright note to the host (`spec.md §7.6`); a second refusal fails visibly, and its retry takes the same step back. A shape switch's refusal fails visibly at once (`shape_refusal`), with no re-prompt: the design is immutable, and the card stays as it is |
 

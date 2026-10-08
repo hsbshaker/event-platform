@@ -546,7 +546,8 @@ stands. An unconfirmed value is never published, never shown to guests, and neve
 card design as a fact. There are three exceptions, all the host's own words and never fact slots
 on the card: the occasion the prompt names ("baby shower"), which the design reads to word the
 invitation; the title the prompt names (below); and the milestone number the prompt states plainly
-("first birthday", "ring in 2027"), which the design may have drawn into the artwork (§7.6c).
+("first birthday", "ring in 2027"), which the design may have drawn into the artwork (§7.6c;
+whether such a card may publish while the number is unconfirmed is open there).
 
 While the card shows the placeholder date, it also shows that date's default RSVP deadline
 (below), marked as needing confirmation like the date, so the card's words do not move when the
@@ -781,7 +782,8 @@ candles on the cake, "2027" in gold glitter. It is the one exception to §7.6a r
   any stated fact and kept for the host to confirm (§7.3, §7.5), or entered in the details form
   (§18). It is never inferred — not from the date (a New Year's Eve party's year is drawn only when
   the host states it), a name or a theme. Code, never a model, puts its digits into the art prompt;
-  the card design decides only whether it is drawn and how (§7.7).
+  the card design decides only whether it is drawn and how (§7.7). Whether a card may be published
+  while it shows a number the host has not confirmed is open (`docs/CHANGELOG-v7.md`, 2026-10-08).
 - **Whether it appears.** A stated number makes the card eligible; it never makes the number
   mandatory. The design decides whether the number belongs in its idea: a first birthday almost
   always carries it, an adult's milestone may not. The host can ask for it or remove it with `Try
@@ -789,15 +791,21 @@ candles on the cake, "2027" in gold glitter. It is the one exception to §7.6a r
   artwork an edit of the current one (§7.7, §7.15). The request's words are never the number's
   source: when the event has no number yet, the host is asked to enter it in the details first.
 - **Checked, and never wrong.** An artwork meant to show the number passes only if it shows exactly
-  that number, once, and no other text (§7.8). A wrong or missing number earns one regeneration
-  with the number; if that is wrong too, one last image is painted without the number, and the card
-  ships with none. A card whose design draws the number may use up to **three extra images** (§7.8).
-  The fallback is always no number, never a typeset one.
-- **When the number changes.** The artwork cannot be edited, so when the host changes the number in
+  that number, once, and no other text (§7.8).
+- **The image budget.** Such an artwork gets at most **three extra images** in all (§7.8). A wrong
+  or missing number is never itself a visible failure: it earns one regeneration with the number,
+  then one image without it, and the card ships with no number. Any other validation failure keeps
+  its one regeneration, and an image without the number that fails validation is the visible
+  failure with a retry. The space repaint (§7.8) comes last, keeps the number line while the number
+  is drawn, and is skipped when no image is left. The fallback is always no number, never a
+  typeset one.
+- **When the number changes.** The host cannot edit the artwork, so when they change the number in
   the details form while the active card shows it, Creation Mode offers `Update the number on the
   card`: a change to part of the card through `Try another direction`, repainting the number as an
   edit of the current artwork. It is the one case where changing a detail offers a design change,
-  and only the host starts it; the card never changes by itself.
+  and only the host starts it; the card never changes by itself. This is before publish only: after
+  publish no new artwork is made (§8.2), so the artwork keeps its number; how the details form
+  treats such a change then is open (`docs/CHANGELOG-v7.md`, 2026-10-08).
 - **Not text on the card.** The number belongs to the artwork: it is not a text box and cannot be
   moved or restyled in the card editor (§20). Model-drafted wording still never states it (§7.7); a
   host's own title may ("The Notorious ONE").
@@ -883,8 +891,8 @@ Validation (deterministic, plus the text and safety checks chosen in Phase 3 val
 the requested proportion within tolerance, minimum resolution, decodable, **no embedded text** (for
 a design that draws the milestone number: exactly that number, once, and no other text, §7.6c),
 content safety, and — for photographic, editorial, 3D or collage artwork — **no person** (§7.6a). A
-failure earns one regeneration; a second failure is shown honestly to the host with a retry action.
-A provider refusal is a failure; when it refuses a brand or character homage, the regeneration comes
+failure earns one regeneration; a second failure is shown honestly to the host with a retry action
+(a wrong or missing milestone number takes its own path instead, §7.6c). A provider refusal is a failure; when it refuses a brand or character homage, the regeneration comes
 from a re-prompted design that evokes the character's world (§7.6). There is no template or stock
 fallback.
 
@@ -901,9 +909,9 @@ that the artwork has no workable space: people judge that on the raw artwork and
 (`docs/model-contracts.md §7.4`, CA-03), and an artwork with genuinely no workable space is recorded
 as an unresolved generation case. An artwork gets at most **two extra images** in all: its one
 validation regeneration, if it needed one, and that repaint share the budget. An artwork whose
-design draws the milestone number gets **three**: a wrong or missing number earns one regeneration
-with the number, then one image without it (§7.6c); a repaint keeps the number line and is checked
-for it the same way. A repaint that fails validation is dropped (it still uses one image); a valid
+design draws the milestone number gets **three**, spent as §7.6c sets out: the number's own
+regeneration and the image without it come before the repaint, which keeps the number line and is
+checked for it the same way, and is skipped when no image is left. A repaint that fails validation is dropped (it still uses one image); a valid
 card already exists, so a repaint never causes a visible failure. Only the artwork the card shows is
 persisted as the design's artwork; the other images are metered (§9.6) and not kept. A repaint costs
 about 6¢ and adds about 30 s to the cards that need it.
@@ -1207,7 +1215,7 @@ lineAreasFallback[]    // shapes whose ink was judged on the whole zone alone (t
 versions               // prompt, schema, layout set, compiler, image model
 latency                // identity, design, art, total
 milestoneNumber        // when the event has one: its kind, and drawn | not drawn (the design's
-                       // choice) | dropped (a wrong number twice), with the images it took (§7.6c)
+                       // choice) | dropped (wrong or missing twice), with the images it took (§7.6c)
 suggestedRendering     // the rendering drawn for variety (§7.6a rule 7)
 followedSuggestion     // whether the design used it
 themeSeed              // the theme seed given to a new identity (§7.5), null when reused
@@ -2190,6 +2198,7 @@ CardDesign {
   typography /* { primary, alternates[] } */,
   wording /* { title, invitationLine } — after the fact check */,
   artBrief /* { subject, rendering, aesthetic, medium, mood, palette, texture, avoid[] }; rendering and aesthetic from card_design_schema_v2 */,
+  milestoneNumber? /* { treatment }: when the design draws the event's number (§7.6c) */,
   raw,                           // the model response as returned
   artAssetIds[],                 // the original; plus one per shape switch no existing artwork fits
   standardWordingSlots[],
@@ -2207,6 +2216,7 @@ CardArtAsset {
   storageKey, mimeType, width, height, sizeBytes,
   ink /* per fitted shape, per zone: { ink, shift? } (designs before 2026-10-07: { ink, panel?, panelColor? }) */,
   imageModel, artPromptVersion,
+  showsMilestoneNumber,          // whether this artwork shows the event's number (§7.6c)
   createdAt
 }
 
@@ -2630,8 +2640,9 @@ The host should feel:
 - [ ] Artwork is at the shape's proportion (5:7 or 1:1), decodable, at minimum resolution, contains
   no embedded text (for a design that draws the milestone number: exactly that number once and no
   other text), and passes
-  content safety; a failure is regenerated once, then shown as a visible failure with retry; no
-  template or stock fallback exists.
+  content safety; a failure is regenerated once, then shown as a visible failure with retry (a
+  wrong or missing milestone number takes its own path, below); no template or stock fallback
+  exists.
 - [ ] A valid artwork with workable space for the starting text is kept as generated: text over an
   illustrated object, a missed percentage boundary or a starting text that falls short of a
   contrast check never triggers a repaint. Only an artwork whose text space scores below the
@@ -2854,7 +2865,8 @@ The host should feel:
 10. Do not count optional Guests/Registry/invitations as publish blockers.
 11. Do not build token/chat-level AI editing.
 12. The models return exactly: an `EventIdentity`; a `CardDesign` (shape, layout ID, art mode, pairing IDs,
-    bounded wording, art brief, presentation); and artwork. Nothing else.
+    bounded wording, art brief, presentation and, when it draws the milestone number, how it is
+    drawn, in words — never the digits, §7.6c); and artwork. Nothing else.
 13. No model emits HTML, CSS, JavaScript, SVG, text colours, sizes, positions or line breaks.
 14. The model owns interpretation, the creative direction, the layout and art-mode choice, the
     pairing choice, the wording and the art brief (code may suggest a rendering at random for
@@ -2909,8 +2921,8 @@ The host should feel:
 29. The page beneath the card is one house style for every event. Card styling never leaks into app
     chrome or the page, and app chrome never leaks into the card.
 30. Each round generates one design and one artwork (plus at most two extra images of that
-    artwork — its validation regeneration and at most one repaint for missing text space, §7.8); never
-    generate in bulk to pick from.
+    artwork — its validation regeneration and at most one repaint for missing text space, §7.8;
+    three when the design draws the milestone number, §7.6c); never generate in bulk to pick from.
 31. No host-uploaded, stock or retrieved imagery on the card or page; the native product thumbnail
     is the only content-image exception.
 32. Native product thumbnail is content; never hotlink a retailer image.

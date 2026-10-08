@@ -1059,7 +1059,8 @@ Specified here; not built yet.
 - Documents: `spec.md` §7.3, §7.6a, new §7.6c, §7.7, §7.8, §7.15, §9.5, §11.11, §18, §24, §31 and
   guardrails #15, #16 and #20; `CLAUDE.md`; `card-system.md` invariant 3, new §2.7, §3, §4.1, §5 and
   §10; `model-contracts.md` §4.3, §5.1, §5.2, §5.4, §6, §7.1, §7.3, §7.4 (CA-01, new CA-08) and §9;
-  `product-doctrine.md` §4; `design-system.md`; `screen-spec.md`; `development-plan.md` (5e). Also
+  `product-doctrine.md` §4 and §14 (row 8); `design-system.md`; `screen-spec.md`;
+  `development-plan.md` (5e); guardrails #12 and #30 too. Also
   corrected in `model-contracts.md §7.3`: a repaint follows a score below the workable bar, not "no
   workable space" (the owner's 2026-10-07 decision; one sentence the earlier sweep missed).
 - **Open, for the owner:** publishing while the card shows a number the host never confirmed; a
