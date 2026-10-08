@@ -392,9 +392,9 @@ one exception to invariant 3.
   missing number is never itself a visible failure: it earns one regeneration with the number, then
   one image painted without it, and the card ships with no number, never a typeset one. Any other
   validation failure keeps its one regeneration, and an image without the number that fails
-  validation is the visible failure with a retry. The space repaint (§4.2) comes last, keeps the
-  number line while the number is drawn, is checked the same way, and is skipped when no image is
-  left.
+  validation is the visible failure with a retry. The space repaint (§4.2) comes last, is checked
+  the same way, and is skipped when no image is left; it keeps the number line only while the number
+  is still drawn, and after the image without the number it omits the number too.
 - **Publish.** The number shows in the artwork from the reveal, confirmed or not, and the card may
   publish with it unconfirmed. After publish no new artwork is made (`spec.md §8.2`): the host may
   still change the number in the details, and the form notes that the card keeps the number its
@@ -403,7 +403,8 @@ one exception to invariant 3.
   check, but never falls back to no number: a miss earns the number's regeneration within the
   budget, and a second miss fails the switch visibly with a retry (owner decision, 2026-10-08). A
   request to add or remove the number is a change to part of the card (an edit of its
-  artwork, §3). When the host changes the number in the details while the active card shows it,
+  artwork, §3). Each artwork records the number it shows (§5); whenever the active card's artwork
+  shows a number other than the event's — changed in the details, or an earlier design chosen —
   Creation Mode offers `Update the number on the card`, which is that change; nothing happens until
   the host chooses it.
 - **Not text.** The number is part of the artwork. It is no text box, the card editor cannot move or
@@ -444,11 +445,11 @@ for this event and, when the host says what to change, the card being changed (`
 owner decisions 2026-10-05). The design says which it made:
 
 - **a change to part of the card** keeps the card — idea, subject, rendering, layout, shape, art
-  mode, pairing, title and invitation line, unless the request names one — and rewrites the brief
-  with the change. Its artwork is an **edit** of the changed card's artwork: the image model's
-  edits endpoint with that artwork as the reference, the assembled art prompt framed as a revision
-  ("keep its composition, subject placement, rendering, lighting and palette wherever this
-  description does not change them"). Repaints stay edits of the same reference.
+  mode, pairing, title, invitation line and milestone number, unless the request names one — and
+  rewrites the brief with the change. Its artwork is an **edit** of the changed card's artwork: the
+  image model's edits endpoint with that artwork as the reference, the assembled art prompt framed
+  as a revision ("keep its composition, subject placement, rendering, lighting and palette wherever
+  this description does not change them"). Repaints stay edits of the same reference.
 - **a change to the whole look** (light, time of day, overall colour) keeps the idea and paints the
   revised brief fresh: an edit holds the original's tones, so a night sky came back mid-blue and
   "warmer light" came back unchanged (Phase 5 refine experiment, CHANGELOG).
@@ -627,7 +628,8 @@ Persist per event:
   or a change to part of a card or to its whole look) and, for a change, the design it was made
   from (`changedFrom`);
 - every artwork asset in Supabase Storage, with its proportion, the shapes it fits, image model,
-  art-prompt version, whether it shows the milestone number (§2.7), and per fitted shape its
+  art-prompt version, the milestone number it shows if any (kind and value, fixed with the artwork,
+  §2.7), and per fitted shape its
   resolved ink and the starting text's vertical shift (an older design: its ink and any stored
   legibility panel). A design has its original
   artwork plus one more for each shape the host switched to that no existing artwork fits (§7);

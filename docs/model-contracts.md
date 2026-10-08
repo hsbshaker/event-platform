@@ -318,8 +318,9 @@ GenerateCardDesignInput {
   suggestedRendering?: Rendering                // drawn at random, see below; none when hostConcept is "own"
   feedback?: string                            // optional "Try another direction" feedback
   changing?: {                                  // with feedback: the card the host is changing
-    name, shape, layout, artMode, primary, wording: { title, invitationLine }, artBrief
-  }
+    name, shape, layout, artMode, primary, wording: { title, invitationLine }, artBrief,
+    milestoneNumber?                            // its { treatment } when it draws the number: a
+  }                                             // change to part of the card keeps it unless asked
   reprompt?: { kind: "schema" | "wording" | "repeat-direction" | "provider-refusal"; feedback: string }
 }
 ```
@@ -516,7 +517,11 @@ photograph — the artwork may itself be one when the rendering says so.
 ## 7.2 Input and output
 
 ```ts
-GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape; reference?; revision? }
+GenerateCardArtInput { artBrief; artMode: ArtMode; layout: CardLayoutId; shape: CardShape; reference?; revision?;
+                       milestoneNumber? }
+// milestoneNumber = { digits, treatment }, code-owned: the event's number and the design's
+// treatment, present only for an image that should show it (absent for the image without it and
+// for a repaint after it); the art prompt's number line is built from it (spec.md §7.6c)
 // proportion derived from shape; reference = the event's own generated artwork: the design's own
 // earlier artwork on a shape switch, or the changed card's artwork on a change to part of a card
 // (revision: true frames the prompt as a revision of the reference)
@@ -591,8 +596,9 @@ miss gets one last image from the same brief without the number line, which must
 no-text check — if it fails validation, that is the visible failure with a retry — and the card
 ships with no number, never a typeset one. A wrong or missing number is never itself a visible
 failure, and any other validation failure keeps its one regeneration. Such an artwork may use up to
-three extra images in all; the space repaint comes last, keeps the number line while the number is
-drawn, is checked the same way, and is skipped when no image is left. New artwork for a shape
+three extra images in all; the space repaint comes last, is checked the same way, and is skipped
+when no image is left; it keeps the number line only while the number is still drawn, and after the
+image without the number it omits the number too. New artwork for a shape
 switch never falls back to no number: a second miss fails the switch visibly with a retry (owner
 decision, 2026-10-08).
 

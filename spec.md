@@ -797,21 +797,23 @@ candles on the cake, "2027" in gold glitter. It is the one exception to §7.6a r
   or missing number is never itself a visible failure: it earns one regeneration with the number,
   then one image without it, and the card ships with no number. Any other validation failure keeps
   its one regeneration, and an image without the number that fails validation is the visible
-  failure with a retry. The space repaint (§7.8) comes last, keeps the number line while the number
-  is drawn, and is skipped when no image is left. The fallback is always no number, never a
-  typeset one.
+  failure with a retry. The space repaint (§7.8) comes last and is skipped when no image is left; it
+  keeps the number line only while the number is still drawn, and after the image without the number
+  it omits the number too. The fallback is always no number, never a typeset one.
 - **Shape switches.** New artwork for another shape of a design that draws the number must show it
   too. A miss earns the number's regeneration within the budget, and if that misses as well, the
   switch fails visibly with a retry: no shape of such a design ever shows the card without its
   number (owner decision, 2026-10-08).
-- **When the number changes.** The host cannot edit the artwork, so when they change the number in
-  the details form while the active card shows it, Creation Mode offers `Update the number on the
-  card`: a change to part of the card through `Try another direction`, repainting the number as an
-  edit of the current artwork. It is the one case where changing a detail offers a design change,
-  and only the host starts it; the card never changes by itself. This is before publish only: after
-  publish no new artwork is made (§8.2, with no exception for the number), so the host may still
-  change the number in the details, and the form notes that the card keeps the number its artwork
-  shows (owner decisions, 2026-10-08).
+- **When the number changes.** Each artwork records the number it shows, so a card is never taken to
+  show a number it does not. The host cannot edit the artwork, so whenever the active card's artwork
+  shows a number other than the event's — the host changed it in the details form, or chose a design
+  drawn before the change — Creation Mode offers `Update the number on the card`: a change to part
+  of the card through `Try another direction`, repainting the number as an edit of the current
+  artwork. It is the one case where changing a detail offers a design change, and only the host
+  starts it; the card never changes by itself. This is before publish only: after publish no new
+  artwork is made (§8.2, with no exception for the number), so the host may still change the number
+  in the details, and the form notes that the card keeps the number its artwork shows (owner
+  decisions, 2026-10-08).
 - **Not text on the card.** The number belongs to the artwork: it is not a text box and cannot be
   moved or restyled in the card editor (§20). Model-drafted wording still never states it (§7.7); a
   host's own title may ("The Notorious ONE"). The artwork stays decorative to screen readers, so the
@@ -858,8 +860,9 @@ direction` makes one new design. When the host says what to change, the design s
 request (owner decisions, 2026-10-05):
 
 - **A change to part of the card** ("add a little dinosaur", "pink flowers instead of peach") keeps
-  the card — its idea, subject, rendering, layout, shape, art mode, font pairing, title and
-  invitation line, unless the request names one of them — and changes only what was asked. Its
+  the card — its idea, subject, rendering, layout, shape, art mode, font pairing, title,
+  invitation line and milestone number, unless the request names one of them — and changes only
+  what was asked. Its
   artwork is an edit of the card's current artwork, so everything the host did not ask to change
   stays where it was (§7.6a, §7.8).
 - **A change to the whole look** — the light, the time of day, the overall colour ("make it a
@@ -917,11 +920,12 @@ that the artwork has no workable space: people judge that on the raw artwork and
 as an unresolved generation case. An artwork gets at most **two extra images** in all: its one
 validation regeneration, if it needed one, and that repaint share the budget. An artwork whose
 design draws the milestone number gets **three**, spent as §7.6c sets out: the number's own
-regeneration and the image without it come before the repaint, which keeps the number line and is
-checked for it the same way, and is skipped when no image is left. A repaint that fails validation is dropped (it still uses one image); a valid
-card already exists, so a repaint never causes a visible failure. Only the artwork the card shows is
-persisted as the design's artwork; the other images are metered (§9.6) and not kept. A repaint costs
-about 6¢ and adds about 30 s to the cards that need it.
+regeneration and the image without it come before the repaint, which keeps the number line only
+while the number is still drawn (after the image without it, the repaint omits it too), is checked
+the same way, and is skipped when no image is left. A repaint that fails validation is dropped (it
+still uses one image); a valid card already exists, so a repaint never causes a visible failure.
+Only the artwork the card shows is persisted as the design's artwork; the other images are metered
+(§9.6) and not kept. A repaint costs about 6¢ and adds about 30 s to the cards that need it.
 
 ### 7.9 Card compilation
 
@@ -2223,7 +2227,8 @@ CardArtAsset {
   storageKey, mimeType, width, height, sizeBytes,
   ink /* per fitted shape, per zone: { ink, shift? } (designs before 2026-10-07: { ink, panel?, panelColor? }) */,
   imageModel, artPromptVersion,
-  showsMilestoneNumber,          // whether this artwork shows the event's number (§7.6c)
+  milestoneNumber? /* { kind, value }: the number this artwork shows, absent when none; it never
+                      changes with the event's (§7.6c) */,
   createdAt
 }
 
@@ -2763,8 +2768,8 @@ The host should feel:
 - [ ] Available from the reveal and Creation Mode before publish.
 - [ ] Feedback and new inspiration are optional.
 - [ ] A request to change part of the card returns the same card with that change: idea, layout,
-  shape, art mode, pairing and wording kept unless the request names them, and the artwork an edit
-  of the card's current artwork (§7.7).
+  shape, art mode, pairing, wording and milestone number kept unless the request names them, and the
+  artwork an edit of the card's current artwork (§7.7).
 - [ ] A request to change the whole light or colour keeps the idea and repaints the artwork; an
   empty box or a request for something new yields a genuinely different idea (§7.7).
 - [ ] The host's words never reach the image model; the design writes the change into the brief.
